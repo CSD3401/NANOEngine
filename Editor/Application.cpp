@@ -1,4 +1,6 @@
 #include "Application.hpp"
+#define GLFW_DLL
+#include "GLFW/glfw3.h"
 #include "Core/Logger.hpp"
 #include "src/ImGuiLayer.hpp"
 #include "src/EditorLayer.hpp"
@@ -13,40 +15,59 @@ namespace Editor {
 	void Application::Init() {
 		timer.Start();
 
-		NANOEngine::Graphics::RenderAPI api = NANOEngine::Graphics::RenderAPI::OpenGL;
+		//NANOEngine::Graphics::RenderAPI api = NANOEngine::Graphics::RenderAPI::OpenGL;
 
-		NANOEngine::Graphics::WindowProperties props;
-		props.title = "NANOEngine";
-		props.width = 1920;
-		props.height = 1080;
-		props.fullscreen = false;
-		props.setHints = [api]() {
-			switch (api) {
-			case NANOEngine::Graphics::RenderAPI::OpenGL:
-				glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-				glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-				glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-				//glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-				break;
-			case NANOEngine::Graphics::RenderAPI::Vulkan:
-				glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-				break;
-			}
-		};
+		//NANOEngine::Graphics::WindowProperties props;
+		//props.title = "NANOEngine";
+		//props.width = 1920;
+		//props.height = 1080;
+		//props.fullscreen = false;
+		//props.setHints = [api]() {
+		//	switch (api) {
+		//	case NANOEngine::Graphics::RenderAPI::OpenGL:
+		//		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		//		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+		//		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		//		//glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+		//		break;
+		//	case NANOEngine::Graphics::RenderAPI::Vulkan:
+		//		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		//		break;
+		//	}
+		//};
 
-		m_appWindow = std::make_unique<NANOEngine::Graphics::Window>(props);
+		if (!glfwInit()) {
+			LOG_CRITICAL("Failed to initialize GLFW");
+			return;
+		}
+
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+		m_nativeWindow = glfwCreateWindow(1280, 720, "My Editor", nullptr, nullptr);
+
+		if (!m_nativeWindow) {
+			LOG_CRITICAL("Failed to create window");
+			glfwTerminate();
+			return;
+		}
+		glfwMakeContextCurrent(m_nativeWindow);
+
+		m_appWindow = std::make_unique<NANOEngine::Graphics::Window>();
+		m_appWindow->Init(m_nativeWindow);
 
 		m_renderContext = std::make_unique<NANOEngine::Graphics::OpenGL::GLContext>();
-		m_renderContext->Init(m_appWindow->GetWindowHandle());
+		m_renderContext->Init(m_nativeWindow);
 
-		printf("OpenGL %s\n", glGetString(GL_VERSION));
-
-		InitImGui(m_appWindow->GetWindowHandle());
+		InitImGui(m_nativeWindow);
 	}
 
 	void Application::Run()
 	{
-		while (isRunning) {
+		while (!glfwWindowShouldClose(m_nativeWindow)) {
+			glfwPollEvents();
 			timer.Update();
 			
 			// Start new ImGui frame
@@ -70,7 +91,7 @@ namespace Editor {
 			}
 
 
-			m_renderContext->SwapBuffers();
+			//m_renderContext->SwapBuffers();
 			//m_appWindow->SwapBuffers();
 		}
 	}
@@ -78,6 +99,9 @@ namespace Editor {
 	void Application::Exit()
 	{
 		ShutdownImGui();
+
+		glfwDestroyWindow(m_nativeWindow);
+		glfwTerminate();
 	}
 }
 

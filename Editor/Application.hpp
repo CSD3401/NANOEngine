@@ -17,6 +17,8 @@ namespace Editor {
 
 		std::unique_ptr<NANOEngine::Graphics::Window> m_appWindow;
 		std::unique_ptr<NANOEngine::Graphics::IRenderContext> m_renderContext;
+
+		GLFWwindow* m_nativeWindow;
 	};
 }
 

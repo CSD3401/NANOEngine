@@ -8,20 +8,20 @@ namespace Editor {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-        //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
         ImGui::StyleColorsDark();
 
-        //if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        //    ImGuiStyle& style = ImGui::GetStyle();
-        //    style.WindowRounding = 0.0f;
-        //    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        //}
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            ImGuiStyle& style = ImGui::GetStyle();
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        }
         
         ImGui_ImplGlfw_InitForOpenGL(window, false);
-        ImGui_ImplOpenGL3_Init("#version 430");
+        ImGui_ImplOpenGL3_Init("#version 460");
     }
 
     void ShutdownImGui() {
