@@ -19,9 +19,37 @@ namespace Editor {
             style.WindowRounding = 0.0f;
             style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
+
+        //ImGui::GetStyle().TabRounding = 2.0f; // No corner rounding
+        //ImGui::GetStyle().TabBorderSize = 0.0f; // No tab border
+        //ImGui::GetStyle().FramePadding = ImVec2(4.0f, 2.0f); // Less vertical padding
+        //ImGui::GetStyle().ItemSpacing = ImVec2(4.0f, 4.0f); // Less space between items
+        ////ImGui::GetStyle().TabBarPadding = ImVec2(0, 0);
+        //ImGui::GetStyle().Colors[ImGuiCol_Tab] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);       // Dark gray
+        //ImGui::GetStyle().Colors[ImGuiCol_TabActive] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);  // Pure black when active
+        //ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f); // Slightly lighter when hovered
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.TabRounding = 0.0f;                         // Remove round corners
+        style.TabBorderSize = 0.0f;                       // Remove tab outline
+        style.ItemInnerSpacing = ImVec2(6, 4);            // Reduce spacing between label and close button
+        style.FramePadding = ImVec2(4, 2);                // Shrink tab vertical height
+
+        style.Colors[ImGuiCol_Tab] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);        // Inactive tab
+        style.Colors[ImGuiCol_TabHovered] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f); // Hovered tab
+        style.Colors[ImGuiCol_TabActive] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);  // Active tab (black)
+        style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+        style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+        style.WindowMenuButtonPosition = ImGuiDir_None;
+
+        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);     // Dark menu bar
+        style.Colors[ImGuiCol_Header] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);     // Hover background
+        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f); // Lighter on hover
+        style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);  // Clicked
+
+
         
-        ImGui_ImplGlfw_InitForOpenGL(window, false);
-        ImGui_ImplOpenGL3_Init("#version 460");
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init("#version 430");
     }
 
     void ShutdownImGui() {

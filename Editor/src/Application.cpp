@@ -2,11 +2,18 @@
 #define GLFW_DLL
 #include "GLFW/glfw3.h"
 #include "Core/Logger.hpp"
-#include "src/ImGuiLayer.hpp"
-#include "src/EditorLayer.hpp"
+#include "ImGuiLayer.hpp"
+#include "EditorLayer.hpp"
 #include "Graphics/OpenGL/GLContext.hpp"
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_glfw.h>
+#include <Engine.hpp>
+
+#include "Panels/AssetBrowserPanel.hpp"
+#include "Panels/ScenePanel.hpp"
+#include "Panels/HierarchyPanel.hpp"
+#include "Panels/InspectorPanel.hpp"
+#include "Panels/GamePanel.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -36,32 +43,17 @@ namespace Editor {
 		//	}
 		//};
 
-		if (!glfwInit()) {
-			LOG_CRITICAL("Failed to initialize GLFW");
-			return;
-		}
+		NANOEngine::Initialize();
 
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-		m_nativeWindow = glfwCreateWindow(1280, 720, "My Editor", nullptr, nullptr);
-
-		if (!m_nativeWindow) {
-			LOG_CRITICAL("Failed to create window");
-			glfwTerminate();
-			return;
-		}
-		glfwMakeContextCurrent(m_nativeWindow);
-
-		m_appWindow = std::make_unique<NANOEngine::Graphics::Window>();
-		m_appWindow->Init(m_nativeWindow);
-
-		m_renderContext = std::make_unique<NANOEngine::Graphics::OpenGL::GLContext>();
-		m_renderContext->Init(m_nativeWindow);
+		m_nativeWindow = static_cast<GLFWwindow*>(NANOEngine::GetNativeWindowHandle());
 
 		InitImGui(m_nativeWindow);
+
+		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
+		editorLayer.AddPanel<ScenePanel>();
+		editorLayer.AddPanel<GamePanel>();
+		editorLayer.AddPanel<HierarchyPanel>();
+		editorLayer.AddPanel<InspectorPanel>();
 	}
 
 	void Application::Run()
@@ -70,15 +62,12 @@ namespace Editor {
 			glfwPollEvents();
 			timer.Update();
 			
-			// Start new ImGui frame
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
-			// Render ImGui content
 			editorLayer.OnImGuiRender();
 
-			// End frame and render
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -90,9 +79,7 @@ namespace Editor {
 				glfwMakeContextCurrent(backup_context);
 			}
 
-
-			//m_renderContext->SwapBuffers();
-			//m_appWindow->SwapBuffers();
+			glfwSwapBuffers(m_nativeWindow);
 		}
 	}
 

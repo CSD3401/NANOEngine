@@ -1,11 +1,11 @@
 #pragma once
-#include "../../NANOEngineAPI.hpp"
+
 #include "../IRenderContext.hpp"
 
 struct GLFWwindow;
 
 namespace NANOEngine::Graphics::OpenGL {
-	class NANOENGINE_API GLContext final : public IRenderContext {
+	class GLContext final : public IRenderContext {
 	public:
 		bool Init(void* windowHandle) override;
 		void Shutdown() override;

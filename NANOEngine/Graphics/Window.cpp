@@ -1,5 +1,5 @@
 //#include "Window.hpp"
-//#include "../Core/Logger.hpp"
+
 //
 //namespace NANOEngine::Graphics {
 //
@@ -50,54 +50,74 @@
 #define GLFW_DLL
 #include <GLFW/glfw3.h>
 
+#include "../Core/Logger.hpp"
+
 namespace NANOEngine::Graphics {
 
-    Window::Window()
-        : m_WindowHandle(nullptr), m_Width(0), m_Height(0), m_VSync(true)
+    Window::Window(const WindowProperties& props)
+        : m_WindowHandle(nullptr), m_Width(props.Width), m_Height(props.Height), m_VSync(props.VSync)
     {
+        Init(props);
     }
 
-    Window::~Window()
-    {
+    Window::~Window() {
         Shutdown();
     }
 
-    bool Window::Init(GLFWwindow* windowHandle)
-    {
-        m_WindowHandle = windowHandle;
-        if (!m_WindowHandle)
-            return false;
+    void Window::Init(const WindowProperties& props) {
+        if (!glfwInit()) {
+            LOG_CRITICAL("Failed to initialize GLFW");
+            return;
+        }
 
-        // Get initial size
-        glfwGetWindowSize(m_WindowHandle, &m_Width, &m_Height);
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-        return true;
+        m_WindowHandle = glfwCreateWindow(
+            props.Width, props.Height, props.Title, nullptr, nullptr
+        );
+
+        if (!m_WindowHandle) {
+            LOG_CRITICAL("Failed to create window");
+            glfwTerminate();
+            return;
+        }
+
+        glfwMakeContextCurrent(m_WindowHandle);
+
+        glfwSwapInterval(m_VSync ? 1 : 0);
     }
 
-    void Window::Shutdown()
-    {
-        m_WindowHandle = nullptr; // EXE will handle actual window destroy
+    void Window::Shutdown() {
+        if (m_WindowHandle) {
+            glfwDestroyWindow(m_WindowHandle);
+            glfwTerminate();
+            m_WindowHandle = nullptr;
+        }
     }
 
-    void Window::PollEvents()
-    {
+    void Window::PollEvents() {
         glfwPollEvents();
     }
 
-    void Window::SwapBuffers()
-    {
+    void Window::SwapBuffers() {
         glfwSwapBuffers(m_WindowHandle);
     }
 
-    void Window::SetVSync(bool enabled)
-    {
+    void Window::SetVSync(bool enabled) {
         m_VSync = enabled;
         glfwSwapInterval(m_VSync ? 1 : 0);
     }
 
-    bool Window::IsVSync() const
-    {
+    bool Window::IsVSync() const {
         return m_VSync;
+    }
+
+    void* Window::GetNativeWindow() const {
+        return static_cast<void*>(m_WindowHandle);
     }
 
 }

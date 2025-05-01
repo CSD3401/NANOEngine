@@ -21,16 +21,26 @@
   <ItemGroup>
     <ClInclude Include="Core\Logger.hpp" />
     <ClInclude Include="Core\Timer.hpp" />
+    <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLPipeline.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLCommandBuffer.hpp" />
+    <ClInclude Include="Graphics\ICommandBuffer.hpp" />
+    <ClInclude Include="Graphics\IPipeline.hpp" />
     <ClInclude Include="Graphics\OpenGL\GLContext.hpp" />
     <ClInclude Include="Graphics\IRenderContext.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLUtilities.hpp" />
     <ClInclude Include="Graphics\Vulkan\VkContext.hpp" />
     <ClInclude Include="Graphics\Window.hpp" />
     <ClInclude Include="NANOEngineAPI.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Timer.cpp" />
+    <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLPipeline.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLCommandBuffer.cpp" />
     <ClCompile Include="Graphics\OpenGL\glad.c" />
     <ClCompile Include="Graphics\OpenGL\GLContext.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLUtilities.cpp" />
     <ClCompile Include="Graphics\Window.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

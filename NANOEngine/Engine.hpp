@@ -1,8 +1,9 @@
 #pragma once
 
+#include "NANOEngineAPI.hpp"
 
 namespace NANOEngine {
-	void Initialize();
-	void Shutdown();
-	void* GetNativeWindowHandle();
+	NANOENGINE_API void Initialize();
+	NANOENGINE_API void Shutdown();
+	NANOENGINE_API void* GetNativeWindowHandle();
 }

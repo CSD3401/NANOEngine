@@ -5,7 +5,7 @@
 namespace NANOEngine::Graphics {
 	enum class RenderAPI { OpenGL, Vulkan };
 
-	class NANOENGINE_API IRenderContext {
+	class IRenderContext {
 	public:
 		virtual ~IRenderContext() = default;
 		virtual bool Init(void* windowHandle) = 0;
