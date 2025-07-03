@@ -1,9 +1,24 @@
 #include "CommandHistory.hpp"
 
+#include <memory>
+
+#include "src/Events/EventBus.hpp"
+#include "EditorCommands.hpp"
+#include "../EditorEvents.hpp"
+
 namespace Editor {
     CommandHistory& CommandHistory::GetInstance() {
         static CommandHistory instance;
         return instance;
+    }
+
+    CommandHistory::CommandHistory() {
+        NANOEngine::Events::EventBus::Get().Subscribe<CreateEntityEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const CreateEntityEvent&) {
+                ExecuteCommand(std::make_unique<CreateEntityCommand>());
+            }
+        );
     }
 
     void CommandHistory::ExecuteCommand(std::unique_ptr<ICommand> command) {

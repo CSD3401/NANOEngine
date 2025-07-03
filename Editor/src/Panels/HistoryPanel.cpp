@@ -7,7 +7,6 @@ namespace Editor {
 
         auto& history = CommandHistory::GetInstance();
 
-        // Undo List
         ImGui::Text("Undo Stack:");
         const auto& undo = history.GetUndoList();
         if (undo.empty()) {
@@ -18,7 +17,6 @@ namespace Editor {
             }
         }
 
-        // Redo List
         ImGui::Separator();
         ImGui::Text("Redo Stack:");
         const auto& redo = history.GetRedoList();

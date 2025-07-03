@@ -19,7 +19,7 @@ namespace Editor {
         std::vector<std::unique_ptr<ICommand>>& GetRedoList();
 
     private:
-        CommandHistory() = default;
+        CommandHistory();
         ~CommandHistory() = default;
 
         std::vector<std::unique_ptr<ICommand>> m_undoList;

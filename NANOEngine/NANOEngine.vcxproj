@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="ECSInternals.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
+    <ClInclude Include="src\Events\EventBus.hpp" />
     <ClInclude Include="src\SceneManagement\Scene.hpp" />
     <ClInclude Include="src\SceneManagement\SceneManager.hpp" />
     <ClInclude Include="src\ECS\Core\ECSCoordinator.hpp" />
@@ -78,6 +79,7 @@
     <ClCompile Include="Core\Timer.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="src\ECS\Systems\RenderSystem.cpp" />
+    <ClCompile Include="src\Events\EventBus.cpp" />
     <ClCompile Include="src\SceneManagement\Scene.cpp" />
     <ClCompile Include="src\SceneManagement\SceneManager.cpp" />
     <ClCompile Include="src\ECS\Core\ECSCoordinator.cpp" />

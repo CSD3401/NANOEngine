@@ -4,11 +4,7 @@
 
 namespace Editor {
 
-	CreateEntityCommand::CreateEntityCommand(uint32_t* entity)
-	{
-		
-		*entity = m_entity;
-	}
+	CreateEntityCommand::CreateEntityCommand() : m_entity(0) {}
 
 	void CreateEntityCommand::Execute()
 	{

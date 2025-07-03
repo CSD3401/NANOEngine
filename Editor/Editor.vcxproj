@@ -170,6 +170,7 @@
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\EditorEvents.hpp" />
     <ClInclude Include="src\Panels\HistoryPanel.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />
     <ClInclude Include="src\Command\CommandHistory.hpp" />

@@ -3,6 +3,8 @@
 #include "../Command/CommandHistory.hpp"
 #include "../Command/EditorCommands.hpp"
 #include "../EditorScene.hpp"
+#include "src/Events/EventBus.hpp"
+#include "../EditorEvents.hpp"
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
@@ -23,10 +25,7 @@ namespace Editor {
 
         if (ImGui::BeginPopupContextWindow("HierarchyContextMenu")) {
             if (ImGui::MenuItem("Create Entity")) {
-                //CreateEntity();
-                uint32_t entt{};
-                CommandHistory::GetInstance().ExecuteCommand(std::make_unique<CreateEntityCommand>(&entt));
-                
+                NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
             }
             if (ImGui::MenuItem("Create Camera")) {
                 //CreateCameraEntity();

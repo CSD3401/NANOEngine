@@ -19,8 +19,6 @@ namespace NANOEngine::SceneManagement {
 
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
-		//std::unique_ptr<ECS::Systems::TransformSystem> m_transformSystem;
-		//std::unique_ptr<ECS::Systems::RenderSystem> m_renderSystem;
 	};
 
 }

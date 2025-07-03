@@ -152,5 +152,8 @@
     <ClInclude Include="src\Panels\HistoryPanel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\EditorEvents.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

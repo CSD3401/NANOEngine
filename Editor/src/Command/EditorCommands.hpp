@@ -28,7 +28,7 @@ namespace Editor {
 
     class CreateEntityCommand final : public ICommand {
     public:
-        CreateEntityCommand(uint32_t* entity);
+        CreateEntityCommand();
 
         void Execute() override;
         void Undo() override;
@@ -36,7 +36,6 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
-
     };
 
 }

@@ -3,6 +3,7 @@
 
 namespace Editor {
 	InspectorPanel::InspectorPanel() {
+
 	}
 
 	void InspectorPanel::OnImGuiRender()
