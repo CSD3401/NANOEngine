@@ -5,14 +5,14 @@
 #include <filesystem>
 
 typedef unsigned int GLuint;
-
+// testing stuff not final
 namespace Editor {
     class ThumbnailManager {
     public:
         ThumbnailManager();
         ~ThumbnailManager();
 
-        // Call this ONCE during your Editor startup
+        // Call this ONCE during Editor startup
         void Init();
 
         // Call this ONCE during Editor shutdown

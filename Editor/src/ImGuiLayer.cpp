@@ -20,6 +20,9 @@ namespace Editor {
             style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
 
+        // testing of visuals of imgui (not final)
+        // 
+        // 
         //ImGui::GetStyle().TabRounding = 2.0f; // No corner rounding
         //ImGui::GetStyle().TabBorderSize = 0.0f; // No tab border
         //ImGui::GetStyle().FramePadding = ImVec2(4.0f, 2.0f); // Less vertical padding

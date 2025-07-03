@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../IRenderContext.hpp"
+#include "../Interfaces/IRenderContext.hpp"
 
 struct GLFWwindow;
 

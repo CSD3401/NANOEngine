@@ -1,21 +1,19 @@
 #pragma once
 
-#include "../IPipeline.hpp"
+#include "../Interfaces/IPipeline.hpp"
 
 namespace NANOEngine::Graphics::OpenGL {
 
     class GLPipeline final : public IPipeline {
     public:
-        GLPipeline(const GraphicsPipelineDesc& desc);
-        ~GLPipeline();
+        GLPipeline(const PipelineSpecification& spec);
+        ~GLPipeline() = default;
 
-        void Bind() override;
+        void Bind() const override;
+        const PipelineSpecification& GetSpecification() const override { return m_Spec; }
 
     private:
-        unsigned int m_ProgramID; // OpenGL shader program
-
-        unsigned int LoadShaderProgram(const char* vertexPath, const char* fragmentPath);
-        unsigned int CompileShader(unsigned int type, const char* source);
+        PipelineSpecification m_Spec;
     };
 
 }

@@ -49,33 +49,33 @@ namespace Editor {
 
 
         // Popup utils
-        if (m_RenamePopupOpen) {
-            ImGui::OpenPopup("Rename Asset");
-            m_RenamePopupOpen = false;
-        }
-        if (ImGui::BeginPopupModal("Rename Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::InputText("##NewName", m_RenameBuffer, sizeof(m_RenameBuffer));
+        //if (m_renamePopupOpen) {
+        //    ImGui::OpenPopup("Rename Asset");
+        //    m_renamePopupOpen = false;
+        //}
+        //if (ImGui::BeginPopupModal("Rename Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        //    ImGui::InputText("##NewName", m_renameBuffer, sizeof(m_renameBuffer));
 
-            if (ImGui::Button("Rename")) {
-                std::filesystem::path newPath = m_SelectedPath.parent_path() / m_RenameBuffer;
-                std::error_code ec;
-                std::filesystem::rename(m_SelectedPath, newPath, ec);
-                if (!ec) {
-                    m_SelectedPath.clear();
-                }
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Cancel")) {
-                ImGui::CloseCurrentPopup();
-            }
+        //    if (ImGui::Button("Rename")) {
+        //        std::filesystem::path newPath = m_selectedPath.parent_path() / m_renameBuffer;
+        //        std::error_code ec;
+        //        std::filesystem::rename(m_selectedPath, newPath, ec);
+        //        if (!ec) {
+        //            m_selectedPath.clear();
+        //        }
+        //        ImGui::CloseCurrentPopup();
+        //    }
+        //    ImGui::SameLine();
+        //    if (ImGui::Button("Cancel")) {
+        //        ImGui::CloseCurrentPopup();
+        //    }
 
-            ImGui::EndPopup();
-        }
+        //    ImGui::EndPopup();
+        //}
 
-        if (m_ConfirmDeletePopupOpen) {
+        if (m_confirmDeletePopupOpen) {
             ImGui::OpenPopup("Confirm Delete");
-            m_ConfirmDeletePopupOpen = false;
+            m_confirmDeletePopupOpen = false;
         }
         if (ImGui::BeginPopupModal("Confirm Delete", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::Text("Are you sure you want to delete this file/folder?");
@@ -83,12 +83,12 @@ namespace Editor {
 
             if (ImGui::Button("Delete")) {
                 std::error_code ec;
-                if (std::filesystem::is_directory(m_SelectedPath))
-                    std::filesystem::remove_all(m_SelectedPath, ec);
+                if (std::filesystem::is_directory(m_selectedPath))
+                    std::filesystem::remove_all(m_selectedPath, ec);
                 else
-                    std::filesystem::remove(m_SelectedPath, ec);
+                    std::filesystem::remove(m_selectedPath, ec);
 
-                m_SelectedPath.clear();
+                m_selectedPath.clear();
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SameLine();
@@ -214,13 +214,14 @@ namespace Editor {
 
             GLuint iconTexture = entry.is_directory() ? m_thumbnailManager.m_DirectoryIcon : m_thumbnailManager.m_FileIcon;
 
-            // --- New part using ImGui::Image() ---
+            // Draw icon button
             ImGui::ImageButton("##btn",
                 (ImTextureID)(intptr_t)iconTexture,
                 ImVec2(thumbnailSize, thumbnailSize),
-                ImVec2(1, 0), ImVec2(0, 1) // Flip UV if needed
+                ImVec2(1, 0), ImVec2(0, 1)
             );
 
+            // Handle double click and right click
             if (ImGui::IsItemHovered()) {
                 if (ImGui::IsMouseDoubleClicked(0)) {
                     if (entry.is_directory())
@@ -230,33 +231,65 @@ namespace Editor {
                     }
                 }
                 else if (ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
-                    m_SelectedPath = entry.path();
-                    m_ClickedOnItem = true;
+                    m_selectedPath = entry.path();
+                    m_clickedOnItem = true;
                     ImGui::OpenPopup("AssetContextMenu");
                 }
             }
 
-            ImGui::TextWrapped(name.c_str());
+            // Renaming
+            if (m_isRenaming && m_renamingPath == entry.path()) {
+                ImGui::SetNextItemWidth(thumbnailSize * 1.5f);
+                ImGui::SetKeyboardFocusHere();
+
+                if (ImGui::InputText("##RenameInput", m_renameBuffer, sizeof(m_renameBuffer),
+                    ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
+                    
+                    std::filesystem::path newPath = entry.path().parent_path() / m_renameBuffer;
+                    std::error_code ec;
+                    std::filesystem::rename(entry.path(), newPath, ec);
+                    m_isRenaming = false;
+                }
+
+                // Cancel if clicked away or lost focus
+                if (!ImGui::IsItemActive() && (ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(1))) {
+                    m_isRenaming = false;
+                }
+            }
+            else {
+                ImGui::TextWrapped("%s", name.c_str());
+
+                if (m_triggerRenameNextFrame && m_selectedPath == entry.path()) {
+                    m_isRenaming = true;
+                    m_renamingPath = entry.path();
+                    m_triggerRenameNextFrame = false;
+                    strncpy_s(m_renameBuffer, name.c_str(), sizeof(m_renameBuffer));
+                }
+            }
 
             ImGui::NextColumn();
             ImGui::PopID();
         }
 
         ImGui::Columns(1);
+
+        if (m_triggerRenameNextFrame) {
+            m_triggerRenameNextFrame = false;
+        }
     }
 
     void AssetBrowserPanel::RenderPopups() {
         if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
             if (!ImGui::IsAnyItemHovered()) {
-                m_SelectedPath.clear();
-                m_ClickedOnItem = false;
+                m_selectedPath.clear();
+                m_clickedOnItem = false;
                 ImGui::OpenPopup("AssetContextMenu");
             }
         }
 
         if (ImGui::BeginPopupContextWindow("AssetContextMenu")) {
             if (ImGui::MenuItem("Create New Folder")) {
-                //CreateNewFolder();
+                CreateNewFolder();
             }
 
             if (ImGui::MenuItem("Create New Scene")) {
@@ -265,18 +298,18 @@ namespace Editor {
 
             ImGui::Separator();
 
-            if (m_ClickedOnItem) {
+            if (m_clickedOnItem) {
                 if (ImGui::MenuItem("Rename")) {
-                    m_RenamePopupOpen = true;
-                    memset(m_RenameBuffer, 0, sizeof(m_RenameBuffer));
-                    std::string currentName = m_SelectedPath.filename().string();
-                    strncpy_s(m_RenameBuffer, currentName.c_str(), sizeof(m_RenameBuffer));
+                    m_triggerRenameNextFrame = true;
+                    m_renamingPath = m_selectedPath;
+                    strncpy_s(m_renameBuffer, m_selectedPath.filename().string().c_str(), sizeof(m_renameBuffer));
                 }
 
                 if (ImGui::MenuItem("Delete")) {
-                    m_ConfirmDeletePopupOpen = true;
+                    m_confirmDeletePopupOpen = true;
                 }
-            } else {
+            }
+            else {
                 ImGui::BeginDisabled();
                 ImGui::MenuItem("Rename");
                 ImGui::MenuItem("Delete");
@@ -286,19 +319,29 @@ namespace Editor {
             ImGui::Separator();
 
             if (ImGui::MenuItem("Open in File Explorer")) {
-               OpenDirectoryInFileExplorer(m_currentDirectory.relative_path().string());
+                OpenDirectoryInFileExplorer(m_currentDirectory.relative_path().string());
             }
 
             ImGui::EndPopup();
         }
-
-
     }
 
     void AssetBrowserPanel::OpenDirectoryInFileExplorer(const std::string& directoryPath) {
         std::filesystem::path fullPath = std::filesystem::absolute(directoryPath);
         std::string command = "explorer \"" + fullPath.string() + "\"";
         std::system(command.c_str());
+    }
+
+    void AssetBrowserPanel::CreateNewFolder() {
+        std::filesystem::path newFolderPath = m_currentDirectory / "New Folder";
+
+        int counter = 1;
+        while (std::filesystem::exists(newFolderPath)) {
+            newFolderPath = m_currentDirectory / ("New Folder (" + std::to_string(counter) + ")");
+            counter++;
+        }
+
+        std::filesystem::create_directory(newFolderPath);
     }
 }
 

@@ -1,9 +1,16 @@
 #pragma once
 
+#include <cstdint>
 #include "NANOEngineAPI.hpp"
 
 namespace NANOEngine {
 	NANOENGINE_API void Initialize();
+	NANOENGINE_API void Run(double dt);
 	NANOENGINE_API void Shutdown();
+
 	NANOENGINE_API void* GetNativeWindowHandle();
+	NANOENGINE_API bool WindowShouldClose();
+	NANOENGINE_API uint32_t GetSceneFrameBuffer();
+	NANOENGINE_API void SetEditorCamera(void* camera);
+
 }

@@ -1,22 +1,25 @@
 #include "GLCommandBuffer.hpp"
 #include <glad/glad.h>
+#include "GLPipeline.hpp"
+#include "GLVertexBuffer.hpp"
+#include "GLIndexBuffer.hpp"
 
 namespace NANOEngine::Graphics::OpenGL {
 
     GLCommandBuffer::GLCommandBuffer() {
-        // Constructor if needed
+
     }
 
     GLCommandBuffer::~GLCommandBuffer() {
-        // Destructor if needed
+
     }
 
     void GLCommandBuffer::Begin() {
-        // In OpenGL, not much to do
+        // Empty for OpenGL
     }
 
     void GLCommandBuffer::End() {
-        // In OpenGL, not much to do
+        // Empty for OpenGL
     }
 
     void GLCommandBuffer::BeginRenderPass() {
@@ -29,17 +32,20 @@ namespace NANOEngine::Graphics::OpenGL {
         // glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void GLCommandBuffer::BindPipeline() {
+    void GLCommandBuffer::BindPipeline(std::shared_ptr<IPipeline> pipeline) {
         // glUseProgram(programID);
+        pipeline->Bind();
     }
 
-    void GLCommandBuffer::BindVertexBuffer() {
+    void GLCommandBuffer::BindVertexBuffer(const std::shared_ptr<IVertexBuffer>& vertexBuffer) {
         // glBindBuffer(GL_ARRAY_BUFFER, vboID);
         // glVertexAttribPointer(...);
+        vertexBuffer->Bind();
     }
 
-    void GLCommandBuffer::BindIndexBuffer() {
+    void GLCommandBuffer::BindIndexBuffer(const std::shared_ptr<IIndexBuffer>& indexBuffer) {
         // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
+        indexBuffer->Bind();
     }
 
     void GLCommandBuffer::BindDescriptorSet() {

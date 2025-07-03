@@ -1,0 +1,33 @@
+#ifndef NANOENGINE_ECS_ENTITY_MANAGER_HPP
+#define NANOENGINE_ECS_ENTITY_MANAGER_HPP
+
+#include <vector>
+#include <array>
+#include "Entity.hpp"
+#include "Component.hpp"
+#include "Signature.hpp"
+
+namespace NANOEngine::ECS {
+
+	class EntityManager {
+	public:
+		EntityManager();
+		~EntityManager() = default;
+
+		EntityManager(const EntityManager&) = delete;
+		EntityManager& operator=(const EntityManager&) = delete;
+
+		Entity CreateEntity();
+		void DestroyEntity(Entity entity);
+
+		Signature GetSignature(Entity entity);
+		void SetSignature(Entity entity, Signature sig);
+
+	private:
+		std::vector<Entity> m_availableEntities{};
+		std::array<Signature, MAX_ENTITIES> m_signatures{};
+	};
+
+}
+
+#endif // !NANOENGINE_ECS_ENTITY_MANAGER_HPP

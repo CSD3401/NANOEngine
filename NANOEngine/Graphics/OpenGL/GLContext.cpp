@@ -16,13 +16,19 @@ namespace NANOEngine::Graphics::OpenGL {
 			return false;
 		}
 
-		LOG_INFO("OpenGL Version: ", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+		if (!GLAD_GL_ARB_bindless_texture) {
+			LOG_ERROR("Bindless texture not supported!");
+		}
+
+
+		LOG_INFO("OpenGL Version: ", glGetString(GL_VERSION));
 
 		return true;
 	}
 
 	void GLContext::Shutdown() {
-
+		glfwDestroyWindow(m_windowHandle);
+		glfwTerminate();
 	}
 
 	void GLContext::SwapBuffers() {
@@ -30,7 +36,6 @@ namespace NANOEngine::Graphics::OpenGL {
 	}
 
 	void GLContext::ResizeViewport(int , int ) {
-		
 		//glViewport(0, 0, width, height);
 	}
 

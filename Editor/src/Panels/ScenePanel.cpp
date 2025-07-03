@@ -1,17 +1,98 @@
 #include "ScenePanel.hpp"
+#include "Math/Vec3.hpp"
 #include <imgui/imgui.h>
 
 namespace Editor {
-	ScenePanel::ScenePanel() {
+	static uint32_t temp;
+
+	// TEMP TO BE MOVED TO SHARED MATH LIB
+	float Radians(float deg) {
+		return deg * 3.14159265358979323846f / 180.0f;
+	}
+
+	ScenePanel::ScenePanel(uint32_t sceneFrameBuffer) {
+		temp = sceneFrameBuffer;
+
+		NANOEngine::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };  // Pull back along +Z
+		NANOEngine::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };  // Look at world origin
+		NANOEngine::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };  // World up (Y axis)
+
+
+		float fovYRadians = 45.0f * (NANOEngine::Math::PI / 180.0f); // 45 degrees field of view
+		float aspectRatio = 1920.f / 1080.f;
+		float nearPlane = 0.1f;
+		float farPlane = 100.0f;
+
+		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
+		m_editorCamera.SetPosition(position);
+		m_editorCamera.LookAt(target, up);
+
 	}
 
 	void ScenePanel::OnImGuiRender()
 	{
+		using namespace NANOEngine::Math;
+
 		ImGui::Begin("Scene", nullptr,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_MenuBar);
+			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse 
+			| ImGuiWindowFlags_MenuBar);
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
+
+		float deltaTime = ImGui::GetIO().DeltaTime;
+
+		// Handle input only when scene panel is focused
+		if (ImGui::IsWindowFocused()) {
+			ImGuiIO& io = ImGui::GetIO();
+
+			// Movement: WASD or arrow keys
+			Vec3 move(0.0f);
+			if (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::IsKeyDown(ImGuiKey_UpArrow))    move.z += 1.0f;
+			if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow))  move.z -= 1.0f;
+			if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))  move.x -= 1.0f;
+			if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) move.x += 1.0f;
+
+			if (move.LengthSquared() > 0.0f) {
+				move.Normalize();
+				// Calculate direction vectors
+				Vec3 forward = m_editorCamera.GetForward();
+				Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
+
+				Vec3 offset = (right * move.x + forward * move.z) * m_cameraSpeed * deltaTime;
+				m_editorCamera.SetPosition(m_editorCamera.GetPosition() + offset);
+			}
+
+			// Mouse look
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+				if (!m_rightMouseHeld) {
+					m_lastMousePos = io.MousePos;
+					m_rightMouseHeld = true;
+				}
+
+				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
+				m_lastMousePos = io.MousePos;
+
+				m_cameraYaw += delta.x * m_mouseSensitivity;
+				m_cameraPitch -= delta.y * m_mouseSensitivity;
+
+				// Clamp pitch
+				if (m_cameraPitch > 89.0f) m_cameraPitch = 89.0f;
+				if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
+
+				Vec3 dir;
+				dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
+				dir.y = sinf(Radians(m_cameraPitch));
+				dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
+				m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
+			} else {
+				m_rightMouseHeld = false;
+			}
+		}
+
+
+		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
+
 
 		//ImVec2 mousePos = ImGui::GetMousePos();
 		//float localX = mousePos.x - panelPos.x;
@@ -112,5 +193,9 @@ namespace Editor {
 		//}
 
 		ImGui::End();
+	}
+	NANOEngine::Graphics::Camera* ScenePanel::GetCamera()
+	{
+		return &m_editorCamera;
 	}
 }

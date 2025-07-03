@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -19,29 +19,89 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ECSInternals.hpp" />
+    <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
+    <ClInclude Include="src\SceneManagement\Scene.hpp" />
+    <ClInclude Include="src\SceneManagement\SceneManager.hpp" />
+    <ClInclude Include="src\ECS\Core\ECSCoordinator.hpp" />
+    <ClInclude Include="src\ECS\Components\Renderer.hpp" />
+    <ClInclude Include="src\ECS\Components\Transform.hpp" />
+    <ClInclude Include="src\ECS\Core\ComponentManager.hpp" />
+    <ClInclude Include="Graphics\Core\Camera.hpp" />
     <ClInclude Include="Core\Logger.hpp" />
     <ClInclude Include="Core\Timer.hpp" />
     <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="Graphics\Core\Vertex.hpp" />
+    <ClInclude Include="src\ECS\Core\Component.hpp" />
+    <ClInclude Include="src\ECS\Core\ComponentPool.hpp" />
+    <ClInclude Include="src\ECS\Core\Entity.hpp" />
+    <ClInclude Include="src\ECS\Core\EntityManager.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLFrameBuffer.hpp" />
+    <ClInclude Include="Graphics\Core\GraphicsManager.hpp" />
+    <ClInclude Include="Graphics\Interfaces\IFrameBuffer.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLGeometryBuffer.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLIndexBuffer.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLVertexBuffer.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLTexture.hpp" />
+    <ClInclude Include="Graphics\Interfaces\ITexture.hpp" />
+    <ClInclude Include="Graphics\Core\Material.hpp" />
+    <ClInclude Include="Graphics\OpenGL\GLShader.hpp" />
+    <ClInclude Include="Graphics\Interfaces\IShader.hpp" />
     <ClInclude Include="Graphics\OpenGL\GLPipeline.hpp" />
     <ClInclude Include="Graphics\OpenGL\GLCommandBuffer.hpp" />
-    <ClInclude Include="Graphics\ICommandBuffer.hpp" />
-    <ClInclude Include="Graphics\IPipeline.hpp" />
+    <ClInclude Include="Graphics\Interfaces\ICommandBuffer.hpp" />
+    <ClInclude Include="Graphics\Interfaces\IPipeline.hpp" />
     <ClInclude Include="Graphics\OpenGL\GLContext.hpp" />
-    <ClInclude Include="Graphics\IRenderContext.hpp" />
+    <ClInclude Include="Graphics\Interfaces\IRenderContext.hpp" />
     <ClInclude Include="Graphics\OpenGL\GLUtilities.hpp" />
     <ClInclude Include="Graphics\Vulkan\VkContext.hpp" />
-    <ClInclude Include="Graphics\Window.hpp" />
+    <ClInclude Include="Graphics\Core\Window.hpp" />
+    <ClInclude Include="Graphics\Interfaces\IGeometryBuffer.hpp" />
+    <ClInclude Include="Graphics\Interfaces\IIndexBuffer.hpp" />
+    <ClInclude Include="Graphics\Interfaces\IVertexBuffer.hpp" />
+    <ClInclude Include="Math\Mat3.hpp" />
+    <ClInclude Include="Math\Mat4.hpp" />
+    <ClInclude Include="Math\Math.hpp" />
+    <ClInclude Include="Math\Vec2.hpp" />
+    <ClInclude Include="Math\Vec3.hpp" />
+    <ClInclude Include="Math\Vec4.hpp" />
     <ClInclude Include="NANOEngineAPI.hpp" />
+    <ClInclude Include="src\ECS\Core\SparseSet.hpp" />
+    <ClInclude Include="src\ECS\Core\System.hpp" />
+    <ClInclude Include="src\ECS\Core\Signature.hpp" />
+    <ClInclude Include="src\ECS\Core\SystemManager.hpp" />
+    <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ECSInternals.cpp" />
+    <ClCompile Include="Graphics\Core\Camera.cpp" />
     <ClCompile Include="Core\Timer.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="src\ECS\Systems\RenderSystem.cpp" />
+    <ClCompile Include="src\SceneManagement\Scene.cpp" />
+    <ClCompile Include="src\SceneManagement\SceneManager.cpp" />
+    <ClCompile Include="src\ECS\Core\ECSCoordinator.cpp" />
+    <ClCompile Include="src\ECS\Core\EntityManager.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLFrameBuffer.cpp" />
+    <ClCompile Include="Graphics\Core\GraphicsManager.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLGeometryBuffer.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLIndexBuffer.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLVertexBuffer.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLTexture.cpp" />
+    <ClCompile Include="Graphics\Core\Material.cpp" />
+    <ClCompile Include="Graphics\OpenGL\GLShader.cpp" />
     <ClCompile Include="Graphics\OpenGL\GLPipeline.cpp" />
     <ClCompile Include="Graphics\OpenGL\GLCommandBuffer.cpp" />
     <ClCompile Include="Graphics\OpenGL\glad.c" />
     <ClCompile Include="Graphics\OpenGL\GLContext.cpp" />
     <ClCompile Include="Graphics\OpenGL\GLUtilities.cpp" />
-    <ClCompile Include="Graphics\Window.cpp" />
+    <ClCompile Include="Graphics\Core\Window.cpp" />
+    <ClCompile Include="Math\Mat3.cpp" />
+    <ClCompile Include="Math\Mat4.cpp" />
+    <ClCompile Include="Math\Vec2.cpp" />
+    <ClCompile Include="Math\Vec3.cpp" />
+    <ClCompile Include="Math\Vec4.cpp" />
+    <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -141,13 +201,13 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\assimp\lib\Debug;$(ProjectDir)vendor\libs\zlib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"

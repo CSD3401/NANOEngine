@@ -1,4 +1,5 @@
 #include "Application.hpp"
+// Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "GLFW/glfw3.h"
 #include "Core/Logger.hpp"
@@ -14,6 +15,7 @@
 #include "Panels/HierarchyPanel.hpp"
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/GamePanel.hpp"
+#include "Panels/HistoryPanel.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -45,22 +47,24 @@ namespace Editor {
 
 		NANOEngine::Initialize();
 
-		m_nativeWindow = static_cast<GLFWwindow*>(NANOEngine::GetNativeWindowHandle());
-
-		InitImGui(m_nativeWindow);
+		InitImGui(static_cast<GLFWwindow*>(NANOEngine::GetNativeWindowHandle()));
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
-		editorLayer.AddPanel<ScenePanel>();
+		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NANOEngine::GetSceneFrameBuffer());
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
+		editorLayer.AddPanel<HistoryPanel>();
+
+		NANOEngine::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
 	}
 
 	void Application::Run()
 	{
-		while (!glfwWindowShouldClose(m_nativeWindow)) {
-			glfwPollEvents();
-			timer.Update();
+		while (!NANOEngine::WindowShouldClose()) {
+			timer.Update(); // move to engine run
+			NANOEngine::Run(timer.GetDeltaTime());
+			//LOG_INFO(timer.GetFPS());
 			
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
@@ -71,15 +75,12 @@ namespace Editor {
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-			// Update and render platform windows (multi-viewports)
 			if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 				GLFWwindow* backup_context = glfwGetCurrentContext();
 				ImGui::UpdatePlatformWindows();
 				ImGui::RenderPlatformWindowsDefault();
 				glfwMakeContextCurrent(backup_context);
 			}
-
-			glfwSwapBuffers(m_nativeWindow);
 		}
 	}
 
@@ -87,8 +88,7 @@ namespace Editor {
 	{
 		ShutdownImGui();
 
-		glfwDestroyWindow(m_nativeWindow);
-		glfwTerminate();
+		NANOEngine::Shutdown();
 	}
 }
 

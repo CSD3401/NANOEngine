@@ -147,6 +147,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Panels\HistoryPanel.cpp" />
+    <ClCompile Include="src\EditorScene.cpp" />
+    <ClCompile Include="src\Command\CommandHistory.cpp" />
+    <ClCompile Include="src\Command\EditorCommands.cpp" />
     <ClCompile Include="src\Panels\ConsolePanel.cpp" />
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
@@ -166,6 +170,12 @@
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Panels\HistoryPanel.hpp" />
+    <ClInclude Include="src\EditorScene.hpp" />
+    <ClInclude Include="src\Command\CommandHistory.hpp" />
+    <ClInclude Include="src\Command\EditorCommands.hpp" />
+    <ClInclude Include="src\Command\ICommand.hpp" />
+    <ClInclude Include="src\EditorEntity.hpp" />
     <ClInclude Include="src\Panels\ConsolePanel.hpp" />
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />

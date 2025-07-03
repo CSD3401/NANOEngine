@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../ICommandBuffer.hpp"
+#include "../Interfaces/ICommandBuffer.hpp"
 
 namespace NANOEngine::Graphics::OpenGL {
-
+    
     class GLCommandBuffer final : public ICommandBuffer {
     public:
         GLCommandBuffer();
@@ -15,9 +15,9 @@ namespace NANOEngine::Graphics::OpenGL {
         void BeginRenderPass() override;
         void EndRenderPass() override;
 
-        void BindPipeline(/* maybe a pointer or ID later */) override;
-        void BindVertexBuffer(/* pointer to buffer */) override;
-        void BindIndexBuffer(/* pointer to buffer */) override;
+        void BindPipeline(std::shared_ptr<IPipeline> pipeline) override;
+        void BindVertexBuffer(const std::shared_ptr<IVertexBuffer>& vertexBuffer) override;
+        void BindIndexBuffer(const std::shared_ptr<IIndexBuffer>& indexBuffer) override;
         void BindDescriptorSet(/* textures, uniforms */) override;
 
         void Draw(uint32_t vertexCount, uint32_t instanceCount = 1) override;

@@ -6,74 +6,28 @@
 
 namespace NANOEngine::Graphics::OpenGL {
 
-    GLPipeline::GLPipeline(const GraphicsPipelineDesc& desc) {
-        m_ProgramID = LoadShaderProgram(desc.vertexShaderPath, desc.fragmentShaderPath);
-    }
+    GLPipeline::GLPipeline(const PipelineSpecification& spec)
+        : m_Spec(spec)
+    {}
 
-    GLPipeline::~GLPipeline() {
-        glDeleteProgram(m_ProgramID);
-    }
+    void GLPipeline::Bind() const {
+        if (m_Spec.EnableDepthTest)
+            glEnable(GL_DEPTH_TEST);
+        else
+            glDisable(GL_DEPTH_TEST);
 
-    void GLPipeline::Bind() {
-        glUseProgram(m_ProgramID);
-    }
-
-    unsigned int GLPipeline::LoadShaderProgram(const char* vertexPath, const char* fragmentPath) {
-        // Load vertex shader
-        std::ifstream vertexFile(vertexPath);
-        std::stringstream vertexStream;
-        vertexStream << vertexFile.rdbuf();
-        std::string vertexCode = vertexStream.str();
-        vertexFile.close();
-
-        // Load fragment shader
-        std::ifstream fragmentFile(fragmentPath);
-        std::stringstream fragmentStream;
-        fragmentStream << fragmentFile.rdbuf();
-        std::string fragmentCode = fragmentStream.str();
-        fragmentFile.close();
-
-        // Compile shaders
-        unsigned int vertexShader = CompileShader(GL_VERTEX_SHADER, vertexCode.c_str());
-        unsigned int fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentCode.c_str());
-
-        // Create program
-        unsigned int program = glCreateProgram();
-        glAttachShader(program, vertexShader);
-        glAttachShader(program, fragmentShader);
-        glLinkProgram(program);
-
-        // Check link status
-        int success;
-        glGetProgramiv(program, GL_LINK_STATUS, &success);
-        if (!success) {
-            char infoLog[512];
-            glGetProgramInfoLog(program, 512, NULL, infoLog);
-            std::cerr << "Shader Program Link Error: " << infoLog << std::endl;
+        if (m_Spec.EnableBlending) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // simple default
+        }
+        else {
+            glDisable(GL_BLEND);
         }
 
-        // Clean up shaders (they're linked into program now)
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
+        glCullFace(m_Spec.CullMode);
+        glPolygonMode(GL_FRONT_AND_BACK, m_Spec.PolygonMode);
 
-        return program;
-    }
-
-    unsigned int GLPipeline::CompileShader(unsigned int type, const char* source) {
-        unsigned int shader = glCreateShader(type);
-        glShaderSource(shader, 1, &source, nullptr);
-        glCompileShader(shader);
-
-        // Check compilation status
-        int success;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            char infoLog[512];
-            glGetShaderInfoLog(shader, 512, NULL, infoLog);
-            std::cerr << "Shader Compile Error: " << infoLog << std::endl;
-        }
-
-        return shader;
+        m_Spec.shader->Bind();
     }
 
 }

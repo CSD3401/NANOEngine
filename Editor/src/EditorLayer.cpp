@@ -6,8 +6,8 @@
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
         static bool dockspaceOpen = true;
-        static bool opt_fullscreen_persistant = true;
-        bool opt_fullscreen = opt_fullscreen_persistant;
+        static bool opt_fullscreen_persistent = true;
+        bool opt_fullscreen = opt_fullscreen_persistent;
         //static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
         
         // Honestly have no clue what are some of these flags do but documentation says need so :/
