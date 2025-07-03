@@ -155,6 +155,7 @@
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
+    <ClCompile Include="src\Panels\ProfilerPanel.cpp" />
     <ClCompile Include="src\Panels\ScenePanel.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Panels\AssetBrowserPanel.cpp" />
@@ -168,8 +169,10 @@
     <ClCompile Include="vendor\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="vendor\imgui\imgui_tables.cpp" />
     <ClCompile Include="vendor\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ComponentInspectorRegistry.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
     <ClInclude Include="src\Panels\HistoryPanel.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />
@@ -181,6 +184,7 @@
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />
     <ClInclude Include="src\Panels\InspectorPanel.hpp" />
+    <ClInclude Include="src\Panels\ProfilerPanel.hpp" />
     <ClInclude Include="src\Panels\ScenePanel.hpp" />
     <ClInclude Include="src\Application.hpp" />
     <ClInclude Include="src\Panels\AssetBrowserPanel.hpp" />
@@ -195,6 +199,7 @@
     <ClInclude Include="vendor\imgui\imgui_impl_opengl3.h" />
     <ClInclude Include="vendor\imgui\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="vendor\imgui\imgui_internal.h" />
+    <ClInclude Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NANOEngine\NANOEngine.vcxproj">

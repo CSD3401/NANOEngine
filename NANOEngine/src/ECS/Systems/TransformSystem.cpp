@@ -1,5 +1,6 @@
 #include "TransformSystem.hpp"
 #include "../Components/Transform.hpp"
+#include "../../Core/Profiler.hpp"
 
 namespace NANOEngine::ECS::Systems {
 
@@ -22,6 +23,7 @@ namespace NANOEngine::ECS::Systems {
 
 	void TransformSystem::Update(double dt)
 	{
+		NE_PROFILE_FUNCTION();
 		const auto& entities = GetEntities();
 		for (Entity e : entities) {
 			auto& transform = m_componentManager->GetComponent<Transform>(e);

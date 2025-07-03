@@ -7,6 +7,7 @@
 #include "Graphics/OpenGL/GLShader.hpp"
 #include "Graphics/OpenGL/GLPipeline.hpp"
 #include "Graphics/OpenGL/GLFrameBuffer.hpp"
+#include "Core/Profiler.hpp"
 #include <glad/glad.h>
 
 
@@ -27,6 +28,7 @@ namespace NANOEngine {
 
 
 	void Initialize() {
+		NE_PROFILE_FUNCTION();
 		Graphics::WindowProperties props;
 		props.Title = "NANOEngine";
 		props.Width = 1920;
@@ -92,6 +94,7 @@ namespace NANOEngine {
 	}
 
 	void Run(double dt) {
+		NE_PROFILE_FUNCTION();
 		s_window->PollEvents();
 
 		s_sceneFrameBuffer->Bind();
@@ -105,6 +108,7 @@ namespace NANOEngine {
 	}
 
 	void Shutdown() {
+		NE_PROFILE_FUNCTION();
 		s_sceneFrameBuffer.reset();
 		s_renderContext->Shutdown();
 		s_renderContext.reset();

@@ -9,6 +9,7 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <Engine.hpp>
+#include <Core/Profiler.hpp>
 
 #include "Panels/AssetBrowserPanel.hpp"
 #include "Panels/ScenePanel.hpp"
@@ -16,6 +17,7 @@
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/GamePanel.hpp"
 #include "Panels/HistoryPanel.hpp"
+#include "Panels/ProfilerPanel.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -55,6 +57,7 @@ namespace Editor {
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<HistoryPanel>();
+		editorLayer.AddPanel<ProfilerPanel>();
 
 		NANOEngine::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
 	}
@@ -62,6 +65,7 @@ namespace Editor {
 	void Application::Run()
 	{
 		while (!NANOEngine::WindowShouldClose()) {
+			Profiler::BeginFrame();
 			timer.Update(); // move to engine run
 			NANOEngine::Run(timer.GetDeltaTime());
 			//LOG_INFO(timer.GetFPS());
@@ -81,6 +85,7 @@ namespace Editor {
 				ImGui::RenderPlatformWindowsDefault();
 				glfwMakeContextCurrent(backup_context);
 			}
+			Profiler::EndFrame();
 		}
 	}
 

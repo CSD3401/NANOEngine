@@ -14,6 +14,7 @@
 #include "../../Graphics/OpenGL/GLShader.hpp"
 #include "../../Graphics/OpenGL/GLPipeline.hpp"
 #include "../../Graphics/Core/Material.hpp"
+#include "../../Core/Profiler.hpp"
 #include <glad/glad.h>
 
 namespace NANOEngine::ECS::Systems {
@@ -99,6 +100,7 @@ namespace NANOEngine::ECS::Systems {
     }
 
     void RenderSystem::Update(double) {
+		NE_PROFILE_FUNCTION();
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
             auto& transform = m_componentManager->GetComponent<Transform>(entity);

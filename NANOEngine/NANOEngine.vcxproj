@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Profiler.hpp" />
     <ClInclude Include="ECSInternals.hpp" />
     <ClInclude Include="Graphics\Core\Skybox.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
@@ -75,6 +76,7 @@
     <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Profiler.cpp" />
     <ClCompile Include="ECSInternals.cpp" />
     <ClCompile Include="Graphics\Core\Camera.cpp" />
     <ClCompile Include="Core\Timer.cpp" />
