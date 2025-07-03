@@ -2,16 +2,19 @@
 #include "../OpenGL/GLCommandBuffer.hpp"
 #include "../Interfaces/IShader.hpp"
 #include "Camera.hpp"
+#include "Skybox.hpp"
 #include <glad/glad.h>
 #include "../../Core/Logger.hpp"
 
 namespace NANOEngine::Graphics {
 
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
+    std::unique_ptr<Skybox> GraphicsManager::s_skybox;
     Camera* GraphicsManager::s_ActiveCamera = nullptr;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
+        s_skybox = std::make_unique<Skybox>();
     }
 
     void GraphicsManager::BeginFrame() {
@@ -19,6 +22,13 @@ namespace NANOEngine::Graphics {
         glClearColor(1.f, 1.f, 1.f, 1.f);
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
+        DrawSkybox();
+    }
+
+    void GraphicsManager::DrawSkybox()
+    {
+        if (s_skybox)
+            s_skybox->Draw();
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) {
@@ -55,6 +65,7 @@ namespace NANOEngine::Graphics {
     }
 
     void GraphicsManager::Shutdown() {
+        s_skybox.reset();
         s_CommandBuffer.reset();
     }
 

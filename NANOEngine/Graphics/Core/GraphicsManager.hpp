@@ -8,6 +8,7 @@
 
 namespace NANOEngine::Graphics {
     class Camera;
+    class Skybox;
 
     struct DrawCommand {
         std::shared_ptr<IGeometryBuffer> mesh;
@@ -19,6 +20,7 @@ namespace NANOEngine::Graphics {
     public:
         static void Init();
         static void BeginFrame();
+        static void DrawSkybox();
         static void Submit(const DrawCommand& command);
         static void EndFrame();
         static void Shutdown();
@@ -27,6 +29,7 @@ namespace NANOEngine::Graphics {
 
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
+        static std::unique_ptr<Skybox> s_skybox;
         static Camera* s_ActiveCamera;
     };
 

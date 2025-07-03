@@ -19,6 +19,13 @@ namespace Editor {
                 ExecuteCommand(std::make_unique<CreateEntityCommand>());
             }
         );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<DeleteEntityEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const DeleteEntityEvent& e) {
+                ExecuteCommand(std::make_unique<DeleteEntityCommand>(e.deletedEntity));
+            }
+        );
     }
 
     void CommandHistory::ExecuteCommand(std::unique_ptr<ICommand> command) {

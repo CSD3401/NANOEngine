@@ -204,7 +204,7 @@ namespace Editor {
             }
 
             if (ImGui::BeginMenu("Window")) {
-                if (ImGui::MenuItem("General")) {
+                if (ImGui::BeginMenu("General")) {
                     if (ImGui::MenuItem("Asset Browser")) {
                         // TODO
                         ImGui::EndMenu();

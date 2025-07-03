@@ -47,7 +47,6 @@ namespace Editor {
 
         // === Entity Tree ===
         for (EditorEntity& entity : EditorScene::s_entities) {
-            // Simulated name for now (use a name component later)
             //std::string label = "Entity " + std::to_string(entity.linkedEntity);
             std::string name = "Entity"; // In future: get name from NameComponent
             std::string label = name + "##" + std::to_string(entity.linkedEntity);
@@ -60,7 +59,7 @@ namespace Editor {
             if (!hasChildren)
                 flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
-            if (&entity == EditorScene::s_selectedEntity) // selection
+            if (&entity == EditorScene::s_selectedEntity)
                 flags |= ImGuiTreeNodeFlags_Selected;
 
             bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)entity.linkedEntity, flags, "%s", label.c_str());
@@ -73,7 +72,7 @@ namespace Editor {
             // === Right-click entity for context menu ===
             if (ImGui::BeginPopupContextItem((std::string("EntityContext") + std::to_string(entity.linkedEntity)).c_str())) {
                 if (ImGui::MenuItem("Delete")) {
-                    // TODO: Implement delete command and remove from vector
+                    NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
                 }
                 if (ImGui::MenuItem("Rename")) {
                     // TODO: Add rename logic (inline or popup)

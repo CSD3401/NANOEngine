@@ -38,4 +38,16 @@ namespace Editor {
         uint32_t m_entity;
     };
 
+    class DeleteEntityCommand final : public ICommand {
+    public:
+        DeleteEntityCommand(uint32_t deletedEntity);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Delete Entity"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
 }

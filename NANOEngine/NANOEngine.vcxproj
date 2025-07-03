@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ECSInternals.hpp" />
+    <ClInclude Include="Graphics\Core\Skybox.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
     <ClInclude Include="src\Events\EventBus.hpp" />
     <ClInclude Include="src\SceneManagement\Scene.hpp" />
@@ -78,6 +79,7 @@
     <ClCompile Include="Graphics\Core\Camera.cpp" />
     <ClCompile Include="Core\Timer.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Graphics\Core\Skybox.cpp" />
     <ClCompile Include="src\ECS\Systems\RenderSystem.cpp" />
     <ClCompile Include="src\Events\EventBus.cpp" />
     <ClCompile Include="src\SceneManagement\Scene.cpp" />
