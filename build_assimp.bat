@@ -14,13 +14,13 @@ mkdir extern\assimp\build-release
 
 :: Step 3: Build Debug
 cd extern\assimp\build-debug
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DASSIMP_BUILD_TESTS=OFF -dBUILD_SHARED_LIBS=OFF
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DASSIMP_BUILD_TESTS=OFF -DASSIMP_BUILD_SHARED_LIBS=OFF
 cmake --build . --config Debug
 cd ..\..
 
 :: Step 4: Build Release
 cd extern\assimp\build-release
-cmake .. -DCMAKE_BUILD_TYPE=Release -DASSIMP_BUILD_TESTS=OFF -dBUILD_SHARED_LIBS=OFF
+cmake .. -DCMAKE_BUILD_TYPE=Release -DASSIMP_BUILD_TESTS=OFF -DASSIMP_BUILD_SHARED_LIBS=OFF
 cmake --build . --config Release
 cd ..\..
 
