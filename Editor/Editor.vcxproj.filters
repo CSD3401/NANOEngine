@@ -164,9 +164,6 @@
     <ClInclude Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ComponentInspectorRegistry.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Panels\ProfilerPanel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

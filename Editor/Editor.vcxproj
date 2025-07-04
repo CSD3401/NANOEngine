@@ -172,7 +172,6 @@
     <ClCompile Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ComponentInspectorRegistry.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
     <ClInclude Include="src\Panels\HistoryPanel.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />
