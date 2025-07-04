@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Profiler.hpp" />
+    <ClInclude Include="Core\Reflection.hpp" />
     <ClInclude Include="ECSInternals.hpp" />
     <ClInclude Include="Graphics\Core\Skybox.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
