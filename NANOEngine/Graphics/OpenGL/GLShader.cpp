@@ -91,7 +91,8 @@ namespace NANOEngine::Graphics::OpenGL {
                 char log[1024];
                 glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
                 //LOG_WARNING("Shader compilation failed: ", log);
-                LOG_WARNING(std::string("Shader compilation failed:\n") + log);
+                //LOG_WARNING(std::string("Shader compilation failed:\n") + log);
+                LOG_WARNING("Shader compilation failed:\n" << log << "\nShader Source:\n" << source);
             }
 
             glAttachShader(program, shader);
@@ -104,7 +105,8 @@ namespace NANOEngine::Graphics::OpenGL {
         if (linked != GL_TRUE) {
             char log[1024];
             glGetProgramInfoLog(program, sizeof(log), nullptr, log);
-            LOG_WARNING(std::string("Program linking failed:\n") + log);
+            //LOG_WARNING(std::string("Program linking failed:\n") + log);
+            LOG_WARNING("Program linking failed:\n" << log);
         }
 
         for (auto id : shaderIDs) {
