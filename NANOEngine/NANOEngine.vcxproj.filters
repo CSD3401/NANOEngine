@@ -15,103 +15,103 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\Timer.hpp">
+    <ClInclude Include="src\Core\Timer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="NANOEngineAPI.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\IRenderContext.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\IRenderContext.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLContext.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLContext.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Vulkan\VkContext.hpp">
+    <ClInclude Include="src\Graphics\Vulkan\VkContext.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Logger.hpp">
+    <ClInclude Include="src\Core\Logger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Core\Window.hpp">
+    <ClInclude Include="src\Graphics\Core\Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Engine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\ICommandBuffer.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\ICommandBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\IPipeline.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\IPipeline.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLCommandBuffer.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLCommandBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLPipeline.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLPipeline.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLUtilities.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLUtilities.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\IShader.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\IShader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math\Vec4.hpp">
+    <ClInclude Include="src\Math\Vec4.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math\Mat3.hpp">
+    <ClInclude Include="src\Math\Mat3.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math\Mat4.hpp">
+    <ClInclude Include="src\Math\Mat4.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math\Math.hpp">
+    <ClInclude Include="src\Math\Math.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math\Vec2.hpp">
+    <ClInclude Include="src\Math\Vec2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math\Vec3.hpp">
+    <ClInclude Include="src\Math\Vec3.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLShader.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLShader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Core\Material.hpp">
+    <ClInclude Include="src\Graphics\Core\Material.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\ITexture.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\ITexture.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLTexture.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLTexture.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\IVertexBuffer.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\IVertexBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\IIndexBuffer.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\IIndexBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\IGeometryBuffer.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\IGeometryBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLVertexBuffer.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLVertexBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLIndexBuffer.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLIndexBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLGeometryBuffer.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLGeometryBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Core\GraphicsManager.hpp">
+    <ClInclude Include="src\Graphics\Core\GraphicsManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Interfaces\IFrameBuffer.hpp">
+    <ClInclude Include="src\Graphics\Interfaces\IFrameBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\OpenGL\GLFrameBuffer.hpp">
+    <ClInclude Include="src\Graphics\OpenGL\GLFrameBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\ECS\Core\Signature.hpp">
@@ -120,10 +120,10 @@
     <ClInclude Include="src\ECS\Core\EntityManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Core\Camera.hpp">
+    <ClInclude Include="src\Graphics\Core\Camera.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Core\Vertex.hpp">
+    <ClInclude Include="src\Graphics\Core\Vertex.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\ECS\Core\Entity.hpp">
@@ -174,84 +174,84 @@
     <ClInclude Include="src\Events\EventBus.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Core\Skybox.hpp">
+    <ClInclude Include="src\Graphics\Core\Skybox.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Profiler.hpp">
+    <ClInclude Include="src\Core\Profiler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Reflection.hpp">
+    <ClInclude Include="src\Core\Reflection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\Timer.cpp">
+    <ClCompile Include="src\Core\Timer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLContext.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Core\Window.cpp">
+    <ClCompile Include="src\Graphics\Core\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\glad.c">
+    <ClCompile Include="src\Graphics\OpenGL\glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLCommandBuffer.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLCommandBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLPipeline.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLUtilities.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLUtilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math\Vec3.cpp">
+    <ClCompile Include="src\Math\Vec3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math\Vec2.cpp">
+    <ClCompile Include="src\Math\Vec2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math\Vec4.cpp">
+    <ClCompile Include="src\Math\Vec4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math\Mat3.cpp">
+    <ClCompile Include="src\Math\Mat3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Math\Mat4.cpp">
+    <ClCompile Include="src\Math\Mat4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLShader.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Core\Material.cpp">
+    <ClCompile Include="src\Graphics\Core\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLTexture.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLVertexBuffer.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLVertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLIndexBuffer.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLIndexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLGeometryBuffer.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLGeometryBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Core\GraphicsManager.cpp">
+    <ClCompile Include="src\Graphics\Core\GraphicsManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\OpenGL\GLFrameBuffer.cpp">
+    <ClCompile Include="src\Graphics\OpenGL\GLFrameBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ECS\Core\EntityManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Core\Camera.cpp">
+    <ClCompile Include="src\Graphics\Core\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ECS\Core\ECSCoordinator.cpp">
@@ -275,10 +275,10 @@
     <ClCompile Include="src\Events\EventBus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Core\Skybox.cpp">
+    <ClCompile Include="src\Graphics\Core\Skybox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Profiler.cpp">
+    <ClCompile Include="src\Core\Profiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

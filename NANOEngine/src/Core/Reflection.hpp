@@ -13,7 +13,6 @@ namespace NANOEngine::Core {
         T Owner::* member;
     };
 
-    // Helper to iterate over all fields of a reflected type.
     template <typename T, typename F>
     constexpr void ForEachField(F&& f) {
         constexpr auto fields = T::Reflect();
@@ -25,7 +24,6 @@ namespace NANOEngine::Core {
         constexpr auto fields = T::Reflect();
         std::apply([&](auto&&... desc) { (f(desc, obj.*(desc.member)), ...); }, fields);
     }
-
 }
 
 #define NE_REFLECT_BEGIN(type) \

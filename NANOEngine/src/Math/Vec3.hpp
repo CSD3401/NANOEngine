@@ -1,7 +1,7 @@
 ﻿#ifndef VEC_3_HPP
 #define VEC_3_HPP
 
-#include "../NANOEngineAPI.hpp"
+#include "../../NANOEngineAPI.hpp"
 #include <ostream>
 
 namespace NANOEngine::Math {
@@ -58,7 +58,8 @@ namespace NANOEngine::Math {
 		friend std::ostream& operator<<(std::ostream& os, const Vec3& rhs);
 		friend Vec3 operator*(float scalar, const Vec3& rhs);
 		friend Vec3 operator/(float scalar, const Vec3& rhs);
-
+		
+		float* Data() { return &x; }
 		const float* Data() const { return &x; }
 	};
 }

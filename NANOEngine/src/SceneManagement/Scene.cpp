@@ -1,5 +1,5 @@
 #include "Scene.hpp"
-#include "../../Graphics/Core/GraphicsManager.hpp"
+#include "../../src/Graphics/Core/GraphicsManager.hpp"
 #include "../ECS/Systems/TransformSystem.hpp"
 #include "../ECS/Systems/RenderSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
@@ -17,47 +17,47 @@ namespace NANOEngine::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Init();
 
 		uint32_t entt = m_ecsCoordinator.CreateEntity();
-		ECS::Transform transform;
-		m_ecsCoordinator.AddComponent(entt, ECS::Transform());
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		ECS::Component::Transform transform;
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Transform());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { 5.f, 0.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { -5.f, 0.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { 5.f, 5.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { 0.f, 5.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { -5.f, 5.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { 5.f, 10.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { 0.f, 10.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 
 		entt = m_ecsCoordinator.CreateEntity();
 		transform.position = { -5.f, 10.f, 0.f };
 		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Renderer());
+		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 	}
 
 

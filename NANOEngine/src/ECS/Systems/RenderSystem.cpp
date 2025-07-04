@@ -103,7 +103,7 @@ namespace NANOEngine::ECS::Systems {
 		NE_PROFILE_FUNCTION();
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
-            auto& transform = m_componentManager->GetComponent<Transform>(entity);
+            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
             //auto& renderer = m_componentManager->GetComponent<Renderer>(entity);
 
             Graphics::DrawCommand cmd;

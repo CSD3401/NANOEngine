@@ -1,7 +1,7 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-#include "Core/Timer.hpp"
+#include "src/Core/Timer.hpp"
 
 namespace Editor {
 	class Application {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../Math/Vec3.hpp"
-#include "../../Math/Mat4.hpp"
-#include "../../NANOEngineAPI.hpp"
+#include "../../../src/Math/Vec3.hpp"
+#include "../../../src/Math/Mat4.hpp"
+#include "../../../NANOEngineAPI.hpp"
 
 namespace NANOEngine::Graphics {
     using NANOEngine::Math::Vec3;

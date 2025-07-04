@@ -1,5 +1,5 @@
 #include "ScenePanel.hpp"
-#include "Math/Vec3.hpp"
+#include "src/Math/Vec3.hpp"
 #include <imgui/imgui.h>
 
 namespace Editor {
@@ -13,12 +13,12 @@ namespace Editor {
 	ScenePanel::ScenePanel(uint32_t sceneFrameBuffer) {
 		temp = sceneFrameBuffer;
 
-		NANOEngine::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };  // Pull back along +Z
-		NANOEngine::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };  // Look at world origin
-		NANOEngine::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };  // World up (Y axis)
+		NANOEngine::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
+		NANOEngine::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
+		NANOEngine::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
 
 
-		float fovYRadians = 45.0f * (NANOEngine::Math::PI / 180.0f); // 45 degrees field of view
+		float fovYRadians = 45.0f * (NANOEngine::Math::PI / 180.0f); // 45 degrees fov
 		float aspectRatio = 1920.f / 1080.f;
 		float nearPlane = 0.1f;
 		float farPlane = 100.0f;

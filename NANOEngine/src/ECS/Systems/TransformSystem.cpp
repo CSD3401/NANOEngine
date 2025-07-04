@@ -26,7 +26,7 @@ namespace NANOEngine::ECS::Systems {
 		NE_PROFILE_FUNCTION();
 		const auto& entities = GetEntities();
 		for (Entity e : entities) {
-			auto& transform = m_componentManager->GetComponent<Transform>(e);
+			auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 			if (transform.isDirty) {
 				
 				transform.isDirty = false;

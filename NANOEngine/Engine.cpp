@@ -1,13 +1,13 @@
 #include "Engine.hpp"
 
 #include <memory>
-#include "Graphics/Core/Window.hpp"
-#include "Graphics/OpenGL/GLContext.hpp"
-#include "Graphics/Core/GraphicsManager.hpp"
-#include "Graphics/OpenGL/GLShader.hpp"
-#include "Graphics/OpenGL/GLPipeline.hpp"
-#include "Graphics/OpenGL/GLFrameBuffer.hpp"
-#include "Core/Profiler.hpp"
+#include "src/Graphics/Core/Window.hpp"
+#include "src/Graphics/OpenGL/GLContext.hpp"
+#include "src/Graphics/Core/GraphicsManager.hpp"
+#include "src/Graphics/OpenGL/GLShader.hpp"
+#include "src/Graphics/OpenGL/GLPipeline.hpp"
+#include "src/Graphics/OpenGL/GLFrameBuffer.hpp"
+#include "src/Core/Profiler.hpp"
 #include <glad/glad.h>
 
 

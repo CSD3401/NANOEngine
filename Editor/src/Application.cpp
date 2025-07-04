@@ -2,14 +2,14 @@
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "GLFW/glfw3.h"
-#include "Core/Logger.hpp"
+#include "src/Core/Logger.hpp"
 #include "ImGuiLayer.hpp"
 #include "EditorLayer.hpp"
-#include "Graphics/OpenGL/GLContext.hpp"
+#include "src/Graphics/OpenGL/GLContext.hpp"
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <Engine.hpp>
-#include <Core/Profiler.hpp>
+#include <src/Core/Profiler.hpp>
 
 #include "Panels/AssetBrowserPanel.hpp"
 #include "Panels/ScenePanel.hpp"

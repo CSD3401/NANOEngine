@@ -2,7 +2,7 @@
 #define GLFW_DLL
 #include <GLFW/glfw3.h>
 
-#include "../../Core/Logger.hpp"
+#include "../../src/Core/Logger.hpp"
 
 namespace NANOEngine::Graphics {
 

@@ -1,6 +1,6 @@
 #include "GLFrameBuffer.hpp"
 #include <glad/glad.h>
-#include "../../Core/Logger.hpp"
+#include "../../src/Core/Logger.hpp"
 
 namespace NANOEngine::Graphics::OpenGL {
 

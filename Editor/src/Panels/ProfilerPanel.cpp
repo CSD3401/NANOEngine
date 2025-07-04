@@ -2,7 +2,7 @@
 
 #include <imgui/imgui.h>
 #include <imgui/widgets/imgui_widget_flamegraph/imgui_widget_flamegraph.h>
-#include <Core/Profiler.hpp>
+#include <src/Core/Profiler.hpp>
 
 namespace Editor {
 

@@ -1,7 +1,7 @@
 #ifndef PROFILER_HPP
 #define PROFILER_HPP
 
-#include "../NANOEngineAPI.hpp"
+#include "../../NANOEngineAPI.hpp"
 #include <chrono>
 #include <cstdint>
 #include <vector>

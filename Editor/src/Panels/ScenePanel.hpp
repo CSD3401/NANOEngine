@@ -3,7 +3,7 @@
 #include "IPanel.hpp"
 #include <vector>
 #include <string>
-#include "Graphics/Core/Camera.hpp"
+#include "src/Graphics/Core/Camera.hpp"
 #include "imgui/imgui_internal.h"
 
 namespace Editor {

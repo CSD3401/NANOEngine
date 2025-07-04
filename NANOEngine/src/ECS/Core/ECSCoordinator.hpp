@@ -15,15 +15,9 @@ namespace NANOEngine::ECS {
         ECSCoordinator();
 
         // --- Entity API ---
-        Entity CreateEntity() {
-            return m_entityManager->CreateEntity();
-        }
+        Entity CreateEntity();
 
-        void DestroyEntity(Entity e) {
-            m_entityManager->DestroyEntity(e);
-            m_componentManager->EntityDestroyed(e);
-            m_systemManager->EntityDestroyed(e);
-        }
+        void DestroyEntity(Entity e);
 
         // --- Component API ---
         template<typename T>
