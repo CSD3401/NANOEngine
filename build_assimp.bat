@@ -29,8 +29,8 @@ mkdir NANOEngine\NANOEngine\vendor\assimp\lib\Debug
 mkdir NANOEngine\NANOEngine\vendor\assimp\lib\Release
 
 :: Step 6: Copy built libs
-copy /Y extern\assimp\build-debug\bin\Debug\assimp.lib NANOEngine\NANOEngine\vendor\assimp\lib\Debug\
-copy /Y extern\assimp\build-release\bin\Release\assimp.lib NANOEngine\NANOEngine\vendor\assimp\lib\Release\
+copy /Y extern\assimp\build-debug\bin\Debug\assimp.lib NANOEngine\vendor\assimp\lib\Debug\
+copy /Y extern\assimp\build-release\bin\Release\assimp.lib NANOEngine\vendor\assimp\lib\Release\
 
 echo Build and copy completed successfully.
 pause
