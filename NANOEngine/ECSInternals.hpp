@@ -2,12 +2,14 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <string>
 #include "NANOEngineAPI.hpp"
 #include <typeindex>
 
 namespace NANOEngine {
 	namespace ECS::Component {
 		struct Transform;
+		struct Renderer;
 	}
 	//extern SceneManagement::Scene scene;
 
@@ -20,6 +22,9 @@ namespace NANOEngine {
 
 
 	NANOENGINE_API ECS::Component::Transform& GetEntityTransform(uint32_t e);
+	NANOENGINE_API ECS::Component::Renderer& GetEntityRenderer(uint32_t e);
+
+	NANOENGINE_API void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath);
 
 	NANOENGINE_API const std::unordered_map<std::type_index, uint8_t>& GetRegisteredComponentTypes();
 }

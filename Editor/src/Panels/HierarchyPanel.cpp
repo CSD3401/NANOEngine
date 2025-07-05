@@ -5,9 +5,11 @@
 #include "../EditorScene.hpp"
 #include "src/Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
+#include <src/ECS/Core/Entity.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
+        EditorScene::s_entities.reserve(NANOEngine::ECS::MAX_ENTITIES);
 	}
 
 	void HierarchyPanel::OnImGuiRender()

@@ -183,6 +183,9 @@
     <ClInclude Include="src\Core\Reflection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Graphics\Core\Model.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -279,6 +282,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Core\Profiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Core\Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

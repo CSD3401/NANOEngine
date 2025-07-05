@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include "../Interfaces/IPipeline.hpp"
 #include "../Interfaces/ITexture.hpp"
-#include "../../src/Math/Vec3.hpp"
-#include "../../src/Math/Mat4.hpp"
+#include "../../../src/Math/Vec3.hpp"
+#include "../../../src/Math/Mat4.hpp"
 
 namespace NANOEngine::Graphics {
 	class Material {

@@ -22,6 +22,7 @@
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="ECSInternals.hpp" />
+    <ClInclude Include="src\Graphics\Core\Model.hpp" />
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
     <ClInclude Include="src\Events\EventBus.hpp" />
@@ -82,6 +83,7 @@
     <ClCompile Include="src\Graphics\Core\Camera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="src\Graphics\Core\Model.cpp" />
     <ClCompile Include="src\Graphics\Core\Skybox.cpp" />
     <ClCompile Include="src\ECS\Systems\RenderSystem.cpp" />
     <ClCompile Include="src\Events\EventBus.cpp" />

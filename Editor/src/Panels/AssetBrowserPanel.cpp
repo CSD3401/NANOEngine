@@ -221,6 +221,14 @@ namespace Editor {
                 ImVec2(1, 0), ImVec2(0, 1)
             );
 
+            // Drag and drop assets
+            if (ImGui::BeginDragDropSource()) {
+                std::string assetPath = entry.path().string();
+                ImGui::SetDragDropPayload("ASSET_PATH", assetPath.c_str(), assetPath.size() + 1);
+                ImGui::TextUnformatted(name.c_str());
+                ImGui::EndDragDropSource();
+            }
+
             // Handle double click and right click
             if (ImGui::IsItemHovered()) {
                 if (ImGui::IsMouseDoubleClicked(0)) {

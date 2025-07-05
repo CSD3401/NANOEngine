@@ -35,6 +35,7 @@ namespace NANOEngine::ECS {
     Entity ECSCoordinator::CreateEntity() {
         Entity entt = m_entityManager->CreateEntity();
         AddComponent(entt, Component::Transform{});
+        AddComponent(entt, Component::Renderer{}); // TEMPORARY
         return entt;
     }
 

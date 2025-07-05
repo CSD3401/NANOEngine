@@ -7,8 +7,11 @@ namespace NANOEngine::ECS {
 	EntityManager::EntityManager()
 	{
 		m_availableEntities.reserve(MAX_ENTITIES);
-		for (Entity i = MAX_ENTITIES - 1; i != static_cast<Entity>(-1); --i) {
-			m_availableEntities.push_back(i);
+		//for (Entity i = MAX_ENTITIES - 1; i != static_cast<Entity>(-1); --i) {
+		//	m_availableEntities.push_back(i);
+		//}
+		for (int i = static_cast<int>(MAX_ENTITIES) - 1; i >= 0; --i) {
+			m_availableEntities.push_back(static_cast<Entity>(i));
 		}
 	}
 
