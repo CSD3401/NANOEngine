@@ -12,7 +12,6 @@ namespace NANOEngine::SceneManagement {
 		//m_transformSystem = std::make_unique<ECS::Systems::TransformSystem>(&m_ecsCoordinator.GetComponentManager());
 		//m_renderSystem = std::make_unique<ECS::Systems::RenderSystem>(&m_ecsCoordinator.GetComponentManager());
 
-		//m_ecsCoordinator.m_transformSystem
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
 

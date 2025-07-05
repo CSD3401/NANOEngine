@@ -1,5 +1,6 @@
 #include "EntityManager.hpp"
 #include "../../Core/Logger.hpp"
+#include <cassert>
 
 namespace NANOEngine::ECS {
 
@@ -13,6 +14,11 @@ namespace NANOEngine::ECS {
 
 	Entity EntityManager::CreateEntity()
 	{
+		if (m_availableEntities.empty()) {
+			assert(false && "No more entities can be created.");
+			return NO_ENTITY;
+		}
+
 		Entity entity = m_availableEntities.back();
 		m_availableEntities.pop_back();
 

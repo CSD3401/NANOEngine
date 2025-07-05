@@ -16,6 +16,7 @@ namespace NANOEngine::ECS {
         }
 
         void Remove(Entity e) {
+            assert(e < MaxEntities && "Entity out of range");
             assert(Contains(e));
             Entity index = m_sparseContainer[e];
             Entity last = m_denseContainer.back();
@@ -25,6 +26,7 @@ namespace NANOEngine::ECS {
         }
 
         bool Contains(Entity e) const {
+            if (e >= MaxEntities) return false;
             return m_sparseContainer[e] < m_denseContainer.size() && m_denseContainer[m_sparseContainer[e]] == e;
         }
 
