@@ -2,9 +2,13 @@
 
 #include "../Components/Transform.hpp"
 #include "../Components/Renderer.hpp"
+#include "../Components/DirectionalLight.hpp"
+#include "../Components/PointLight.hpp"
+#include "../Components/SpotLight.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
+#include "../Systems/LightSystem.hpp"
 
 
 namespace NANOEngine::ECS {
@@ -17,6 +21,9 @@ namespace NANOEngine::ECS {
 
         RegisterComponent<Component::Renderer>();
         RegisterComponent<Component::Transform>();
+        RegisterComponent<Component::DirectionalLight>();
+        RegisterComponent<Component::PointLight>();
+        RegisterComponent<Component::SpotLight>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -30,6 +37,9 @@ namespace NANOEngine::ECS {
             sig.set(GetComponentType<Component::Renderer>());
             SetSystemSignature<Systems::RenderSystem>(sig);
         }
+
+        m_lightSystem = m_systemManager->RegisterSystem<Systems::LightSystem>(m_componentManager.get());
+        SetSystemSignature<Systems::LightSystem>(Signature{});
     }
 
     Entity ECSCoordinator::CreateEntity() {

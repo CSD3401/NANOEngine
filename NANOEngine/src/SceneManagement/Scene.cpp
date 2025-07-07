@@ -2,6 +2,7 @@
 #include "../../src/Graphics/Core/GraphicsManager.hpp"
 #include "../ECS/Systems/TransformSystem.hpp"
 #include "../ECS/Systems/RenderSystem.hpp"
+#include "../ECS/Systems/LightSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 
@@ -13,6 +14,7 @@ namespace NANOEngine::SceneManagement {
 		//m_renderSystem = std::make_unique<ECS::Systems::RenderSystem>(&m_ecsCoordinator.GetComponentManager());
 
 		m_ecsCoordinator.m_transformSystem->Init();
+		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
 	}
 
@@ -20,6 +22,7 @@ namespace NANOEngine::SceneManagement {
 	void Scene::Update(double dt)
 	{
 		m_ecsCoordinator.m_transformSystem->Update(dt);
+		m_ecsCoordinator.m_lightSystem->Update(dt);
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
 		m_ecsCoordinator.m_renderSystem->Update(dt);
@@ -37,6 +40,7 @@ namespace NANOEngine::SceneManagement {
 	void Scene::Exit()
 	{
 		m_ecsCoordinator.m_transformSystem->Exit();
+		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
 	}
 

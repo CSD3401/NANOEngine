@@ -6,6 +6,7 @@
 namespace NANOEngine::ECS::Systems {
     class TransformSystem;
     class RenderSystem;
+    class LightSystem;
 }
 
 namespace NANOEngine::ECS {
@@ -91,6 +92,7 @@ namespace NANOEngine::ECS {
         }
 
         std::shared_ptr<Systems::TransformSystem> m_transformSystem;
+        std::shared_ptr<Systems::LightSystem> m_lightSystem;
         std::shared_ptr<Systems::RenderSystem> m_renderSystem;
     private:
 

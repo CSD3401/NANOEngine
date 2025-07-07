@@ -22,6 +22,10 @@
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="ECSInternals.hpp" />
+    <ClInclude Include="src\ECS\Components\DirectionalLight.hpp" />
+    <ClInclude Include="src\ECS\Components\PointLight.hpp" />
+    <ClInclude Include="src\ECS\Components\SpotLight.hpp" />
+    <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
@@ -80,6 +84,7 @@
   <ItemGroup>
     <ClCompile Include="src\Core\Profiler.cpp" />
     <ClCompile Include="ECSInternals.cpp" />
+    <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\Camera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
     <ClCompile Include="Engine.cpp" />
