@@ -48,6 +48,36 @@ namespace NANOEngine::Graphics {
         shader->SetUniformMat4("u_Model", command.transform);
         shader->SetUniformMat4("u_View", s_ActiveCamera->GetViewMatrix());
         shader->SetUniformMat4("u_Projection", s_ActiveCamera->GetProjectionMatrix());
+        shader->SetUniformVec3("u_CameraPos", s_ActiveCamera->GetPosition());
+
+        shader->SetUniformInt("u_NumDirLights", 1);
+        shader->SetUniformVec3("u_DirectionalLights[0].direction", { -0.2f, -1.0f, -0.3f });
+        shader->SetUniformVec3("u_DirectionalLights[0].color", { 1.0f, 1.0f, 1.0f });
+        shader->SetUniformFloat("u_DirectionalLights[0].intensity", 1.0f);
+
+        shader->SetUniformInt("u_NumPointLights", 1);
+        shader->SetUniformVec3("u_PointLights[0].position", { 2.0f, 2.0f, 2.0f });
+        shader->SetUniformVec3("u_PointLights[0].color", { 1.0f, 1.0f, 1.0f });
+        shader->SetUniformFloat("u_PointLights[0].intensity", 1.0f);
+        shader->SetUniformFloat("u_PointLights[0].constant", 1.0f);
+        shader->SetUniformFloat("u_PointLights[0].linear", 0.09f);
+        shader->SetUniformFloat("u_PointLights[0].quadratic", 0.032f);
+
+        shader->SetUniformInt("u_NumSpotLights", 1);
+        shader->SetUniformVec3("u_SpotLights[0].position", s_ActiveCamera->GetPosition());
+        shader->SetUniformVec3("u_SpotLights[0].direction", s_ActiveCamera->GetForward());
+        shader->SetUniformVec3("u_SpotLights[0].color", { 1.0f, 1.0f, 1.0f });
+        shader->SetUniformFloat("u_SpotLights[0].intensity", 1.0f);
+        shader->SetUniformFloat("u_SpotLights[0].innerCutoff", 0.91f);
+        shader->SetUniformFloat("u_SpotLights[0].outerCutoff", 0.82f);
+        shader->SetUniformFloat("u_SpotLights[0].constant", 1.0f);
+        shader->SetUniformFloat("u_SpotLights[0].linear", 0.09f);
+        shader->SetUniformFloat("u_SpotLights[0].quadratic", 0.032f);
+
+        shader->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
+        shader->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
+        shader->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
+        shader->SetUniformFloat("u_Material.shininess", 32.0f);
 
         // Draw indexed
         //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
