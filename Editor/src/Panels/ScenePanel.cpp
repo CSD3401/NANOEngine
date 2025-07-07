@@ -3,7 +3,9 @@
 #include <imgui/imgui.h>
 #include "../EditorScene.hpp"
 #include "Engine.hpp"
-#include <iostream>
+#include <imgui/widgets/imguizmo/ImGuizmo.h>
+#include <ECSInternals.hpp>
+#include <src/ECS/Components/Transform.hpp>
 
 namespace Editor {
 	static uint32_t temp;
@@ -29,7 +31,6 @@ namespace Editor {
 		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
 		m_editorCamera.SetPosition(position);
 		m_editorCamera.LookAt(target, up);
-
 	}
 
 	void ScenePanel::OnImGuiRender()
@@ -44,6 +45,8 @@ namespace Editor {
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
 
 		float deltaTime = ImGui::GetIO().DeltaTime;
+
+		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
 
 		// Handle input only when scene panel is focused
 		if (ImGui::IsWindowFocused()) {
@@ -91,42 +94,62 @@ namespace Editor {
 			} else {
 				m_rightMouseHeld = false;
 			}
-		}
 
-		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+				ImVec2 mousePos = ImGui::GetMousePos();
+				if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+					mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
 
-		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowFocused()) {
-			ImVec2 mousePos = ImGui::GetMousePos();
-			if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
-				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+					float localX = mousePos.x - panelPos.x;
+					float localY = mousePos.y - panelPos.y;
+					float spMouseX = localX / panelSize.x;
+					float spMouseY = localY / panelSize.y;
 
-				float localX = mousePos.x - panelPos.x;
-				float localY = mousePos.y - panelPos.y;
-				float spMouseX = localX / panelSize.x;
-				float spMouseY = localY / panelSize.y;
+					uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
+					uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
-				uint32_t x = static_cast<int>(spMouseX * 1920); // temp hardcoded
-				uint32_t y = static_cast<int>(spMouseY * 1080); // temp hardcoded
+					uint32_t id = NANOEngine::GetPickedEntity(x, y);
 
-				//uint32_t fbX = static_cast<uint32_t>(localX);
-				//uint32_t fbY = static_cast<uint32_t>(panelSize.y - localY);
-
-				//uint32_t id = NANOEngine::Graphics::GraphicsManager::ReadPixel(
-				//	NANOEngine::GetPickingFrameBuffer(), fbX, fbY);
-
-				uint32_t id = NANOEngine::GetPickedEntity(x, y);
-				std::cout << "Selected Entity: " << id << std::endl;
-
-				EditorScene::s_selectedEntity = nullptr;
-				for (auto& ent : EditorScene::s_entities) {
-					if (ent.linkedEntity == id) {
-						EditorScene::s_selectedEntity = &ent;
-						break;
+					EditorScene::s_selectedEntity = nullptr;
+					for (auto& ent : EditorScene::s_entities) {
+						if (ent.linkedEntity == id) {
+							EditorScene::s_selectedEntity = &ent;
+							break;
+						}
 					}
 				}
 			}
 		}
 
+		if (EditorScene::s_selectedEntity) {
+			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
+
+			if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
+
+			ImGuizmo::SetOrthographic(false);
+			ImGuizmo::SetDrawlist();
+			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
+
+			auto& t = NANOEngine::GetEntityTransform(EditorScene::s_selectedEntity->linkedEntity);
+
+			float matrix[16];
+			memcpy(matrix, t.modelMatrix.Data(), sizeof(float) * 16);
+
+			if (ImGuizmo::Manipulate(m_editorCamera.GetViewMatrix().Data(),
+				m_editorCamera.GetProjectionMatrix().Data(),
+				currentOperation, ImGuizmo::LOCAL, matrix)) {
+				float tr[3], rot[3], sc[3];
+				ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rot, sc);
+				t.position = { tr[0], tr[1], tr[2] };
+				t.rotation = { rot[0], rot[1], rot[2] };
+				t.scale = { sc[0], sc[1], sc[2] };
+				t.isDirty = true;
+			}
+		}
+
+		//ImGuizmo::IsUsingAny()
 		//ImVec2 mousePos = ImGui::GetMousePos();
 		//float localX = mousePos.x - panelPos.x;
 		//float localY = mousePos.y - panelPos.y;
@@ -227,6 +250,7 @@ namespace Editor {
 
 		ImGui::End();
 	}
+
 	NANOEngine::Graphics::Camera* ScenePanel::GetCamera()
 	{
 		return &m_editorCamera;

@@ -10,7 +10,7 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <Engine.hpp>
 #include <src/Core/Profiler.hpp>
-
+#include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include "Panels/AssetBrowserPanel.hpp"
 #include "Panels/ScenePanel.hpp"
 #include "Panels/HierarchyPanel.hpp"
@@ -73,6 +73,7 @@ namespace Editor {
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
+			ImGuizmo::BeginFrame();
 
 			editorLayer.OnImGuiRender();
 

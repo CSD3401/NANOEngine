@@ -63,8 +63,6 @@ namespace Editor {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
                             AssignRendererModel(comp, dropped);
-                            //comp.modelPath = dropped;
-                            //comp.model = Graphics::LoadModel(dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }

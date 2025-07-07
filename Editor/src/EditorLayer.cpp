@@ -2,6 +2,7 @@
 #include "imgui/imgui.h"
 #include <imgui/imgui_internal.h>
 #include <wtypes.h>
+#include "Panels/AssetBrowserPanel.hpp"
 
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
@@ -207,7 +208,7 @@ namespace Editor {
                 if (ImGui::BeginMenu("General")) {
                     if (ImGui::MenuItem("Asset Browser")) {
                         // TODO
-                        ImGui::EndMenu();
+                        //AddPanel<AssetBrowserPanel>("Assets/");
                     }
                     ImGui::EndMenu();
                 }
