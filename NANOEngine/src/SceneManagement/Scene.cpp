@@ -21,6 +21,7 @@ namespace NANOEngine::SceneManagement {
 	{
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		Graphics::GraphicsManager::BeginFrame();
+		Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
 		m_ecsCoordinator.m_renderSystem->Update(dt);
 		Graphics::GraphicsManager::EndFrame();
 	}

@@ -24,7 +24,6 @@ namespace NANOEngine::Graphics {
         glClearColor(1.f, 1.f, 1.f, 1.f);
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
-        DrawSkybox(); // here for now, not sure if theres a better place to put this
     }
 
     void GraphicsManager::DrawSkybox()

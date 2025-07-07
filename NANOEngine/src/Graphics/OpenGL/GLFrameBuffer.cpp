@@ -41,7 +41,6 @@ namespace NANOEngine::Graphics::OpenGL {
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             LOG_ERROR("Framebuffer is incomplete!");
-            //std::cerr << "Framebuffer is incomplete!" << std::endl;
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

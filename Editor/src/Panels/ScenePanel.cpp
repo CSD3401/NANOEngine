@@ -99,16 +99,22 @@ namespace Editor {
 			ImVec2 mousePos = ImGui::GetMousePos();
 			if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+
 				float localX = mousePos.x - panelPos.x;
 				float localY = mousePos.y - panelPos.y;
+				float spMouseX = localX / panelSize.x;
+				float spMouseY = localY / panelSize.y;
 
-				uint32_t fbX = static_cast<uint32_t>(localX);
-				uint32_t fbY = static_cast<uint32_t>(panelSize.y - localY);
+				uint32_t x = static_cast<int>(spMouseX * 1920); // temp hardcoded
+				uint32_t y = static_cast<int>(spMouseY * 1080); // temp hardcoded
+
+				//uint32_t fbX = static_cast<uint32_t>(localX);
+				//uint32_t fbY = static_cast<uint32_t>(panelSize.y - localY);
 
 				//uint32_t id = NANOEngine::Graphics::GraphicsManager::ReadPixel(
 				//	NANOEngine::GetPickingFrameBuffer(), fbX, fbY);
 
-				uint32_t id = NANOEngine::GetPickedEntity(fbX, fbY);
+				uint32_t id = NANOEngine::GetPickedEntity(x, y);
 				std::cout << "Selected Entity: " << id << std::endl;
 
 				EditorScene::s_selectedEntity = nullptr;

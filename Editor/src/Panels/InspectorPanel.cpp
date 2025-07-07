@@ -10,18 +10,18 @@
 
 namespace {
     template<typename Owner, typename T>
-    void DrawField(const NANOEngine::Core::FieldDescriptor<Owner, T>& desc, T& value) {
+    bool DrawField(const NANOEngine::Core::FieldDescriptor<Owner, T>& desc, T& value) {
         using namespace NANOEngine;
         if constexpr (std::is_same_v<T, bool>) {
-            ImGui::Checkbox(desc.name.data(), &value);
+            return ImGui::Checkbox(desc.name.data(), &value);
         } else if constexpr (std::is_same_v<T, int>) {
-            ImGui::DragInt(desc.name.data(), &value);
+            return ImGui::DragInt(desc.name.data(), &value);
         } else if constexpr (std::is_same_v<T, float>) {
-            ImGui::DragFloat(desc.name.data(), &value, 0.1f);
+            return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
         } else if constexpr (std::is_same_v<T, Math::Vec3>) {
-            ImGui::DragFloat3(desc.name.data(), value.Data(), 0.1f);
+            return ImGui::DragFloat3(desc.name.data(), value.Data(), 0.1f);
         } else {
-            ImGui::Text("%s (unsupported)", desc.name.data());
+            return ImGui::Text("%s (unsupported)", desc.name.data());
         }
     }
 }
@@ -50,8 +50,8 @@ namespace Editor {
                 if (typeIdx == typeid(ECS::Component::Transform)) {
                     auto& comp = GetEntityTransform(entity);
                     ImGui::SeparatorText("Transform");
-                    Core::ForEachField<ECS::Component::Transform>(comp, [](auto&& desc, auto& field) {
-                        DrawField(desc, field);
+                    Core::ForEachField<ECS::Component::Transform>(comp, [&](auto&& desc, auto& field) {
+                        comp.isDirty |= DrawField(desc, field);
                         });
                 } else if (typeIdx == typeid(ECS::Component::Renderer)) {
                     auto& comp = GetEntityRenderer(entity);

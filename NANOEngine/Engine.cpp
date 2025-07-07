@@ -83,6 +83,7 @@ namespace NANOEngine {
 	void Shutdown() {
 		NE_PROFILE_FUNCTION();
 		s_sceneFrameBuffer.reset();
+		s_pickingFrameBuffer.reset();
 		s_renderContext->Shutdown();
 		s_renderContext.reset();
 		s_window.reset();
@@ -99,6 +100,7 @@ namespace NANOEngine {
 
 	uint32_t GetSceneFrameBuffer() {
 		return s_sceneFrameBuffer->GetColorAttachment();
+		//return s_pickingFrameBuffer->GetColorAttachment();
 	}
 
 	void SetEditorCamera(void* camera) {
