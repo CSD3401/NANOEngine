@@ -13,4 +13,5 @@ namespace NANOEngine {
 	NANOENGINE_API uint32_t GetSceneFrameBuffer();
 	NANOENGINE_API void SetEditorCamera(void* camera);
 
+	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y);
 }

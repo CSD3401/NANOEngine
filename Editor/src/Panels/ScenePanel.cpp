@@ -1,6 +1,9 @@
 #include "ScenePanel.hpp"
 #include "src/Math/Vec3.hpp"
 #include <imgui/imgui.h>
+#include "../EditorScene.hpp"
+#include "Engine.hpp"
+#include <iostream>
 
 namespace Editor {
 	static uint32_t temp;
@@ -90,9 +93,33 @@ namespace Editor {
 			}
 		}
 
-
 		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
 
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowFocused()) {
+			ImVec2 mousePos = ImGui::GetMousePos();
+			if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+				float localX = mousePos.x - panelPos.x;
+				float localY = mousePos.y - panelPos.y;
+
+				uint32_t fbX = static_cast<uint32_t>(localX);
+				uint32_t fbY = static_cast<uint32_t>(panelSize.y - localY);
+
+				//uint32_t id = NANOEngine::Graphics::GraphicsManager::ReadPixel(
+				//	NANOEngine::GetPickingFrameBuffer(), fbX, fbY);
+
+				uint32_t id = NANOEngine::GetPickedEntity(fbX, fbY);
+				std::cout << "Selected Entity: " << id << std::endl;
+
+				EditorScene::s_selectedEntity = nullptr;
+				for (auto& ent : EditorScene::s_entities) {
+					if (ent.linkedEntity == id) {
+						EditorScene::s_selectedEntity = &ent;
+						break;
+					}
+				}
+			}
+		}
 
 		//ImVec2 mousePos = ImGui::GetMousePos();
 		//float localX = mousePos.x - panelPos.x;

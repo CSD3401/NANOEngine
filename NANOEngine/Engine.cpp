@@ -9,11 +9,6 @@
 #include "src/Graphics/OpenGL/GLFrameBuffer.hpp"
 #include "src/Core/Profiler.hpp"
 #include <glad/glad.h>
-
-
-// ECS
-//#include "src/ECS/Core/ECSCoordinator.hpp"
-//#include "src/ECS/Systems/TransformSystem.hpp"
 #include "src/SceneManagement/Scene.hpp"
 
 namespace NANOEngine {
@@ -21,10 +16,8 @@ namespace NANOEngine {
 	static std::unique_ptr<Graphics::Window> s_window;
 	static std::unique_ptr<Graphics::IRenderContext> s_renderContext;
 	static std::unique_ptr<Graphics::IFrameBuffer> s_sceneFrameBuffer; // temp
-	//static ECS::ECSCoordinator* s_ecs;
+	static std::unique_ptr<Graphics::IFrameBuffer> s_pickingFrameBuffer; // temp
 	SceneManagement::Scene scene;
-
-	//static Graphics::DrawCommand temp;
 
 
 	void Initialize() {
@@ -40,10 +33,8 @@ namespace NANOEngine {
 		s_renderContext->Init(s_window->GetNativeWindow());
 
 		s_sceneFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
+		s_pickingFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		Graphics::GraphicsManager::Init();
-
-		//ECS::ECSCoordinator ecs;
-		//s_ecs = &ecs;
 
 		// Create simple triangle mesh (all temp stuff below)
 		float vertices[] = {
@@ -72,24 +63,6 @@ namespace NANOEngine {
 			3, 2, 6, 6, 7, 3
 		};
 
-		//auto vb = std::make_shared<Graphics::OpenGL::GLVertexBuffer>(
-		//	vertices, 
-		//	static_cast<uint32_t>(sizeof(vertices)), 
-		//	static_cast <uint32_t>(3 * sizeof(float)));
-
-		//auto ib = std::make_shared<Graphics::OpenGL::GLIndexBuffer>(indices, 3);
-		//auto ib = std::make_shared<Graphics::OpenGL::GLIndexBuffer>(indices, static_cast<uint32_t>(sizeof(indices) / sizeof(uint32_t)));
-
-		//auto mesh = std::make_shared<Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
-		//auto mesh = LoadModel("Assets/Models/suzanne.obj"); // Replace with your model path
-
-
-
-		//temp.mesh = mesh;
-		//temp.material = material;
-		//temp.transform.SetToIdentity();
-
-		//ECS::TransformSystem transformSystem
 		scene.Init();
 	}
 
@@ -99,10 +72,10 @@ namespace NANOEngine {
 
 		s_sceneFrameBuffer->Bind();
 		scene.Update(dt);
-		//Graphics::GraphicsManager::BeginFrame();
-		//Graphics::GraphicsManager::Submit(temp);
-		//Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();
+		s_pickingFrameBuffer->Bind();
+		scene.RenderPicking();
+		s_pickingFrameBuffer->Unbind();
 
 		s_renderContext->SwapBuffers();	
 	}
@@ -130,6 +103,10 @@ namespace NANOEngine {
 
 	void SetEditorCamera(void* camera) {
 		Graphics::GraphicsManager::SetCamera(reinterpret_cast<Graphics::Camera*>(camera));
+	}
+
+	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y) {
+		return Graphics::GraphicsManager::ReadPixel(s_pickingFrameBuffer.get(), x, y);
 	}
 
 	// Internal use only

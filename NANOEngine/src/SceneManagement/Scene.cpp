@@ -14,49 +14,6 @@ namespace NANOEngine::SceneManagement {
 
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
-
-		uint32_t entt = m_ecsCoordinator.CreateEntity();
-		ECS::Component::Transform transform;
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Transform());
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { 5.f, 0.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { -5.f, 0.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { 5.f, 5.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { 0.f, 5.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { -5.f, 5.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { 5.f, 10.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { 0.f, 10.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
-
-		entt = m_ecsCoordinator.CreateEntity();
-		transform.position = { -5.f, 10.f, 0.f };
-		m_ecsCoordinator.AddComponent(entt, transform);
-		m_ecsCoordinator.AddComponent(entt, ECS::Component::Renderer());
 	}
 
 
@@ -65,6 +22,14 @@ namespace NANOEngine::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		Graphics::GraphicsManager::BeginFrame();
 		m_ecsCoordinator.m_renderSystem->Update(dt);
+		Graphics::GraphicsManager::EndFrame();
+	}
+
+	void Scene::RenderPicking() // TEMP hopefully can be optimized so i dont run twice
+	{
+		//m_ecsCoordinator.m_transformSystem->Update(0.0);
+		Graphics::GraphicsManager::BeginFrame();
+		m_ecsCoordinator.m_renderSystem->RenderPicking();
 		Graphics::GraphicsManager::EndFrame();
 	}
 

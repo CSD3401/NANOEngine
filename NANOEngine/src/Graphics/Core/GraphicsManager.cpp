@@ -5,6 +5,8 @@
 #include "Skybox.hpp"
 #include <glad/glad.h>
 #include "../../Core/Logger.hpp"
+#include "../../Core/Profiler.hpp"
+#include "../Interfaces/IFrameBuffer.hpp"
 
 namespace NANOEngine::Graphics {
 
@@ -32,7 +34,7 @@ namespace NANOEngine::Graphics {
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) {
-
+        NE_PROFILE_FUNCTION();
         // Bind the pipeline (shader program + GL state)
         s_CommandBuffer->BindPipeline(command.material->GetPipeline());
 
@@ -51,6 +53,8 @@ namespace NANOEngine::Graphics {
         // Draw indexed
         //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
         command.mesh->Draw();
+
+        glBindVertexArray(0);
 
         //GLenum err;
         //while ((err = glGetError()) != GL_NO_ERROR) {
@@ -71,6 +75,16 @@ namespace NANOEngine::Graphics {
 
     void GraphicsManager::SetCamera(Camera* cam) {
         s_ActiveCamera = cam;
+    }
+
+    uint32_t GraphicsManager::ReadPixel(IFrameBuffer* framebuffer, uint32_t x, uint32_t y) {
+        framebuffer->Bind();
+        uint8_t data[4] = { 0, 0, 0, 0 };
+        glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        framebuffer->Unbind();
+
+        uint32_t id = data[0] | (data[1] << 8) | (data[2] << 16);
+        return id;
     }
 
 }

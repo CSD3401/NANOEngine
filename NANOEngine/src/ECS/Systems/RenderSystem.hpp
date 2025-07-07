@@ -14,6 +14,7 @@ namespace NANOEngine::ECS::Systems {
 
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
+		void RenderPicking();
 		void Exit() override;
 
     private:

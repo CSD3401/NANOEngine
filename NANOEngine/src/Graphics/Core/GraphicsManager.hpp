@@ -9,6 +9,7 @@
 namespace NANOEngine::Graphics {
     class Camera;
     class Skybox;
+    class IFrameBuffer;
 
     struct DrawCommand {
         std::shared_ptr<IGeometryBuffer> mesh;
@@ -26,6 +27,8 @@ namespace NANOEngine::Graphics {
         static void Shutdown();
 
         static void SetCamera(Camera* cam);
+
+        static uint32_t ReadPixel(IFrameBuffer* framebuffer, uint32_t x, uint32_t y);
 
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
