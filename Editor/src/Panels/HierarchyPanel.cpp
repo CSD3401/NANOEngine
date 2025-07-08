@@ -85,7 +85,7 @@ namespace Editor {
 
             // === Dummy children or details ===
             if (hasChildren && opened) {
-                // child nodes here
+                // child nodes
                 ImGui::TreePop();
             }
         }

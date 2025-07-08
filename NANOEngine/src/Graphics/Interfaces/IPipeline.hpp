@@ -2,6 +2,7 @@
 #define NANOENGINE_GRAPHICS_IPIPELINE_HPP
 
 #include <memory>
+#include <string>
 #include "IShader.hpp"
 
 namespace NANOEngine::Graphics {
@@ -19,6 +20,8 @@ namespace NANOEngine::Graphics {
         virtual ~IPipeline() = default;
         virtual void Bind() const = 0;
         virtual const PipelineSpecification& GetSpecification() const = 0;
+
+        virtual const std::string& GetName() const = 0;
     };
 }
 

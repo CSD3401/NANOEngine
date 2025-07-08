@@ -6,8 +6,8 @@
 
 namespace NANOEngine::Graphics::OpenGL {
 
-    GLPipeline::GLPipeline(const PipelineSpecification& spec)
-        : m_Spec(spec)
+    GLPipeline::GLPipeline(const PipelineSpecification& spec, std::string name)
+        : m_Spec(spec), m_name(name)
     {}
 
     void GLPipeline::Bind() const {

@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <string>
 #include "../Interfaces/IPipeline.hpp"
 #include "../Interfaces/ITexture.hpp"
 #include "../../../src/Math/Vec3.hpp"
@@ -21,6 +22,9 @@ namespace NANOEngine::Graphics {
         void Bind() const;
 
         std::shared_ptr<IPipeline> GetPipeline() const { return m_Pipeline; }
+
+        void SaveMaterial(const std::string& path) const;
+        static std::shared_ptr<Material> LoadMaterial(std::string path);
 
     private:
         std::shared_ptr<IPipeline> m_Pipeline;
