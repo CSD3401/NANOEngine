@@ -95,26 +95,28 @@ namespace Editor {
 				m_rightMouseHeld = false;
 			}
 
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-				ImVec2 mousePos = ImGui::GetMousePos();
-				if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
-					mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+			if (!ImGuizmo::IsUsingAny()) {
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					ImVec2 mousePos = ImGui::GetMousePos();
+					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
 
-					float localX = mousePos.x - panelPos.x;
-					float localY = mousePos.y - panelPos.y;
-					float spMouseX = localX / panelSize.x;
-					float spMouseY = localY / panelSize.y;
+						float localX = mousePos.x - panelPos.x;
+						float localY = mousePos.y - panelPos.y;
+						float spMouseX = localX / panelSize.x;
+						float spMouseY = localY / panelSize.y;
 
-					uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
-					uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
+						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
+						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
-					uint32_t id = NANOEngine::GetPickedEntity(x, y);
+						uint32_t id = NANOEngine::GetPickedEntity(x, y);
 
-					EditorScene::s_selectedEntity = nullptr;
-					for (auto& ent : EditorScene::s_entities) {
-						if (ent.linkedEntity == id) {
-							EditorScene::s_selectedEntity = &ent;
-							break;
+						EditorScene::s_selectedEntity = nullptr;
+						for (auto& ent : EditorScene::s_entities) {
+							if (ent.linkedEntity == id) {
+								EditorScene::s_selectedEntity = &ent;
+								break;
+							}
 						}
 					}
 				}

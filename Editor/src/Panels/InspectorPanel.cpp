@@ -4,6 +4,7 @@
 #include "src/ECS/Core/Signature.hpp"
 #include <src/ECS/Components/Transform.hpp>
 #include <src/ECS/Components/Renderer.hpp>
+#include <src/ECS/Components/Light.hpp>
 #include <src/Core/Reflection.hpp>
 #include <src/Math/Vec3.hpp>
 #include "../EditorScene.hpp"
@@ -20,8 +21,13 @@ namespace {
             return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
         } else if constexpr (std::is_same_v<T, Math::Vec3>) {
             return ImGui::DragFloat3(desc.name.data(), value.Data(), 0.1f);
-        } else {
-            return ImGui::Text("%s (unsupported)", desc.name.data());
+        } 
+        //else if constexpr (std::is_same_v<T, enum>) {
+
+        //} 
+        else {
+            ImGui::Text("%s (unsupported)", desc.name.data());
+            return false;
         }
     }
 }
@@ -66,6 +72,20 @@ namespace Editor {
                         }
                         ImGui::EndDragDropTarget();
                     }
+                } else if (typeIdx == typeid(ECS::Component::Light)) {
+                    auto& comp = GetEntityLight(entity);
+                    ImGui::SeparatorText("Light");
+
+                    static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
+                    int currentType = static_cast<int>(comp.type);
+                    if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
+                        comp.type = static_cast<ECS::Component::Light::Type>(currentType);
+                    }
+
+
+                    Core::ForEachField<ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
+                        DrawField(desc, field);
+                        });
                 }
             }
 
@@ -94,7 +114,16 @@ namespace Editor {
             //        }
             //    }
             //}
+            if (ImGui::Button("Add Component")) {
+                ImGui::OpenPopup("ComponentList");
+            }
 
+            if (ImGui::BeginPopup("ComponentList")) {
+                if (ImGui::MenuItem("Light")) {
+                    AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+                ImGui::EndPopup();
+            }
         }
         ImGui::End();
     }

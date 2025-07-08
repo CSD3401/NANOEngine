@@ -6,6 +6,13 @@
 #include "Material.hpp"
 #include "../../Math/Mat4.hpp"
 
+namespace NANOEngine::ECS::Component {
+    struct DirectionalLight;
+    struct PointLight;
+    struct SpotLight;
+    struct Light;
+}
+
 namespace NANOEngine::Graphics {
     class Camera;
     class Skybox;
@@ -30,10 +37,16 @@ namespace NANOEngine::Graphics {
 
         static uint32_t ReadPixel(IFrameBuffer* framebuffer, uint32_t x, uint32_t y);
 
+        //static std::vector<ECS::Component::DirectionalLight*> m_directionalLights;
+        //static std::vector<ECS::Component::PointLight*> m_pointLights;
+        //static std::vector<ECS::Component::SpotLight*> m_spotLights;
+
+        static std::vector<ECS::Component::Light*> m_lights;
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;
         static Camera* s_ActiveCamera;
+
     };
 
 }

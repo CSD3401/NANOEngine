@@ -7,8 +7,13 @@
 #include "../../Core/Logger.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../Interfaces/IFrameBuffer.hpp"
+#include "../../ECS/Components/Light.hpp"
 
 namespace NANOEngine::Graphics {
+
+    //std::vector<ECS::Component::DirectionalLight*> GraphicsManager::m_directionalLights;
+    //std::vector<ECS::Component::PointLight*> GraphicsManager::m_pointLights;
+    std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
 
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
     std::unique_ptr<Skybox> GraphicsManager::s_skybox;
@@ -24,6 +29,8 @@ namespace NANOEngine::Graphics {
         glClearColor(1.f, 1.f, 1.f, 1.f);
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
+
+        
     }
 
     void GraphicsManager::DrawSkybox()
@@ -50,29 +57,21 @@ namespace NANOEngine::Graphics {
         shader->SetUniformMat4("u_Projection", s_ActiveCamera->GetProjectionMatrix());
         shader->SetUniformVec3("u_CameraPos", s_ActiveCamera->GetPosition());
 
-        shader->SetUniformInt("u_NumDirLights", 1);
-        shader->SetUniformVec3("u_DirectionalLights[0].direction", { -0.2f, -1.0f, -0.3f });
-        shader->SetUniformVec3("u_DirectionalLights[0].color", { 1.0f, 1.0f, 1.0f });
-        shader->SetUniformFloat("u_DirectionalLights[0].intensity", 1.0f);
-
-        shader->SetUniformInt("u_NumPointLights", 1);
-        shader->SetUniformVec3("u_PointLights[0].position", { 2.0f, 2.0f, 2.0f });
-        shader->SetUniformVec3("u_PointLights[0].color", { 1.0f, 1.0f, 1.0f });
-        shader->SetUniformFloat("u_PointLights[0].intensity", 1.0f);
-        shader->SetUniformFloat("u_PointLights[0].constant", 1.0f);
-        shader->SetUniformFloat("u_PointLights[0].linear", 0.09f);
-        shader->SetUniformFloat("u_PointLights[0].quadratic", 0.032f);
-
-        shader->SetUniformInt("u_NumSpotLights", 1);
-        shader->SetUniformVec3("u_SpotLights[0].position", s_ActiveCamera->GetPosition());
-        shader->SetUniformVec3("u_SpotLights[0].direction", s_ActiveCamera->GetForward());
-        shader->SetUniformVec3("u_SpotLights[0].color", { 1.0f, 1.0f, 1.0f });
-        shader->SetUniformFloat("u_SpotLights[0].intensity", 1.0f);
-        shader->SetUniformFloat("u_SpotLights[0].innerCutoff", 0.91f);
-        shader->SetUniformFloat("u_SpotLights[0].outerCutoff", 0.82f);
-        shader->SetUniformFloat("u_SpotLights[0].constant", 1.0f);
-        shader->SetUniformFloat("u_SpotLights[0].linear", 0.09f);
-        shader->SetUniformFloat("u_SpotLights[0].quadratic", 0.032f);
+        shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
+        for (size_t i = 0; i < m_lights.size(); ++i) {
+            const auto* light = m_lights[i];
+            std::string base = "u_lights[" + std::to_string(i) + "]";
+            shader->SetUniformInt(base + ".type", light->type);
+            shader->SetUniformVec3(base + ".position", light->position);
+            shader->SetUniformVec3(base + ".direction", light->direction);
+            shader->SetUniformVec3(base + ".color", light->color);
+            shader->SetUniformFloat(base + ".intensity", light->intensity);
+            shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
+            shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
+            shader->SetUniformFloat(base + ".constant", light->constant);
+            shader->SetUniformFloat(base + ".linear", light->linear);
+            shader->SetUniformFloat(base + ".quadratic", light->quadratic);
+        }
 
         shader->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
         shader->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });

@@ -22,9 +22,7 @@
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="ECSInternals.hpp" />
-    <ClInclude Include="src\ECS\Components\DirectionalLight.hpp" />
-    <ClInclude Include="src\ECS\Components\PointLight.hpp" />
-    <ClInclude Include="src\ECS\Components\SpotLight.hpp" />
+    <ClInclude Include="src\ECS\Components\Light.hpp" />
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />

@@ -10,6 +10,7 @@ namespace NANOEngine {
 	namespace ECS::Component {
 		struct Transform;
 		struct Renderer;
+		struct Light;
 	}
 	//extern SceneManagement::Scene scene;
 
@@ -23,6 +24,9 @@ namespace NANOEngine {
 
 	NANOENGINE_API ECS::Component::Transform& GetEntityTransform(uint32_t e);
 	NANOENGINE_API ECS::Component::Renderer& GetEntityRenderer(uint32_t e);
+	NANOENGINE_API ECS::Component::Light& GetEntityLight(uint32_t e);
+
+	NANOENGINE_API void AddLightComponent(uint32_t e);
 
 	NANOENGINE_API void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath);
 

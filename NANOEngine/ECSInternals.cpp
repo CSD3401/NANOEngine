@@ -2,6 +2,7 @@
 #include "src/SceneManagement/Scene.hpp"
 #include "src/ECS/Components/Transform.hpp"
 #include "src/ECS/Components/Renderer.hpp"
+#include "src/ECS/Components/Light.hpp"
 
 namespace NANOEngine {
 	SceneManagement::Scene& GetScene();
@@ -28,6 +29,16 @@ namespace NANOEngine {
 
 	NANOENGINE_API ECS::Component::Renderer& GetEntityRenderer(uint32_t e) {
 		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Renderer>(e);
+	}
+
+	NANOENGINE_API ECS::Component::Light& GetEntityLight(uint32_t e)
+	{
+		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Light>(e);
+	}
+
+	NANOENGINE_API void AddLightComponent(uint32_t e)
+	{
+		GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});
 	}
 
 	void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath) {

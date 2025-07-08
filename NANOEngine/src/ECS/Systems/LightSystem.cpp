@@ -1,9 +1,12 @@
 #include "LightSystem.hpp"
 #include "../../Core/Profiler.hpp"
+#include "../../Graphics/Core/GraphicsManager.hpp"
+#include "../../ECS/Components/Transform.hpp"
+#include "../Components/Light.hpp"
 
 namespace NANOEngine::ECS::Systems {
 
-    LightSystem::LightSystem(ComponentManager* cm)
+    LightSystem::LightSystem(NANOEngine::ECS::ComponentManager* cm)
         : m_componentManager(cm) {}
 
     void LightSystem::OnEntityAdded(Entity) {}
@@ -13,20 +16,17 @@ namespace NANOEngine::ECS::Systems {
     void LightSystem::Init() {}
 
     void LightSystem::Update(double) {
-        NE_PROFILE_FUNCTION();
-        //m_directionalLights.clear();
-        //for (Entity e : m_componentManager->GetEntitiesWithComponent<Component::DirectionalLight>())
-        //    m_directionalLights.push_back(&m_componentManager->GetComponent<Component::DirectionalLight>(e));
+        NE_PROFILE_FUNCTION();            
+        
+        Graphics::GraphicsManager::m_lights.clear();
 
-        //m_pointLights.clear();
-        //for (Entity e : m_componentManager->GetEntitiesWithComponent<Component::PointLight>())
-        //    m_pointLights.push_back(&m_componentManager->GetComponent<Component::PointLight>(e));
-
-        //m_spotLights.clear();
-        //for (Entity e : m_componentManager->GetEntitiesWithComponent<Component::SpotLight>())
-        //    m_spotLights.push_back(&m_componentManager->GetComponent<Component::SpotLight>(e));
-
-        // TODO: Upload light data to GPU
+        const auto& entities = GetEntities();
+        for (Entity entity : entities) {
+            auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
+            auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
+            sl.position = t.position;
+            Graphics::GraphicsManager::m_lights.push_back(&sl);
+        }
     }
 
     void LightSystem::Exit() {}
