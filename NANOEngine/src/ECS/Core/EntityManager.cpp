@@ -13,6 +13,7 @@ namespace NANOEngine::ECS {
 		for (int i = static_cast<int>(MAX_ENTITIES) - 1; i >= 0; --i) {
 			m_availableEntities.push_back(static_cast<Entity>(i));
 		}
+		m_usedEntities.reserve(MAX_ENTITIES);
 	}
 
 	Entity EntityManager::CreateEntity()
@@ -24,6 +25,7 @@ namespace NANOEngine::ECS {
 
 		Entity entity = m_availableEntities.back();
 		m_availableEntities.pop_back();
+		m_usedEntities.push_back(entity);
 
 		LOG_INFO("Entity Created: " << entity);
 
@@ -32,6 +34,16 @@ namespace NANOEngine::ECS {
 
 	void EntityManager::DestroyEntity(Entity entity)
 	{
+		// temp
+		auto it = std::find_if(m_usedEntities.begin(), m_usedEntities.end(),
+			[id = entity](const Entity& entt) {
+				return entt == id;
+			});
+
+		if (it != m_usedEntities.end()) {
+			m_usedEntities.erase(it);
+		}
+
 		m_signatures[entity].reset();
 		m_availableEntities.push_back(entity);
 	}

@@ -7,7 +7,7 @@ namespace NANOEngine {
         class ISceneSerializer {
         public:
             virtual ~ISceneSerializer() = default;
-            virtual void Serialize(const SceneManagement::Scene& scene, const std::string& path) = 0;
+            virtual void Serialize(SceneManagement::Scene& scene, const std::string& path) = 0;
             virtual void Deserialize(SceneManagement::Scene& scene, const std::string& path) = 0;
         };
     }

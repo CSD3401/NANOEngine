@@ -11,8 +11,6 @@
 
 namespace NANOEngine::Graphics {
 
-    //std::vector<ECS::Component::DirectionalLight*> GraphicsManager::m_directionalLights;
-    //std::vector<ECS::Component::PointLight*> GraphicsManager::m_pointLights;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
 
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
@@ -29,8 +27,6 @@ namespace NANOEngine::Graphics {
         glClearColor(1.f, 1.f, 1.f, 1.f);
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
-
-        
     }
 
     void GraphicsManager::DrawSkybox()

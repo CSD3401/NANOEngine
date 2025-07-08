@@ -75,6 +75,7 @@ namespace Editor {
             if (ImGui::BeginPopupContextItem((std::string("EntityContext") + std::to_string(entity.linkedEntity)).c_str())) {
                 if (ImGui::MenuItem("Delete")) {
                     NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
+                    EditorScene::s_selectedEntity = nullptr;
                 }
                 if (ImGui::MenuItem("Rename")) {
                     // TODO: Add rename logic (inline or popup)

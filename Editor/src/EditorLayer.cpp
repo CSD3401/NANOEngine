@@ -3,6 +3,8 @@
 #include <imgui/imgui_internal.h>
 #include <wtypes.h>
 #include "Panels/AssetBrowserPanel.hpp"
+#include "Engine.hpp"
+#include "../src/EditorScene.hpp"
 
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
@@ -176,6 +178,7 @@ namespace Editor {
                 if (ImGui::MenuItem("Open Scene", "", false, false)) {}
                 ImGui::Separator();
                 if (ImGui::MenuItem("Save", "Ctrl + S")) {
+                    NANOEngine::SaveCurrentScene(EditorScene::currentScenePath);
                     //SceneManager::GetInstance().SaveScene();
                 }
                 ImGui::Separator();

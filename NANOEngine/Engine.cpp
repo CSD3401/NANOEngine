@@ -10,14 +10,15 @@
 #include "src/Core/Profiler.hpp"
 #include <glad/glad.h>
 #include "src/SceneManagement/Scene.hpp"
-
+#include "../../src/Serialisation/JsonSceneSerializer.hpp"
+#include <iostream>
 namespace NANOEngine {
 
 	static std::unique_ptr<Graphics::Window> s_window;
 	static std::unique_ptr<Graphics::IRenderContext> s_renderContext;
 	static std::unique_ptr<Graphics::IFrameBuffer> s_sceneFrameBuffer; // temp
 	static std::unique_ptr<Graphics::IFrameBuffer> s_pickingFrameBuffer; // temp
-	SceneManagement::Scene scene;
+	static SceneManagement::Scene scene;
 
 
 	void Initialize() {
@@ -107,8 +108,18 @@ namespace NANOEngine {
 		Graphics::GraphicsManager::SetCamera(reinterpret_cast<Graphics::Camera*>(camera));
 	}
 
-	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y) {
+	uint32_t GetPickedEntity(uint32_t x, uint32_t y) {
 		return Graphics::GraphicsManager::ReadPixel(s_pickingFrameBuffer.get(), x, y);
+	}
+
+	void SaveCurrentScene(std::string path) {
+		Serialization::JsonSceneSerializer::Serialize(scene, path);
+	}
+
+	void LoadTargetScene(std::string targetPath)
+	{
+		//std::cout << targetPath << std::endl;
+		Serialization::JsonSceneSerializer::Deserialize(scene, targetPath);
 	}
 
 	// Internal use only

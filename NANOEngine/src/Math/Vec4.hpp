@@ -2,6 +2,7 @@
 #ifndef VEC_4_HPP
 #define VEC_4_HPP
 
+#pragma warning(push)
 #pragma warning(disable : 4201) // Disable warning C4201 for unnamed struct/union
 
 namespace NANOEngine::Math {
@@ -42,4 +43,5 @@ namespace NANOEngine::Math {
     using Color = Vec4;
 }
 
+#pragma warning(pop)
 #endif // !VEC_4_HPP

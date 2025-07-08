@@ -6,6 +6,7 @@
 #include "NANOEngineAPI.hpp"
 #include <typeindex>
 
+
 namespace NANOEngine {
 	namespace ECS::Component {
 		struct Transform;
@@ -31,4 +32,6 @@ namespace NANOEngine {
 	NANOENGINE_API void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath);
 
 	NANOENGINE_API const std::unordered_map<std::type_index, uint8_t>& GetRegisteredComponentTypes();
+
+	NANOENGINE_API std::vector<uint32_t>& GetEntities();
 }

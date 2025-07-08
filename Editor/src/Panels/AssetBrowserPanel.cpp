@@ -1,7 +1,9 @@
 #include "AssetBrowserPanel.hpp"
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-
+#include <Engine.hpp>
+#include <ECSInternals.hpp>
+#include "../../src/EditorScene.hpp"
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
@@ -222,11 +224,24 @@ namespace Editor {
             );
 
             // Drag and drop assets
-            if (ImGui::BeginDragDropSource()) {
-                std::string assetPath = entry.path().string();
-                ImGui::SetDragDropPayload("ASSET_PATH", assetPath.c_str(), assetPath.size() + 1);
-                ImGui::TextUnformatted(name.c_str());
-                ImGui::EndDragDropSource();
+            if (!entry.is_directory()) {
+                const auto& entryPath = entry.path();
+                if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx") {
+                    if (ImGui::BeginDragDropSource()) {
+                        std::string assetPath = entry.path().string();
+                        ImGui::SetDragDropPayload("ASSET_PATH", assetPath.c_str(), assetPath.size() + 1);
+                        ImGui::TextUnformatted(name.c_str());
+                        ImGui::EndDragDropSource();
+                    }
+                } else if (entryPath.extension() == ".scene") {    
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        NANOEngine::LoadTargetScene(entryPath.string());
+
+                        for (const auto& entt : NANOEngine::GetEntities()) {
+                            EditorScene::s_entities.push_back({ entt });
+                        }
+                    }
+                }
             }
 
             // Handle double click and right click

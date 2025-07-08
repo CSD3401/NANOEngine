@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string>
 #include "EditorEntity.hpp"
 
 namespace Editor {
@@ -8,6 +9,8 @@ namespace Editor {
     public:
         static std::vector<EditorEntity> s_entities;
         static EditorEntity* s_selectedEntity;
+
+        static std::string currentScenePath;
     };
 
 }

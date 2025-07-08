@@ -23,7 +23,9 @@ namespace NANOEngine::ECS {
 		Signature GetSignature(Entity entity);
 		void SetSignature(Entity entity, Signature sig);
 
+		std::vector<Entity>& GetUsedEntities() { return m_usedEntities; }
 	private:
+		std::vector<Entity> m_usedEntities{}; // TEMP;
 		std::vector<Entity> m_availableEntities{};
 		std::array<Signature, MAX_ENTITIES> m_signatures{};
 	};

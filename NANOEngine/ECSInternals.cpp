@@ -51,5 +51,10 @@ namespace NANOEngine {
 		return GetScene().GetECSCoordinator().GetRegisteredComponentTypes();
 	}
 
+	std::vector<uint32_t>& GetEntities()
+	{
+		return GetScene().GetECSCoordinator().GetUsedEntities();
+	}
+
 
 }

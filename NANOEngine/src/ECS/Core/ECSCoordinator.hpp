@@ -83,6 +83,7 @@ namespace NANOEngine::ECS {
         //ComponentManager& GetComponentManager() {
         //    return *m_componentManager;
         //}
+        std::vector<Entity>& GetUsedEntities() { return m_entityManager->GetUsedEntities(); }
 
         Signature GetSignature(Entity entity);
 
