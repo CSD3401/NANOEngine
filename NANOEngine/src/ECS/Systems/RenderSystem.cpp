@@ -19,9 +19,9 @@
 #include <glad/glad.h>
 
 namespace NANOEngine::ECS::Systems {
-	static std::shared_ptr<Graphics::IShader> basicShader;
-	static std::shared_ptr<Graphics::IPipeline> pipeline;
-	static std::shared_ptr<Graphics::Material> material;
+	//static std::shared_ptr<Graphics::IShader> basicShader;
+	//static std::shared_ptr<Graphics::IPipeline> pipeline;
+	//static std::shared_ptr<Graphics::Material> material;
 
     static std::shared_ptr<Graphics::IShader> pickingShader;
     static std::shared_ptr<Graphics::IPipeline> pickingPipeline;
@@ -41,14 +41,21 @@ namespace NANOEngine::ECS::Systems {
 
     void RenderSystem::Init()
     {
-		basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
-		Graphics::PipelineSpecification pipelineSpec;
-		pipelineSpec.shader = basicShader;
-		pipelineSpec.CullMode = GL_BACK;
-		pipelineSpec.PolygonMode = GL_FILL;
-		pipelineSpec.EnableDepthTest = true;
-		pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
-		material = std::make_shared<Graphics::Material>(pipeline);
+
+
+   //     const auto& entities = GetEntities();
+   //     for (Entity entity : entities) {
+			//auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+   //     }
+
+		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
+		//Graphics::PipelineSpecification pipelineSpec;
+		//pipelineSpec.shader = basicShader;
+		//pipelineSpec.CullMode = GL_BACK;
+		//pipelineSpec.PolygonMode = GL_FILL;
+		//pipelineSpec.EnableDepthTest = true;
+		//pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
+		//material = std::make_shared<Graphics::Material>(pipeline);
 
         pickingShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Picking.glsl");
         Graphics::PipelineSpecification pickSpec;
@@ -75,13 +82,13 @@ namespace NANOEngine::ECS::Systems {
 			for (auto& sub : renderer.model->meshes) {
 				Graphics::DrawCommand cmd;
 				cmd.mesh = sub.buffer;
-				cmd.material = material;
+				cmd.material = renderer.material;
 				cmd.transform = transform.modelMatrix;
 
-                material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
-                material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
-                material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
-                material->SetUniformFloat("u_Material.shininess", 32.0f);
+                cmd.material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
+                cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
+                cmd.material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
+                cmd.material->SetUniformFloat("u_Material.shininess", 32.0f);
 
 				Graphics::GraphicsManager::Submit(cmd);
 			}
@@ -116,7 +123,6 @@ namespace NANOEngine::ECS::Systems {
 
     void RenderSystem::Exit()
     {
-        material->SaveMaterial("Assets/basic.nanomat");
     }
 
 }

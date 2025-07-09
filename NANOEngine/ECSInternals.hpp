@@ -30,6 +30,7 @@ namespace NANOEngine {
 	NANOENGINE_API void AddLightComponent(uint32_t e);
 
 	NANOENGINE_API void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath);
+	NANOENGINE_API void AssignRendererMaterial(ECS::Component::Renderer& r, std::string filepath);
 
 	NANOENGINE_API const std::unordered_map<std::type_index, uint8_t>& GetRegisteredComponentTypes();
 

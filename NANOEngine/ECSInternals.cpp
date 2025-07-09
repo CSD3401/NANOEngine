@@ -27,16 +27,16 @@ namespace NANOEngine {
 		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Transform>(e);
 	}
 
-	NANOENGINE_API ECS::Component::Renderer& GetEntityRenderer(uint32_t e) {
+	ECS::Component::Renderer& GetEntityRenderer(uint32_t e) {
 		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Renderer>(e);
 	}
 
-	NANOENGINE_API ECS::Component::Light& GetEntityLight(uint32_t e)
+	ECS::Component::Light& GetEntityLight(uint32_t e)
 	{
 		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Light>(e);
 	}
 
-	NANOENGINE_API void AddLightComponent(uint32_t e)
+	void AddLightComponent(uint32_t e)
 	{
 		GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});
 	}
@@ -44,6 +44,11 @@ namespace NANOEngine {
 	void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath) {
 		r.modelPath = filepath;
 		r.model = Graphics::LoadModel(filepath);
+	}
+
+	void AssignRendererMaterial(ECS::Component::Renderer& r, std::string filepath) {
+		r.materialPath = filepath;
+		r.material = Graphics::Material::LoadMaterial(filepath);
 	}
 
 	const std::unordered_map<std::type_index, uint8_t>& GetRegisteredComponentTypes()

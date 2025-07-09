@@ -8,9 +8,20 @@
 
 
 namespace NANOEngine::Graphics::OpenGL {
-    static GLenum ShaderTypeFromString(const std::string& type) {
-        if (type == " vertex") return GL_VERTEX_SHADER;
-        if (type == " fragment") return GL_FRAGMENT_SHADER;
+
+    static std::string Trim(const std::string& str) {
+        const char* whitespace = " \t\n\r";
+        size_t start = str.find_first_not_of(whitespace);
+        if (start == std::string::npos)
+            return "";
+        size_t end = str.find_last_not_of(whitespace);
+        return str.substr(start, end - start + 1);
+    }
+
+    static GLenum ShaderTypeFromString(std::string& type) {
+        type = Trim(type);
+        if (type == "vertex") return GL_VERTEX_SHADER;
+        if (type == "fragment") return GL_FRAGMENT_SHADER;
         throw std::runtime_error("Unknown shader type: " + type);
     }
 

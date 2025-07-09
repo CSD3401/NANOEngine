@@ -8,6 +8,7 @@
 #include <src/Core/Reflection.hpp>
 #include <src/Math/Vec3.hpp>
 #include "../EditorScene.hpp"
+#include <Engine.hpp>
 
 namespace {
     template<typename Owner, typename T>
@@ -33,9 +34,10 @@ namespace {
 }
 
 namespace Editor {
-	InspectorPanel::InspectorPanel() {
-
-	}
+    InspectorPanel::InspectorPanel() {
+        m_loadedMaterial = nullptr;
+        m_loadedPath = "";
+    }
 
     void InspectorPanel::OnImGuiRender()
     {
@@ -69,6 +71,18 @@ namespace Editor {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
                             AssignRendererModel(comp, dropped);
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
+                    char bufMat[256]; 
+                    strncpy_s(bufMat, comp.materialPath.string().c_str(), sizeof(bufMat));
+                    ImGui::InputText("Material", bufMat, sizeof(bufMat));
+                    comp.materialPath = bufMat;
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
+                            std::string dropped((const char*)p->Data, p->DataSize - 1);
+                            AssignRendererMaterial(comp, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -124,7 +138,44 @@ namespace Editor {
                 ImGui::EndPopup();
             }
         } else if (EditorScene::selectedMaterial != "") {
+            using namespace NANOEngine;
+            if (m_loadedPath != EditorScene::selectedMaterial) {
+                try {
+                    m_loadedMaterial = Graphics::Material::LoadMaterial(EditorScene::selectedMaterial);
+                    m_loadedPath = EditorScene::selectedMaterial;
+                } catch (...) {
+                    m_loadedMaterial.reset();
+                    m_loadedPath.clear();
+                }
+            }
 
+            if (m_loadedMaterial) {
+                ImGui::SeparatorText("Material Uniforms");
+
+                for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
+                    float v = val;
+                    if (ImGui::DragFloat(name.c_str(), &v, 0.1f)) {
+                        m_loadedMaterial->SetUniformFloat(name, v);
+                        m_loadedMaterial->SaveMaterial(m_loadedPath);
+                    }
+                }
+
+                for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
+                    NANOEngine::Math::Vec3 v = val;
+                    if (ImGui::DragFloat3(name.c_str(), v.Data(), 0.1f)) {
+                        m_loadedMaterial->SetUniformVec3(name, v);
+                        m_loadedMaterial->SaveMaterial(m_loadedPath);
+                    }
+                }
+
+                for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
+                    int i = val;
+                    if (ImGui::DragInt(name.c_str(), &i)) {
+                        m_loadedMaterial->SetUniformInt(name, i);
+                        m_loadedMaterial->SaveMaterial(m_loadedPath);
+                    }
+                }
+            }
         }
 
         ImGui::End();

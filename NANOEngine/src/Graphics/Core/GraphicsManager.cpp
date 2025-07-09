@@ -8,6 +8,8 @@
 #include "../../Core/Profiler.hpp"
 #include "../Interfaces/IFrameBuffer.hpp"
 #include "../../ECS/Components/Light.hpp"
+#include "../OpenGL/GLShader.hpp"
+#include "../OpenGL/GLPipeline.hpp"
 
 namespace NANOEngine::Graphics {
 
@@ -20,6 +22,14 @@ namespace NANOEngine::Graphics {
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
+
+        std::shared_ptr<Graphics::IShader> basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
+        Graphics::PipelineSpecification pipelineSpec;
+        pipelineSpec.shader = basicShader;
+        pipelineSpec.CullMode = GL_BACK;
+        pipelineSpec.PolygonMode = GL_FILL;
+        pipelineSpec.EnableDepthTest = true;
+        RegisterPipeline(std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic.glsl"));
     }
 
     void GraphicsManager::BeginFrame() {

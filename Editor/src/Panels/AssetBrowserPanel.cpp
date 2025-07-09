@@ -242,7 +242,12 @@ namespace Editor {
                         }
                     }
                 } else if (entryPath.extension() == ".nanomat") {
-                    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                    if (ImGui::BeginDragDropSource()) {
+                        std::string assetPath = entry.path().string();
+                        ImGui::SetDragDropPayload("MATERIAL_PATH", assetPath.c_str(), assetPath.size() + 1);
+                        ImGui::TextUnformatted(name.c_str());
+                        ImGui::EndDragDropSource();
+                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         EditorScene::s_selectedEntity = nullptr;
                         EditorScene::selectedMaterial = entryPath.string();
                     }

@@ -1,5 +1,5 @@
 #include "ThumbnailManager.hpp"
-#include <Graphics/OpenGL/GLUtilities.hpp>
+#include <src/Graphics/OpenGL/GLUtilities.hpp>
 
 namespace Editor {
 

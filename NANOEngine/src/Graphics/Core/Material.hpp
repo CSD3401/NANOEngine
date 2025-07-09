@@ -8,9 +8,13 @@
 #include "../Interfaces/ITexture.hpp"
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
+#include "../../../NANOEngineAPI.hpp"
+
+#pragma warning(push)
+#pragma warning(disable: 4251)
 
 namespace NANOEngine::Graphics {
-	class Material {
+	class NANOENGINE_API Material {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);
 
@@ -23,6 +27,11 @@ namespace NANOEngine::Graphics {
         void Bind() const;
 
         std::shared_ptr<IPipeline> GetPipeline() const { return m_Pipeline; }
+
+        const std::unordered_map<std::string, int>& GetIntUniforms() const { return m_IntUniforms; }
+        const std::unordered_map<std::string, float>& GetFloatUniforms() const { return m_FloatUniforms; }
+        const std::unordered_map<std::string, Vec3>& GetVec3Uniforms() const { return m_Vec3Uniforms; }
+        const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
 
         void SaveMaterial(const std::string& path) const;
         static std::shared_ptr<Material> LoadMaterial(std::string path);
@@ -44,5 +53,6 @@ namespace NANOEngine::Graphics {
     std::shared_ptr<IPipeline> GetPipelineByName(const std::string& name);
 }
 
+#pragma warning(pop)
 
 #endif // !NANOENGINE_GRAPHICS_MATERIAL_HPP
