@@ -241,6 +241,11 @@ namespace Editor {
                             EditorScene::s_entities.push_back({ entt });
                         }
                     }
+                } else if (entryPath.extension() == ".nanomat") {
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedMaterial = entryPath.string();
+                    }
                 }
             }
 

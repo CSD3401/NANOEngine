@@ -21,6 +21,33 @@ namespace Editor {
         ImGui::Begin("Profiler", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         const auto& data = Profiler::GetFrameData();
         ImGuiWidgetFlameGraph::PlotFlame("Flame", FlameGetter, &data, static_cast<int>(data.size()));
+
+        if (ImGui::BeginTable("##profilerevents", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders)) {
+            ImGui::TableSetupColumn("Name");
+            ImGui::TableSetupColumn("Start (s)");
+            ImGui::TableSetupColumn("End (s)");
+            ImGui::TableSetupColumn("Duration (s)");
+            ImGui::TableHeadersRow();
+
+            for (const auto& ev : data) {
+                ImGui::TableNextRow();
+
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(ev.Name);
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%.4f", ev.Start);
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%.4f", ev.End);
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%.4f", ev.End - ev.Start);
+            }
+
+            ImGui::EndTable();
+        }
+
         ImGui::End();
     }
 

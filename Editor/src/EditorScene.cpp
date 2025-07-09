@@ -5,5 +5,7 @@ namespace Editor {
     std::vector<EditorEntity> EditorScene::s_entities;
     EditorEntity* EditorScene::s_selectedEntity;
 
+    std::string EditorScene::selectedMaterial;
+
     std::string EditorScene::currentScenePath("Assets/NewScene.scene");
 }

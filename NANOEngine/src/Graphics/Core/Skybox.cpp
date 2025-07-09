@@ -44,7 +44,7 @@ namespace NANOEngine::Graphics {
         spec.CullMode = GL_FRONT;
         spec.EnableDepthTest = false;
         spec.PolygonMode = GL_FILL;
-        auto pipeline = std::make_shared<GLPipeline>(spec);
+        auto pipeline = std::make_shared<GLPipeline>(spec, "Skybox");
         m_Material = std::make_shared<Material>(pipeline);
     }
 

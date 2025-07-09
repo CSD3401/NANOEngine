@@ -82,7 +82,6 @@ namespace Editor {
                         comp.type = static_cast<ECS::Component::Light::Type>(currentType);
                     }
 
-
                     Core::ForEachField<ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
                         DrawField(desc, field);
                         });
@@ -124,7 +123,10 @@ namespace Editor {
                 }
                 ImGui::EndPopup();
             }
+        } else if (EditorScene::selectedMaterial != "") {
+
         }
+
         ImGui::End();
     }
 }

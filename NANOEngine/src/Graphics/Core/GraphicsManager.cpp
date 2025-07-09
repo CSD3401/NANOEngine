@@ -69,11 +69,6 @@ namespace NANOEngine::Graphics {
             shader->SetUniformFloat(base + ".quadratic", light->quadratic);
         }
 
-        shader->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
-        shader->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
-        shader->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
-        shader->SetUniformFloat("u_Material.shininess", 32.0f);
-
         // Draw indexed
         //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
         command.mesh->Draw();

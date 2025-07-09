@@ -14,6 +14,7 @@ namespace NANOEngine::Graphics {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);
 
+        void SetUniformInt(const std::string& name, int value);
         void SetUniformFloat(const std::string& name, float value);
         void SetUniformVec3(const std::string& name, const Vec3& value);
         void SetUniformMat4(const std::string& name, const Mat4& value);
@@ -30,6 +31,7 @@ namespace NANOEngine::Graphics {
         std::shared_ptr<IPipeline> m_Pipeline;
 
         // Uniforms to be uploaded before draw
+        std::unordered_map<std::string, int>  m_IntUniforms;
         std::unordered_map<std::string, float> m_FloatUniforms;
         std::unordered_map<std::string, Vec3> m_Vec3Uniforms;
         std::unordered_map<std::string, Mat4> m_Mat4Uniforms;
@@ -37,6 +39,9 @@ namespace NANOEngine::Graphics {
         // Texture units (assume 1 per name for now)
         std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
 	};
+
+    void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);
+    std::shared_ptr<IPipeline> GetPipelineByName(const std::string& name);
 }
 
 

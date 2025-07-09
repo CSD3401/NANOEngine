@@ -83,6 +83,9 @@ namespace NANOEngine {
 
 	void Shutdown() {
 		NE_PROFILE_FUNCTION();
+
+		scene.Exit();
+
 		s_sceneFrameBuffer.reset();
 		s_pickingFrameBuffer.reset();
 		s_renderContext->Shutdown();

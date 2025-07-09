@@ -4,10 +4,31 @@
 #include <rapidjson/prettywriter.h>
 #include <fstream>
 
+namespace {
+    using namespace NANOEngine::Graphics;
+    std::unordered_map<std::string, std::shared_ptr<IPipeline>> s_PipelineRegistry;
+}
+
 namespace NANOEngine::Graphics {
+
+    void RegisterPipeline(std::shared_ptr<IPipeline> pipeline) {
+        if (pipeline)
+            s_PipelineRegistry[pipeline->GetName()] = std::move(pipeline);
+    }
+
+    std::shared_ptr<IPipeline> GetPipelineByName(const std::string& name) {
+        auto it = s_PipelineRegistry.find(name);
+        if (it != s_PipelineRegistry.end())
+            return it->second;
+        return nullptr;
+    }
 
     Material::Material(std::shared_ptr<IPipeline> pipeline)
         : m_Pipeline(std::move(pipeline)) {}
+
+    void Material::SetUniformInt(const std::string& name, int value) {
+        m_IntUniforms[name] = value;
+    }
 
     void Material::SetUniformFloat(const std::string& name, float value) {
         m_FloatUniforms[name] = value;
@@ -35,6 +56,8 @@ namespace NANOEngine::Graphics {
             shader->SetUniformVec3(name, val);
         for (const auto& [name, val] : m_Mat4Uniforms)
             shader->SetUniformMat4(name, val);
+        for (const auto& [name, val] : m_IntUniforms)
+            shader->SetUniformInt(name, val);
 
         // Bind textures (optional): assumes ITexture has Bind(slot)
         int slot = 0;
@@ -85,15 +108,6 @@ namespace NANOEngine::Graphics {
 
         doc.AddMember("Properties", props, alloc);
 
-        // 3. Write to file
-        //FILE* fp = fopen(path.c_str(), "wb");
-        //if (!fp) throw std::runtime_error("Failed to write material file: " + path);
-        //char buffer[65536];
-        //FileWriteStream os(fp, buffer, sizeof(buffer));
-        //Writer<FileWriteStream> writer(os);
-        //doc.Accept(writer);
-        //fclose(fp);
-
         StringBuffer buffer;
         PrettyWriter<StringBuffer> writer(buffer);
         doc.Accept(writer);
@@ -102,58 +116,55 @@ namespace NANOEngine::Graphics {
             out << buffer.GetString();
     }
 
-    //std::shared_ptr<Material> Material::LoadMaterial(std::string path) {
-    //    FILE* fp = fopen(path.c_str(), "rb");
-    //    if (!fp) throw std::runtime_error("Failed to open material file: " + path);
+    std::shared_ptr<Material> Material::LoadMaterial(std::string path) {
+        using namespace rapidjson;
 
-    //    char buffer[65536];
-    //    rapidjson::FileReadStream is(fp, buffer, sizeof(buffer));
-    //    rapidjson::Document doc;
-    //    doc.ParseStream(is);
-    //    fclose(fp);
+        std::ifstream in(path);
+        if (!in.is_open())
+            throw std::runtime_error("Failed to open material file: " + path);
 
-    //    if (!doc.IsObject()) throw std::runtime_error("Invalid material file");
+        std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        Document doc;
+        doc.Parse(json.c_str());
 
-    //    // Shader
-    //    if (!doc.HasMember("shader")) throw std::runtime_error("No 'shader' in material file");
-    //    std::string shaderName = doc["shader"].GetString();
-    //    auto pipeline = GetPipelineByName(shaderName);
-    //    if (!pipeline) throw std::runtime_error("Pipeline not found: " + shaderName);
+        if (!doc.IsObject())
+            throw std::runtime_error("Invalid material file");
 
-    //    auto mat = std::make_shared<Material>(pipeline);
+        if (!doc.HasMember("shader") || !doc["shader"].IsString())
+            throw std::runtime_error("No 'shader' in material file");
 
-    //    // Properties
-    //    if (!doc.HasMember("properties") || !doc["properties"].IsObject())
-    //        throw std::runtime_error("No 'properties' in material file");
+        std::string shaderName = doc["shader"].GetString();
+        auto pipeline = GetPipelineByName(shaderName);
+        if (!pipeline)
+            throw std::runtime_error("Pipeline not found: " + shaderName);
 
-    //    const auto& props = doc["properties"];
-    //    for (auto it = props.MemberBegin(); it != props.MemberEnd(); ++it) {
-    //        std::string name = it->name.GetString();
-    //        const auto& value = it->value;
+        auto mat = std::make_shared<Material>(pipeline);
 
-    //        if (value.IsString()) {
-    //            // Texture
-    //            std::string texPath = value.GetString();
-    //            //mat->SetTexture(name, LoadTexture(texPath));
-    //        } else if (value.IsNumber()) {
-    //            // Float
-    //            mat->SetUniformFloat(name, value.GetFloat());
-    //        } else if (value.IsArray()) {
-    //            if (value.Size() == 3) {
-    //                // Vec3
-    //                Vec3 v{ value[0].GetFloat(), value[1].GetFloat(), value[2].GetFloat() };
-    //                mat->SetUniformVec3(name, v);
-    //            } else if (value.Size() == 16) {
-    //                // Mat4
-    //                Mat4 m;
-    //                for (rapidjson::SizeType i = 0; i < 16; ++i) m[i] = value[i].GetFloat();
-    //                mat->SetUniformMat4(name, m);
-    //            }
-    //        }
-    //        // Extend for other types if needed
-    //    }
+        if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
+            const auto& props = doc["Properties"];
+            for (auto it = props.MemberBegin(); it != props.MemberEnd(); ++it) {
+                std::string name = it->name.GetString();
+                const auto& value = it->value;
 
-    //    return mat;
-    //}
+                if (value.IsNumber()) {
+                    mat->SetUniformFloat(name, value.GetFloat());
+                } else if (value.IsArray()) {
+                    if (value.Size() == 3) {
+                        Vec3 v{ value[0].GetFloat(), value[1].GetFloat(), value[2].GetFloat() };
+                        mat->SetUniformVec3(name, v);
+                    } else if (value.Size() == 16) {
+                        Mat4 m{};
+                        for (SizeType i = 0; i < 16; ++i)
+                            m[i] = value[i].GetFloat();
+                        mat->SetUniformMat4(name, m);
+                    }
+                } else if (value.IsString()) {
+                    // Texture loading not implemented
+                    // mat->SetTexture(name, LoadTexture(value.GetString()));
+                }
+            }
+        }
 
+        return mat;
+    }
 }
