@@ -116,7 +116,7 @@ namespace NANOEngine::ECS::Systems {
 
     void RenderSystem::Exit()
     {
-        material->SaveMaterial("Assets/basic.mat");
+        material->SaveMaterial("Assets/basic.nanomat");
     }
 
 }
