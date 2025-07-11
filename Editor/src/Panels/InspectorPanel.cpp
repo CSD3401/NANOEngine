@@ -9,6 +9,7 @@
 #include <src/Math/Vec3.hpp>
 #include "../EditorScene.hpp"
 #include <Engine.hpp>
+#include <src/AssetManager.hpp>
 
 namespace {
     template<typename Owner, typename T>
@@ -102,31 +103,6 @@ namespace Editor {
                 }
             }
 
-            //if (EditorScene::s_selectedEntity) {
-            //    using namespace NANOEngine;
-            //    uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
-            //    ECS::Signature signature(GetEntitySignature(entity));
-
-            //    //auto& ecs = GetScene().GetECSCoordinator();
-            //    for (const auto& [typeIdx, compType] : GetECSCoordinator().GetRegisteredComponentTypes()) {
-            //        if (!signature.test(compType))
-            //            continue;
-
-            //        if (typeIdx == typeid(ECS::Transform)) {
-            //            auto& comp = GetECSCoordinator().GetComponent<ECS::Transform>(entity);
-            //            ImGui::SeparatorText("Transform");
-            //            Core::ForEachField<ECS::Transform>(comp, [](auto&& desc, auto& field) {
-            //                DrawField(desc, field);
-            //                });
-            //        } else if (typeIdx == typeid(ECS::Renderer)) {
-            //            auto& comp = GetECSCoordinator().GetComponent<ECS::Renderer>(entity);
-            //            ImGui::SeparatorText("Renderer");
-            //            Core::ForEachField<ECS::Renderer>(comp, [](auto&& desc, auto& field) {
-            //                DrawField(desc, field);
-            //                });
-            //        }
-            //    }
-            //}
             if (ImGui::Button("Add Component")) {
                 ImGui::OpenPopup("ComponentList");
             }
@@ -141,7 +117,7 @@ namespace Editor {
             using namespace NANOEngine;
             if (m_loadedPath != EditorScene::selectedMaterial) {
                 try {
-                    m_loadedMaterial = Graphics::Material::LoadMaterial(EditorScene::selectedMaterial);
+					m_loadedMaterial = GetMaterial(EditorScene::selectedMaterial);
                     m_loadedPath = EditorScene::selectedMaterial;
                 } catch (...) {
                     m_loadedMaterial.reset();
@@ -156,7 +132,7 @@ namespace Editor {
                     float v = val;
                     if (ImGui::DragFloat(name.c_str(), &v, 0.1f)) {
                         m_loadedMaterial->SetUniformFloat(name, v);
-                        m_loadedMaterial->SaveMaterial(m_loadedPath);
+                        //m_loadedMaterial->SaveMaterial(m_loadedPath);
                     }
                 }
 
@@ -164,7 +140,7 @@ namespace Editor {
                     NANOEngine::Math::Vec3 v = val;
                     if (ImGui::DragFloat3(name.c_str(), v.Data(), 0.1f)) {
                         m_loadedMaterial->SetUniformVec3(name, v);
-                        m_loadedMaterial->SaveMaterial(m_loadedPath);
+                        //m_loadedMaterial->SaveMaterial(m_loadedPath);
                     }
                 }
 
@@ -172,7 +148,7 @@ namespace Editor {
                     int i = val;
                     if (ImGui::DragInt(name.c_str(), &i)) {
                         m_loadedMaterial->SetUniformInt(name, i);
-                        m_loadedMaterial->SaveMaterial(m_loadedPath);
+                        //m_loadedMaterial->SaveMaterial(m_loadedPath);
                     }
                 }
             }

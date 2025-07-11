@@ -11,6 +11,7 @@
 #include <glad/glad.h>
 #include "src/SceneManagement/Scene.hpp"
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
+#include "src/AssetManager.hpp"
 #include <iostream>
 namespace NANOEngine {
 
@@ -123,6 +124,15 @@ namespace NANOEngine {
 	{
 		//std::cout << targetPath << std::endl;
 		Serialization::JsonSceneSerializer::Deserialize(scene, targetPath);
+	}
+
+	void LoadShader(std::string_view filePath) {
+		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(filePath.data(), false);
+	}
+
+	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path)
+	{
+		return NANOEngine::Asset::AssetManager::GetInstance().Load<NANOEngine::Graphics::Material>(path.data(), false);
 	}
 
 	// Internal use only

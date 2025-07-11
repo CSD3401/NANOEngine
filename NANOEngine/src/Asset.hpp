@@ -16,6 +16,7 @@
 #define ASSET_HPP
 
 #include <string>
+#include "../NANOEngineAPI.hpp"
 
  /**
   * \class IAsset
@@ -25,9 +26,12 @@
   * All asset types (e.g., textures, sounds) should inherit from this class.
   */
 
+#pragma warning(push)
+#pragma warning(disable: 4251)
+
 namespace NANOEngine::Asset {
 
-	class IAsset {
+	class NANOENGINE_API IAsset {
 	public:
 		/**
 		 * \brief Default constructor.
@@ -52,5 +56,5 @@ namespace NANOEngine::Asset {
 		std::string filePath;
 	};
 }
-
+#pragma warning(pop)
 #endif // !ASSET_HPP

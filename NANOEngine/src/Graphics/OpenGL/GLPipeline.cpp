@@ -10,6 +10,10 @@ namespace NANOEngine::Graphics::OpenGL {
         : m_Spec(spec), m_name(name)
     {}
 
+    GLPipeline::GLPipeline(const PipelineSpecification & spec) : m_Spec(spec)
+    {
+    }
+
     void GLPipeline::Bind() const {
         if (m_Spec.EnableDepthTest)
             glEnable(GL_DEPTH_TEST);

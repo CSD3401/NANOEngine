@@ -3,6 +3,7 @@
 #include "src/ECS/Components/Transform.hpp"
 #include "src/ECS/Components/Renderer.hpp"
 #include "src/ECS/Components/Light.hpp"
+#include "src/AssetManager.hpp"
 
 namespace NANOEngine {
 	SceneManagement::Scene& GetScene();
@@ -48,7 +49,7 @@ namespace NANOEngine {
 
 	void AssignRendererMaterial(ECS::Component::Renderer& r, std::string filepath) {
 		r.materialPath = filepath;
-		r.material = Graphics::Material::LoadMaterial(filepath);
+		r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(filepath, false);
 	}
 
 	const std::unordered_map<std::type_index, uint8_t>& GetRegisteredComponentTypes()

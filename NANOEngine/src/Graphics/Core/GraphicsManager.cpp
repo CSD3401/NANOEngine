@@ -10,6 +10,7 @@
 #include "../../ECS/Components/Light.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
+#include "../../AssetManager.hpp"
 
 namespace NANOEngine::Graphics {
 
@@ -23,13 +24,14 @@ namespace NANOEngine::Graphics {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
 
-        std::shared_ptr<Graphics::IShader> basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
-        Graphics::PipelineSpecification pipelineSpec;
-        pipelineSpec.shader = basicShader;
-        pipelineSpec.CullMode = GL_BACK;
-        pipelineSpec.PolygonMode = GL_FILL;
-        pipelineSpec.EnableDepthTest = true;
-        RegisterPipeline(std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic.glsl"));
+        //std::shared_ptr<Graphics::IShader> basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
+        //std::shared_ptr<Graphics::IShader> basicShader = Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl", false);
+        //Graphics::PipelineSpecification pipelineSpec;
+        //pipelineSpec.shader = basicShader;
+        //pipelineSpec.CullMode = GL_BACK;
+        //pipelineSpec.PolygonMode = GL_FILL;
+        //pipelineSpec.EnableDepthTest = true;
+        //RegisterPipeline(std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic.glsl"));
     }
 
     void GraphicsManager::BeginFrame() {
@@ -41,8 +43,8 @@ namespace NANOEngine::Graphics {
 
     void GraphicsManager::DrawSkybox()
     {
-        if (s_skybox)
-            s_skybox->Draw();
+        //if (s_skybox)
+            //s_skybox->Draw();
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) {

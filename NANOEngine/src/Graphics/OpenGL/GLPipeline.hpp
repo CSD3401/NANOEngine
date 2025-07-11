@@ -5,7 +5,8 @@ namespace NANOEngine::Graphics::OpenGL {
 
     class GLPipeline final : public IPipeline {
     public:
-        GLPipeline(const PipelineSpecification& spec, std::string name);
+		GLPipeline(const PipelineSpecification& spec, std::string name); // deprecated, use the one without name
+        GLPipeline(const PipelineSpecification& spec);
         ~GLPipeline() = default;
 
         void Bind() const override;
@@ -14,7 +15,7 @@ namespace NANOEngine::Graphics::OpenGL {
         const std::string& GetName() const override { return m_name; }
 
     private:
-        std::string m_name;
+		std::string m_name; // to be removed later  
         PipelineSpecification m_Spec;
     };
 

@@ -22,4 +22,8 @@ namespace NANOEngine {
 	
 	NANOENGINE_API void SaveCurrentScene(std::string path);
 	NANOENGINE_API void LoadTargetScene(std::string targetPath);
+
+	NANOENGINE_API void LoadShader(std::string_view);
+
+	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path);
 }

@@ -25,10 +25,12 @@ namespace NANOEngine::Graphics::OpenGL {
         throw std::runtime_error("Unknown shader type: " + type);
     }
 
-    GLShader::GLShader(const std::string& filepath) {
-        std::string source = LoadShaderSource(filepath);
-        auto shaderSources = Preprocess(source);
-        Compile(shaderSources);
+    //GLShader::GLShader(const std::string& filepath) {
+    //    std::string source = LoadShaderSource(filepath);
+    //    auto shaderSources = Preprocess(source);
+    //    Compile(shaderSources);
+    //}
+    GLShader::GLShader() {
     }
 
     GLShader::~GLShader() {
@@ -43,20 +45,27 @@ namespace NANOEngine::Graphics::OpenGL {
         glUseProgram(0);
     }
 
-    void GLShader::SetUniformInt(const std::string& name, int value) {
-        glUniform1i(GetUniformLocation(name), value);
+    void GLShader::SetUniformInt(const std::string& uName, int value) {
+        glUniform1i(GetUniformLocation(uName), value);
     }
 
-    void GLShader::SetUniformFloat(const std::string& name, float value) {
-        glUniform1f(GetUniformLocation(name), value);
+    void GLShader::SetUniformFloat(const std::string& uName, float value) {
+        glUniform1f(GetUniformLocation(uName), value);
     }
 
-    void GLShader::SetUniformVec3(const std::string& name, const Vec3& value) {
-        glUniform3fv(GetUniformLocation(name), 1, value.Data());
+    void GLShader::SetUniformVec3(const std::string& uName, const Vec3& value) {
+        glUniform3fv(GetUniformLocation(uName), 1, value.Data());
     }
 
-    void GLShader::SetUniformMat4(const std::string& name, const Mat4& matrix) {
-        glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, matrix.Data());
+    void GLShader::SetUniformMat4(const std::string& uName, const Mat4& matrix) {
+        glUniformMatrix4fv(GetUniformLocation(uName), 1, GL_FALSE, matrix.Data());
+    }
+
+    bool GLShader::LoadFromFile(const std::string& fileName)
+    {
+        std::string source = LoadShaderSource(fileName);
+        auto shaderSources = Preprocess(source);
+        return Compile(shaderSources);
     }
 
     std::string GLShader::LoadShaderSource(const std::string& path)
@@ -85,7 +94,7 @@ namespace NANOEngine::Graphics::OpenGL {
         return shaderSources;
     }
 
-    void GLShader::Compile(const std::unordered_map<GLenum, std::string>& shaderSources)
+    bool GLShader::Compile(const std::unordered_map<GLenum, std::string>& shaderSources)
     {
         uint32_t program = glCreateProgram();
         std::vector<GLuint> shaderIDs;
@@ -104,6 +113,7 @@ namespace NANOEngine::Graphics::OpenGL {
                 //LOG_WARNING("Shader compilation failed: ", log);
                 //LOG_WARNING(std::string("Shader compilation failed:\n") + log);
                 LOG_WARNING("Shader compilation failed:\n" << log << "\nShader Source:\n" << source);
+                return false;
             }
 
             glAttachShader(program, shader);
@@ -118,6 +128,7 @@ namespace NANOEngine::Graphics::OpenGL {
             glGetProgramInfoLog(program, sizeof(log), nullptr, log);
             //LOG_WARNING(std::string("Program linking failed:\n") + log);
             LOG_WARNING("Program linking failed:\n" << log);
+            return false;
         }
 
         for (auto id : shaderIDs) {
@@ -126,13 +137,14 @@ namespace NANOEngine::Graphics::OpenGL {
         }
 
         m_programID = program;
+        return true;
     }
 
-    int GLShader::GetUniformLocation(const std::string& name) {
-        if (m_uniformLocationCache.count(name))
-            return m_uniformLocationCache[name];
-        int location = glGetUniformLocation(m_programID, name.c_str());
-        m_uniformLocationCache[name] = location;
+    int GLShader::GetUniformLocation(const std::string& uName) {
+        if (m_uniformLocationCache.count(uName))
+            return m_uniformLocationCache[uName];
+        int location = glGetUniformLocation(m_programID, uName.c_str());
+        m_uniformLocationCache[uName] = location;
         return location;
     }
 }

@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Asset.hpp" />
+    <ClInclude Include="src\AssetManager.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="ECSInternals.hpp" />
@@ -80,6 +82,7 @@
     <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
     <ClInclude Include="src\Serialisation\ISceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
+    <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Profiler.cpp" />
@@ -117,6 +120,8 @@
     <ClCompile Include="src\Math\Vec4.cpp" />
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
+    <ClCompile Include="src\AssetManager.cpp" />
+    <ClCompile Include="src\Utility\MetadataHandler.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

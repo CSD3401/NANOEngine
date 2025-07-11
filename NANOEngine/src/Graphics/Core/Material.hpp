@@ -9,14 +9,18 @@
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
 #include "../../../NANOEngineAPI.hpp"
+#include "../../Asset.hpp"
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
 
 namespace NANOEngine::Graphics {
-	class NANOENGINE_API Material {
+	class NANOENGINE_API Material : public Asset::IAsset {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);
+		Material() = default;
+
+		void SetPipeline(std::shared_ptr<IPipeline> pipeline) { m_Pipeline = std::move(pipeline); }
 
         void SetUniformInt(const std::string& name, int value);
         void SetUniformFloat(const std::string& name, float value);
@@ -34,7 +38,7 @@ namespace NANOEngine::Graphics {
         const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
 
         void SaveMaterial(const std::string& path) const;
-        static std::shared_ptr<Material> LoadMaterial(std::string path);
+        bool LoadFromFile(const std::string& fileName) override;
 
     private:
         std::shared_ptr<IPipeline> m_Pipeline;

@@ -4,6 +4,7 @@
 #include <Engine.hpp>
 #include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
+#include <src/Utility/MetadataHandler.hpp>
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
@@ -12,6 +13,21 @@ namespace Editor {
         m_thumbnailManager.Init();
         //m_DirectoryIcon = m_thumbnailManager.GetThumbnail("Resources/Icons/icon_folder.png");
         //m_FileIcon = m_thumbnailManager.GetThumbnail("Resources/Icons/icon_file.png");
+
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
+            std::filesystem::path filePath = entry.path();
+
+            // Skip meta files themselves
+            if (filePath.extension() == ".meta") continue;
+
+            if (!NANOEngine::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
+                NANOEngine::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
+            }
+
+            if (filePath.extension() == ".nanoshader") {
+                NANOEngine::LoadShader(filePath.string());
+            }
+        }
 	}
 
     AssetBrowserPanel::~AssetBrowserPanel() {
@@ -198,6 +214,8 @@ namespace Editor {
         for (auto& entry : std::filesystem::directory_iterator(path)) {
             const auto& name = entry.path().filename().string();
 
+			if (entry.path().extension() == ".meta") continue; // Skip metadata files
+
             // Search filter
             if (strlen(m_searchBuffer) > 0) {
                 std::string lowerName = name;
@@ -256,7 +274,7 @@ namespace Editor {
 
             // Handle double click and right click
             if (ImGui::IsItemHovered()) {
-                if (ImGui::IsMouseDoubleClicked(0)) {
+                if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     if (entry.is_directory())
                         m_currentDirectory = entry.path();
                     else {
