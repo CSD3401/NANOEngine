@@ -34,4 +34,9 @@ namespace NANOEngine::Graphics::OpenGL {
         m_Spec.shader->Bind();
     }
 
+    const std::string_view GLPipeline::GetShaderUUID() const
+    {
+        return m_Spec.shader ? m_Spec.shader->GetUUID() : std::string_view();
+    }
+
 }

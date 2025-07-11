@@ -29,6 +29,11 @@ namespace NANOEngine::Graphics {
     Material::Material(std::shared_ptr<IPipeline> pipeline)
         : m_Pipeline(std::move(pipeline)) {}
 
+    Material::~Material()
+    {
+        SaveMaterial(filePath);
+    }
+
     void Material::SetUniformInt(const std::string& uName, int value) {
         m_IntUniforms[uName] = value;
     }
@@ -71,67 +76,62 @@ namespace NANOEngine::Graphics {
         }
     }
 
+    // Fix for AddMember issue in SaveMaterial method
     void Material::SaveMaterial(const std::string& path) const {
-        //using namespace rapidjson;
-        path;
-        //Document doc;
-        //doc.SetObject();
-        //Document::AllocatorType& alloc = doc.GetAllocator();
+        using namespace rapidjson;
+        Document doc;
+        doc.SetObject();
+        Document::AllocatorType& alloc = doc.GetAllocator();
 
-        //// 1. Shader UUID
-        //// Assuming you have a way to retrieve it:
-        //// If you only have a shared_ptr to the shader, you should store the UUID when loading/creating the material.
-        //doc.AddMember("Shader", Value(shaderUUID.c_str(), alloc), alloc);
+        // Shader and pipeline properties
+        if (m_Pipeline) {
+            doc.AddMember("Shader", Value(m_Pipeline->GetShaderUUID().data(), alloc).Move(), alloc);
+            auto spec = m_Pipeline->GetSpecification();
+            doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
+            doc.AddMember("BlendMode", spec.EnableBlending, alloc);
+            doc.AddMember("CullMode", spec.CullMode, alloc);
+            doc.AddMember("PolygonMode", spec.PolygonMode, alloc);
+        }
 
-        //// 2. Pipeline state
-        //doc.AddMember("DepthTest", m_Pipeline->GetSpecification().EnableDepthTest, alloc);
-        //doc.AddMember("BlendMode", m_Pipeline->GetSpecification().EnableBlending, alloc);
-        //doc.AddMember("CullMode", m_Pipeline->GetSpecification().CullMode, alloc);
-        //doc.AddMember("PolygonMode", m_Pipeline->GetSpecification().PolygonMode, alloc);
+        // Uniforms/Properties
+        Value uniforms(kObjectType);
 
-        //// 3. Properties (uniforms/textures)
-        //Value props(kObjectType);
-        //for (const auto& prop : m_Properties) {
-        //    const std::string& name = prop.first;
-        //    const UniformValue& value = prop.second;
+        // Int uniforms
+        for (const auto& [name, value] : m_IntUniforms) {
+            uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
+        }
+        // Float uniforms
+        for (const auto& [name, value] : m_FloatUniforms) {
+            uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
+        }
+        // Vec3 uniforms
+        for (const auto& [name, value] : m_Vec3Uniforms) {
+            Value arr(kArrayType);
+            arr.PushBack(value.x, alloc).PushBack(value.y, alloc).PushBack(value.z, alloc);
+            uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
+        }
+        // Mat4 uniforms (if needed)
+        // for (const auto& [name, value] : m_Mat4Uniforms) {
+        //     Value arr(kArrayType);
+        //     for (int i = 0; i < 16; ++i) arr.PushBack(value.data[i], alloc); // adjust based on your Mat4 storage
+        //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
+        // }
+        // Textures (TBD SOON)
+        // for (const auto& [name, tex] : m_Textures) {
+        //     std::string uuid = tex ? tex->GetUUID() : "";
+        //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(uuid.c_str(), alloc).Move(), alloc);
+        // }
 
-        //    // Handle various property types
-        //    if (value.type == UniformValue::Type::Float) {
-        //        props.AddMember(Value(name.c_str(), alloc), value.f, alloc);
-        //    } else if (value.type == UniformValue::Type::Vec3) {
-        //        Value arr(kArrayType);
-        //        arr.PushBack(value.v[0], alloc).PushBack(value.v[1], alloc).PushBack(value.v[2], alloc);
-        //        props.AddMember(Value(name.c_str(), alloc), arr, alloc);
-        //    } else if (value.type == UniformValue::Type::Mat4) {
-        //        Value arr(kArrayType);
-        //        for (int i = 0; i < 16; ++i)
-        //            arr.PushBack(value.m[i], alloc);
-        //        props.AddMember(Value(name.c_str(), alloc), arr, alloc);
-        //    } else if (value.type == UniformValue::Type::Texture) {
-        //        // Save the texture's UUID or path as string
-        //        props.AddMember(Value(name.c_str(), alloc), Value(value.textureUUID.c_str(), alloc), alloc);
-        //    }
-        //    // Extend with other property types as needed
-        //}
-        //doc.AddMember("Properties", props, alloc);
+        doc.AddMember("Properties", uniforms, alloc); // or "Uniforms" if that's your file's convention
 
-        //// 4. Write to file
-        //StringBuffer buffer;
-        //PrettyWriter<StringBuffer> writer(buffer);
-        //doc.Accept(writer);
+        // Write to file
+        StringBuffer buffer;
+        PrettyWriter<StringBuffer> writer(buffer);
+        doc.Accept(writer);
 
-        //std::ofstream out(path);
-        //if (out.is_open())
-        //    out << buffer.GetString();
-
-        //doc.AddMember("Properties", props, alloc);
-
-        //StringBuffer buffer;
-        //PrettyWriter<StringBuffer> writer(buffer);
-        //doc.Accept(writer);
-        //std::ofstream out(path);
-        //if (out.is_open())
-        //    out << buffer.GetString();
+        std::ofstream out(path);
+        if (out.is_open())
+            out << buffer.GetString();
     }
 
     bool Material::LoadFromFile(const std::string& path) {
@@ -147,9 +147,6 @@ namespace NANOEngine::Graphics {
 
         if (!doc.IsObject())
             throw std::runtime_error("Invalid material file");
-
-        //if (!doc.HasMember("shader") || !doc["shader"].IsString())
-        //    throw std::runtime_error("No 'shader' in material file");
 
         std::string shaderUUID = doc["Shader"].GetString();
 

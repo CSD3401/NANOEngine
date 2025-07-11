@@ -51,7 +51,8 @@ namespace NANOEngine::Asset {
 					//Logger::Instance().Log(Logger::Level::ERR, "[AssetManager] Failed to load: " + filePath);
 					return nullptr;
 				}
-
+				asset->uuid = uuid;
+				asset->filePath = filePath;
 				//std::string metaFile = name + ".meta";
 				//if (!MetadataHandler::MetaFileExists(name)) {
 				//	MetadataHandler::GenerateMetaFile(name);

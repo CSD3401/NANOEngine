@@ -43,8 +43,8 @@ namespace NANOEngine::Graphics {
 
     void GraphicsManager::DrawSkybox()
     {
-        //if (s_skybox)
-            //s_skybox->Draw();
+        if (s_skybox)
+            s_skybox->Draw();
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) {

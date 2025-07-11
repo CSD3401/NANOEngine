@@ -57,14 +57,14 @@ namespace NANOEngine::ECS::Systems {
 		//pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
 		//material = std::make_shared<Graphics::Material>(pipeline);
 
-        //pickingShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Picking.glsl");
-        //Graphics::PipelineSpecification pickSpec;
-        //pickSpec.shader = pickingShader;
-        //pickSpec.CullMode = GL_BACK;
-        //pickSpec.PolygonMode = GL_FILL;
-        //pickSpec.EnableDepthTest = true;
-        //pickingPipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pickSpec, "Picking");
-        //pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
+        pickingShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Picking.glsl");
+        Graphics::PipelineSpecification pickSpec;
+        pickSpec.shader = pickingShader;
+        pickSpec.CullMode = GL_BACK;
+        pickSpec.PolygonMode = GL_FILL;
+        pickSpec.EnableDepthTest = true;
+        pickingPipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pickSpec, "Picking");
+        pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
     }
 
     void RenderSystem::Update(double) {
@@ -96,29 +96,29 @@ namespace NANOEngine::ECS::Systems {
     }
 
     void RenderSystem::RenderPicking() {
-        //const auto& entities = GetEntities();
-        //for (Entity entity : entities) {
-        //    auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-        //    auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+        const auto& entities = GetEntities();
+        for (Entity entity : entities) {
+            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+            auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
-        //    //if (!renderer.model && !renderer.modelPath.empty())
-        //    //    renderer.model = Graphics::LoadModel(renderer.modelPath.string());
-        //    if (!renderer.model)
-        //        continue;
+            //if (!renderer.model && !renderer.modelPath.empty())
+            //    renderer.model = Graphics::LoadModel(renderer.modelPath.string());
+            if (!renderer.model)
+                continue;
 
-        //    float r = (float)(entity & 0xFF) / 255.0f;
-        //    float g = (float)((entity >> 8) & 0xFF) / 255.0f;
-        //    float b = (float)((entity >> 16) & 0xFF) / 255.0f;
+            float r = (float)(entity & 0xFF) / 255.0f;
+            float g = (float)((entity >> 8) & 0xFF) / 255.0f;
+            float b = (float)((entity >> 16) & 0xFF) / 255.0f;
 
-        //    for (auto& sub : renderer.model->meshes) {
-        //        Graphics::DrawCommand cmd;
-        //        cmd.mesh = sub.buffer;
-        //        cmd.material = pickingMaterial;
-        //        cmd.transform = transform.modelMatrix;
-        //        pickingMaterial->SetUniformVec3("u_ID", { r, g, b });
-        //        Graphics::GraphicsManager::Submit(cmd);
-        //    }
-        //}
+            for (auto& sub : renderer.model->meshes) {
+                Graphics::DrawCommand cmd;
+                cmd.mesh = sub.buffer;
+                cmd.material = pickingMaterial;
+                cmd.transform = transform.modelMatrix;
+                pickingMaterial->SetUniformVec3("u_ID", { r, g, b });
+                Graphics::GraphicsManager::Submit(cmd);
+            }
+        }
     }
 
     void RenderSystem::Exit()

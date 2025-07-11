@@ -19,6 +19,7 @@ namespace NANOEngine::Graphics {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);
 		Material() = default;
+        ~Material() override;
 
 		void SetPipeline(std::shared_ptr<IPipeline> pipeline) { m_Pipeline = std::move(pipeline); }
 

@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 #include "../../Math/Mat4.hpp"
 #include "Vertex.hpp"
+#include "../../AssetManager.hpp"
 
 namespace NANOEngine::Graphics {
 
@@ -38,14 +39,14 @@ namespace NANOEngine::Graphics {
         auto ib = std::make_shared<GLIndexBuffer>(indices, sizeof(indices) / sizeof(uint32_t));
         m_Mesh = std::make_shared<GLGeometryBuffer>(vb, ib);
 
-        //auto shader = std::make_shared<GLShader>("Library/Shaders/Skybox.glsl");
-        //PipelineSpecification spec;
-        //spec.shader = shader;
-        //spec.CullMode = GL_FRONT;
-        //spec.EnableDepthTest = false;
-        //spec.PolygonMode = GL_FILL;
-        //auto pipeline = std::make_shared<GLPipeline>(spec, "Skybox");
-        //m_Material = std::make_shared<Material>(pipeline);
+        auto shader = std::make_shared<GLShader>("Library/Shaders/Skybox.glsl");
+        PipelineSpecification spec;
+        spec.shader = shader;
+        spec.CullMode = GL_FRONT;
+        spec.EnableDepthTest = false;
+        spec.PolygonMode = GL_FILL;
+        auto pipeline = std::make_shared<GLPipeline>(spec, "Skybox");
+        m_Material = std::make_shared<Material>(pipeline);
     }
 
     void Skybox::Draw() const {

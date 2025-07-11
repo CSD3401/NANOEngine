@@ -9,6 +9,7 @@ namespace NANOEngine::Graphics::OpenGL {
 	class GLShader final : public IShader {
 	public:
 		GLShader();
+		GLShader(const std::string& filePath);
 		~GLShader();
 
 		void Bind() const override;
@@ -20,6 +21,8 @@ namespace NANOEngine::Graphics::OpenGL {
 		void SetUniformMat4(const std::string& name, const Mat4& matrix) override;
 
 		bool LoadFromFile(const std::string& fileName) override;
+
+		const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
 	private:
 		uint32_t m_programID;
 		std::unordered_map<std::string, int> m_uniformLocationCache;

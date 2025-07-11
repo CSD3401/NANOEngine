@@ -13,6 +13,7 @@ namespace NANOEngine::Graphics::OpenGL {
         const PipelineSpecification& GetSpecification() const override { return m_Spec; }
 
         const std::string& GetName() const override { return m_name; }
+        const std::string_view GetShaderUUID() const override;
 
     private:
 		std::string m_name; // to be removed later  

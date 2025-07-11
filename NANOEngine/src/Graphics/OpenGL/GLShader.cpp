@@ -25,12 +25,14 @@ namespace NANOEngine::Graphics::OpenGL {
         throw std::runtime_error("Unknown shader type: " + type);
     }
 
-    //GLShader::GLShader(const std::string& filepath) {
-    //    std::string source = LoadShaderSource(filepath);
-    //    auto shaderSources = Preprocess(source);
-    //    Compile(shaderSources);
-    //}
-    GLShader::GLShader() {
+    GLShader::GLShader() : m_programID(0) {
+    }
+
+    GLShader::GLShader(const std::string& filePath)
+    {
+        std::string source = LoadShaderSource(filePath);
+        auto shaderSources = Preprocess(source);
+        Compile(shaderSources);
     }
 
     GLShader::~GLShader() {

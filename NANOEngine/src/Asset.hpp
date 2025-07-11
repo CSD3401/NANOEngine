@@ -51,9 +51,10 @@ namespace NANOEngine::Asset {
 		 */
 		virtual bool LoadFromFile(const std::string& fileName) = 0;
 
-	protected:
-		std::string name;
+		std::string uuid;
 		std::string filePath;
+	protected:
+		std::string displayName;
 	};
 }
 #pragma warning(pop)

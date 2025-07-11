@@ -71,6 +71,11 @@ namespace Editor {
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
+
+							if (comp.materialPath.empty()) { // If material is not set, assign a default one
+                                AssignRendererMaterial(comp, "Assets/Basic.nanomat");
+							} // done for rapid prototyping, should be removed later
+
                             AssignRendererModel(comp, dropped);
                         }
                         ImGui::EndDragDropTarget();
@@ -132,7 +137,6 @@ namespace Editor {
                     float v = val;
                     if (ImGui::DragFloat(name.c_str(), &v, 0.1f)) {
                         m_loadedMaterial->SetUniformFloat(name, v);
-                        //m_loadedMaterial->SaveMaterial(m_loadedPath);
                     }
                 }
 
@@ -140,7 +144,6 @@ namespace Editor {
                     NANOEngine::Math::Vec3 v = val;
                     if (ImGui::DragFloat3(name.c_str(), v.Data(), 0.1f)) {
                         m_loadedMaterial->SetUniformVec3(name, v);
-                        //m_loadedMaterial->SaveMaterial(m_loadedPath);
                     }
                 }
 
@@ -148,7 +151,6 @@ namespace Editor {
                     int i = val;
                     if (ImGui::DragInt(name.c_str(), &i)) {
                         m_loadedMaterial->SetUniformInt(name, i);
-                        //m_loadedMaterial->SaveMaterial(m_loadedPath);
                     }
                 }
             }
