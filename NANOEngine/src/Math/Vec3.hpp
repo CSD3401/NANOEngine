@@ -1,7 +1,7 @@
 ﻿#ifndef VEC_3_HPP
 #define VEC_3_HPP
 
-#include "../../NANOEngineAPI.hpp"
+#include "../NANOEngineAPI.hpp"
 #include <ostream>
 
 namespace NANOEngine::Math {

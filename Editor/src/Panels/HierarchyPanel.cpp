@@ -3,9 +3,9 @@
 #include "../Command/CommandHistory.hpp"
 #include "../Command/EditorCommands.hpp"
 #include "../EditorScene.hpp"
-#include "src/Events/EventBus.hpp"
+#include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
-#include <src/ECS/Core/Entity.hpp>
+#include <ECS/Core/Entity.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {

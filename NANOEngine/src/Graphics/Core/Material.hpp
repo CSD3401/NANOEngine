@@ -8,7 +8,7 @@
 #include "../Interfaces/ITexture.hpp"
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
-#include "../../../NANOEngineAPI.hpp"
+#include "../../NANOEngineAPI.hpp"
 #include "../../Asset.hpp"
 
 #pragma warning(push)

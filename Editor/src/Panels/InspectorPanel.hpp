@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <src/Graphics/Core/Material.hpp>
+#include <Graphics/Core/Material.hpp>
 
 namespace Editor {
 	class InspectorPanel : public IPanel {

@@ -16,7 +16,7 @@
 #define ASSET_HPP
 
 #include <string>
-#include "../NANOEngineAPI.hpp"
+#include "NANOEngineAPI.hpp"
 
  /**
   * \class IAsset

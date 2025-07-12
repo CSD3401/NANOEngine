@@ -1,11 +1,11 @@
 #include "ScenePanel.hpp"
-#include "src/Math/Vec3.hpp"
+#include "Math/Vec3.hpp"
 #include <imgui/imgui.h>
 #include "../EditorScene.hpp"
 #include "Engine.hpp"
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <ECSInternals.hpp>
-#include <src/ECS/Components/Transform.hpp>
+#include <ECS/Components/Transform.hpp>
 
 namespace Editor {
 	static uint32_t temp;

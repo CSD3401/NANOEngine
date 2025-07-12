@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "Utility/MetadataHandler.hpp"
-#include "../NANOEngineAPI.hpp"
+#include "NANOEngineAPI.hpp"
 
 namespace NANOEngine::Asset {
 

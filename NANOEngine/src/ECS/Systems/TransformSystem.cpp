@@ -23,20 +23,6 @@ namespace NANOEngine::ECS::Systems {
 
 	void TransformSystem::Update(double)
 	{
-		//NE_PROFILE_FUNCTION();
-		//const auto& entities = GetEntities();
-		//for (Entity e : entities) {
-		//	auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
-		//	if (transform.isDirty) {
-		//		
-		//		transform.isDirty = false;
-		//	}
-
-		//	//testing
-		//	transform.rotation.y += static_cast<float>(dt * 100.0);
-		//	transform.modelMatrix = Math::Mat4::BuildTranslation(transform.position) * Math::Mat4::BuildRotation(transform.rotation.y, {0.f, 1.f, 0.f});
-		//}
-
 		NE_PROFILE_FUNCTION();
 		const auto& entities = GetEntities();
 		for (Entity e : entities) {
@@ -51,9 +37,6 @@ namespace NANOEngine::ECS::Systems {
 				transform.modelMatrix = translation * rotation * scale;
 				transform.isDirty = false;
 			}
-
-			//// Temporary auto-rotation for testing
-			//transform.rotation.y += static_cast<float>(dt * 100.0);
 		}
 	}
 

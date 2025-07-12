@@ -1,9 +1,9 @@
 #include "ECSInternals.hpp"
-#include "src/SceneManagement/Scene.hpp"
-#include "src/ECS/Components/Transform.hpp"
-#include "src/ECS/Components/Renderer.hpp"
-#include "src/ECS/Components/Light.hpp"
-#include "src/AssetManager.hpp"
+#include "SceneManagement/Scene.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/Light.hpp"
+#include "AssetManager.hpp"
 
 namespace NANOEngine {
 	SceneManagement::Scene& GetScene();

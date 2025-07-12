@@ -4,9 +4,9 @@
 #include <string>
 #include <unordered_map>
 #include "NANOEngineAPI.hpp"
-#include "src/Graphics/Core/Material.hpp"
-#include "src/Math/Vec3.hpp"
-#include "src/Math/Mat4.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Math/Vec3.hpp"
+#include "Math/Mat4.hpp"
 
 namespace NANOEngine {
 	NANOENGINE_API void Initialize();

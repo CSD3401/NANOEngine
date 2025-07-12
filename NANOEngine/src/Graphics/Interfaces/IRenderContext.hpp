@@ -1,7 +1,7 @@
 #ifndef NANOENGINE_GRAPHICS_IRENDERCONTEXT_HPP
 #define NANOENGINE_GRAPHICS_IRENDERCONTEXT_HPP
 
-#include "../../../NANOEngineAPI.hpp"
+#include "../../NANOEngineAPI.hpp"
 
 namespace NANOEngine::Graphics {
 	enum class RenderAPI { OpenGL, Vulkan };

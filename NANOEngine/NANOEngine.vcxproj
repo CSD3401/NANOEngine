@@ -23,8 +23,9 @@
     <ClInclude Include="src\AssetManager.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
-    <ClInclude Include="ECSInternals.hpp" />
+    <ClInclude Include="src\ECSInternals.hpp" />
     <ClInclude Include="src\ECS\Components\Light.hpp" />
+    <ClInclude Include="src\ECS\Components\Name.hpp" />
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
@@ -39,7 +40,7 @@
     <ClInclude Include="src\Graphics\Core\Camera.hpp" />
     <ClInclude Include="src\Core\Logger.hpp" />
     <ClInclude Include="src\Core\Timer.hpp" />
-    <ClInclude Include="Engine.hpp" />
+    <ClInclude Include="src\Engine.hpp" />
     <ClInclude Include="src\Graphics\Core\Vertex.hpp" />
     <ClInclude Include="src\ECS\Core\Component.hpp" />
     <ClInclude Include="src\ECS\Core\ComponentPool.hpp" />
@@ -74,7 +75,7 @@
     <ClInclude Include="src\Math\Vec2.hpp" />
     <ClInclude Include="src\Math\Vec3.hpp" />
     <ClInclude Include="src\Math\Vec4.hpp" />
-    <ClInclude Include="NANOEngineAPI.hpp" />
+    <ClInclude Include="src\NANOEngineAPI.hpp" />
     <ClInclude Include="src\ECS\Core\SparseSet.hpp" />
     <ClInclude Include="src\ECS\Core\System.hpp" />
     <ClInclude Include="src\ECS\Core\Signature.hpp" />
@@ -86,11 +87,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Profiler.cpp" />
-    <ClCompile Include="ECSInternals.cpp" />
+    <ClCompile Include="src\ECSInternals.cpp" />
     <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\Camera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
-    <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Graphics\Core\Model.cpp" />
     <ClCompile Include="src\Graphics\Core\Skybox.cpp" />
     <ClCompile Include="src\ECS\Systems\RenderSystem.cpp" />
@@ -245,12 +246,15 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\assimp\lib\Release;$(ProjectDir)vendor\libs\zlib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mt.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"

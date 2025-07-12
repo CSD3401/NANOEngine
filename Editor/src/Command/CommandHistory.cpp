@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "src/Events/EventBus.hpp"
+#include <Events/EventBus.hpp>
 #include "EditorCommands.hpp"
 #include "../EditorEvents.hpp"
 
