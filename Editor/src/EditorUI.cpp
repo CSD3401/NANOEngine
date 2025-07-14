@@ -86,7 +86,7 @@ namespace Editor {
         return changed;
     }
 
-    bool DrawAssetField(const char* label, const std::string& assetPath, const char* buttonLabel, float width)
+    bool DrawAssetField(const char* label, const std::string& assetPath, const char* buttonLabel, float width, bool* openPopup)
     {
         bool changed = false;
 
@@ -103,13 +103,19 @@ namespace Editor {
         ImGui::TextUnformatted(assetPath.empty() ? "<None>" : assetPath.c_str());
         ImGui::SameLine();
 
+        std::string popupName = std::string("AssetPicker_") + label;
+
         // Button (on right side)
         float btnWidth = 28.0f;
         ImGui::SetCursorPosX(ImGui::GetWindowWidth() - btnWidth - ImGui::GetStyle().FramePadding.x);
         if (ImGui::Button(buttonLabel, ImVec2(btnWidth, 0))) {
             // Open your asset picker here!
             // set a flag or call a callback, depending on your UI
-            changed = true; // or open a popup, etc.
+			//std::string assetPickerPopupName = std::string("AssetPicker_") + label;
+            //ImGui::OpenPopup(("AssetPicker_" + std::string(label)).c_str());
+            //ImGui::OpenPopup("AssetPicker_Model");
+            //changed = true; // or open a popup, etc.
+            *openPopup = true;
         }
 
         ImGui::EndChild();

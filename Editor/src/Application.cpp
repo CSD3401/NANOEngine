@@ -18,6 +18,8 @@
 #include "Panels/GamePanel.hpp"
 #include "Panels/HistoryPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -48,6 +50,25 @@ namespace Editor {
 		//};
 
 		NANOEngine::Initialize();
+
+		GLFWimage icon;
+		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
+		glfwSetWindowIcon(static_cast<GLFWwindow*>(NANOEngine::GetNativeWindowHandle()), 1, &icon);
+
+		GLuint texID;
+		glGenTextures(1, &texID);
+		glBindTexture(GL_TEXTURE_2D, texID);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, icon.width, icon.height,
+			0, GL_RGBA, GL_UNSIGNED_BYTE, icon.pixels);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		editorLayer.SetIcon(texID);
+		stbi_image_free(icon.pixels);
 
 		InitImGui(static_cast<GLFWwindow*>(NANOEngine::GetNativeWindowHandle()));
 

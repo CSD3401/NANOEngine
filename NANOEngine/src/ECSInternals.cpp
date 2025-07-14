@@ -44,7 +44,8 @@ namespace NANOEngine {
 
 	void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath) {
 		r.modelPath = filepath;
-		r.model = Graphics::LoadModel(filepath);
+		//r.model = Graphics::LoadModel(filepath);
+		r.model = Asset::AssetManager::GetInstance().Get<Graphics::Model>(filepath);
 	}
 
 	void AssignRendererMaterial(ECS::Component::Renderer& r, std::string filepath) {

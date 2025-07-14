@@ -5,6 +5,7 @@
 #include <string>
 #include "Vertex.hpp"
 #include "../Interfaces/IGeometryBuffer.hpp"
+#include "../../Asset.hpp"
 
 namespace NANOEngine::Graphics {
 
@@ -14,11 +15,13 @@ namespace NANOEngine::Graphics {
         std::shared_ptr<IGeometryBuffer> buffer;
     };
 
-    class Model {
+    class Model : virtual public Asset::IAsset {
     public:
         std::vector<SubMesh> meshes;
+
+        bool LoadFromFile(const std::string& path) override;
     };
 
-    std::shared_ptr<Model> LoadModel(const std::string& path);
+    //std::shared_ptr<Model> LoadModel(const std::string& path);
 
 }

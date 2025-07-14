@@ -1,5 +1,7 @@
 #pragma once
-#include "imgui.h"
+
+#include "../../imgui.h"
+
 #ifndef IMGUI_DISABLE
 
 typedef int ImSearchCol;                // -> enum ImSearchCol_

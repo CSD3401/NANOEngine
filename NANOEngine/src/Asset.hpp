@@ -53,7 +53,6 @@ namespace NANOEngine::Asset {
 
 		std::string uuid;
 		std::string filePath;
-	protected:
 		std::string displayName;
 	};
 }

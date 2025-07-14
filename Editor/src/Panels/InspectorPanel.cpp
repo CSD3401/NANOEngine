@@ -9,7 +9,7 @@
 #include <Math/Vec3.hpp>
 #include "../EditorScene.hpp"
 #include <Engine.hpp>
-#include <AssetManager.hpp>
+#include <imgui/widgets/imsearch/imsearch.h>
 #include "../EditorUI.hpp"
 
 namespace {
@@ -71,8 +71,12 @@ namespace Editor {
                     //strncpy_s(buf, comp.modelPath.string().c_str(), sizeof(buf));
                     //ImGui::InputText("Model", buf, sizeof(buf));
                     //comp.modelPath = buf;
+                    bool openPopup = false;
+                    DrawAssetField("Model", comp.modelPath.string(), "+", 0.f, &openPopup);
+                    if (openPopup) {
+                        ImGui::OpenPopup("AssetPicker_Model");
+					}
 
-                    DrawAssetField("Model", comp.modelPath.string());
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
@@ -84,6 +88,31 @@ namespace Editor {
                             AssignRendererModel(comp, dropped);
                         }
                         ImGui::EndDragDropTarget();
+                    }
+
+                    static std::string searchQuery;
+                    if (ImGui::BeginPopup("AssetPicker_Model")) {
+                        ImGui::Text("Select a Model");
+                        ImGui::Separator();
+                        auto& assets = NANOEngine::GetAllModels();
+
+                        if (ImSearch::BeginSearch()) {
+                            ImSearch::SearchBar();
+
+                            for (const auto& [name, asset] : assets) {
+                                ImSearch::SearchableItem(name.c_str(),
+                                    [name, &comp](const char*) {
+                                        if (ImGui::Selectable(name.c_str())) {
+                                            AssignRendererModel(comp, name);
+                                            AssignRendererMaterial(comp, "Assets/Basic.nanomat");
+                                            ImGui::CloseCurrentPopup();
+                                        }
+									});
+                            }
+
+                            ImSearch::EndSearch();
+                        }
+                        ImGui::EndPopup();
                     }
 
                     char bufMat[256]; 

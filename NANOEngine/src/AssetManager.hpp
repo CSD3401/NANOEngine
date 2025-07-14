@@ -53,6 +53,7 @@ namespace NANOEngine::Asset {
 				}
 				asset->uuid = uuid;
 				asset->filePath = filePath;
+
 				//std::string metaFile = name + ".meta";
 				//if (!MetadataHandler::MetaFileExists(name)) {
 				//	MetadataHandler::GenerateMetaFile(name);
@@ -61,6 +62,7 @@ namespace NANOEngine::Asset {
 				//std::string uuid = MetadataHandler::ParseUUIDFromMeta(metaFile);
 
 				map[uuid] = asset;
+				GetAssetList<T>().emplace_back(filePath, asset);
 				return asset;
 			}
 
@@ -75,8 +77,15 @@ namespace NANOEngine::Asset {
 				return it->second;
 			else {
 				// try to load, lazy initialising
-				return Load<T>(name);
+				return Load<T>(name, false);
 			}
+		}
+
+		template <typename T>
+		void AddToMap(std::shared_ptr<T> asset, std::string identifier) {
+			auto& map = GetAssetMap<T>();
+			map[identifier] = asset;
+			GetAssetList<T>().emplace_back(identifier, asset);
 		}
 
 		//template <typename T = Texture>
@@ -97,6 +106,11 @@ namespace NANOEngine::Asset {
 			GetAssetMap<T>().clear();
 		}
 
+		template <typename T>
+		const std::vector<std::pair<std::string, std::shared_ptr<T>>>& GetAssetsOfType() const {
+			return const_cast<AssetManager*>(this)->GetAssetList<T>();
+		}
+
 	private:
 		AssetManager() {}
 
@@ -104,6 +118,12 @@ namespace NANOEngine::Asset {
 		std::unordered_map<std::string, std::shared_ptr<T>>& GetAssetMap() {
 			static std::unordered_map<std::string, std::shared_ptr<T>> assetMap;
 			return assetMap;
+		}
+
+		template <typename T>
+		std::vector<std::pair<std::string, std::shared_ptr<T>>>& GetAssetList() {
+			static std::vector<std::pair<std::string, std::shared_ptr<T>>> assetList;
+			return assetList;
 		}
 	};
 }

@@ -11,6 +11,7 @@
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../../AssetManager.hpp"
+#include "../Core/Primitives.hpp"
 
 namespace NANOEngine::Graphics {
 
@@ -23,6 +24,11 @@ namespace NANOEngine::Graphics {
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
+
+        // Load Primitives
+        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
+        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");
+        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCylinder(), "Cylinder");
 
         //std::shared_ptr<Graphics::IShader> basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
         //std::shared_ptr<Graphics::IShader> basicShader = Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl", false);

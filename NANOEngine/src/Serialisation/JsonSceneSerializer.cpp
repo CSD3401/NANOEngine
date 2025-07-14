@@ -109,7 +109,7 @@ namespace NANOEngine::Serialization {
                 if (rVal.HasMember("modelPath")) {
                     r.modelPath = rVal["modelPath"].GetString();
                     if (!r.modelPath.empty())
-                        r.model = Graphics::LoadModel(r.modelPath.string());
+                        //r.model = Graphics::LoadModel(r.modelPath.string());
 
                     scene.GetECSCoordinator().AddComponent(e, r);
                 }

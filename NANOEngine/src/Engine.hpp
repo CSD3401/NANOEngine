@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "NANOEngineAPI.hpp"
 #include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/Model.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
 
@@ -26,4 +27,6 @@ namespace NANOEngine {
 	NANOENGINE_API void LoadShader(std::string_view);
 
 	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path);
+
+	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels();
 }

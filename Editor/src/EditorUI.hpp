@@ -21,7 +21,7 @@ namespace Editor {
     // String (with buffer size)
     bool DrawStringControl(const std::string& label, std::string& value, size_t bufferSize = 256);
 
-    bool DrawAssetField(const char* label, const std::string& assetPath, const char* buttonLabel = "+", float width = 0);
+    bool DrawAssetField(const char* label, const std::string& assetPath, const char* buttonLabel = "+", float width = 0, bool* openPopup = nullptr);
 
     // Enum Combo
     template<typename EnumType>

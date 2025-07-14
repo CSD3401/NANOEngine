@@ -52,28 +52,27 @@ namespace Editor {
 		if (ImGui::IsWindowFocused()) {
 			ImGuiIO& io = ImGui::GetIO();
 
-			// Movement: WASD or arrow keys
-			Vec3 move(0.0f);
-			if (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::IsKeyDown(ImGuiKey_UpArrow))    move.z += 1.0f;
-			if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow))  move.z -= 1.0f;
-			if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))  move.x -= 1.0f;
-			if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) move.x += 1.0f;
-
-			if (move.LengthSquared() > 0.0f) {
-				move.Normalize();
-				// Calculate direction vectors
-				Vec3 forward = m_editorCamera.GetForward();
-				Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
-
-				Vec3 offset = (right * move.x + forward * move.z) * m_cameraSpeed * deltaTime;
-				m_editorCamera.SetPosition(m_editorCamera.GetPosition() + offset);
-			}
-
 			// Mouse look
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				if (!m_rightMouseHeld) {
 					m_lastMousePos = io.MousePos;
 					m_rightMouseHeld = true;
+				}
+
+				Vec3 move(0.0f);
+				if (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::IsKeyDown(ImGuiKey_UpArrow))    move.z += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow))  move.z -= 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))  move.x -= 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) move.x += 1.0f;
+
+				if (move.LengthSquared() > 0.0f) {
+					move.Normalize();
+					// Calculate direction vectors
+					Vec3 forward = m_editorCamera.GetForward();
+					Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
+
+					Vec3 offset = (right * move.x + forward * move.z) * m_cameraSpeed * deltaTime;
+					m_editorCamera.SetPosition(m_editorCamera.GetPosition() + offset);
 				}
 
 				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };

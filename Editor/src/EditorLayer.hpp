@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <imgui/imgui.h>
 #include "Panels/IPanel.hpp"
 
 typedef unsigned int ImU32;
@@ -18,9 +19,10 @@ namespace Editor {
             return panel;
         }
 
+		void SetIcon(unsigned int _icon);
 	private:
 		void DrawCustomTitleBar(const char* title, float height, ImU32 bgColor);
-
+		ImTextureID icon;
 		std::vector<std::shared_ptr<IPanel>> m_panels;
 	};
 }

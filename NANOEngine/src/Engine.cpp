@@ -36,11 +36,6 @@ namespace NANOEngine {
 		s_renderContext = std::make_unique<Graphics::OpenGL::GLContext>();
 		s_renderContext->Init(s_window->GetNativeWindow());
 
-		GLFWimage icon;
-		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
-		glfwSetWindowIcon(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), 1, &icon);
-		stbi_image_free(icon.pixels);
-
 		s_sceneFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		s_pickingFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		Graphics::GraphicsManager::Init();
@@ -135,7 +130,12 @@ namespace NANOEngine {
 	}
 
 	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {
-		return NANOEngine::Asset::AssetManager::GetInstance().Load<NANOEngine::Graphics::Material>(path.data(), false);
+		return Asset::AssetManager::GetInstance().Load<NANOEngine::Graphics::Material>(path.data(), false);
+	}
+
+	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()
+	{
+		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
 	}
 
 	// Internal use only

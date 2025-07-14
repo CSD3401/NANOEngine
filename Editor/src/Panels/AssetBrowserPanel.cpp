@@ -4,7 +4,7 @@
 #include <Engine.hpp>
 #include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
-#include <src/Utility/MetadataHandler.hpp>
+#include <Utility/MetadataHandler.hpp>
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 

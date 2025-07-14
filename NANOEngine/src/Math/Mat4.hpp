@@ -2,7 +2,7 @@
 #define MAT_4_HPP
 
 #include <ostream>
-#include "../../NANOEngineAPI.hpp"
+#include "../NANOEngineAPI.hpp"
 
 namespace NANOEngine::Math {
 	struct Vec3;
