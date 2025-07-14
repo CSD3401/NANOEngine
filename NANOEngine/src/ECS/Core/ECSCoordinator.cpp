@@ -3,10 +3,14 @@
 #include "../Components/Transform.hpp"
 #include "../Components/Renderer.hpp"
 #include "../Components/Light.hpp"
+#include "../Components/Rigidbody.hpp"
+#include "../Components/Collider.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
 #include "../Systems/LightSystem.hpp"
+#include "../Systems/RigidbodySystem.hpp"
+#include "../Systems/ColliderSystem.hpp"
 
 
 namespace NANOEngine::ECS {
@@ -20,6 +24,8 @@ namespace NANOEngine::ECS {
         RegisterComponent<Component::Renderer>();
         RegisterComponent<Component::Transform>();
         RegisterComponent<Component::Light>();
+        RegisterComponent<Component::Rigidbody>();
+        RegisterComponent<Component::Collider>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -39,6 +45,20 @@ namespace NANOEngine::ECS {
             Signature sig;
             sig.set(GetComponentType<Component::Light>());
             SetSystemSignature<Systems::LightSystem>(sig);
+        }
+
+        m_rigidbodySystem = m_systemManager->RegisterSystem<Systems::RigidbodySystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Rigidbody>());
+            SetSystemSignature<Systems::RigidbodySystem>(sig);
+        }
+
+        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Collider>());
+            SetSystemSignature<Systems::ColliderSystem>(sig);
         }
     }
 

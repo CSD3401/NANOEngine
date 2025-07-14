@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
+    <ClInclude Include="src\Physics\PhysicsManager.hpp" />
+    <ClInclude Include="src\ECS\Components\Collider.hpp" />
+    <ClInclude Include="src\ECS\Components\Rigidbody.hpp" />
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
     <ClInclude Include="src\Asset.hpp" />
     <ClInclude Include="src\AssetManager.hpp" />
@@ -87,6 +92,9 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\RigidbodySystem.cpp" />
+    <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
     <ClCompile Include="src\Core\Profiler.cpp" />
     <ClCompile Include="src\ECSInternals.cpp" />

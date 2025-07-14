@@ -7,6 +7,8 @@ namespace NANOEngine::ECS::Systems {
     class TransformSystem;
     class RenderSystem;
     class LightSystem;
+    class RigidbodySystem;
+    class ColliderSystem;
 }
 
 namespace NANOEngine::ECS {
@@ -95,6 +97,8 @@ namespace NANOEngine::ECS {
         std::shared_ptr<Systems::TransformSystem> m_transformSystem;
         std::shared_ptr<Systems::LightSystem> m_lightSystem;
         std::shared_ptr<Systems::RenderSystem> m_renderSystem;
+        std::shared_ptr<Systems::RigidbodySystem> m_rigidbodySystem;
+        std::shared_ptr<Systems::ColliderSystem> m_colliderSystem;
     private:
 
         std::unique_ptr<EntityManager> m_entityManager;
