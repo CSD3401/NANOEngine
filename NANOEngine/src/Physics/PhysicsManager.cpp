@@ -1,6 +1,6 @@
 #include "PhysicsManager.hpp"
-
 #include <Jolt/RegisterTypes.h>
+#include "JoltDebugRenderer.hpp"
 
 namespace NANOEngine::Physics {
 
@@ -64,6 +64,11 @@ namespace NANOEngine::Physics {
     static ObjectVsBroadPhaseLayerFilterImpl s_ObjectVsBroadPhaseLayerFilter;
     static ObjectLayerPairFilterImpl s_ObjectLayerPairFilter;
 
+    std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> PhysicsManager::s_shapeMap;
+
+    static JoltDebugRenderer g_joltDebugRenderer;
+
+
     void PhysicsManager::Init() {
         JPH::RegisterDefaultAllocator();
 
@@ -87,6 +92,9 @@ namespace NANOEngine::Physics {
         if (!s_PhysicsSystem)
             return;
         s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
+        JPH::BodyManager::DrawSettings drawSettings;
+		//drawSettings.mDrawShape = true;
+        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
     }
 
     void PhysicsManager::Shutdown() {
@@ -109,10 +117,34 @@ namespace NANOEngine::Physics {
         return id;
     }
 
-    void PhysicsManager::DestroyBody(JPH::BodyID id) {
+    void PhysicsManager::DestroyBody(uint32_t index) {
+        //JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        //bodyInterface.RemoveBody(id);
+        //bodyInterface.DestroyBody(id);
+        JPH::BodyID id(index);
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         bodyInterface.RemoveBody(id);
         bodyInterface.DestroyBody(id);
+    }
+    
+    //void PhysicsManager::GetTransform(JPH::BodyID id, Math::Vec3& position, Math::Vec3& rotation) {
+    //    JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+    //    JPH::RVec3 pos;
+    //    JPH::Quat rot;
+    //    bodyInterface.GetPositionAndRotation(id, pos, rot);
+    //    position = { static_cast<float>(pos.GetX()), static_cast<float>(pos.GetY()), static_cast<float>(pos.GetZ()) };
+    //    JPH::Vec3 angles = rot.GetEulerAngles();
+    //    rotation = { JPH::RadiansToDegrees(angles.GetX()), JPH::RadiansToDegrees(angles.GetY()), JPH::RadiansToDegrees(angles.GetZ()) };
+    //}
+    void PhysicsManager::GetTransform(uint32_t index, Math::Vec3& position, Math::Vec3& rotation) {
+        JPH::BodyID id(index); // Convert your POD index to a Jolt BodyID
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        JPH::RVec3 pos;
+        JPH::Quat rot;
+        bodyInterface.GetPositionAndRotation(id, pos, rot);
+        position = { static_cast<float>(pos.GetX()), static_cast<float>(pos.GetY()), static_cast<float>(pos.GetZ()) };
+        JPH::Vec3 angles = rot.GetEulerAngles();
+        rotation = { JPH::RadiansToDegrees(angles.GetX()), JPH::RadiansToDegrees(angles.GetY()), JPH::RadiansToDegrees(angles.GetZ()) };
     }
 
     JPH::PhysicsSystem* PhysicsManager::GetPhysicsSystem() {

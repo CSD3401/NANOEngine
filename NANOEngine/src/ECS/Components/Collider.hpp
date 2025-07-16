@@ -2,8 +2,8 @@
 
 #include "../../Math/Vec3.hpp"
 #include "../../Core/Reflection.hpp"
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
+//#include <Jolt/Jolt.h>
+//#include <Jolt/Physics/Collision/Shape/Shape.h>
 
 namespace NANOEngine::ECS::Component {
 
@@ -11,17 +11,18 @@ namespace NANOEngine::ECS::Component {
         enum class ShapeType {
             Box,
             Sphere,
-            Capsule
+            Capsule,
+            None
         };
 
         // Exposed
-        ShapeType shapeType{ ShapeType::Box };
+        ShapeType shapeType{ ShapeType::None };
         Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f }; // For box
         float radius{ 0.5f };                      // For sphere/capsule
         float height{ 1.0f };                      // For capsule
 
         // Internal
-        JPH::RefConst<JPH::Shape> shape{ nullptr };
+        //JPH::RefConst<JPH::Shape> shape{ nullptr };
 
         NE_REFLECT_BEGIN(Collider)
             NE_REFLECT_FIELD(shapeType),

@@ -3,6 +3,8 @@
 #include "ECS/Components/Transform.hpp"
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Components/Light.hpp"
+#include "ECS/Components/Rigidbody.hpp"
+#include "ECS/Components/Collider.hpp"
 #include "AssetManager.hpp"
 
 namespace NANOEngine {
@@ -37,9 +39,34 @@ namespace NANOEngine {
 		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Light>(e);
 	}
 
+	ECS::Component::Rigidbody& GetEntityRigidbody(uint32_t e)
+	{
+		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Rigidbody>(e);
+	}
+
+	ECS::Component::Collider& GetEntityCollider(uint32_t e)
+	{
+		return GetScene().GetECSCoordinator().GetComponent<ECS::Component::Collider>(e);
+	}
+
 	void AddLightComponent(uint32_t e)
 	{
 		GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});
+	}
+
+	void AddRendererComponent(uint32_t e)
+	{
+		GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{});
+	}
+
+	void AddRigidbodyComponent(uint32_t e)
+	{
+		GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{});
+	}
+
+	void AddColliderComponent(uint32_t e)
+	{
+		GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
 	}
 
 	void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath) {

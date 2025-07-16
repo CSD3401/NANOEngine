@@ -5,6 +5,8 @@
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
 #include <ECS/Components/Light.hpp>
+#include <ECS/Components/Rigidbody.hpp>
+#include <ECS/Components/Collider.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "../EditorScene.hpp"
@@ -140,14 +142,38 @@ namespace Editor {
                     Core::ForEachField<ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
                         DrawField(desc, field);
                         });
-                }
+                } else if (typeIdx == typeid(ECS::Component::Collider)) {
+                    auto& comp = GetEntityCollider(entity);
+                    ImGui::SeparatorText("Collider");
+                    Core::ForEachField<ECS::Component::Collider>(comp, [&](auto&& desc, auto& field) {
+                        DrawField(desc, field);
+                        //comp.isDirty |= DrawField(desc, field);
+                        });
+                } else if (typeIdx == typeid(ECS::Component::Rigidbody)) {
+                    auto& comp = GetEntityRigidbody(entity);
+                    ImGui::SeparatorText("Rigidbody");
+                    Core::ForEachField<ECS::Component::Rigidbody>(comp, [&](auto&& desc, auto& field) {
+                        DrawField(desc, field);
+                        //comp.isDirty |= DrawField(desc, field);
+                        });
+                } 
             }
 
             if (ImGui::Button("Add Component")) {
                 ImGui::OpenPopup("ComponentList");
             }
 
-            if (ImGui::BeginPopup("ComponentList")) {
+            if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
+                if (ImGui::MenuItem("Renderer")) {
+                    AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+                if (ImGui::MenuItem("Rigidbody")) {
+                    AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+                    AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+                if (ImGui::MenuItem("Collider")) {
+                    AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
                 if (ImGui::MenuItem("Light")) {
                     AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }

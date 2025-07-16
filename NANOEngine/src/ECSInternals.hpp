@@ -12,6 +12,8 @@ namespace NANOEngine {
 		struct Transform;
 		struct Renderer;
 		struct Light;
+		struct Rigidbody;
+		struct Collider;
 	}
 	//extern SceneManagement::Scene scene;
 
@@ -26,8 +28,13 @@ namespace NANOEngine {
 	NANOENGINE_API ECS::Component::Transform& GetEntityTransform(uint32_t e);
 	NANOENGINE_API ECS::Component::Renderer& GetEntityRenderer(uint32_t e);
 	NANOENGINE_API ECS::Component::Light& GetEntityLight(uint32_t e);
+	NANOENGINE_API ECS::Component::Rigidbody& GetEntityRigidbody(uint32_t e);
+	NANOENGINE_API ECS::Component::Collider& GetEntityCollider(uint32_t e);
 
 	NANOENGINE_API void AddLightComponent(uint32_t e);
+	NANOENGINE_API void AddRendererComponent(uint32_t e);
+	NANOENGINE_API void AddRigidbodyComponent(uint32_t e);
+	NANOENGINE_API void AddColliderComponent(uint32_t e);
 
 	NANOENGINE_API void AssignRendererModel(ECS::Component::Renderer& r, std::string filepath);
 	NANOENGINE_API void AssignRendererMaterial(ECS::Component::Renderer& r, std::string filepath);

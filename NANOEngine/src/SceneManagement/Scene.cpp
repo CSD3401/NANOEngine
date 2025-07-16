@@ -3,6 +3,8 @@
 #include "../ECS/Systems/TransformSystem.hpp"
 #include "../ECS/Systems/RenderSystem.hpp"
 #include "../ECS/Systems/LightSystem.hpp"
+#include "../ECS/Systems/RigidbodySystem.hpp"
+#include "../ECS/Systems/ColliderSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 
@@ -10,9 +12,9 @@
 namespace NANOEngine::SceneManagement {
 
 	void Scene::Init() {
-		//m_transformSystem = std::make_unique<ECS::Systems::TransformSystem>(&m_ecsCoordinator.GetComponentManager());
-		//m_renderSystem = std::make_unique<ECS::Systems::RenderSystem>(&m_ecsCoordinator.GetComponentManager());
-
+		// input
+		m_ecsCoordinator.m_rigidbodySystem->Init();
+		m_ecsCoordinator.m_colliderSystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
@@ -21,17 +23,19 @@ namespace NANOEngine::SceneManagement {
 
 	void Scene::Update(double dt)
 	{
+		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
+		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
 		m_ecsCoordinator.m_renderSystem->Update(dt);
+		Graphics::GraphicsManager::DrawDebugLines();
 		Graphics::GraphicsManager::EndFrame();
 	}
 
 	void Scene::RenderPicking() // TEMP hopefully can be optimized so i dont run twice
 	{
-		//m_ecsCoordinator.m_transformSystem->Update(0.0);
 		Graphics::GraphicsManager::BeginFrame();
 		m_ecsCoordinator.m_renderSystem->RenderPicking();
 		Graphics::GraphicsManager::EndFrame();
@@ -39,6 +43,8 @@ namespace NANOEngine::SceneManagement {
 
 	void Scene::Exit()
 	{
+		m_ecsCoordinator.m_rigidbodySystem->Exit();
+		m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();

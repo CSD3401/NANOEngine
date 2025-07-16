@@ -15,6 +15,8 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
+#include "Physics/PhysicsManager.hpp"
+#include "Physics/JoltDebugRenderer.hpp"
 
 namespace NANOEngine {
 
@@ -39,6 +41,7 @@ namespace NANOEngine {
 		s_sceneFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		s_pickingFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		Graphics::GraphicsManager::Init();
+		Physics::PhysicsManager::Init();
 
 		//// Create simple triangle mesh (all temp stuff below)
 		//float vertices[] = {
@@ -74,6 +77,7 @@ namespace NANOEngine {
 		NE_PROFILE_FUNCTION();
 		s_window->PollEvents();
 
+		Physics::PhysicsManager::Update(static_cast<float>(dt));
 		s_sceneFrameBuffer->Bind();
 		scene.Update(dt);
 		s_sceneFrameBuffer->Unbind();
@@ -81,12 +85,12 @@ namespace NANOEngine {
 		scene.RenderPicking();
 		s_pickingFrameBuffer->Unbind();
 
-		s_renderContext->SwapBuffers();	
+		s_renderContext->SwapBuffers();
 	}
 
 	void Shutdown() {
 		NE_PROFILE_FUNCTION();
-
+		Physics::PhysicsManager::Shutdown();
 		scene.Exit();
 
 		s_sceneFrameBuffer.reset();
