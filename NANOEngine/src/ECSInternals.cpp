@@ -66,6 +66,8 @@ namespace NANOEngine {
 
 	void AddColliderComponent(uint32_t e)
 	{
+		if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Collider>(e))
+			return;
 		GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
 	}
 
