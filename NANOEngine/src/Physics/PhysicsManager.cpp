@@ -92,9 +92,9 @@ namespace NANOEngine::Physics {
         if (!s_PhysicsSystem)
             return;
         s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
-        JPH::BodyManager::DrawSettings drawSettings;
+        //JPH::BodyManager::DrawSettings drawSettings;
 		//drawSettings.mDrawShape = true;
-        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
+        //s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
     }
 
     void PhysicsManager::Shutdown() {

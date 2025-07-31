@@ -64,7 +64,11 @@ namespace NANOEngine::ECS::Systems {
 		//	rb.motionType, rb.motionType == 0U ? 0 : 1);
 		//settings.mLinearVelocity = { rb.initialVelocity.x, rb.initialVelocity.y, rb.initialVelocity.z };
 
-		auto shapePtr = Physics::PhysicsManager::s_shapeMap.at(entity).GetPtr();
+		//auto shapePtr = Physics::PhysicsManager::s_shapeMap.at(entity).GetPtr();
+		auto it = Physics::PhysicsManager::s_shapeMap.find(entity);
+		if (it == Physics::PhysicsManager::s_shapeMap.end())
+			return; // collider shape not found
+		auto shapePtr = it->second.GetPtr();
 		JPH::RVec3 position(transform.position.x, transform.position.y, transform.position.z);
 		//JPH::Quat rotation = ...; // already created
 

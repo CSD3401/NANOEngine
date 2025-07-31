@@ -1,4 +1,4 @@
-#include "ScenePanel.hpp"
+﻿#include "ScenePanel.hpp"
 #include "Math/Vec3.hpp"
 #include <imgui/imgui.h>
 #include "../EditorScene.hpp"
@@ -47,6 +47,48 @@ namespace Editor {
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
 		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
+
+		// --- Floating Play Controls ---
+		{
+			// Centered at the top of the viewport
+			ImVec2 overlaySize(200, 40);
+			ImVec2 overlayPos(panelPos.x + panelSize.x * 0.5f - overlaySize.x * 0.5f,
+				panelPos.y + 10.0f);
+
+			ImGui::SetNextWindowPos(overlayPos);
+			ImGui::SetNextWindowSize(overlaySize);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f)); // translucent
+
+			if (ImGui::Begin("PlayControls", nullptr,
+				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoScrollWithMouse)) {
+				static bool playing = false;
+				static bool paused = false;
+
+				if (ImGui::Button("Play")) {
+					playing = true;
+					paused = false;
+					// TODO: Hook into Engine to enter Play mode
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Pause")) {
+					if (playing) paused = !paused;
+					// TODO: Hook into Engine pause
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Stop")) {
+					playing = false;
+					paused = false;
+					// TODO: Hook into Engine stop
+				}
+			}
+			ImGui::End();
+			ImGui::PopStyleColor();
+			ImGui::PopStyleVar(2);
+		}
 
 		// Handle input only when scene panel is focused
 		if (ImGui::IsWindowFocused()) {
