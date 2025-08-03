@@ -29,4 +29,10 @@ namespace NANOEngine {
 	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path);
 
 	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels();
+
+	NANOENGINE_API void EditorPlay();
+
+	NANOENGINE_API void EditorPause();
+
+	NANOENGINE_API void EditorEdit();
 }

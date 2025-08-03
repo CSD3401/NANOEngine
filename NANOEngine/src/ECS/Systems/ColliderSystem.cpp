@@ -14,49 +14,49 @@ namespace NANOEngine::ECS::Systems {
 	{
 	}
 
-	void ColliderSystem::OnEntityAdded(Entity entity)
+	void ColliderSystem::OnEntityAdded(Entity)
 	{
-        auto& col = m_componentManager->GetComponent<Component::Collider>(entity);
+        //auto& col = m_componentManager->GetComponent<Component::Collider>(entity);
 
-        using ShapeType = Component::Collider::ShapeType;
-        JPH::RefConst<JPH::Shape> shape;
+        //using ShapeType = Component::Collider::ShapeType;
+        //JPH::RefConst<JPH::Shape> shape;
 
-        switch (col.shapeType) {
-        case ShapeType::Box:
-        {
-            JPH::BoxShapeSettings settings({ col.halfExtents.x, col.halfExtents.y, col.halfExtents.z });
-            auto result = settings.Create();
-            if (!result.HasError())
-                shape = result.Get();
-            break;
-        }
-        case ShapeType::Sphere:
-        {
-            JPH::SphereShapeSettings settings(col.radius);
-            auto result = settings.Create();
-            if (!result.HasError())
-                shape = result.Get();
-            break;
-        }
-        case ShapeType::Capsule:
-        {
-            JPH::CapsuleShapeSettings settings(col.height * 0.5f, col.radius);
-            auto result = settings.Create();
-            if (!result.HasError())
-                shape = result.Get();
-            break;
-        }
-        default:
-        {
-            JPH::BoxShapeSettings settings({ col.halfExtents.x, col.halfExtents.y, col.halfExtents.z });
-            auto result = settings.Create();
-            if (!result.HasError())
-                shape = result.Get();
-            break;
-        }
-        }
+        //switch (col.shapeType) {
+        //case ShapeType::Box:
+        //{
+        //    JPH::BoxShapeSettings settings({ col.halfExtents.x, col.halfExtents.y, col.halfExtents.z });
+        //    auto result = settings.Create();
+        //    if (!result.HasError())
+        //        shape = result.Get();
+        //    break;
+        //}
+        //case ShapeType::Sphere:
+        //{
+        //    JPH::SphereShapeSettings settings(col.radius);
+        //    auto result = settings.Create();
+        //    if (!result.HasError())
+        //        shape = result.Get();
+        //    break;
+        //}
+        //case ShapeType::Capsule:
+        //{
+        //    JPH::CapsuleShapeSettings settings(col.height * 0.5f, col.radius);
+        //    auto result = settings.Create();
+        //    if (!result.HasError())
+        //        shape = result.Get();
+        //    break;
+        //}
+        //default:
+        //{
+        //    JPH::BoxShapeSettings settings({ col.halfExtents.x, col.halfExtents.y, col.halfExtents.z });
+        //    auto result = settings.Create();
+        //    if (!result.HasError())
+        //        shape = result.Get();
+        //    break;
+        //}
+        //}
 
-        Physics::PhysicsManager::s_shapeMap[entity] = shape;
+        //Physics::PhysicsManager::s_shapeMap[entity] = shape;
         //col.shape = shape;
 	}
 

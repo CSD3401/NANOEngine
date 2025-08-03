@@ -55,6 +55,8 @@ namespace NANOEngine::Physics {
         virtual bool ShouldCollide(JPH::ObjectLayer, JPH::BroadPhaseLayer) const override { return true; }
     };
 
+    std::vector<JPH::BodyID> PhysicsManager::s_BodyIDs;
+    std::unordered_map<uint32_t, size_t> PhysicsManager::s_BodyIndexMap;
     std::unique_ptr<JPH::Factory> PhysicsManager::s_Factory;
     std::unique_ptr<JPH::PhysicsSystem> PhysicsManager::s_PhysicsSystem;
     std::unique_ptr<JPH::TempAllocatorImpl> PhysicsManager::s_TempAllocator;
@@ -107,14 +109,24 @@ namespace NANOEngine::Physics {
         s_Factory.reset();
     }
 
-    JPH::BodyID PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {
+    void PhysicsManager::ActivateBodies()
+    {
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
-        JPH::Body* body = bodyInterface.CreateBody(settings);
-        if (!body)
-            return JPH::BodyID();
-        JPH::BodyID id = body->GetID();
-        bodyInterface.AddBody(id, JPH::EActivation::Activate);
-        return id;
+        bodyInterface.ActivateBodies(s_BodyIDs.data(), static_cast<int>(s_BodyIDs.size()));
+    }
+
+    void PhysicsManager::DeactivateBodies()
+    {
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        bodyInterface.DeactivateBodies(s_BodyIDs.data(), static_cast<int>(s_BodyIDs.size()));
+    }
+
+    uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        JPH::BodyID bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
+        s_BodyIDs.push_back(bodyID);
+		s_BodyIndexMap[bodyID.GetIndexAndSequenceNumber()] = s_BodyIDs.size() - 1;
+        return bodyID.GetIndexAndSequenceNumber();
     }
 
     void PhysicsManager::DestroyBody(uint32_t index) {
@@ -127,6 +139,25 @@ namespace NANOEngine::Physics {
         bodyInterface.DestroyBody(id);
     }
     
+    void PhysicsManager::SetTransform(uint32_t index, const Math::Vec3& position, const Math::Vec3& rotation)
+    {
+        JPH::BodyID id(index);
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+
+        JPH::RVec3 joltPos(position.x, position.y, position.z);
+
+        JPH::Quat joltRot = JPH::Quat::sEulerAngles({
+            JPH::DegreesToRadians(rotation.x),
+            JPH::DegreesToRadians(rotation.y),
+            JPH::DegreesToRadians(rotation.z) }
+        );
+
+        // Actually move the body
+        bodyInterface.SetPositionAndRotation(id, joltPos, joltRot, JPH::EActivation::DontActivate);
+        printf("PhysicsManager: Set transform for body ID %d to position (%f, %f, %f) and rotation (%f, %f, %f)\n",
+			index, position.x, position.y, position.z, rotation.x, rotation.y, rotation.z);
+    }
+
     //void PhysicsManager::GetTransform(JPH::BodyID id, Math::Vec3& position, Math::Vec3& rotation) {
     //    JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
     //    JPH::RVec3 pos;
@@ -136,8 +167,9 @@ namespace NANOEngine::Physics {
     //    JPH::Vec3 angles = rot.GetEulerAngles();
     //    rotation = { JPH::RadiansToDegrees(angles.GetX()), JPH::RadiansToDegrees(angles.GetY()), JPH::RadiansToDegrees(angles.GetZ()) };
     //}
+
     void PhysicsManager::GetTransform(uint32_t index, Math::Vec3& position, Math::Vec3& rotation) {
-        JPH::BodyID id(index); // Convert your POD index to a Jolt BodyID
+        JPH::BodyID id(index);
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         JPH::RVec3 pos;
         JPH::Quat rot;
@@ -145,6 +177,39 @@ namespace NANOEngine::Physics {
         position = { static_cast<float>(pos.GetX()), static_cast<float>(pos.GetY()), static_cast<float>(pos.GetZ()) };
         JPH::Vec3 angles = rot.GetEulerAngles();
         rotation = { JPH::RadiansToDegrees(angles.GetX()), JPH::RadiansToDegrees(angles.GetY()), JPH::RadiansToDegrees(angles.GetZ()) };
+    }
+
+    void PhysicsManager::SetMotionType(uint32_t bodyid, JPH::EMotionType motionType)
+    {
+        JPH::BodyID id(bodyid);
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        bodyInterface.SetMotionType(id, motionType, JPH::EActivation::DontActivate);
+        bodyInterface.SetLinearVelocity(id, JPH::Vec3::sZero());
+        bodyInterface.SetAngularVelocity(id, JPH::Vec3::sZero());
+
+        auto it = s_BodyIndexMap.find(bodyid);
+        if (it == s_BodyIndexMap.end())
+            return; // not found
+
+        size_t index = it->second;
+        size_t lastIndex = s_BodyIDs.size() - 1;
+
+        // If it's not the last element, swap with the last
+        if (index != lastIndex) {
+            JPH::BodyID lastID = s_BodyIDs[lastIndex];
+            s_BodyIDs[index] = lastID;
+
+            // Update the map entry for the moved element
+            s_BodyIndexMap[lastID.GetIndexAndSequenceNumber()] = index;
+        }
+
+        // Remove last element
+        s_BodyIDs.pop_back();
+
+        // Remove from map
+        s_BodyIndexMap.erase(it);
+
+		printf("PhysicsManager: Set motion type for body ID %d to %d\n", bodyid, static_cast<int>(motionType));
     }
 
     JPH::PhysicsSystem* PhysicsManager::GetPhysicsSystem() {

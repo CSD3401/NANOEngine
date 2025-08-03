@@ -17,6 +17,7 @@
 #include <stb_image.h>
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
+#include "EngineState.hpp"
 
 namespace NANOEngine {
 
@@ -147,4 +148,18 @@ namespace NANOEngine {
 		return scene;
 	}
 
+	void EditorPlay() {
+		g_EngineState = EngineState::Play;
+		Physics::PhysicsManager::ActivateBodies();
+	}
+
+	void EditorPause() {
+		g_EngineState = EngineState::Play;
+		Physics::PhysicsManager::DeactivateBodies();
+	}
+
+	void EditorEdit() {
+		g_EngineState = EngineState::Edit;
+		Physics::PhysicsManager::DeactivateBodies();
+	}
 }

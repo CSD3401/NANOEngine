@@ -71,18 +71,18 @@ namespace Editor {
 				if (ImGui::Button("Play")) {
 					playing = true;
 					paused = false;
-					// TODO: Hook into Engine to enter Play mode
+					NANOEngine::EditorPlay();
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Pause")) {
 					if (playing) paused = !paused;
-					// TODO: Hook into Engine pause
+					
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Stop")) {
 					playing = false;
 					paused = false;
-					// TODO: Hook into Engine stop
+					NANOEngine::EditorEdit();
 				}
 			}
 			ImGui::End();

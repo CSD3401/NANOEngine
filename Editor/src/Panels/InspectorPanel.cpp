@@ -153,7 +153,9 @@ namespace Editor {
                     auto& comp = GetEntityRigidbody(entity);
                     ImGui::SeparatorText("Rigidbody");
                     Core::ForEachField<ECS::Component::Rigidbody>(comp, [&](auto&& desc, auto& field) {
-                        DrawField(desc, field);
+                        if (DrawField(desc, field) && desc.name == "isStatic") {
+							NANOEngine::SetMotionType(comp.bodyID, 0U);
+                        }
                         //comp.isDirty |= DrawField(desc, field);
                         });
                 } 

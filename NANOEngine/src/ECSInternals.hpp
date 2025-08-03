@@ -42,4 +42,6 @@ namespace NANOEngine {
 	NANOENGINE_API const std::unordered_map<std::type_index, uint8_t>& GetRegisteredComponentTypes();
 
 	NANOENGINE_API std::vector<uint32_t>& GetEntities();
+
+	NANOENGINE_API void SetMotionType(uint32_t e, uint8_t motionType);
 }

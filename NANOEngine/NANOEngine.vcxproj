@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
+    <ClInclude Include="src\EngineState.hpp" />
     <ClInclude Include="src\Physics\JoltDebugRenderer.hpp" />
     <ClInclude Include="src\Physics\PhysicsManager.hpp" />
     <ClInclude Include="src\ECS\Components\Collider.hpp" />
@@ -95,6 +96,7 @@
   <ItemGroup>
     <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\RigidbodySystem.cpp" />
+    <ClCompile Include="src\EngineState.cpp" />
     <ClCompile Include="src\Physics\JoltDebugRenderer.cpp" />
     <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
