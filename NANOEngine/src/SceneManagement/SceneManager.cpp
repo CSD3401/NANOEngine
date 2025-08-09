@@ -2,11 +2,11 @@
 
 namespace NANOEngine::SceneManagement {
 
-	void SceneManager::LoadScene(const std::string& scenePath)
+	void SceneManager::LoadScene(const std::string&)
 	{
 	}
 
-	void SceneManager::UpdateScene(double dt)
+	void SceneManager::UpdateScene(double)
 	{
 	}
 

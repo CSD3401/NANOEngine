@@ -241,7 +241,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\assimp\lib\Debug;$(ProjectDir)vendor\libs\Jolt\$(Configuration);$(ProjectDir)vendor\libs\zlib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\lib\assimp\Debug;$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
