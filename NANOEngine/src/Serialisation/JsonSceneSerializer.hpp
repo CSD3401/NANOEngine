@@ -1,6 +1,5 @@
 #pragma once
 #include "ISceneSerializer.hpp"
-#include <rapidjson/document.h>
 
 namespace NANOEngine::Serialization {
     class JsonSceneSerializer {

@@ -1,4 +1,5 @@
 #include "JsonSceneSerializer.hpp"
+#include "ReflectionJson.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Core/ECSCoordinator.hpp"
 
@@ -9,29 +10,80 @@
 #include "../Graphics/Core/Model.hpp"
 
 // rapidjson
+#include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 #include <fstream>
+#include <functional>
+
+//namespace {
+//    using namespace NANOEngine::Serialization;
+//
+//    struct CompOps {
+//        const char* key;
+//        std::function<bool(NANOEngine::ECS::Entity)> has;
+//        std::function<void(NANOEngine::ECS::Entity, rapidjson::Value&, Alloc&)> write;
+//        std::function<void(NANOEngine::ECS::Entity, const rapidjson::Value&)> read;
+//    };
+//
+//    static std::vector<CompOps> MakeComponentRegistry(NANOEngine::SceneManagement::Scene& scene) {
+//        auto& ecs = scene.GetECSCoordinator();
+//
+//        using T = NANOEngine::ECS::Component::Transform;
+//        using R = NANOEngine::ECS::Component::Renderer;
+//        // TODO: add more component types similarly
+//
+//        return {
+//            {
+//                "Transform",
+//                [&](NANOEngine::ECS::Entity e) { return ecs.HasComponent<T>(e); },
+//                [&](NANOEngine::ECS::Entity e, rapidjson::Value& ent, Alloc& a) {
+//                    auto& c = ecs.GetComponent<T>(e);
+//                    ent.AddMember("Transform", to_json(c, a), a);
+//                },
+//                [&](NANOEngine::ECS::Entity e, const rapidjson::Value& ent) {
+//                    if (!ent.HasMember("Transform")) return;
+//                    T c{}; from_json(ent["Transform"], c);
+//                    c.isDirty = true; // engine-specific dirty flag
+//                    ecs.AddComponent(e, c);
+//                }
+//            },
+//            {
+//                "Renderer",
+//                [&](NANOEngine::ECS::Entity e) { return ecs.HasComponent<R>(e); },
+//                [&](NANOEngine::ECS::Entity e, rapidjson::Value& ent, Alloc& a) {
+//                    auto& c = ecs.GetComponent<R>(e);
+//                    ent.AddMember("Renderer", to_json(c, a), a);
+//                },
+//                [&](NANOEngine::ECS::Entity e, const rapidjson::Value& ent) {
+//                    if (!ent.HasMember("Renderer")) return;
+//                    R c{}; from_json(ent["Renderer"], c);
+//                    ecs.AddComponent(e, c);
+//                }
+//            },
+//        };
+//    }
+//}
 
 namespace NANOEngine::Serialization {
 
     using namespace rapidjson;
 
-    static Value Vec3ToJson(const Math::Vec3& v, Document::AllocatorType& a) {
-        Value obj(kObjectType);
-        obj.AddMember("x", v.x, a);
-        obj.AddMember("y", v.y, a);
-        obj.AddMember("z", v.z, a);
-        return obj;
-    }
+    //static Value Vec3ToJson(const Math::Vec3& v, Document::AllocatorType& a) {
+    //    Value obj(kObjectType);
+    //    obj.AddMember("x", v.x, a);
+    //    obj.AddMember("y", v.y, a);
+    //    obj.AddMember("z", v.z, a);
+    //    return obj;
+    //}
 
-    static Math::Vec3 JsonToVec3(const Value& v) {
-        Math::Vec3 out;
-        if (v.HasMember("x")) out.x = v["x"].GetFloat();
-        if (v.HasMember("y")) out.y = v["y"].GetFloat();
-        if (v.HasMember("z")) out.z = v["z"].GetFloat();
-        return out;
-    }
+    //static Math::Vec3 JsonToVec3(const Value& v) {
+    //    Math::Vec3 out;
+    //    if (v.HasMember("x")) out.x = v["x"].GetFloat();
+    //    if (v.HasMember("y")) out.y = v["y"].GetFloat();
+    //    if (v.HasMember("z")) out.z = v["z"].GetFloat();
+    //    return out;
+    //}
 
     void JsonSceneSerializer::Serialize(SceneManagement::Scene& scene, const std::string& path) {
         Document doc;
@@ -43,11 +95,11 @@ namespace NANOEngine::Serialization {
         for (ECS::Entity e : ids) {
             Value ent(kObjectType);
             if (scene.GetECSCoordinator().HasComponent<ECS::Component::Transform>(e)) {
-                const auto& t = scene.GetECSCoordinator().GetComponent<ECS::Component::Transform>(e);
+                //const auto& t = scene.GetECSCoordinator().GetComponent<ECS::Component::Transform>(e);
                 Value tObj(kObjectType);
-                tObj.AddMember("position", Vec3ToJson(t.position, allocator), allocator);
-                tObj.AddMember("scale", Vec3ToJson(t.scale, allocator), allocator);
-                tObj.AddMember("rotation", Vec3ToJson(t.rotation, allocator), allocator);
+                //tObj.AddMember("position", Vec3ToJson(t.position, allocator), allocator);
+                //tObj.AddMember("scale", Vec3ToJson(t.scale, allocator), allocator);
+                //.AddMember("rotation", Vec3ToJson(t.rotation, allocator), allocator);
                 ent.AddMember("Transform", tObj, allocator);
             }
             if (scene.GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e)) {
@@ -60,8 +112,8 @@ namespace NANOEngine::Serialization {
                 const auto& l = scene.GetECSCoordinator().GetComponent<ECS::Component::Light>(e);
                 Value lObj(kObjectType);
                 lObj.AddMember("type", static_cast<int>(l.type), allocator);
-                lObj.AddMember("direction", Vec3ToJson(l.direction, allocator), allocator);
-                lObj.AddMember("color", Vec3ToJson(l.color, allocator), allocator);
+                //lObj.AddMember("direction", Vec3ToJson(l.direction, allocator), allocator);
+                //lObj.AddMember("color", Vec3ToJson(l.color, allocator), allocator);
                 lObj.AddMember("intensity", l.intensity, allocator);
                 lObj.AddMember("innerCutoff", l.innerCutoff, allocator);
                 lObj.AddMember("outerCutoff", l.outerCutoff, allocator);
@@ -96,10 +148,10 @@ namespace NANOEngine::Serialization {
             ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
             if (entVal.HasMember("Transform")) {
                 ECS::Component::Transform t{};
-                const auto& tVal = entVal["Transform"];
-                if (tVal.HasMember("position")) t.position = JsonToVec3(tVal["position"]);
-                if (tVal.HasMember("scale")) t.scale = JsonToVec3(tVal["scale"]);
-                if (tVal.HasMember("rotation")) t.rotation = JsonToVec3(tVal["rotation"]);
+                //const auto& tVal = entVal["Transform"];
+                //if (tVal.HasMember("position")) t.position = JsonToVec3(tVal["position"]);
+                //if (tVal.HasMember("scale")) t.scale = JsonToVec3(tVal["scale"]);
+                //if (tVal.HasMember("rotation")) t.rotation = JsonToVec3(tVal["rotation"]);
                 t.isDirty = true;
                 scene.GetECSCoordinator().AddComponent(e, t);
             }
@@ -119,8 +171,8 @@ namespace NANOEngine::Serialization {
                 const auto& lVal = entVal["Light"];
 
                 if (lVal.HasMember("type")) l.type = static_cast<ECS::Component::Light::Type>(lVal["type"].GetInt());
-                if (lVal.HasMember("direction")) l.direction = JsonToVec3(lVal["direction"]);
-                if (lVal.HasMember("color")) l.color = JsonToVec3(lVal["color"]);
+                //if (lVal.HasMember("direction")) l.direction = JsonToVec3(lVal["direction"]);
+                //if (lVal.HasMember("color")) l.color = JsonToVec3(lVal["color"]);
                 if (lVal.HasMember("intensity")) l.intensity = lVal["intensity"].GetFloat();
                 if (lVal.HasMember("innerCutoff")) l.innerCutoff = lVal["innerCutoff"].GetFloat();
                 if (lVal.HasMember("outerCutoff")) l.outerCutoff = lVal["outerCutoff"].GetFloat();
@@ -132,4 +184,54 @@ namespace NANOEngine::Serialization {
             }
         }
     }
+    //void JsonSceneSerializer::Serialize(SceneManagement::Scene& scene, const std::string& path) {
+    //    rapidjson::Document doc; doc.SetObject();
+    //    Alloc& a = doc.GetAllocator();
+
+    //    doc.AddMember("__format", rapidjson::Value("NANOSceneV1"), a);
+
+    //    auto registry = MakeComponentRegistry(scene);
+
+    //    rapidjson::Value ents(rapidjson::kArrayType);
+
+    //    // TODO: replace with your actual entity enumeration
+    //    scene.ForEachEntity([&](ECS::Entity e) {
+    //        rapidjson::Value ent(rapidjson::kObjectType);
+
+    //        // TODO: set your own ID/name fields if you have them
+    //        // ent.AddMember("Id", static_cast<uint64_t>(e), a);
+    //        // ent.AddMember("Name", rapidjson::Value(scene.GetName(e).c_str(), a), a);
+
+    //        for (auto& c : registry) if (c.has(e)) c.write(e, ent, a);
+    //        ents.PushBack(ent, a);
+    //        });
+
+    //    doc.AddMember("Entities", ents, a);
+
+    //    rapidjson::StringBuffer sb; rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
+    //    doc.Accept(wr);
+
+    //    std::ofstream out(path, std::ios::binary);
+    //    out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
+    //}
+
+    //void JsonSceneSerializer::Deserialize(SceneManagement::Scene& scene, const std::string& path) {
+    //    std::ifstream in(path, std::ios::binary);
+    //    if (!in) return;
+
+    //    std::string data((std::istreambuf_iterator<char>(in)), {});
+    //    rapidjson::Document doc; doc.Parse(data.c_str());
+    //    if (!doc.IsObject() || !doc.HasMember("Entities")) return;
+
+    //    auto registry = MakeComponentRegistry(scene);
+
+    //    for (auto& ent : doc["Entities"].GetArray()) {
+    //        ECS::Entity e = scene.CreateEntity();
+
+    //        // TODO: read your own ID/name fields if you persist them
+    //        // if (ent.HasMember("Name")) scene.SetName(e, ent["Name"].GetString());
+
+    //        for (auto& c : registry) c.read(e, ent);
+    //    }
+    //}
 }

@@ -1,0 +1,25 @@
+{
+    "Shader": "5532c0ad-0098-4199-9590-21ea43c5f7fa",
+    "DepthTest": true,
+    "BlendMode": true,
+    "CullMode": 1029,
+    "PolygonMode": 6914,
+    "Properties": {
+        "u_Material.shininess": 1.0,
+        "u_Material.ambient": [
+            0.30000001192092896,
+            0.699999988079071,
+            0.10000000149011612
+        ],
+        "u_Material.diffuse": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "u_Material.specular": [
+            1.0,
+            1.0,
+            1.0
+        ]
+    }
+}

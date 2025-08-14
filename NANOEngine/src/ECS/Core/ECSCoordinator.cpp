@@ -5,6 +5,7 @@
 #include "../Components/Light.hpp"
 #include "../Components/Rigidbody.hpp"
 #include "../Components/Collider.hpp"
+#include "../Components/EntityMeta.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -26,6 +27,7 @@ namespace NANOEngine::ECS {
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Collider>();
+        RegisterComponent<Component::EntityMeta>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -64,8 +66,8 @@ namespace NANOEngine::ECS {
 
     Entity ECSCoordinator::CreateEntity() {
         Entity entt = m_entityManager->CreateEntity();
+        AddComponent(entt, Component::EntityMeta{"Unnamed Entity"});
         AddComponent(entt, Component::Transform{});
-        //AddComponent(entt, Component::Renderer{}); // TEMPORARY
         return entt;
     }
 

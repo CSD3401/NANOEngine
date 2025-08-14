@@ -56,6 +56,8 @@ namespace Editor {
             using namespace NANOEngine;
             uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
+            
+
             ECS::Signature sig(GetEntitySignature(entity));
             for (const auto& [typeIdx, compType] : GetRegisteredComponentTypes()) {
                 if (!sig.test(compType)) continue;

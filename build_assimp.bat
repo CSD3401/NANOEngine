@@ -42,37 +42,23 @@ for %%D in (assimp jolt) do (
 :: ============================================================
 :: Build Assimp
 :: ============================================================
-::echo.
-::echo [96m Building Assimp Debug[0m
-::pushd extern\assimp\build-debug
-::cmake .. -DCMAKE_BUILD_TYPE=Debug -DASSIMP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF || pause
-::cmake --build . --config Debug || pause
-::popd
-::
-::echo.
-::echo [96m Building Assimp Release[0m
-::pushd extern\assimp\build-release
-::cmake .. -DCMAKE_BUILD_TYPE=Release -DASSIMP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF || pause
-::cmake --build . --config Release || pause
-::popd
+echo.
+echo [96m Building Assimp Debug[0m
+pushd extern\assimp\build-debug
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DASSIMP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF || pause
+cmake --build . --config Debug || pause
+popd
+
+echo.
+echo [96m Building Assimp Release[0m
+pushd extern\assimp\build-release
+cmake .. -DCMAKE_BUILD_TYPE=Release -DASSIMP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF || pause
+cmake --build . --config Release || pause
+popd
 
 :: ============================================================
 :: Build Jolt
 :: ============================================================
-::echo.
-::echo [96m Building Jolt Debug[0m
-::pushd extern\jolt\build-debug
-::cmake ..\Build -DCMAKE_BUILD_TYPE=Debug -DJPH_BUILD_LIBRARY=ON -DTARGET_UNIT_TESTS=OFF -DTARGET_SAMPLES=OFF -DTARGET_VIEWER=OFF || pause
-::cmake --build . --config Debug || pause
-::popd
-::
-::echo.
-::echo [96m Building Jolt Release[0m
-::pushd extern\jolt\build-release
-::cmake ..\Build -DCMAKE_BUILD_TYPE=Release -DJPH_BUILD_LIBRARY=ON -DTARGET_UNIT_TESTS=OFF -DTARGET_SAMPLES=OFF -DTARGET_VIEWER=OFF || pause
-::cmake --build . --config Release || pause
-::popd
-
 echo.
 echo [96m Building Jolt Debug[0m
 pushd extern\jolt\build-debug
@@ -115,14 +101,14 @@ for %%C in (Debug Release) do (
 :: ============================================================
 :: Copy Assimp
 :: ===========================================	=================
-::copy /Y extern\assimp\build-debug\lib\Debug\assimp-vc143-mtd.lib NANOEngine\vendor\lib\assimp\Debug\
-::copy /Y extern\assimp\build-release\lib\Release\assimp-vc143-mt.lib NANOEngine\vendor\lib\assimp\Release\
+copy /Y extern\assimp\build-debug\lib\Debug\assimp-vc143-mtd.lib NANOEngine\vendor\lib\assimp\Debug\
+copy /Y extern\assimp\build-release\lib\Release\assimp-vc143-mt.lib NANOEngine\vendor\lib\assimp\Release\
 
 :: ============================================================
 :: Copy zlib
 :: ============================================================
-::copy /Y extern\assimp\build-debug\contrib\zlib\Debug\zlibstaticd.lib NANOEngine\vendor\lib\zlib\Debug\
-::copy /Y extern\assimp\build-release\contrib\zlib\Release\zlibstatic.lib NANOEngine\vendor\lib\zlib\Release\
+copy /Y extern\assimp\build-debug\contrib\zlib\Debug\zlibstaticd.lib NANOEngine\vendor\lib\zlib\Debug\
+copy /Y extern\assimp\build-release\contrib\zlib\Release\zlibstatic.lib NANOEngine\vendor\lib\zlib\Release\
 
 :: ============================================================
 :: Copy Jolt libs
@@ -133,9 +119,9 @@ copy /Y extern\jolt\build-release\Release\Jolt.lib NANOEngine\vendor\lib\jolt\Re
 :: ============================================================
 :: Final cleanup
 :: ============================================================
-::echo.
-::echo [91m Cleaning up extern folder...[0m
-::rmdir /S /Q extern
+echo.
+echo [91m Cleaning up extern folder...[0m
+rmdir /S /Q extern
 
 echo.
 echo [92mBuild and setup completed successfully.[0m
