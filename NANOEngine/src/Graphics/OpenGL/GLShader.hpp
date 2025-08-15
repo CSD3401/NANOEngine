@@ -4,7 +4,7 @@
 #include "../Interfaces/IShader.hpp"
 #include <unordered_map>
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
 	class GLShader final : public IShader {
 	public:

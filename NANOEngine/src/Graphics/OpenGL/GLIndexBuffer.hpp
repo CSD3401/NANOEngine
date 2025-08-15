@@ -2,7 +2,7 @@
 
 #include "../Interfaces/IIndexBuffer.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     class GLIndexBuffer final : public IIndexBuffer {
     public:

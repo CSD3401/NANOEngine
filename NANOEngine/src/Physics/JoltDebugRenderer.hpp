@@ -7,7 +7,7 @@
 #pragma warning(disable: 4100)
 
 
-namespace NANOEngine::Physics {
+namespace NE::Physics {
 
     class JoltDebugRenderer : public JPH::DebugRenderer {
     public:

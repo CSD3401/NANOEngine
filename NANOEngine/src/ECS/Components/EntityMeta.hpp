@@ -2,7 +2,7 @@
 #include <string>
 #include "../../Core/Reflection.hpp"
 
-namespace NANOEngine::ECS::Component {
+namespace NE::ECS::Component {
 
     struct EntityMeta {
 

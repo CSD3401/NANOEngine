@@ -8,11 +8,11 @@
 #include "../OpenGL/GLPipeline.hpp"
 
 namespace {
-    using namespace NANOEngine::Graphics;
+    using namespace NE::Graphics;
     std::unordered_map<std::string, std::shared_ptr<IPipeline>> s_PipelineRegistry;
 }
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     void RegisterPipeline(std::shared_ptr<IPipeline> pipeline) {
         if (pipeline)

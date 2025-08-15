@@ -9,7 +9,7 @@
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
-        EditorScene::s_entities.reserve(NANOEngine::ECS::MAX_ENTITIES);
+        EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
 	}
 
 	void HierarchyPanel::OnImGuiRender()

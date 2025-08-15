@@ -2,7 +2,7 @@
 
 #include "../Interfaces/IFrameBuffer.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     class GLFrameBuffer final : public IFrameBuffer {
     public:

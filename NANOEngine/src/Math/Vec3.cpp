@@ -2,7 +2,7 @@
 #include "Vec2.hpp"
 #include "Vec4.hpp"
 
-namespace NANOEngine::Math {
+namespace NE::Math {
 	constexpr float EPSILON = 1e-6f;
 
 	Vec3::Vec3(float x, float y, float z) noexcept

@@ -5,7 +5,7 @@
 #include <utility>
 #include <string_view>
 
-namespace NANOEngine::Core {
+namespace NE::Core {
 
     template <typename Owner, typename T>
     struct FieldDescriptor {
@@ -32,7 +32,7 @@ namespace NANOEngine::Core {
         return std::make_tuple(
 
 #define NE_REFLECT_FIELD(field) \
-            NANOEngine::Core::FieldDescriptor<Self, decltype(Self::field)>{#field, &Self::field}
+            NE::Core::FieldDescriptor<Self, decltype(Self::field)>{#field, &Self::field}
 
 #define NE_REFLECT_END() \
         ); \

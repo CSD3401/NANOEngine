@@ -5,7 +5,7 @@
 #include "Signature.hpp"
 #include "System.hpp"
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
     class SystemManager {
     public:

@@ -2,7 +2,7 @@
 #include <Jolt/RegisterTypes.h>
 #include "JoltDebugRenderer.hpp"
 
-namespace NANOEngine::Physics {
+namespace NE::Physics {
 
     // Object layers used by the engine
     namespace Layers {

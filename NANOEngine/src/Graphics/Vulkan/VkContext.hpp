@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../IRenderContext.hpp"
+#include "../Interfaces/IRenderContext.hpp"
 
-namespace NANOEngine::Graphics::Vulkan {
+namespace NE::Graphics::Vulkan {
 	class VkContext final : public IRenderContext {
 	public:
 		bool Init(void* windowHandle) override;

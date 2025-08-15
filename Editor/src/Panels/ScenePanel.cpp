@@ -4,7 +4,7 @@
 #include "../EditorScene.hpp"
 #include "Engine.hpp"
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
-#include <ECSInternals.hpp>
+#include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/Transform.hpp>
 
 namespace Editor {
@@ -18,12 +18,12 @@ namespace Editor {
 	ScenePanel::ScenePanel(uint32_t sceneFrameBuffer) {
 		temp = sceneFrameBuffer;
 
-		NANOEngine::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
-		NANOEngine::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
-		NANOEngine::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
+		NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
+		NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
+		NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
 
 
-		float fovYRadians = 45.0f * (NANOEngine::Math::PI / 180.0f); // 45 degrees fov
+		float fovYRadians = 45.0f * (NE::Math::PI / 180.0f); // 45 degrees fov
 		float aspectRatio = 1920.f / 1080.f;
 		float nearPlane = 0.1f;
 		float farPlane = 100.0f;
@@ -35,7 +35,7 @@ namespace Editor {
 
 	void ScenePanel::OnImGuiRender()
 	{
-		using namespace NANOEngine::Math;
+		using namespace NE::Math;
 
 		ImGui::Begin("Scene", nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse 
@@ -71,7 +71,7 @@ namespace Editor {
 				if (ImGui::Button("Play")) {
 					playing = true;
 					paused = false;
-					NANOEngine::EditorPlay();
+					NE::EditorPlay();
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Pause")) {
@@ -82,7 +82,7 @@ namespace Editor {
 				if (ImGui::Button("Stop")) {
 					playing = false;
 					paused = false;
-					NANOEngine::EditorEdit();
+					NE::EditorEdit();
 				}
 			}
 			ImGui::End();
@@ -150,7 +150,7 @@ namespace Editor {
 						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
 						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
-						uint32_t id = NANOEngine::GetPickedEntity(x, y);
+						uint32_t id = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
 						for (auto& ent : EditorScene::s_entities) {
@@ -175,7 +175,7 @@ namespace Editor {
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
-			auto& t = NANOEngine::GetEntityTransform(EditorScene::s_selectedEntity->linkedEntity);
+			const auto& t = NE::ECS::Query::GetEntityTransform(EditorScene::s_selectedEntity->linkedEntity);
 
 			float matrix[16];
 			memcpy(matrix, t.modelMatrix.Data(), sizeof(float) * 16);
@@ -185,10 +185,10 @@ namespace Editor {
 				currentOperation, ImGuizmo::LOCAL, matrix)) {
 				float tr[3], rot[3], sc[3];
 				ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rot, sc);
-				t.position = { tr[0], tr[1], tr[2] };
-				t.rotation = { rot[0], rot[1], rot[2] };
-				t.scale = { sc[0], sc[1], sc[2] };
-				t.isDirty = true;
+				//t.position = { tr[0], tr[1], tr[2] };
+				//t.rotation = { rot[0], rot[1], rot[2] };
+				//t.scale = { sc[0], sc[1], sc[2] };
+				//t.isDirty = true;
 			}
 		}
 
@@ -294,7 +294,7 @@ namespace Editor {
 		ImGui::End();
 	}
 
-	NANOEngine::Graphics::Camera* ScenePanel::GetCamera()
+	NE::Graphics::Camera* ScenePanel::GetCamera()
 	{
 		return &m_editorCamera;
 	}

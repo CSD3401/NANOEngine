@@ -8,7 +8,7 @@
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
 
-namespace NANOEngine::ECS::Systems {
+namespace NE::ECS::Systems {
 
 	ColliderSystem::ColliderSystem(ComponentManager* cm) : m_componentManager(cm)
 	{

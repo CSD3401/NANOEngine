@@ -3,7 +3,7 @@
 #include "../../Core/Profiler.hpp"
 #include "../../src/EngineState.hpp"
 
-namespace NANOEngine::ECS::Systems {
+namespace NE::ECS::Systems {
 
 	TransformSystem::TransformSystem(ComponentManager* cm) : m_componentManager(cm)
 	{
@@ -80,7 +80,7 @@ namespace NANOEngine::ECS::Systems {
 
 			bool shouldRebuild = false;
 
-			if (NANOEngine::GetEngineState() == EngineState::Play) {
+			if (NE::GetEngineState() == EngineState::Play) {
 				// Physics updated position/rotation already in RigidbodySystem
 				// Always rebuild matrix in Play mode
 				shouldRebuild = true;

@@ -14,7 +14,7 @@
 #pragma warning(push)
 #pragma warning(disable: 4251)
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 	class NANOENGINE_API Material : public Asset::IAsset {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);

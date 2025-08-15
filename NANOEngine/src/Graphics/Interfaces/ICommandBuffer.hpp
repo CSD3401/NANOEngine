@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
     class IPipeline;
     class IVertexBuffer;
     class IIndexBuffer;

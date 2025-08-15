@@ -2,13 +2,13 @@
 #include <string>
 #include <imgui/imgui_internal.h>
 
-namespace NANOEngine::Math {
+namespace NE::Math {
     struct Vec3;
 }
 
 namespace Editor {
     // A pretty Vec3 control with color coding and reset buttons
-    bool DrawVec3Control(const std::string& label, NANOEngine::Math::Vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f);
+    bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f);
 
     // Generic float
     bool DrawFloatControl(const std::string& label, float& value, float step = 0.1f);

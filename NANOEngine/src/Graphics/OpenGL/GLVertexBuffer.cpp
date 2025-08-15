@@ -1,7 +1,7 @@
 #include "GLVertexBuffer.hpp"
 #include <glad/glad.h>
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     GLVertexBuffer::GLVertexBuffer(const void* data, uint32_t size, size_t stride)
         : m_Stride(stride)

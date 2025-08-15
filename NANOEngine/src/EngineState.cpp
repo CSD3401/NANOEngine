@@ -1,6 +1,6 @@
 #include "EngineState.hpp"
 
-namespace NANOEngine {
+namespace NE {
     EngineState g_EngineState = EngineState::Edit;
 
     void SetEngineState(EngineState state) { g_EngineState = state; }

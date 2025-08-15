@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     class IFrameBuffer {
     public:

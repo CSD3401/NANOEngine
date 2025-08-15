@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 #include "../Core/Vertex.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     GLGeometryBuffer::GLGeometryBuffer(std::shared_ptr<IVertexBuffer> vb, std::shared_ptr<IIndexBuffer> ib)
         : m_VertexBuffer(vb), m_IndexBuffer(ib)

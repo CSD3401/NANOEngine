@@ -4,7 +4,7 @@
 #include "GLVertexBuffer.hpp"
 #include "GLIndexBuffer.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     GLCommandBuffer::GLCommandBuffer() {
 

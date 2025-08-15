@@ -3,7 +3,7 @@
 #include "../../Core/Reflection.hpp"
 #include "../../Math/Vec3.hpp"
 
-namespace NANOEngine::ECS::Component {
+namespace NE::ECS::Component {
 
 	struct Rigidbody {
 		uint32_t bodyID;

@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 #include "../../src/Core/Logger.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     GLFrameBuffer::GLFrameBuffer(uint32_t width, uint32_t height)
         : m_Width(width), m_Height(height) {

@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     class IVertexBuffer {
     public:

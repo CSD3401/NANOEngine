@@ -4,7 +4,7 @@
 #include "../NANOEngineAPI.hpp"
 #include <ostream>
 
-namespace NANOEngine::Math {
+namespace NE::Math {
 	struct Vec2;
 	struct Vec4;
 

@@ -8,7 +8,7 @@
 #include "Utility/MetadataHandler.hpp"
 #include "NANOEngineAPI.hpp"
 
-namespace NANOEngine::Asset {
+namespace NE::Asset {
 
 	class NANOENGINE_API AssetManager {
 	public:

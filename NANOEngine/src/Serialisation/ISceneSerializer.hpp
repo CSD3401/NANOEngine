@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace NANOEngine {
+namespace NE {
     namespace SceneManagement { class Scene; }
     namespace Serialization {
         class ISceneSerializer {

@@ -2,12 +2,7 @@
 
 #include "../ECS/Core/ECSCoordinator.hpp"
 
-//namespace NANOEngine::ECS::Systems {
-//	class TransformSystem;
-//	class RenderSystem;
-//}
-
-namespace NANOEngine::SceneManagement {
+namespace NE::SceneManagement {
 
 	class Scene {
 	public:

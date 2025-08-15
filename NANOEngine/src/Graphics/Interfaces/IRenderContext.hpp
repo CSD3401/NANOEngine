@@ -3,7 +3,7 @@
 
 #include "../../NANOEngineAPI.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 	enum class RenderAPI { OpenGL, Vulkan };
 
 	class IRenderContext {

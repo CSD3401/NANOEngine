@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iostream>
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     GLPipeline::GLPipeline(const PipelineSpecification& spec, std::string name)
         : m_Spec(spec), m_name(name)

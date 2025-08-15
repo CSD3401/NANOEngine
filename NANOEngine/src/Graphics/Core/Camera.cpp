@@ -2,7 +2,7 @@
 #include <cmath>
 #include <iostream>
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     Camera::Camera()
         : m_position(0.0f, 0.0f, 5.0f),

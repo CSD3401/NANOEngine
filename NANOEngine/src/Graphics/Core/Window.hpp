@@ -5,7 +5,7 @@
 
 struct GLFWwindow;
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     struct WindowProperties {
         int Width = 1280;

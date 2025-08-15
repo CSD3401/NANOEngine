@@ -8,7 +8,7 @@
 #include <rapidjson/document.h>
 #include "../Core/Reflection.hpp"
 
-namespace NANOEngine::Serialization {
+namespace NE::Serialization {
     using Alloc = rapidjson::Document::AllocatorType;
 
     // ------------------------------

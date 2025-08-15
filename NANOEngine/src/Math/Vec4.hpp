@@ -5,7 +5,7 @@
 #pragma warning(push)
 #pragma warning(disable : 4201) // Disable warning C4201 for unnamed struct/union
 
-namespace NANOEngine::Math {
+namespace NE::Math {
     struct Vec2;
     struct Vec3;
 

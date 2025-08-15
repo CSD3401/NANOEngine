@@ -4,7 +4,7 @@
 #include "../../Math/Mat4.hpp"
 #include "../../Core/Reflection.hpp"
 
-namespace NANOEngine::ECS::Component {
+namespace NE::ECS::Component {
 
 	struct Transform {
 		// Exposed

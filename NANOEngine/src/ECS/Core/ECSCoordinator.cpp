@@ -14,7 +14,7 @@
 #include "../Systems/ColliderSystem.hpp"
 
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
     ECSCoordinator::ECSCoordinator()
     : m_entityManager(std::make_unique<EntityManager>())

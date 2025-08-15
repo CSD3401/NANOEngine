@@ -9,7 +9,7 @@
 #include "../ECS/Components/Renderer.hpp"
 
 
-namespace NANOEngine::SceneManagement {
+namespace NE::SceneManagement {
 
 	void Scene::Init() {
 		// input

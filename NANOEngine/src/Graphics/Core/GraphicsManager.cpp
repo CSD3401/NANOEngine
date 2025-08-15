@@ -15,7 +15,7 @@
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
     void InitDebugLines();
 
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;

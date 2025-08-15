@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <cassert>
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
     template<typename T, typename Entity, std::size_t MaxEntities>
     class ComponentPool {

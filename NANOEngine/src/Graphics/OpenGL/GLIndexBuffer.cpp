@@ -1,7 +1,7 @@
 #include "GLIndexBuffer.hpp"
 #include <glad/glad.h>
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     GLIndexBuffer::GLIndexBuffer(const uint32_t* indices, size_t count)
         : m_Count(count)

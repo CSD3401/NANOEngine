@@ -7,7 +7,7 @@
 #include "../../Math/Mat4.hpp"
 
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     static std::string Trim(const std::string& str) {
         const char* whitespace = " \t\n\r";

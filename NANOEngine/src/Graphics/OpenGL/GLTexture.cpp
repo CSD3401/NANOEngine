@@ -6,7 +6,7 @@
 #include "stb_image_resize2.h"
 #include "../../Core/Logger.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
     GLTexture::GLTexture(const std::string& path) {
         int width, height, channels;
         stbi_set_flip_vertically_on_load(true);

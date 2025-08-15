@@ -5,7 +5,7 @@
 #include "../../src/Core/Logger.hpp"
 
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 	bool GLContext::Init(void* windowHandle) {
 		m_windowHandle = static_cast<GLFWwindow*>(windowHandle);
 

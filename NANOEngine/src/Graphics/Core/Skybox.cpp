@@ -10,7 +10,7 @@
 #include "Vertex.hpp"
 #include "../../AssetManager.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     Skybox::Skybox() {
         using namespace OpenGL;

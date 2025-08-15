@@ -13,10 +13,10 @@ namespace Editor {
 
 		virtual void OnImGuiRender() override;
 
-		NANOEngine::Graphics::Camera* GetCamera();
+		NE::Graphics::Camera* GetCamera();
 
 	private:
-		NANOEngine::Graphics::Camera m_editorCamera;
+		NE::Graphics::Camera m_editorCamera;
 
 		float m_cameraYaw = -90.0f;  // looking along -Z
 		float m_cameraPitch = 0.0f;

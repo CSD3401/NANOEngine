@@ -12,7 +12,7 @@
 #include "../../EngineState.hpp"
 #include "../../Core/Logger.hpp"
 
-namespace NANOEngine::ECS::Systems {
+namespace NE::ECS::Systems {
 
 	RigidbodySystem::RigidbodySystem(ComponentManager* cm) : m_componentManager(cm)
 	{
@@ -86,7 +86,7 @@ namespace NANOEngine::ECS::Systems {
 
 	void RigidbodySystem::Update(double dt)
 	{
-		if (NANOEngine::GetEngineState() == EngineState::Play) {
+		if (NE::GetEngineState() == EngineState::Play) {
 			Physics::PhysicsManager::Update(static_cast<float>(dt));
 
 			const auto& entities = GetEntities();

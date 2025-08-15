@@ -4,7 +4,7 @@
 #include "../Interfaces/ITexture.hpp"
 #include <string>
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 	class GLTexture : public ITexture {
         using GLuint = unsigned int;
         using GLuint64 = uint64_t;

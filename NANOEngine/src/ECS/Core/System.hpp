@@ -4,7 +4,7 @@
 #include "SparseSet.hpp"
 #include "Entity.hpp"
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
     class System {
     public:

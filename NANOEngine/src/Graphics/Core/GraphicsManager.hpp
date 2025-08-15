@@ -6,14 +6,14 @@
 #include "Material.hpp"
 #include "../../Math/Mat4.hpp"
 
-namespace NANOEngine::ECS::Component {
+namespace NE::ECS::Component {
     struct DirectionalLight;
     struct PointLight;
     struct SpotLight;
     struct Light;
 }
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
     class Camera;
     class Skybox;
     class IFrameBuffer;

@@ -4,9 +4,9 @@
 #include "../../../src/Math/Mat4.hpp"
 #include "../../NANOEngineAPI.hpp"
 
-namespace NANOEngine::Graphics {
-    using NANOEngine::Math::Vec3;
-    using NANOEngine::Math::Mat4;
+namespace NE::Graphics {
+    using NE::Math::Vec3;
+    using NE::Math::Mat4;
 
     enum class ProjectionMode {
         Perspective,

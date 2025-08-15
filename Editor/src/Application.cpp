@@ -49,11 +49,11 @@ namespace Editor {
 		//	}
 		//};
 
-		NANOEngine::Initialize();
+		NE::Initialize();
 
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
-		glfwSetWindowIcon(static_cast<GLFWwindow*>(NANOEngine::GetNativeWindowHandle()), 1, &icon);
+		glfwSetWindowIcon(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), 1, &icon);
 
 		GLuint texID;
 		glGenTextures(1, &texID);
@@ -70,25 +70,25 @@ namespace Editor {
 		editorLayer.SetIcon(texID);
 		stbi_image_free(icon.pixels);
 
-		InitImGui(static_cast<GLFWwindow*>(NANOEngine::GetNativeWindowHandle()));
+		InitImGui(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()));
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
-		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NANOEngine::GetSceneFrameBuffer());
+		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<HistoryPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 
-		NANOEngine::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
+		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
 	}
 
 	void Application::Run()
 	{
-		while (!NANOEngine::WindowShouldClose()) {
+		while (!NE::WindowShouldClose()) {
 			Profiler::BeginFrame();
 			timer.Update(); // move to engine run
-			NANOEngine::Run(timer.GetDeltaTime());
+			NE::Run(timer.GetDeltaTime());
 			//LOG_INFO(timer.GetFPS());
 			
 			ImGui_ImplOpenGL3_NewFrame();
@@ -115,7 +115,7 @@ namespace Editor {
 	{
 		ShutdownImGui();
 
-		NANOEngine::Shutdown();
+		NE::Shutdown();
 	}
 }
 

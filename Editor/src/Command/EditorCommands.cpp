@@ -8,7 +8,7 @@ namespace Editor {
 
 	void CreateEntityCommand::Execute()
 	{
-		m_entity = NANOEngine::CreateEntity();
+		m_entity = NE::CreateEntity();
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
 	}
 
@@ -25,7 +25,7 @@ namespace Editor {
 		}
 
 		
-		NANOEngine::DestroyEntity(m_entity);
+		NE::DestroyEntity(m_entity);
 	}
 
 	DeleteEntityCommand::DeleteEntityCommand(uint32_t deletedEntity) : m_entity(deletedEntity) {}
@@ -43,12 +43,12 @@ namespace Editor {
 		}
 
 
-		NANOEngine::DestroyEntity(m_entity);
+		NE::DestroyEntity(m_entity);
 	}
 
 	void DeleteEntityCommand::Undo()
 	{
-		m_entity = NANOEngine::CreateEntity();
+		m_entity = NE::CreateEntity();
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
 	}
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "ISceneSerializer.hpp"
 
-namespace NANOEngine::Serialization {
+namespace NE::Serialization {
     class JsonSceneSerializer {
     public:
         static void Serialize(SceneManagement::Scene& scene, const std::string& path);

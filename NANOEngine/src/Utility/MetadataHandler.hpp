@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include "../NANOEngineAPI.hpp"
 
-namespace NANOEngine::Utility {
+namespace NE::Utility {
 
     class NANOENGINE_API MetadataHandler {
     public:

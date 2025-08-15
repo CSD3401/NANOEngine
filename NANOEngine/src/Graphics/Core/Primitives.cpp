@@ -5,7 +5,7 @@
 #include "../OpenGL/GLGeometryBuffer.hpp"
 #include <corecrt_math_defines.h>
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     std::shared_ptr<Model> CreateCube(float width, float height, float depth) {
         using namespace OpenGL;

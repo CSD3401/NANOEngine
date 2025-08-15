@@ -2,7 +2,7 @@
 #define MAT_3_HPP
 
 // Matrix elements stored in memory using column-major order.
-namespace NANOEngine::Math {
+namespace NE::Math {
 	struct Mat3 {
 		float a[9] = { 0 };
 

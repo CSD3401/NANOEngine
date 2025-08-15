@@ -29,7 +29,7 @@
 #pragma warning(push)
 #pragma warning(disable: 4251)
 
-namespace NANOEngine::Asset {
+namespace NE::Asset {
 
 	class NANOENGINE_API IAsset {
 	public:

@@ -7,7 +7,7 @@
 #include "../Interfaces/IGeometryBuffer.hpp"
 #include "../../Asset.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     struct SubMesh {
         std::vector<Vertex> vertices;

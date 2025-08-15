@@ -1,6 +1,6 @@
 #pragma once
 
-namespace NANOEngine {
+namespace NE {
     enum class EngineState {
         Edit,
         Play,

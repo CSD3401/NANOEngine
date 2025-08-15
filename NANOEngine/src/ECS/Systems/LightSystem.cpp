@@ -4,9 +4,9 @@
 #include "../../ECS/Components/Transform.hpp"
 #include "../Components/Light.hpp"
 
-namespace NANOEngine::ECS::Systems {
+namespace NE::ECS::Systems {
 
-    LightSystem::LightSystem(NANOEngine::ECS::ComponentManager* cm)
+    LightSystem::LightSystem(NE::ECS::ComponentManager* cm)
         : m_componentManager(cm) {}
 
     void LightSystem::OnEntityAdded(Entity) {}

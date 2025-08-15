@@ -4,14 +4,14 @@
 #include <string>
 #include "../../Asset.hpp"
 
-namespace NANOEngine::Math {
+namespace NE::Math {
     struct Vec3;
     struct Mat4;
 }
 
-namespace NANOEngine::Graphics {
-    using NANOEngine::Math::Vec3;
-    using NANOEngine::Math::Mat4;
+namespace NE::Graphics {
+    using NE::Math::Vec3;
+    using NE::Math::Mat4;
 
     class IShader : public virtual Asset::IAsset {
     public:

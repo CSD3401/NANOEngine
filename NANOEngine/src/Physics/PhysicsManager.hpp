@@ -11,7 +11,7 @@
 
 //#include <Jolt/Core/Factory.h>
 
-namespace NANOEngine::Physics {
+namespace NE::Physics {
 
     class PhysicsManager {
     public:

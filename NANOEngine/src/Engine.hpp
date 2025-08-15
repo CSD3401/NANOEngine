@@ -9,7 +9,7 @@
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
 
-namespace NANOEngine {
+namespace NE {
 	NANOENGINE_API void Initialize();
 	NANOENGINE_API void Run(double dt);
 	NANOENGINE_API void Shutdown();

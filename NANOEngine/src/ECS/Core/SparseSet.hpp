@@ -3,7 +3,7 @@
 #include <array>
 #include <cassert>
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
     template<typename Entity, std::size_t MaxEntities>
     class SparseSet {

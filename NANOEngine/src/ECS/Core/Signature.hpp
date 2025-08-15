@@ -2,7 +2,7 @@
 #include <bitset>
 #include "Component.hpp"
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
 	using Signature = std::bitset<MAX_COMPONENTS>;
 

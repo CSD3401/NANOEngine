@@ -3,7 +3,7 @@
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
 
-namespace NANOEngine::ECS::Systems {
+namespace NE::ECS::Systems {
 
 	class RigidbodySystem final : public System {
 	public:

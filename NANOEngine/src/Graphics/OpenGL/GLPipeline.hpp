@@ -1,7 +1,7 @@
 #pragma once
 #include "../Interfaces/IPipeline.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     class GLPipeline final : public IPipeline {
     public:

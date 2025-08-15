@@ -4,7 +4,7 @@
 #include "Material.hpp"
 #include "../Interfaces/IGeometryBuffer.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     class Skybox {
     public:

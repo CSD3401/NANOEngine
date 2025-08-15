@@ -14,7 +14,7 @@ namespace Editor {
 		void OnImGuiRender() override;
 
 	private:
-		std::shared_ptr<NANOEngine::Graphics::Material> m_loadedMaterial;
+		std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
 		std::string m_loadedPath;
 	};
 }

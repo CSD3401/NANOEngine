@@ -4,7 +4,7 @@
 
 #include "../../src/Core/Logger.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     Window::Window(const WindowProperties& props)
         : m_windowHandle(nullptr), m_width(props.Width), m_height(props.Height), m_vsync(props.VSync)

@@ -1,6 +1,7 @@
 #include "InspectorPanel.hpp"
 #include <imgui/imgui.h>
-#include <ECSInternals.hpp>
+//#include <ECSInternals.hpp>
+#include <EditorInterface/ECSExports.hpp>
 #include "ECS/Core/Signature.hpp"
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
@@ -16,17 +17,21 @@
 
 namespace {
     template<typename Owner, typename T>
-    bool DrawField(const NANOEngine::Core::FieldDescriptor<Owner, T>& desc, T& value) {
-        using namespace NANOEngine;
+    bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T&) {
+        
         if constexpr (std::is_same_v<T, bool>) {
-            return ImGui::Checkbox(desc.name.data(), &value);
+            //return ImGui::Checkbox(desc.name.data(), &value);
+            return false;
         } else if constexpr (std::is_same_v<T, int>) {
-            return ImGui::DragInt(desc.name.data(), &value);
+            //return ImGui::DragInt(desc.name.data(), &value);
+            return false;
         } else if constexpr (std::is_same_v<T, float>) {
-            return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
-        } else if constexpr (std::is_same_v<T, Math::Vec3>) {
+            //return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
+            return false;
+        } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+            return false;
             //return ImGui::DragFloat3(desc.name.data(), value.Data(), 0.1f);
-			return Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+			//return Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
         } 
         //else if constexpr (std::is_same_v<T, enum>) {
 
@@ -39,9 +44,13 @@ namespace {
 }
 
 namespace Editor {
+    std::unordered_map<std::type_index, uint8_t> componentTypeRegistry;
+
     InspectorPanel::InspectorPanel() {
         m_loadedMaterial = nullptr;
         m_loadedPath = "";
+
+        componentTypeRegistry = NE::ECS::Query::GetRegisteredComponentTypes();
     }
 
     void InspectorPanel::OnImGuiRender()
@@ -53,23 +62,20 @@ namespace Editor {
         ImVec2 panelSize = ImGui::GetContentRegionAvail();
 
         if (EditorScene::s_selectedEntity) {
-            using namespace NANOEngine;
             uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
-            
-
-            ECS::Signature sig(GetEntitySignature(entity));
-            for (const auto& [typeIdx, compType] : GetRegisteredComponentTypes()) {
+            NE::ECS::Signature sig(NE::ECS::Query::GetEntitySignature(entity));
+            for (const auto& [typeIdx, compType] : componentTypeRegistry) {
                 if (!sig.test(compType)) continue;
 
-                if (typeIdx == typeid(ECS::Component::Transform)) {
-                    auto& comp = GetEntityTransform(entity);
+                if (typeIdx == typeid(NE::ECS::Component::Transform)) {
+                    auto& comp = NE::ECS::Query::GetEntityTransform(entity);
                     ImGui::SeparatorText("Transform");
-                    Core::ForEachField<ECS::Component::Transform>(comp, [&](auto&& desc, auto& field) {
-                        comp.isDirty |= DrawField(desc, field);
+                    NE::Core::ForEachField<NE::ECS::Component::Transform>(comp, [&](auto&& , auto& ) {
+                        //comp.isDirty |= DrawField(desc, field);
                         });
-                } else if (typeIdx == typeid(ECS::Component::Renderer)) {
-                    auto& comp = GetEntityRenderer(entity);
+                } else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
+                    auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
                     ImGui::SeparatorText("Renderer");
                     //char buf[256]; 
                     //strncpy_s(buf, comp.modelPath.string().c_str(), sizeof(buf));
@@ -86,77 +92,77 @@ namespace Editor {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
 
 							if (comp.materialPath.empty()) { // If material is not set, assign a default one
-                                AssignRendererMaterial(comp, "Assets/Basic.nanomat");
+                                //AssignRendererMaterial(comp, "Assets/Basic.nanomat");
 							} // done for rapid prototyping, should be removed later
 
-                            AssignRendererModel(comp, dropped);
+                            //AssignRendererModel(comp, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
 
-                    static std::string searchQuery;
-                    if (ImGui::BeginPopup("AssetPicker_Model")) {
-                        ImGui::Text("Select a Model");
-                        ImGui::Separator();
-                        auto& assets = NANOEngine::GetAllModels();
+         //           static std::string searchQuery;
+         //           if (ImGui::BeginPopup("AssetPicker_Model")) {
+         //               ImGui::Text("Select a Model");
+         //               ImGui::Separator();
+         //               auto& assets = NANOEngine::GetAllModels();
 
-                        if (ImSearch::BeginSearch()) {
-                            ImSearch::SearchBar();
+         //               if (ImSearch::BeginSearch()) {
+         //                   ImSearch::SearchBar();
 
-                            for (const auto& [name, asset] : assets) {
-                                ImSearch::SearchableItem(name.c_str(),
-                                    [name, &comp](const char*) {
-                                        if (ImGui::Selectable(name.c_str())) {
-                                            AssignRendererModel(comp, name);
-                                            AssignRendererMaterial(comp, "Assets/Basic.nanomat");
-                                            ImGui::CloseCurrentPopup();
-                                        }
-									});
-                            }
+         //                   for (const auto& [name, asset] : assets) {
+         //                       ImSearch::SearchableItem(name.c_str(),
+         //                           [name, &comp](const char*) {
+         //                               if (ImGui::Selectable(name.c_str())) {
+         //                                   AssignRendererModel(comp, name);
+         //                                   AssignRendererMaterial(comp, "Assets/Basic.nanomat");
+         //                                   ImGui::CloseCurrentPopup();
+         //                               }
+									//});
+         //                   }
 
-                            ImSearch::EndSearch();
-                        }
-                        ImGui::EndPopup();
-                    }
+         //                   ImSearch::EndSearch();
+         //               }
+         //               ImGui::EndPopup();
+         //           }
 
                     char bufMat[256]; 
                     strncpy_s(bufMat, comp.materialPath.string().c_str(), sizeof(bufMat));
                     ImGui::InputText("Material", bufMat, sizeof(bufMat));
 
-                    comp.materialPath = bufMat;
+                    //comp.materialPath = bufMat;
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
-                            AssignRendererMaterial(comp, dropped);
+                            //AssignRendererMaterial(comp, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
-                } else if (typeIdx == typeid(ECS::Component::Light)) {
-                    auto& comp = GetEntityLight(entity);
+                } else if (typeIdx == typeid(NE::ECS::Component::Light)) {
+                    auto& comp = NE::ECS::Query::GetEntityLight(entity);
                     ImGui::SeparatorText("Light");
 
                     static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
                     int currentType = static_cast<int>(comp.type);
                     if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
-                        comp.type = static_cast<ECS::Component::Light::Type>(currentType);
+                        //comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
                     }
 
-                    Core::ForEachField<ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
+                    NE::Core::ForEachField<NE::ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
                         DrawField(desc, field);
                         });
-                } else if (typeIdx == typeid(ECS::Component::Collider)) {
-                    auto& comp = GetEntityCollider(entity);
+                } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
+                    auto& comp = NE::ECS::Query::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
-                    Core::ForEachField<ECS::Component::Collider>(comp, [&](auto&& desc, auto& field) {
+                    NE::Core::ForEachField<NE::ECS::Component::Collider>(comp, [&](auto&& desc, auto& field) {
                         DrawField(desc, field);
                         //comp.isDirty |= DrawField(desc, field);
                         });
-                } else if (typeIdx == typeid(ECS::Component::Rigidbody)) {
-                    auto& comp = GetEntityRigidbody(entity);
+                } else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
+                    auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
                     ImGui::SeparatorText("Rigidbody");
-                    Core::ForEachField<ECS::Component::Rigidbody>(comp, [&](auto&& desc, auto& field) {
+                    NE::Core::ForEachField<NE::ECS::Component::Rigidbody>(comp, [&](auto&& desc, auto& field) {
                         if (DrawField(desc, field) && desc.name == "isStatic") {
-							NANOEngine::SetMotionType(comp.bodyID, 0U);
+							//NE::SetMotionType(comp.bodyID, 0U);
                         }
                         //comp.isDirty |= DrawField(desc, field);
                         });
@@ -169,26 +175,25 @@ namespace Editor {
 
             if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
                 if (ImGui::MenuItem("Renderer")) {
-                    AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
+                    NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
                 if (ImGui::MenuItem("Rigidbody")) {
-                    AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-                    AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
+                    NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+                    NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
                 if (ImGui::MenuItem("Collider")) {
-                    AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+                    NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
                 if (ImGui::MenuItem("Light")) {
-                    AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+                    NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
                 ImGui::EndPopup();
             }
 
         } else if (EditorScene::selectedMaterial != "") {
-            using namespace NANOEngine;
             if (m_loadedPath != EditorScene::selectedMaterial) {
                 try {
-					m_loadedMaterial = GetMaterial(EditorScene::selectedMaterial);
+					//m_loadedMaterial = GetMaterial(EditorScene::selectedMaterial);
                     m_loadedPath = EditorScene::selectedMaterial;
                 } catch (...) {
                     m_loadedMaterial.reset();
@@ -207,7 +212,7 @@ namespace Editor {
                 }
 
                 for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
-                    NANOEngine::Math::Vec3 v = val;
+                    NE::Math::Vec3 v = val;
                     if (Editor::DrawVec3Control(name.c_str(), v, 0.0f, 100.0f)) {
                         m_loadedMaterial->SetUniformVec3(name, v);
                     }

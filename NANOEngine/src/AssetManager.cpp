@@ -1,6 +1,6 @@
 #include "AssetManager.hpp"
 
-namespace NANOEngine::Asset {
+namespace NE::Asset {
 	AssetManager& AssetManager::GetInstance() {
 		static AssetManager instance;
 		return instance;

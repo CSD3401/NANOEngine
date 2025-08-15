@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
 	using Entity = uint32_t;
 	static constexpr Entity MAX_ENTITIES = 2000;

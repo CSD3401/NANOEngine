@@ -6,7 +6,7 @@
 #include "Entity.hpp"
 #include "Component.hpp"
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
     class ComponentManager {
     public:

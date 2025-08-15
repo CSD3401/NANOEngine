@@ -3,7 +3,7 @@
 
 namespace Editor {
     // A pretty Vec3 control with color coding and reset buttons
-    bool DrawVec3Control(const std::string& label, NANOEngine::Math::Vec3& values, float resetValue, float columnWidth)
+    bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue, float columnWidth)
     {
         bool changed = false;
         //ImGuiIO& io = ImGui::GetIO();

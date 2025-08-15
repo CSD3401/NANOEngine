@@ -5,7 +5,7 @@
 #include <string>
 #include "IShader.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     struct PipelineSpecification {
         std::shared_ptr<IShader> shader;

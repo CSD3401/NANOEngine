@@ -65,7 +65,7 @@
 //    }
 //}
 
-namespace NANOEngine::Serialization {
+namespace NE::Serialization {
 
     using namespace rapidjson;
 

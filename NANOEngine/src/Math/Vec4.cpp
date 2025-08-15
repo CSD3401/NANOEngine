@@ -2,7 +2,7 @@
 #include "Vec2.hpp"
 #include "Vec3.hpp"
 
-namespace NANOEngine::Math {
+namespace NE::Math {
     Vec4::Vec4(float a, float b, float c, float d) : x(a), y(b), z(c), w(d)
     {
     }

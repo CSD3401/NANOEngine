@@ -7,7 +7,7 @@
 
 namespace fs = std::filesystem;
 
-namespace NANOEngine::Utility {
+namespace NE::Utility {
 
     bool MetadataHandler::MetaFileExists(const std::string& assetPath)
     {

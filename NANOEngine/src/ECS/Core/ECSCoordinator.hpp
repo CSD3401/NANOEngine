@@ -3,7 +3,7 @@
 #include "ComponentManager.hpp"
 #include "SystemManager.hpp"
 
-namespace NANOEngine::ECS::Systems {
+namespace NE::ECS::Systems {
     class TransformSystem;
     class RenderSystem;
     class LightSystem;
@@ -11,7 +11,7 @@ namespace NANOEngine::ECS::Systems {
     class ColliderSystem;
 }
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
     class ECSCoordinator {
     public:

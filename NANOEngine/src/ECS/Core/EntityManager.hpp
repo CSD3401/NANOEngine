@@ -7,7 +7,7 @@
 #include "Component.hpp"
 #include "Signature.hpp"
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
 	class EntityManager {
 	public:

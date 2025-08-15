@@ -7,7 +7,7 @@
 #include "../OpenGL/GLIndexBuffer.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     //std::shared_ptr<Model> LoadModel(const std::string& path) {
     //    Assimp::Importer importer;

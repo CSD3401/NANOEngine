@@ -18,7 +18,7 @@
 #include "../../Core/Profiler.hpp"
 #include <glad/glad.h>
 
-namespace NANOEngine::ECS::Systems {
+namespace NE::ECS::Systems {
 	//static std::shared_ptr<Graphics::IShader> basicShader;
 	//static std::shared_ptr<Graphics::IPipeline> pipeline;
 	//static std::shared_ptr<Graphics::Material> material;

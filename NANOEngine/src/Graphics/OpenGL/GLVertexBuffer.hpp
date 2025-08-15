@@ -3,7 +3,7 @@
 #include "../Interfaces/IVertexBuffer.hpp"
 #include <cstdint>
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     class GLVertexBuffer final : public IVertexBuffer {
     public:

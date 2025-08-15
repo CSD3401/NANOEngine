@@ -1,6 +1,6 @@
 #include "Mat3.hpp"
 
-namespace NANOEngine::Math {
+namespace NE::Math {
 	float& Mat3::GetElement(unsigned int row, unsigned int col)
 	{
 		return a[col * 3 + row];

@@ -19,7 +19,7 @@
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"
 
-namespace NANOEngine {
+namespace NE {
 
 	static std::unique_ptr<Graphics::Window> s_window;
 	static std::unique_ptr<Graphics::IRenderContext> s_renderContext;
@@ -135,7 +135,7 @@ namespace NANOEngine {
 	}
 
 	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {
-		return Asset::AssetManager::GetInstance().Load<NANOEngine::Graphics::Material>(path.data(), false);
+		return Asset::AssetManager::GetInstance().Load<NE::Graphics::Material>(path.data(), false);
 	}
 
 	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()

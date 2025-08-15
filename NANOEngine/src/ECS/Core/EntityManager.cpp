@@ -2,7 +2,7 @@
 #include "../../Core/Logger.hpp"
 #include <cassert>
 
-namespace NANOEngine::ECS {
+namespace NE::ECS {
 
 	EntityManager::EntityManager()
 	{

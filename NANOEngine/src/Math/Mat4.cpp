@@ -3,7 +3,7 @@
 #include "Vec3.hpp"
 #include "Vec4.hpp"
 
-namespace NANOEngine::Math {
+namespace NE::Math {
 	Mat4::Mat4(const float& e00, const float& e01, const float& e02, const float& e03,
 		const float& e10, const float& e11, const float& e12, const float& e13,
 		const float& e20, const float& e21, const float& e22, const float& e23,

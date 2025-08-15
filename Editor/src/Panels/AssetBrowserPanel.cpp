@@ -20,12 +20,12 @@ namespace Editor {
             // Skip meta files themselves
             if (filePath.extension() == ".meta") continue;
 
-            if (!NANOEngine::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
-                NANOEngine::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
+            if (!NE::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
+                NE::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
             }
 
             if (filePath.extension() == ".nanoshader") {
-                NANOEngine::LoadShader(filePath.string());
+                NE::LoadShader(filePath.string());
             }
         }
 	}
@@ -253,9 +253,9 @@ namespace Editor {
                     }
                 } else if (entryPath.extension() == ".scene") {    
                     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        NANOEngine::LoadTargetScene(entryPath.string());
+                        NE::LoadTargetScene(entryPath.string());
 
-                        for (const auto& entt : NANOEngine::GetEntities()) {
+                        for (const auto& entt : NE::GetEntities()) {
                             EditorScene::s_entities.push_back({ entt });
                         }
                     }

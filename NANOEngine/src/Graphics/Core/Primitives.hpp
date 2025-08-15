@@ -3,7 +3,7 @@
 #include <memory>
 #include "Model.hpp"
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     std::shared_ptr<Model> CreateCube(float width = 1.f,
         float height = 1.f,

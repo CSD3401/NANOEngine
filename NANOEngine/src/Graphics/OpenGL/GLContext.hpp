@@ -4,7 +4,7 @@
 
 struct GLFWwindow;
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 	class GLContext final : public IRenderContext {
 	public:
 		bool Init(void* windowHandle) override;

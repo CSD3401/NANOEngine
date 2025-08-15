@@ -3,7 +3,7 @@
 #include "../../Math/Vec3.hpp"
 #include "../../Core/Reflection.hpp"
 
-namespace NANOEngine::ECS::Component {
+namespace NE::ECS::Component {
 
 	struct Light {
         enum Type {

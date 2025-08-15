@@ -1,7 +1,7 @@
 #ifndef NANOENGINE_GRAPHICS_IGEOMETRY_BUFFER_HPP
 #define NANOENGINE_GRAPHICS_IGEOMETRY_BUFFER_HPP
 
-namespace NANOEngine::Graphics {
+namespace NE::Graphics {
 
     class IGeometryBuffer {
     public:

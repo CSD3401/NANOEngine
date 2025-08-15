@@ -5,7 +5,7 @@
 #include "../Interfaces/IVertexBuffer.hpp"
 #include "../Interfaces/IIndexBuffer.hpp"
 
-namespace NANOEngine::Graphics::OpenGL {
+namespace NE::Graphics::OpenGL {
 
     class GLGeometryBuffer final : public IGeometryBuffer {
     public:
