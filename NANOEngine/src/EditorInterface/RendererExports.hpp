@@ -16,8 +16,8 @@ namespace NE::Renderer {
 	}
 
 	namespace Command {
-		NANOENGINE_API void AssignRendererModel(NE::ECS::Component::Renderer& r, std::string filepath);
-		NANOENGINE_API void AssignRendererMaterial(NE::ECS::Component::Renderer& r, std::string filepath);
+		NANOENGINE_API void AssignModel(uint32_t e, std::string_view path);
+		NANOENGINE_API void AssignMaterial(uint32_t e, std::string_view path);
 	}
 
 }

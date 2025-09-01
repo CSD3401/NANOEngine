@@ -1,6 +1,11 @@
 #include "RendererExports.hpp"
 #include "../AssetManager.hpp"
+#include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Renderer.hpp"
+
+namespace NE {
+	SceneManagement::Scene& GetScene();
+}
 
 namespace NE::Renderer {
 
@@ -9,14 +14,16 @@ namespace NE::Renderer {
 	}
 
 	namespace Command {
-		NANOENGINE_API void AssignRendererModel(NE::ECS::Component::Renderer& r, std::string filepath) {
-			r.modelPath = filepath;
-			r.model = Asset::AssetManager::GetInstance().Get<Graphics::Model>(filepath);
+		void AssignModel(uint32_t e, std::string_view path) {
+			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+			r.modelPath = std::string(path);
+			r.model = Asset::AssetManager::GetInstance().Get<Graphics::Model>(path.data());
 		}
 
-		NANOENGINE_API void AssignRendererMaterial(NE::ECS::Component::Renderer& r, std::string filepath) {
-			r.materialPath = filepath;
-			r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(filepath, false);
+		void AssignMaterial(uint32_t e, std::string_view path) {
+			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+			r.materialPath = std::string(path);
+			r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(path.data(), false);
 		}
 	}
 
