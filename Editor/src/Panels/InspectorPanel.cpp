@@ -41,6 +41,51 @@ namespace {
             return false;
         }
     }
+
+    //template<typename Owner, typename T>
+    //std::optional<T> DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T& current) {
+    //    T edited = current;
+    //    bool changed = false;
+
+    //    if constexpr (std::is_same_v<T, bool>) {
+    //        changed = ImGui::Checkbox(desc.name.data(), &edited);
+    //    } else if constexpr (std::is_same_v<T, int>) {
+    //        changed = ImGui::DragInt(desc.name.data(), &edited);
+    //    } else if constexpr (std::is_same_v<T, float>) {
+    //        changed = ImGui::DragFloat(desc.name.data(), &edited, 0.1f);
+    //    } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+    //        // your custom vec3 control; return true if any component changed
+    //        changed = Editor::DrawVec3Control(desc.name.data(), edited, 0.0f, 75.0f);
+    //    } else {
+    //        ImGui::Text("%s (unsupported)", desc.name.data());
+    //        return std::nullopt;
+    //    }
+
+    //    if (changed) return edited;
+    //    return std::nullopt;
+    //}
+    //template<typename Owner, typename T>
+    //std::optional<T> DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T& current) {
+    //    T edited = current;
+    //    bool changed = false;
+    //    bool supported = true;
+
+    //    if constexpr (std::is_same_v<T, bool>) {
+    //        changed = ImGui::Checkbox(desc.name.data(), &edited);
+    //    } else if constexpr (std::is_same_v<T, int>) {
+    //        changed = ImGui::DragInt(desc.name.data(), &edited);
+    //    } else if constexpr (std::is_same_v<T, float>) {
+    //        changed = ImGui::DragFloat(desc.name.data(), &edited, 0.1f);
+    //    } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+    //        changed = Editor::DrawVec3Control(desc.name.data(), edited, 0.0f, 75.0f);
+    //    } else {
+    //        ImGui::Text("%s (unsupported)", desc.name.data());
+    //        supported = false;
+    //    }
+
+    //    if (supported && changed) return edited;
+    //    return std::nullopt;
+    //}
 }
 
 namespace Editor {
@@ -74,7 +119,21 @@ namespace Editor {
                     NE::Core::ForEachField<NE::ECS::Component::Transform>(comp, [&](auto&& , auto& ) {
                         //comp.isDirty |= DrawField(desc, field);
                         });
-                } else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
+                } 
+                //if (typeIdx == typeid(NE::ECS::Component::Transform)) {
+                //    const auto& comp = NE::ECS::Query::GetEntityTransform(entity);
+                //    ImGui::SeparatorText("Transform");
+
+                //    NE::Core::ForEachField<NE::ECS::Component::Transform>(comp,
+                //        [entity](auto&& desc, const auto& field) {
+                //            if (auto edited = DrawField(desc, field)) {
+                //                NE::ECS::Command::SetField<NE::ECS::Component::Transform>(entity, desc, *edited);
+                //            }
+                //        }
+                //    );
+                //}
+                
+                else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
                     auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
                     ImGui::SeparatorText("Renderer");
                     //char buf[256]; 

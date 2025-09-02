@@ -5,6 +5,7 @@
 #include <string>
 #include <typeindex>
 #include "../NANOEngineAPI.hpp"
+#include "../Core/Reflection.hpp"
 
 namespace NE::ECS {
 	// Forward Decl
