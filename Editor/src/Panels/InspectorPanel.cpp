@@ -17,75 +17,45 @@
 
 namespace {
     template<typename Owner, typename T>
-    bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T&) {
-        
+    bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, T& value) {
         if constexpr (std::is_same_v<T, bool>) {
-            //return ImGui::Checkbox(desc.name.data(), &value);
-            return false;
+            return ImGui::Checkbox(desc.name.data(), &value);
         } else if constexpr (std::is_same_v<T, int>) {
-            //return ImGui::DragInt(desc.name.data(), &value);
-            return false;
+            return ImGui::DragInt(desc.name.data(), &value);
         } else if constexpr (std::is_same_v<T, float>) {
-            //return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
-            return false;
+            return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
         } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
-            return false;
-            //return ImGui::DragFloat3(desc.name.data(), value.Data(), 0.1f);
-			//return Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
-        } 
-        //else if constexpr (std::is_same_v<T, enum>) {
-
-        //}
-        else {
+            return Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+        } else {
             ImGui::Text("%s (unsupported)", desc.name.data());
             return false;
         }
     }
+   // template<typename Owner, typename T>
+   // bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T& value) {
+   //     
+   //     if constexpr (std::is_same_v<T, bool>) {
+   //         //return ImGui::Checkbox(desc.name.data(), &value);
+   //         return false;
+   //     } else if constexpr (std::is_same_v<T, int>) {
+   //         //return ImGui::DragInt(desc.name.data(), &value);
+   //         return false;
+   //     } else if constexpr (std::is_same_v<T, float>) {
+   //         //return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
+   //         return false;
+   //     } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+   //         //return false;
+   //         return ImGui::DragFloat3(desc.name.data(), value.Data(), 0.1f);
+			////return Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+   //     } 
+   //     //else if constexpr (std::is_same_v<T, enum>) {
 
-    //template<typename Owner, typename T>
-    //std::optional<T> DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T& current) {
-    //    T edited = current;
-    //    bool changed = false;
-
-    //    if constexpr (std::is_same_v<T, bool>) {
-    //        changed = ImGui::Checkbox(desc.name.data(), &edited);
-    //    } else if constexpr (std::is_same_v<T, int>) {
-    //        changed = ImGui::DragInt(desc.name.data(), &edited);
-    //    } else if constexpr (std::is_same_v<T, float>) {
-    //        changed = ImGui::DragFloat(desc.name.data(), &edited, 0.1f);  
-    //    } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
-    //        // your custom vec3 control; return true if any component changed
-    //        changed = Editor::DrawVec3Control(desc.name.data(), edited, 0.0f, 75.0f);
-    //    } else {
-    //        ImGui::Text("%s (unsupported)", desc.name.data());
-    //        return std::nullopt;
-    //    }
-
-    //    if (changed) return edited;
-    //    return std::nullopt;
-    //}
-    //template<typename Owner, typename T>
-    //std::optional<T> DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T& current) {
-    //    T edited = current;
-    //    bool changed = false;
-    //    bool supported = true;
-
-    //    if constexpr (std::is_same_v<T, bool>) {
-    //        changed = ImGui::Checkbox(desc.name.data(), &edited);
-    //    } else if constexpr (std::is_same_v<T, int>) {
-    //        changed = ImGui::DragInt(desc.name.data(), &edited);
-    //    } else if constexpr (std::is_same_v<T, float>) {
-    //        changed = ImGui::DragFloat(desc.name.data(), &edited, 0.1f);
-    //    } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
-    //        changed = Editor::DrawVec3Control(desc.name.data(), edited, 0.0f, 75.0f);
-    //    } else {
-    //        ImGui::Text("%s (unsupported)", desc.name.data());
-    //        supported = false;
-    //    }
-
-    //    if (supported && changed) return edited;
-    //    return std::nullopt;
-    //}
+   //     //}
+   //     else {
+   //         ImGui::Text("%s (unsupported)", desc.name.data());
+   //         return false;
+   //     }
+   // }
 }
 
 namespace Editor {
@@ -116,10 +86,18 @@ namespace Editor {
                 if (typeIdx == typeid(NE::ECS::Component::Transform)) {
                     auto& comp = NE::ECS::Query::GetEntityTransform(entity);
                     ImGui::SeparatorText("Transform");
-                    NE::Core::ForEachField<NE::ECS::Component::Transform>(comp, [&](auto&& , auto& ) {
-                        //comp.isDirty |= DrawField(desc, field);
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+
+                            FieldT edited = currentValue;
+
+                            if (DrawField(desc, edited)) {
+                                //SubmitSetFieldCommand(entity, desc, edited);
+                            }
                         });
                 } 
+                        //comp.isDirty |= DrawField(desc, field);
                 //if (typeIdx == typeid(NE::ECS::Component::Transform)) {
                 //    const auto& comp = NE::ECS::Query::GetEntityTransform(entity);
                 //    ImGui::SeparatorText("Transform");
@@ -206,24 +184,40 @@ namespace Editor {
                         //comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
                     }
 
-                    NE::Core::ForEachField<NE::ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
-                        DrawField(desc, field);
-                        });
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
+                    //    DrawField(desc, field);
+                    //    });
                 } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
                     auto& comp = NE::ECS::Query::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
-                    NE::Core::ForEachField<NE::ECS::Component::Collider>(comp, [&](auto&& desc, auto& field) {
-                        DrawField(desc, field);
-                        //comp.isDirty |= DrawField(desc, field);
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+
+                            // make a local editable copy
+                            FieldT edited = currentValue;
+
+                            // render widget; returns true if user changed it
+                            if (DrawField(desc, edited)) {
+                                // don't write to comp.* here; push a command to the engine:
+                                //SubmitSetFieldCommand(entity, desc, edited);
+                            }
                         });
                 } else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
                     auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
                     ImGui::SeparatorText("Rigidbody");
-                    NE::Core::ForEachField<NE::ECS::Component::Rigidbody>(comp, [&](auto&& desc, auto& field) {
-                        if (DrawField(desc, field) && desc.name == "isStatic") {
-							//NE::SetMotionType(comp.bodyID, 0U);
-                        }
-                        //comp.isDirty |= DrawField(desc, field);
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+
+                            // make a local editable copy
+                            FieldT edited = currentValue;
+
+                            // render widget; returns true if user changed it
+                            if (DrawField(desc, edited)) {
+                                // don't write to comp.* here; push a command to the engine:
+                                //SubmitSetFieldCommand(entity, desc, edited);
+                            }
                         });
                 } 
             }

@@ -13,16 +13,26 @@ namespace NE::Core {
         T Owner::* member;
     };
 
-    template <typename T, typename F>
-    constexpr void ForEachField(F&& f) {
-        constexpr auto fields = T::Reflect();
-        std::apply([&](auto&&... desc) { (f(desc), ...); }, fields);
-    }
+    template <class T>
+    concept Reflectable = requires { T::Reflect(); };
 
-    template <typename T, typename Obj, typename F>
-    constexpr void ForEachField(Obj&& obj, F&& f) {
+    //template <typename T, typename F>
+    //constexpr void ForEachField(F&& f) {
+    //    constexpr auto fields = T::Reflect();
+    //    std::apply([&](auto&&... desc) { (f(desc), ...); }, fields);
+    //}
+
+    //template <typename T, typename Obj, typename F>
+    //constexpr void ForEachField(Obj&& obj, F&& f) {
+    //    constexpr auto fields = T::Reflect();
+    //    std::apply([&](auto&&... desc) { (f(desc, obj.*(desc.member)), ...); }, fields);
+    //}
+    template <Reflectable T, class F>
+    constexpr void ForEachFieldView(const T& obj, F&& f) {
         constexpr auto fields = T::Reflect();
-        std::apply([&](auto&&... desc) { (f(desc, obj.*(desc.member)), ...); }, fields);
+        std::apply([&](auto&&... d) {
+            ((f(d, std::as_const(obj).*(d.member))), ...);
+            }, fields);
     }
 
 }
