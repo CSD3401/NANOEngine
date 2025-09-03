@@ -1,10 +1,11 @@
 #include "ECSExports.hpp"
-#include "../SceneManagement/Scene.hpp"
+
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "../ECS/Components/Light.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/Collider.hpp"
+#include "../SceneManagement/Scene.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -44,6 +45,7 @@ namespace NE::ECS {
 	}
 
 	namespace Command {
+
 		uint32_t CreateEntity() {
 			return GetScene().GetECSCoordinator().CreateEntity();
 		}

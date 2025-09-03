@@ -1,5 +1,6 @@
 #include "EditorCommands.hpp"
 #include "ECSInternals.hpp"
+#include "EditorInterface/ECSExports.hpp"
 #include "../EditorScene.hpp"
 
 namespace Editor {
@@ -8,7 +9,7 @@ namespace Editor {
 
 	void CreateEntityCommand::Execute()
 	{
-		m_entity = NE::CreateEntity();
+		m_entity = NE::ECS::Command::CreateEntity();
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
 	}
 
@@ -25,7 +26,7 @@ namespace Editor {
 		}
 
 		
-		NE::DestroyEntity(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
 	DeleteEntityCommand::DeleteEntityCommand(uint32_t deletedEntity) : m_entity(deletedEntity) {}
@@ -43,12 +44,12 @@ namespace Editor {
 		}
 
 
-		NE::DestroyEntity(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
 	void DeleteEntityCommand::Undo()
 	{
-		m_entity = NE::CreateEntity();
+		m_entity = NE::ECS::Command::CreateEntity();
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
 	}
 

@@ -24,6 +24,7 @@ namespace NE::Core {
         constexpr auto fields = T::Reflect();
         std::apply([&](auto&&... desc) { (f(desc, obj.*(desc.member)), ...); }, fields);
     }
+
 }
 
 #define NE_REFLECT_BEGIN(type) \
@@ -33,6 +34,9 @@ namespace NE::Core {
 
 #define NE_REFLECT_FIELD(field) \
             NE::Core::FieldDescriptor<Self, decltype(Self::field)>{#field, &Self::field}
+
+#define NE_REFLECT_FIELD_NAMED(field, customName) \
+    NE::Core::FieldDescriptor<Self, decltype(Self::field)>{customName, &Self::field}
 
 #define NE_REFLECT_END() \
         ); \

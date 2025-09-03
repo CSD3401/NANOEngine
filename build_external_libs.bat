@@ -120,9 +120,5 @@ copy /Y extern\jolt\build-release\Release\Jolt.lib NANOEngine\vendor\lib\jolt\Re
 :: Final cleanup
 :: ============================================================
 echo.
-echo [91m Cleaning up extern folder...[0m
-rmdir /S /Q extern
-
-echo.
 echo [92mBuild and setup completed successfully.[0m
 pause
