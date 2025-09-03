@@ -52,7 +52,7 @@ namespace {
     //    } else if constexpr (std::is_same_v<T, int>) {
     //        changed = ImGui::DragInt(desc.name.data(), &edited);
     //    } else if constexpr (std::is_same_v<T, float>) {
-    //        changed = ImGui::DragFloat(desc.name.data(), &edited, 0.1f);
+    //        changed = ImGui::DragFloat(desc.name.data(), &edited, 0.1f);  
     //    } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
     //        // your custom vec3 control; return true if any component changed
     //        changed = Editor::DrawVec3Control(desc.name.data(), edited, 0.0f, 75.0f);

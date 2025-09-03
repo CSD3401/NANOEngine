@@ -18,9 +18,9 @@ namespace NE::ECS::Component {
 		Math::Mat4 parent{};
 
 		NE_REFLECT_BEGIN(Transform)
-			NE_REFLECT_FIELD(position),
-			NE_REFLECT_FIELD(scale),
-			NE_REFLECT_FIELD(rotation)
+			NE_REFLECT_FIELD_NAMED(position, "Position"),
+			NE_REFLECT_FIELD_NAMED(scale, "Scale"),
+			NE_REFLECT_FIELD_NAMED(rotation, "Rotation")
 		NE_REFLECT_END()
 	};
 
