@@ -8,7 +8,7 @@
 // which entity it's attached to.
 using Entity = NE::ECS::Entity;
 
-namespace NE::Scripting {
+//namespace NE::Scripting {
     class ENGINE_API IScript {
     public:
         virtual ~IScript() = default;
@@ -33,6 +33,6 @@ namespace NE::Scripting {
         // This prevents anyone else from calling them accidentally.
         friend class NE::ECS::Systems::ScriptSystem;
     };
-}
+//}
 
 

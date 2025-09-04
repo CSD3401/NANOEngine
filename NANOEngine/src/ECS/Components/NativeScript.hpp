@@ -7,12 +7,12 @@ namespace NE::ECS::Component {
     struct NativeScriptComponent {
         std::string ScriptName; // The name of the script class, e.g., "PlayerScript"
 
-        NE::Scripting::IScript* Instance = nullptr;
+        IScript* Instance = nullptr;
 
         // Function pointers to create and destroy the script instance.
         // These will be provided by the ScriptingEngine.
-        std::function<NE::Scripting::IScript* ()> CreateScript;
-        std::function<void(NE::Scripting::IScript*)> DestroyScript;
+        std::function<IScript* ()> CreateScript;
+        std::function<void(IScript*)> DestroyScript;
 
         // Binds the functions from the ScriptingEngine to this component.
         // This is called by the user when adding the component.
