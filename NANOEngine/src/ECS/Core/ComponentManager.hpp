@@ -52,7 +52,7 @@ namespace NE::ECS {
         }
 
         template<typename T>
-        const std::vector<Entity>& GetEntitiesWithComponent() const {
+        const std::vector<Entity>& GetEntitiesWithComponent() {
             return GetPool<T>()->Entities();
         }
 
