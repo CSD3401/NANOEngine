@@ -185,6 +185,7 @@ xcopy /Y "$(SolutionDir)ThirdParty\lib\GLFW\glfw3.dll" "$(SolutionDir)bin\Editor
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
     <ClInclude Include="src\Panels\HistoryPanel.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />

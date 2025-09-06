@@ -22,12 +22,12 @@ namespace NE::ECS {
     , m_systemManager(std::make_unique<SystemManager>()) 
     {
 
-        RegisterComponent<Component::Renderer>();
+        RegisterComponent<Component::EntityMeta>();
         RegisterComponent<Component::Transform>();
-        RegisterComponent<Component::Light>();
+        RegisterComponent<Component::Renderer>();
         RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Collider>();
-        RegisterComponent<Component::EntityMeta>();
+        RegisterComponent<Component::Light>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(

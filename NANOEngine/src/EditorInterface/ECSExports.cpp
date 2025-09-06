@@ -71,6 +71,26 @@ namespace NE::ECS {
 				return;
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
 		}
+
+		Component::Transform& GetEntityTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Transform>(e);
+		}
+
+		Component::Renderer& GetEntityRenderer(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+		}
+		
+		Component::Light& GetEntityLight(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Light>(e);
+		}
+
+		Component::Rigidbody& GetEntityRigidbody(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Rigidbody>(e);
+		}
+
+		Component::Collider& GetEntityCollider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(e);
+		}
 	}
 
 }

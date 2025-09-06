@@ -1,6 +1,5 @@
 #include "InspectorPanel.hpp"
 #include <imgui/imgui.h>
-//#include <ECSInternals.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include "ECS/Core/Signature.hpp"
 #include <ECS/Components/Transform.hpp>
@@ -14,6 +13,14 @@
 #include <Engine.hpp>
 #include <imgui/widgets/imsearch/imsearch.h>
 #include "../EditorUI.hpp"
+#include "../Command/EditorSetFieldCommand.hpp"
+#include "../Command/CommandHistory.hpp"
+#include <unordered_map>
+#include <typeinfo>
+#include <bit>      // std::bit_cast
+#include <array>
+#include <cstddef>  // std::byte
+#include <cstdint>
 
 namespace {
     template<typename Owner, typename T>
@@ -25,41 +32,98 @@ namespace {
         } else if constexpr (std::is_same_v<T, float>) {
             return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
         } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
-            return Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+            ImGui::BeginGroup();
+            bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+            ImGui::EndGroup();
+            return changed;
         } else {
             ImGui::Text("%s (unsupported)", desc.name.data());
             return false;
         }
     }
-   // template<typename Owner, typename T>
-   // bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, const T& value) {
-   //     
-   //     if constexpr (std::is_same_v<T, bool>) {
-   //         //return ImGui::Checkbox(desc.name.data(), &value);
-   //         return false;
-   //     } else if constexpr (std::is_same_v<T, int>) {
-   //         //return ImGui::DragInt(desc.name.data(), &value);
-   //         return false;
-   //     } else if constexpr (std::is_same_v<T, float>) {
-   //         //return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
-   //         return false;
-   //     } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
-   //         //return false;
-   //         return ImGui::DragFloat3(desc.name.data(), value.Data(), 0.1f);
-			////return Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
-   //     } 
-   //     //else if constexpr (std::is_same_v<T, enum>) {
 
-   //     //}
-   //     else {
-   //         ImGui::Text("%s (unsupported)", desc.name.data());
-   //         return false;
-   //     }
-   // }
+    template <typename Owner, typename T>
+    static void SubmitSetFieldCommand(uint32_t entity,
+        const NE::Core::FieldDescriptor<Owner, T>& desc,
+        const T& before,
+        const T& after) {
+        using Cmd = Editor::SetFieldCommand<Owner, T>;
+
+        auto getter = [=](uint32_t e) -> Owner& {
+            if constexpr (std::is_same_v<Owner, NE::ECS::Component::Transform>) {
+                return NE::ECS::Command::GetEntityTransform(e);
+            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Collider>) {
+                return NE::ECS::Command::GetEntityCollider(e);
+            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Rigidbody>) {
+                return NE::ECS::Command::GetEntityRigidbody(e);
+            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Renderer>) {
+                return NE::ECS::Command::GetEntityRenderer(e);
+            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
+                return NE::ECS::Command::GetEntityLight(e);
+            } else {
+                static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
+            }
+        };
+
+        auto cmd = std::make_unique<Cmd>(entity,
+            std::string(desc.name),
+            desc.member,
+            before,
+            after,
+            getter);
+
+        Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+    }
+
+    template <class Owner, class T>
+    struct MemberPointerHasher {
+        size_t operator()(T Owner::* mp) const noexcept {
+            auto bytes = std::bit_cast<std::array<std::byte, sizeof(mp)>>(mp);
+            size_t h = 1469598103934665603ull;
+            for (std::byte b : bytes) {
+                h ^= static_cast<unsigned char>(b);
+                h *= 1099511628211ull;
+            }
+            return h;
+        }
+    };
+
+    struct FieldKey {
+        uint32_t entity;
+        const std::type_info* ownerType;
+        size_t memberId;  // hashed member pointer
+
+        bool operator==(const FieldKey& o) const noexcept {
+            return entity == o.entity && ownerType == o.ownerType && memberId == o.memberId;
+        }
+    };
+
+    struct FieldKeyHash {
+        size_t operator()(const FieldKey& k) const noexcept {
+            size_t h = std::hash<uint32_t>{}(k.entity);
+            h ^= std::hash<const void*>{}(k.ownerType) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            h ^= k.memberId + 0x9e3779b9 + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+
+    template<class T>
+    static bool Equal(const T& a, const T& b) {
+        if constexpr (std::is_floating_point_v<T>) {
+            return std::fabs(a - b) <= 1e-6f;
+        } else {
+            return a == b;
+        }
+    }
+
 }
 
 namespace Editor {
     std::unordered_map<std::type_index, uint8_t> componentTypeRegistry;
+
+    static std::unordered_map<FieldKey,
+        std::unique_ptr<ICommand>,
+        FieldKeyHash> g_activeCommands;
 
     InspectorPanel::InspectorPanel() {
         m_loadedMaterial = nullptr;
@@ -86,32 +150,81 @@ namespace Editor {
                 if (typeIdx == typeid(NE::ECS::Component::Transform)) {
                     auto& comp = NE::ECS::Query::GetEntityTransform(entity);
                     ImGui::SeparatorText("Transform");
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
+                    //    [&](auto const& desc, auto const& currentValue) {
+                    //        using FieldT = std::decay_t<decltype(currentValue)>;
+
+                    //        FieldT edited = currentValue;
+
+                    //        if (DrawField(desc, edited)) {
+                    //            SubmitSetFieldCommand(entity, desc, currentValue, edited);
+                    //        }
+                    //    });
                     NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
                         [&](auto const& desc, auto const& currentValue) {
+                            using Owner = NE::ECS::Component::Transform;
                             using FieldT = std::decay_t<decltype(currentValue)>;
 
                             FieldT edited = currentValue;
 
-                            if (DrawField(desc, edited)) {
-                                //SubmitSetFieldCommand(entity, desc, edited);
+                            ImGui::PushID(desc.name.data());
+                            const bool changed = DrawField(desc, edited);
+                            const bool activated = ImGui::IsItemActivated();
+                            const bool active = ImGui::IsItemActive();
+                            const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+                            ImGui::PopID();
+
+                            FieldKey key{
+                                entity,
+                                &typeid(Owner),
+                                MemberPointerHasher<Owner, FieldT>{}(desc.member)
+                            };
+
+                            if (activated) {
+                                using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                                auto cmd = std::make_unique<Cmd>(
+                                    entity,
+                                    std::string("Set Transform") + desc.name.data(),
+                                    desc.member,
+                                    currentValue,
+                                    currentValue,
+                                    &NE::ECS::Command::GetEntityTransform
+                                );
+                                g_activeCommands[key] = std::move(cmd);
+                            }
+
+                            if (active && changed) {
+                                auto it = g_activeCommands.find(key);
+                                if (it != g_activeCommands.end()) {
+                                    using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                                    Cmd tmp(
+                                        entity,
+                                        std::string{},
+                                        desc.member,
+                                        currentValue,
+                                        edited,
+                                        &NE::ECS::Command::GetEntityTransform
+                                    );
+                                    it->second->CoalesceFrom(tmp);
+                                }
+                            }
+
+                            if (deactivated) {
+                                auto it = g_activeCommands.find(key);
+                                if (it != g_activeCommands.end()) {
+                                    auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+                                    if (asSet && Equal(asSet->Before(), asSet->After())) {
+                                        g_activeCommands.erase(it);
+                                    } else {
+                                        Editor::CommandHistory::GetInstance()
+                                            .ExecuteCommand(std::move(it->second));
+                                        g_activeCommands.erase(it);
+                                    }
+                                }
                             }
                         });
-                } 
-                        //comp.isDirty |= DrawField(desc, field);
-                //if (typeIdx == typeid(NE::ECS::Component::Transform)) {
-                //    const auto& comp = NE::ECS::Query::GetEntityTransform(entity);
-                //    ImGui::SeparatorText("Transform");
 
-                //    NE::Core::ForEachField<NE::ECS::Component::Transform>(comp,
-                //        [entity](auto&& desc, const auto& field) {
-                //            if (auto edited = DrawField(desc, field)) {
-                //                NE::ECS::Command::SetField<NE::ECS::Component::Transform>(entity, desc, *edited);
-                //            }
-                //        }
-                //    );
-                //}
-                
-                else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
+                } else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
                     auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
                     ImGui::SeparatorText("Renderer");
                     //char buf[256]; 

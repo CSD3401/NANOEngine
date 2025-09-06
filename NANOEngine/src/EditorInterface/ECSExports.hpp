@@ -40,6 +40,13 @@ namespace NE::ECS {
 		NANOENGINE_API void AddRendererComponent(uint32_t e);
 		NANOENGINE_API void AddRigidbodyComponent(uint32_t e);
 		NANOENGINE_API void AddColliderComponent(uint32_t e);
+
+		// --- Editor Component Mutators --- //
+		NANOENGINE_API Component::Transform& GetEntityTransform(uint32_t e);
+		NANOENGINE_API Component::Renderer& GetEntityRenderer(uint32_t e);
+		NANOENGINE_API Component::Light& GetEntityLight(uint32_t e);
+		NANOENGINE_API Component::Rigidbody& GetEntityRigidbody(uint32_t e);
+		NANOENGINE_API Component::Collider& GetEntityCollider(uint32_t e);
 	}
 
 }
