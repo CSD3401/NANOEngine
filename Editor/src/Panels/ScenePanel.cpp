@@ -6,9 +6,13 @@
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/Transform.hpp>
+#include "../Command/EditorSetTransformCommand.hpp"
+#include "../Command/CommandHistory.hpp"
 
 namespace Editor {
 	static uint32_t temp;
+	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
+	static bool s_gizmoActive = false;
 
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
@@ -166,7 +170,6 @@ namespace Editor {
 
 		if (EditorScene::s_selectedEntity) {
 			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
-
 			if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
@@ -175,22 +178,107 @@ namespace Editor {
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
-			const auto& t = NE::ECS::Query::GetEntityTransform(EditorScene::s_selectedEntity->linkedEntity);
+			using Owner = NE::ECS::Component::Transform;
+			const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
+			const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
 
 			float matrix[16];
-			memcpy(matrix, t.modelMatrix.Data(), sizeof(float) * 16);
+			memcpy(matrix, tRO.modelMatrix.Data(), sizeof(float) * 16);
 
-			if (ImGuizmo::Manipulate(m_editorCamera.GetViewMatrix().Data(),
+			bool editedThisFrame = ImGuizmo::Manipulate(
+				m_editorCamera.GetViewMatrix().Data(),
 				m_editorCamera.GetProjectionMatrix().Data(),
-				currentOperation, ImGuizmo::LOCAL, matrix)) {
-				float tr[3], rot[3], sc[3];
-				ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rot, sc);
-				//t.position = { tr[0], tr[1], tr[2] };
-				//t.rotation = { rot[0], rot[1], rot[2] };
-				//t.scale = { sc[0], sc[1], sc[2] };
-				//t.isDirty = true;
+				currentOperation, ImGuizmo::LOCAL, matrix
+			);
+			bool isUsing = ImGuizmo::IsUsing();
+
+			static uint8_t s_gizmoMask = 0;
+			auto opToMask = [](ImGuizmo::OPERATION op) {
+				using Cmd = Editor::SetTransformCommand;
+				switch (op) {
+				case ImGuizmo::TRANSLATE: return Cmd::Pos;
+				case ImGuizmo::ROTATE:    return Cmd::Rot;
+				case ImGuizmo::SCALE:     return Cmd::Scl;
+				default:                  return Cmd::Pos;
+				}
+			};
+
+			if (!s_gizmoActive && isUsing) {
+				s_gizmoActive = true;
+				s_gizmoMask = opToMask(currentOperation);
+				auto before = NE::ECS::Query::GetEntityTransform(eid);
+				s_gizmoCmd = std::make_unique<Editor::SetTransformCommand>(
+					eid, "Gizmo: Transform", before, before,
+					&NE::ECS::Command::GetEntityTransform, s_gizmoMask
+				);
+			}
+
+			if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+				float tr[3], rotDeg[3], sc[3];
+				ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+
+				auto current = NE::ECS::Query::GetEntityTransform(eid);
+				auto after = current;
+
+				if (s_gizmoMask & Editor::SetTransformCommand::Pos)
+					after.position = { tr[0], tr[1], tr[2] };
+				if (s_gizmoMask & Editor::SetTransformCommand::Rot)
+					after.rotation = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+				if (s_gizmoMask & Editor::SetTransformCommand::Scl)
+					after.scale = { sc[0], sc[1], sc[2] };
+
+				s_gizmoCmd->SetAfter(after);
+			}
+
+			if (s_gizmoActive && !isUsing) {
+				if (s_gizmoCmd) {
+					const auto& B = s_gizmoCmd->Before();
+					const auto& A = s_gizmoCmd->After();
+					auto eq = [](auto a, auto b) {
+						return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
+						};
+					bool changed = false;
+					if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.position, A.position);
+					if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.rotation, A.rotation);
+					if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.scale, A.scale);
+
+					if (changed) {
+						Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
+					} else {
+						s_gizmoCmd.reset();
+					}
+				}
+				s_gizmoActive = false;
 			}
 		}
+
+		//if (EditorScene::s_selectedEntity) {
+		//	static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
+
+		//	if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
+		//	if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
+		//	if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
+
+		//	ImGuizmo::SetOrthographic(false);
+		//	ImGuizmo::SetDrawlist();
+		//	ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
+
+		//	const auto& t = NE::ECS::Query::GetEntityTransform(EditorScene::s_selectedEntity->linkedEntity);
+
+		//	float matrix[16];
+		//	memcpy(matrix, t.modelMatrix.Data(), sizeof(float) * 16);
+
+		//	if (ImGuizmo::Manipulate(m_editorCamera.GetViewMatrix().Data(),
+		//		m_editorCamera.GetProjectionMatrix().Data(),
+		//		currentOperation, ImGuizmo::LOCAL, matrix)) {
+		//		float tr[3], rot[3], sc[3];
+		//		ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rot, sc);
+		//		//t.position = { tr[0], tr[1], tr[2] };
+		//		//t.rotation = { rot[0], rot[1], rot[2] };
+		//		//t.scale = { sc[0], sc[1], sc[2] };
+		//		//t.isDirty = true;
+		//	}
+		//}
 
 		//ImGuizmo::IsUsingAny()
 		//ImVec2 mousePos = ImGui::GetMousePos();
