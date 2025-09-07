@@ -1,6 +1,7 @@
 #include "InspectorPanel.hpp"
 #include <imgui/imgui.h>
 #include <EditorInterface/ECSExports.hpp>
+#include <EditorInterface/RendererExports.hpp>
 #include "ECS/Core/Signature.hpp"
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
@@ -18,9 +19,9 @@
 #include "../Command/CommandHistory.hpp"
 #include <unordered_map>
 #include <typeinfo>
-#include <bit>      // std::bit_cast
+#include <bit>
 #include <array>
-#include <cstddef>  // std::byte
+#include <cstddef>
 #include <cstdint>
 
 namespace {
@@ -341,30 +342,29 @@ namespace Editor {
                         ImGui::EndDragDropTarget();
                     }
 
-         //           static std::string searchQuery;
-         //           if (ImGui::BeginPopup("AssetPicker_Model")) {
-         //               ImGui::Text("Select a Model");
-         //               ImGui::Separator();
-         //               auto& assets = NANOEngine::GetAllModels();
+                    static std::string searchQuery;
+                    if (ImGui::BeginPopup("AssetPicker_Model")) {
+                        ImGui::Text("Select a Model");
+                        ImGui::Separator();
+                        auto& assets = NE::GetAllModels();
 
-         //               if (ImSearch::BeginSearch()) {
-         //                   ImSearch::SearchBar();
+                        if (ImSearch::BeginSearch()) {
+                            ImSearch::SearchBar();
 
-         //                   for (const auto& [name, asset] : assets) {
-         //                       ImSearch::SearchableItem(name.c_str(),
-         //                           [name, &comp](const char*) {
-         //                               if (ImGui::Selectable(name.c_str())) {
-         //                                   AssignRendererModel(comp, name);
-         //                                   AssignRendererMaterial(comp, "Assets/Basic.nanomat");
-         //                                   ImGui::CloseCurrentPopup();
-         //                               }
-									//});
-         //                   }
+                            for (const auto& [name, asset] : assets) {
+                                ImSearch::SearchableItem(name.c_str(),
+                                    [name, &entity](const char*) {
+                                        if (ImGui::Selectable(name.c_str())) {
+                                            NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+                                            ImGui::CloseCurrentPopup();
+                                        }
+									});
+                            }
 
-         //                   ImSearch::EndSearch();
-         //               }
-         //               ImGui::EndPopup();
-         //           }
+                            ImSearch::EndSearch();
+                        }
+                        ImGui::EndPopup();
+                    }
 
                     char bufMat[256]; 
                     strncpy_s(bufMat, comp.materialPath.string().c_str(), sizeof(bufMat));

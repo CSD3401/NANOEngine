@@ -5,7 +5,7 @@
 #include <typeindex>
 #include <type_traits>
 #include <functional>
-#include "ICommand.hpp"  // :contentReference[oaicite:0]{index=0}
+#include "ICommand.hpp"
 #include <Core/Reflection.hpp>
 
 namespace Editor {
@@ -70,7 +70,7 @@ namespace Editor {
         std::string m_name;
         MemberPtr m_member;
         T m_before, m_after;
-        std::function<Owner& (uint32_t)> m_getter; // how to get the component at runtime
+        std::function<Owner& (uint32_t)> m_getter;
     };
 
-} // namespace Editor
+}
