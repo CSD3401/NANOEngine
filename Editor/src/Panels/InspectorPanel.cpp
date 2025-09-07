@@ -7,6 +7,7 @@
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Rigidbody.hpp>
 #include <ECS/Components/Collider.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "../EditorScene.hpp"
@@ -142,6 +143,96 @@ namespace Editor {
 
         if (EditorScene::s_selectedEntity) {
             uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
+
+            bool isActive = true;
+            if (ImGui::Checkbox("##", &isActive)) {
+
+            }
+            ImGui::SameLine();
+
+            {
+                using Owner = NE::ECS::Component::EntityMeta;
+                using FieldT = std::string;
+
+                const auto& metaRO = NE::ECS::Query::GetEntityMeta(entity);
+
+                FieldKey nameKey{
+                    entity,
+                    &typeid(Owner),
+                    MemberPointerHasher<Owner, FieldT>{}(&Owner::name)
+                };
+
+                std::string currentText;
+                if (auto it = g_activeCommands.find(nameKey); it != g_activeCommands.end()) {
+                    if (auto* live = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
+                        currentText = live->After();
+                    }
+                }
+                if (currentText.empty()) currentText = metaRO.name;
+
+                std::string edited = currentText;
+
+                ImGui::PushID("EntityName");
+                bool changed = ImGui::InputText("##Name", edited.data(),
+                    ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
+                bool activated = ImGui::IsItemActivated();
+                bool active = ImGui::IsItemActive();
+                bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+                ImGui::PopID();
+
+                if (activated && !g_activeCommands.contains(nameKey)) {
+                    using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                    auto cmd = std::make_unique<Cmd>(
+                        entity,
+                        std::string("Rename Entity"),
+                        &Owner::name,
+                        metaRO.name,
+                        metaRO.name,
+                        &NE::ECS::Command::GetEntityMeta
+                    );
+                    g_activeCommands[nameKey] = std::move(cmd);
+                }
+
+                // Safety net: if the Activated frame was missed but we're changing, create it now
+                if ((active && changed) && !g_activeCommands.contains(nameKey)) {
+                    using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                    auto cmd = std::make_unique<Cmd>(
+                        entity, std::string("Rename Entity"),
+                        &Owner::name, metaRO.name, metaRO.name,
+                        &NE::ECS::Command::GetEntityMeta);
+                    g_activeCommands[nameKey] = std::move(cmd);
+                }
+
+                // During edit: coalesce by updating After() and applying immediately
+                if (active && changed) {
+                    auto it = g_activeCommands.find(nameKey);
+                    if (it != g_activeCommands.end()) {
+                        using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                        Cmd tmp(
+                            entity, std::string{}, &Owner::name,
+                            metaRO.name,
+                            edited,
+                            &NE::ECS::Command::GetEntityMeta
+                        );
+                        it->second->CoalesceFrom(tmp);
+                    }
+                }
+
+                if (deactivated) {
+                    auto it = g_activeCommands.find(nameKey);
+                    if (it != g_activeCommands.end()) {
+                        if (auto* c = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
+                            if (c->Before() == c->After()) {
+                                g_activeCommands.erase(it);
+                                return;
+                            }
+                        }
+                        Editor::CommandHistory::GetInstance()
+                            .ExecuteCommand(std::move(it->second));
+                        g_activeCommands.erase(it);
+                    }
+                }
+            }
 
             NE::ECS::Signature sig(NE::ECS::Query::GetEntitySignature(entity));
             for (const auto& [typeIdx, compType] : componentTypeRegistry) {

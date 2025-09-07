@@ -1,5 +1,6 @@
 #include "ECSExports.hpp"
 
+#include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "../ECS/Components/Light.hpp"
@@ -21,6 +22,10 @@ namespace NE::ECS {
 
 		uint64_t GetEntitySignature(uint32_t e) {
 			return GetScene().GetECSCoordinator().GetSignature(e).to_ullong();
+		}
+
+		const Component::EntityMeta& GetEntityMeta(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
 		}
 
 		const Component::Transform& GetEntityTransform(uint32_t e) {
@@ -70,6 +75,10 @@ namespace NE::ECS {
 			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Collider>(e))
 				return;
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
+		}
+
+		Component::EntityMeta& GetEntityMeta(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
 		}
 
 		Component::Transform& GetEntityTransform(uint32_t e) {

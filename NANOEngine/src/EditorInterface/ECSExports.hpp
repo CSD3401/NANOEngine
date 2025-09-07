@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstdint>
 #include <unordered_map>
 #include <string>
@@ -15,6 +14,7 @@ namespace NE::ECS {
 		struct Light;
 		struct Rigidbody;
 		struct Collider;
+		struct EntityMeta;
 	}
 
 	namespace Query {
@@ -25,6 +25,7 @@ namespace NE::ECS {
 		NANOENGINE_API uint64_t GetEntitySignature(uint32_t e);
 
 		// --- Editor Component View --- //
+		NANOENGINE_API const Component::EntityMeta& GetEntityMeta(uint32_t e);
 		NANOENGINE_API const Component::Transform& GetEntityTransform(uint32_t e);
 		NANOENGINE_API const Component::Renderer& GetEntityRenderer(uint32_t e);
 		NANOENGINE_API const Component::Light& GetEntityLight(uint32_t e);
@@ -42,6 +43,7 @@ namespace NE::ECS {
 		NANOENGINE_API void AddColliderComponent(uint32_t e);
 
 		// --- Editor Component Mutators --- //
+		NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
 		NANOENGINE_API Component::Transform& GetEntityTransform(uint32_t e);
 		NANOENGINE_API Component::Renderer& GetEntityRenderer(uint32_t e);
 		NANOENGINE_API Component::Light& GetEntityLight(uint32_t e);
