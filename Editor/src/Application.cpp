@@ -3,6 +3,8 @@
 #define GLFW_DLL
 #include "GLFW/glfw3.h"
 #include "Core/Logger.hpp"
+#include "Core/SpdLogger.hpp"
+
 #include "ImGuiLayer.hpp"
 #include "EditorLayer.hpp"
 #include "Graphics/OpenGL/GLContext.hpp"
@@ -90,6 +92,9 @@ namespace Editor {
 			timer.Update(); // move to engine run
 			NE::Run(timer.GetDeltaTime());
 			//LOG_INFO(timer.GetFPS());
+			
+			//SPD_INFO(timer.GetFPS());
+
 			
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();

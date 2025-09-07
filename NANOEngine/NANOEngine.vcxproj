@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Core\SpdLogger.hpp" />
     <ClInclude Include="src\ECS\Components\EntityMeta.hpp" />
     <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
