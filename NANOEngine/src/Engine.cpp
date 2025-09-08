@@ -91,6 +91,7 @@ namespace NE {
 
 	void Shutdown() {
 		NE_PROFILE_FUNCTION();
+		SaveCurrentScene("Assets/NewNewScene.scene");
 		Physics::PhysicsManager::Shutdown();
 		scene.Exit();
 
