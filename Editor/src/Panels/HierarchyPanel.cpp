@@ -69,6 +69,15 @@ namespace Editor {
             // === Click Selection ===
             if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
                 EditorScene::s_selectedEntity = &entity;
+
+                // Camera position change
+                for (auto it = EditorScene::s_entities.begin(); it != EditorScene::s_entities.end(); ++it)
+                {
+                    if (it->linkedEntity == entity.linkedEntity)
+                    {
+                        // TODO...
+                    }
+                }
             }
 
             // === Right-click entity for context menu ===
