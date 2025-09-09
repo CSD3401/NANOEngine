@@ -1,7 +1,7 @@
 #include "Application.hpp"
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
-#include "GLFW/glfw3.h"
+#include "glfw/glfw3.h"
 #include "Core/Logger.hpp"
 #include "Core/SpdLogger.hpp"
 
@@ -21,7 +21,7 @@
 #include "Panels/HistoryPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb_image\stb_image.h>
 
 namespace Editor {
 	bool Application::isRunning = true;

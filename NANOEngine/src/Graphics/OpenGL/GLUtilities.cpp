@@ -1,8 +1,8 @@
 #include "GLUtilities.hpp"
 
 #include <glad/glad.h>
-#include "stb_image.h"
-#include "stb_image_resize2.h"
+#include "stb_image/stb_image.h"
+#include "stb_image/stb_image_resize2.h"
 
 namespace Engine {
     GLuint CreateGLTexture(const std::string& path, int targetSize) {

@@ -14,7 +14,7 @@
 #include "AssetManager.hpp"
 #include <iostream>
 #include <GLFW/glfw3.h>
-#include <stb_image.h>
+#include <stb_image/stb_image.h>
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"

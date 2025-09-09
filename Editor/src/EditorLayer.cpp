@@ -5,7 +5,7 @@
 #include "Panels/AssetBrowserPanel.hpp"
 #include "Engine.hpp"
 #include "../src/EditorScene.hpp"
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
 
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
