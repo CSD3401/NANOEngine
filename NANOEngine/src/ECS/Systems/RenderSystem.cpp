@@ -18,6 +18,8 @@
 #include "../../Core/Profiler.hpp"
 #include <glad/glad.h>
 
+#include <iostream>
+
 namespace NE::ECS::Systems {
 	//static std::shared_ptr<Graphics::IShader> basicShader;
 	//static std::shared_ptr<Graphics::IPipeline> pipeline;
@@ -75,7 +77,14 @@ namespace NE::ECS::Systems {
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
             if (!renderer.visible)
+            {
+                std::cout << "entity is outside of frustum, not rendered" << std::endl;
                 continue;
+            }
+            else
+            {
+                std::cout << "entity is inside frustum, rendered" << std::endl;
+            }
 
 			//if (!renderer.model && !renderer.modelPath.empty())
 				//renderer.model = Graphics::LoadModel(renderer.modelPath.string());
