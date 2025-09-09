@@ -3,7 +3,7 @@
 #define GLFW_DLL
 #include "GLFW/glfw3.h"
 #include "Core/Logger.hpp"
-#include "Core/SpdLogger.hpp"
+//#include "Core/SpdLogger.hpp"
 
 #include "ImGuiLayer.hpp"
 #include "EditorLayer.hpp"
