@@ -8,7 +8,8 @@ namespace NE::ECS::Systems {
     class RenderSystem;
     class LightSystem;
     class RigidbodySystem;
-    class ColliderSystem;
+    class ColliderSystem; 
+    class CullingSystem;
 }
 
 namespace NE::ECS {
@@ -99,6 +100,8 @@ namespace NE::ECS {
         std::shared_ptr<Systems::RenderSystem> m_renderSystem;
         std::shared_ptr<Systems::RigidbodySystem> m_rigidbodySystem;
         std::shared_ptr<Systems::ColliderSystem> m_colliderSystem;
+        std::shared_ptr<Systems::CullingSystem> m_cullingSystem;
+
     private:
 
         std::unique_ptr<EntityManager> m_entityManager;

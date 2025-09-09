@@ -40,6 +40,7 @@ namespace NE::Graphics {
         static void Shutdown();
 
         static void SetCamera(Camera* cam);
+        static Camera* GetCamera();
 
         static uint32_t ReadPixel(IFrameBuffer* framebuffer, uint32_t x, uint32_t y);
 

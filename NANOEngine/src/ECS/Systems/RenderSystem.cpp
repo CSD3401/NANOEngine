@@ -74,6 +74,9 @@ namespace NE::ECS::Systems {
             auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
+            if (!renderer.visible)
+                continue;
+
 			//if (!renderer.model && !renderer.modelPath.empty())
 				//renderer.model = Graphics::LoadModel(renderer.modelPath.string());
 			if (!renderer.model)
