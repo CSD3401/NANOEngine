@@ -18,6 +18,7 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"
+#include "SceneManagement/SceneManager.hpp"
 
 namespace NE {
 
@@ -25,7 +26,8 @@ namespace NE {
 	static std::unique_ptr<Graphics::IRenderContext> s_renderContext;
 	static std::unique_ptr<Graphics::IFrameBuffer> s_sceneFrameBuffer; // temp
 	static std::unique_ptr<Graphics::IFrameBuffer> s_pickingFrameBuffer; // temp
-	static SceneManagement::Scene scene;
+
+	static SceneManagement::SceneManager gSceneManager;
 
 	void Initialize() {
 		NE_PROFILE_FUNCTION();
@@ -43,47 +45,28 @@ namespace NE {
 		s_pickingFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();
+	}
 
-		//// Create simple triangle mesh (all temp stuff below)
-		//float vertices[] = {
-		//	-0.5f, -0.5f, -0.5f,  // 0
-		//	 0.5f, -0.5f, -0.5f,  // 1
-		//	 0.5f,  0.5f, -0.5f,  // 2
-		//	-0.5f,  0.5f, -0.5f,  // 3
-		//	-0.5f, -0.5f,  0.5f,  // 4
-		//	 0.5f, -0.5f,  0.5f,  // 5
-		//	 0.5f,  0.5f,  0.5f,  // 6
-		//	-0.5f,  0.5f,  0.5f   // 7
-		//};
-
-		//uint32_t indices[] = {
-		//	// front face
-		//	0, 1, 2, 2, 3, 0,
-		//	// right face
-		//	1, 5, 6, 6, 2, 1,
-		//	// back face
-		//	7, 6, 5, 5, 4, 7,
-		//	// left face
-		//	4, 0, 3, 3, 7, 4,
-		//	// bottom face
-		//	4, 5, 1, 1, 0, 4,
-		//	// top face
-		//	3, 2, 6, 6, 7, 3
-		//};
-
-		scene.Init();
+	void LoadStartupScene() {
+		gSceneManager.LoadScene("Assets/NewScene.scene");
 	}
 
 	void Run(double dt) {
 		NE_PROFILE_FUNCTION();
 		s_window->PollEvents();
-
 		Physics::PhysicsManager::Update(static_cast<float>(dt));
+		gSceneManager.Update(dt);
+
 		s_sceneFrameBuffer->Bind();
-		scene.Update(dt);
+		Graphics::GraphicsManager::BeginFrame();
+		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
+		Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();
+
 		s_pickingFrameBuffer->Bind();
-		scene.RenderPicking();
+		Graphics::GraphicsManager::BeginFrame();
+		gSceneManager.Render(NE::SceneManagement::RenderPass::Picking);
+		Graphics::GraphicsManager::EndFrame();
 		s_pickingFrameBuffer->Unbind();
 
 		s_renderContext->SwapBuffers();
@@ -91,9 +74,9 @@ namespace NE {
 
 	void Shutdown() {
 		NE_PROFILE_FUNCTION();
-		SaveCurrentScene("Assets/NewNewScene.scene");
+		SaveCurrentScene("Assets/NewScene.scene");
 		Physics::PhysicsManager::Shutdown();
-		scene.Exit();
+		gSceneManager.ExitScene();
 
 		s_sceneFrameBuffer.reset();
 		s_pickingFrameBuffer.reset();
@@ -124,11 +107,11 @@ namespace NE {
 	}
 
 	void SaveCurrentScene(std::string path) {
-		Serialization::JsonSceneSerializer::Serialize(scene, path);
+		Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), path);
 	}
 
 	void LoadTargetScene(std::string targetPath) {
-		Serialization::JsonSceneSerializer::Deserialize(scene, targetPath);
+		Serialization::JsonSceneSerializer::Deserialize(*gSceneManager.GetActive(), targetPath);
 	}
 
 	void LoadShader(std::string_view filePath) {
@@ -146,7 +129,7 @@ namespace NE {
 
 	// Internal use only
 	SceneManagement::Scene& GetScene() {
-		return scene;
+		return *gSceneManager.GetActive();
 	}
 
 	void EditorPlay() {

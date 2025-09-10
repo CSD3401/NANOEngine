@@ -20,25 +20,22 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Init();
 	}
 
-
 	void Scene::Update(double dt)
 	{
 		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
-		Graphics::GraphicsManager::BeginFrame();
-		Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
-		m_ecsCoordinator.m_renderSystem->Update(dt);
-		Graphics::GraphicsManager::DrawDebugLines();
-		Graphics::GraphicsManager::EndFrame();
 	}
 
-	void Scene::RenderPicking() // TEMP hopefully can be optimized so i dont run twice
-	{
-		Graphics::GraphicsManager::BeginFrame();
-		m_ecsCoordinator.m_renderSystem->RenderPicking();
-		Graphics::GraphicsManager::EndFrame();
+	void Scene::Render(RenderPass pass) {
+		if (pass == RenderPass::Main) {
+			Graphics::GraphicsManager::DrawSkybox();
+			m_ecsCoordinator.m_renderSystem->Update(0.0);
+			Graphics::GraphicsManager::DrawDebugLines();
+		} else if (pass == RenderPass::Picking) {
+			m_ecsCoordinator.m_renderSystem->RenderPicking();
+		}
 	}
 
 	void Scene::Exit()
