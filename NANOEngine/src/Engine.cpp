@@ -18,6 +18,7 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"
+#include "Tween/TweenManager.hpp"
 
 namespace NE {
 
@@ -78,6 +79,7 @@ namespace NE {
 		NE_PROFILE_FUNCTION();
 		s_window->PollEvents();
 
+		TweenManager::Get().Update(static_cast<float>(dt));
 		Physics::PhysicsManager::Update(static_cast<float>(dt));
 		s_sceneFrameBuffer->Bind();
 		scene.Update(dt);

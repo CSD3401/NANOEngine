@@ -67,17 +67,15 @@ namespace Editor {
             bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)entity.linkedEntity, flags, "%s", label.c_str());
 
             // === Click Selection ===
-            if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+            if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+            {
                 EditorScene::s_selectedEntity = &entity;
+            }
 
-                // Camera position change
-                for (auto it = EditorScene::s_entities.begin(); it != EditorScene::s_entities.end(); ++it)
-                {
-                    if (it->linkedEntity == entity.linkedEntity)
-                    {
-                        // TODO...
-                    }
-                }
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            {
+                // Broadcast message
+                NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
             }
 
             // === Right-click entity for context menu ===

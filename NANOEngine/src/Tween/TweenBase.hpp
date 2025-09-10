@@ -1,4 +1,5 @@
 #pragma once
+#include "../NANOEngineAPI.hpp"
 
 enum TweenType
 {
@@ -12,11 +13,13 @@ enum TweenType
 	END
 };
 
-class TweenBase
+class NANOENGINE_API TweenBase
 {
 public:
 	virtual ~TweenBase() = default;
 	virtual void Update(float dt) = 0;
 	virtual bool IsActive() const = 0;
+	virtual void* GetObject() const = 0;
+
 	void Interpolate(float& t, TweenType type);
 };

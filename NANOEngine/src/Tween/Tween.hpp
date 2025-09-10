@@ -6,7 +6,7 @@ class Tween : public TweenBase
 {
 public:
 	Tween(
-		Object& obj,				// Reference to object
+		Object* obj,				// Pointer to object
 		void (Object::* setter)(V),	// Function pointer to object's setter
 		U const& start,				// Start value
 		U const& end,				// End value
@@ -15,9 +15,10 @@ public:
 
 	bool IsActive() const;
 	void Update(float dt);
+	void* GetObject() const override { return static_cast<void*>(obj); }
 
 private:
-	Object& obj;
+	Object* obj;
 	void (Object::* setter)(V);
 	U start;
 	U delta;
@@ -29,7 +30,7 @@ private:
 
 template <typename V, typename U, typename Object>
 Tween<V, U, Object>::Tween(
-	Object& obj,				// Reference to object
+	Object* obj,				// Pointer to object
 	void (Object::* setter)(V),	// Function pointer to object's setter
 	U const& start,				// Start value
 	U const& end,				// End value
@@ -76,5 +77,5 @@ void Tween<V, U, Object>::Update(float dt)
 	Interpolate(t, type);
 
 	// Use object's setter function to update
-	(obj.*setter)(start + t * delta);
+	(*obj.*setter)(start + delta * t);
 }
