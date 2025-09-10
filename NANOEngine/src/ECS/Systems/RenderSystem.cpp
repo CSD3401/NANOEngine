@@ -19,9 +19,6 @@
 #include <glad/glad.h>
 
 namespace NE::ECS::Systems {
-	//static std::shared_ptr<Graphics::IShader> basicShader;
-	//static std::shared_ptr<Graphics::IPipeline> pipeline;
-	//static std::shared_ptr<Graphics::Material> material;
 
     static std::shared_ptr<Graphics::IShader> pickingShader;
     static std::shared_ptr<Graphics::IPipeline> pickingPipeline;
@@ -41,8 +38,6 @@ namespace NE::ECS::Systems {
 
     void RenderSystem::Init()
     {
-
-
    //     const auto& entities = GetEntities();
    //     for (Entity entity : entities) {
 			//auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);

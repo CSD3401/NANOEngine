@@ -30,6 +30,13 @@ namespace NE::Graphics {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
 
+        // Load Basic Shader
+        //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
+        //Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.nanoshader", false);
+        auto basic = std::make_shared<OpenGL::GLShader>();
+        basic->LoadFromFile("Library/Shaders/Basic.nanoshader");
+        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(basic, "Basic");
+
         // Load Primitives
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");
