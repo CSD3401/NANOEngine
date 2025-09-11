@@ -1,114 +1,88 @@
 #pragma once
-
-#include <type_traits>
 #include <string>
-#include <string_view>
-#include <vector>
+#include <type_traits>
 #include <filesystem>
 #include <rapidjson/document.h>
+#include "../../src/Math/Vec3.hpp"
 #include "../Core/Reflection.hpp"
 
 namespace NE::Serialization {
+
     using Alloc = rapidjson::Document::AllocatorType;
+    using RJson = rapidjson::Value;
 
-    // ------------------------------
-    // 1) Detect reflectable types
-    // ------------------------------
-    template<class T, class = void>
-    struct is_reflectable : std::false_type {};
-
-    template<class T>
-    struct is_reflectable<T, std::void_t<decltype(T::Reflect())>> : std::true_type {};
-
-    template<class T>
-    inline constexpr bool is_reflectable_v =
-        is_reflectable<std::remove_cv_t<std::remove_reference_t<T>>>::value;
-
-    // ------------------------------
-    // 2) Leaf adapters (extend as needed)
-    // ------------------------------
-    // Arithmetic
-    template<class T>
-        requires std::is_arithmetic_v<T>
-    inline rapidjson::Value to_json(const T& x, Alloc&) { return rapidjson::Value(x); }
-
-    inline void from_json(const rapidjson::Value& v, float& x) { if (v.IsNumber()) x = v.GetFloat(); }
-    inline void from_json(const rapidjson::Value& v, double& x) { if (v.IsNumber()) x = v.GetDouble(); }
-    inline void from_json(const rapidjson::Value& v, int& x) { if (v.IsInt())    x = v.GetInt(); }
-    inline void from_json(const rapidjson::Value& v, unsigned x) { if (v.IsUint())   x = v.GetUint(); }
-    inline void from_json(const rapidjson::Value& v, int64_t& x) { if (v.IsInt64())  x = v.GetInt64(); }
-    inline void from_json(const rapidjson::Value& v, uint64_t& x) { if (v.IsUint64()) x = v.GetUint64(); }
-    inline void from_json(const rapidjson::Value& v, bool& x) { if (v.IsBool())    x = v.GetBool(); }
-
-    // std::string
-    inline rapidjson::Value to_json(const std::string& s, Alloc& a) { return rapidjson::Value(s.c_str(), a); }
-    inline void from_json(const rapidjson::Value& v, std::string& s) { if (v.IsString()) s = v.GetString(); }
-
-    // std::filesystem::path
-    inline rapidjson::Value to_json(const std::filesystem::path& p, Alloc& a) {
-        return rapidjson::Value(p.string().c_str(), a);
+    // ----------- Primitives & std types -----------
+    template <typename T>
+    RJson to_json(const T& v, Alloc&) requires std::is_arithmetic_v<T> {
+        RJson out;
+        if constexpr (std::is_floating_point_v<T>) out.SetDouble(static_cast<double>(v));
+        else                                       out.SetInt64(static_cast<int64_t>(v));
+        return out;
     }
-    inline void from_json(const rapidjson::Value& v, std::filesystem::path& p) {
-        if (v.IsString()) p = v.GetString();
+    inline RJson to_json(const std::string& s, Alloc& a) { return RJson(s.c_str(), a); }
+    inline RJson to_json(std::string_view s, Alloc& a) { return RJson(s.data(), a); }
+    inline RJson to_json(const char* s, Alloc& a) { return RJson(s, a); }
+    inline RJson to_json(const std::filesystem::path& p, Alloc& a) { return RJson(p.string().c_str(), a); }
+
+    template <typename T>
+    void from_json(const RJson& v, T& out) requires std::is_arithmetic_v<T> {
+        if constexpr (std::is_floating_point_v<T>) out = static_cast<T>(v.GetDouble());
+        else                                       out = static_cast<T>(v.GetInt64());
+    }
+    inline void from_json(const RJson& v, std::string& out) { out = v.GetString(); }
+    inline void from_json(const RJson& v, std::filesystem::path& out) { out = v.GetString(); }
+
+    // ----------- Enums -----------
+    template <typename E>
+    RJson to_json(E e, Alloc&) requires std::is_enum_v<E> {
+        return RJson(static_cast<int>(e));
+    }
+    template <typename E>
+    void from_json(const RJson& v, E& e) requires std::is_enum_v<E> {
+        e = static_cast<E>(v.GetInt());
     }
 
-    // Example math type: Math::Vec3 (adjust if your namespace/type differs)
-    namespace Math { struct Vec3 { float x{}, y{}, z{}; }; } // If you already have this, this forward is harmless
-
-    inline rapidjson::Value to_json(const Math::Vec3& v, Alloc& a) {
-        rapidjson::Value obj(rapidjson::kObjectType);
+    // ----------- Example: Math::Vec3 -----------
+    // Add similar tiny adapters for other math types you use.
+    inline RJson to_json(const NE::Math::Vec3& v, Alloc& a) {
+        RJson obj(rapidjson::kObjectType);
         obj.AddMember("x", v.x, a);
         obj.AddMember("y", v.y, a);
         obj.AddMember("z", v.z, a);
         return obj;
     }
-    inline void from_json(const rapidjson::Value& v, Math::Vec3& out) {
-        if (!v.IsObject()) return;
+    inline void from_json(const RJson& v, NE::Math::Vec3& out) {
         if (v.HasMember("x")) out.x = v["x"].GetFloat();
         if (v.HasMember("y")) out.y = v["y"].GetFloat();
         if (v.HasMember("z")) out.z = v["z"].GetFloat();
     }
 
-    // std::vector<T>
-    template<class T>
-    rapidjson::Value to_json(const std::vector<T>& arr, Alloc& a) {
-        rapidjson::Value v(rapidjson::kArrayType);
-        for (auto& e : arr) v.PushBack(to_json(e, a), a);
-        return v;
+    // ----------- Reflectable objects -----------
+    template <NE::Core::Reflectable T>
+    RJson to_json(const T& obj, Alloc& a) {
+        RJson o(rapidjson::kObjectType);
+        NE::Core::ForEachFieldView(obj, [&](auto&& desc, auto&& field) {
+            // field name is a std::string_view per FieldDescriptor
+            RJson key(desc.name.data(), a);
+            o.AddMember(key, to_json(field, a), a);
+            });
+        return o;
     }
-    template<class T>
-    void from_json(const rapidjson::Value& v, std::vector<T>& out) {
-        if (!v.IsArray()) return;
-        out.clear(); out.reserve(v.Size());
-        for (auto& e : v.GetArray()) {
-            T elem{}; from_json(e, elem); out.emplace_back(std::move(elem));
+
+    template <NE::Core::Reflectable T>
+    void from_json(const RJson& v, T& out) {
+        NE::Core::ForEachField(out, [&](auto&& desc, auto& field) {
+            const auto key = desc.name; // std::string_view
+            if (v.HasMember(rapidjson::StringRef(key.data(), static_cast<rapidjson::SizeType>(key.size())))) {
+                const auto& sub = v[key.data()];
+                from_json(sub, field);
+            }
+            });
+
+        // Optional: set isDirty if present on the type
+        if constexpr (requires (T t) { t.isDirty; }) {
+            out.isDirty = true;
         }
     }
 
-    // ------------------------------
-    // 3) Generic reflective object (de)serializer
-    // ------------------------------
-    //template<class T>
-    //    requires is_reflectable_v<T>
-    //rapidjson::Value to_json(const T& obj, Alloc& a) {
-    //    using namespace NANOEngine::Core; // For ForEachField / FieldDescriptor
-    //    rapidjson::Value out(rapidjson::kObjectType);
-    //    ForEachField<T>([&](auto desc) {
-    //        const auto& field = obj.*(desc.member);
-    //        rapidjson::Value name(desc.name.data(), static_cast<rapidjson::SizeType>(desc.name.size()), a);
-    //        out.AddMember(name, to_json(field, a), a);
-    //        });
-    //    return out;
-    //}
-
-    //template<class T>
-    //    requires is_reflectable_v<T>
-    //void from_json(const rapidjson::Value& in, T& obj) {
-    //    using namespace NANOEngine::Core;
-    //    if (!in.IsObject()) return;
-    //    ForEachField<T>(obj, [&](auto desc, auto& field) {
-    //        const char* n = desc.name.data();
-    //        if (in.HasMember(n)) from_json(in[n], field);
-    //        });
-    //}
 }

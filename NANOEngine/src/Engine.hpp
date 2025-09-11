@@ -11,6 +11,7 @@
 
 namespace NE {
 	NANOENGINE_API void Initialize();
+	NANOENGINE_API void LoadStartupScene();
 	NANOENGINE_API void Run(double dt);
 	NANOENGINE_API void Shutdown();
 
@@ -27,12 +28,10 @@ namespace NE {
 	NANOENGINE_API void LoadShader(std::string_view);
 
 	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path);
-
 	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels();
+	NANOENGINE_API size_t GetNumEntities();
 
 	NANOENGINE_API void EditorPlay();
-
 	NANOENGINE_API void EditorPause();
-
 	NANOENGINE_API void EditorEdit();
 }

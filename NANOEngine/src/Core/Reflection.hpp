@@ -35,6 +35,14 @@ namespace NE::Core {
             }, fields);
     }
 
+    template <Reflectable T, class F>
+    constexpr void ForEachField(T& obj, F&& f) {
+        constexpr auto fields = T::Reflect();
+        std::apply([&](auto&&... d) {
+            ((f(d, obj.*(d.member))), ...);
+            }, fields);
+    }
+
 }
 
 #define NE_REFLECT_BEGIN(type) \
