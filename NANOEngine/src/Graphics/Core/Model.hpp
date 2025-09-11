@@ -19,7 +19,13 @@ namespace NE::Graphics {
     public:
         std::vector<SubMesh> meshes;
 
+        NE::Math::Vec3 sphereCenterLS{ 0,0,0 };
+        float sphereRadiusLS = 0.0f;
+        bool hasSphereBoundsLS = false;
+
         bool LoadFromFile(const std::string& path) override;
+
+        void ComputeModelSphereBounds();
     };
 
     //std::shared_ptr<Model> LoadModel(const std::string& path);

@@ -22,7 +22,6 @@
     <ClInclude Include="src\Core\SpdLogger.hpp" />
     <ClInclude Include="src\ECS\Components\EntityMeta.hpp" />
     <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
-    <ClInclude Include="src\ECS\Systems\CullingSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
     <ClInclude Include="src\EditorInterface\ECSExports.hpp" />
     <ClInclude Include="src\EditorInterface\RendererExports.hpp" />
@@ -102,7 +101,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
-    <ClCompile Include="src\ECS\Systems\CullingSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\RigidbodySystem.cpp" />
     <ClCompile Include="src\EditorInterface\ECSExports.cpp" />
     <ClCompile Include="src\EditorInterface\RendererExports.cpp" />

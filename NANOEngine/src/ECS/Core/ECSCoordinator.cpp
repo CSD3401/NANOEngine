@@ -12,7 +12,6 @@
 #include "../Systems/LightSystem.hpp"
 #include "../Systems/RigidbodySystem.hpp"
 #include "../Systems/ColliderSystem.hpp"
-#include "../Systems/CullingSystem.hpp"
 
 
 namespace NE::ECS {
@@ -62,15 +61,6 @@ namespace NE::ECS {
             Signature sig;
             sig.set(GetComponentType<Component::Collider>());
             SetSystemSignature<Systems::ColliderSystem>(sig);
-        }
-
-        m_cullingSystem = m_systemManager->RegisterSystem<Systems::CullingSystem>(m_componentManager.get());
-        {
-            Signature sig;
-            sig.set(GetComponentType<Component::Transform>());
-            sig.set(GetComponentType<Component::Renderer>());
-            sig.set(GetComponentType<Component::Collider>());
-            SetSystemSignature<Systems::CullingSystem>(sig);
         }
     }
 
