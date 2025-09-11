@@ -24,9 +24,8 @@ namespace NE::ECS::Systems {
 
 		static NE::Graphics::Frustum BuildFrustum();
 
-		static bool TestSphereFrustum(const NE::Graphics::Frustum& F, const NE::Math::Mat4& M, float RadiusLS);
-		static bool TestSphereFrustum(const NE::Graphics::Frustum& F, const NE::Math::Mat4& M, const NE::Math::Vec3& centerLS, float radiusLS); // overloaded TestSphereFrustum() for entities with no collider
-		static bool TestAABBFrustum(const NE::Graphics::Frustum& F, const NE::Math::Mat4& M, const NE::Math::Vec3& minLS, const NE::Math::Vec3& maxLS);
+		static bool TestSphereFrustum(const NE::Graphics::Frustum& F, const NE::Math::Mat4& M, const NE::Math::Vec3& centerLS, float radiusLS);
+		//static bool TestAABBFrustum(const NE::Graphics::Frustum& F, const NE::Math::Mat4& M, const NE::Math::Vec3& minLS, const NE::Math::Vec3& maxLS);
 
 		void FrustumCulling();
     };
