@@ -101,7 +101,7 @@ namespace Editor {
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
-		editorLayer.AddPanel<HistoryPanel>();
+		//editorLayer.AddPanel<HistoryPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
 

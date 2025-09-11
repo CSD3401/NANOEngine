@@ -121,13 +121,17 @@ namespace NE {
 		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(filePath.data(), false);
 	}
 
-	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {
+	std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {
 		return Asset::AssetManager::GetInstance().Load<NE::Graphics::Material>(path.data(), false);
 	}
 
-	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()
+	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()
 	{
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
+	}
+
+	size_t GetNumEntities() {
+		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities().size();
 	}
 
 	// Internal use only

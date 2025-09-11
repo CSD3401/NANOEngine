@@ -6,10 +6,16 @@
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
 #include <ECS/Core/Entity.hpp>
+#include <Engine.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
         EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
+
+        auto numEntt = NE::GetNumEntities();
+        for (unsigned int i = 0; i < numEntt; ++i) {
+            EditorScene::s_entities.push_back(EditorEntity{ i });
+        }
 	}
 
 	void HierarchyPanel::OnImGuiRender()

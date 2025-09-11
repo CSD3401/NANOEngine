@@ -6,6 +6,7 @@
 #include "Engine.hpp"
 #include "../src/EditorScene.hpp"
 #include <glfw/glfw3.h>
+#include "Command/CommandHistory.hpp"
 
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
@@ -275,10 +276,66 @@ namespace Editor {
 
         }
 
-        // --- Window Controls (Far right) ---
-        float buttonSize = 32.0f; // Slightly smaller for style
-        float spacing = 0.0f;
+        // --- History button (top-right), before the window controls ---
+        // Reserve width for the three window buttons you already place on the far right
+        float buttonSize = 32.0f;      // you already use this
+        float spacing = 0.0f;       // you already use this
         float totalButtonsWidth = 3 * (buttonSize + spacing);
+
+        // Size for our History button
+        ImVec2 historyBtnSize = ImVec2(100.0f, 32.0f);
+
+        // Position the cursor so the History button sits just left of the window controls
+        float historyRight = menuBarSize.x - totalButtonsWidth - 8.0f; // 8px padding
+        ImGui::SetCursorPos(ImVec2(historyRight - historyBtnSize.x, (menuBarSize.y - historyBtnSize.y) * 0.5f));
+
+        bool openHistory = ImGui::Button("History", historyBtnSize);
+        if (openHistory) {
+            ImGui::OpenPopup("##history_popup");
+        }
+
+        // Draw the popup anchored to the History button
+        if (ImGui::BeginPopup("##history_popup")) {
+            auto& history = CommandHistory::GetInstance();
+            // --- Undo ---
+            ImGui::TextUnformatted("Undo Stack");
+            ImGui::Separator();
+            const auto& undo = history.GetUndoList();
+            if (undo.empty()) {
+                ImGui::TextDisabled("  <empty>");
+            } else {
+                // newest at top (Unity-like)
+                for (int i = static_cast<int>(undo.size()) - 1; i >= 0; --i) {
+                    ImGui::BulletText("#%d - %s", i + 1, undo[i]->GetName());
+                }
+            }
+
+            ImGui::Spacing();
+            // --- Redo ---
+            ImGui::TextUnformatted("Redo Stack");
+            ImGui::Separator();
+            const auto& redo = history.GetRedoList();
+            if (redo.empty()) {
+                ImGui::TextDisabled("  <empty>");
+            } else {
+                for (int i = static_cast<int>(redo.size()) - 1; i >= 0; --i) {
+                    ImGui::BulletText("#%d - %s", i + 1, redo[i]->GetName());
+                }
+            }
+
+            ImGui::Spacing();
+            // Quick actions
+            if (ImGui::Button("Undo")) history.Undo();
+            ImGui::SameLine();
+            if (ImGui::Button("Redo")) history.Redo();
+
+            ImGui::EndPopup();
+        }
+
+        // --- Window Controls (Far right) ---
+        //float buttonSize = 32.0f; // Slightly smaller for style
+        //float spacing = 0.0f;
+        //float totalButtonsWidth = 3 * (buttonSize + spacing);
 
         // Move cursor to the far right, but centered in the bar
         ImGui::SetCursorPos(ImVec2(menuBarSize.x - totalButtonsWidth, 0.f));
