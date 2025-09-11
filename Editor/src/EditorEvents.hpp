@@ -7,4 +7,7 @@ namespace Editor {
 	struct DeleteEntityEvent {
 		uint32_t deletedEntity;
 	};
+	struct SelectEntityEvent {
+		uint32_t selectedEntity;
+	};
 }

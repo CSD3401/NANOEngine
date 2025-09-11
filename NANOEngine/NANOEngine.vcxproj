@@ -98,6 +98,9 @@
     <ClInclude Include="src\Serialisation\ISceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\ReflectionJson.hpp" />
+    <ClInclude Include="src\Tween\Tween.hpp" />
+    <ClInclude Include="src\Tween\TweenBase.hpp" />
+    <ClInclude Include="src\Tween\TweenManager.hpp" />
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +149,8 @@
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
     <ClCompile Include="src\AssetManager.cpp" />
+    <ClCompile Include="src\Tween\TweenBase.cpp" />
+    <ClCompile Include="src\Tween\TweenManager.cpp" />
     <ClCompile Include="src\Utility\MetadataHandler.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
