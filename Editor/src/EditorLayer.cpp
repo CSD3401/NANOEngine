@@ -261,11 +261,24 @@ namespace Editor {
         ImGui::SetCursorPos(ImVec2(logoSpace, 10.f));
 
         if (ImGui::Button("File")) {
+            if (ImGui::MenuItem("New Scene","", false, false)) {}
 
+            if (ImGui::MenuItem("Open Scene", "", false, false)) {}
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Save", "Ctrl + S", false, false)) {
+                //SceneManager::GetInstance().SaveScene();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Exit", "", false, false)) {}
         }
         ImGui::SameLine();
         if (ImGui::Button("Edit")) {
-
+            if (ImGui::MenuItem("Undo", "Ctrl + Z", false, false)) CommandHistory::GetInstance().Undo();
+            if (ImGui::MenuItem("Redo", "Ctrl + Y", false, false)) CommandHistory::GetInstance().Undo();
         }
         ImGui::SameLine();
         if (ImGui::Button("Window")) {
@@ -276,60 +289,67 @@ namespace Editor {
 
         }
 
+        // TEST SHORTCUTS
+        //if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z)) {
+        //    CommandHistory::GetInstance().Undo();
+        //}
+
+        //if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y)) {
+        //    CommandHistory::GetInstance().Redo();
+        //}
+
         // --- History button (top-right), before the window controls ---
         // Reserve width for the three window buttons you already place on the far right
-        float buttonSize = 32.0f;      // you already use this
-        float spacing = 0.0f;       // you already use this
+        float buttonSize = 32.0f;
+        float spacing = 0.0f;
         float totalButtonsWidth = 3 * (buttonSize + spacing);
 
-        // Size for our History button
-        ImVec2 historyBtnSize = ImVec2(100.0f, 32.0f);
+        ImVec2 historySize = ImVec2(140.0f, 32.0f);
 
-        // Position the cursor so the History button sits just left of the window controls
-        float historyRight = menuBarSize.x - totalButtonsWidth - 8.0f; // 8px padding
-        ImGui::SetCursorPos(ImVec2(historyRight - historyBtnSize.x, (menuBarSize.y - historyBtnSize.y) * 0.5f));
+        float rightEdge = menuBarSize.x - totalButtonsWidth - 8.0f; // 8px padding
+        ImVec2 pos = ImVec2(rightEdge - historySize.x, (menuBarSize.y - historySize.y) * 0.5f);
+        ImGui::SetCursorPos(pos);
 
-        bool openHistory = ImGui::Button("History", historyBtnSize);
-        if (openHistory) {
-            ImGui::OpenPopup("##history_popup");
-        }
+        // show the latest undo label as preview text
+        auto& history = CommandHistory::GetInstance();
+        const auto& undo = history.GetUndoList();
+        const char* preview =
+            undo.empty() ? "History" : undo.back()->GetName();
 
-        // Draw the popup anchored to the History button
-        if (ImGui::BeginPopup("##history_popup")) {
-            auto& history = CommandHistory::GetInstance();
-            // --- Undo ---
+        // Style it to feel like a button (no arrow, we draw "▾" ourselves in the label)
+        ImGui::SetNextItemWidth(historySize.x);
+        ImGuiComboFlags comboFlags = ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_HeightLarge;
+
+        if (ImGui::BeginCombo("##history_dropdown", preview, comboFlags)) {
+            // Optional header
             ImGui::TextUnformatted("Undo Stack");
             ImGui::Separator();
-            const auto& undo = history.GetUndoList();
+
             if (undo.empty()) {
                 ImGui::TextDisabled("  <empty>");
             } else {
-                // newest at top (Unity-like)
-                for (int i = static_cast<int>(undo.size()) - 1; i >= 0; --i) {
+                for (int i = static_cast<int>(undo.size()) - 1; i >= 0; --i)
                     ImGui::BulletText("#%d - %s", i + 1, undo[i]->GetName());
-                }
             }
 
             ImGui::Spacing();
-            // --- Redo ---
             ImGui::TextUnformatted("Redo Stack");
             ImGui::Separator();
+
             const auto& redo = history.GetRedoList();
             if (redo.empty()) {
                 ImGui::TextDisabled("  <empty>");
             } else {
-                for (int i = static_cast<int>(redo.size()) - 1; i >= 0; --i) {
+                for (int i = static_cast<int>(redo.size()) - 1; i >= 0; --i)
                     ImGui::BulletText("#%d - %s", i + 1, redo[i]->GetName());
-                }
             }
 
             ImGui::Spacing();
-            // Quick actions
             if (ImGui::Button("Undo")) history.Undo();
             ImGui::SameLine();
             if (ImGui::Button("Redo")) history.Redo();
 
-            ImGui::EndPopup();
+            ImGui::EndCombo();
         }
 
         // --- Window Controls (Far right) ---
