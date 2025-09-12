@@ -73,6 +73,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir).tmp\$(ProjectName)\$(Configuration)-$(Platform)\</IntDir>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
@@ -115,18 +116,21 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(SolutionDir)ThirdParty\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>NANOEngine.lib;glfw\glfw3dll.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy /E /I /-Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
-xcopy /Y "$(SolutionDir)ThirdParty\lib\GLFW\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>xcopy /E /I /-Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -139,7 +143,7 @@ xcopy /Y "$(SolutionDir)ThirdParty\lib\GLFW\glfw3.dll" "$(SolutionDir)bin\Editor
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine;$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -164,7 +168,9 @@ xcopy /Y "$(SolutionDir)ThirdParty\lib\GLFW\glfw3.dll" "$(SolutionDir)bin\Editor
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
+    <ClCompile Include="src\Panels\LoggerPanel.cpp" />
     <ClCompile Include="src\Panels\ProfilerPanel.cpp" />
+    <ClCompile Include="src\Panels\SceneCameraTweener.cpp" />
     <ClCompile Include="src\Panels\ScenePanel.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Panels\AssetBrowserPanel.cpp" />
@@ -198,7 +204,9 @@ xcopy /Y "$(SolutionDir)ThirdParty\lib\GLFW\glfw3.dll" "$(SolutionDir)bin\Editor
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />
     <ClInclude Include="src\Panels\InspectorPanel.hpp" />
+    <ClInclude Include="src\Panels\LoggerPanel.hpp" />
     <ClInclude Include="src\Panels\ProfilerPanel.hpp" />
+    <ClInclude Include="src\Panels\SceneCameraTweener.hpp" />
     <ClInclude Include="src\Panels\ScenePanel.hpp" />
     <ClInclude Include="src\Application.hpp" />
     <ClInclude Include="src\Panels\AssetBrowserPanel.hpp" />

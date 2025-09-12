@@ -1,10 +1,11 @@
 #include "GLShader.hpp"
 #include <fstream>
 #include <sstream>
-#include "glad/glad.h"
-#include "../../Core/Logger.hpp"
-#include "../../Math/Vec3.hpp"
-#include "../../Math/Mat4.hpp"
+#include <glad/glad.h>
+#include "Core/Logger.hpp"
+#include "Core/SpdLogger.hpp"
+#include "Math/Vec3.hpp"
+#include "Math/Mat4.hpp"
 
 
 namespace NE::Graphics::OpenGL {
@@ -112,9 +113,7 @@ namespace NE::Graphics::OpenGL {
             if (compiled != GL_TRUE) {
                 char log[1024];
                 glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-                //LOG_WARNING("Shader compilation failed: ", log);
-                //LOG_WARNING(std::string("Shader compilation failed:\n") + log);
-                LOG_WARNING("Shader compilation failed:\n" << log << "\nShader Source:\n" << source);
+                SPD_WARNING("Shader compilation failed: " << log << "\nShader Source: " << source);
                 return false;
             }
 
@@ -128,8 +127,7 @@ namespace NE::Graphics::OpenGL {
         if (linked != GL_TRUE) {
             char log[1024];
             glGetProgramInfoLog(program, sizeof(log), nullptr, log);
-            //LOG_WARNING(std::string("Program linking failed:\n") + log);
-            LOG_WARNING("Program linking failed:\n" << log);
+            SPD_WARNING("Program linking failed: " << log);
             return false;
         }
 
