@@ -86,23 +86,25 @@ namespace NE::ECS::Systems {
 
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
-            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+            if (!renderer.visible || !renderer.model) continue;
 
-            if (!renderer.visible)
-            {
-                std::cout << "entity is outside of frustum, not rendered" << std::endl;
-                continue;
-            }
-            else
-            {
-                std::cout << "entity is inside frustum, rendered" << std::endl;
-            }
+            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+
+            //if (!renderer.visible)
+            //{
+            //    std::cout << "entity is outside of frustum, not rendered" << std::endl;
+            //    continue;
+            //}
+            //else
+            //{
+            //    std::cout << "entity is inside frustum, rendered" << std::endl;
+            //}
 
 			//if (!renderer.model && !renderer.modelPath.empty())
 				//renderer.model = Graphics::LoadModel(renderer.modelPath.string());
-			if (!renderer.model)
-				continue;
+			//if (!renderer.model)
+			//	continue;
 
 			for (auto& sub : renderer.model->meshes) {
 				Graphics::DrawCommand cmd;
@@ -123,13 +125,14 @@ namespace NE::ECS::Systems {
     void RenderSystem::RenderPicking() {
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
-            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+            if (!renderer.visible || !renderer.model) continue;
+            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
             //if (!renderer.model && !renderer.modelPath.empty())
             //    renderer.model = Graphics::LoadModel(renderer.modelPath.string());
-            if (!renderer.model)
-                continue;
+            //if (!renderer.model)
+            //    continue;
 
             float r = (float)(entity & 0xFF) / 255.0f;
             float g = (float)((entity >> 8) & 0xFF) / 255.0f;
