@@ -28,6 +28,7 @@
     <ClInclude Include="src\EditorInterface\ECSExports.hpp" />
     <ClInclude Include="src\EditorInterface\RendererExports.hpp" />
     <ClInclude Include="src\EngineState.hpp" />
+    <ClInclude Include="src\Graphics\Core\Frustum.hpp" />
     <ClInclude Include="src\Physics\JoltDebugRenderer.hpp" />
     <ClInclude Include="src\Physics\PhysicsManager.hpp" />
     <ClInclude Include="src\ECS\Components\Collider.hpp" />
@@ -110,6 +111,7 @@
     <ClCompile Include="src\EditorInterface\ECSExports.cpp" />
     <ClCompile Include="src\EditorInterface\RendererExports.cpp" />
     <ClCompile Include="src\EngineState.cpp" />
+    <ClCompile Include="src\Graphics\Core\Frustum.cpp" />
     <ClCompile Include="src\Physics\JoltDebugRenderer.cpp" />
     <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />

@@ -2,6 +2,8 @@
 
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
+#include "../../Graphics/Core/Frustum.hpp"
+#include "../../Graphics/Core/Camera.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -19,6 +21,13 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_componentManager;
+
+		static NE::Graphics::Frustum BuildFrustum();
+
+		static bool TestSphereFrustum(const NE::Graphics::Frustum& F, const NE::Math::Mat4& M, const NE::Math::Vec3& centerLS, float radiusLS);
+		//static bool TestAABBFrustum(const NE::Graphics::Frustum& F, const NE::Math::Mat4& M, const NE::Math::Vec3& minLS, const NE::Math::Vec3& maxLS);
+
+		void FrustumCulling();
     };
 
 

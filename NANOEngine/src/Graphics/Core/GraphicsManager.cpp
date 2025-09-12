@@ -120,6 +120,10 @@ namespace NE::Graphics {
         s_ActiveCamera = cam;
     }
 
+    Camera* GraphicsManager::GetCamera() {
+        return s_ActiveCamera;
+    }
+
     uint32_t GraphicsManager::ReadPixel(IFrameBuffer* framebuffer, uint32_t x, uint32_t y) {
         framebuffer->Bind();
         uint8_t data[4] = { 0, 0, 0, 0 };

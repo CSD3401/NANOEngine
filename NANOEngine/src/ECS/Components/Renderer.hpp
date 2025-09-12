@@ -18,6 +18,8 @@ namespace NE::ECS::Component {
 		std::shared_ptr<Graphics::Model> model;
 		std::shared_ptr<Graphics::Material> material;
 
+		bool visible = true;
+
 		NE_REFLECT_BEGIN(Renderer)
 			NE_REFLECT_FIELD(modelPath),
 			NE_REFLECT_FIELD(materialPath)
