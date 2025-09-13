@@ -9,6 +9,7 @@ namespace NE::ECS::Systems {
     class LightSystem;
     class RigidbodySystem;
     class ColliderSystem; 
+	class ScriptSystem;
 }
 
 namespace NE::ECS {
@@ -82,9 +83,9 @@ namespace NE::ECS {
         //        sysPtr->Update(deltaTime);
         //}
 
-        //ComponentManager& GetComponentManager() {
-        //    return *m_componentManager;
-        //}
+        ComponentManager& GetComponentManager() {
+            return *m_componentManager;
+        }
         std::vector<Entity>& GetUsedEntities() { return m_entityManager->GetUsedEntities(); }
 
         Signature GetSignature(Entity entity);
@@ -99,6 +100,7 @@ namespace NE::ECS {
         std::shared_ptr<Systems::RenderSystem> m_renderSystem;
         std::shared_ptr<Systems::RigidbodySystem> m_rigidbodySystem;
         std::shared_ptr<Systems::ColliderSystem> m_colliderSystem;
+		std::shared_ptr<Systems::ScriptSystem> m_scriptSystem;
 
     private:
 

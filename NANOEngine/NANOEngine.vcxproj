@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
     <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
-    <ClInclude Include="src\Core\API.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
     <ClInclude Include="src\Scripting\IScript.hpp" />
     <ClInclude Include="src\ECS\Components\NativeScript.hpp" />
@@ -110,6 +110,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Scripting\IScript.cpp" />
     <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
     <ClCompile Include="src\Scripting\ScriptingEngine.cpp" />

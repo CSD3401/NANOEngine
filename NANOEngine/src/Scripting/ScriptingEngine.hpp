@@ -1,52 +1,185 @@
 #pragma once
-#include "IScript.hpp"
-#include "../ECS/Components/NativeScript.hpp"
-#include <string>
-#include <functional>
-#include <map>
+
+#include "IScriptRegistrar.hpp"
+#include <unordered_map>
 #include <memory>
+#include <vector>
+#include <Windows.h>
 
-// Define a platform-agnostic handle for the dynamic library.
-#ifdef _WIN32
-#include <windows.h>
-#define DLL_HANDLE HMODULE
-#else
-#define DLL_HANDLE void*
-#endif
+// Forward declarations
+class IScript;
 
+// Export macros for when Engine is built as DLL
+//#ifdef ENGINE_EXPORTS
+//#define ENGINE_API __declspec(dllexport)
+//#else
+//#define ENGINE_API __declspec(dllimport)
+//#endif
 
-namespace NE::Scripting
-{
+namespace NE::Scripting {
 
-    // This class is the isolated module responsible for loading and managing
-    // the game code DLL. This is the class you will replace if you upgrade to JIT.
-    class ScriptingEngine {
+    // Function pointer type for the registration function that game DLLs must export
+    typedef void (*RegisterScriptsFunction)(IScriptRegistrar* registrar);
+
+    /**
+     * Combined scripting engine that handles both script registration and DLL loading.
+     * Can be used as a DLL itself to be loaded by editor applications.
+     */
+    class ScriptingEngine : public IScriptRegistrar {
+    public:
+        struct LoadedDLL {
+            HMODULE handle;
+            std::string filepath;
+            std::string name;
+            RegisterScriptsFunction registerFunction;
+
+            LoadedDLL(HMODULE h, const std::string& path, const std::string& n, RegisterScriptsFunction func)
+                : handle(h), filepath(path), name(n), registerFunction(func) {}
+        };
+
     public:
         ScriptingEngine();
         ~ScriptingEngine();
 
-        void LoadGameCode(const std::string& dllPath);
-        void UnloadGameCode();
+        // === IScriptRegistrar interface implementation ===
+        void RegisterScript(const std::string& name, std::function<IScript* ()> factory) override;
+        bool IsScriptRegistered(const std::string& name) const override;
+        size_t GetRegisteredScriptCount() const override;
 
-        bool HasScript(const std::string& scriptName);
-        void BindComponent(NE::ECS::Component::NativeScriptComponent& component);
+        // === Script Management ===
+        /**
+         * Create an instance of a registered script by name.
+         * @param name The name of the script type to create
+         * @return Pointer to new script instance, or nullptr if not found
+         */
+        std::unique_ptr<IScript> CreateScript(const std::string& name) const;
+
+        /**
+         * Get a list of all registered script names.
+         * @return Vector containing all registered script names
+         */
+        std::vector<std::string> GetRegisteredScriptNames() const;
+
+        // === DLL Loading Management ===
+        /**
+         * Load a game DLL and register its scripts.
+         * @param dllPath Path to the DLL file
+         * @return true if successfully loaded and registered, false otherwise
+         */
+        bool LoadGameDLL(const std::string& dllPath);
+
+        /**
+         * Load all DLLs in a specified directory.
+         * @param directory Directory to scan for DLL files
+         * @return Number of successfully loaded DLLs
+         */
+        int LoadAllDLLsInDirectory(const std::string& directory);
+
+        /**
+         * Unload a specific DLL by name.
+         * @param dllName Name of the DLL to unload (including .dll extension)
+         * @return true if successfully unloaded, false if not found
+         */
+        bool UnloadDLL(const std::string& dllName);
+
+        /**
+         * Unload all loaded DLLs and clear registered scripts.
+         */
+        void UnloadAllDLLs();
+
+        /**
+         * Get information about all loaded DLLs.
+         * @return Vector of loaded DLL information
+         */
+        const std::vector<LoadedDLL>& GetLoadedDLLs() const;
+
+        /**
+         * Check if a DLL is currently loaded.
+         * @param dllName Name of the DLL to check (including .dll extension)
+         * @return true if loaded, false otherwise
+         */
+        bool IsDLLLoaded(const std::string& dllName) const;
+
+        // === Engine Lifecycle ===
+        /**
+         * Initialize the scripting engine.
+         * Call this after loading all desired DLLs.
+         */
+        void Initialize();
+
+        /**
+         * Shutdown the scripting engine and clean up all resources.
+         */
+        void Shutdown();
+
+        /**
+         * Check if the engine has been initialized.
+         */
+        bool IsInitialized() const;
+
+        // === Error Handling ===
+        /**
+         * Get the last error message from operations.
+         * @return Error message string
+         */
+        const std::string& GetLastError() const;
+
+        // === Utility ===
+        /**
+         * Print a summary of loaded DLLs and registered scripts.
+         */
+        void PrintSummary() const;
+
+        /**
+         * Reload a specific DLL (unload then load again).
+         * Useful for development and hot-reloading.
+         * @param dllPath Path to the DLL file
+         * @return true if successfully reloaded
+         */
+        bool ReloadDLL(const std::string& dllPath);
+
+        /**
+         * Clear all registered scripts without unloading DLLs.
+         * Useful for reloading script registrations.
+         */
+        void ClearRegisteredScripts();
+
+        /**
+     * Get the factory function for a registered script.
+     * @param name The name of the script
+     * @return The function to create the script, or an empty function if not found
+     */
+        std::function<IScript* ()> GetScriptFactory(const std::string& name) const;
 
     private:
-        DLL_HANDLE m_GameCodeDLL = nullptr;
+        // Script registration storage
+        std::unordered_map<std::string, std::function<IScript* ()>> m_scriptFactories;
 
-        // Store a map of script names to their factory functions.
-        using CreateScriptFunc = std::function<IScript* ()>;
-        std::map<std::string, CreateScriptFunc> m_ScriptFactories;
+        // DLL management storage
+        std::vector<LoadedDLL> m_loadedDLLs;
 
-        // The DLL will call this function to register its scripts with the engine.
-        void RegisterScript(const std::string& name, CreateScriptFunc func);
+        // State tracking
+        bool m_initialized;
+        std::string m_lastError;
 
-        // This is how the DLL communicates back to the engine. We make the DLL's
-        // entry function a friend so it can access the private RegisterScript.
-        friend void RegisterEngineScripts(ScriptingEngine*);
+        // === Private Helper Methods ===
+
+        // Script validation
+        void ValidateScriptName(const std::string& name) const;
+
+        // DLL helpers
+        std::string GetDLLName(const std::string& filepath) const;
+        bool ValidateDLLPath(const std::string& path) const;
+        LoadedDLL* FindLoadedDLL(const std::string& dllName);
+        const LoadedDLL* FindLoadedDLL(const std::string& dllName) const;
+
+        // Error handling
+        void SetLastError(const std::string& error);
+        std::string GetSystemError() const;
+
+        // Internal DLL operations
+        bool LoadSingleDLL(const std::string& dllPath);
+        bool UnloadSingleDLL(LoadedDLL& dll);
     };
-}
 
-
-
-
+} // namespace NE::Scripting

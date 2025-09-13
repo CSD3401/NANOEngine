@@ -2,6 +2,7 @@
 
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
+#include "../src/Scripting/ScriptingEngine.hpp"
 
 
 namespace NE::ECS::Systems {
@@ -19,8 +20,11 @@ namespace NE::ECS::Systems {
 
 		void OnScriptComponentDestroyed(Entity entity);
 
+		Scripting::ScriptingEngine* GetScriptingEngine() const { return scriptingEngine.get(); }
+
 	private:
 		ComponentManager* m_componentManager;
+		std::unique_ptr<Scripting::ScriptingEngine> scriptingEngine; // Pointer to the scripting engine
 	};
 
 }

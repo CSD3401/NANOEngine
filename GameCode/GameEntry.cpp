@@ -1,28 +1,34 @@
-// This header is from your 'Engine' project. Visual Studio can find it because
-// we set up the "Additional Include Directories".
-#include "src/Scripting/ScriptingEngine.hpp"
+// GameEntry.cpp
+
+// Include the registrar interface from Engine DLL
 #include "pch.h"
+#include "Scripting/IScriptRegistrar.hpp"
 
-// We also need to include the header for every script we want to register.
-//#include "PlayerScript.h"
 
-// extern "C" is crucial. It tells the C++ compiler not to "mangle" the
-// function name, so our engine can find it by its exact name "RegisterEngineScripts".
+// Include the base script interface
+// Note: If IScript is defined in Engine DLL, include it from there
+// #include "Core/IScript.hpp"
+
+// Include headers for all scripts you want to register
+#include "PlayerScript.hpp"
+
+// extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
-    // __declspec(dllexport) is the Microsoft-specific keyword that makes this
-    // function visible and usable outside of this DLL. This is the magic
-    // that allows your engine to call it.
-    //__declspec(dllexport)
-    //    void RegisterEngineScripts(NE::Scripting::ScriptingEngine* engine) {
-    //    // For every script you create in this project, you must add a line here
-    //    // to tell the engine about it.
+    // Export this function so it can be called from the Engine DLL
+    __declspec(dllexport)
+        void RegisterEngineScripts(NE::Scripting::IScriptRegistrar* registrar) {
 
-    //    // The first argument is the "name" you will use in the editor to refer
-    //    // to the script. The second is a lambda function that creates a new
-    //    // instance of the script object.
-    //    engine->RegisterScript("PlayerScript", []() -> IScript* { return new PlayerScript(); });
+        // Validate that we received a valid registrar
+        if (!registrar) {
+            return;
+        }
 
-    //    // If you created an "EnemyAI" script, you would add it like this:
-    //    // engine->RegisterScript("EnemyAI", []() -> IScript* { return new EnemyAI(); });
-    //}
+      
+        // Register all your game-specific scripts here
+        registrar->RegisterScript("PlayerScript", []() -> IScript* {
+            return new PlayerScript();
+            });
+
+       
+    }
 }

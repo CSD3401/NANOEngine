@@ -7,9 +7,14 @@
 #include "../ECS/Systems/ColliderSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "ECS/Systems/ScriptSystem.hpp"
+#include "ECS/Components/NativeScript.hpp"
+#include <iostream>
 
 
 namespace NE::SceneManagement {
+
+	NE::ECS::Entity dummy{};
 
 	void Scene::Init() {
 		// input
@@ -18,6 +23,21 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
+		m_ecsCoordinator.m_scriptSystem->Init();
+
+		//dummy = m_ecsCoordinator.CreateEntity(); // Test entity for scripting
+		//NE::ECS::Component::NativeScript scriptComponent;
+		//scriptComponent.ScriptName = "PlayerScript";
+
+		//scriptComponent.CreateScript = m_ecsCoordinator.m_scriptSystem->GetScriptingEngine()->GetScriptFactory("PlayerScript");
+
+		//if (!scriptComponent.CreateScript) {
+		//	std::cerr << "TEST FAILED: Could not find factory for 'PlayerScript'." << std::endl;
+		//}
+		//else {
+		//	m_ecsCoordinator.AddComponent(dummy, scriptComponent);
+		//}
+	
 	}
 
 	void Scene::Update(double dt)
@@ -26,6 +46,11 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
+
+
+		////Script tmp test
+		//std::cout << "--- Update test ---" << std::endl;
+		//m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
 
 	void Scene::Render(RenderPass pass) {
@@ -45,6 +70,12 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
+
+		
+		/*std::cout << "\n--- Simulating Entity Destruction ---\n" << std::endl;
+		m_ecsCoordinator.m_scriptSystem->OnScriptComponentDestroyed(dummy);*/
+		m_ecsCoordinator.m_scriptSystem->Exit();
+		
 	}
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator()

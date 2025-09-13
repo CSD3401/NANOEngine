@@ -4,7 +4,7 @@
 #include <functional>
 
 namespace NE::ECS::Component {
-    struct NativeScriptComponent {
+    struct NativeScript {
         std::string ScriptName; // The name of the script class, e.g., "PlayerScript"
 
         IScript* Instance = nullptr;

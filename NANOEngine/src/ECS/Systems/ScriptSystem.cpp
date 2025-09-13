@@ -3,47 +3,93 @@
 #include "../Components/NativeScript.hpp"
 
 namespace NE::ECS::Systems {
-  
-        void ScriptSystem::Update(double deltaTime) {
-            
 
-            const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScriptComponent>();
-            for (Entity entity : entities) {
+    ScriptSystem::ScriptSystem(ComponentManager* cm)
+        : m_componentManager(cm) {
+        // Constructor body can be empty if you just need to initialize members
+    }
 
-				auto& nsc = m_componentManager->GetComponent<Component::NativeScriptComponent>(entity);
-                
-                if (nsc.CreateScript && !nsc.Instance) {
-                    // Instantiate the script
-                    nsc.Instance = nsc.CreateScript();
+    // === ADD THESE MISSING LIFECYCLE FUNCTIONS ===
+    // Even if they are empty, they need to be defined
+    void ScriptSystem::OnEntityAdded(Entity entity) {
+        // Logic for when an entity relevant to the script system is added
 
-                    // Give the script a handle to its entity owner
-                    nsc.Instance->SetEntity(entity);
+        entity;
+    }
 
-                    // Call the creation lifecycle method
-                    nsc.Instance->OnCreate();
-                    std::cout << "Created script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
-                }
-            }
+    void ScriptSystem::OnEntityRemoved(Entity entity) {
+        // You should probably call OnScriptComponentDestroyed here if the entity
+        // has a script component, to ensure proper cleanup.
+        entity;
+    }
 
-            // Update all active scripts
-            // Iterate over all entities with an active script instance.
-            for (Entity entity : entities) {
-                auto& nsc = m_componentManager->GetComponent<Component::NativeScriptComponent>(entity);
-                if (nsc.Instance) {
-                    nsc.Instance->OnUpdate(deltaTime);
-                }
+    void ScriptSystem::Init() {
+        // Logic to initialize the system when a scene loads
+        scriptingEngine = std::make_unique<Scripting::ScriptingEngine>();
+        //Scripting Test
+        const std::string dllPath = "GameCode.dll";
+        bool loaded = scriptingEngine->LoadGameDLL(dllPath);
+
+        if (!loaded) {
+            std::cerr << "TEST FAILED: Could not load " << dllPath << std::endl;
+            std::cerr << "Error: " << scriptingEngine->GetLastError() << std::endl;
+        }
+        else {
+            std::cout << "DLL loaded successfully." << std::endl;
+
+            scriptingEngine->PrintSummary();
+           
+        }
+    }
+
+    void ScriptSystem::Exit() {
+        // Logic to clean up the system when a scene unloads
+
+        std::cout << "\n--- SCRIPT SYSTEM TEST COMPLETE ---\n" << std::endl;
+        scriptingEngine->Shutdown(); //tmp
+    }
+
+    void ScriptSystem::Update(double deltaTime) {
+        const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
+
+        // First loop: Instantiate and Initialize new scripts
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+
+            if (nsc.CreateScript && !nsc.Instance) {
+                // Instantiate the script
+                nsc.Instance = nsc.CreateScript();
+
+                // Give the script a handle to its entity owner
+                nsc.Instance->SetEntity(entity);
+
+                nsc.Instance->Initialize(entity);
+
+                std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
             }
         }
 
-        // You also need to handle script destruction. This is often done by listening
-        // for component removal events in your ECS.
-        void ScriptSystem::OnScriptComponentDestroyed(Entity entity) {
-            auto& nsc = m_componentManager->GetComponent<Component::NativeScriptComponent>(entity);
-            if (nsc.Instance) {
-                nsc.Instance->OnDestroy();
+        // Second loop: Update all active scripts
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+            if (nsc.Instance && nsc.Instance->IsEnabled()) {
+                nsc.Instance->Update(deltaTime);
+            }
+        }
+    }
+
+    void ScriptSystem::OnScriptComponentDestroyed(Entity entity) {
+        auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+        if (nsc.Instance) {
+            nsc.Instance->OnDestroy();
+            if (nsc.DestroyScript) {
                 nsc.DestroyScript(nsc.Instance);
-                nsc.Instance = nullptr;
-                std::cout << "Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
             }
+            else {
+                delete nsc.Instance; // Fallback
+            }
+            nsc.Instance = nullptr;
+            std::cout << "Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
         }
+    }
 }
