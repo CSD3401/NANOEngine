@@ -1,6 +1,7 @@
 #include "RenderSystem.hpp"
 #include "../Components/Renderer.hpp"
 #include "../Components/Transform.hpp"
+#include "../Components/Collider.hpp"
 #include "../Components/Light.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 
@@ -17,9 +18,17 @@
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Core/Profiler.hpp"
 #include <glad/glad.h>
+#include "AssetManager.hpp"
+
+#include <iostream>
+
+using namespace NE::Math;
+using NE::Graphics::Frustum;
+using NE::Graphics::GraphicsManager;
 
 namespace NE::ECS::Systems {
 
+    // temp stuff
     static std::shared_ptr<Graphics::IShader> pickingShader;
     static std::shared_ptr<Graphics::IPipeline> pickingPipeline;
     static std::shared_ptr<Graphics::Material> pickingMaterial;
@@ -38,6 +47,14 @@ namespace NE::ECS::Systems {
 
     void RenderSystem::Init()
     {
+        const auto& entities = GetEntities(); // maybe use sparseset next time?
+        for (Entity entity : entities) {
+            auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+
+            // reminder to myself to fix this assetmanager thingamajig
+            renderer.model = NE::Asset::AssetManager::GetInstance().Get<Graphics::Model>(renderer.modelPath.string());
+            renderer.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(renderer.materialPath.string(), false);
+        }
    //     const auto& entities = GetEntities();
    //     for (Entity entity : entities) {
 			//auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
@@ -64,15 +81,30 @@ namespace NE::ECS::Systems {
 
     void RenderSystem::Update(double) {
 		NE_PROFILE_FUNCTION();
+
+        FrustumCulling();
+
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
-            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+            if (!renderer.visible || !renderer.model) continue;
+
+            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+
+            //if (!renderer.visible)
+            //{
+            //    std::cout << "entity is outside of frustum, not rendered" << std::endl;
+            //    continue;
+            //}
+            //else
+            //{
+            //    std::cout << "entity is inside frustum, rendered" << std::endl;
+            //}
 
 			//if (!renderer.model && !renderer.modelPath.empty())
 				//renderer.model = Graphics::LoadModel(renderer.modelPath.string());
-			if (!renderer.model)
-				continue;
+			//if (!renderer.model)
+			//	continue;
 
 			for (auto& sub : renderer.model->meshes) {
 				Graphics::DrawCommand cmd;
@@ -93,13 +125,14 @@ namespace NE::ECS::Systems {
     void RenderSystem::RenderPicking() {
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
-            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+            if (!renderer.visible || !renderer.model) continue;
+            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
             //if (!renderer.model && !renderer.modelPath.empty())
             //    renderer.model = Graphics::LoadModel(renderer.modelPath.string());
-            if (!renderer.model)
-                continue;
+            //if (!renderer.model)
+            //    continue;
 
             float r = (float)(entity & 0xFF) / 255.0f;
             float g = (float)((entity >> 8) & 0xFF) / 255.0f;
@@ -118,6 +151,104 @@ namespace NE::ECS::Systems {
 
     void RenderSystem::Exit()
     {
+    }
+
+    Frustum RenderSystem::BuildFrustum() {
+        auto* cam = GraphicsManager::GetCamera();
+
+        if (!cam)
+        {
+            return Frustum::ExtractPlanesFromVP(Mat4{}); // default
+        }
+
+        const Mat4& V = cam->GetViewMatrix();
+        const Mat4& P = cam->GetProjectionMatrix();
+
+        Mat4 nonConstPCopy = P;
+        return Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
+    }
+
+    bool RenderSystem::TestSphereFrustum(const Frustum& F, const Mat4& M, const Vec3& centerLS, float radiusLS) {
+        // transform center from local space to world space
+        Vec3 centerWS{
+            M.a[0] * centerLS.x + M.a[4] * centerLS.y + M.a[8] * centerLS.z + M.a[12],
+            M.a[1] * centerLS.x + M.a[5] * centerLS.y + M.a[9] * centerLS.z + M.a[13],
+            M.a[2] * centerLS.x + M.a[6] * centerLS.y + M.a[10] * centerLS.z + M.a[14]
+        };
+
+        // get the scaling factors
+        Vec3 scale = M.GetScale();
+
+        // compute the radius in world space using the largest scaling factor
+        float radiusWS = radiusLS * std::max({ scale.x, scale.y, scale.z });
+
+        // test intersection of bounding sphere with frustum
+        return F.IntersectsSphere(centerWS, radiusWS);
+    }
+
+
+    //bool RenderSystem::TestAABBFrustum(const Frustum& F, const Mat4& M, const NE::Math::Vec3& minLS, const NE::Math::Vec3& maxLS) {
+    //    // 8 local corners of the AABB
+    //    const Vec3 cornersLS[8]{
+    //        {minLS.x, minLS.y, minLS.z},
+    //        {maxLS.x, minLS.y, minLS.z},
+    //        {minLS.x, maxLS.y, minLS.z},
+    //        {maxLS.x, maxLS.y, minLS.z},
+    //        {minLS.x, minLS.y, maxLS.z},
+    //        {maxLS.x, minLS.y, maxLS.z},
+    //        {minLS.x, maxLS.y, maxLS.z},
+    //        {maxLS.x, maxLS.y, maxLS.z},
+    //    };
+
+    //    // helps to transform a point in local space to world space
+    //    auto pointLSToWS = [](const Mat4& matrix, const Vec3& p) -> Vec3 {
+    //        return Vec3{
+    //            matrix.a[0] * p.x + matrix.a[4] * p.y + matrix.a[8] * p.z + matrix.a[12],
+    //            matrix.a[1] * p.x + matrix.a[5] * p.y + matrix.a[9] * p.z + matrix.a[13],
+    //            matrix.a[2] * p.x + matrix.a[6] * p.y + matrix.a[10] * p.z + matrix.a[14]
+    //        };
+    //        };
+
+    //    // seed with first corner
+    //    Vec3 minWS = pointLSToWS(M, cornersLS[0]);
+    //    Vec3 maxWS = minWS;
+
+    //    // continue with the remaining corners
+    //    for (int i = 1; i < 8; ++i)
+    //    {
+    //        Vec3 cornerWS = pointLSToWS(M, cornersLS[i]);
+    //        minWS = Vec3{ std::min(minWS.x, cornerWS.x), std::min(minWS.y, cornerWS.y), std::min(minWS.z, cornerWS.z) };
+    //        maxWS = Vec3{ std::max(maxWS.x, cornerWS.x), std::max(maxWS.y, cornerWS.y), std::max(maxWS.z, cornerWS.z) };
+    //    }
+
+    //    // test intersection of AABB with frustum
+    //    return F.IntersectsAABB(minWS, maxWS);
+    //}
+
+    void RenderSystem::FrustumCulling() {
+        // build frustum from the active camera
+        const Frustum frustum = BuildFrustum();
+
+        const auto& entities = GetEntities();
+        for (Entity e : entities)
+        {
+            const auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(e);
+            auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
+
+            const Mat4& modelMatrix = transform.modelMatrix;
+
+            if (renderer.model && renderer.model->hasSphereBoundsLS)
+            {
+                const Vec3 centerLS = renderer.model->sphereCenterLS;
+                const float radiusLS = renderer.model->sphereRadiusLS;
+
+                renderer.visible = TestSphereFrustum(frustum, modelMatrix, centerLS, radiusLS);
+            }
+            else
+            {
+                renderer.visible = TestSphereFrustum(frustum, modelMatrix, Vec3(0.0f), 0.5f); // default
+            }
+        }
     }
 
 }

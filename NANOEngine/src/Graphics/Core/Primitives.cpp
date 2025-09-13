@@ -66,6 +66,9 @@ namespace NE::Graphics {
             static_cast<uint32_t>(sub.indices.size()));
         sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
         model->meshes.push_back(std::move(sub));
+
+        model->ComputeModelSphereBounds();
+
         return model;
     }
 
@@ -94,6 +97,9 @@ namespace NE::Graphics {
             static_cast<uint32_t>(sub.indices.size()));
         sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
         model->meshes.push_back(std::move(sub));
+
+        model->ComputeModelSphereBounds();
+
         return model;
     }
 
@@ -172,6 +178,9 @@ namespace NE::Graphics {
             static_cast<uint32_t>(sub.indices.size()));
         sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
         model->meshes.push_back(std::move(sub));
+
+        model->ComputeModelSphereBounds();
+
         return model;
     }
 

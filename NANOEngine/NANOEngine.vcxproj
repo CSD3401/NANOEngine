@@ -19,18 +19,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
     <ClInclude Include="src\Core\API.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
     <ClInclude Include="src\Scripting\IScript.hpp" />
     <ClInclude Include="src\ECS\Components\NativeScript.hpp" />
     <ClInclude Include="src\Scripting\ScriptingEngine.hpp" />
     <ClInclude Include="src\Core\SpdLogger.hpp" />
+    <ClInclude Include="src\ECS\Components\ComponentKey.hpp" />
     <ClInclude Include="src\ECS\Components\EntityMeta.hpp" />
     <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
     <ClInclude Include="src\EditorInterface\ECSExports.hpp" />
     <ClInclude Include="src\EditorInterface\RendererExports.hpp" />
     <ClInclude Include="src\EngineState.hpp" />
+    <ClInclude Include="src\Graphics\Core\Frustum.hpp" />
     <ClInclude Include="src\Physics\JoltDebugRenderer.hpp" />
     <ClInclude Include="src\Physics\PhysicsManager.hpp" />
     <ClInclude Include="src\ECS\Components\Collider.hpp" />
@@ -101,9 +104,13 @@
     <ClInclude Include="src\Serialisation\ISceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\ReflectionJson.hpp" />
+    <ClInclude Include="src\Tween\Tween.hpp" />
+    <ClInclude Include="src\Tween\TweenBase.hpp" />
+    <ClInclude Include="src\Tween\TweenManager.hpp" />
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
     <ClCompile Include="src\Scripting\ScriptingEngine.cpp" />
     <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
@@ -111,6 +118,7 @@
     <ClCompile Include="src\EditorInterface\ECSExports.cpp" />
     <ClCompile Include="src\EditorInterface\RendererExports.cpp" />
     <ClCompile Include="src\EngineState.cpp" />
+    <ClCompile Include="src\Graphics\Core\Frustum.cpp" />
     <ClCompile Include="src\Physics\JoltDebugRenderer.cpp" />
     <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
@@ -150,6 +158,8 @@
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
     <ClCompile Include="src\AssetManager.cpp" />
+    <ClCompile Include="src\Tween\TweenBase.cpp" />
+    <ClCompile Include="src\Tween\TweenManager.cpp" />
     <ClCompile Include="src\Utility\MetadataHandler.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -250,18 +260,21 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\lib\assimp\Debug;$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\assimp\$(Configuration);$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\$(Configuration);$(ProjectDir)vendor\lib\glfw;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
 </Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -274,14 +287,14 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\assimp\lib\Release;$(ProjectDir)vendor\libs\zlib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)vendor\assimp\lib\$(Configuration);$(ProjectDir)vendor\libs\zlib\$(Configuration);$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\glfw;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mt.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>

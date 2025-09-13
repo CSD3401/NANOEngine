@@ -6,10 +6,16 @@
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
 #include <ECS/Core/Entity.hpp>
+#include <Engine.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
         EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
+
+        auto numEntt = NE::GetNumEntities();
+        for (unsigned int i = 0; i < numEntt; ++i) {
+            EditorScene::s_entities.push_back(EditorEntity{ i });
+        }
 	}
 
 	void HierarchyPanel::OnImGuiRender()
@@ -67,8 +73,15 @@ namespace Editor {
             bool opened = ImGui::TreeNodeEx((void*)(uintptr_t)entity.linkedEntity, flags, "%s", label.c_str());
 
             // === Click Selection ===
-            if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+            if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+            {
                 EditorScene::s_selectedEntity = &entity;
+            }
+
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+            {
+                // Broadcast message
+                NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
             }
 
             // === Right-click entity for context menu ===

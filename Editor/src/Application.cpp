@@ -1,9 +1,9 @@
 #include "Application.hpp"
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
-#include "GLFW/glfw3.h"
+#include "glfw/glfw3.h"
 #include "Core/Logger.hpp"
-#include "Core/SpdLogger.hpp"
+//#include "Core/SpdLogger.hpp"
 
 #include "ImGuiLayer.hpp"
 #include "EditorLayer.hpp"
@@ -20,8 +20,9 @@
 #include "Panels/GamePanel.hpp"
 #include "Panels/HistoryPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
+#include "Panels/LoggerPanel.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb_image\stb_image.h>
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -53,6 +54,26 @@ namespace Editor {
 
 		NE::Initialize();
 
+		//// Testing the SpdLogger
+		SPD_INFO("=== SpdLogger Test Started ===");
+		SPD_DEBUG("This is a debug message with some data: ", 42);
+		SPD_INFO("Application initializing...");
+		SPD_WARNING("This is a warning message");
+		SPD_ERROR("This is an error message (not a real error!)");
+		SPD_CRITICAL("This is a critical message (not a real critical issue!)");
+
+		// test log level filtering - set to Info level (should hide debug messages)
+		SPD_INFO("Setting log level to Info - debug messages should be hidden");
+		SpdLogger::GetInstance().SetMinLogLevel(SpdLogLevel::Info);
+		SPD_DEBUG("This debug message should NOT appear in console or panel");
+		SPD_INFO("This info message should appear");
+
+		// reset to show all logs
+		SPD_INFO("Resetting log level to Debug - all messages should appear again");
+		SpdLogger::GetInstance().SetMinLogLevel(SpdLogLevel::Debug);
+		SPD_DEBUG("This debug message should now appear again");
+		SPD_INFO("=== SpdLogger Test Completed ===");
+
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
 		glfwSetWindowIcon(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), 1, &icon);
@@ -75,12 +96,14 @@ namespace Editor {
 		InitImGui(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()));
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
+		NE::LoadStartupScene();
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
-		editorLayer.AddPanel<HistoryPanel>();
+		//editorLayer.AddPanel<HistoryPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
+		editorLayer.AddPanel<LoggerPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
 	}
@@ -95,7 +118,6 @@ namespace Editor {
 			
 			//SPD_INFO(timer.GetFPS());
 
-			
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
