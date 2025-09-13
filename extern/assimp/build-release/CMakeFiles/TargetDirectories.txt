@@ -1,0 +1,10 @@
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/CMakeFiles/uninstall.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/CMakeFiles/UpdateAssimpLibsDebugSymbolsAndDLLs.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/CMakeFiles/INSTALL.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/CMakeFiles/ALL_BUILD.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/CMakeFiles/ZERO_CHECK.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/contrib/zlib/CMakeFiles/zlibstatic.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/contrib/zlib/CMakeFiles/INSTALL.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/contrib/zlib/CMakeFiles/ALL_BUILD.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/code/CMakeFiles/assimp.dir
+C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-release/code/CMakeFiles/INSTALL.dir

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\user\Documents\GitHub\NANOEngine\extern\jolt\build-release\CMakeFiles\0c500c5d839c550f47c7b177dabee06c\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{10B1132C-5BC2-39C9-8292-B3DB74705F0A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

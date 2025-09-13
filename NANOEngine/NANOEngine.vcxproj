@@ -20,7 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\SpdLogger.hpp" />
+    <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
     <ClInclude Include="src\ECS\Components\EntityMeta.hpp" />
+    <ClInclude Include="src\ECS\Systems\AudioSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
     <ClInclude Include="src\EditorInterface\ECSExports.hpp" />
@@ -99,6 +101,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\RigidbodySystem.cpp" />
     <ClCompile Include="src\EditorInterface\ECSExports.cpp" />
@@ -241,7 +244,7 @@
       <PreprocessorDefinitions>NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -249,7 +252,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\lib\assimp\Debug;$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
@@ -265,7 +268,7 @@
       <PreprocessorDefinitions>NANOENGINE_EXPORTS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -275,7 +278,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\lib;$(ProjectDir)vendor\assimp\lib\Release;$(ProjectDir)vendor\libs\zlib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mt.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;assimp-vc143-mt.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"

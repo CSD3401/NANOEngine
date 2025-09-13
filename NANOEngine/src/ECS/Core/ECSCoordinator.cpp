@@ -6,12 +6,14 @@
 #include "../Components/Rigidbody.hpp"
 #include "../Components/Collider.hpp"
 #include "../Components/EntityMeta.hpp"
+#include "../Components/AudioSource.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
 #include "../Systems/LightSystem.hpp"
 #include "../Systems/RigidbodySystem.hpp"
 #include "../Systems/ColliderSystem.hpp"
+#include "../Systems/AudioSystem.hpp"
 
 
 namespace NE::ECS {
@@ -28,6 +30,7 @@ namespace NE::ECS {
         RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Collider>();
         RegisterComponent<Component::Light>();
+        RegisterComponent<Component::AudioSource>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -61,6 +64,13 @@ namespace NE::ECS {
             Signature sig;
             sig.set(GetComponentType<Component::Collider>());
             SetSystemSignature<Systems::ColliderSystem>(sig);
+        }
+
+        m_audioSystem = m_systemManager->RegisterSystem<Systems::AudioSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::AudioSource>());
+            SetSystemSignature<Systems::AudioSystem>(sig);
         }
     }
 

@@ -444,6 +444,12 @@ namespace Editor {
                 if (ImGui::MenuItem("Light")) {
                     NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
+
+                // RF change here next time
+                if (ImGui::MenuItem("AudioSource")) {
+                    NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+
                 ImGui::EndPopup();
             }
 

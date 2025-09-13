@@ -5,6 +5,7 @@
 #include "../ECS/Systems/LightSystem.hpp"
 #include "../ECS/Systems/RigidbodySystem.hpp"
 #include "../ECS/Systems/ColliderSystem.hpp"
+#include "../ECS/Systems/AudioSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 
@@ -18,6 +19,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
+		m_ecsCoordinator.m_audioSystem->Init();
 	}
 
 
@@ -32,6 +34,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Update(dt);
 		Graphics::GraphicsManager::DrawDebugLines();
 		Graphics::GraphicsManager::EndFrame();
+		m_ecsCoordinator.m_audioSystem->Update(dt);
 	}
 
 	void Scene::RenderPicking() // TEMP hopefully can be optimized so i dont run twice
@@ -48,6 +51,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
+		m_ecsCoordinator.m_audioSystem->Exit();
 	}
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator()

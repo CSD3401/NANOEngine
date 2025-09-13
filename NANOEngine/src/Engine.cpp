@@ -19,6 +19,7 @@
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"
 
+
 namespace NE {
 
 	static std::unique_ptr<Graphics::Window> s_window;
