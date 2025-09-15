@@ -491,8 +491,6 @@ private:
     std::abort(); \
 } while(0)
 
-// Backwards compatibility aliases
-#define SPD_CRITICAL_WITH_BACKTRACE(...) SPD_CRASH_LOG(__VA_ARGS__)
-#define SPD_FATAL(...) SPD_FATAL_CRASH(__VA_ARGS__)
+
 
 #endif

@@ -231,18 +231,6 @@ namespace Editor {
             m_showError = m_showCritical = true;
         }
 
-        ImGui::SameLine();
-        // Save crash log manually (for testing or emergency situations)
-        if (ImGui::Button("Save Crash Log")) {
-            SpdLogger::GetInstance().SaveCrashLog("Manual crash log requested by user");
-        }
-
-        ImGui::SameLine();
-        // Test crash logging with critical error
-        if (ImGui::Button("Test Crash")) {
-            SPD_CRASH_LOG("Testing crash logging system - simulated critical error");
-        }
-
         // Crash simulation buttons (for testing only - remove in production!)
         ImGui::SameLine();
         if (ImGui::Button("[Crash: Access Violation")) {
