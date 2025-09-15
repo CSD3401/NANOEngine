@@ -17,7 +17,7 @@ prior written consent of DigiPen Institute of Technology is prohibited.
 #include <cctype>
 
 namespace Editor {
-    /*!
+   /*!
     \brief Constructor - initializes the logger panel with default settings
     */
 
@@ -204,7 +204,7 @@ namespace Editor {
 
     /*!
     \brief Renders control buttons for log management and quick filter presets
-           Provides Clear Logs, All, None, and Errors Only functionality
+           Provides Clear Logs, All, None, and Errors Only functionality plus crash logging
     */
     void LoggerPanel::RenderControlButtons() {
         // Control buttons
@@ -229,6 +229,43 @@ namespace Editor {
         if (ImGui::Button("Errors Only")) {
             m_showDebug = m_showInfo = m_showWarning = false;
             m_showError = m_showCritical = true;
+        }
+
+        ImGui::SameLine();
+        // Save crash log manually (for testing or emergency situations)
+        if (ImGui::Button("Save Crash Log")) {
+            SpdLogger::GetInstance().SaveCrashLog("Manual crash log requested by user");
+        }
+
+        ImGui::SameLine();
+        // Test crash logging with critical error
+        if (ImGui::Button("Test Crash")) {
+            SPD_CRASH_LOG("Testing crash logging system - simulated critical error");
+        }
+
+        // Crash simulation buttons (for testing only - remove in production!)
+        ImGui::SameLine();
+        if (ImGui::Button("[Crash: Access Violation")) {
+            SPD_CRASH_LOG("Simulating access violation crash");
+            // Force access violation
+            int* null_ptr = nullptr;
+            *null_ptr = 42;  // This will crash with access violation
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Crash: Stack Overflow")) {
+            SPD_CRASH_LOG("Simulating stack overflow crash");
+            // Force stack overflow with infinite recursion
+            std::function<void()> infiniteRecursion = [&]() {
+                infiniteRecursion();
+            };
+            infiniteRecursion();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Crash: Abort")) {
+            SPD_FATAL_CRASH("Simulating controlled crash via abort()");
+            // This will call SaveCrashLog() then abort()
         }
     }
 }
