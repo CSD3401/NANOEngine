@@ -2,6 +2,7 @@
 #define NANOENGINE_ECS_ENTITY_HPP
 
 #include <cstdint>
+#include <limits>
 
 namespace NE::ECS {
 
