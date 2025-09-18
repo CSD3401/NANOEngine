@@ -2,8 +2,8 @@
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
-#include "Core/Logger.hpp"
-//#include "Core/SpdLogger.hpp"
+//#include "Core/Logger.hpp"
+#include "Core/SpdLogger.hpp"
 
 #include "ImGuiLayer.hpp"
 #include "EditorLayer.hpp"
@@ -53,30 +53,20 @@ namespace Editor {
 		//};
 
 		NE::Initialize();
+		
+		// Enable crash-only logging instead of continuous file logging
+		SpdLogger::GetInstance().EnableCrashOnlyLogging("crash_logs/");
 
-		//// Testing the SpdLogger
-		SPD_INFO("=== SpdLogger Test Started ===");
-		SPD_DEBUG("This is a debug message with some data: ", 42);
-		SPD_INFO("Application initializing...");
-		SPD_WARNING("This is a warning message");
-		SPD_ERROR("This is an error message (not a real error!)");
-		SPD_CRITICAL("This is a critical message (not a real critical issue!)");
-
-		// test log level filtering - set to Info level (should hide debug messages)
-		SPD_INFO("Setting log level to Info - debug messages should be hidden");
-		SpdLogger::GetInstance().SetMinLogLevel(SpdLogLevel::Info);
-		SPD_DEBUG("This debug message should NOT appear in console or panel");
-		SPD_INFO("This info message should appear");
-
-		// reset to show all logs
-		SPD_INFO("Resetting log level to Debug - all messages should appear again");
-		SpdLogger::GetInstance().SetMinLogLevel(SpdLogLevel::Debug);
-		SPD_DEBUG("This debug message should now appear again");
-		SPD_INFO("=== SpdLogger Test Completed ===");
+		// Testing the SpdLogger with some demo messages
+		SPD_INFO("=== NANOEngine Application Started ===");
+		SPD_DEBUG("Initialization in progress...");
+		SPD_INFO("Graphics API: OpenGL");
+		SPD_DEBUG("Window creation completed");
+		SPD_INFO("ImGui integration active");
 
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
-		glfwSetWindowIcon(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), 1, &icon);
+			glfwSetWindowIcon(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), 1, &icon);
 
 		GLuint texID;
 		glGenTextures(1, &texID);
@@ -106,6 +96,10 @@ namespace Editor {
 		editorLayer.AddPanel<LoggerPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
+
+		SPD_INFO("=== Application initialization complete ===");
+		SPD_DEBUG("All panels loaded successfully");
+		SPD_INFO("Ready for user interaction");
 	}
 
 	void Application::Run()
