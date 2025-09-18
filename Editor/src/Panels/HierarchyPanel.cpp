@@ -80,6 +80,7 @@ namespace Editor {
 
             if (ImGui::MenuItem("Create Entity")) {
                 NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
+                Editor::EditorScene::BuildFlatHierarchy();
                 // need to add into display list also currently creates but not shown in hierarchy
             }
             if (ImGui::BeginMenu("3D Object")) { // Creates a submenu with an arrow
