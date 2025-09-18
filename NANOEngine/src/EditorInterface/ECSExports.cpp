@@ -6,6 +6,7 @@
 #include "../ECS/Components/Light.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/Collider.hpp"
+#include "../ECS/Components/NativeScript.hpp"
 #include "../SceneManagement/Scene.hpp"
 
 namespace NE {
@@ -77,6 +78,12 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
 		}
 
+		void AddScriptComponent(uint32_t e) {
+			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e))
+				return;
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{});
+		}
+
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -99,6 +106,10 @@ namespace NE::ECS {
 
 		Component::Collider& GetEntityCollider(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(e);
+		}
+
+		Component::NativeScript& GetEntityScript(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
 	}
 
