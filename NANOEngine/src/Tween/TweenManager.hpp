@@ -26,6 +26,15 @@ public:
 		float duration,
 		TweenType type = TweenType::CUBIC_EASE_IN);
 
+	template <typename V, typename U, typename Object>
+	void StartTweenRotation(
+		Object* obj,
+		void (Object::* setter)(V),
+		U const& start,
+		U const& end,
+		float duration,
+		TweenType type = TweenType::CUBIC_EASE_IN);
+
 	template <typename Object>
 	bool CheckTween(Object* obj);
 
@@ -47,6 +56,18 @@ void TweenManager::StartTween(
 	TweenType type)
 {
 	tweens.push_back(std::make_unique<Tween<V, U, Object>>(object, setter, start, end, duration, type));
+}
+
+template <typename V, typename U, typename Object>
+void TweenManager::StartTweenRotation(
+	Object* object,
+	void (Object::* setter)(V),
+	U const& start,
+	U const& end,
+	float duration,
+	TweenType type)
+{
+	tweens.push_back(std::make_unique<Tween<V, U, Object>>(object, setter, start, end, duration, type, true));
 }
 
 template <typename Object>
