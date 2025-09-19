@@ -21,6 +21,7 @@
 #include "SceneManagement/SceneManager.hpp"
 #include "Tween/TweenManager.hpp"
 
+
 namespace NE {
 
 	static std::unique_ptr<Graphics::Window> s_window;
@@ -29,6 +30,8 @@ namespace NE {
 	static std::unique_ptr<Graphics::IFrameBuffer> s_pickingFrameBuffer; // temp
 
 	static SceneManagement::SceneManager gSceneManager;
+
+	
 
 	void Initialize() {
 		NE_PROFILE_FUNCTION();
