@@ -25,6 +25,7 @@ namespace NE::Graphics {
         virtual void SetUniformVec3(const std::string& name, const Vec3& value) = 0;
         virtual void SetUniformMat4(const std::string& name, const Mat4& matrix) = 0;
 
+		virtual const uint32_t GetProgramID() const = 0;
 		virtual const std::string_view GetUUID() const = 0;
     };
 

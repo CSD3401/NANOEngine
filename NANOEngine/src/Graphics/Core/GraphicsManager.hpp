@@ -3,6 +3,7 @@
 #include "../Interfaces/ICommandBuffer.hpp"
 #include "../Interfaces/IPipeline.hpp"
 #include "../Interfaces/IGeometryBuffer.hpp"
+#include "../Interfaces/IStateCache.hpp"
 #include "Material.hpp"
 #include "../../Math/Mat4.hpp"
 
@@ -56,6 +57,9 @@ namespace NE::Graphics {
 
         // Gizmo Drawing
         static std::vector<DebugLine> s_DebugLines;
+
+		// Pipeline state cache
+		static std::unique_ptr<IStateCache> s_StateCache;
     };
 
 }

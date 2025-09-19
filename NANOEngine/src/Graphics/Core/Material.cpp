@@ -54,8 +54,12 @@ namespace NE::Graphics {
         m_Textures[uName] = std::move(texture);
     }
 
+    void Material::SetRenderQueue(uint16_t queue) {
+		m_RenderQueue = queue;
+    }
+
     void Material::Bind() const {
-        m_Pipeline->Bind();
+        //m_Pipeline->Bind();
 
         auto* shader = m_Pipeline->GetSpecification().shader.get();
         for (const auto& [uName, val] : m_FloatUniforms)

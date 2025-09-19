@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Graphics\Interfaces\IStateCache.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLStateCache.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
     <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
@@ -110,6 +112,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
     <ClCompile Include="src\Scripting\IScript.cpp" />
     <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />

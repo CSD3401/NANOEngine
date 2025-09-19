@@ -28,6 +28,7 @@ namespace NE::Graphics {
         void SetUniformVec3(const std::string& name, const Vec3& value);
         void SetUniformMat4(const std::string& name, const Mat4& value);
         void SetTexture(const std::string& name, std::shared_ptr<ITexture> texture);
+        void SetRenderQueue(uint16_t queue);
 
         void Bind() const;
 
@@ -52,6 +53,8 @@ namespace NE::Graphics {
 
         // Texture units (assume 1 per name for now)
         std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
+
+		uint16_t m_RenderQueue = 0;
 	};
 
     void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);

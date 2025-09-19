@@ -12,6 +12,7 @@
 #include "../OpenGL/GLPipeline.hpp"
 #include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
+#include "../OpenGL/GLStateCache.hpp"
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
@@ -23,12 +24,14 @@ namespace NE::Graphics {
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
     std::unique_ptr<Skybox> GraphicsManager::s_skybox;
     Camera* GraphicsManager::s_ActiveCamera = nullptr;
+	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
+        s_StateCache = std::make_unique<OpenGL::GLStateCache>();
 
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
@@ -49,6 +52,9 @@ namespace NE::Graphics {
     void GraphicsManager::BeginFrame() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(1.f, 1.f, 1.f, 1.f);
+
+		s_StateCache->InvalidateAll();
+
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
     }
@@ -62,7 +68,10 @@ namespace NE::Graphics {
     void GraphicsManager::Submit(const DrawCommand& command) {
         NE_PROFILE_FUNCTION();
         // Bind the pipeline (shader program + GL state)
-        s_CommandBuffer->BindPipeline(command.material->GetPipeline());
+        //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
+
+        // Bind pipeline state and update the cache
+        s_StateCache->Bind(command.material->GetPipeline());
 
         // Bind the vertex/index buffers
         command.mesh->Bind();
@@ -230,6 +239,8 @@ namespace NE::Graphics {
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2)); // 2 vertices per line
 
         s_DebugLines.clear();
+
+        s_StateCache->InvalidateAll(); // TEMP
     }
 
 }
