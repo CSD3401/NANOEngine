@@ -185,60 +185,10 @@ namespace Editor {
         std::vector<ImRect> rowRects;
         rowRects.reserve((int)roots.size());
 
-        // We’ll draw a ghost insertion line where the drop would land.
-        // Compute a per-row hit-test and fill previewInsert accordingly.
-        //int rowIndex = 0;
-        //for (int i = 0; i < (int)roots.size(); ++i, ++rowIndex) {
+        hadDragThisFrame = false;
         for (int i = 0; i < (int)roots.size(); ++i) {
             uint32_t id = roots[i];
 
-            // Find displayName from s_entities (flat storage already exists in your code)
-            // Linear scan is OK for now; you can add an id->index map later.
-            //auto* ent = (Editor::EditorEntity*)nullptr;
-            //for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } } // (your s_entities) 
-            //std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
-
-            //ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-
-            //if (Editor::EditorScene::s_selectedEntity && ent == Editor::EditorScene::s_selectedEntity)
-            //    flags |= ImGuiTreeNodeFlags_Selected;
-
-            //// Draw the row
-            //ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
-
-            //// Selection
-            //if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
-            //    Editor::EditorScene::s_selectedEntity = ent;
-            //}
-
-            //// Begin drag
-            //if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-            //    draggingId = id;
-            //    dragParent = 0; // roots for now (will be nodes[id].parent after parenting)
-            //    ImGui::SetDragDropPayload("HIER_ROWINDEX_ID", &draggingId, sizeof(uint32_t));
-            //    ImGui::TextUnformatted(label.c_str());
-            //    ImGui::EndDragDropSource();
-            //}
-
-            //// Drop target: compute whether we are dropping "above" or "below"
-            //// and translate to an insert index.
-            //if (ImGui::BeginDragDropTarget()) {
-            //    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_ROWINDEX_ID")) {
-            //        uint32_t srcId = *(const uint32_t*)p->Data;
-            //        // hit test using item rect
-            //        ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
-            //        float midY = 0.5f * (r.Min.y + r.Max.y);
-            //        const bool dropAbove = (ImGui::GetIO().MousePos.y < midY);
-            //        // where would it land if we release here?
-            //        previewInsert = dropAbove ? i : i + 1;
-            //        // Commit immediately on accept? Prefer committing on mouse release:
-            //        // We'll commit when mouse is released and payload is delivered, which is now.
-            //        Editor::EditorScene::ReorderWithinSiblings(/*parent*/0, srcId, previewInsert);
-            //    }
-            //    ImGui::EndDragDropTarget();
-            //}
-
-            // Optional: draw a thin separator line at previewInsert for nicer UX
             Editor::EditorEntity* ent = nullptr;
             for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } }
             std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
@@ -252,7 +202,10 @@ namespace Editor {
                 flags |= ImGuiTreeNodeFlags_Selected;
 
             // Row
-            ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
+            //ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
+            ImGui::PushID((int)id); // ok even if id==0
+            ImGui::TreeNodeEx("##row", flags, "%s", label.c_str()); // label still unique via "##"
+            ImGui::PopID();
 
             // Selection
             if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
@@ -359,3 +312,52 @@ namespace Editor {
 		ImGui::End();
 	}
 }
+
+
+// Find displayName from s_entities (flat storage already exists in your code)
+// Linear scan is OK for now; you can add an id->index map later.
+//auto* ent = (Editor::EditorEntity*)nullptr;
+//for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } } // (your s_entities) 
+//std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
+
+//ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+//if (Editor::EditorScene::s_selectedEntity && ent == Editor::EditorScene::s_selectedEntity)
+//    flags |= ImGuiTreeNodeFlags_Selected;
+
+//// Draw the row
+//ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
+
+//// Selection
+//if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+//    Editor::EditorScene::s_selectedEntity = ent;
+//}
+
+//// Begin drag
+//if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+//    draggingId = id;
+//    dragParent = 0; // roots for now (will be nodes[id].parent after parenting)
+//    ImGui::SetDragDropPayload("HIER_ROWINDEX_ID", &draggingId, sizeof(uint32_t));
+//    ImGui::TextUnformatted(label.c_str());
+//    ImGui::EndDragDropSource();
+//}
+
+//// Drop target: compute whether we are dropping "above" or "below"
+//// and translate to an insert index.
+//if (ImGui::BeginDragDropTarget()) {
+//    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_ROWINDEX_ID")) {
+//        uint32_t srcId = *(const uint32_t*)p->Data;
+//        // hit test using item rect
+//        ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+//        float midY = 0.5f * (r.Min.y + r.Max.y);
+//        const bool dropAbove = (ImGui::GetIO().MousePos.y < midY);
+//        // where would it land if we release here?
+//        previewInsert = dropAbove ? i : i + 1;
+//        // Commit immediately on accept? Prefer committing on mouse release:
+//        // We'll commit when mouse is released and payload is delivered, which is now.
+//        Editor::EditorScene::ReorderWithinSiblings(/*parent*/0, srcId, previewInsert);
+//    }
+//    ImGui::EndDragDropTarget();
+//}
+
+// Optional: draw a thin separator line at previewInsert for nicer UX
