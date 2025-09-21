@@ -3,6 +3,7 @@
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
 #include "../Components/AudioSource.hpp"
+#include "../Components/Transform.hpp"
 #include "../../../NANOEngine/ThirdParty/include/fmod/fmod.hpp"
 
 
@@ -21,23 +22,24 @@ namespace NE::ECS::Systems
 
 	private:
 		ComponentManager* m_componentManager;
-		void help();
 
 		NE::ECS::Component::AudioSource x;
 
+		// Following function should only have read-only transform
+
 		void ProcessAudioSource(
 			NE::ECS::Component::AudioSource& source,
-			NE::ECS::Component::AudioClip& clip,
+			const NE::ECS::Component::Transform& transform,
 			FMOD::System* system);
 
 		void PlayAudio(
 			NE::ECS::Component::AudioSource& source,
-			NE::ECS::Component::AudioClip& clip,
+			const NE::ECS::Component::Transform& transform,
 			FMOD::System* system);
 
 		void UpdateAudioPlayback(
 			NE::ECS::Component::AudioSource& source,
-			NE::ECS::Component::AudioClip& clip,
+			const NE::ECS::Component::Transform& transform,
 			FMOD::System* system);
 	};
 }

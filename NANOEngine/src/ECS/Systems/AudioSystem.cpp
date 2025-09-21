@@ -1,5 +1,6 @@
-#include "AudioSystem.hpp"
+﻿#include "AudioSystem.hpp"
 #include "../Components/AudioSource.hpp"
+#include "../Components/Transform.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../src/EngineState.hpp"
 
@@ -21,10 +22,12 @@ namespace NE::ECS::Systems {
 			{
 				FMOD::System_Create(&system);
 				system->init(512, FMOD_INIT_NORMAL, 0);
+				std::cout << "AudioEngine constructor called \n";
 			}
 
 			~AudioEngine() 
 			{
+				std::cout << "AudioEngine destructor called \n";
 				// Cleanup all loaded sounds
 				for (auto& [path, sound] : loadedClips) {
 					sound->release();
@@ -68,95 +71,88 @@ namespace NE::ECS::Systems {
 	}
 #pragma endregion
 
-	void AudioSystem::help()
-	{
 
-	}
-
-	// helper function, idk why stuff gets error when i put it as variable
-	// / function in the hpp
 	void AudioSystem::ProcessAudioSource(
-		NE::ECS::Component::AudioSource& source,
-		NE::ECS::Component::AudioClip& clip,
+		NE::ECS::Component::AudioSource& audioSource,
+		const NE::ECS::Component::Transform& transform,
 		FMOD::System* system)
 	{
-		// Load the sound if not loaded	
-		if (clip.filepath && !clip.sound) {
-			clip.sound = GetAudioEngine().LoadSound(clip.filepath, source.loop);
+		// Load audio clip if needed
+		if (audioSource.m_sound == nullptr && !audioSource.audioClipPath.empty()) {
+			audioSource.m_sound = GetAudioEngine().LoadSound(audioSource.audioClipPath, audioSource.loop);
 		}
 
-		// Handle playOnStart
-		if (source.playOnStart && !source.hasPlayed && clip.sound) {
-			PlayAudio(source, clip, system);
-			source.hasPlayed = true;
+		// Handle playOnAwake
+		if (audioSource.playOnAwake && !audioSource.m_hasPlayed && audioSource.m_sound) {
+			PlayAudio(audioSource, transform, system);
+			audioSource.m_hasPlayed = true;
 		}
 
-		// Update existing playback
-		if (source.isPlaying && source.channel) {
-			UpdateAudioPlayback(source, clip, system);
+		// Update ongoing playback
+		if (audioSource.isPlaying && audioSource.m_channel) {
+			UpdateAudioPlayback(audioSource, transform, system);
 		}
 	}
 
 	void AudioSystem::PlayAudio(
-		NE::ECS::Component::AudioSource& source,
-		NE::ECS::Component::AudioClip& clip,
+		NE::ECS::Component::AudioSource& audioSource,
+		const NE::ECS::Component::Transform& transform,
 		FMOD::System* system)
 	{
-		if (!clip.sound) return;
+		if (!audioSource.m_sound) 
+			return;
 
-		// Stop previous playback if any
-		if (source.channel) {
-			source.channel->stop();
+		// Stop previous playback
+		if (audioSource.m_channel) {
+			audioSource.m_channel->stop();
+			audioSource.m_channel = nullptr;
 		}
 
 		// Play the sound
 		FMOD::Channel* channel = nullptr;
-		FMOD_RESULT result = system->playSound(clip.sound, 0, false, &channel);
+		if (system->playSound(audioSource.m_sound, 0, false, &channel) == FMOD_OK && channel) {
+			audioSource.m_channel = channel;
+			audioSource.isPlaying = true;
+			audioSource.isPaused = false;
 
-		if (result == FMOD_OK && channel) {
-			source.channel = channel;
-			source.isPlaying = true;
-			source.isPaused = false;
+			// Set audio properties
+			channel->setVolume(audioSource.volume);
+			channel->setPitch(audioSource.pitch);
 
-			// Set initial properties
-			channel->setVolume(source.volume);
-			channel->setPitch(source.pitch);
-
-			// Set 3D position if needed
-			FMOD_VECTOR pos = {
-				source.position.x,
-				source.position.y,
-				source.position.z
-			};
-			channel->set3DAttributes(&pos, nullptr);
+			// Set 3D attributes if spatial audio
+			//if (audioSource.spatialBlend > 0.0f) {
+			//	FMOD_VECTOR pos = { transform.position.x, transform.position.y, transform.position.z };
+			//	FMOD_VECTOR vel = { 0, 0,  ⁠0 }; // Zero velocity for now
+			//	channel->set3DAttributes(&pos, &vel);
+			//	channel->set3DMinMaxDistance(audioSource.minDist, audioSource.maxDist);
+			//}
 		}
 	}
 
 	void AudioSystem::UpdateAudioPlayback(
-		NE::ECS::Component::AudioSource& source,
-		NE::ECS::Component::AudioClip& clip,
+		NE::ECS::Component::AudioSource& audioSource,
+		const NE::ECS::Component::Transform& transform,
 		FMOD::System* system)
 	{
-		if (!source.channel) return;
+		if (!audioSource.m_channel) return;
 
 		// Update volume and pitch
-		source.channel->setVolume(source.volume);
-		source.channel->setPitch(source.pitch);
+		audioSource.m_channel->setVolume(audioSource.volume);
+		audioSource.m_channel->setPitch(audioSource.pitch);
 
-		// Update 3D position
-		FMOD_VECTOR pos = {
-			source.position.x,
-			source.position.y,
-			source.position.z
-		};
-		source.channel->set3DAttributes(&pos, nullptr);
+		// Update 3D position for spatial audio
+		if (audioSource.spatialBlend > 0.0f) {
+			FMOD_VECTOR pos = { transform.position.x, transform.position.y, transform.position.z };
+			FMOD_VECTOR vel = { 0, 0, 0 };
+			audioSource.m_channel->set3DAttributes(&pos, &vel);
+		}
 
 		// Check if sound finished playing
 		bool isPlaying = false;
-		source.channel->isPlaying(&isPlaying);
+		audioSource.m_channel->isPlaying(&isPlaying);
 		if (!isPlaying) {
-			source.isPlaying = false;
-			source.channel = nullptr;
+			audioSource.isPlaying = false;
+			audioSource.m_channel = nullptr;
 		}
 	}
 
@@ -178,6 +174,7 @@ namespace NE::ECS::Systems {
 	void AudioSystem::Init()
 	{
 		// AudioEngine is automatically initialized when first accessed
+		std::cout << "Audio Sytem Init Start" << std::endl;
 		auto& engine = GetAudioEngine();
 
 		// Basic test: Check if FMOD system was created successfully
@@ -201,51 +198,52 @@ namespace NE::ECS::Systems {
 
 		/// TEST PLAY SOUND
 
-		 // Create a test sound
-		FMOD::Sound* testSound = nullptr;
-		FMOD_RESULT result = engine.system->createSound(
-			"ForestAmbienceLOOP.wav",  // Change to your actual test file path
-			FMOD_DEFAULT,
-			0,
-			&testSound
-		);
+		// // Create a test sound
+		//FMOD::Sound* testSound = nullptr;
+		//FMOD_RESULT result = engine.system->createSound(
+		//	"ForestAmbienceLOOP.wav",  // Change to your actual test file path
+		//	FMOD_DEFAULT,
+		//	0,
+		//	&testSound
+		//);
 
-		if (result != FMOD_OK || !testSound) {
-			std::cout << "Failed to create test sound!" << std::endl;
-			return;
-		}
+		//if (result != FMOD_OK || !testSound) {
+		//	std::cout << "Failed to create test sound!" << std::endl;
+		//	return;
+		//}
 
-		// Play the test sound
-		FMOD::Channel* channel = nullptr;
-		result = engine.system->playSound(testSound, 0, false, &channel);
+		//// Play the test sound
+		//FMOD::Channel* channel = nullptr;
+		//result = engine.system->playSound(testSound, 0, false, &channel);
 
-		if (result == FMOD_OK) {
-			std::cout << "Test sound playing successfully!" << std::endl;
+		//if (result == FMOD_OK) {
+		//	std::cout << "Test sound playing successfully!" << std::endl;
 
-			// Wait a bit for the sound to play (optional)
-			bool isPlaying = true;
-			while (isPlaying) {
-				engine.system->update();
-				if (channel) {
-					channel->isPlaying(&isPlaying);
-				}
-				// Small delay to prevent busy waiting
-				//std::this_thread::sleep_for(std::chrono::milliseconds(10));
-			}
+		//	// Wait a bit for the sound to play (optional)
+		//	bool isPlaying = true;
+		//	while (isPlaying) {
+		//		engine.system->update();
+		//		if (channel) {
+		//			channel->isPlaying(&isPlaying);
+		//		}
+		//		// Small delay to prevent busy waiting
+		//		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		//	}
 
-			std::cout << "Test sound finished playing" << std::endl;
-		}
-		else {
-			std::cout << "Failed to play test sound!" << std::endl;
-		}
+		//	std::cout << "Test sound finished playing" << std::endl;
+		//}
+		//else {
+		//	std::cout << "Failed to play test sound!" << std::endl;
+		//}
 
-		// Cleanup
-		testSound->release();
+		//// Cleanup
+		//testSound->release();
 	}
 
 	void AudioSystem::Update(double)
 	{
-		if (this == nullptr) return;
+		if (this == nullptr) 
+			return;
 
 		NE_PROFILE_FUNCTION();
 		const auto& entities = GetEntities();
@@ -253,12 +251,12 @@ namespace NE::ECS::Systems {
 
 		for (Entity e : entities) {
 			if (m_componentManager->HasComponent<Component::AudioSource>(e) &&
-				m_componentManager->HasComponent<Component::AudioClip>(e)) {
+				m_componentManager->HasComponent<Component::Transform>(e)) {
 
-				auto& source = m_componentManager->GetComponent<Component::AudioSource>(e);
-				auto& clip = m_componentManager->GetComponent<Component::AudioClip>(e);
+				auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);
+				auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 
-				ProcessAudioSource(source, clip, engine.system);
+				ProcessAudioSource(audioSource, transform, engine.system);
 			}
 		}
 
