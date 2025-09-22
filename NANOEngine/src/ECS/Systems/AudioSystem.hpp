@@ -5,6 +5,8 @@
 #include "../Components/AudioSource.hpp"
 #include "../Components/Transform.hpp"
 #include "../../../NANOEngine/ThirdParty/include/fmod/fmod.hpp"
+#include "../../../NANOEngine/ThirdParty/include/fmod/fmod_errors.h"
+#include "../../../NANOEngine/ThirdParty/include/fmod/fmod_studio.hpp"
 
 
 namespace NE::ECS::Systems 
@@ -19,6 +21,13 @@ namespace NE::ECS::Systems
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;
+
+		// Fmod Studio linking test code
+		FMOD::Studio::System* studioSystem = nullptr;
+		void SetupStudioSystem();
+		void PlaySound(const std::string& eventName);
+
+
 
 	private:
 		ComponentManager* m_componentManager;

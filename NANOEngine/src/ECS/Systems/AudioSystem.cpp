@@ -5,6 +5,7 @@
 #include "../../src/EngineState.hpp"
 
 #include <iostream>
+#include <direct.h>
 using namespace NE::ECS::Component;
 namespace NE::ECS::Systems {
 
@@ -156,6 +157,78 @@ namespace NE::ECS::Systems {
 		}
 	}
 
+	// create -> init -> load bank
+	void AudioSystem::SetupStudioSystem()
+	{
+		// Already set up
+		if (studioSystem != nullptr)
+			return;
+
+		FMOD::Studio::System::create(&studioSystem);
+
+		// initialize the system!
+		FMOD_RESULT result = studioSystem->initialize(
+			1024, // max channels
+			FMOD_STUDIO_INIT_NORMAL,
+			FMOD_INIT_NORMAL,
+			nullptr
+		);
+		if (result != FMOD_OK) {
+			std::cout << "FMOD init failed: " << FMOD_ErrorString(result) << std::endl;
+			return;
+		}
+
+
+
+		// Load the bank files created in FMOD Studio (hardcoded paths for now)
+		FMOD::Studio::Bank* masterBank = nullptr;
+
+		char buffer[100];
+		_getcwd(buffer, 100);
+		std::cout << "Working Dir: " << buffer << std::endl;
+
+		result = studioSystem->loadBankFile("Master.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank);
+
+		if (result != FMOD_OK) 
+		{
+			std::cout << "Failed to load Master.bank: " << FMOD_ErrorString(result) << std::endl;
+			return;
+		}
+
+		FMOD::Studio::Bank* stringsBank;
+		studioSystem->loadBankFile("Master.strings.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &stringsBank);
+	
+		if (stringsBank == nullptr)
+		{
+			std::cout << "Failed to load Master.strings.bank" << std::endl;
+			return;
+		}
+	}
+
+	void AudioSystem::PlaySound(const std::string& eventName)
+	{
+		// Some audio property in studio that im not too familiar with yet
+		FMOD::Studio::EventDescription* eventDesc = nullptr;
+		studioSystem->getEvent(eventName.c_str(), &eventDesc);
+
+		if (eventDesc == nullptr) 
+		{
+			std::cout << "Failed to get event: " << eventName << std::endl;
+			return;
+		}
+
+		FMOD::Studio::EventInstance* eventInstance = nullptr;
+		eventDesc->createInstance(&eventInstance);
+
+		if (eventInstance == nullptr)
+		{
+			std::cout << "Failed to create eventInstance" << std::endl;
+			return;
+		}
+
+		eventInstance->start();	
+	}
+
 
 
 	AudioSystem::AudioSystem(ComponentManager* cm) : m_componentManager(cm)
@@ -173,26 +246,33 @@ namespace NE::ECS::Systems {
 
 	void AudioSystem::Init()
 	{
+		SetupStudioSystem();
+		PlaySound("event:/New Event");
+
+
+
+		return;
+
 		// AudioEngine is automatically initialized when first accessed
-		std::cout << "Audio Sytem Init Start" << std::endl;
-		auto& engine = GetAudioEngine();
+		//std::cout << "Audio Sytem Init Start" << std::endl;
+		//auto& engine = GetAudioEngine();
 
-		// Basic test: Check if FMOD system was created successfully
-		if (engine.system) {
-			std::cout << "FMOD system created successfully!" << std::endl;
+		//// Basic test: Check if FMOD system was created successfully
+		//if (engine.system) {
+		//	std::cout << "FMOD system created successfully!" << std::endl;
 
-			// Get FMOD version to verify it's working
-			unsigned int version;
-			FMOD_RESULT result = engine.system->getVersion(&version);
+		//	// Get FMOD version to verify it's working
+		//	unsigned int version;
+		//	FMOD_RESULT result = engine.system->getVersion(&version);
 
-			if (result == FMOD_OK) {
-				std::cout << "FMOD version: " << version << std::endl;
-				std::cout << "Audio system is working!" << std::endl;
-			}
-		}
-		else {
-			std::cout << "FMOD system creation failed!" << std::endl;
-		}
+		//	if (result == FMOD_OK) {
+		//		std::cout << "FMOD version: " << version << std::endl;
+		//		std::cout << "Audio system is working!" << std::endl;
+		//	}
+		//}
+		//else {
+		//	std::cout << "FMOD system creation failed!" << std::endl;
+		//}
 
 
 
@@ -242,6 +322,9 @@ namespace NE::ECS::Systems {
 
 	void AudioSystem::Update(double)
 	{
+		studioSystem->update();
+		return; // end of studio testing stuff
+
 		if (this == nullptr) 
 			return;
 
