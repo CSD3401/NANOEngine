@@ -47,10 +47,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 
-
-		////Script tmp test
-		//std::cout << "--- Update test ---" << std::endl;
-		//m_ecsCoordinator.m_scriptSystem->Update(dt);
+		// Enable script updates
+		m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
 
 	void Scene::Render(RenderPass pass) {
