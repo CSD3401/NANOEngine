@@ -64,7 +64,7 @@ namespace Editor {
 			sceneCamera->GetPosition(),
 			targetPosition,
 			tweenDuration,
-			TweenType::EASE_BOTH
+			TweenType::LINEAR
 		);
 	}
 

@@ -12,8 +12,7 @@ public:
 		U const& start,				// Start value
 		U const& end,				// End value
 		float duration,				// Duration in seconds
-		TweenType type,				// Type of Tween
-		bool wrap360 = false);		// For rotation vectors
+		TweenType type);			// Type of Tween
 
 	bool IsActive() const;
 	void Update(float dt);
@@ -28,12 +27,6 @@ private:
 	float elapsed;
 	bool active;
 	TweenType type;
-
-	// Helper function
-	NE::Math::Vec3 WrappedDelta(
-		NE::Math::Vec3 const& vecStart,
-		NE::Math::Vec3 const& vecEnd, 
-		float wrapValue = 360.0f);
 };
 
 template <typename V, typename U, typename Object>
@@ -43,32 +36,16 @@ Tween<V, U, Object>::Tween(
 	U const& start,				// Start value
 	U const& end,				// End value
 	float duration,				// Duration in seconds
-	TweenType type,				// Type of Tween
-	bool wrap360)				// For rotation vectors
+	TweenType type)				// Type of Tween
 	: obj		{ obj }
 	, setter	{ setter }
 	, start		{ start }
-	, delta		{ }
+	, delta		{ end - start }
 	, duration	{ duration }
 	, elapsed	{ 0.0f }
 	, active	{ true }
 	, type		{ type }
 {
-	if (wrap360)
-	{
-		if constexpr (std::is_same_v<NE::Math::Vec3, U>)
-		{
-			delta = WrappedDelta(start, end);
-		}
-		else
-		{
-			// Log some warning here since we are no longer dealing with a rotation vector...
-		}
-	}
-	else
-	{
-		delta = end - start;
-	}
 }
 
 template <typename V, typename U, typename Object>
@@ -102,21 +79,4 @@ void Tween<V, U, Object>::Update(float dt)
 
 	// Use object's setter function to update
 	(*obj.*setter)(start + delta * t);
-}
-
-template<typename V, typename U, typename Object>
-inline NE::Math::Vec3 Tween<V, U, Object>::WrappedDelta(
-	NE::Math::Vec3 const& vecStart, 
-	NE::Math::Vec3 const& vecEnd, 
-	float wrapValue)
-{
-	auto ShortestWrap = [wrapValue](float s, float e)
-		{
-			return fmodf((e - s + wrapValue * 1.5f), wrapValue) - wrapValue * 0.5f;
-		};
-
-	return NE::Math::Vec3(
-		ShortestWrap(vecStart.x, vecEnd.x),
-		ShortestWrap(vecStart.y, vecEnd.y),
-		ShortestWrap(vecStart.z, vecEnd.z));
 }
