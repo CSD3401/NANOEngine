@@ -75,6 +75,7 @@ namespace NE::Graphics {
         shader->SetUniformMat4("u_Model", command.transform);
         shader->SetUniformMat4("u_View", s_ActiveCamera->GetViewMatrix());
         shader->SetUniformMat4("u_Projection", s_ActiveCamera->GetProjectionMatrix());
+        shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
         shader->SetUniformVec3("u_CameraPos", s_ActiveCamera->GetPosition());
 
         shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
@@ -92,6 +93,8 @@ namespace NE::Graphics {
             shader->SetUniformFloat(base + ".linear", light->linear);
             shader->SetUniformFloat(base + ".quadratic", light->quadratic);
         }
+
+        shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
         // Draw indexed
         //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
