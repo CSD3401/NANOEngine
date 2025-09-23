@@ -388,9 +388,19 @@ namespace Editor {
                         //comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
                     }
 
-                    //NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
-                    //    DrawField(desc, field);
-                    //    });
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+
+                            // make a local editable copy
+                            FieldT edited = currentValue;
+
+                            // render widget; returns true if user changed it
+                            if (DrawField(desc, edited)) {
+                                // don't write to comp.* here; push a command to the engine:
+                                //SubmitSetFieldCommand(entity, desc, edited);
+                            }
+                        });
                 } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
                     auto& comp = NE::ECS::Query::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
