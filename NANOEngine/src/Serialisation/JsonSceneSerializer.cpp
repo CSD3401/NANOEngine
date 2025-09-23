@@ -4,6 +4,7 @@
 #include "../ECS/Core/ECSCoordinator.hpp"
 
 // Components
+#include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "../ECS/Components/Light.hpp"
@@ -36,6 +37,7 @@ namespace {
     }
 
     using ComponentTypes = std::tuple<
+        NE::ECS::Component::EntityMeta,
         NE::ECS::Component::Transform,
         NE::ECS::Component::Renderer,
         NE::ECS::Component::Light

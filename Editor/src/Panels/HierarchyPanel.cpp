@@ -52,7 +52,7 @@ namespace Editor {
             if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, false)) {
 
             }
-            if (ImGui::MenuItem("Delete", "Del", false, false)) {
+            if (ImGui::MenuItem("Delete", "Del", false, EditorScene::s_selectedEntity)) {
 
             }
             ImGui::Separator();
@@ -174,7 +174,7 @@ namespace Editor {
         if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
 
         // Local drag state
-        static uint32_t draggingId = 0;
+        static uint32_t draggingId = NE::ECS::NO_ENTITY;
         //static uint32_t dragParent = 0;
         static int      previewInsert = -1;
         static bool     hadDragThisFrame = false;
@@ -202,10 +202,10 @@ namespace Editor {
                 flags |= ImGuiTreeNodeFlags_Selected;
 
             // Row
-            //ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
-            ImGui::PushID((int)id); // ok even if id==0
-            ImGui::TreeNodeEx("##row", flags, "%s", label.c_str()); // label still unique via "##"
-            ImGui::PopID();
+            ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
+            //ImGui::PushID((int)id); // ok even if id==0
+            //ImGui::TreeNodeEx("##row", flags, "%s", label.c_str()); // label still unique via "##"
+            //ImGui::PopID();
 
             // Selection
             if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
@@ -223,7 +223,7 @@ namespace Editor {
             }
 
             // While dragging, compute the preview insertion gap using simple hover hit-test
-            if (draggingId != 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+            if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                 hadDragThisFrame = true;
                 const ImRect& r = rowRects.back();
                 if (ImGui::IsMouseHoveringRect(r.Min, r.Max, true)) {
@@ -234,7 +234,7 @@ namespace Editor {
         }
 
         // If dragging and not hovering any row, allow dropping before first / after last.
-        if (draggingId != 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left) && !rowRects.empty()) {
+        if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left) && !rowRects.empty()) {
             ImGuiWindow* win = ImGui::GetCurrentWindow();
             const float mouseY = ImGui::GetIO().MousePos.y;
 
@@ -250,7 +250,7 @@ namespace Editor {
         }
 
         // Draw the insertion line preview
-        if (draggingId != 0 && previewInsert >= 0 && !rowRects.empty()) {
+        if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && !rowRects.empty()) {
             ImDrawList* dl = ImGui::GetWindowDrawList();
 
             // X span (match your rows; adjust if you have icons/indent)
@@ -288,18 +288,18 @@ namespace Editor {
         }
 
         // Commit the reorder ONCE when the mouse is released
-        if (draggingId != 0 && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+        if (draggingId != NE::ECS::NO_ENTITY && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
             if (previewInsert >= 0) {
                 // parent = 0 for roots; when you add parenting, pass the real parent
                 Editor::EditorScene::ReorderWithinSiblings(/*parent*/0u, /*child*/draggingId, /*insertIndex*/previewInsert);
             }
             // reset drag state
-            draggingId = 0;
+            draggingId = NE::ECS::NO_ENTITY;
             previewInsert = -1;
         }
 
         // If a drag started but this frame didn't detect any drag (e.g., payload canceled), clear preview next frame
-        if (!hadDragThisFrame && ImGui::IsMouseDragging(ImGuiMouseButton_Left) == false && draggingId == 0) {
+        if (!hadDragThisFrame && ImGui::IsMouseDragging(ImGuiMouseButton_Left) == false && draggingId == NE::ECS::NO_ENTITY) {
             previewInsert = -1;
         }
 
