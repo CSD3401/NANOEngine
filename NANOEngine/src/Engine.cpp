@@ -59,12 +59,12 @@ namespace NE {
 		NE_PROFILE_FUNCTION();
 		s_window->PollEvents();
 
-		TweenManager::Get().Update(static_cast<float>(dt));
 		Physics::PhysicsManager::Update(static_cast<float>(dt));
 		gSceneManager.Update(dt);
 
 		s_sceneFrameBuffer->Bind();
 		Graphics::GraphicsManager::BeginFrame();
+		TweenManager::Get().Update(static_cast<float>(dt));
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
 		Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();

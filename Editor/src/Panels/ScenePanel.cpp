@@ -113,6 +113,8 @@ namespace Editor {
 				if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow))  move.z -= 1.0f;
 				if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))  move.x -= 1.0f;
 				if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) move.x += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftBracket)) move.y += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_RightBracket)) move.y -= 1.0f;
 
 				if (move.LengthSquared() > 0.0f) {
 					move.Normalize();
@@ -120,7 +122,7 @@ namespace Editor {
 					Vec3 forward = m_editorCamera.GetForward();
 					Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
 
-					Vec3 offset = (right * move.x + forward * move.z) * m_cameraSpeed * deltaTime;
+					Vec3 offset = (right * move.x + forward * move.z + Vec3(0, 1, 0) * move.y) * m_cameraSpeed * deltaTime;
 					m_editorCamera.SetPosition(m_editorCamera.GetPosition() + offset);
 				}
 
