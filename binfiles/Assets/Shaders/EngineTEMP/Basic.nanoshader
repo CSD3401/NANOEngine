@@ -114,7 +114,7 @@ float D_GGX(vec3 N, vec3 H, float roughness) {
     float a = roughness * roughness; 
     float a2 = a * a; float NdotH = max(dot(N, H), 0.0);
     float NdotH2 = NdotH * NdotH; 
-    loat denom = (NdotH2 * (a2 - 1.0) + 1.0); 
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0); 
     return a2 / (PI * denom * denom); 
 }
 
@@ -140,6 +140,7 @@ vec3 EvaluateLight_PBR(Light light, vec3 N, vec3 V, vec3 P, vec3 baseColor, floa
     vec3 L;
     vec3 radiance;
     
+	float epsilon = light.innerCutoff - light.outerCutoff;
     // Calculate light direction and radiance with attenuation
     if (light.type == LIGHT_TYPE_DIRECTIONAL) {
         L = normalize(-light.direction);
@@ -153,7 +154,7 @@ vec3 EvaluateLight_PBR(Light light, vec3 N, vec3 V, vec3 P, vec3 baseColor, floa
         // Handle spot light cone
         if (light.type == LIGHT_TYPE_SPOT) {
             float theta = dot(L, normalize(-light.direction));
-            float epsilon = light.innerCutoff - light.outerCutoff;
+            
             float spotIntensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
             radiance *= spotIntensity;
         }
@@ -189,6 +190,7 @@ vec3 EvaluateLight_PBR(Light light, vec3 N, vec3 V, vec3 P, vec3 baseColor, floa
     vec3 diffuse = kD * baseColor / PI;
 
     // Simple ambient for now
+	float u_AO = 1.0;
     vec3 ambient = 0.03 * u_BaseColor * u_AO;
     
     return ((diffuse + specular) * radiance * NdotL) + ambient;
