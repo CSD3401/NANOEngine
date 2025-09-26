@@ -8,6 +8,7 @@
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Rigidbody.hpp>
 #include <ECS/Components/Collider.hpp>
+#include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
@@ -423,7 +424,60 @@ namespace Editor {
                                 //SubmitSetFieldCommand(entity, desc, edited);
                             }
                         });
-                } 
+                } else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
+                    auto& comp = NE::ECS::Query::GetEntityScript(entity);
+                    ImGui::SeparatorText("Script");
+
+                    // Display current script name or "None"
+                    std::string currentScript = comp.ScriptName.empty() ? "None" : comp.ScriptName;
+                    
+                    ImGui::Text("Current Script: %s", currentScript.c_str());
+                    
+                    // Script selection dropdown
+                    if (ImGui::BeginCombo("Script Type", currentScript.c_str())) {
+                        // "None" option to remove script
+                        if (ImGui::Selectable("None", comp.ScriptName.empty())) {
+                            NE::ECS::Command::RemoveEntityScript(entity);
+                        }
+                        
+                        // List all registered scripts
+                        auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
+                        for (const auto& scriptName : scriptNames) {
+                            bool isSelected = (comp.ScriptName == scriptName);
+                            if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
+                                NE::ECS::Command::SetEntityScript(entity, scriptName);
+                            }
+                            if (isSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+
+                    // Display script status
+                    if (!comp.ScriptName.empty()) {
+                        ImGui::Separator();
+                        
+                        // Script enabled/disabled checkbox
+                        if (comp.Instance) {
+                            bool enabled = comp.Instance->IsEnabled();
+                            if (ImGui::Checkbox("Enabled", &enabled)) {
+                                comp.Instance->SetEnabled(enabled);
+                            }
+                            
+                            ImGui::Text("Status: Active");
+                            ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+                        } else {
+                            ImGui::Text("Status: Not Instantiated");
+                        }
+                        
+                        // Show if script is properly registered
+                        bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
+                        if (!isRegistered) {
+                            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Warning: Script not registered!");
+                        }
+                    }
+                }
             }
 
             if (ImGui::Button("Add Component")) {
@@ -443,6 +497,9 @@ namespace Editor {
                 }
                 if (ImGui::MenuItem("Light")) {
                     NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+                if (ImGui::MenuItem("Script")) {
+                    NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
                 ImGui::EndPopup();
             }
