@@ -127,6 +127,10 @@
       <Command>xcopy /E /I /-Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
 xcopy /Y "$(SolutionDir)ThirdParty\lib\GLFW\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(SolutionDir)ThirdParty\lib\fmod\*.dll" "$(TargetDir)"
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -153,6 +157,10 @@ xcopy /Y "$(SolutionDir)ThirdParty\lib\GLFW\glfw3.dll" "$(SolutionDir)bin\Editor
       <Command>xcopy /E /I /-Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
 </Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(SolutionDir)ThirdParty\lib\fmod\*.dll" "$(TargetDir)"
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\EditorUI.cpp" />

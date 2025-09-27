@@ -258,6 +258,7 @@
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -284,6 +285,7 @@
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
