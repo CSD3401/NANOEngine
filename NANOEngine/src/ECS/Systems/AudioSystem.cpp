@@ -6,8 +6,13 @@
 
 #include <iostream>
 #include <direct.h>
+#include <cstring>
+
 using namespace NE::ECS::Component;
+
+
 namespace NE::ECS::Systems {
+
 
 #pragma region AudioEngine
 	namespace {
@@ -72,6 +77,26 @@ namespace NE::ECS::Systems {
 	}
 #pragma endregion
 
+
+	const std::vector<std::pair<std::string, std::shared_ptr<NE::Asset::AudioBank>>>& AudioSystem::GetLoadedBanks() const 
+	{
+		auto& assetManager = NE::Asset::AssetManager::GetInstance();
+		return assetManager.GetAssetsOfType<NE::Asset::AudioBank>();
+	}
+
+	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const 
+	{
+		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> allEvents;
+
+		auto banks = GetLoadedBanks(); // This now returns the correct type
+
+		for (const auto& [uuid, bank] : banks) {
+			const auto& bankEvents = bank->GetEvents();
+			allEvents.insert(bankEvents.begin(), bankEvents.end());
+		}
+
+		return allEvents;
+	}
 
 	void AudioSystem::ProcessAudioSource(
 		NE::ECS::Component::AudioSource& audioSource,
@@ -164,45 +189,82 @@ namespace NE::ECS::Systems {
 		if (studioSystem != nullptr)
 			return;
 
-		FMOD::Studio::System::create(&studioSystem);
+		FMOD_RESULT result = FMOD::Studio::System::create(&studioSystem);
+		if (result != FMOD_OK)
+			std::cout << "Failed to create FMOD Studio System " << FMOD_ErrorString(result) << std::endl;
 
 		// initialize the system!
-		FMOD_RESULT result = studioSystem->initialize(
+		result = studioSystem->initialize(
 			1024, // max channels
 			FMOD_STUDIO_INIT_NORMAL,
 			FMOD_INIT_NORMAL,
 			nullptr
 		);
-		if (result != FMOD_OK) {
+		if (result != FMOD_OK) 
+		{
 			std::cout << "FMOD init failed: " << FMOD_ErrorString(result) << std::endl;
 			return;
 		}
 
+		// Prepare for Extraction
+		auto banks = GetLoadedBanks();
 
+		std::cout << "Loading " << banks.size() << " banks into FMOD..." << std::endl;
 
-		// Load the bank files created in FMOD Studio (hardcoded paths for now)
-		FMOD::Studio::Bank* masterBank = nullptr;
-
-		char buffer[100];
-		_getcwd(buffer, 100);
-		std::cout << "Working Dir: " << buffer << std::endl;
-
-		result = studioSystem->loadBankFile("Master.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank);
-
-		if (result != FMOD_OK) 
+		// First pass: Load all .bank files
+		for (const auto& [uuid, bank] : banks)
 		{
-			std::cout << "Failed to load Master.bank: " << FMOD_ErrorString(result) << std::endl;
-			return;
+			FMOD::Studio::Bank* fmodBank = nullptr;
+			FMOD_RESULT bankResult = studioSystem->loadBankFile(
+				bank->filePath.c_str(),
+				FMOD_STUDIO_LOAD_BANK_NORMAL,
+				&fmodBank
+			);
+
+			if (bankResult == FMOD_OK && fmodBank != nullptr) 
+			{
+				bank->SetFMODBank(fmodBank);
+				std::cout << "Loaded bank: " << bank->GetDisplayName() << std::endl;
+			}
 		}
 
-		FMOD::Studio::Bank* stringsBank;
-		studioSystem->loadBankFile("Master.strings.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &stringsBank);
-	
-		if (stringsBank == nullptr)
+		// SECOND PASS: Look for and load the strings bank specifically
+		std::cout << "Looking for strings bank..." << std::endl;
+		for (const auto& [uuid, bank] : banks) 
 		{
-			std::cout << "Failed to load Master.strings.bank" << std::endl;
-			return;
+			std::string bankName = bank->GetDisplayName();
+
+			// Check if this is a strings bank (usually ends with .strings)
+			if (bankName.find("strings") != std::string::npos ||
+				bank->filePath.find("strings") != std::string::npos) {
+
+				std::cout << "Loading strings bank: " << bankName << std::endl;
+
+				// The strings bank should already be loaded from first pass, but make sure
+				// it's processed for string data
+				FMOD::Studio::Bank* fmodBank = bank->GetFMODBank();
+				if (fmodBank) 
+				{
+					// Strings bank is automatically used by FMOD once loaded
+					std::cout << "Strings bank ready: " << bankName << std::endl;
+				}
+			}
 		}
+
+		// Note: This step does not work if there is invalid bank or string bank
+		// THIRD PASS: Now extract events (after strings bank is loaded)
+		std::cout << "Extracting events from all banks..." << std::endl;
+		for (const auto& [uuid, bank] : banks) 
+		{
+			// Skip strings banks for event extraction
+			if (bank->GetDisplayName().find("strings") != std::string::npos) 
+			{
+				continue;
+			}
+
+			bank->ExtractEvents(studioSystem);
+		}
+
 	}
 
 	void AudioSystem::PlaySound(const std::string& eventName)
@@ -229,7 +291,31 @@ namespace NE::ECS::Systems {
 		eventInstance->start();	
 	}
 
+	void AudioSystem::CleanupStudioSystem()
+	{
+		studioSystem->release();
+	}
 
+
+	void AudioSystem::LoadBankAssets(const std::string& audioDirectory)
+	{
+		auto& assetManager = Asset::AssetManager::GetInstance();
+		size_t banksLoaded = 0;
+		for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
+		{
+			if (entry.path().extension() == ".bank")
+			{
+				// Load thru AssetManager (this creates AudioBank assets)
+				std::string bankPath = entry.path().string();
+				auto bankAsset = assetManager.Load<NE::Asset::AudioBank>(bankPath, false);
+				if (bankAsset)
+				{
+					banksLoaded++;
+					std::cout << "Loaded bank asset: " << bankAsset->GetDisplayName() << std::endl;
+				}
+			}
+		}
+	}
 
 	AudioSystem::AudioSystem(ComponentManager* cm) : m_componentManager(cm)
 	{
@@ -241,116 +327,54 @@ namespace NE::ECS::Systems {
 
 	void AudioSystem::OnEntityRemoved(Entity)
 	{
-		// TODO: remove parenting and stuff
 	}
 
 	void AudioSystem::Init()
 	{
+		// Get current directory as std::string
+		std::string currentDir = std::filesystem::current_path().string();
+		std::string bankDir = currentDir + "/Assets/Bank";
+		//std::cout << "Target Bank Dir: " << bankDir << std::endl;
+
+		LoadBankAssets(bankDir);
 		SetupStudioSystem();
-		PlaySound("event:/New Event");
-
-
+		//PlaySound("event:/OnClick");
 
 		return;
-
-		// AudioEngine is automatically initialized when first accessed
-		//std::cout << "Audio Sytem Init Start" << std::endl;
-		//auto& engine = GetAudioEngine();
-
-		//// Basic test: Check if FMOD system was created successfully
-		//if (engine.system) {
-		//	std::cout << "FMOD system created successfully!" << std::endl;
-
-		//	// Get FMOD version to verify it's working
-		//	unsigned int version;
-		//	FMOD_RESULT result = engine.system->getVersion(&version);
-
-		//	if (result == FMOD_OK) {
-		//		std::cout << "FMOD version: " << version << std::endl;
-		//		std::cout << "Audio system is working!" << std::endl;
-		//	}
-		//}
-		//else {
-		//	std::cout << "FMOD system creation failed!" << std::endl;
-		//}
-
-
-
-		/// TEST PLAY SOUND
-
-		// // Create a test sound
-		//FMOD::Sound* testSound = nullptr;
-		//FMOD_RESULT result = engine.system->createSound(
-		//	"ForestAmbienceLOOP.wav",  // Change to your actual test file path
-		//	FMOD_DEFAULT,
-		//	0,
-		//	&testSound
-		//);
-
-		//if (result != FMOD_OK || !testSound) {
-		//	std::cout << "Failed to create test sound!" << std::endl;
-		//	return;
-		//}
-
-		//// Play the test sound
-		//FMOD::Channel* channel = nullptr;
-		//result = engine.system->playSound(testSound, 0, false, &channel);
-
-		//if (result == FMOD_OK) {
-		//	std::cout << "Test sound playing successfully!" << std::endl;
-
-		//	// Wait a bit for the sound to play (optional)
-		//	bool isPlaying = true;
-		//	while (isPlaying) {
-		//		engine.system->update();
-		//		if (channel) {
-		//			channel->isPlaying(&isPlaying);
-		//		}
-		//		// Small delay to prevent busy waiting
-		//		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		//	}
-
-		//	std::cout << "Test sound finished playing" << std::endl;
-		//}
-		//else {
-		//	std::cout << "Failed to play test sound!" << std::endl;
-		//}
-
-		//// Cleanup
-		//testSound->release();
 	}
 
 	void AudioSystem::Update(double)
 	{
+
 		studioSystem->update();
 		return; // end of studio testing stuff
 
-		if (this == nullptr) 
-			return;
+		//if (this == nullptr) 
+		//	return;
 
-		NE_PROFILE_FUNCTION();
-		const auto& entities = GetEntities();
-		auto& engine = GetAudioEngine();
+		//NE_PROFILE_FUNCTION();
+		//const auto& entities = GetEntities();
+		//auto& engine = GetAudioEngine();
 
-		for (Entity e : entities) {
-			if (m_componentManager->HasComponent<Component::AudioSource>(e) &&
-				m_componentManager->HasComponent<Component::Transform>(e)) {
+		//for (Entity e : entities) {
+		//	if (m_componentManager->HasComponent<Component::AudioSource>(e) &&
+		//		m_componentManager->HasComponent<Component::Transform>(e)) {
 
-				auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);
-				auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
+		//		auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);
+		//		auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 
-				ProcessAudioSource(audioSource, transform, engine.system);
-			}
-		}
+		//		ProcessAudioSource(audioSource, transform, engine.system);
+		//	}
+		//}
 
-		if (engine.system) {
-			engine.system->update();
-		}
+		//if (engine.system) {
+		//	engine.system->update();
+		//}
 	}
 
 	void AudioSystem::Exit()
 	{
-		// AudioEngine cleanup is automatic (RAII)
+		CleanupStudioSystem();
 		std::cout << "AudioSystem shutdown" << std::endl;
 	}
 

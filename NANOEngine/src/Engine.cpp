@@ -18,6 +18,7 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"
+#include "Audio/AudioBank.hpp"
 
 
 namespace NE {
@@ -142,6 +143,11 @@ namespace NE {
 	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()
 	{
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
+	}
+
+	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks()
+	{
+		return Asset::AssetManager::GetInstance().GetAssetsOfType<Asset::AudioBank>();
 	}
 
 	// Internal use only

@@ -83,9 +83,7 @@ namespace NE::ECS {
 		}
 
 		void AddAudioSourceComponent(uint32_t e) {
-			printf("PRE");
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::AudioSource{});
-			printf("POST");
 		}
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
