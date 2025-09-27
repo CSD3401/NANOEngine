@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../ECS/Core/ComponentManager.hpp"
+
 // Export macros for when Engine is built as DLL
 #ifdef NANOENGINE_EXPORTS
 #define ENGINE_API __declspec(dllexport)
@@ -42,7 +44,7 @@ public:
      * Called when the script is being destroyed.
      * Use this for cleanup operations.
      */
-    virtual void OnDestroy() {}
+    virtual void OnDestroy() { delete m_componentManager; }
 
     /**
      * Called when the script is enabled.
@@ -126,10 +128,34 @@ public:
      */
     void SetEntity(NE::ECS::Entity entity) { m_entity = entity; }
 
+    /**
+     * Links the script to the engine's core systems.
+     * Called by the ScriptSystem immediately after creation.
+     */
+    void LinkToEngine(NE::ECS::ComponentManager* componentManager);
+
+    /**
+     * Gets another component attached to the same entity as this script.
+     * @return A pointer to the component, or nullptr if not found.
+     */
+    template<typename T>
+    T* GetComponent() const;
+
 private:
     NE::ECS::Entity m_entity = 0;
     bool m_enabled = true;
 
+protected:
+    NE::ECS::ComponentManager* m_componentManager = nullptr;
+
 };
 
+template<typename T>
+T* IScript::GetComponent() const {
+    if (!m_componentManager) {
+        return nullptr;
+    }
+    // Assumes ComponentManager has a method like this
+    return &m_componentManager->GetComponent<T>(m_entity);
+}
 

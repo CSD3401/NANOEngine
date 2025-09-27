@@ -18,6 +18,10 @@ namespace NE::ECS::Systems {
 		void Update(double deltaTime) override;
 		void Exit() override;
 
+		void StartScripts(); //Play
+		void PauseScripts(); //Pause
+		void StopScripts(); //Stop
+
 		void OnScriptComponentDestroyed(Entity entity);
 
 		Scripting::ScriptingEngine* GetScriptingEngine() const { return scriptingEngine.get(); }

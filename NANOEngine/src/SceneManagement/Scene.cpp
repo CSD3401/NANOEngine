@@ -14,8 +14,6 @@
 
 namespace NE::SceneManagement {
 
-	NE::ECS::Entity dummy{};
-
 	void Scene::Init() {
 		// input
 		m_ecsCoordinator.m_rigidbodySystem->Init();
@@ -23,21 +21,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
-		m_ecsCoordinator.m_scriptSystem->Init();
-
-		//dummy = m_ecsCoordinator.CreateEntity(); // Test entity for scripting
-		//NE::ECS::Component::NativeScript scriptComponent;
-		//scriptComponent.ScriptName = "PlayerScript";
-
-		//scriptComponent.CreateScript = m_ecsCoordinator.m_scriptSystem->GetScriptingEngine()->GetScriptFactory("PlayerScript");
-
-		//if (!scriptComponent.CreateScript) {
-		//	std::cerr << "TEST FAILED: Could not find factory for 'PlayerScript'." << std::endl;
-		//}
-		//else {
-		//	m_ecsCoordinator.AddComponent(dummy, scriptComponent);
-		//}
-	
+		m_ecsCoordinator.m_scriptSystem->Init();	
 	}
 
 	void Scene::Update(double dt)
@@ -46,8 +30,6 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
-
-		// Enable script updates
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
 
@@ -68,12 +50,23 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
-
-		
-		/*std::cout << "\n--- Simulating Entity Destruction ---\n" << std::endl;
-		m_ecsCoordinator.m_scriptSystem->OnScriptComponentDestroyed(dummy);*/
 		m_ecsCoordinator.m_scriptSystem->Exit();
 		
+	}
+
+	void Scene::ScriptStart()
+	{
+		m_ecsCoordinator.m_scriptSystem->StartScripts();
+	}
+
+	void Scene::ScriptPause()
+	{
+		m_ecsCoordinator.m_scriptSystem->PauseScripts();
+	}
+
+	void Scene::ScriptStop()
+	{
+		m_ecsCoordinator.m_scriptSystem->StopScripts();
 	}
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator()

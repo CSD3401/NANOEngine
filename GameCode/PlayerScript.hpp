@@ -1,11 +1,12 @@
 #pragma once
-
-#include "Scripting/IScript.hpp"
 #include <iostream>
+#include "Scripting/IScript.hpp"
+//#include "ECS/Components/Rigidbody.hpp"
+#include "ECS/Components/Transform.hpp"
+
 
 /**
  * Example player script demonstrating how to implement IScript.
- * This would be part of your Game DLL project.
  */
 class PlayerScript : public IScript {
 
@@ -36,6 +37,14 @@ public:
             LogMessage("PlayerScript updating - Entity: " + std::to_string(GetEntity()) + 
                       ", DeltaTime: " + std::to_string(deltaTime));
             m_timeSinceLastLog = 0.0;
+        }
+
+		// Example movement logic (pseudo-code):
+		auto transform = GetComponent<NE::ECS::Component::Transform>();
+        if (transform) {
+
+			transform->position.x += 0.1f * deltaTime;
+        
         }
     }
 
