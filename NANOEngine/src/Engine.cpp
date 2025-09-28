@@ -20,7 +20,8 @@
 #include "EngineState.hpp"
 #include "SceneManagement/SceneManager.hpp"
 #include "Tween/TweenManager.hpp"
-
+#include "Core/SpdLogger.hpp"
+#include "Input/InputManager.hpp"
 
 namespace NE {
 
@@ -57,7 +58,7 @@ namespace NE {
 
 	void Run(double dt) {
 		NE_PROFILE_FUNCTION();
-		s_window->PollEvents();
+		//s_window->PollEvents();
 
 		Physics::PhysicsManager::Update(static_cast<float>(dt));
 		gSceneManager.Update(dt);
@@ -68,14 +69,14 @@ namespace NE {
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
 		Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();
-
+		
 		s_pickingFrameBuffer->Bind();
 		Graphics::GraphicsManager::BeginFrame();
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Picking);
 		Graphics::GraphicsManager::EndFrame();
 		s_pickingFrameBuffer->Unbind();
 
-		s_renderContext->SwapBuffers();
+		//s_renderContext->SwapBuffers();
 	}
 
 	void Shutdown() {
