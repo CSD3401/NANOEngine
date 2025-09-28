@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Input\InputManager.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
     <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
@@ -110,6 +111,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Scripting\IScript.cpp" />
     <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
