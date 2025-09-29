@@ -31,7 +31,8 @@ namespace Editor {
         // Moves 'child' to appear at 'insertIndex' among children of 'parent'.
         // Returns true if order changed.
         static bool ReorderWithinSiblings(uint32_t parent, uint32_t child, int insertIndex);
-
+        static bool AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex);
+        static bool UnparentToRoot(uint32_t child, int insertIndex = -1);
         // Helpers
         static const std::vector<uint32_t>& ChildrenOf(uint32_t parent);
     };
