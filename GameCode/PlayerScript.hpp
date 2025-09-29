@@ -3,6 +3,12 @@
 #include "Scripting/IScript.hpp"
 //#include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/Transform.hpp"
+#include "ExposedFieldRegistry.hpp"
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <Math/Vec3.hpp>
 
 
 /**
@@ -12,6 +18,13 @@ class PlayerScript : public IScript {
 
 public:
     PlayerScript() {
+        // register fields with the helper (macro convenience)
+        REGISTER_FIELD(speed);
+        REGISTER_FIELD(color);
+        REGISTER_FIELD(lives);
+        REGISTER_FIELD(godMode);
+        REGISTER_FIELD(label);
+
         LogMessage("PlayerScript created");
     }
     
@@ -89,9 +102,25 @@ public:
         LogMessage("PlayerScript trigger exit with entity " + std::to_string(other));
     }
 
+    // === Exposed editable fields via registry ===
+    std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
+    std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
+    std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
+    bool SetFieldValueFromString(const std::string& name, const std::string& value) override { return m_fields.SetValue(name, value); }
+
 private:
     double m_timeSinceLastLog = 0.0;
     static constexpr double LOG_INTERVAL = 2.0; // Log every 2 seconds
+
+    // Editable fields
+    float speed = 5.0f;
+    NE::Math::Vec3 color{1.0f, 0.5f, 0.25f};
+    int lives = 3;
+    bool godMode = false;
+    std::string label = "Player";
+
+    // Field registry
+    ExposedFieldRegistry m_fields;
 
     // Helper methods
     void LogMessage(const std::string& message) const {
