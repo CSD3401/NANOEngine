@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 // Export macros for when Engine is built as DLL
 #ifdef NANOENGINE_EXPORTS
 #define ENGINE_API __declspec(dllexport)
@@ -125,6 +128,31 @@ public:
      * @param entity The entity ID
      */
     void SetEntity(NE::ECS::Entity entity) { m_entity = entity; }
+
+    // === Runtime editable scripting fields support ===
+    // Scripts that want to expose editable fields to the editor can override
+    // these methods. We keep the API string-based to avoid reflection across DLLs.
+
+    /**
+     * Return a list of exposed field names.
+     */
+    virtual std::vector<std::string> GetExposedFieldNames() const { return {}; }
+
+    /**
+     * Return the type token for a named field. Example tokens: "bool","int","float","vec3","string"
+     */
+    virtual std::string GetFieldType(const std::string& name) const { (void)name; return std::string(); }
+
+    /**
+     * Get the current field value as a string. The format for complex types (eg vec3) is up to the script,
+     * but the Editor will use a simple whitespace-separated list for vec3: "x y z".
+     */
+    virtual std::string GetFieldValueAsString(const std::string& name) const { (void)name; return std::string(); }
+
+    /**
+     * Set the field value from a string. Return true if successful.
+     */
+    virtual bool SetFieldValueFromString(const std::string& name, const std::string& value) { (void)name; (void)value; return false; }
 
 private:
     NE::ECS::Entity m_entity = 0;
