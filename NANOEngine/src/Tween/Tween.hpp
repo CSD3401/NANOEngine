@@ -1,5 +1,6 @@
 #pragma once
 #include "TweenBase.hpp"
+#include "Math/Vec3.hpp"
 
 template <typename V, typename U, typename Object>
 class Tween : public TweenBase

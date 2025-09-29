@@ -20,7 +20,8 @@
 #include "EngineState.hpp"
 #include "SceneManagement/SceneManager.hpp"
 #include "Tween/TweenManager.hpp"
-
+#include "Core/SpdLogger.hpp"
+#include "Input/InputManager.hpp"
 
 namespace NE {
 
@@ -57,25 +58,25 @@ namespace NE {
 
 	void Run(double dt) {
 		NE_PROFILE_FUNCTION();
-		s_window->PollEvents();
+		//s_window->PollEvents();
 
-		TweenManager::Get().Update(static_cast<float>(dt));
 		Physics::PhysicsManager::Update(static_cast<float>(dt));
 		gSceneManager.Update(dt);
 
 		s_sceneFrameBuffer->Bind();
 		Graphics::GraphicsManager::BeginFrame();
+		TweenManager::Get().Update(static_cast<float>(dt));
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
 		Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();
-
+		
 		s_pickingFrameBuffer->Bind();
 		Graphics::GraphicsManager::BeginFrame();
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Picking);
 		Graphics::GraphicsManager::EndFrame();
 		s_pickingFrameBuffer->Unbind();
 
-		s_renderContext->SwapBuffers();
+		//s_renderContext->SwapBuffers();
 	}
 
 	void Shutdown() {
@@ -145,15 +146,18 @@ namespace NE {
 	void EditorPlay() {
 		g_EngineState = EngineState::Play;
 		Physics::PhysicsManager::ActivateBodies();
+		gSceneManager.GetActive()->ScriptStart();
 	}
 
 	void EditorPause() {
 		g_EngineState = EngineState::Play;
 		Physics::PhysicsManager::DeactivateBodies();
+		gSceneManager.GetActive()->ScriptPause();
 	}
 
 	void EditorEdit() {
 		g_EngineState = EngineState::Edit;
 		Physics::PhysicsManager::DeactivateBodies();
+		gSceneManager.GetActive()->ScriptStop();
 	}
 }

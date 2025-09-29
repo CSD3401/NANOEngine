@@ -12,6 +12,10 @@ namespace NE::SceneManagement {
 		void Render(RenderPass pass);
 		void Exit();
 
+		void ScriptStart();
+		void ScriptPause();
+		void ScriptStop();
+
 		ECS::ECSCoordinator& GetECSCoordinator();
 
 	private:
