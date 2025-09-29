@@ -11,8 +11,15 @@ namespace NE::ECS::Systems {
 
     void ScriptSystem::OnEntityAdded(Entity entity) {
         // Logic for when an entity relevant to the script system is added
-
-        entity;
+        auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+        if (nsc.CreateScript && !nsc.Instance) {
+            nsc.Instance = nsc.CreateScript();
+            nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
+            nsc.Instance->SetEntity(entity);
+            nsc.Instance->Initialize(entity);
+            nsc.Instance->SetEnabled(false); // Start disabled
+            std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+        }
     }
 
     void ScriptSystem::OnEntityRemoved(Entity entity) {
@@ -59,16 +66,17 @@ namespace NE::ECS::Systems {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
             // Only create if the component is valid and not already instantiated
-            if (nsc.CreateScript && !nsc.Instance) {
-                nsc.Instance = nsc.CreateScript();
-                nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
-                nsc.Instance->SetEntity(entity);
-                nsc.Instance->Initialize(entity);
-                std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
-            }
-            else if(nsc.Instance){
+            //if (nsc.CreateScript && !nsc.Instance) {
+            //    nsc.Instance = nsc.CreateScript();
+            //    nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
+            //    nsc.Instance->SetEntity(entity);
+            //    nsc.Instance->Initialize(entity);
+            //    std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+            //}
+            //else if(nsc.Instance){
+			if (nsc.Instance)
 				nsc.Instance->SetEnabled(true);
-            }
+            //}
         }
     }
 
@@ -106,6 +114,16 @@ namespace NE::ECS::Systems {
                 // CRITICAL: Reset the instance pointer to null
                 nsc.Instance = nullptr;
                 std::cout << "Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+            }
+
+			// Recreate the script instance for the next play session
+            if (nsc.CreateScript && !nsc.Instance) {
+                nsc.Instance = nsc.CreateScript();
+                nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
+                nsc.Instance->SetEntity(entity);
+                nsc.Instance->Initialize(entity);
+				nsc.Instance->SetEnabled(false); // Start disabled
+                std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
             }
         }
     }

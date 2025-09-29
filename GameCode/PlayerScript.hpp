@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include "Scripting/IScript.hpp"
+#include "Input/InputManager.hpp"
 //#include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ExposedFieldRegistry.hpp"
@@ -52,11 +53,18 @@ public:
             m_timeSinceLastLog = 0.0;
         }
 
-		// Example movement logic (pseudo-code):
+		// Example movement logic:
 		auto transform = GetComponent<NE::ECS::Component::Transform>();
         if (transform) {
 
-			transform->position.x += 0.1f * deltaTime;
+            if(NE::InputManager::IsKeyDown('D'))
+			    transform->position.x += 0.2f * deltaTime;
+			else if (NE::InputManager::IsKeyDown('A'))
+				transform->position.x -= 0.2f * deltaTime;
+			else if (NE::InputManager::IsKeyDown('W'))
+				transform->position.y += 0.2f * deltaTime;
+			else if (NE::InputManager::IsKeyDown('S'))
+				transform->position.y -= 0.2f * deltaTime;
         
         }
     }
@@ -102,7 +110,7 @@ public:
         LogMessage("PlayerScript trigger exit with entity " + std::to_string(other));
     }
 
-    // === Exposed editable fields via registry ===
+    // === Exposed editable fields via registry === NEED TO CHANGE
     std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
     std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
     std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }

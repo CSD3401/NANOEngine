@@ -150,7 +150,7 @@ namespace NE::ECS {
 					script.CreateScript = factory;
 					script.DestroyScript = [](IScript* instance) { delete instance; };
 					script.Instance = nullptr; // Will be created by ScriptSystem
-
+					scriptSystem->OnEntityAdded(e); // Force initialization
 					return true;
 				}
 			}
