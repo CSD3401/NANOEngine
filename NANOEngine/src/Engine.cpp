@@ -146,15 +146,18 @@ namespace NE {
 	void EditorPlay() {
 		g_EngineState = EngineState::Play;
 		Physics::PhysicsManager::ActivateBodies();
+		gSceneManager.GetActive()->ScriptStart();
 	}
 
 	void EditorPause() {
 		g_EngineState = EngineState::Play;
 		Physics::PhysicsManager::DeactivateBodies();
+		gSceneManager.GetActive()->ScriptPause();
 	}
 
 	void EditorEdit() {
 		g_EngineState = EngineState::Edit;
 		Physics::PhysicsManager::DeactivateBodies();
+		gSceneManager.GetActive()->ScriptStop();
 	}
 }

@@ -129,7 +129,7 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /-Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
+      <Command>xcopy /E /I /Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
