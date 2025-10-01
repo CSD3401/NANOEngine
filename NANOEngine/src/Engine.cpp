@@ -134,6 +134,11 @@ namespace NE {
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
 	}
 
+	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::IShader>>>& GetAllShaders()
+	{
+		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::IShader>();
+	}
+
 	size_t GetNumEntities() {
 		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities().size();
 	}

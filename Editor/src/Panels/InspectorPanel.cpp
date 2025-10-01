@@ -607,6 +607,51 @@ namespace Editor {
             }
 
             if (m_loadedMaterial) {
+
+                //bool openPopup = false;
+                //DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetName(), "+", 0.f, &openPopup);
+                //if (openPopup) {
+                //    ImGui::OpenPopup("AssetPicker_Shader");
+                //}
+
+                ////if (ImGui::BeginDragDropTarget()) {
+                ////    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+                ////        std::string dropped((const char*)p->Data, p->DataSize - 1);
+
+                ////        if (comp.materialPath.empty()) { // If material is not set, assign a default one
+                ////            //AssignRendererMaterial(comp, "Assets/Basic.nanomat");
+                ////        } // done for rapid prototyping, should be removed later
+
+                ////        NE::Renderer::Command::AssignModel(EditorScene::s_selectedEntity->linkedEntity, dropped);
+                ////    }
+                ////    ImGui::EndDragDropTarget();
+                ////}
+                ////m_loadedMaterial->SetPipeline()
+                //static std::string searchQuery;
+                //if (ImGui::BeginPopup("AssetPicker_Shader")) {
+                //    ImGui::Text("Select a Shader");
+                //    ImGui::Separator();
+                //    auto& assets = NE::GetAllModels();
+
+                //    if (ImSearch::BeginSearch()) {
+                //        ImSearch::SearchBar();
+
+                //        for (const auto& [name, asset] : assets) {
+                //            ImSearch::SearchableItem(name.c_str(),
+                //                [name, &m_loadedMaterial](const char*) {
+                //                    if (ImGui::Selectable(name.c_str())) {
+                //                        //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+                //                        m_loadedMaterial->
+                //                        ImGui::CloseCurrentPopup();
+                //                    }
+                //                });
+                //        }
+
+                //        ImSearch::EndSearch();
+                //    }
+                //    ImGui::EndPopup();
+                //}
+
                 ImGui::SeparatorText("Material Uniforms");
 
                 for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {

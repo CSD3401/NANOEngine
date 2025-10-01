@@ -6,6 +6,7 @@
 #include "../../AssetManager.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
+#include "PipelineCache.hpp"
 
 namespace {
     using namespace NE::Graphics;
@@ -55,7 +56,7 @@ namespace NE::Graphics {
     }
 
     void Material::Bind() const {
-        m_Pipeline->Bind();
+        //m_Pipeline->Bind();
 
         auto* shader = m_Pipeline->GetSpecification().shader.get();
         for (const auto& [uName, val] : m_FloatUniforms)
@@ -164,7 +165,8 @@ namespace NE::Graphics {
 		pipelineSpec.EnableBlending = blendMode;
         pipelineSpec.CullMode = cullMode;
         pipelineSpec.PolygonMode = polygonMode;
-        m_Pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec);
+        m_Pipeline = Graphics::GetPipelineCache().GetOrCreate(pipelineSpec);
+        //m_Pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec);
 
         if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
             const auto& props = doc["Properties"];
