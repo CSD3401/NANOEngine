@@ -122,7 +122,7 @@ namespace NE::ECS::Systems {
 
 	void AudioSystem::PlayAudio(
 		NE::ECS::Component::AudioSource& audioSource,
-		const NE::ECS::Component::Transform& transform,
+		const NE::ECS::Component::Transform& /*transform*/,
 		FMOD::System* system)
 	{
 		if (!audioSource.m_sound) 
@@ -158,7 +158,7 @@ namespace NE::ECS::Systems {
 	void AudioSystem::UpdateAudioPlayback(
 		NE::ECS::Component::AudioSource& audioSource,
 		const NE::ECS::Component::Transform& transform,
-		FMOD::System* system)
+		FMOD::System* /*system*/)
 	{
 		if (!audioSource.m_channel) return;
 
@@ -167,7 +167,7 @@ namespace NE::ECS::Systems {
 		audioSource.m_channel->setPitch(audioSource.pitch);
 
 		// Update 3D position for spatial audio
-		if (audioSource.spatialBlend > 0.0f) {
+		if (audioSource.spatialBlend != false) {
 			FMOD_VECTOR pos = { transform.position.x, transform.position.y, transform.position.z };
 			FMOD_VECTOR vel = { 0, 0, 0 };
 			audioSource.m_channel->set3DAttributes(&pos, &vel);
