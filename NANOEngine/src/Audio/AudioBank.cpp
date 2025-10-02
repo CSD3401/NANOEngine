@@ -48,7 +48,7 @@ namespace NE::Asset
 	{
 		return displayName.empty() ? std::filesystem::path(filePath).stem().string() : displayName;
 	}
-	void AudioBank::ExtractEvents(FMOD::Studio::System* studioSystem)
+	void AudioBank::ExtractEvents(FMOD::Studio::System* /*studioSystem*/)
 	{
 		m_events.clear();
 
@@ -78,26 +78,26 @@ namespace NE::Asset
 				{
 					std::string pathStr = eventPath;
 
-					std::string displayName;
+					std::string displayedName;
 					if (pathStr.find("event:/") == 0 && pathStr.length() > 7) {
-						displayName = pathStr.substr(7); // Remove "event:/" (7 characters)
+						displayedName = pathStr.substr(7); // Remove "event:/" (7 characters)
 					}
 					else {
-						displayName = pathStr; // Use full path if it doesn't match expected format
+						displayedName = pathStr; // Use full path if it doesn't match expected format
 					}
 
 					// Replace slashes with spaces for readability
-					std::replace(displayName.begin(), displayName.end(), '/', ' ');
+					std::replace(displayedName.begin(), displayedName.end(), '/', ' ');
 
 					// Store event info
 					EventInfo eventInfo;
 					eventInfo.path = eventPath;
-					eventInfo.displayName = displayName;
+					eventInfo.displayName = displayedName;
 					eventInfo.eventDesc = eventDesc;
 
 					m_events[eventPath] = eventInfo;
 
-					std::cout << "Found event: " << eventPath << " -> " << displayName << std::endl;
+					std::cout << "Found event: " << eventPath << " -> " << displayedName << std::endl;
 				}
 			}
 		}
