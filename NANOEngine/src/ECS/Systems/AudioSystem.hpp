@@ -4,9 +4,9 @@
 #include "../Core/ComponentManager.hpp"
 #include "../Components/AudioSource.hpp"
 #include "../Components/Transform.hpp"
-#include "../../../NANOEngine/ThirdParty/include/fmod/fmod.hpp"
-#include "../../../NANOEngine/ThirdParty/include/fmod/fmod_errors.h"
-#include "../../../NANOEngine/ThirdParty/include/fmod/fmod_studio.hpp"
+#include <fmod/fmod.hpp>
+#include <fmod/fmod_errors.h>
+#include <fmod/fmod_studio.hpp>
 #include "../../AssetManager.hpp"
 #include "../../Audio/AudioBank.hpp"
 #include <map>

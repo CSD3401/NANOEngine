@@ -8,7 +8,7 @@
 // "skadf23ro" etc
 
 #include <string>
-#include "../../../NANOEngine/ThirdParty/include/fmod/fmod_studio.hpp"
+#include <fmod/fmod_studio.hpp>
 #include "../Asset.hpp"
 #include <unordered_map>
 

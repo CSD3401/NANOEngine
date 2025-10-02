@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../NANOEngine/ThirdParty/include/fmod/fmod.hpp"
+#include <fmod/fmod.hpp>
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Mat4.hpp"
 #include "../../Core/Reflection.hpp"
