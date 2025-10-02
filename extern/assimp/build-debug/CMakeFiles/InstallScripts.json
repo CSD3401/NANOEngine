@@ -1,9 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/cmake_install.cmake",
-		"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/contrib/zlib/cmake_install.cmake",
-		"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/code/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
