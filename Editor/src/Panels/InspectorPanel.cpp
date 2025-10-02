@@ -8,6 +8,7 @@
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Rigidbody.hpp>
 #include <ECS/Components/Collider.hpp>
+#include <ECS/Components/AudioSource.hpp>
 #include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <Core/Reflection.hpp>
@@ -45,6 +46,17 @@ namespace {
             bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
             ImGui::EndGroup();
             return changed;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            // String support added here -> check w irwen
+            char buffer[256];
+            strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer));
+            buffer[sizeof(buffer) - 1] = '\0';
+
+            if (ImGui::InputText(desc.name.data(), buffer, sizeof(buffer))) {
+                value = buffer;
+                return true;
+            }
+            return false;
         }
         else {
             ImGui::Text("%s (unsupported)", desc.name.data());
@@ -464,6 +476,58 @@ namespace Editor {
                                 //SubmitSetFieldCommand(entity, desc, edited);
                             }
                         });
+                } 
+                else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) 
+                {
+                    auto& comp = NE::ECS::Query::GetEntityAudioSource(entity);
+                    ImGui::SeparatorText("AudioSource");
+
+                    bool openPopup = false;
+                    DrawAssetField("Audio", comp.modelPath.string(), "+", 0.f, &openPopup);
+                    if (openPopup) {
+                        ImGui::OpenPopup("AudioPicker_Model");
+                    }
+
+                    //static std::string searchQuery;
+                    if (ImGui::BeginPopup("AudioPicker_Model")) {
+                        ImGui::Text("Select Audio");
+                        ImGui::Separator();
+                        auto& assets = NE::GetAllModels();
+
+                        if (ImSearch::BeginSearch()) {
+                            ImSearch::SearchBar();
+
+                            for (const auto& [name, asset] : assets) {
+                                ImSearch::SearchableItem(name.c_str(),
+                                    [name, &entity](const char*) {
+                                        if (ImGui::Selectable(name.c_str())) {
+                                            //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+                                            printf("Audio Adding Works?");
+                                            ImGui::CloseCurrentPopup();
+                                        }
+                                    });
+                            }
+
+                            ImSearch::EndSearch();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+
+                    // This renders all the external properties of AudioSource but cant edit atm
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::AudioSource>(comp,
+                    //    [&](auto const& desc, auto const& currentValue) {
+                    //        using FieldT = std::decay_t<decltype(currentValue)>;
+
+                    //        // make a local editable copy
+                    //        FieldT edited = currentValue;
+
+                    //        // render widget; returns true if user changed it
+                    //        if (DrawField(desc, edited)) {
+                    //            // don't write to comp.* here; push a command to the engine:
+                    //            //SubmitSetFieldCommand(entity, desc, edited);
+                    //        }
+                    //    });
                 }
                 else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
                     auto& comp = NE::ECS::Query::GetEntityScript(entity);
@@ -586,6 +650,9 @@ namespace Editor {
                 }
                 if (ImGui::MenuItem("Light")) {
                     NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+                if (ImGui::MenuItem("AudioSource")) {
+                    NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
                 if (ImGui::MenuItem("Script")) {
                     NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);

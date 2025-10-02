@@ -18,6 +18,7 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"
+#include "Audio/AudioBank.hpp"
 #include "SceneManagement/SceneManager.hpp"
 #include "Tween/TweenManager.hpp"
 #include "Core/SpdLogger.hpp"
@@ -31,8 +32,6 @@ namespace NE {
 	static std::unique_ptr<Graphics::IFrameBuffer> s_pickingFrameBuffer; // temp
 
 	static SceneManagement::SceneManager gSceneManager;
-
-	
 
 	void Initialize() {
 		NE_PROFILE_FUNCTION();
@@ -134,9 +133,12 @@ namespace NE {
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
 	}
 
-	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::IShader>>>& GetAllShaders()
-	{
+	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::IShader>>>& GetAllShaders() {
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::IShader>();
+	}
+	
+	const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks() {
+		return Asset::AssetManager::GetInstance().GetAssetsOfType<Asset::AudioBank>();
 	}
 
 	size_t GetNumEntities() {

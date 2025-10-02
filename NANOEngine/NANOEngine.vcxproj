@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Audio\AudioBank.hpp" />
+    <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
     <ClInclude Include="src\Graphics\Core\PipelineCache.hpp" />
     <ClInclude Include="src\Input\InputManager.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
@@ -30,6 +32,7 @@
     <ClInclude Include="src\Core\SpdLogger.hpp" />
     <ClInclude Include="src\ECS\Components\ComponentKey.hpp" />
     <ClInclude Include="src\ECS\Components\EntityMeta.hpp" />
+    <ClInclude Include="src\ECS\Systems\AudioSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
     <ClInclude Include="src\EditorInterface\ECSExports.hpp" />
@@ -112,6 +115,8 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Audio\AudioBank.cpp" />
+    <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Scripting\IScript.cpp" />
@@ -263,18 +268,19 @@
       <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\assimp\$(Configuration);$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\$(Configuration);$(ProjectDir)vendor\lib\glfw;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\assimp\$(Configuration);$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\$(Configuration);$(ProjectDir)vendor\lib\glfw;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;fmod\fmodL_vc.lib;fmod\fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -290,7 +296,7 @@
       <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -300,10 +306,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)vendor\assimp\lib\$(Configuration);$(ProjectDir)vendor\libs\zlib\$(Configuration);$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\glfw;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mt.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW\glfw3dll.lib;opengl32.lib;assimp-vc143-mt.lib;zlibstatic.lib;fmod\fmodL_vc.lib;fmod\fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
