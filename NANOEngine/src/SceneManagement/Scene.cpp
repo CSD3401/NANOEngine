@@ -5,6 +5,7 @@
 #include "../ECS/Systems/LightSystem.hpp"
 #include "../ECS/Systems/RigidbodySystem.hpp"
 #include "../ECS/Systems/ColliderSystem.hpp"
+#include "../ECS/Systems/AudioSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
@@ -21,7 +22,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
-		m_ecsCoordinator.m_scriptSystem->Init();	
+		m_ecsCoordinator.m_audioSystem->Init();
+		m_ecsCoordinator.m_scriptSystem->Init();
 	}
 
 	void Scene::Update(double dt)
@@ -30,6 +32,12 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
+		Graphics::GraphicsManager::BeginFrame();
+		Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
+		m_ecsCoordinator.m_renderSystem->Update(dt);
+		Graphics::GraphicsManager::DrawDebugLines();
+		Graphics::GraphicsManager::EndFrame();
+		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
 
@@ -43,34 +51,29 @@ namespace NE::SceneManagement {
 		}
 	}
 
-	void Scene::Exit()
-	{
+	void Scene::Exit() {
 		m_ecsCoordinator.m_rigidbodySystem->Exit();
 		m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
-		m_ecsCoordinator.m_scriptSystem->Exit();
-		
+		m_ecsCoordinator.m_audioSystem->Exit();
+		m_ecsCoordinator.m_scriptSystem->Exit();	
 	}
 
-	void Scene::ScriptStart()
-	{
+	void Scene::ScriptStart() {
 		m_ecsCoordinator.m_scriptSystem->StartScripts();
 	}
 
-	void Scene::ScriptPause()
-	{
+	void Scene::ScriptPause() {
 		m_ecsCoordinator.m_scriptSystem->PauseScripts();
 	}
 
-	void Scene::ScriptStop()
-	{
+	void Scene::ScriptStop() {
 		m_ecsCoordinator.m_scriptSystem->StopScripts();
 	}
 
-	ECS::ECSCoordinator& Scene::GetECSCoordinator()
-	{
+	ECS::ECSCoordinator& Scene::GetECSCoordinator() {
 		return m_ecsCoordinator;
 	}
 

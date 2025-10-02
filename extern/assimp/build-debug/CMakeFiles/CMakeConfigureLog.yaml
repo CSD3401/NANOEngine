@@ -1,0 +1,1623 @@
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "CMakeLists.txt:88 (find_program)"
+    mode: "program"
+    variable: "CCACHE_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ccache"
+    candidate_directories:
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Windows/System32/ccache.com"
+      - "C:/Windows/System32/ccache.exe"
+      - "C:/Windows/System32/ccache"
+      - "C:/Windows/ccache.com"
+      - "C:/Windows/ccache.exe"
+      - "C:/Windows/ccache"
+      - "C:/Windows/System32/wbem/ccache.com"
+      - "C:/Windows/System32/wbem/ccache.exe"
+      - "C:/Windows/System32/wbem/ccache"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/ccache.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/ccache.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/ccache"
+      - "C:/Windows/System32/OpenSSH/ccache.com"
+      - "C:/Windows/System32/OpenSSH/ccache.exe"
+      - "C:/Windows/System32/OpenSSH/ccache"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/ccache.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/ccache.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/ccache"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/ccache.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/ccache.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/ccache"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/ccache.com"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/ccache.exe"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/ccache"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/ccache.com"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/ccache.exe"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/ccache"
+      - "C:/Program Files/dotnet/ccache.com"
+      - "C:/Program Files/dotnet/ccache.exe"
+      - "C:/Program Files/dotnet/ccache"
+      - "C:/Program Files/nodejs/ccache.com"
+      - "C:/Program Files/nodejs/ccache.exe"
+      - "C:/Program Files/nodejs/ccache"
+      - "C:/Program Files/Git/cmd/ccache.com"
+      - "C:/Program Files/Git/cmd/ccache.exe"
+      - "C:/Program Files/Git/cmd/ccache"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/ccache.com"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/ccache.exe"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/ccache"
+      - "C:/Program Files/CMake/bin/ccache.com"
+      - "C:/Program Files/CMake/bin/ccache.exe"
+      - "C:/Program Files/CMake/bin/ccache"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/ccache.com"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/ccache.exe"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/ccache"
+      - "C:/Users/user/.dotnet/tools/ccache.com"
+      - "C:/Users/user/.dotnet/tools/ccache.exe"
+      - "C:/Users/user/.dotnet/tools/ccache"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/ccache.com"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/ccache.exe"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/ccache"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/ccache.com"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/ccache.exe"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/ccache"
+      - "C:/Users/user/AppData/Roaming/npm/ccache.com"
+      - "C:/Users/user/AppData/Roaming/npm/ccache.exe"
+      - "C:/Users/user/AppData/Roaming/npm/ccache"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineSystem.cmake:212 (message)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    message: |
+      The system is: Windows - 10.0.26100 - AMD64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:462 (find_file)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:500 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCCompilerId.c.in"
+    candidate_directories:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/"
+    found: "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeCCompilerId.c.in"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler:  
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      MSBuild version 17.6.3+07e294721 for .NET Framework
+      Build started 9/9/2025 9:15:58 am.
+      
+      Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\4.1.1\\CompilerIdC\\CompilerIdC.vcxproj" on node 1 (default targets).
+      PrepareForBuild:
+        Creating directory "Debug\\".
+        Creating directory "Debug\\CompilerIdC.tlog\\".
+      InitializeBuildStatus:
+        Creating "Debug\\CompilerIdC.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+      ClCompile:
+        C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /nologo /W0 /WX- /diagnostics:column /Od /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\\\" /Fd"Debug\\vc143.pdb" /external:W0 /Gd /TC /FC /errorReport:queue CMakeCCompilerId.c
+        CMakeCCompilerId.c
+      Link:
+        C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:".\\CompilerIdC.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\\CompilerIdC.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\\CompilerIdC.lib" /MACHINE:X64 Debug\\CMakeCCompilerId.obj
+        CompilerIdC.vcxproj -> C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\4.1.1\\CompilerIdC\\CompilerIdC.exe
+      PostBuildEvent:
+        for %%i in (cl.exe) do @echo CMAKE_C_COMPILER=%%~$PATH:i
+        :VCEnd
+        CMAKE_C_COMPILER=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\Hostx64\\x64\\cl.exe
+      FinalizeBuildStatus:
+        Deleting file "Debug\\CompilerIdC.tlog\\unsuccessfulbuild".
+        Touching "Debug\\CompilerIdC.tlog\\CompilerIdC.lastbuildstate".
+      Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\4.1.1\\CompilerIdC\\CompilerIdC.vcxproj" (default targets).
+      
+      Build succeeded.
+          0 Warning(s)
+          0 Error(s)
+      
+      Time Elapsed 00:00:02.62
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.exe"
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.vcxproj"
+      
+      The C compiler identification is MSVC, found in:
+        C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/4.1.1/CompilerIdC/CompilerIdC.exe
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:65 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:103 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/link.com"
+    found: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/link.exe"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:65 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:104 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lld-link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lld-link.com"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lld-link.exe"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lld-link"
+      - "C:/Windows/System32/lld-link.com"
+      - "C:/Windows/System32/lld-link.exe"
+      - "C:/Windows/System32/lld-link"
+      - "C:/Windows/lld-link.com"
+      - "C:/Windows/lld-link.exe"
+      - "C:/Windows/lld-link"
+      - "C:/Windows/System32/wbem/lld-link.com"
+      - "C:/Windows/System32/wbem/lld-link.exe"
+      - "C:/Windows/System32/wbem/lld-link"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link"
+      - "C:/Windows/System32/OpenSSH/lld-link.com"
+      - "C:/Windows/System32/OpenSSH/lld-link.exe"
+      - "C:/Windows/System32/OpenSSH/lld-link"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/lld-link.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/lld-link.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/lld-link"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/lld-link.com"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/lld-link.exe"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/lld-link"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/lld-link.com"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/lld-link.exe"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/lld-link"
+      - "C:/Program Files/dotnet/lld-link.com"
+      - "C:/Program Files/dotnet/lld-link.exe"
+      - "C:/Program Files/dotnet/lld-link"
+      - "C:/Program Files/nodejs/lld-link.com"
+      - "C:/Program Files/nodejs/lld-link.exe"
+      - "C:/Program Files/nodejs/lld-link"
+      - "C:/Program Files/Git/cmd/lld-link.com"
+      - "C:/Program Files/Git/cmd/lld-link.exe"
+      - "C:/Program Files/Git/cmd/lld-link"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/lld-link.com"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/lld-link.exe"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/lld-link"
+      - "C:/Program Files/CMake/bin/lld-link.com"
+      - "C:/Program Files/CMake/bin/lld-link.exe"
+      - "C:/Program Files/CMake/bin/lld-link"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/lld-link.com"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/lld-link.exe"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/lld-link"
+      - "C:/Users/user/.dotnet/tools/lld-link.com"
+      - "C:/Users/user/.dotnet/tools/lld-link.exe"
+      - "C:/Users/user/.dotnet/tools/lld-link"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.com"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.exe"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/lld-link"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/lld-link.com"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/lld-link.exe"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/lld-link"
+      - "C:/Users/user/AppData/Roaming/npm/lld-link.com"
+      - "C:/Users/user/AppData/Roaming/npm/lld-link.exe"
+      - "C:/Users/user/AppData/Roaming/npm/lld-link"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:238 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/link.com"
+    found: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/link.exe"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:238 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "program"
+    variable: "CMAKE_MT"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "mt"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/mt.com"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/mt.exe"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/mt"
+      - "C:/Windows/System32/mt.com"
+      - "C:/Windows/System32/mt.exe"
+      - "C:/Windows/System32/mt"
+      - "C:/Windows/mt.com"
+      - "C:/Windows/mt.exe"
+      - "C:/Windows/mt"
+      - "C:/Windows/System32/wbem/mt.com"
+      - "C:/Windows/System32/wbem/mt.exe"
+      - "C:/Windows/System32/wbem/mt"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/mt"
+      - "C:/Windows/System32/OpenSSH/mt.com"
+      - "C:/Windows/System32/OpenSSH/mt.exe"
+      - "C:/Windows/System32/OpenSSH/mt"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/mt"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/mt.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/mt.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/mt"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/mt.com"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/mt.exe"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/mt"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/mt.com"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/mt.exe"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/mt"
+      - "C:/Program Files/dotnet/mt.com"
+      - "C:/Program Files/dotnet/mt.exe"
+      - "C:/Program Files/dotnet/mt"
+      - "C:/Program Files/nodejs/mt.com"
+      - "C:/Program Files/nodejs/mt.exe"
+      - "C:/Program Files/nodejs/mt"
+      - "C:/Program Files/Git/cmd/mt.com"
+      - "C:/Program Files/Git/cmd/mt.exe"
+      - "C:/Program Files/Git/cmd/mt"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/mt.com"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/mt.exe"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/mt"
+      - "C:/Program Files/CMake/bin/mt.com"
+      - "C:/Program Files/CMake/bin/mt.exe"
+      - "C:/Program Files/CMake/bin/mt"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/mt.com"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/mt.exe"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/mt"
+      - "C:/Users/user/.dotnet/tools/mt.com"
+      - "C:/Users/user/.dotnet/tools/mt.exe"
+      - "C:/Users/user/.dotnet/tools/mt"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/mt.com"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/mt.exe"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/mt"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/mt.com"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/mt.exe"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/mt"
+      - "C:/Users/user/AppData/Roaming/npm/mt.com"
+      - "C:/Users/user/AppData/Roaming/npm/mt.exe"
+      - "C:/Users/user/AppData/Roaming/npm/mt"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:238 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lib"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lib.com"
+    found: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lib.exe"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:462 (find_file)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:500 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCXXCompilerId.cpp.in"
+    candidate_directories:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/"
+    found: "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeCXXCompilerId.cpp.in"
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler:  
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      MSBuild version 17.6.3+07e294721 for .NET Framework
+      Build started 9/9/2025 9:16:01 am.
+      
+      Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\4.1.1\\CompilerIdCXX\\CompilerIdCXX.vcxproj" on node 1 (default targets).
+      PrepareForBuild:
+        Creating directory "Debug\\".
+        Creating directory "Debug\\CompilerIdCXX.tlog\\".
+      InitializeBuildStatus:
+        Creating "Debug\\CompilerIdCXX.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+      ClCompile:
+        C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /nologo /W0 /WX- /diagnostics:column /Od /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\\\" /Fd"Debug\\vc143.pdb" /external:W0 /Gd /TP /FC /errorReport:queue CMakeCXXCompilerId.cpp
+        CMakeCXXCompilerId.cpp
+      Link:
+        C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /ERRORREPORT:QUEUE /OUT:".\\CompilerIdCXX.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\\CompilerIdCXX.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\\CompilerIdCXX.lib" /MACHINE:X64 Debug\\CMakeCXXCompilerId.obj
+        CompilerIdCXX.vcxproj -> C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\4.1.1\\CompilerIdCXX\\CompilerIdCXX.exe
+      PostBuildEvent:
+        for %%i in (cl.exe) do @echo CMAKE_CXX_COMPILER=%%~$PATH:i
+        :VCEnd
+        CMAKE_CXX_COMPILER=C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\Hostx64\\x64\\cl.exe
+      FinalizeBuildStatus:
+        Deleting file "Debug\\CompilerIdCXX.tlog\\unsuccessfulbuild".
+        Touching "Debug\\CompilerIdCXX.tlog\\CompilerIdCXX.lastbuildstate".
+      Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\4.1.1\\CompilerIdCXX\\CompilerIdCXX.vcxproj" (default targets).
+      
+      Build succeeded.
+          0 Warning(s)
+          0 Error(s)
+      
+      Time Elapsed 00:00:01.88
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.vcxproj"
+      
+      The CXX compiler identification is MSVC, found in:
+        C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/4.1.1/CompilerIdCXX/CompilerIdCXX.exe
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:37 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:65 (__resolve_tool_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeFindBinUtils.cmake:104 (__resolve_linker_path)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "program"
+    variable: "_CMAKE_TOOL_WITH_PATH"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "lld-link"
+    candidate_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+    searched_directories:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lld-link.com"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lld-link.exe"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lld-link"
+      - "C:/Windows/System32/lld-link.com"
+      - "C:/Windows/System32/lld-link.exe"
+      - "C:/Windows/System32/lld-link"
+      - "C:/Windows/lld-link.com"
+      - "C:/Windows/lld-link.exe"
+      - "C:/Windows/lld-link"
+      - "C:/Windows/System32/wbem/lld-link.com"
+      - "C:/Windows/System32/wbem/lld-link.exe"
+      - "C:/Windows/System32/wbem/lld-link"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/lld-link"
+      - "C:/Windows/System32/OpenSSH/lld-link.com"
+      - "C:/Windows/System32/OpenSSH/lld-link.exe"
+      - "C:/Windows/System32/OpenSSH/lld-link"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/lld-link"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/lld-link.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/lld-link.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/lld-link"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/lld-link.com"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/lld-link.exe"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/lld-link"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/lld-link.com"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/lld-link.exe"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/lld-link"
+      - "C:/Program Files/dotnet/lld-link.com"
+      - "C:/Program Files/dotnet/lld-link.exe"
+      - "C:/Program Files/dotnet/lld-link"
+      - "C:/Program Files/nodejs/lld-link.com"
+      - "C:/Program Files/nodejs/lld-link.exe"
+      - "C:/Program Files/nodejs/lld-link"
+      - "C:/Program Files/Git/cmd/lld-link.com"
+      - "C:/Program Files/Git/cmd/lld-link.exe"
+      - "C:/Program Files/Git/cmd/lld-link"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/lld-link.com"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/lld-link.exe"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/lld-link"
+      - "C:/Program Files/CMake/bin/lld-link.com"
+      - "C:/Program Files/CMake/bin/lld-link.exe"
+      - "C:/Program Files/CMake/bin/lld-link"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/lld-link.com"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/lld-link.exe"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/lld-link"
+      - "C:/Users/user/.dotnet/tools/lld-link.com"
+      - "C:/Users/user/.dotnet/tools/lld-link.exe"
+      - "C:/Users/user/.dotnet/tools/lld-link"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.com"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/lld-link.exe"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/lld-link"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/lld-link.com"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/lld-link.exe"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/lld-link"
+      - "C:/Users/user/AppData/Roaming/npm/lld-link.com"
+      - "C:/Users/user/AppData/Roaming/npm/lld-link.exe"
+      - "C:/Users/user/AppData/Roaming/npm/lld-link"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineRCCompiler.cmake:40 (find_program)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Platform/Windows-MSVC.cmake:574 (enable_language)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Platform/Windows-MSVC.cmake:547 (__windows_compiler_msvc_enable_rc)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Platform/Windows-MSVC-C.cmake:5 (__windows_compiler_msvc)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeCInformation.cmake:48 (include)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    mode: "program"
+    variable: "CMAKE_RC_COMPILER"
+    description: "RC compiler"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "rc"
+    candidate_directories:
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Program Files/Git/cmd/"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/user/.dotnet/tools/"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/"
+      - "C:/Users/user/AppData/Roaming/npm/"
+      - "C:/Program Files/bin/"
+      - "C:/Program Files/sbin/"
+      - "C:/Program Files/"
+      - "C:/Program Files (x86)/bin/"
+      - "C:/Program Files (x86)/sbin/"
+      - "C:/Program Files (x86)/"
+      - "C:/Program Files/CMake/bin/"
+      - "C:/Program Files/CMake/sbin/"
+      - "C:/Program Files/CMake/"
+      - "C:/Program Files (x86)/Assimp/bin/"
+      - "C:/Program Files (x86)/Assimp/sbin/"
+      - "C:/Program Files (x86)/Assimp/"
+    searched_directories:
+      - "C:/Windows/System32/rc.com"
+      - "C:/Windows/System32/rc.exe"
+      - "C:/Windows/System32/rc"
+      - "C:/Windows/rc.com"
+      - "C:/Windows/rc.exe"
+      - "C:/Windows/rc"
+      - "C:/Windows/System32/wbem/rc.com"
+      - "C:/Windows/System32/wbem/rc.exe"
+      - "C:/Windows/System32/wbem/rc"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/rc.com"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/rc.exe"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/rc"
+      - "C:/Windows/System32/OpenSSH/rc.com"
+      - "C:/Windows/System32/OpenSSH/rc.exe"
+      - "C:/Windows/System32/OpenSSH/rc"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/rc.com"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/rc.exe"
+      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/rc"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/rc.com"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/rc.exe"
+      - "C:/Program Files/NVIDIA Corporation/NVIDIA NvDLISR/rc"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/rc.com"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/rc.exe"
+      - "C:/Program Files/Microsoft SQL Server/150/Tools/Binn/rc"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/rc.com"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/rc.exe"
+      - "C:/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/rc"
+      - "C:/Program Files/dotnet/rc.com"
+      - "C:/Program Files/dotnet/rc.exe"
+      - "C:/Program Files/dotnet/rc"
+      - "C:/Program Files/nodejs/rc.com"
+      - "C:/Program Files/nodejs/rc.exe"
+      - "C:/Program Files/nodejs/rc"
+      - "C:/Program Files/Git/cmd/rc.com"
+      - "C:/Program Files/Git/cmd/rc.exe"
+      - "C:/Program Files/Git/cmd/rc"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/rc.com"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/rc.exe"
+      - "C:/Users/user/AppData/Local/Muse Hub/lib/rc"
+      - "C:/Program Files/CMake/bin/rc.com"
+      - "C:/Program Files/CMake/bin/rc.exe"
+      - "C:/Program Files/CMake/bin/rc"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/rc.com"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/rc.exe"
+      - "C:/Users/user/AppData/Local/Microsoft/WindowsApps/rc"
+      - "C:/Users/user/.dotnet/tools/rc.com"
+      - "C:/Users/user/.dotnet/tools/rc.exe"
+      - "C:/Users/user/.dotnet/tools/rc"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/rc.com"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/rc.exe"
+      - "C:/Users/user/AppData/Local/Programs/Microsoft VS Code/bin/rc"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/rc.com"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/rc.exe"
+      - "C:/Users/user/AppData/Local/GitHubDesktop/bin/rc"
+      - "C:/Users/user/AppData/Roaming/npm/rc.com"
+      - "C:/Users/user/AppData/Roaming/npm/rc.exe"
+      - "C:/Users/user/AppData/Roaming/npm/rc"
+      - "C:/Program Files/bin/rc.com"
+      - "C:/Program Files/bin/rc.exe"
+      - "C:/Program Files/bin/rc"
+      - "C:/Program Files/sbin/rc.com"
+      - "C:/Program Files/sbin/rc.exe"
+      - "C:/Program Files/sbin/rc"
+      - "C:/Program Files/rc.com"
+      - "C:/Program Files/rc.exe"
+      - "C:/Program Files/rc"
+      - "C:/Program Files (x86)/bin/rc.com"
+      - "C:/Program Files (x86)/bin/rc.exe"
+      - "C:/Program Files (x86)/bin/rc"
+      - "C:/Program Files (x86)/sbin/rc.com"
+      - "C:/Program Files (x86)/sbin/rc.exe"
+      - "C:/Program Files (x86)/sbin/rc"
+      - "C:/Program Files (x86)/rc.com"
+      - "C:/Program Files (x86)/rc.exe"
+      - "C:/Program Files (x86)/rc"
+      - "C:/Program Files/CMake/bin/rc.com"
+      - "C:/Program Files/CMake/bin/rc.exe"
+      - "C:/Program Files/CMake/bin/rc"
+      - "C:/Program Files/CMake/sbin/rc.com"
+      - "C:/Program Files/CMake/sbin/rc.exe"
+      - "C:/Program Files/CMake/sbin/rc"
+      - "C:/Program Files/CMake/rc.com"
+      - "C:/Program Files/CMake/rc.exe"
+      - "C:/Program Files/CMake/rc"
+      - "C:/Program Files (x86)/Assimp/bin/rc.com"
+      - "C:/Program Files (x86)/Assimp/bin/rc.exe"
+      - "C:/Program Files (x86)/Assimp/bin/rc"
+      - "C:/Program Files (x86)/Assimp/sbin/rc.com"
+      - "C:/Program Files (x86)/Assimp/sbin/rc.exe"
+      - "C:/Program Files (x86)/Assimp/sbin/rc"
+      - "C:/Program Files (x86)/Assimp/rc.com"
+      - "C:/Program Files (x86)/Assimp/rc.exe"
+      - "C:/Program Files (x86)/Assimp/rc"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "C:\\Windows\\system32"
+        - "C:\\Windows"
+        - "C:\\Windows\\System32\\Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\Windows\\System32\\OpenSSH\\"
+        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
+        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA NvDLISR"
+        - "C:\\Program Files\\Microsoft SQL Server\\150\\Tools\\Binn\\"
+        - "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:\\Program Files\\nodejs\\"
+        - "C:\\Program Files\\Git\\cmd"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+        - "C:\\WINDOWS\\system32"
+        - "C:\\WINDOWS"
+        - "C:\\WINDOWS\\System32\\Wbem"
+        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:\\WINDOWS\\System32\\OpenSSH\\"
+        - "C:\\Program Files\\CMake\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\Microsoft\\WindowsApps"
+        - "C:\\Users\\user\\.dotnet\\tools"
+        - "C:\\Users\\user\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\Users\\user\\AppData\\Local\\GitHubDesktop\\bin"
+        - "C:\\Users\\user\\AppData\\Roaming\\npm"
+        - "C:\\Users\\user\\AppData\\Local\\Muse Hub\\lib"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files (x86)/Assimp"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/Program Files/CMake"
+        - "C:/Program Files (x86)/Assimp"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-si4lzy"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-si4lzy"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-si4lzy'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_3b763.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:04 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-si4lzy\\cmTC_3b763.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_3b763.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-si4lzy\\Debug\\".
+          Creating directory "cmTC_3b763.dir\\Debug\\cmTC_3b763.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_3b763.dir\\Debug\\cmTC_3b763.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_3b763.dir\\Debug\\\\" /Fd"cmTC_3b763.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCCompilerABI.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          CMakeCCompilerABI.c
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_3b763.dir\\Debug\\\\" /Fd"cmTC_3b763.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCCompilerABI.c"
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-si4lzy\\Debug\\cmTC_3b763.exe" /INCREMENTAL /ILK:"cmTC_3b763.dir\\Debug\\cmTC_3b763.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-si4lzy/Debug/cmTC_3b763.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-si4lzy/Debug/cmTC_3b763.lib" /MACHINE:X64  /machine:x64 cmTC_3b763.dir\\Debug\\CMakeCCompilerABI.obj
+          cmTC_3b763.vcxproj -> C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-si4lzy\\Debug\\cmTC_3b763.exe
+        FinalizeBuildStatus:
+          Deleting file "cmTC_3b763.dir\\Debug\\cmTC_3b763.tlog\\unsuccessfulbuild".
+          Touching "cmTC_3b763.dir\\Debug\\cmTC_3b763.tlog\\cmTC_3b763.lastbuildstate".
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-si4lzy\\cmTC_3b763.vcxproj" (default targets).
+        
+        Build succeeded.
+            0 Warning(s)
+            0 Error(s)
+        
+        Time Elapsed 00:00:01.76
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'C': C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/HostX64/x64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Internal/CMakeDetermineLinkerId.cmake:36 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    message: |
+      Running the C compiler's linker: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/HostX64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.36.32534.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-3wzsim"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-3wzsim"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-3wzsim'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_1a43f.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:07 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-3wzsim\\cmTC_1a43f.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_1a43f.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-3wzsim\\Debug\\".
+          Creating directory "cmTC_1a43f.dir\\Debug\\cmTC_1a43f.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_1a43f.dir\\Debug\\cmTC_1a43f.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GS /fp:precise /Fo"cmTC_1a43f.dir\\Debug\\\\" /Fd"cmTC_1a43f.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCXXCompilerABI.cpp"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          CMakeCXXCompilerABI.cpp
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GS /fp:precise /Fo"cmTC_1a43f.dir\\Debug\\\\" /Fd"cmTC_1a43f.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.1\\Modules\\CMakeCXXCompilerABI.cpp"
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-3wzsim\\Debug\\cmTC_1a43f.exe" /INCREMENTAL /ILK:"cmTC_1a43f.dir\\Debug\\cmTC_1a43f.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-3wzsim/Debug/cmTC_1a43f.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-3wzsim/Debug/cmTC_1a43f.lib" /MACHINE:X64  /machine:x64 cmTC_1a43f.dir\\Debug\\CMakeCXXCompilerABI.obj
+          cmTC_1a43f.vcxproj -> C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-3wzsim\\Debug\\cmTC_1a43f.exe
+        FinalizeBuildStatus:
+          Deleting file "cmTC_1a43f.dir\\Debug\\cmTC_1a43f.tlog\\unsuccessfulbuild".
+          Touching "cmTC_1a43f.dir\\Debug\\cmTC_1a43f.tlog\\cmTC_1a43f.lastbuildstate".
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-3wzsim\\cmTC_1a43f.vcxproj" (default targets).
+        
+        Build succeeded.
+            0 Warning(s)
+            0 Error(s)
+        
+        Time Elapsed 00:00:01.78
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'CXX': C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/HostX64/x64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/Internal/CMakeDetermineLinkerId.cmake:36 (message)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:107 (PROJECT)"
+    message: |
+      Running the CXX compiler's linker: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/HostX64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.36.32534.0
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CheckIncludeFile.cmake:165 (try_compile)"
+      - "contrib/zlib/CMakeLists.txt:35 (check_include_file)"
+    checks:
+      - "Looking for sys/types.h"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-ztc5wv"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-ztc5wv"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/cmake-modules"
+    buildResult:
+      variable: "HAVE_SYS_TYPES_H"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-ztc5wv'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_49de8.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:10 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-ztc5wv\\cmTC_49de8.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_49de8.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-ztc5wv\\Debug\\".
+          Creating directory "cmTC_49de8.dir\\Debug\\cmTC_49de8.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_49de8.dir\\Debug\\cmTC_49de8.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_49de8.dir\\Debug\\\\" /Fd"cmTC_49de8.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-ztc5wv\\CheckIncludeFile.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          CheckIncludeFile.c
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_49de8.dir\\Debug\\\\" /Fd"cmTC_49de8.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-ztc5wv\\CheckIncludeFile.c"
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-ztc5wv\\Debug\\cmTC_49de8.exe" /INCREMENTAL /ILK:"cmTC_49de8.dir\\Debug\\cmTC_49de8.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-ztc5wv/Debug/cmTC_49de8.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-ztc5wv/Debug/cmTC_49de8.lib" /MACHINE:X64  /machine:x64 cmTC_49de8.dir\\Debug\\CheckIncludeFile.obj
+          cmTC_49de8.vcxproj -> C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-ztc5wv\\Debug\\cmTC_49de8.exe
+        FinalizeBuildStatus:
+          Deleting file "cmTC_49de8.dir\\Debug\\cmTC_49de8.tlog\\unsuccessfulbuild".
+          Touching "cmTC_49de8.dir\\Debug\\cmTC_49de8.tlog\\cmTC_49de8.lastbuildstate".
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-ztc5wv\\cmTC_49de8.vcxproj" (default targets).
+        
+        Build succeeded.
+            0 Warning(s)
+            0 Error(s)
+        
+        Time Elapsed 00:00:02.05
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CheckIncludeFile.cmake:165 (try_compile)"
+      - "contrib/zlib/CMakeLists.txt:36 (check_include_file)"
+    checks:
+      - "Looking for stdint.h"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-hqwlql"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-hqwlql"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/cmake-modules"
+    buildResult:
+      variable: "HAVE_STDINT_H"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-hqwlql'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_7a41c.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:12 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-hqwlql\\cmTC_7a41c.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_7a41c.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-hqwlql\\Debug\\".
+          Creating directory "cmTC_7a41c.dir\\Debug\\cmTC_7a41c.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_7a41c.dir\\Debug\\cmTC_7a41c.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_7a41c.dir\\Debug\\\\" /Fd"cmTC_7a41c.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-hqwlql\\CheckIncludeFile.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          CheckIncludeFile.c
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_7a41c.dir\\Debug\\\\" /Fd"cmTC_7a41c.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-hqwlql\\CheckIncludeFile.c"
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-hqwlql\\Debug\\cmTC_7a41c.exe" /INCREMENTAL /ILK:"cmTC_7a41c.dir\\Debug\\cmTC_7a41c.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-hqwlql/Debug/cmTC_7a41c.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-hqwlql/Debug/cmTC_7a41c.lib" /MACHINE:X64  /machine:x64 cmTC_7a41c.dir\\Debug\\CheckIncludeFile.obj
+          cmTC_7a41c.vcxproj -> C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-hqwlql\\Debug\\cmTC_7a41c.exe
+        FinalizeBuildStatus:
+          Deleting file "cmTC_7a41c.dir\\Debug\\cmTC_7a41c.tlog\\unsuccessfulbuild".
+          Touching "cmTC_7a41c.dir\\Debug\\cmTC_7a41c.tlog\\cmTC_7a41c.lastbuildstate".
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-hqwlql\\cmTC_7a41c.vcxproj" (default targets).
+        
+        Build succeeded.
+            0 Warning(s)
+            0 Error(s)
+        
+        Time Elapsed 00:00:01.88
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CheckIncludeFile.cmake:165 (try_compile)"
+      - "contrib/zlib/CMakeLists.txt:37 (check_include_file)"
+    checks:
+      - "Looking for stddef.h"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-b8re2c"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-b8re2c"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/cmake-modules"
+    buildResult:
+      variable: "HAVE_STDDEF_H"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-b8re2c'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_a1afa.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:15 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-b8re2c\\cmTC_a1afa.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_a1afa.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-b8re2c\\Debug\\".
+          Creating directory "cmTC_a1afa.dir\\Debug\\cmTC_a1afa.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_a1afa.dir\\Debug\\cmTC_a1afa.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_a1afa.dir\\Debug\\\\" /Fd"cmTC_a1afa.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-b8re2c\\CheckIncludeFile.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          CheckIncludeFile.c
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_a1afa.dir\\Debug\\\\" /Fd"cmTC_a1afa.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-b8re2c\\CheckIncludeFile.c"
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-b8re2c\\Debug\\cmTC_a1afa.exe" /INCREMENTAL /ILK:"cmTC_a1afa.dir\\Debug\\cmTC_a1afa.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-b8re2c/Debug/cmTC_a1afa.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-b8re2c/Debug/cmTC_a1afa.lib" /MACHINE:X64  /machine:x64 cmTC_a1afa.dir\\Debug\\CheckIncludeFile.obj
+          cmTC_a1afa.vcxproj -> C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-b8re2c\\Debug\\cmTC_a1afa.exe
+        FinalizeBuildStatus:
+          Deleting file "cmTC_a1afa.dir\\Debug\\cmTC_a1afa.tlog\\unsuccessfulbuild".
+          Touching "cmTC_a1afa.dir\\Debug\\cmTC_a1afa.tlog\\cmTC_a1afa.lastbuildstate".
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-b8re2c\\cmTC_a1afa.vcxproj" (default targets).
+        
+        Build succeeded.
+            0 Warning(s)
+            0 Error(s)
+        
+        Time Elapsed 00:00:02.07
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CheckTypeSize.cmake:237 (try_compile)"
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CheckTypeSize.cmake:364 (__check_type_size_impl)"
+      - "contrib/zlib/CMakeLists.txt:55 (check_type_size)"
+    checks:
+      - "Check size of off64_t"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-vn72av"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-vn72av"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/cmake-modules"
+    buildResult:
+      variable: "HAVE_OFF64_T"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-vn72av'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_f18e0.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:18 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_f18e0.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\Debug\\".
+          Creating directory "cmTC_f18e0.dir\\Debug\\cmTC_f18e0.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_f18e0.dir\\Debug\\cmTC_f18e0.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _LARGEFILE64_SOURCE=1 /D HAVE_SYS_TYPES_H /D HAVE_STDINT_H /D HAVE_STDDEF_H /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_f18e0.dir\\Debug\\\\" /Fd"cmTC_f18e0.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          OFF64_T.c
+        C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(29,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+        C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(30,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+        C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(31,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+        C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(32,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+        C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(33,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _LARGEFILE64_SOURCE=1 /D HAVE_SYS_TYPES_H /D HAVE_STDINT_H /D HAVE_STDDEF_H /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_f18e0.dir\\Debug\\\\" /Fd"cmTC_f18e0.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c"
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj" (default targets) -- FAILED.
+        
+        Build FAILED.
+        
+        "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj" (default target) (1) ->
+        (ClCompile target) -> 
+          C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(29,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+          C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(30,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+          C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(31,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+          C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(32,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+          C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\OFF64_T.c(33,12): error C2065: 'off64_t': undeclared identifier [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-vn72av\\cmTC_f18e0.vcxproj]
+        
+            0 Warning(s)
+            5 Error(s)
+        
+        Time Elapsed 00:00:01.70
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CheckFunctionExists.cmake:167 (try_compile)"
+      - "contrib/zlib/CMakeLists.txt:64 (check_function_exists)"
+    checks:
+      - "Looking for fseeko"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-d3pyan"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-d3pyan"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/cmake-modules"
+    buildResult:
+      variable: "HAVE_FSEEKO"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-d3pyan'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_c50a6.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:20 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\cmTC_c50a6.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_c50a6.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\Debug\\".
+          Creating directory "cmTC_c50a6.dir\\Debug\\cmTC_c50a6.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_c50a6.dir\\Debug\\cmTC_c50a6.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=fseeko /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_c50a6.dir\\Debug\\\\" /Fd"cmTC_c50a6.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\CheckFunctionExists.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          CheckFunctionExists.c
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=fseeko /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_c50a6.dir\\Debug\\\\" /Fd"cmTC_c50a6.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\CheckFunctionExists.c"
+        Link:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\Debug\\cmTC_c50a6.exe" /INCREMENTAL /ILK:"cmTC_c50a6.dir\\Debug\\cmTC_c50a6.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-d3pyan/Debug/cmTC_c50a6.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-d3pyan/Debug/cmTC_c50a6.lib" /MACHINE:X64  /machine:x64 cmTC_c50a6.dir\\Debug\\CheckFunctionExists.obj
+        CheckFunctionExists.obj : error LNK2019: unresolved external symbol fseeko referenced in function main [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\cmTC_c50a6.vcxproj]
+        C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\Debug\\cmTC_c50a6.exe : fatal error LNK1120: 1 unresolved externals [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\cmTC_c50a6.vcxproj]
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\cmTC_c50a6.vcxproj" (default targets) -- FAILED.
+        
+        Build FAILED.
+        
+        "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\cmTC_c50a6.vcxproj" (default target) (1) ->
+        (Link target) -> 
+          CheckFunctionExists.obj : error LNK2019: unresolved external symbol fseeko referenced in function main [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\cmTC_c50a6.vcxproj]
+          C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\Debug\\cmTC_c50a6.exe : fatal error LNK1120: 1 unresolved externals [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-d3pyan\\cmTC_c50a6.vcxproj]
+        
+            0 Warning(s)
+            2 Error(s)
+        
+        Time Elapsed 00:00:02.25
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/CMake/share/cmake-4.1/Modules/CheckIncludeFile.cmake:165 (try_compile)"
+      - "contrib/zlib/CMakeLists.txt:72 (check_include_file)"
+    checks:
+      - "Looking for unistd.h"
+    directories:
+      source: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-dm0msx"
+      binary: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-dm0msx"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/cmake-modules"
+    buildResult:
+      variable: "Z_HAVE_UNISTD_H"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/user/Documents/GitHub/NANOEngine/extern/assimp/build-debug/CMakeFiles/CMakeScratch/TryCompile-dm0msx'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_9d907.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        MSBuild version 17.6.3+07e294721 for .NET Framework
+        Build started 9/9/2025 9:16:23 am.
+        
+        Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\cmTC_9d907.vcxproj" on node 1 (default targets).
+        PrepareForBuild:
+          Creating directory "cmTC_9d907.dir\\Debug\\".
+          Creating directory "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\Debug\\".
+          Creating directory "cmTC_9d907.dir\\Debug\\cmTC_9d907.tlog\\".
+        InitializeBuildStatus:
+          Creating "cmTC_9d907.dir\\Debug\\cmTC_9d907.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+        ClCompile:
+          C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.36.32532\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_9d907.dir\\Debug\\\\" /Fd"cmTC_9d907.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\CheckIncludeFile.c"
+          Microsoft (R) C/C++ Optimizing Compiler Version 19.36.32534 for x64
+          Copyright (C) Microsoft Corporation.  All rights reserved.
+          CheckIncludeFile.c
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /GS /fp:precise /Fo"cmTC_9d907.dir\\Debug\\\\" /Fd"cmTC_9d907.dir\\Debug\\vc143.pdb" /external:W1 /Gd /TC /errorReport:queue "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\CheckIncludeFile.c"
+        C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\CheckIncludeFile.c(1,10): fatal  error C1083: Cannot open include file: 'unistd.h': No such file or directory [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\cmTC_9d907.vcxproj]
+        Done Building Project "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\cmTC_9d907.vcxproj" (default targets) -- FAILED.
+        
+        Build FAILED.
+        
+        "C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\cmTC_9d907.vcxproj" (default target) (1) ->
+        (ClCompile target) -> 
+          C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\CheckIncludeFile.c(1,10): fatal  error C1083: Cannot open include file: 'unistd.h': No such file or directory [C:\\Users\\user\\Documents\\GitHub\\NANOEngine\\extern\\assimp\\build-debug\\CMakeFiles\\CMakeScratch\\TryCompile-dm0msx\\cmTC_9d907.vcxproj]
+        
+            0 Warning(s)
+            1 Error(s)
+        
+        Time Elapsed 00:00:01.53
+        
+      exitCode: 1
+...

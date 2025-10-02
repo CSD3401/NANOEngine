@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\user\Documents\GitHub\NANOEngine\extern\assimp\build-debug\CMakeFiles\57d7be3715d72c4e96e6e293eba515c0\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{12C91A89-17C7-36C1-AD6A-37FD042A2B77}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
