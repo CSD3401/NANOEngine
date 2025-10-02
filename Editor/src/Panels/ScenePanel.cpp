@@ -35,6 +35,9 @@ namespace Editor {
 		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
 		m_editorCamera.SetPosition(position);
 		m_editorCamera.LookAt(target, up);
+
+		// Give address of the editor camera to the scene camera tweener
+		sceneCameraTweener.SetSceneCamera(GetCamera());
 	}
 
 	void ScenePanel::OnImGuiRender()
@@ -110,6 +113,8 @@ namespace Editor {
 				if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow))  move.z -= 1.0f;
 				if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))  move.x -= 1.0f;
 				if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) move.x += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftBracket)) move.y += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_RightBracket)) move.y -= 1.0f;
 
 				if (move.LengthSquared() > 0.0f) {
 					move.Normalize();
@@ -117,7 +122,7 @@ namespace Editor {
 					Vec3 forward = m_editorCamera.GetForward();
 					Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
 
-					Vec3 offset = (right * move.x + forward * move.z) * m_cameraSpeed * deltaTime;
+					Vec3 offset = (right * move.x + forward * move.z + Vec3(0, 1, 0) * move.y) * m_cameraSpeed * deltaTime;
 					m_editorCamera.SetPosition(m_editorCamera.GetPosition() + offset);
 				}
 
@@ -130,12 +135,6 @@ namespace Editor {
 				// Clamp pitch
 				if (m_cameraPitch > 89.0f) m_cameraPitch = 89.0f;
 				if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
-
-				Vec3 dir;
-				dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
-				dir.y = sinf(Radians(m_cameraPitch));
-				dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
-				m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 			} else {
 				m_rightMouseHeld = false;
 			}
@@ -251,6 +250,13 @@ namespace Editor {
 				s_gizmoActive = false;
 			}
 		}
+
+		// Calculate camera's look direction regardless of input
+		Vec3 dir;
+		dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
+		dir.y = sinf(Radians(m_cameraPitch));
+		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
+		m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
 		//if (EditorScene::s_selectedEntity) {
 		//	static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;

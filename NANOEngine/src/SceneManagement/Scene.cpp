@@ -8,6 +8,9 @@
 #include "../ECS/Systems/AudioSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "ECS/Systems/ScriptSystem.hpp"
+#include "ECS/Components/NativeScript.hpp"
+#include <iostream>
 
 
 namespace NE::SceneManagement {
@@ -20,8 +23,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
+		m_ecsCoordinator.m_scriptSystem->Init();
 	}
-
 
 	void Scene::Update(double dt)
 	{
@@ -35,27 +38,42 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::DrawDebugLines();
 		Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
+		m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
 
-	void Scene::RenderPicking() // TEMP hopefully can be optimized so i dont run twice
-	{
-		Graphics::GraphicsManager::BeginFrame();
-		m_ecsCoordinator.m_renderSystem->RenderPicking();
-		Graphics::GraphicsManager::EndFrame();
+	void Scene::Render(RenderPass pass) {
+		if (pass == RenderPass::Main) {
+			Graphics::GraphicsManager::DrawSkybox();
+			m_ecsCoordinator.m_renderSystem->Update(0.0);
+			Graphics::GraphicsManager::DrawDebugLines();
+		} else if (pass == RenderPass::Picking) {
+			m_ecsCoordinator.m_renderSystem->RenderPicking();
+		}
 	}
 
-	void Scene::Exit()
-	{
+	void Scene::Exit() {
 		m_ecsCoordinator.m_rigidbodySystem->Exit();
 		m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
+		m_ecsCoordinator.m_scriptSystem->Exit();	
 	}
 
-	ECS::ECSCoordinator& Scene::GetECSCoordinator()
-	{
+	void Scene::ScriptStart() {
+		m_ecsCoordinator.m_scriptSystem->StartScripts();
+	}
+
+	void Scene::ScriptPause() {
+		m_ecsCoordinator.m_scriptSystem->PauseScripts();
+	}
+
+	void Scene::ScriptStop() {
+		m_ecsCoordinator.m_scriptSystem->StopScripts();
+	}
+
+	ECS::ECSCoordinator& Scene::GetECSCoordinator() {
 		return m_ecsCoordinator;
 	}
 

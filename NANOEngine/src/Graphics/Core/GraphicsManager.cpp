@@ -30,6 +30,13 @@ namespace NE::Graphics {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
 
+        // Load Basic Shader
+        //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
+        //Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.nanoshader", false);
+        auto basic = std::make_shared<OpenGL::GLShader>();
+        basic->LoadFromFile("Library/Shaders/Basic.nanoshader");
+        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(basic, "Basic");
+
         // Load Primitives
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");
@@ -68,6 +75,7 @@ namespace NE::Graphics {
         shader->SetUniformMat4("u_Model", command.transform);
         shader->SetUniformMat4("u_View", s_ActiveCamera->GetViewMatrix());
         shader->SetUniformMat4("u_Projection", s_ActiveCamera->GetProjectionMatrix());
+        shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
         shader->SetUniformVec3("u_CameraPos", s_ActiveCamera->GetPosition());
 
         shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
@@ -85,6 +93,8 @@ namespace NE::Graphics {
             shader->SetUniformFloat(base + ".linear", light->linear);
             shader->SetUniformFloat(base + ".quadratic", light->quadratic);
         }
+
+        shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
         // Draw indexed
         //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
@@ -111,6 +121,10 @@ namespace NE::Graphics {
 
     void GraphicsManager::SetCamera(Camera* cam) {
         s_ActiveCamera = cam;
+    }
+
+    Camera* GraphicsManager::GetCamera() {
+        return s_ActiveCamera;
     }
 
     uint32_t GraphicsManager::ReadPixel(IFrameBuffer* framebuffer, uint32_t x, uint32_t y) {

@@ -3,13 +3,18 @@
 #include "../ECS/Core/ECSCoordinator.hpp"
 
 namespace NE::SceneManagement {
+	enum class RenderPass { Main, Picking };
 
 	class Scene {
 	public:
 		void Init();
 		void Update(double dt);
-		void RenderPicking();
+		void Render(RenderPass pass);
 		void Exit();
+
+		void ScriptStart();
+		void ScriptPause();
+		void ScriptStop();
 
 		ECS::ECSCoordinator& GetECSCoordinator();
 

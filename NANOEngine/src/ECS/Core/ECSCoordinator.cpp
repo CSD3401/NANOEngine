@@ -7,6 +7,7 @@
 #include "../Components/Collider.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "../Components/AudioSource.hpp"
+#include "../Components/NativeScript.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -14,6 +15,7 @@
 #include "../Systems/RigidbodySystem.hpp"
 #include "../Systems/ColliderSystem.hpp"
 #include "../Systems/AudioSystem.hpp"
+#include "../Systems/ScriptSystem.hpp"
 
 
 namespace NE::ECS {
@@ -31,6 +33,8 @@ namespace NE::ECS {
         RegisterComponent<Component::Collider>();
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
+        RegisterComponent<Component::NativeScript>();
+        
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -72,6 +76,13 @@ namespace NE::ECS {
             sig.set(GetComponentType<Component::AudioSource>());
             SetSystemSignature<Systems::AudioSystem>(sig);
         }
+        
+		m_scriptSystem = m_systemManager->RegisterSystem<Systems::ScriptSystem>(m_componentManager.get());
+		{
+			Signature sig;
+			sig.set(GetComponentType<Component::NativeScript>());
+			SetSystemSignature<Systems::ScriptSystem>(sig);
+		}
     }
 
     Entity ECSCoordinator::CreateEntity() {

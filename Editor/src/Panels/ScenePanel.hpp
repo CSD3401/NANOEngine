@@ -5,6 +5,7 @@
 #include <string>
 #include "Graphics/Core/Camera.hpp"
 #include "imgui/imgui_internal.h"
+#include "SceneCameraTweener.hpp"
 
 namespace Editor {
 	class ScenePanel : public IPanel {
@@ -24,5 +25,7 @@ namespace Editor {
 		float m_mouseSensitivity = 0.1f;
 		bool  m_rightMouseHeld = false;
 		ImVec2 m_lastMousePos = { 0, 0 };
+
+		SceneCameraTweener sceneCameraTweener;
 	};
 }

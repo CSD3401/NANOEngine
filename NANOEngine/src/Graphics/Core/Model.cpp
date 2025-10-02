@@ -104,6 +104,54 @@ namespace NE::Graphics {
             meshes.push_back(std::move(sub));
         }
 
+        ComputeModelSphereBounds();
+
         return true;
+    }
+
+    void Model::ComputeModelSphereBounds() {
+        if (meshes.empty())
+        {
+            return;
+        }
+
+        Vec3 minLS{ 
+            std::numeric_limits<float>::infinity(),
+            std::numeric_limits<float>::infinity(),
+            std::numeric_limits<float>::infinity() 
+        };
+
+        Vec3 maxLS{ 
+            -std::numeric_limits<float>::infinity(),
+            -std::numeric_limits<float>::infinity(),
+            -std::numeric_limits<float>::infinity()
+        };
+
+        for (const auto& mesh : meshes) 
+        {
+            for (const auto& vertex : mesh.vertices) 
+            {
+                const Vec3& pos = vertex.Position;
+
+                minLS = Vec3{ std::min(minLS.x, pos.x), std::min(minLS.y, pos.y), std::min(minLS.z, pos.z) };
+                maxLS = Vec3{ std::max(maxLS.x, pos.x), std::max(maxLS.y, pos.y), std::max(maxLS.z, pos.z) };
+
+            }
+        }
+
+        sphereCenterLS = { 
+            (minLS.x + maxLS.x) * 0.5f,
+            (minLS.y + maxLS.y) * 0.5f,
+            (minLS.z + maxLS.z) * 0.5f 
+        };
+
+        const Vec3 extents{ 
+            (maxLS.x - minLS.x) * 0.5f,
+            (maxLS.y - minLS.y) * 0.5f,
+            (maxLS.z - minLS.z) * 0.5f
+        };
+
+        sphereRadiusLS = extents.Length();
+        hasSphereBoundsLS = true;
     }
 }

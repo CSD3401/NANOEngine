@@ -5,7 +5,8 @@
 #include "Panels/AssetBrowserPanel.hpp"
 #include "Engine.hpp"
 #include "../src/EditorScene.hpp"
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
+#include "Command/CommandHistory.hpp"
 
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
@@ -260,11 +261,24 @@ namespace Editor {
         ImGui::SetCursorPos(ImVec2(logoSpace, 10.f));
 
         if (ImGui::Button("File")) {
+            if (ImGui::MenuItem("New Scene","", false, false)) {}
 
+            if (ImGui::MenuItem("Open Scene", "", false, false)) {}
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Save", "Ctrl + S", false, false)) {
+                //SceneManager::GetInstance().SaveScene();
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Exit", "", false, false)) {}
         }
         ImGui::SameLine();
         if (ImGui::Button("Edit")) {
-
+            if (ImGui::MenuItem("Undo", "Ctrl + Z", false, false)) CommandHistory::GetInstance().Undo();
+            if (ImGui::MenuItem("Redo", "Ctrl + Y", false, false)) CommandHistory::GetInstance().Undo();
         }
         ImGui::SameLine();
         if (ImGui::Button("Window")) {
@@ -275,10 +289,73 @@ namespace Editor {
 
         }
 
-        // --- Window Controls (Far right) ---
-        float buttonSize = 32.0f; // Slightly smaller for style
+        // TEST SHORTCUTS
+        //if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z)) {
+        //    CommandHistory::GetInstance().Undo();
+        //}
+
+        //if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y)) {
+        //    CommandHistory::GetInstance().Redo();
+        //}
+
+        // --- History button (top-right), before the window controls ---
+        // Reserve width for the three window buttons you already place on the far right
+        float buttonSize = 32.0f;
         float spacing = 0.0f;
         float totalButtonsWidth = 3 * (buttonSize + spacing);
+
+        ImVec2 historySize = ImVec2(140.0f, 32.0f);
+
+        float rightEdge = menuBarSize.x - totalButtonsWidth - 8.0f; // 8px padding
+        ImVec2 pos = ImVec2(rightEdge - historySize.x, (menuBarSize.y - historySize.y) * 0.5f);
+        ImGui::SetCursorPos(pos);
+
+        // show the latest undo label as preview text
+        auto& history = CommandHistory::GetInstance();
+        const auto& undo = history.GetUndoList();
+        const char* preview =
+            undo.empty() ? "History" : undo.back()->GetName();
+
+        // Style it to feel like a button (no arrow, we draw "▾" ourselves in the label)
+        ImGui::SetNextItemWidth(historySize.x);
+        ImGuiComboFlags comboFlags = ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_HeightLarge;
+
+        if (ImGui::BeginCombo("##history_dropdown", preview, comboFlags)) {
+            // Optional header
+            ImGui::TextUnformatted("Undo Stack");
+            ImGui::Separator();
+
+            if (undo.empty()) {
+                ImGui::TextDisabled("  <empty>");
+            } else {
+                for (int i = static_cast<int>(undo.size()) - 1; i >= 0; --i)
+                    ImGui::BulletText("#%d - %s", i + 1, undo[i]->GetName());
+            }
+
+            ImGui::Spacing();
+            ImGui::TextUnformatted("Redo Stack");
+            ImGui::Separator();
+
+            const auto& redo = history.GetRedoList();
+            if (redo.empty()) {
+                ImGui::TextDisabled("  <empty>");
+            } else {
+                for (int i = static_cast<int>(redo.size()) - 1; i >= 0; --i)
+                    ImGui::BulletText("#%d - %s", i + 1, redo[i]->GetName());
+            }
+
+            ImGui::Spacing();
+            if (ImGui::Button("Undo")) history.Undo();
+            ImGui::SameLine();
+            if (ImGui::Button("Redo")) history.Redo();
+
+            ImGui::EndCombo();
+        }
+
+        // --- Window Controls (Far right) ---
+        //float buttonSize = 32.0f; // Slightly smaller for style
+        //float spacing = 0.0f;
+        //float totalButtonsWidth = 3 * (buttonSize + spacing);
 
         // Move cursor to the far right, but centered in the bar
         ImGui::SetCursorPos(ImVec2(menuBarSize.x - totalButtonsWidth, 0.f));
