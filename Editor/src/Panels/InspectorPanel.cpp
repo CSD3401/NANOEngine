@@ -8,6 +8,8 @@
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Rigidbody.hpp>
 #include <ECS/Components/Collider.hpp>
+#include <ECS/Components/AudioSource.hpp>
+#include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
@@ -23,25 +25,56 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <sstream>
+#include <vector>
 
 namespace {
     template<typename Owner, typename T>
     bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, T& value) {
         if constexpr (std::is_same_v<T, bool>) {
             return ImGui::Checkbox(desc.name.data(), &value);
-        } else if constexpr (std::is_same_v<T, int>) {
+        }
+        else if constexpr (std::is_same_v<T, int>) {
             return ImGui::DragInt(desc.name.data(), &value);
-        } else if constexpr (std::is_same_v<T, float>) {
+        }
+        else if constexpr (std::is_same_v<T, float>) {
             return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
-        } else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+        }
+        else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
             ImGui::BeginGroup();
             bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
             ImGui::EndGroup();
             return changed;
-        } else {
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            // String support added here -> check w irwen
+            char buffer[256];
+            strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer));
+            buffer[sizeof(buffer) - 1] = '\0';
+
+            if (ImGui::InputText(desc.name.data(), buffer, sizeof(buffer))) {
+                value = buffer;
+                return true;
+            }
+            return false;
+        }
+        else {
             ImGui::Text("%s (unsupported)", desc.name.data());
             return false;
         }
+    }
+
+    // Helpers for scripting field parsing/formatting
+    static NE::Math::Vec3 Vec3FromString(const std::string& s) {
+        NE::Math::Vec3 v{ 0.f,0.f,0.f };
+        std::istringstream iss(s);
+        iss >> v.x >> v.y >> v.z;
+        return v;
+    }
+    static std::string Vec3ToString(const NE::Math::Vec3& v) {
+        std::ostringstream oss;
+        oss << v.x << ' ' << v.y << ' ' << v.z;
+        return oss.str();
     }
 
     template <typename Owner, typename T>
@@ -54,18 +87,23 @@ namespace {
         auto getter = [=](uint32_t e) -> Owner& {
             if constexpr (std::is_same_v<Owner, NE::ECS::Component::Transform>) {
                 return NE::ECS::Command::GetEntityTransform(e);
-            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Collider>) {
+            }
+            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Collider>) {
                 return NE::ECS::Command::GetEntityCollider(e);
-            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Rigidbody>) {
+            }
+            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Rigidbody>) {
                 return NE::ECS::Command::GetEntityRigidbody(e);
-            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Renderer>) {
+            }
+            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Renderer>) {
                 return NE::ECS::Command::GetEntityRenderer(e);
-            } else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
+            }
+            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
                 return NE::ECS::Command::GetEntityLight(e);
-            } else {
+            }
+            else {
                 static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
             }
-        };
+            };
 
         auto cmd = std::make_unique<Cmd>(entity,
             std::string(desc.name),
@@ -113,7 +151,8 @@ namespace {
     static bool Equal(const T& a, const T& b) {
         if constexpr (std::is_floating_point_v<T>) {
             return std::fabs(a - b) <= 1e-6f;
-        } else {
+        }
+        else {
             return a == b;
         }
     }
@@ -307,7 +346,8 @@ namespace Editor {
                                     auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
                                     if (asSet && Equal(asSet->Before(), asSet->After())) {
                                         g_activeCommands.erase(it);
-                                    } else {
+                                    }
+                                    else {
                                         Editor::CommandHistory::GetInstance()
                                             .ExecuteCommand(std::move(it->second));
                                         g_activeCommands.erase(it);
@@ -316,7 +356,8 @@ namespace Editor {
                             }
                         });
 
-                } else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
+                }
+                else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
                     auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
                     ImGui::SeparatorText("Renderer");
                     //char buf[256]; 
@@ -327,15 +368,15 @@ namespace Editor {
                     DrawAssetField("Model", comp.modelPath.string(), "+", 0.f, &openPopup);
                     if (openPopup) {
                         ImGui::OpenPopup("AssetPicker_Model");
-					}
+                    }
 
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
 
-							if (comp.materialPath.empty()) { // If material is not set, assign a default one
+                            if (comp.materialPath.empty()) { // If material is not set, assign a default one
                                 //AssignRendererMaterial(comp, "Assets/Basic.nanomat");
-							} // done for rapid prototyping, should be removed later
+                            } // done for rapid prototyping, should be removed later
 
                             //AssignRendererModel(comp, dropped);
                         }
@@ -358,7 +399,7 @@ namespace Editor {
                                             NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
                                             ImGui::CloseCurrentPopup();
                                         }
-									});
+                                    });
                             }
 
                             ImSearch::EndSearch();
@@ -366,7 +407,7 @@ namespace Editor {
                         ImGui::EndPopup();
                     }
 
-                    char bufMat[256]; 
+                    char bufMat[256];
                     strncpy_s(bufMat, comp.materialPath.string().c_str(), sizeof(bufMat));
                     ImGui::InputText("Material", bufMat, sizeof(bufMat));
 
@@ -378,7 +419,8 @@ namespace Editor {
                         }
                         ImGui::EndDragDropTarget();
                     }
-                } else if (typeIdx == typeid(NE::ECS::Component::Light)) {
+                }
+                else if (typeIdx == typeid(NE::ECS::Component::Light)) {
                     auto& comp = NE::ECS::Query::GetEntityLight(entity);
                     ImGui::SeparatorText("Light");
 
@@ -388,9 +430,19 @@ namespace Editor {
                         //comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
                     }
 
-                    //NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
-                    //    DrawField(desc, field);
-                    //    });
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+
+                            // make a local editable copy
+                            FieldT edited = currentValue;
+
+                            // render widget; returns true if user changed it
+                            if (DrawField(desc, edited)) {
+                                // don't write to comp.* here; push a command to the engine:
+                                //SubmitSetFieldCommand(entity, desc, edited);
+                            }
+                        });
                 } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
                     auto& comp = NE::ECS::Query::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
@@ -407,7 +459,8 @@ namespace Editor {
                                 //SubmitSetFieldCommand(entity, desc, edited);
                             }
                         });
-                } else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
+                }
+                else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
                     auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
                     ImGui::SeparatorText("Rigidbody");
                     NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
@@ -424,6 +477,160 @@ namespace Editor {
                             }
                         });
                 } 
+                else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) 
+                {
+                    auto& comp = NE::ECS::Query::GetEntityAudioSource(entity);
+                    ImGui::SeparatorText("AudioSource");
+
+                    bool openPopup = false;
+                    DrawAssetField("Audio", comp.modelPath.string(), "+", 0.f, &openPopup);
+                    if (openPopup) {
+                        ImGui::OpenPopup("AudioPicker_Model");
+                    }
+
+                    //static std::string searchQuery;
+                    if (ImGui::BeginPopup("AudioPicker_Model")) {
+                        ImGui::Text("Select Audio");
+                        ImGui::Separator();
+                        auto& assets = NE::GetAllModels();
+
+                        if (ImSearch::BeginSearch()) {
+                            ImSearch::SearchBar();
+
+                            for (const auto& [name, asset] : assets) {
+                                ImSearch::SearchableItem(name.c_str(),
+                                    [name, &entity](const char*) {
+                                        if (ImGui::Selectable(name.c_str())) {
+                                            //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+                                            printf("Audio Adding Works?");
+                                            ImGui::CloseCurrentPopup();
+                                        }
+                                    });
+                            }
+
+                            ImSearch::EndSearch();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+
+                    // This renders all the external properties of AudioSource but cant edit atm
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::AudioSource>(comp,
+                    //    [&](auto const& desc, auto const& currentValue) {
+                    //        using FieldT = std::decay_t<decltype(currentValue)>;
+
+                    //        // make a local editable copy
+                    //        FieldT edited = currentValue;
+
+                    //        // render widget; returns true if user changed it
+                    //        if (DrawField(desc, edited)) {
+                    //            // don't write to comp.* here; push a command to the engine:
+                    //            //SubmitSetFieldCommand(entity, desc, edited);
+                    //        }
+                    //    });
+                }
+                else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
+                    auto& comp = NE::ECS::Query::GetEntityScript(entity);
+                    ImGui::SeparatorText("Script");
+
+                    // Display current script name or "None"
+                    std::string currentScript = comp.ScriptName.empty() ? "None" : comp.ScriptName;
+
+                    ImGui::Text("Current Script: %s", currentScript.c_str());
+
+                    // Script selection dropdown
+                    if (ImGui::BeginCombo("Script Type", currentScript.c_str())) {
+                        // "None" option to remove script
+                        if (ImGui::Selectable("None", comp.ScriptName.empty())) {
+                            NE::ECS::Command::RemoveEntityScript(entity);
+                        }
+
+                        // List all registered scripts
+                        auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
+                        for (const auto& scriptName : scriptNames) {
+                            bool isSelected = (comp.ScriptName == scriptName);
+                            if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
+                                NE::ECS::Command::SetEntityScript(entity, scriptName);
+                            }
+                            if (isSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+
+                    // Display script status
+                    if (!comp.ScriptName.empty()) {
+                        ImGui::Separator();
+
+                        // Script enabled/disabled checkbox
+                        if (comp.Instance) {
+                            bool enabled = comp.Instance->IsEnabled();
+                            if (ImGui::Checkbox("Enabled", &enabled)) {
+                                comp.Instance->SetEnabled(enabled);
+                            }
+
+                            ImGui::Text("Status: Active");
+                            ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+
+                            // --- Scripting Fields UI ---
+                            auto fieldNames = comp.Instance->GetExposedFieldNames();
+                            if (!fieldNames.empty()) {
+                                ImGui::SeparatorText("Script Fields");
+                                for (const auto& fname : fieldNames) {
+                                    std::string ftype = comp.Instance->GetFieldType(fname);
+                                    std::string fval = comp.Instance->GetFieldValueAsString(fname);
+
+                                    ImGui::PushID(fname.c_str());
+
+                                    if (ftype == "bool") {
+                                        bool v = (fval == "1" || fval == "true");
+                                        if (ImGui::Checkbox(fname.c_str(), &v)) {
+                                            comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+                                        }
+                                    }
+                                    else if (ftype == "int") {
+                                        int v = 0; if (!fval.empty()) v = std::stoi(fval);
+                                        if (ImGui::DragInt(fname.c_str(), &v)) {
+                                            comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+                                        }
+                                    }
+                                    else if (ftype == "float") {
+                                        float v = 0.f; if (!fval.empty()) v = std::stof(fval);
+                                        if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
+                                            comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+                                        }
+                                    }
+                                    else if (ftype == "vec3") {
+                                        NE::Math::Vec3 vv = Vec3FromString(fval);
+                                        if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
+                                            comp.Instance->SetFieldValueFromString(fname, Vec3ToString(vv));
+                                        }
+                                    }
+                                    else { // treat as string
+                                        char buf[256];
+                                        strncpy_s(buf, fval.c_str(), sizeof(buf));
+                                        if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
+                                            comp.Instance->SetFieldValueFromString(fname, std::string(buf));
+                                        }
+                                    }
+
+                                    ImGui::PopID();
+                                }
+                            }
+
+                        }
+                        else {
+                            ImGui::Text("Status: Not Instantiated");
+                        }
+
+                        // Show if script is properly registered
+                        bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
+                        if (!isRegistered) {
+                            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Warning: Script not registered!");
+                        }
+                    }
+                }
             }
 
             if (ImGui::Button("Add Component")) {
@@ -444,15 +651,23 @@ namespace Editor {
                 if (ImGui::MenuItem("Light")) {
                     NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
+                if (ImGui::MenuItem("AudioSource")) {
+                    NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+                if (ImGui::MenuItem("Script")) {
+                    NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
                 ImGui::EndPopup();
             }
 
-        } else if (EditorScene::selectedMaterial != "") {
+        }
+        else if (EditorScene::selectedMaterial != "") {
             if (m_loadedPath != EditorScene::selectedMaterial) {
                 try {
-					//m_loadedMaterial = GetMaterial(EditorScene::selectedMaterial);
+                    //m_loadedMaterial = GetMaterial(EditorScene::selectedMaterial);
                     m_loadedPath = EditorScene::selectedMaterial;
-                } catch (...) {
+                }
+                catch (...) {
                     m_loadedMaterial.reset();
                     m_loadedPath.clear();
                 }
@@ -477,7 +692,7 @@ namespace Editor {
 
                 for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
                     int i = val;
-					Editor::DrawIntControl(name.c_str(), i);
+                    Editor::DrawIntControl(name.c_str(), i);
                     if (ImGui::DragInt(name.c_str(), &i)) {
                         m_loadedMaterial->SetUniformInt(name, i);
                     }

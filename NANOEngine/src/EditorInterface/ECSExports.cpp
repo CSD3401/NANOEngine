@@ -6,7 +6,9 @@
 #include "../ECS/Components/Light.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/Collider.hpp"
+#include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/NativeScript.hpp"
+#include "../ECS/Systems/ScriptSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 
 namespace NE {
@@ -48,6 +50,14 @@ namespace NE::ECS {
 		const Component::Collider& GetEntityCollider(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(e);
 		}
+
+		const Component::AudioSource& GetEntityAudioSource(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::AudioSource>(e);
+		}
+
+		const Component::NativeScript& GetEntityScript(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
+		}
 	}
 
 	namespace Command {
@@ -76,6 +86,10 @@ namespace NE::ECS {
 			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Collider>(e))
 				return;
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
+		}
+
+		void AddAudioSourceComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::AudioSource{});
 		}
 
 		void AddScriptComponent(uint32_t e) {
@@ -108,8 +122,81 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(e);
 		}
 
+		Component::AudioSource& GetEntityAudioSource(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::AudioSource>(e);
+		}
+		
 		Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
+		}
+
+		// === Script Management Implementation ===
+		
+		std::vector<std::string> GetRegisteredScriptNames() {
+			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
+			if (scriptSystem && scriptSystem->GetScriptingEngine()) {
+				return scriptSystem->GetScriptingEngine()->GetRegisteredScriptNames();
+			}
+			return {};
+		}
+
+		bool SetEntityScript(uint32_t e, const std::string& scriptName) {
+			if (!GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e)) {
+				return false;
+			}
+
+			auto& script = GetEntityScript(e);
+			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
+			
+			if (scriptSystem && scriptSystem->GetScriptingEngine()) {
+				auto factory = scriptSystem->GetScriptingEngine()->GetScriptFactory(scriptName);
+				if (factory) {
+					// Clean up existing script if any
+					if (script.Instance && script.DestroyScript) {
+						script.DestroyScript(script.Instance);
+					} else if (script.Instance) {
+						delete script.Instance;
+					}
+
+					// Set new script
+					script.ScriptName = scriptName;
+					script.CreateScript = factory;
+					script.DestroyScript = [](IScript* instance) { delete instance; };
+					script.Instance = nullptr; // Will be created by ScriptSystem
+					scriptSystem->OnEntityAdded(e); // Force initialization
+					return true;
+				}
+			}
+			return false;
+		}
+
+		void RemoveEntityScript(uint32_t e) {
+			if (!GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e)) {
+				return;
+			}
+
+			auto& script = GetEntityScript(e);
+			
+			// Clean up existing script
+			if (script.Instance && script.DestroyScript) {
+				script.DestroyScript(script.Instance);
+			} else if (script.Instance) {
+				delete script.Instance;
+			}
+
+			// Reset component
+			script.ScriptName.clear();
+			script.Instance = nullptr;
+			script.CreateScript = nullptr;
+			script.DestroyScript = nullptr;
+		}
+
+		bool IsScriptRegistered(const std::string& scriptName) {
+			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
+			if (scriptSystem && scriptSystem->GetScriptingEngine()) {
+				return scriptSystem->GetScriptingEngine()->IsScriptRegistered(scriptName);
+			}
+			return false;
 		}
 	}
 

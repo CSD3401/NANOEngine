@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+#include <vector>
+#include "../ECS/Core/ComponentManager.hpp"
+
 // Export macros for when Engine is built as DLL
 #ifdef NANOENGINE_EXPORTS
 #define ENGINE_API __declspec(dllexport)
@@ -42,7 +46,7 @@ public:
      * Called when the script is being destroyed.
      * Use this for cleanup operations.
      */
-    virtual void OnDestroy() {}
+    virtual void OnDestroy() { delete m_componentManager; }
 
     /**
      * Called when the script is enabled.
@@ -126,10 +130,59 @@ public:
      */
     void SetEntity(NE::ECS::Entity entity) { m_entity = entity; }
 
+    /**
+     * Links the script to the engine's core systems.
+     * Called by the ScriptSystem immediately after creation.
+     */
+    void LinkToEngine(NE::ECS::ComponentManager* componentManager);
+
+    /**
+     * Gets another component attached to the same entity as this script.
+     * @return A pointer to the component, or nullptr if not found.
+     */
+    template<typename T>
+    T* GetComponent() const;
+
+    // === Runtime editable scripting fields support ===
+    // Scripts that want to expose editable fields to the editor can override
+    // these methods. We keep the API string-based to avoid reflection across DLLs.
+
+    /**
+     * Return a list of exposed field names.
+     */
+    virtual std::vector<std::string> GetExposedFieldNames() const { return {}; }
+
+    /**
+     * Return the type token for a named field. Example tokens: "bool","int","float","vec3","string"
+     */
+    virtual std::string GetFieldType(const std::string& name) const { (void)name; return std::string(); }
+
+    /**
+     * Get the current field value as a string. The format for complex types (eg vec3) is up to the script,
+     * but the Editor will use a simple whitespace-separated list for vec3: "x y z".
+     */
+    virtual std::string GetFieldValueAsString(const std::string& name) const { (void)name; return std::string(); }
+
+    /**
+     * Set the field value from a string. Return true if successful.
+     */
+    virtual bool SetFieldValueFromString(const std::string& name, const std::string& value) { (void)name; (void)value; return false; }
+
 private:
     NE::ECS::Entity m_entity = 0;
     bool m_enabled = true;
 
+protected:
+    NE::ECS::ComponentManager* m_componentManager = nullptr;
+
 };
 
+template<typename T>
+T* IScript::GetComponent() const {
+    if (!m_componentManager) {
+        return nullptr;
+    }
+    // Assumes ComponentManager has a method like this
+    return &m_componentManager->GetComponent<T>(m_entity);
+}
 

@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <typeindex>
+#include <vector>
 #include "../NANOEngineAPI.hpp"
 #include "../Core/Reflection.hpp"
 
@@ -15,6 +16,8 @@ namespace NE::ECS {
 		struct Rigidbody;
 		struct Collider;
 		struct EntityMeta;
+		struct AudioSource;
+		struct NativeScript;
 	}
 
 	namespace Query {
@@ -31,6 +34,8 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::Light& GetEntityLight(uint32_t e);
 		NANOENGINE_API const Component::Rigidbody& GetEntityRigidbody(uint32_t e);
 		NANOENGINE_API const Component::Collider& GetEntityCollider(uint32_t e);
+		NANOENGINE_API const Component::AudioSource& GetEntityAudioSource(uint32_t e);
+		NANOENGINE_API const Component::NativeScript& GetEntityScript(uint32_t e);
 	}
 
 	namespace Command {
@@ -41,6 +46,8 @@ namespace NE::ECS {
 		NANOENGINE_API void AddRendererComponent(uint32_t e);
 		NANOENGINE_API void AddRigidbodyComponent(uint32_t e);
 		NANOENGINE_API void AddColliderComponent(uint32_t e);
+		NANOENGINE_API void AddAudioSourceComponent(uint32_t e);
+		NANOENGINE_API void AddScriptComponent(uint32_t e);
 
 		// --- Editor Component Mutators --- //
 		NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
@@ -49,6 +56,14 @@ namespace NE::ECS {
 		NANOENGINE_API Component::Light& GetEntityLight(uint32_t e);
 		NANOENGINE_API Component::Rigidbody& GetEntityRigidbody(uint32_t e);
 		NANOENGINE_API Component::Collider& GetEntityCollider(uint32_t e);
+		NANOENGINE_API Component::AudioSource& GetEntityAudioSource(uint32_t e);
+		NANOENGINE_API Component::NativeScript& GetEntityScript(uint32_t e);
+
+		// --- Script Management ---
+		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();
+		NANOENGINE_API bool SetEntityScript(uint32_t e, const std::string& scriptName);
+		NANOENGINE_API void RemoveEntityScript(uint32_t e);
+		NANOENGINE_API bool IsScriptRegistered(const std::string& scriptName);
 	}
 
 }

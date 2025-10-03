@@ -1,5 +1,5 @@
 {
-    "Shader": "",
+    "Shader": "Basic",
     "DepthTest": true,
     "BlendMode": true,
     "CullMode": 1029,

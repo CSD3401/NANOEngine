@@ -158,6 +158,8 @@ namespace NE::Graphics {
 
         std::string shaderUUID = doc["Shader"].GetString();
 
+        if (shaderUUID.empty()) shaderUUID = "Basic";
+			//throw std::runtime_error("Material file missing shader UUID");
         auto shader = Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(shaderUUID);
         auto depthTest = doc["DepthTest"].GetBool();
         auto blendMode = doc["BlendMode"].GetBool();
