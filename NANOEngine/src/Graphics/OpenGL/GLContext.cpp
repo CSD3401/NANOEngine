@@ -1,7 +1,7 @@
 #include "GLContext.hpp"
 #include <glad/glad.h>
 #define GLFW_DLL
-#include "GLFW/glfw3.h"
+#include "glfw/glfw3.h"
 #include "../../src/Core/Logger.hpp"
 
 

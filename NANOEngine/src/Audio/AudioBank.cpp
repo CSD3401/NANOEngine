@@ -50,6 +50,8 @@ namespace NE::Asset
 	}
 	void AudioBank::ExtractEvents(FMOD::Studio::System* studioSystem)
 	{
+		(void)studioSystem;
+
 		m_events.clear();
 
 		if (!m_bank) 
@@ -78,7 +80,7 @@ namespace NE::Asset
 				{
 					std::string pathStr = eventPath;
 
-					std::string displayName;
+					//std::string displayName;
 					if (pathStr.find("event:/") == 0 && pathStr.length() > 7) {
 						displayName = pathStr.substr(7); // Remove "event:/" (7 characters)
 					}
@@ -92,7 +94,7 @@ namespace NE::Asset
 					// Store event info
 					EventInfo eventInfo;
 					eventInfo.path = eventPath;
-					eventInfo.displayName = displayName;
+					eventInfo.audioName = displayName;
 					eventInfo.eventDesc = eventDesc;
 
 					m_events[eventPath] = eventInfo;

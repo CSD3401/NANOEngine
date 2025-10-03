@@ -58,13 +58,13 @@ public:
         if (transform) {
 
             if(NE::InputManager::IsKeyDown('D'))
-			    transform->position.x += 0.2f * deltaTime;
+			    transform->position.x += 0.2f * (float)deltaTime;
 			else if (NE::InputManager::IsKeyDown('A'))
-				transform->position.x -= 0.2f * deltaTime;
+				transform->position.x -= 0.2f * (float)deltaTime;
 			else if (NE::InputManager::IsKeyDown('W'))
-				transform->position.y += 0.2f * deltaTime;
+				transform->position.y += 0.2f * (float)deltaTime;
 			else if (NE::InputManager::IsKeyDown('S'))
-				transform->position.y -= 0.2f * deltaTime;
+				transform->position.y -= 0.2f * (float)deltaTime;
         
         }
     }

@@ -1,5 +1,3 @@
-#pragma once
-
 namespace NE::ECS::Component {
     struct EntityMeta;
     struct Transform;

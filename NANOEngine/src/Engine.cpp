@@ -13,7 +13,7 @@
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
 #include "AssetManager.hpp"
 #include <iostream>
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
 #include <stb_image/stb_image.h>
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"

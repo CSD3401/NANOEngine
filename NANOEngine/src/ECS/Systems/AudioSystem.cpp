@@ -3,6 +3,8 @@
 #include "../Components/Transform.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../src/EngineState.hpp"
+#include <fmod/fmod_errors.h>
+
 
 #include <iostream>
 #include <direct.h>
@@ -125,6 +127,8 @@ namespace NE::ECS::Systems {
 		const NE::ECS::Component::Transform& transform,
 		FMOD::System* system)
 	{
+		(void)transform;
+
 		if (!audioSource.m_sound) 
 			return;
 
@@ -160,6 +164,8 @@ namespace NE::ECS::Systems {
 		const NE::ECS::Component::Transform& transform,
 		FMOD::System* system)
 	{
+		(void)system;
+
 		if (!audioSource.m_channel) return;
 
 		// Update volume and pitch
@@ -315,6 +321,7 @@ namespace NE::ECS::Systems {
 				}
 			}
 		}
+		std::cout << banksLoaded << " banksLoaded" << std::endl;
 	}
 
 	AudioSystem::AudioSystem(ComponentManager* cm) : m_componentManager(cm)
@@ -338,7 +345,7 @@ namespace NE::ECS::Systems {
 
 		LoadBankAssets(bankDir);
 		SetupStudioSystem();
-		//PlaySound("event:/OnClick");
+		PlaySound("event:/OnClick");
 
 		return;
 	}

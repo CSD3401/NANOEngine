@@ -7,7 +7,7 @@ namespace NE::ECS::Component {
     struct EntityMeta {
 
         std::string name;
-        std::string guid;
+        //std::string guid; // commented out as unused param warning - RF during m1
 
         NE_REFLECT_BEGIN(EntityMeta)
             NE_REFLECT_FIELD(name)
