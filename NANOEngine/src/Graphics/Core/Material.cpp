@@ -54,9 +54,13 @@ namespace NE::Graphics {
         m_Textures[uName] = std::move(texture);
     }
 
-    void Material::SetRenderQueue(uint16_t queue) {
-		m_RenderQueue = queue;
+    void Material::SetQueueBase(RenderQueue queue) {
+		m_BaseRQ = queue;
     }
+
+	void Material::SetQueueOffset(uint16_t offset) {
+		m_OffsetRQ = offset;
+	}
 
     void Material::Bind() const {
         //m_Pipeline->Bind();

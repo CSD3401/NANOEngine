@@ -25,6 +25,7 @@ namespace NE::Graphics {
     std::unique_ptr<Skybox> GraphicsManager::s_skybox;
     Camera* GraphicsManager::s_ActiveCamera = nullptr;
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
+	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
 
@@ -32,6 +33,7 @@ namespace NE::Graphics {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
         s_StateCache = std::make_unique<OpenGL::GLStateCache>();
+        s_DrawQueue = std::make_unique<DrawQueue>();
 
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");

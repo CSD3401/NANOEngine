@@ -10,11 +10,13 @@
 #include "../../../src/Math/Mat4.hpp"
 #include "../../NANOEngineAPI.hpp"
 #include "../../Asset.hpp"
+#include "RenderQueue.hpp"
 
 #pragma warning(push)
 #pragma warning(disable: 4251)
 
 namespace NE::Graphics {
+
 	class NANOENGINE_API Material : public Asset::IAsset {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);
@@ -28,7 +30,8 @@ namespace NE::Graphics {
         void SetUniformVec3(const std::string& name, const Vec3& value);
         void SetUniformMat4(const std::string& name, const Mat4& value);
         void SetTexture(const std::string& name, std::shared_ptr<ITexture> texture);
-        void SetRenderQueue(uint16_t queue);
+        void SetQueueBase(RenderQueue queue);
+        void SetQueueOffset(uint16_t offset);
 
         void Bind() const;
 
@@ -38,6 +41,9 @@ namespace NE::Graphics {
         const std::unordered_map<std::string, float>& GetFloatUniforms() const { return m_FloatUniforms; }
         const std::unordered_map<std::string, Vec3>& GetVec3Uniforms() const { return m_Vec3Uniforms; }
         const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
+        const RenderQueue& GetQueueBase() const { return m_BaseRQ; }
+		const uint16_t& GetQueueOffset() const { return m_OffsetRQ; }
+		const uint16_t GetQueueOrder() const { return static_cast<uint16_t>(m_BaseRQ) + m_OffsetRQ; }
 
         void SaveMaterial(const std::string& path) const;
         bool LoadFromFile(const std::string& fileName) override;
@@ -54,7 +60,9 @@ namespace NE::Graphics {
         // Texture units (assume 1 per name for now)
         std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
 
-		uint16_t m_RenderQueue = 0;
+		// Render queue
+		RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
+		uint16_t m_OffsetRQ = 0;
 	};
 
     void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);

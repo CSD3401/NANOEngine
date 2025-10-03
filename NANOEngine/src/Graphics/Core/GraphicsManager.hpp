@@ -6,6 +6,8 @@
 #include "../Interfaces/IStateCache.hpp"
 #include "Material.hpp"
 #include "../../Math/Mat4.hpp"
+#include "DrawCommand.hpp"
+#include "DrawQueue.hpp"
 
 namespace NE::ECS::Component {
     struct DirectionalLight;
@@ -23,12 +25,6 @@ namespace NE::Graphics {
         Math::Vec3 from;
         Math::Vec3 to;
         Math::Vec3 color;
-    };
-
-    struct DrawCommand {
-        std::shared_ptr<IGeometryBuffer> mesh;
-        std::shared_ptr<Material> material;
-        Math::Mat4 transform;
     };
 
     class GraphicsManager {
@@ -60,6 +56,9 @@ namespace NE::Graphics {
 
 		// Pipeline state cache
 		static std::unique_ptr<IStateCache> s_StateCache;
+
+		// Draw Queue
+		static std::unique_ptr<DrawQueue> s_DrawQueue;
     };
 
 }

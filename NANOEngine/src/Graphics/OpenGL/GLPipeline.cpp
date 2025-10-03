@@ -10,9 +10,9 @@ namespace NE::Graphics::OpenGL {
         : m_Spec(spec), m_name(name)
     {}
 
-    GLPipeline::GLPipeline(const PipelineSpecification & spec) : m_Spec(spec)
-    {
-    }
+    GLPipeline::GLPipeline(const PipelineSpecification& spec) : 
+        m_Spec(spec), m_Key(PipelineKey::FromSpecification(spec))
+    {}
 
     void GLPipeline::Bind() const {
         if (m_Spec.EnableDepthTest)

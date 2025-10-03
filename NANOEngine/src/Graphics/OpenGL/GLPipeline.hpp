@@ -11,6 +11,7 @@ namespace NE::Graphics::OpenGL {
 
         void Bind() const override;
         const PipelineSpecification& GetSpecification() const override { return m_Spec; }
+		const PipelineKey GetKey() const override { return m_Key; }
 
         const std::string& GetName() const override { return m_name; }
         const std::string_view GetShaderUUID() const override;
@@ -18,6 +19,7 @@ namespace NE::Graphics::OpenGL {
     private:
 		std::string m_name; // to be removed later  
         PipelineSpecification m_Spec;
+		PipelineKey m_Key;
     };
 
 }
