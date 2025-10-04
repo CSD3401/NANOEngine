@@ -371,14 +371,10 @@ namespace Editor {
                     }
 
                     if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) { 
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
 
-                            if (comp.materialPath.empty()) { // If material is not set, assign a default one
-                                //AssignRendererMaterial(comp, "Assets/Basic.nanomat");
-                            } // done for rapid prototyping, should be removed later
-
-                            //AssignRendererModel(comp, dropped);
+                            NE::Renderer::Command::AssignModel(entity, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -415,7 +411,8 @@ namespace Editor {
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
-                            //AssignRendererMaterial(comp, dropped);
+                            //NE::AssignRendererMaterial(comp, dropped);
+                            NE::Renderer::Command::AssignMaterial(entity, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }

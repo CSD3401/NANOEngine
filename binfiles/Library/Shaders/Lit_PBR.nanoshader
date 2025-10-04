@@ -8,7 +8,7 @@ layout(location = 2) in vec2 a_TexCoord;
 uniform mat4 u_Model;
 uniform mat4 u_View;
 uniform mat4 u_Projection;
-uniform mat4 u_NormalMatrix; // assumed to be inverse-transpose(model)
+uniform mat4 u_NormalMatrix;
 
 out vec3 v_Normal;
 out vec3 v_FragPos;
@@ -26,138 +26,224 @@ void main() {
 #type fragment
 #version 460 core
 
+#define MAX_LIGHTS 12
+#define LIGHT_TYPE_DIRECTIONAL 0
+#define LIGHT_TYPE_POINT 1
+#define LIGHT_TYPE_SPOT 2
+
 in vec3 v_Normal;
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
 
 out vec4 FragColor;
 
-
-// ---------- Common material & light defs ----------
-const int MAX_LIGHTS = 16;
+// ===== Scene / Lighting =====
+uniform vec3 u_CameraPos;
+uniform vec3 u_AmbientColor; // simple ambient for now to move to scene-wide ambient/IBL tint
 
 struct Light {
-    int   type;          // 0 = Directional, 1 = Point, 2 = Spot
-    vec3  color;         // RGB energy
-    float intensity;     // scalar multiplier
+    int   type;           // 0 = directional, 1 = point, 2 = spot
+    vec3  color;          // light RGB (linear)
+    float intensity;      // scalar multiplier
 
-    vec3  position;      // for point/spot
-    float range;         // not used but available
+    vec3  position;       // world-space (for point/spot)
+    vec3  direction;      // world-space, points *from* light *towards* scene (for dir/spot)
 
-    vec3  direction;     // for dir/spot (point to -Z of light)
-    float innerCutoff;   // cos(theta) for spot inner
-    float outerCutoff;   // cos(theta) for spot outer
+    // attenuation (for point/spot)
+    float constant;
+    float linear;
+    float quadratic;
 
-    // attenuation (point/spot)
-    float constantAtt;
-    float linearAtt;
-    float quadAtt;
-    float pad0;
+    // spot (cosine of inner/outer)
+    float innerCutoff;    // cos(innerAngle)
+    float outerCutoff;    // cos(outerAngle)
 };
 
-layout(std140, binding = 0) uniform LightingData {
-    int   u_numLights;
-    vec3  u_CamPos;
-    // padding to 16-byte alignment occurs automatically in std140
-};
-
+uniform int u_numLights;
 uniform Light u_lights[MAX_LIGHTS];
 
-// material inputs (kept minimal & generic)
-uniform vec3  u_BaseColor  = vec3(1.0);
-uniform float u_Metallic   = 0.0;  // used by PBR only
-uniform float u_Roughness  = 0.5;  // used by PBR only
-uniform float u_Shininess  = 32.0; // used by Blinn-Phong only
-uniform float u_AmbientIntensity = 0.06;
+// ===== Material =====
+uniform vec3  u_BaseColor;   // base/albedo (linear)
+uniform float u_Metallic;    // 0..1
+uniform float u_Roughness;   // 0..1
+uniform float u_AO;          // 0..1 (1.0 if no AO map)
+uniform vec3  u_Emissive;    // optional add-on, default (0,0,0)
 
-uniform sampler2D u_AlbedoTex;
-uniform int       u_HasAlbedo = 0;
+// ===== PBR helpers (Cook-Torrance / GGX) =====
+const float PI = 3.14159265359;
 
-
-// ---------- PBR helpers (GGX/Trowbridge-Reitz + Schlick Fresnel + Smith G) ----------
-float saturate(float x) { return clamp(x, 0.0, 1.0); }
-vec3  saturate(vec3 v)  { return clamp(v, 0.0, 1.0); }
-
-float D_GGX(float NoH, float roughness) {
-    float a  = roughness * roughness;
-    float a2 = a * a;
-    float d  = (NoH * NoH) * (a2 - 1.0) + 1.0;
-    return a2 / max(1e-5, (3.14159265 * d * d));
+float DistributionGGX(float NdotH, float roughness)
+{
+    float a      = max(roughness, 0.04);
+    float a2     = a * a;
+    float denom  = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * denom * denom, 1e-6);
 }
 
-float V_SmithGGXCorrelated(float NoV, float NoL, float roughness) {
-    float a  = roughness * roughness;
-    float a2 = a * a;
-    float gv = NoL * sqrt((-NoV * a2 + NoV) * NoV + a2);
-    float gl = NoV * sqrt((-NoL * a2 + NoL) * NoL + a2);
-    return 0.5 / max(1e-5, gv + gl);
+float GeometrySchlickGGX(float NdotX, float roughness)
+{
+    float r = max(roughness, 0.04);
+    float k = (r + 1.0);
+    k = (k * k) / 8.0;
+    return NdotX / max(NdotX * (1.0 - k) + k, 1e-6);
 }
 
-vec3  F_Schlick(vec3 F0, float VoH) {
-    return F0 + (1.0 - F0) * pow(1.0 - VoH, 5.0);
+float GeometrySmith(float NdotV, float NdotL, float roughness)
+{
+    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+    return ggx1 * ggx2;
 }
 
-float lightAttenuation(Light L, vec3 fragPos) {
-    if (L.type == 0) return 1.0; // directional
-    float d = length(L.position - fragPos);
-    return 1.0 / (L.constantAtt + L.linearAtt * d + L.quadAtt * d * d);
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-float spotFactor(Light L, vec3 lightDir) {
-    if (L.type != 2) return 1.0;
-    float c = dot(normalize(-L.direction), normalize(lightDir));
-    float t = clamp((c - L.outerCutoff) / max(1e-4, (L.innerCutoff - L.outerCutoff)), 0.0, 1.0);
-    return t;
+// ===== Light evaluators =====
+vec3 EvalDirectional(in Light Lgt, vec3 N, vec3 V, vec3 albedo, float metallic, float roughness)
+{
+    vec3 L = normalize(-Lgt.direction);
+    vec3 H = normalize(V + L);
+
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+
+    if (NdotL <= 0.0 || NdotV <= 0.0) return vec3(0.0);
+
+    // Fresnel at normal incidence
+    vec3  F0 = mix(vec3(0.04), albedo, metallic);
+
+    float D  = DistributionGGX(NdotH, roughness);
+    float G  = GeometrySmith(NdotV, NdotL, roughness);
+    vec3  F  = FresnelSchlick(VdotH, F0);
+
+    vec3  numerSpec = D * G * F;
+    float denom     = max(4.0 * NdotV * NdotL, 1e-6);
+    vec3  specular  = numerSpec / denom;
+
+    vec3  Ks = F;
+    vec3  Kd = (1.0 - Ks) * (1.0 - metallic);
+    vec3  diffuse = (Kd * albedo) / PI;
+
+    vec3 radiance = Lgt.color * Lgt.intensity;
+
+    return (diffuse + specular) * radiance * NdotL;
 }
 
-void main() {
+vec3 EvalPoint(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float roughness)
+{
+    vec3 Ldir = Lgt.position - P;
+    float d   = length(Ldir);
+    if (d <= 0.0) return vec3(0.0);
+    vec3 L    = Ldir / d;
+    vec3 H    = normalize(V + L);
+
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+
+    if (NdotL <= 0.0 || NdotV <= 0.0) return vec3(0.0);
+
+    // attenuation
+    float atten = 1.0 / max(Lgt.constant + Lgt.linear * d + Lgt.quadratic * d * d, 1e-6);
+
+    vec3  F0 = mix(vec3(0.04), albedo, metallic);
+    float D  = DistributionGGX(NdotH, roughness);
+    float G  = GeometrySmith(NdotV, NdotL, roughness);
+    vec3  F  = FresnelSchlick(VdotH, F0);
+
+    vec3  numerSpec = D * G * F;
+    float denom     = max(4.0 * NdotV * NdotL, 1e-6);
+    vec3  specular  = numerSpec / denom;
+
+    vec3  Ks = F;
+    vec3  Kd = (1.0 - Ks) * (1.0 - metallic);
+    vec3  diffuse = (Kd * albedo) / PI;
+
+    vec3 radiance = Lgt.color * Lgt.intensity * atten;
+
+    return (diffuse + specular) * radiance * NdotL;
+}
+
+vec3 EvalSpot(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float roughness)
+{
+    vec3 Ldir = Lgt.position - P;
+    float d   = length(Ldir);
+    if (d <= 0.0) return vec3(0.0);
+    vec3 L    = Ldir / d;
+    vec3 H    = normalize(V + L);
+
+    // Spotlight smooth edge (cosine space)
+    float theta = dot(L, normalize(-Lgt.direction));
+    float inner = Lgt.innerCutoff;
+    float outer = Lgt.outerCutoff;
+    float eps   = max(inner - outer, 1e-4);
+    float spot  = clamp((theta - outer) / eps, 0.0, 1.0);
+
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+
+    if (NdotL <= 0.0 || NdotV <= 0.0 || spot <= 0.0) return vec3(0.0);
+
+    // attenuation
+    float atten = 1.0 / max(Lgt.constant + Lgt.linear * d + Lgt.quadratic * d * d, 1e-6);
+
+    vec3  F0 = mix(vec3(0.04), albedo, metallic);
+    float D  = DistributionGGX(NdotH, roughness);
+    float G  = GeometrySmith(NdotV, NdotL, roughness);
+    vec3  F  = FresnelSchlick(VdotH, F0);
+
+    vec3  numerSpec = D * G * F;
+    float denom     = max(4.0 * NdotV * NdotL, 1e-6);
+    vec3  specular  = numerSpec / denom;
+
+    vec3  Ks = F;
+    vec3  Kd = (1.0 - Ks) * (1.0 - metallic);
+    vec3  diffuse = (Kd * albedo) / PI;
+
+    vec3 radiance = Lgt.color * Lgt.intensity * atten * spot;
+
+    return (diffuse + specular) * radiance * NdotL;
+}
+
+void main()
+{
     vec3 N = normalize(v_Normal);
-    vec3 V = normalize(u_CamPos - v_FragPos);
-    vec3 albedo = (u_HasAlbedo == 1) ? pow(texture(u_AlbedoTex, v_TexCoord).rgb, vec3(2.2)) : pow(u_BaseColor, vec3(2.2)); // linearize if coming from sRGB
-    float metallic  = clamp(u_Metallic, 0.0, 1.0);
+    vec3 V = normalize(u_CameraPos - v_FragPos);
+
+    // Clamp material params a bit to keep math stable
+    float metallic  = clamp(u_Metallic,  0.0, 1.0);
     float roughness = clamp(u_Roughness, 0.04, 1.0);
+    float ao        = clamp(u_AO,        0.0, 1.0);
+    vec3  albedo    = clamp(u_BaseColor, 0.0, 1.0);
 
-    // compute F0
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    // Simple ambient (replace with IBL later)
+    vec3 ambient = u_AmbientColor * albedo * ao;
 
+    // Direct lighting
     vec3 Lo = vec3(0.0);
-
-    for (int i = 0; i < u_numLights && i < MAX_LIGHTS; ++i) {
-        Light L = u_lights[i];
-        vec3 Ldir = (L.type == 0) ? normalize(-L.direction) : normalize(L.position - v_FragPos);
-        float NoL = max(dot(N, Ldir), 0.0);
-        if (NoL <= 0.0) continue;
-
-        vec3 H  = normalize(V + Ldir);
-        float NoV = max(dot(N, V), 0.0);
-        float NoH = max(dot(N, H), 0.0);
-        float VoH = max(dot(V, H), 0.0);
-
-        float att = lightAttenuation(L, v_FragPos) * spotFactor(L, Ldir);
-        vec3 radiance = L.color * L.intensity * att;
-
-        float  D = D_GGX(NoH, roughness);
-        float  Vg = V_SmithGGXCorrelated(NoV, NoL, roughness);
-        vec3   F = F_Schlick(F0, VoH);
-
-        vec3  spec = (D * Vg) * F;
-
-        // energy conservation: split albedo into diffuse/specular based on metallic
-        vec3 kd = (1.0 - F) * (1.0 - metallic);
-
-        vec3 diffuse = kd * albedo / 3.14159265;
-
-        Lo += (diffuse + spec) * radiance * NoL;
+    for (int i = 0; i < u_numLights; ++i)
+    {
+        if (u_lights[i].type == 0)
+            Lo += EvalDirectional(u_lights[i], N, V, albedo, metallic, roughness);
+        else if (u_lights[i].type == 1)
+            Lo += EvalPoint(u_lights[i], N, V, v_FragPos, albedo, metallic, roughness);
+        else if (u_lights[i].type == 2)
+            Lo += EvalSpot(u_lights[i], N, V, v_FragPos, albedo, metallic, roughness);
     }
 
-    // simple ambient term (use IBL if available)
-    vec3 ambient = albedo * u_AmbientIntensity;
+    vec3 color = ambient + Lo + u_Emissive;
 
-    vec3 color = ambient + Lo;
+    // If your framebuffer is already sRGB, skip gamma here.
+    // Optional tonemap + gamma for LDR output:
+    // color = color / (color + vec3(1.0));      // Reinhard
+    // color = pow(color, vec3(1.0/2.2));        // Gamma
 
-    // tone map + gamma
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0/2.2));
-
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(max(color, 0.0), 1.0);
 }
