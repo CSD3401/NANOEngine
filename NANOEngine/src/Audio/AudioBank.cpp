@@ -50,8 +50,6 @@ namespace NE::Asset
 	}
 	void AudioBank::ExtractEvents(FMOD::Studio::System* /*studioSystem*/)
 	{
-		(void)studioSystem;
-
 		m_events.clear();
 
 		if (!m_bank) 
@@ -94,7 +92,7 @@ namespace NE::Asset
 					// Store event info
 					EventInfo eventInfo;
 					eventInfo.path = eventPath;
-					eventInfo.displayName = displayedName;
+					//eventInfo.displayName = displayedName;
 					eventInfo.eventDesc = eventDesc;
 
 					m_events[eventPath] = eventInfo;
