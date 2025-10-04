@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="src\Audio\AudioBank.hpp" />
     <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
+    <ClInclude Include="src\Graphics\Core\PipelineCache.hpp" />
     <ClInclude Include="src\Input\InputManager.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
     <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
@@ -116,6 +117,7 @@
   <ItemGroup>
     <ClCompile Include="src\Audio\AudioBank.cpp" />
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
     <ClCompile Include="src\Scripting\IScript.cpp" />
     <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
@@ -226,6 +228,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir).tmp\$(ProjectName)\$(Configuration)-$(Platform)\</IntDir>
+    <ExternalIncludePath>$(ProjectDir)vendor\include;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
@@ -269,6 +272,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

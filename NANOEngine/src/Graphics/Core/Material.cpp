@@ -6,32 +6,36 @@
 #include "../../AssetManager.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
+#include "PipelineCache.hpp"
+#include <glad/glad.h>
 
 namespace {
-    using namespace NE::Graphics;
-    std::unordered_map<std::string, std::shared_ptr<IPipeline>> s_PipelineRegistry;
+    static bool IsEngineUniform(std::string_view n) {
+        return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
+            n == "u_NormalMatrix" || n == "u_CameraPos" ||
+            n == "u_numLights" || n.rfind("u_lights", 0) == 0 ||
+            n == "u_ShadingModel";
+    }
+
+    static bool IsSampler(GLenum t) {
+        switch (t) {
+        case GL_SAMPLER_2D: case GL_SAMPLER_2D_ARRAY: case GL_SAMPLER_CUBE:
+        case GL_INT_SAMPLER_2D: case GL_UNSIGNED_INT_SAMPLER_2D:
+        case GL_SAMPLER_2D_SHADOW: case GL_SAMPLER_CUBE_SHADOW:
+            return true;
+        default: return false;
+        }
+    }
 }
 
 namespace NE::Graphics {
-
-    void RegisterPipeline(std::shared_ptr<IPipeline> pipeline) {
-        if (pipeline)
-            s_PipelineRegistry[pipeline->GetName()] = std::move(pipeline);
-    }
-
-    std::shared_ptr<IPipeline> GetPipelineByName(const std::string& name) {
-        auto it = s_PipelineRegistry.find(name);
-        if (it != s_PipelineRegistry.end())
-            return it->second;
-        return nullptr;
-    }
 
     Material::Material(std::shared_ptr<IPipeline> pipeline)
         : m_Pipeline(std::move(pipeline)) {}
 
     Material::~Material()
     {
-        SaveMaterial(filePath);
+        //SaveMaterial(filePath);
     }
 
     void Material::SetUniformInt(const std::string& uName, int value) {
@@ -55,7 +59,7 @@ namespace NE::Graphics {
     }
 
     void Material::Bind() const {
-        m_Pipeline->Bind();
+        //m_Pipeline->Bind();
 
         auto* shader = m_Pipeline->GetSpecification().shader.get();
         for (const auto& [uName, val] : m_FloatUniforms)
@@ -67,7 +71,6 @@ namespace NE::Graphics {
         for (const auto& [uName, val] : m_IntUniforms)
             shader->SetUniformInt(uName, val);
 
-        // Bind textures (optional): assumes ITexture has Bind(slot)
         int slot = 0;
         for (const auto& [uName, tex] : m_Textures) {
             //tex->Bind(slot);
@@ -77,7 +80,7 @@ namespace NE::Graphics {
     }
 
     // Fix for AddMember issue in SaveMaterial method
-    void Material::SaveMaterial(const std::string& path) const {
+    void Material::SaveMaterial(const std::string&) const {
         using namespace rapidjson;
         Document doc;
         doc.SetObject();
@@ -85,7 +88,7 @@ namespace NE::Graphics {
 
         // Shader and pipeline properties
         if (m_Pipeline) {
-            doc.AddMember("Shader", Value(m_Pipeline->GetShaderUUID().data(), alloc).Move(), alloc);
+            doc.AddMember("Shader", Value(m_Pipeline->GetSpecification().shaderName.data(), alloc).Move(), alloc);
             auto spec = m_Pipeline->GetSpecification();
             doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
             doc.AddMember("BlendMode", spec.EnableBlending, alloc);
@@ -122,14 +125,14 @@ namespace NE::Graphics {
         //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(uuid.c_str(), alloc).Move(), alloc);
         // }
 
-        doc.AddMember("Properties", uniforms, alloc); // or "Uniforms" if that's your file's convention
+        doc.AddMember("Properties", uniforms, alloc);
 
         // Write to file
         StringBuffer buffer;
         PrettyWriter<StringBuffer> writer(buffer);
         doc.Accept(writer);
 
-        std::ofstream out(path);
+        std::ofstream out(filePath);
         if (out.is_open())
             out << buffer.GetString();
     }
@@ -160,11 +163,13 @@ namespace NE::Graphics {
 
         Graphics::PipelineSpecification pipelineSpec;
         pipelineSpec.shader = shader;
+        pipelineSpec.shaderName = shaderUUID;
         pipelineSpec.EnableDepthTest = depthTest;
 		pipelineSpec.EnableBlending = blendMode;
         pipelineSpec.CullMode = cullMode;
         pipelineSpec.PolygonMode = polygonMode;
-        m_Pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec);
+        m_Pipeline = Graphics::GetPipelineCache().GetOrCreate(pipelineSpec);
+        //m_Pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec);
 
         if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
             const auto& props = doc["Properties"];
@@ -192,5 +197,66 @@ namespace NE::Graphics {
         }
 
         return true;
+    }
+
+    void Material::SetShader(const std::string& shaderUUID) {
+        auto shader = Asset::AssetManager::GetInstance()
+            .Load<Graphics::OpenGL::GLShader>(shaderUUID);
+        auto spec = m_Pipeline->GetSpecification();
+        spec.shader = shader;
+        spec.shaderName = shaderUUID;
+        m_Pipeline = Graphics::GetPipelineCache().GetOrCreate(spec);
+
+        m_IntUniforms.clear();
+        m_FloatUniforms.clear();
+        m_Vec3Uniforms.clear();
+        m_Mat4Uniforms.clear();
+        m_Textures.clear();
+
+        //auto* gls = dynamic_cast<Graphics::OpenGL::GLShader*>(spec.shader.get());
+        //if (!gls) return;
+
+        for (auto& u : shader->EnumerateActiveUniforms()) {
+            if (IsEngineUniform(u.name)) continue;
+
+            if (IsSampler(u.type)) {
+                // Seed sampler unit 0 (and you can bind a white/flat texture)
+                m_IntUniforms.emplace(u.name, 0);
+                // if you have a default texture: m_Textures.emplace(u.name, WhiteTextureHandle);
+                continue;
+            }
+
+            switch (u.type) {
+            case GL_INT:
+            case GL_BOOL:
+                m_IntUniforms.emplace(u.name, 0);
+                break;
+            case GL_FLOAT:
+                // make color-ish scalars visible by default
+                if (u.name.find("Color") != std::string::npos ||
+                    u.name.find("color") != std::string::npos ||
+                    u.name.find("albedo") != std::string::npos)
+                    m_FloatUniforms.emplace(u.name, 1.0f);
+                else
+                    m_FloatUniforms.emplace(u.name, 0.0f);
+                break;
+            case GL_FLOAT_VEC3:
+                // default color = white, others = zero
+                if (u.name.find("Color") != std::string::npos ||
+                    u.name.find("color") != std::string::npos ||
+                    u.name.find("albedo") != std::string::npos)
+                    m_Vec3Uniforms.emplace(u.name, Vec3{ 1,1,1 });
+                else
+                    m_Vec3Uniforms.emplace(u.name, Vec3{ 0,0,0 });
+                break;
+            case GL_FLOAT_MAT4:
+                m_Mat4Uniforms.emplace(u.name, Mat4{});
+                break;
+                // add more as you need (vec2, vec4, ivec*, etc.)
+            default:
+                break;
+            }
+        }
+
     }
 }

@@ -33,7 +33,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		Graphics::GraphicsManager::BeginFrame();
-		Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
+		Graphics::GraphicsManager::DrawSkybox(); // here for now
 		m_ecsCoordinator.m_renderSystem->Update(dt);
 		Graphics::GraphicsManager::DrawDebugLines();
 		Graphics::GraphicsManager::EndFrame();

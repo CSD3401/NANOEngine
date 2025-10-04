@@ -5,6 +5,7 @@
 #include <rapidjson/document.h>
 #include "../../src/Math/Vec3.hpp"
 #include "../Core/Reflection.hpp"
+#include "ECS/Components/Light.hpp" //temp
 
 namespace NE::Serialization {
 
@@ -79,10 +80,25 @@ namespace NE::Serialization {
             }
             });
 
-        // Optional: set isDirty if present on the type
+        // set isDirty if present on the type
         if constexpr (requires (T t) { t.isDirty; }) {
             out.isDirty = true;
         }
+    }
+
+    // quick hack stuff
+
+    inline NE::Serialization::RJson to_json(const NE::ECS::Component::Light& l, NE::Serialization::Alloc& a) {
+        using namespace NE::Serialization;
+        auto obj = to_json<NE::ECS::Component::Light>(static_cast<const NE::ECS::Component::Light&>(l), a);
+        obj.AddMember("type", to_json(l.type, a), a);
+        return obj;
+    }
+
+    inline void from_json(const NE::Serialization::RJson& v, NE::ECS::Component::Light& out) {
+        using namespace NE::Serialization;
+        from_json<NE::ECS::Component::Light>(v, out);
+        if (v.HasMember("type")) from_json(v["type"], out.type);
     }
 
 }

@@ -27,6 +27,7 @@
 
 namespace Editor {
 	bool Application::isRunning = true;
+	Timer Application::timer;
 	EditorLayer editorLayer;
 
 	void Application::Init() {
