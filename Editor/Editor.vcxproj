@@ -226,6 +226,9 @@
     <ClInclude Include="vendor\imgui\imgui_impl_opengl3.h" />
     <ClInclude Include="vendor\imgui\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="vendor\imgui\imgui_internal.h" />
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h" />
+    <ClInclude Include="vendor\imgui\imstb_textedit.h" />
+    <ClInclude Include="vendor\imgui\imstb_truetype.h" />
     <ClInclude Include="vendor\imgui\widgets\imguizmo\ImGuizmo.h" />
     <ClInclude Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h" />
     <ClInclude Include="vendor\imgui\widgets\imsearch\imsearch.h" />
