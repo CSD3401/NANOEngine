@@ -29,6 +29,8 @@ namespace NE::Graphics::OpenGL {
         }
 
         glCullFace(m_Spec.CullMode);
+        //glEnable(GL_CULL_FACE);
+        //glCullFace(m_Spec.CullMode);
         glPolygonMode(GL_FRONT_AND_BACK, m_Spec.PolygonMode);
 
         m_Spec.shader->Bind();

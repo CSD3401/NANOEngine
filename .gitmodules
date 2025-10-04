@@ -1,6 +1,8 @@
 [submodule "extern/assimp"]
 	path = extern/assimp
 	url = https://github.com/assimp/assimp.git
+	ignore = untracked
 [submodule "extern/jolt"]
 	path = extern/jolt
 	url = https://github.com/jrouwe/JoltPhysics.git
+	ignore = untracked

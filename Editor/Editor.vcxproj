@@ -114,7 +114,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include</AdditionalIncludeDirectories>
     </ClCompile>

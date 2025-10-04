@@ -339,12 +339,55 @@ namespace Editor {
         }
 
         if (ImGui::BeginPopupContextWindow("AssetContextMenu")) {
-            if (ImGui::MenuItem("Create New Folder")) {
-                CreateNewFolder();
+            if (ImGui::BeginMenu("Create")) {
+
+                if (ImGui::MenuItem("Folder")) {
+                    CreateNewFolder();
+                }
+                if (ImGui::MenuItem("Material")) {
+                    //CreateNewFolder();
+                }
+                if (ImGui::MenuItem("Script", "", false, false)) {
+                    //CreateNewFolder();
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::BeginMenu("Rendering")) {
+
+                    if (ImGui::MenuItem("Material")) {
+                        //CreateNewFolder();
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu("Scene")) {
+
+                    if (ImGui::MenuItem("Scene")) {
+                        //CreateNewFolder();
+                    }
+                    if (ImGui::MenuItem("Prefab")) {
+                        //CreateNewFolder();
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                if (ImGui::BeginMenu("Shader")) {
+
+                    if (ImGui::MenuItem("Shader")) {
+                        //CreateNewFolder();
+                    }
+
+                    ImGui::EndMenu();
+                }
+
+                ImGui::EndMenu();
             }
 
-            if (ImGui::MenuItem("Create New Scene")) {
-                //CreateNewFile();
+            if (ImGui::MenuItem("Show in Explorer")) {
+                OpenDirectoryInFileExplorer(m_currentDirectory.relative_path().string());
             }
 
             ImGui::Separator();
@@ -365,12 +408,6 @@ namespace Editor {
                 ImGui::MenuItem("Rename");
                 ImGui::MenuItem("Delete");
                 ImGui::EndDisabled();
-            }
-
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Open in File Explorer")) {
-                OpenDirectoryInFileExplorer(m_currentDirectory.relative_path().string());
             }
 
             ImGui::EndPopup();
