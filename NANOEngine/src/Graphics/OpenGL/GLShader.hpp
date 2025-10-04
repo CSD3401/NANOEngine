@@ -6,6 +6,8 @@
 
 namespace NE::Graphics::OpenGL {
 
+	struct UniformDesc { std::string name; unsigned int type; int size; };
+
 	class GLShader final : public IShader {
 	public:
 		GLShader();
@@ -24,6 +26,9 @@ namespace NE::Graphics::OpenGL {
 
 		const uint32_t GetProgramID() const override { return m_programID; }
 		const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
+
+		std::vector<UniformDesc> EnumerateActiveUniforms() const;
+		bool HasUniform(std::string_view name) const;
 	private:
 		uint32_t m_programID;
 		std::unordered_map<std::string, int> m_uniformLocationCache;

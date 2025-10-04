@@ -9,6 +9,7 @@ namespace NE::Graphics {
 
     struct PipelineSpecification {
         std::shared_ptr<IShader> shader;
+        std::string shaderName;
         bool EnableBlending = false;
         bool EnableDepthTest = true;
         unsigned int CullMode = 0; // e.g., GL_BACK etc

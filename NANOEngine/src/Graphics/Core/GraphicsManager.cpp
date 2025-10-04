@@ -42,10 +42,24 @@ namespace NE::Graphics {
         basic->LoadFromFile("Library/Shaders/Basic.nanoshader");
         Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(basic, "Basic");
 
+        auto unlit = std::make_shared<OpenGL::GLShader>();
+        unlit->LoadFromFile("Library/Shaders/Unlit.nanoshader");
+        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(unlit, "Unlit");
+
+        auto litPBR = std::make_shared<OpenGL::GLShader>();
+        litPBR->LoadFromFile("Library/Shaders/Lit_PBR.nanoshader");
+        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litPBR, "Lit_PBR");
+
+        auto litBlinnPhong = std::make_shared<OpenGL::GLShader>();
+        litBlinnPhong->LoadFromFile("Library/Shaders/Lit_BlinnPhong.nanoshader");
+        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litBlinnPhong, "Lit_BlinnPhong");
+
         // Load Primitives
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCylinder(), "Cylinder");
+        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateSphere(), "Sphere");
+        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
 
         // temp
         InitDebugLines();
@@ -147,6 +161,7 @@ namespace NE::Graphics {
         return id;
     }
 
+    // Debug drawing test code
     const char* vertexShaderSource = R"(
     #version 330 core
     layout (location = 0) in vec3 aPos;
@@ -189,18 +204,15 @@ namespace NE::Graphics {
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
 
-        // Create VAO & VBO
         glGenVertexArrays(1, &debugVAO);
         glGenBuffers(1, &debugVBO);
 
         glBindVertexArray(debugVAO);
         glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
 
-        // Position attribute (location = 0)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);
 
-        // Color attribute (location = 1)
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(1);
 
@@ -214,7 +226,6 @@ namespace NE::Graphics {
     void GraphicsManager::DrawDebugLines() {
         if (s_DebugLines.empty()) return;
 
-        // Prepare vertex data (interleaved positions + colors)
         std::vector<float> vertices;
         for (const auto& line : s_DebugLines) {
             vertices.push_back(line.from.x);
@@ -232,15 +243,13 @@ namespace NE::Graphics {
             vertices.push_back(line.color.z);
         }
 
-        // Upload data to GPU
         glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
 
-        // Draw
         glUseProgram(debugShaderProgram);
         glBindVertexArray(debugVAO);
         glLineWidth(2.0f);
-        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2)); // 2 vertices per line
+        glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2));
 
         s_DebugLines.clear();
 

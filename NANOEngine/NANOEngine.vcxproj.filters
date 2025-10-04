@@ -306,6 +306,9 @@
     <ClInclude Include="src\Input\InputManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Graphics\Core\PipelineCache.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -475,6 +478,9 @@
     </ClCompile>
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp">
     <ClCompile Include="src\Input\InputManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Core\PipelineCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

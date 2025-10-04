@@ -47,6 +47,7 @@ namespace NE::Graphics {
 
         void SaveMaterial(const std::string& path) const;
         bool LoadFromFile(const std::string& fileName) override;
+        void SetShader(const std::string& shaderUUID);
 
     private:
         std::shared_ptr<IPipeline> m_Pipeline;
@@ -65,8 +66,8 @@ namespace NE::Graphics {
 		uint16_t m_OffsetRQ = 0;
 	};
 
-    void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);
-    std::shared_ptr<IPipeline> GetPipelineByName(const std::string& name);
+    //void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);
+    //std::shared_ptr<IPipeline> GetPipelineByName(const std::string& name);
 }
 
 #pragma warning(pop)
