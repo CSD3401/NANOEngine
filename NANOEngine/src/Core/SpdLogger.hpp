@@ -51,12 +51,12 @@ enum class SpdLogLevel {
 };
 
 struct SpdLogEntry {
-    SpdLogLevel level;
-    std::string message;
-    std::string file;
-    int line;
-    std::chrono::system_clock::time_point timestamp;
-    std::string formattedMessage;
+    SpdLogLevel level{};
+    std::string message{};
+    std::string file{};
+    int line{};
+    std::chrono::system_clock::time_point timestamp{};
+    std::string formattedMessage{};
 };
 
 // Custom sink to capture logs for the panel

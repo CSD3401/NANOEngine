@@ -50,6 +50,8 @@ namespace NE::Asset
 	}
 	void AudioBank::ExtractEvents(FMOD::Studio::System* /*studioSystem*/)
 	{
+		(void)studioSystem;
+
 		m_events.clear();
 
 		if (!m_bank) 

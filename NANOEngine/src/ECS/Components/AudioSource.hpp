@@ -1,5 +1,4 @@
 #pragma once
-
 #include <fmod/fmod.hpp>
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Mat4.hpp"
@@ -31,7 +30,7 @@ namespace NE::ECS::Component {
         float pitch = 1.0f;
         bool playOnAwake = false;
         bool loop = false;
-        bool spatialBlend = 0.0f; // 0 - 2d, 1 - 3d not in use now
+        float spatialBlend = 0.0f; // 0 - 2d, 1 - 3d not in use now
 
         // 3D Properties
         float minDist = 1.0f;

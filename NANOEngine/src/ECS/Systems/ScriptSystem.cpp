@@ -25,7 +25,7 @@ namespace NE::ECS::Systems {
     void ScriptSystem::OnEntityRemoved(Entity entity) {
         // should probably call OnScriptComponentDestroyed here if the entity
         // has a script component, to ensure proper cleanup.
-        entity;
+        (void)entity;
     }
 
     void ScriptSystem::Init() {

@@ -178,8 +178,8 @@ namespace Editor {
         ImGui::Begin("Inspector", nullptr,
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        ImVec2 panelPos = ImGui::GetCursorScreenPos();
-        ImVec2 panelSize = ImGui::GetContentRegionAvail();
+        //ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
+        //ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
 
         if (EditorScene::s_selectedEntity) {
             uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
@@ -491,9 +491,10 @@ namespace Editor {
                         if (ImSearch::BeginSearch()) {
                             ImSearch::SearchBar();
 
+                            // warning entity in capture clause not used -RF
                             for (const auto& [name, asset] : assets) {
                                 ImSearch::SearchableItem(name.c_str(),
-                                    [name, &entity](const char*) {
+                                    [name/*, &entity*/](const char*) {
                                         if (ImGui::Selectable(name.c_str())) {
                                             //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
                                             printf("Audio Adding Works?");

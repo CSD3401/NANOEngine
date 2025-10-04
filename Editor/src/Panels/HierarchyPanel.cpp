@@ -26,8 +26,8 @@ namespace Editor {
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
 			| ImGuiWindowFlags_MenuBar);
 
-		ImVec2 panelPos = ImGui::GetCursorScreenPos();
-		ImVec2 panelSize = ImGui::GetContentRegionAvail();
+		//ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
+		//ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
 
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 			ImGui::OpenPopup("HierarchyContextMenu");
@@ -127,7 +127,7 @@ namespace Editor {
 
         // ---- Drag state ----
         static uint32_t draggingId = NE::ECS::NO_ENTITY;
-        static bool     hadDragThisFrame = false;
+        //static bool     hadDragThisFrame = false; // warning unused var - RF 
 
         static bool     previewAsChild = false;  // highlight a row to adopt as parent
         static uint32_t previewParent = NE::ECS::NO_ENTITY;
@@ -181,7 +181,7 @@ namespace Editor {
 
                 // -------- hover bands while dragging ----------
                 if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                    hadDragThisFrame = true;
+                    //hadDragThisFrame = true; // warning unused var - RF
 
                     if (ImGui::IsMouseHoveringRect(r.Min, r.Max, true)) {
                         const float h = r.Max.y - r.Min.y;

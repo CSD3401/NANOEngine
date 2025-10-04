@@ -125,9 +125,9 @@ namespace Editor {
             ImGui::PushID(label.c_str());
 
             // Get mouse hover
-            ImVec2 min = ImGui::GetCursorScreenPos();
+            //ImVec2 min = ImGui::GetCursorScreenPos(); // warning unused var - RF
             ImGui::TextUnformatted(label.c_str());
-            ImVec2 max = ImGui::GetCursorScreenPos();
+            //ImVec2 max = ImGui::GetCursorScreenPos(); // warning unused var - RF
 
             ImVec2 textMin = ImGui::GetItemRectMin();
             ImVec2 textMax = ImGui::GetItemRectMax();
@@ -207,7 +207,7 @@ namespace Editor {
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
         int columnCount = (int)(panelWidth / cellSize);
-        if (columnCount < 1) columnCount = 1;
+        if (columnCount < 1) columnCount = 1; // NOLINT 
 
         ImGui::Columns(columnCount, 0, false);
 
