@@ -101,6 +101,7 @@ namespace NE::Graphics {
 					});
 
 				// Further optimize within this range by grouping commands with less state change cost between their pipelines
+				if (!greedyOptimizeGroups) break;
 				struct Group {
 					PipelineKey key{};
 					PipelineSpecification spec{};
@@ -194,6 +195,7 @@ namespace NE::Graphics {
 				// Keep original submission order (stable sort already done)
 			} break;
 			} // end switch
+			i = j; // move to the next range
 		}
 	}
 }

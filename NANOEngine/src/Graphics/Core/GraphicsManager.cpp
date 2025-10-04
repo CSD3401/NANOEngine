@@ -66,7 +66,6 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::BeginFrame() {
-        s_DrawQueue->Clear();
 		s_StateCache->InvalidateAll();
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
@@ -134,6 +133,7 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::EndFrame() {
+        s_DrawQueue->Clear();
         s_CommandBuffer->EndRenderPass();
         s_CommandBuffer->End();
     }

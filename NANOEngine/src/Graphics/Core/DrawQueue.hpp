@@ -29,6 +29,9 @@ namespace NE::Graphics {
 	private:
 		std::vector<DrawCommand> m_Commands;
 		std::unordered_map<KeyPair, int, KeyPairHash> m_CostCache;
+
+		// Settings
+		bool greedyOptimizeGroups = true; // whether to do the greedy group optimization in opaque sorting
 	};
 
 }
