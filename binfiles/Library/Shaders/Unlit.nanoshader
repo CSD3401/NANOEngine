@@ -1,0 +1,29 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 a_Normal;   // not actually used
+layout(location = 2) in vec2 a_TexCoord;
+
+uniform mat4 u_Model;
+uniform mat4 u_View;
+uniform mat4 u_Projection;
+
+out vec2 v_TexCoord;
+
+void main() {
+    v_TexCoord = a_TexCoord;
+    gl_Position = u_Projection * u_View * u_Model * vec4(aPos, 1.0);
+}
+
+#type fragment
+#version 460 core
+
+in vec2 v_TexCoord;
+out vec4 FragColor;
+
+uniform vec3 u_BaseColor = vec3(1.0);
+
+void main() {
+    FragColor = vec4(u_BaseColor, 1.0);
+}

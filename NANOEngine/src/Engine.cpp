@@ -133,8 +133,8 @@ namespace NE {
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
 	}
 
-	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::IShader>>>& GetAllShaders() {
-		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::IShader>();
+	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::OpenGL::GLShader>>>& GetAllShaders() {
+		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::OpenGL::GLShader>();
 	}
 	
 	const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks() {
