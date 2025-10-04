@@ -101,8 +101,8 @@ namespace NE::Graphics {
 
 				// Further optimize within this range by grouping commands with less state change cost between their pipelines
 				struct Group {
-					PipelineKey key;
-					PipelineSpecification spec;
+					PipelineKey key{};
+					PipelineSpecification spec{};
 					std::vector<size_t> indices; // indices into m_Commands
 				};
 				std::vector<Group> groups;
