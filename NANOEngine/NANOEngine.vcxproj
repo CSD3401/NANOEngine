@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
+    <ClInclude Include="src\Graphics\Core\PipelineData.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderQueue.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IStateCache.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLStateCache.hpp" />

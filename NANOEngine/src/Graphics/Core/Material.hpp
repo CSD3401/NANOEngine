@@ -11,6 +11,7 @@
 #include "../../NANOEngineAPI.hpp"
 #include "../../Asset.hpp"
 #include "RenderQueue.hpp"
+#include "PipelineData.hpp"
 
 #pragma warning(push)
 #pragma warning(disable: 4251)

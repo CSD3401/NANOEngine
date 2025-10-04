@@ -1,5 +1,6 @@
 #pragma once
 #include "../Interfaces/IPipeline.hpp"
+#include "../Core/PipelineData.hpp"
 
 namespace NE::Graphics::OpenGL {
 

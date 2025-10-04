@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
-#include <algorithm>
 #include "DrawCommand.hpp"
+#include "PipelineData.hpp" // for PipelineKey, PipelineSpecification
 
 namespace NE::Graphics {
 

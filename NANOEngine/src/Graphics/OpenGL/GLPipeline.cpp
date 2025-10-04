@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 
+
 namespace NE::Graphics::OpenGL {
 
     GLPipeline::GLPipeline(const PipelineSpecification& spec, std::string name)
@@ -11,7 +12,7 @@ namespace NE::Graphics::OpenGL {
     {}
 
     GLPipeline::GLPipeline(const PipelineSpecification& spec) : 
-        m_Spec(spec), m_Key(PipelineKey::FromSpecification(spec))
+        m_Spec(spec), m_Key(PipelineKey::MakeKey(spec))
     {}
 
     void GLPipeline::Bind() const {

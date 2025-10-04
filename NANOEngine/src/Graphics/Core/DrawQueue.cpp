@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "DrawQueue.hpp"
 #include "Camera.hpp"
 
@@ -33,8 +34,8 @@ namespace NE::Graphics {
 		static const int COST_CULL_MODE = 2;
 		static const int COST_POLYGON_MODE = 1;
 
-		PipelineKey ka = PipelineKey::FromSpecification(a);
-		PipelineKey kb = PipelineKey::FromSpecification(b);
+		PipelineKey ka = PipelineKey::MakeKey(a);
+		PipelineKey kb = PipelineKey::MakeKey(b);
 		KeyPair kp(ka, kb);
 		auto it = m_CostCache.find(kp);
 		if (it != m_CostCache.end()) {
