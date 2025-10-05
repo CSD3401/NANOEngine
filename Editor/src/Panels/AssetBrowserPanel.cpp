@@ -27,6 +27,10 @@ namespace Editor {
             if (filePath.extension() == ".nanoshader") {
                 NE::LoadShader(filePath.string());
             }
+
+            if (filePath.extension() == ".jpg" || filePath.extension() == ".png") {
+                NE::LoadTexture(filePath.string());
+            }
         }
 	}
 
@@ -268,6 +272,13 @@ namespace Editor {
                     } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         EditorScene::s_selectedEntity = nullptr;
                         EditorScene::selectedMaterial = entryPath.string();
+                    }
+                } else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
+                    if (ImGui::BeginDragDropSource()) {
+                        std::string texturePath = entry.path().string();
+                        ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", texturePath.c_str(), texturePath.size() + 1);
+                        ImGui::TextUnformatted(name.c_str());
+                        ImGui::EndDragDropSource();
                     }
                 }
             }

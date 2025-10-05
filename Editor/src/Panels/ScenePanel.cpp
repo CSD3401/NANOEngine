@@ -156,6 +156,7 @@ namespace Editor {
 						uint32_t id = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
+						EditorScene::selectedMaterial = "";
 						for (auto& ent : EditorScene::s_entities) {
 							if (ent.linkedEntity == id) {
 								EditorScene::s_selectedEntity = &ent;

@@ -10,6 +10,7 @@
 #include "../../ECS/Components/Light.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
+#include "../OpenGL/GLTexture.hpp"
 #include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
 #include <GL/gl.h>
@@ -33,6 +34,11 @@ namespace NE::Graphics {
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
         //Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.nanoshader", false);
+
+        auto whiteTex = std::make_shared<OpenGL::GLTexture>();
+        whiteTex->LoadFromFile("Library/Textures/white.jpg");
+        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLTexture>(whiteTex, "WhiteTex");
+
         auto basic = std::make_shared<OpenGL::GLShader>();
         basic->LoadFromFile("Library/Shaders/Basic.nanoshader");
         Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(basic, "Basic");

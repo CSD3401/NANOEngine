@@ -669,26 +669,12 @@ namespace Editor {
             }
 
             if (m_loadedMaterial) {
-
                 bool openPopup = false;
                 DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
                 if (openPopup) {
                     ImGui::OpenPopup("AssetPicker_Shader");
                 }
 
-                ////if (ImGui::BeginDragDropTarget()) {
-                ////    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-                ////        std::string dropped((const char*)p->Data, p->DataSize - 1);
-
-                ////        if (comp.materialPath.empty()) { // If material is not set, assign a default one
-                ////            //AssignRendererMaterial(comp, "Assets/Basic.nanomat");
-                ////        } // done for rapid prototyping, should be removed later
-
-                ////        NE::Renderer::Command::AssignModel(EditorScene::s_selectedEntity->linkedEntity, dropped);
-                ////    }
-                ////    ImGui::EndDragDropTarget();
-                ////}
-                ////m_loadedMaterial->SetPipeline()
                 static std::string searchQuery;
                 if (ImGui::BeginPopup("AssetPicker_Shader")) {
                     ImGui::Text("Select a Shader");
@@ -731,7 +717,7 @@ namespace Editor {
 
                 for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
                     int i = val;
-                    Editor::DrawIntControl(name.c_str(), i);
+                    //Editor::DrawIntControl(name.c_str(), i);
                     if (ImGui::DragInt(name.c_str(), &i)) {
                         m_loadedMaterial->SetUniformInt(name, i);
                     }
@@ -739,6 +725,25 @@ namespace Editor {
 
                 if (ImGui::Button("Save Material", { 100.f, 30.f })) {
                     m_loadedMaterial->SaveMaterial("");
+                }
+
+                ImGui::SeparatorText("Material Textures");
+
+                for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
+                    // Preview + picker (96px thumb)
+                    DrawTextureField(
+                        uName.c_str(), tex, 96.0f,
+                        [this, &tex, &uName](const std::string& id) {
+                            auto t = NE::GetTexture(id);
+                            m_loadedMaterial->SetTexture(uName, t);
+
+                            // for keeping u_HasBaseMap in sync for toggle
+                            std::string has = "u_Has" + uName.substr(2);
+                            auto& ints = m_loadedMaterial->GetIntUniforms();
+                            if (ints.find(has) != ints.end())
+                                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
+                        }
+                    );
                 }
             }
         }

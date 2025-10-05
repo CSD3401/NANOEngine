@@ -6,6 +6,7 @@
 #include "../../AssetManager.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
+#include "../OpenGL/GLTexture.hpp"
 #include "PipelineCache.hpp"
 #include <glad/glad.h>
 
@@ -14,7 +15,7 @@ namespace {
         return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
             n == "u_NormalMatrix" || n == "u_CameraPos" ||
             n == "u_numLights" || n.rfind("u_lights", 0) == 0 ||
-            n == "u_ShadingModel";
+            n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0;
     }
 
     static bool IsSampler(GLenum t) {
@@ -28,15 +29,14 @@ namespace {
     }
 }
 
+#include <iostream>
+
 namespace NE::Graphics {
 
     Material::Material(std::shared_ptr<IPipeline> pipeline)
         : m_Pipeline(std::move(pipeline)) {}
 
-    Material::~Material()
-    {
-        //SaveMaterial(filePath);
-    }
+    Material::~Material() {}
 
     void Material::SetUniformInt(const std::string& uName, int value) {
         m_IntUniforms[uName] = value;
@@ -54,8 +54,9 @@ namespace NE::Graphics {
         m_Mat4Uniforms[uName] = value;
     }
 
-    void Material::SetTexture(const std::string& uName, std::shared_ptr<ITexture> texture) {
+    void Material::SetTexture(const std::string& uName, std::shared_ptr<OpenGL::GLTexture> texture) {
         m_Textures[uName] = std::move(texture);
+        m_Textures[uName]->MakeResident();
     }
 
     void Material::Bind() const {
@@ -71,11 +72,11 @@ namespace NE::Graphics {
         for (const auto& [uName, val] : m_IntUniforms)
             shader->SetUniformInt(uName, val);
 
-        int slot = 0;
-        for (const auto& [uName, tex] : m_Textures) {
-            //tex->Bind(slot);
-            shader->SetUniformInt(uName, slot);
-            ++slot;
+        for (auto& [uName, tex] : m_Textures) {
+            if (!tex) continue;
+            //tex->MakeResident();
+            uint64_t h = tex->GetBindlessHandle();
+            shader->SetUniformHandle(uName, h);
         }
     }
 
@@ -86,7 +87,6 @@ namespace NE::Graphics {
         doc.SetObject();
         Document::AllocatorType& alloc = doc.GetAllocator();
 
-        // Shader and pipeline properties
         if (m_Pipeline) {
             doc.AddMember("Shader", Value(m_Pipeline->GetSpecification().shaderName.data(), alloc).Move(), alloc);
             auto spec = m_Pipeline->GetSpecification();
@@ -96,18 +96,14 @@ namespace NE::Graphics {
             doc.AddMember("PolygonMode", spec.PolygonMode, alloc);
         }
 
-        // Uniforms/Properties
         Value uniforms(kObjectType);
 
-        // Int uniforms
         for (const auto& [name, value] : m_IntUniforms) {
             uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
         }
-        // Float uniforms
         for (const auto& [name, value] : m_FloatUniforms) {
             uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
         }
-        // Vec3 uniforms
         for (const auto& [name, value] : m_Vec3Uniforms) {
             Value arr(kArrayType);
             arr.PushBack(value.x, alloc).PushBack(value.y, alloc).PushBack(value.z, alloc);
@@ -120,10 +116,10 @@ namespace NE::Graphics {
         //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
         // }
         // Textures (TBD SOON)
-        // for (const auto& [name, tex] : m_Textures) {
-        //     std::string uuid = tex ? tex->GetUUID() : "";
-        //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(uuid.c_str(), alloc).Move(), alloc);
-        // }
+         //for (const auto& [name, tex] : m_Textures) {
+         //    std::string uuid = tex ? tex->GetUUID() : "";
+         //    uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(uuid.c_str(), alloc).Move(), alloc);
+         //}
 
         doc.AddMember("Properties", uniforms, alloc);
 
@@ -190,7 +186,7 @@ namespace NE::Graphics {
                         SetUniformMat4(uName, m);
                     }
                 } else if (value.IsString()) {
-                    // Texture loading not implemented
+                    // Texture serialization not yet done
                     // mat->SetTexture(name, LoadTexture(value.GetString()));
                 }
             }
@@ -213,16 +209,20 @@ namespace NE::Graphics {
         m_Mat4Uniforms.clear();
         m_Textures.clear();
 
-        //auto* gls = dynamic_cast<Graphics::OpenGL::GLShader*>(spec.shader.get());
-        //if (!gls) return;
+        auto defaultWhite = Asset::AssetManager::GetInstance().Load<NE::Graphics::OpenGL::GLTexture>("WhiteTex");
 
         for (auto& u : shader->EnumerateActiveUniforms()) {
+            std::cout << u.name << " type=" << std::hex << u.type << "\n";
             if (IsEngineUniform(u.name)) continue;
 
             if (IsSampler(u.type)) {
-                // Seed sampler unit 0 (and you can bind a white/flat texture)
-                m_IntUniforms.emplace(u.name, 0);
-                // if you have a default texture: m_Textures.emplace(u.name, WhiteTextureHandle);
+                m_Textures.emplace(u.name, defaultWhite);
+
+                if (u.name.rfind("u_", 0) == 0) {
+                    std::string hasName = "u_Has" + u.name.substr(2); // u_BaseMap -> u_HasBaseMap
+                    m_IntUniforms.emplace(hasName, defaultWhite ? 1 : 0);
+                }
+
                 continue;
             }
 
@@ -232,7 +232,6 @@ namespace NE::Graphics {
                 m_IntUniforms.emplace(u.name, 0);
                 break;
             case GL_FLOAT:
-                // make color-ish scalars visible by default
                 if (u.name.find("Color") != std::string::npos ||
                     u.name.find("color") != std::string::npos ||
                     u.name.find("albedo") != std::string::npos)
@@ -241,7 +240,6 @@ namespace NE::Graphics {
                     m_FloatUniforms.emplace(u.name, 0.0f);
                 break;
             case GL_FLOAT_VEC3:
-                // default color = white, others = zero
                 if (u.name.find("Color") != std::string::npos ||
                     u.name.find("color") != std::string::npos ||
                     u.name.find("albedo") != std::string::npos)
@@ -252,11 +250,9 @@ namespace NE::Graphics {
             case GL_FLOAT_MAT4:
                 m_Mat4Uniforms.emplace(u.name, Mat4{});
                 break;
-                // add more as you need (vec2, vec4, ivec*, etc.)
             default:
                 break;
             }
         }
-
     }
 }

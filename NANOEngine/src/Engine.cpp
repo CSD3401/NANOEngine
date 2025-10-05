@@ -23,6 +23,7 @@
 #include "Tween/TweenManager.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
+#include "Graphics/OpenGL/GLTexture.hpp"
 
 namespace NE {
 
@@ -122,6 +123,15 @@ namespace NE {
 
 	void LoadShader(std::string_view filePath) {
 		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(filePath.data(), false);
+	}
+
+	void LoadTexture(std::string_view filePath) {
+		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
+	}
+
+	std::shared_ptr<Graphics::OpenGL::GLTexture> GetTexture(std::string_view filePath)
+	{
+		return Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
 	}
 
 	std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {

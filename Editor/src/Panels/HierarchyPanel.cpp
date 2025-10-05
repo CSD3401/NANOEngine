@@ -166,8 +166,10 @@ namespace Editor {
                 // if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
                 bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
-                if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+                if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
                     Editor::EditorScene::s_selectedEntity = ent;
+                    EditorScene::selectedMaterial = "";
+                }
 
                 // row rect
                 ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
@@ -233,7 +235,6 @@ namespace Editor {
             }
         };
 
-        // draw roots (and recurse)
         DrawLevel(NE::ECS::NO_ENTITY, childrenOf0, 0);
 
         if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && previewLineY >= 0.f) {
@@ -242,7 +243,6 @@ namespace Editor {
             dl->AddLine(ImVec2(previewLineX2, previewLineY - 3), ImVec2(previewLineX2, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
         }
 
-        // auto-scroll
         {
             ImGuiWindow* win = ImGui::GetCurrentWindow();
             const float innerTop = win->InnerRect.Min.y;

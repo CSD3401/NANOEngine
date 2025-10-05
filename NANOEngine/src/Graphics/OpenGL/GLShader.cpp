@@ -65,6 +65,25 @@ namespace NE::Graphics::OpenGL {
         glUniformMatrix4fv(GetUniformLocation(uName), 1, GL_FALSE, matrix.Data());
     }
 
+    void GLShader::SetUniformHandle(const std::string& uName, uint64_t handle) {
+        // Require ARB_bindless_texture to be loaded by GLAD
+        if (!glUniformHandleui64ARB) {
+            SPD_WARNING("Bindless texture functions not loaded. Did you enable GL_ARB_bindless_texture in GLAD?");
+            return;
+        }
+        GLint loc = GetUniformLocation(uName);
+        if (loc >= 0) glUniformHandleui64ARB(loc, handle);
+    }
+
+    void GLShader::SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) {
+        if (!glUniformHandleui64vARB) {
+            SPD_WARNING("Bindless texture functions not loaded. Did you enable GL_ARB_bindless_texture in GLAD?");
+            return;
+        }
+        GLint loc = GetUniformLocation(uName);
+        if (loc >= 0) glUniformHandleui64vARB(loc, count, handles);
+    }
+
     bool GLShader::LoadFromFile(const std::string& fileName)
     {
         std::string source = LoadShaderSource(fileName);
