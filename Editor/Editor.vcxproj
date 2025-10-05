@@ -142,9 +142,9 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,15 +152,14 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(SolutionDir)ThirdParty\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>xcopy /E /I /-Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
-</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(SolutionDir)ThirdParty\lib\fmod\*.dll" "$(TargetDir)"
-</Command>
+      <Command>xcopy /E /I /Y "$(SolutionDir)binfiles\*" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\" </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
