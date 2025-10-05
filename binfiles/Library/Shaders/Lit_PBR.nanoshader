@@ -40,7 +40,7 @@ out vec4 FragColor;
 
 // ===== Scene / Lighting =====
 uniform vec3 u_CameraPos;
-uniform vec3 u_AmbientColor; // simple ambient for now to move to scene-wide ambient/IBL tint
+uniform vec3 u_AmbientColor; // simple ambient for now to move to scene-wide ambient/IBL tint in the future
 
 // Base (albedo)
 uniform vec3 u_BaseColor;
@@ -66,19 +66,17 @@ uniform sampler2D u_AmbientOcclusionMap;
 uniform int u_HasAOMap;
 
 struct Light {
-    int   type;           // 0 = directional, 1 = point, 2 = spot
-    vec3  color;          // light RGB (linear)
-    float intensity;      // scalar multiplier
+    int   type; // 0 = directional, 1 = point, 2 = spot
+    vec3  color;
+    float intensity;
 
-    vec3  position;       // world-space (for point/spot)
-    vec3  direction;      // world-space, points *from* light *towards* scene (for dir/spot)
+    vec3  position;
+    vec3  direction;
 
-    // attenuation (for point/spot)
     float constant;
     float linear;
     float quadratic;
 
-    // spot (cosine of inner/outer)
     float innerCutoff;    // cos(innerAngle)
     float outerCutoff;    // cos(outerAngle)
 };
@@ -86,14 +84,8 @@ struct Light {
 uniform int u_numLights;
 uniform Light u_lights[MAX_LIGHTS];
 
-// ===== Material =====
-//uniform vec3  u_BaseColor;   // base/albedo (linear)
-//uniform float u_Metallic;    // 0..1
-//uniform float u_Roughness;   // 0..1
-//uniform float u_AO;          // 0..1 (1.0 if no AO map)
 uniform vec3  u_Emissive;
 
-// ===== PBR helpers (Cook-Torrance / GGX) =====
 const float PI = 3.14159265359;
 
 float DistributionGGX(float NdotH, float roughness)
@@ -184,8 +176,6 @@ vec3 EvalPoint(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic
 
     vec3 L = Ldir / d;
 
-    // Physically nicer: 1 / (kc + kl*d + kq*d^2)
-    // If you prefer pure inverse-square: use 1.0 / max(dist2, 1e-6) and tune intensity accordingly.
     float atten = 1.0 / max(Lgt.constant + Lgt.linear * d + Lgt.quadratic * dist2, 1e-6);
 
     vec3 brdf     = BRDF_GGX_Smith(N, V, L, albedo, metallic, roughness);
@@ -202,8 +192,6 @@ vec3 EvalSpot(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic,
 
     vec3 L = Ldir / d;
 
-    // Spotlight smooth edge in cosine space.
-    // NOTE: inner/outer expected as cos(angle). If you store angles in radians, use cos() here.
     float theta = dot(L, normalize(-Lgt.direction));
     float inner = Lgt.innerCutoff;
     float outer = Lgt.outerCutoff;
@@ -221,46 +209,12 @@ vec3 EvalSpot(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic,
 
 void main()
 {
-    //vec3 N = normalize(v_Normal);
-    //vec3 V = normalize(u_CameraPos - v_FragPos);
-	//
-    //// Clamp material params a bit to keep math stable
-    //float metallic  = clamp(u_Metallic,  0.0, 1.0);
-    //float roughness = clamp(u_Roughness, 0.04, 1.0);
-    //float ao        = clamp(u_AmbientOcclusion,        0.0, 1.0);
-    //vec3  albedo    = clamp(u_BaseColor, 0.0, 1.0);
-	//
-    //// Simple ambient (replace with IBL later)
-    //vec3 ambient = albedo * ao;
-	//
-    //// Direct lighting
-    //vec3 Lo = vec3(0.0);
-    //for (int i = 0; i < u_numLights; ++i)
-    //{
-    //    if (u_lights[i].type == 0)
-    //        Lo += EvalDirectional(u_lights[i], N, V, albedo, metallic, roughness);
-    //    else if (u_lights[i].type == 1)
-    //        Lo += EvalPoint(u_lights[i], N, V, v_FragPos, albedo, metallic, roughness);
-    //    else if (u_lights[i].type == 2)
-    //        Lo += EvalSpot(u_lights[i], N, V, v_FragPos, albedo, metallic, roughness);
-    //}
-	//
-    //vec3 color = ambient + Lo;
-	//
-    //// If your framebuffer is already sRGB, skip gamma here.
-    //// Optional tonemap + gamma for LDR output:
-    //// color = color / (color + vec3(1.0));      // Reinhard
-    //// color = pow(color, vec3(1.0/2.2));        // Gamma
-	//
-    //FragColor = vec4(max(color, 0.0), 1.0);
-	
-	const vec2 uv = v_TexCoord; // <-- CHANGE TO YOUR UV VARYING IF DIFFERENT
+	const vec2 uv = v_TexCoord;
 
     // view/normal
     vec3 V = normalize(u_CameraPos - v_FragPos);
     vec3 N = normalize(v_Normal);
 
-    // === sample maps (with fallbacks) ===
     // Albedo
     vec3 albedo = clamp(u_BaseColor, 0.0, 1.0);
     if (u_HasAlbedoMap != 0) {
@@ -280,7 +234,7 @@ void main()
         roughness = clamp(texture(u_RoughnessMap, uv).r, 0.04, 1.0);
     }
 
-    // Metallic (still scalar by default; add a map later if you have one)
+    // Metallic
     float metallic = clamp(u_Metallic, 0.0, 1.0);
     // if (u_HasMetallicMap != 0) metallic = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
 
@@ -290,7 +244,7 @@ void main()
         ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
     }
 
-    // === ambient & direct lighting (your original code) ===
+    // === ambient and direct lighting ===
     vec3 ambient = u_AmbientColor * albedo * ao;
 
     vec3 Lo = vec3(0.0);
