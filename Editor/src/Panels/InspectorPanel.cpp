@@ -175,8 +175,7 @@ namespace Editor {
 
     void InspectorPanel::OnImGuiRender()
     {
-        ImGui::Begin("Inspector", nullptr,
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::Begin("Inspector", nullptr);
 
         //ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
         //ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
@@ -702,9 +701,9 @@ namespace Editor {
                 ImGui::SeparatorText("Material Uniforms");
 
                 for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
-                    float v = val;
-                    if (Editor::DrawFloatControl(name.c_str(), v, 0.1f)) {
-                        m_loadedMaterial->SetUniformFloat(name, v);
+                    //float v = val;
+                    if (Editor::DrawFloatControl(name.c_str(), val, 0.1f)) {
+                        //m_loadedMaterial->SetUniformFloat(name, v);
                     }
                 }
 

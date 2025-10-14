@@ -33,8 +33,10 @@ namespace NE::Graphics {
 
         std::shared_ptr<IPipeline> GetPipeline() const { return m_Pipeline; }
 
-        const std::unordered_map<std::string, int>& GetIntUniforms() const { return m_IntUniforms; }
-        const std::unordered_map<std::string, float>& GetFloatUniforms() const { return m_FloatUniforms; }
+        //const std::unordered_map<std::string, int>& GetIntUniforms() const { return m_IntUniforms; }
+        //const std::unordered_map<std::string, float>& GetFloatUniforms() const { return m_FloatUniforms; }
+        std::unordered_map<std::string, int>& GetIntUniforms() { return m_IntUniforms; }
+        std::unordered_map<std::string, float>& GetFloatUniforms() { return m_FloatUniforms; }
         const std::unordered_map<std::string, Vec3>& GetVec3Uniforms() const { return m_Vec3Uniforms; }
         const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
         const std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>>& GetTextures() const { return m_Textures; }
