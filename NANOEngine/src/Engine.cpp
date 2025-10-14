@@ -65,8 +65,8 @@ namespace NE {
 
 		s_sceneFrameBuffer->Bind();
 		Graphics::GraphicsManager::BeginFrame();
-		TweenManager::Get().Update(static_cast<float>(dt));
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
+		TweenManager::Get().Update(static_cast<float>(dt));
 		Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();
 		

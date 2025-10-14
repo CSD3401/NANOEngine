@@ -174,6 +174,13 @@ namespace Editor {
                 // row rect
                 ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
+                // DO NOT REMOVE - Needed for tween to work
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                {
+                    // Broadcast message
+                    NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
+                }
+
                 // -------- begin drag from this row ----------
                 if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
                     draggingId = id;
