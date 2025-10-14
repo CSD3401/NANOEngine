@@ -109,7 +109,8 @@ namespace Editor {
 			//if (!ImGui::GetIO().WantCaptureMouse)
 				NE::InputManager::OnScroll(xoff, yoff);
 			});
-		glfwSetCharCallback(window, [](GLFWwindow*, unsigned int c) {
+		glfwSetCharCallback(window, [](GLFWwindow* w, unsigned int c) {
+			ImGui_ImplGlfw_CharCallback(w, c);
 			// ImGui will read it too via its backend; forwarding to engine lets your widgets read raw text if needed
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
@@ -143,7 +144,9 @@ namespace Editor {
 			//LOG_INFO(timer.GetFPS());
 			
 			//SPD_INFO(timer.GetFPS());
-
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+				SPD_INFO(timer.GetFPS());
+			}
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
