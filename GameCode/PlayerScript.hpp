@@ -56,13 +56,14 @@ public:
             float deltaSpeed = speed * static_cast<float>(deltaTime);
 
             if(NE::InputManager::IsKeyDown('D'))
-                transform->position.x += deltaSpeed;
-            else if (NE::InputManager::IsKeyDown('A'))
-                transform->position.x -= deltaSpeed;
-            else if (NE::InputManager::IsKeyDown('W'))
-                transform->position.y += deltaSpeed;
-            else if (NE::InputManager::IsKeyDown('S'))
-                transform->position.y -= deltaSpeed;
+			    transform->position.x += 0.2f * (float)deltaTime;
+			else if (NE::InputManager::IsKeyDown('A'))
+				transform->position.x -= 0.2f * (float)deltaTime;
+			else if (NE::InputManager::IsKeyDown('W'))
+				transform->position.y += 0.2f * (float)deltaTime;
+			else if (NE::InputManager::IsKeyDown('S'))
+				transform->position.y -= 0.2f * (float)deltaTime;
+        
         }
     }
 

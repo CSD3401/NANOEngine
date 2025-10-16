@@ -1,0 +1,14 @@
+{
+    "Shader": "Unlit",
+    "DepthTest": true,
+    "BlendMode": true,
+    "CullMode": 1029,
+    "PolygonMode": 6914,
+    "Properties": {
+        "u_BaseColor": [
+            0.0,
+            0.5,
+            1.0
+        ]
+    }
+}

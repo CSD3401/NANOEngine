@@ -2,6 +2,8 @@
 #include "../Components/Transform.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../src/EngineState.hpp"
+#include <iostream>
+
 
 namespace NE::ECS::Systems {
 
@@ -20,6 +22,8 @@ namespace NE::ECS::Systems {
 
 	void TransformSystem::Init()
 	{
+		//test++;
+		//std::cout << "test " << test << std::endl;
 	}
 
 	void TransformSystem::Update(double)

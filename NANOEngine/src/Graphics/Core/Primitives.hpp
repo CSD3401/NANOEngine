@@ -16,4 +16,13 @@ namespace NE::Graphics {
         float height = 1.f,
         int segments = 20);
 
+    std::shared_ptr<Model> CreateSphere(float radius = 0.5f, 
+        int slices = 24, 
+        int stacks = 16);
+
+    std::shared_ptr<Model> CreateCapsule(float radius = 0.5f, 
+        float height = 2.f, 
+        int slices = 24, 
+        int stacks = 8);
+
 }

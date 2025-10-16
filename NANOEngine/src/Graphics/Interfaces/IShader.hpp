@@ -25,6 +25,9 @@ namespace NE::Graphics {
         virtual void SetUniformVec3(const std::string& name, const Vec3& value) = 0;
         virtual void SetUniformMat4(const std::string& name, const Mat4& matrix) = 0;
 
+        virtual void SetUniformHandle(const std::string& uName, uint64_t handle) = 0;
+        virtual void SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) = 0;
+
 		virtual const std::string_view GetUUID() const = 0;
     };
 

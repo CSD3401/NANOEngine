@@ -2,10 +2,11 @@
 #include <fstream>
 #include <sstream>
 #include <glad/glad.h>
-#include "Core/Logger.hpp"
+//#include "Core/Logger.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
+#include <iostream>
 
 
 namespace NE::Graphics::OpenGL {
@@ -64,6 +65,25 @@ namespace NE::Graphics::OpenGL {
         glUniformMatrix4fv(GetUniformLocation(uName), 1, GL_FALSE, matrix.Data());
     }
 
+    void GLShader::SetUniformHandle(const std::string& uName, uint64_t handle) {
+        // Require ARB_bindless_texture to be loaded by GLAD
+        if (!glUniformHandleui64ARB) {
+            SPD_WARNING("Bindless texture functions not loaded. Did you enable GL_ARB_bindless_texture in GLAD?");
+            return;
+        }
+        GLint loc = GetUniformLocation(uName);
+        if (loc >= 0) glUniformHandleui64ARB(loc, handle);
+    }
+
+    void GLShader::SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) {
+        if (!glUniformHandleui64vARB) {
+            SPD_WARNING("Bindless texture functions not loaded. Did you enable GL_ARB_bindless_texture in GLAD?");
+            return;
+        }
+        GLint loc = GetUniformLocation(uName);
+        if (loc >= 0) glUniformHandleui64vARB(loc, count, handles);
+    }
+
     bool GLShader::LoadFromFile(const std::string& fileName)
     {
         std::string source = LoadShaderSource(fileName);
@@ -113,7 +133,9 @@ namespace NE::Graphics::OpenGL {
             if (compiled != GL_TRUE) {
                 char log[1024];
                 glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-                SPD_WARNING("Shader compilation failed: " << log << "\nShader Source: " << source);
+                //SPD_WARNING("Shader compilation failed: " << log << "\nShader Source: " << source);
+                //SPD_Deb("Shader compilation failed: " << log << "\nShader Source: " << source);
+                std::cerr << "Shader compilation failed: " << log << "\nShader Source: " << source << std::endl;
                 return false;
             }
 
@@ -146,5 +168,29 @@ namespace NE::Graphics::OpenGL {
         int location = glGetUniformLocation(m_programID, uName.c_str());
         m_uniformLocationCache[uName] = location;
         return location;
+    }
+
+    std::vector<UniformDesc> GLShader::EnumerateActiveUniforms() const {
+        GLint count = 0;
+        glGetProgramiv(m_programID, GL_ACTIVE_UNIFORMS, &count);
+        std::vector<UniformDesc> out;
+        out.reserve(count);
+
+        for (GLint i = 0; i < count; ++i) {
+            GLchar buf[256]; GLsizei len = 0; GLint size = 0; GLenum type = 0;
+            glGetActiveUniform(m_programID, i, sizeof(buf), &len, &size, &type, buf);
+            if (len <= 0) continue;
+
+            // Trim GLSL array name suffix "[0]" into a friendlier "name"
+            std::string name(buf, buf + len);
+            if (auto pos = name.find("[0]"); pos != std::string::npos) name.erase(pos);
+
+            out.push_back({ std::move(name), type, size });
+        }
+        return out;
+    }
+
+    bool GLShader::HasUniform(std::string_view name) const {
+        return glGetUniformLocation(m_programID, std::string(name).c_str()) != -1;
     }
 }

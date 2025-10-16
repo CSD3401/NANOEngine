@@ -113,6 +113,10 @@ namespace NE::ECS::Systems {
 					Physics::PhysicsManager::SetTransform(
 						rb.bodyID, transform.position, transform.rotation);
 				}
+
+				if (rb.isStatic) {
+					Physics::PhysicsManager::SetMotionType(rb.bodyID, JPH::EMotionType::Static);
+				}
 			}
 		}
 	}

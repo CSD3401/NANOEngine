@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include <imgui/widgets/imgui_widget_flamegraph/imgui_widget_flamegraph.h>
 #include <Core/Profiler.hpp>
+#include "../Application.hpp"
 
 namespace Editor {
 
@@ -47,6 +48,8 @@ namespace Editor {
 
             ImGui::EndTable();
         }
+
+        ImGui::Text("FPS: %d", Application::timer.GetFPS());
 
         ImGui::End();
     }

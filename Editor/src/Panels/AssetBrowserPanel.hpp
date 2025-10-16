@@ -22,6 +22,7 @@ namespace Editor {
 		void OpenDirectoryInFileExplorer(const std::string& directoryPath);
 
 		void CreateNewFolder();
+		void CreateNewMaterial();
 
 		std::filesystem::path m_rootDirectory;
 		std::filesystem::path m_currentDirectory;

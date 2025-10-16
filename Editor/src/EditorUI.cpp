@@ -2,12 +2,12 @@
 #include <Math/Vec3.hpp>
 
 namespace Editor {
-    // A pretty Vec3 control with color coding and reset buttons
+
     bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue, float columnWidth)
     {
         bool changed = false;
         //ImGuiIO& io = ImGui::GetIO();
-        //auto boldFont = io.Fonts->Fonts[0]; // Optionally use bold for labels
+        //auto boldFont = io.Fonts->Fonts[0];
 
         ImGui::PushID(label.c_str());
 
@@ -52,10 +52,15 @@ namespace Editor {
     // Generic float
     bool DrawFloatControl(const std::string& label, float& value, float step)
     {
+        //bool changed = false;
+        //ImGui::Text("%s", label.c_str());
+        //ImGui::SameLine();
+        //changed = ImGui::DragFloat(("##" + label).c_str(), &value, step);
+        //return changed;
         bool changed = false;
         ImGui::Text("%s", label.c_str());
         ImGui::SameLine();
-        changed = ImGui::DragFloat(("##" + label).c_str(), &value, step);
+        changed = ImGui::InputFloat(("##" + label).c_str(), &value, step);
         return changed;
     }
 
@@ -94,23 +99,20 @@ namespace Editor {
 
         ImGui::PushID(label);
 
-        // Draw a box (Child frame) for visual grouping like Unity
         if (width == 0) width = ImGui::GetContentRegionAvail().x;
         ImGui::BeginChild("AssetBox", ImVec2(width, 28), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        // Text (centered vertically)
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted(assetPath.empty() ? "<None>" : assetPath.c_str());
         ImGui::SameLine();
 
         std::string popupName = std::string("AssetPicker_") + label;
 
-        // Button (on right side)
         float btnWidth = 28.0f;
         ImGui::SetCursorPosX(ImGui::GetWindowWidth() - btnWidth - ImGui::GetStyle().FramePadding.x);
         if (ImGui::Button(buttonLabel, ImVec2(btnWidth, 0))) {
-            // Open your asset picker here!
-            // set a flag or call a callback, depending on your UI
+            // TBD open asset picker
+            // set a flag or call a callback
 			//std::string assetPickerPopupName = std::string("AssetPicker_") + label;
             //ImGui::OpenPopup(("AssetPicker_" + std::string(label)).c_str());
             //ImGui::OpenPopup("AssetPicker_Model");
@@ -119,6 +121,67 @@ namespace Editor {
         }
 
         ImGui::EndChild();
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawTextureField(
+        const char* label,
+        const std::shared_ptr<NE::Graphics::OpenGL::GLTexture>& slotTex,
+        float previewSize,
+        std::function<void(const std::string&)> assignById)
+    {
+        bool changed = false;
+
+        ImGui::PushID(label);
+        ImGui::TextUnformatted(label);
+
+        // preview of tex
+        ImTextureID img{};
+        if (slotTex) {
+            if (auto* gltex = dynamic_cast<NE::Graphics::OpenGL::GLTexture*>(slotTex.get()))
+                img = (ImTextureID)(uintptr_t)gltex->GLName();
+        }
+
+        ImVec2 size(previewSize, previewSize);
+        if (img) {
+            ImGui::Image(img, size);
+        } else {
+            if (ImGui::Button("+ Assign Texture", size)) {
+                ImGui::OpenPopup("AssetPicker_Texture");
+            }
+        }
+
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH")) {
+                std::string dropped((const char*)p->Data, p->DataSize - 1);
+                assignById(dropped);
+                changed = true;
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        // implement next time
+        //ImGui::SameLine();
+        //if (ImGui::SmallButton("Pick…")) ImGui::OpenPopup("AssetPicker_Texture");
+        //ImGui::SameLine();
+        //if (ImGui::SmallButton("Clear")) { slotTex.reset(); changed = true; }
+
+        //if (ImGui::BeginPopup("AssetPicker_Texture")) {
+        //    ImGui::TextUnformatted("Select a Texture"); ImGui::Separator();
+
+        //    // TODO: replace with your actual enumeration (e.g., NE::GetAllTextures()).
+        //    // Example skeleton:
+        //    for (const auto& [texId, meta] : NE::GetAllTextures()) {
+        //        if (ImGui::Selectable(texId.c_str())) {
+        //            assignById(texId);
+        //            changed = true;
+        //            ImGui::CloseCurrentPopup();
+        //        }
+        //    }
+        //    ImGui::EndPopup();
+        //}
 
         ImGui::PopID();
         return changed;
