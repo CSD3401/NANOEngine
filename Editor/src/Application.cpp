@@ -33,31 +33,12 @@ namespace Editor {
 	void Application::Init() {
 		timer.Start();
 
-		//NANOEngine::Graphics::RenderAPI api = NANOEngine::Graphics::RenderAPI::OpenGL;
-
-		//NANOEngine::Graphics::WindowProperties props;
-		//props.title = "NANOEngine";
-		//props.width = 1920;
-		//props.height = 1080;
-		//props.fullscreen = false;
-		//props.setHints = [api]() {
-		//	switch (api) {
-		//	case NANOEngine::Graphics::RenderAPI::OpenGL:
-		//		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		//		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-		//		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		//		//glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-		//		break;
-		//	case NANOEngine::Graphics::RenderAPI::Vulkan:
-		//		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		//		break;
-		//	}
-		//};
-
-		NE::Initialize();
-		
-		// Enable crash-only logging instead of continuous file logging
+		// Enable logging BEFORE engine initialization
+		SpdLogger::GetInstance().EnableFileLogging("logs/session.log");
 		SpdLogger::GetInstance().EnableCrashOnlyLogging("crash_logs/");
+
+		// Now initialize engine (logs will be captured)
+		NE::Initialize();
 
 		// Testing the SpdLogger with some demo messages
 		SPD_INFO("=== NANOEngine Application Started ===");
@@ -116,7 +97,17 @@ namespace Editor {
 			});
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
+		
+		SPD_INFO("==========================================");
+		SPD_INFO("About to load startup scene...");
+		SPD_INFO("==========================================");
+		
 		NE::LoadStartupScene();
+		
+		SPD_INFO("==========================================");
+		SPD_INFO("Startup scene loaded successfully");
+		SPD_INFO("==========================================");
+		
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
