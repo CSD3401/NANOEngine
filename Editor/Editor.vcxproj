@@ -163,6 +163,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
+    <ClCompile Include="src\AssetManagement\UUID.cpp" />
     <ClCompile Include="src\EditorUI.cpp" />
     <ClCompile Include="src\Panels\HistoryPanel.cpp" />
     <ClCompile Include="src\EditorScene.cpp" />
@@ -194,7 +196,11 @@
     <ClCompile Include="vendor\imgui\widgets\imsearch\imsearch_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AssetManagement\AssetManager.hpp" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="src\AssetManagement\AssetMetadata.hpp" />
+    <ClInclude Include="src\AssetManagement\Settings\TextureImportSettings.hpp" />
+    <ClInclude Include="src\AssetManagement\UUID.hpp" />
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />

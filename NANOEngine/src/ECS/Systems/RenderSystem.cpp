@@ -18,7 +18,7 @@
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Core/Profiler.hpp"
 #include <glad/glad.h>
-#include "AssetManager.hpp"
+//#include "AssetManager.hpp"
 
 #include <iostream>
 
@@ -47,14 +47,14 @@ namespace NE::ECS::Systems {
 
     void RenderSystem::Init()
     {
-        const auto& entities = GetEntities(); // maybe use sparseset next time?
-        for (Entity entity : entities) {
-            auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+        //const auto& entities = GetEntities(); // maybe use sparseset next time?
+        //for (Entity entity : entities) {
+            //auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
             // reminder to myself to fix this assetmanager thingamajig
-            renderer.model = NE::Asset::AssetManager::GetInstance().Get<Graphics::Model>(renderer.modelPath.string());
-            renderer.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(renderer.materialPath.string(), false);
-        }
+            //renderer.model = NE::Asset::AssetManager::GetInstance().Get<Graphics::Model>(renderer.modelPath.string());
+            //renderer.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(renderer.materialPath.string(), false);
+        //}
    //     const auto& entities = GetEntities();
    //     for (Entity entity : entities) {
 			//auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);

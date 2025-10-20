@@ -383,20 +383,20 @@ namespace Editor {
                     if (ImGui::BeginPopup("AssetPicker_Model")) {
                         ImGui::Text("Select a Model");
                         ImGui::Separator();
-                        auto& assets = NE::GetAllModels();
+                        //auto& assets = NE::GetAllModels();
 
                         if (ImSearch::BeginSearch()) {
                             ImSearch::SearchBar();
 
-                            for (const auto& [name, asset] : assets) {
-                                ImSearch::SearchableItem(name.c_str(),
-                                    [name, &entity](const char*) {
-                                        if (ImGui::Selectable(name.c_str())) {
-                                            NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
-                                            ImGui::CloseCurrentPopup();
-                                        }
-                                    });
-                            }
+                            //for (const auto& [name, asset] : assets) {
+                            //    ImSearch::SearchableItem(name.c_str(),
+                            //        [name, &entity](const char*) {
+                            //            if (ImGui::Selectable(name.c_str())) {
+                            //                NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+                            //                ImGui::CloseCurrentPopup();
+                            //            }
+                            //        });
+                            //}
 
                             ImSearch::EndSearch();
                         }
@@ -486,22 +486,22 @@ namespace Editor {
                     if (ImGui::BeginPopup("AudioPicker_Model")) {
                         ImGui::Text("Select Audio");
                         ImGui::Separator();
-                        auto& assets = NE::GetAllModels();
+                        //auto& assets = NE::GetAllModels();
 
                         if (ImSearch::BeginSearch()) {
                             ImSearch::SearchBar();
 
                             // warning entity in capture clause not used -RF
-                            for (const auto& [name, asset] : assets) {
-                                ImSearch::SearchableItem(name.c_str(),
-                                    [name/*, &entity*/](const char*) {
-                                        if (ImGui::Selectable(name.c_str())) {
-                                            //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
-                                            printf("Audio Adding Works?");
-                                            ImGui::CloseCurrentPopup();
-                                        }
-                                    });
-                            }
+                            //for (const auto& [name, asset] : assets) {
+                            //    ImSearch::SearchableItem(name.c_str(),
+                            //        [name/*, &entity*/](const char*) {
+                            //            if (ImGui::Selectable(name.c_str())) {
+                            //                //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+                            //                printf("Audio Adding Works?");
+                            //                ImGui::CloseCurrentPopup();
+                            //            }
+                            //        });
+                            //}
 
                             ImSearch::EndSearch();
                         }
@@ -657,16 +657,16 @@ namespace Editor {
 
         }
         else if (EditorScene::selectedMaterial != "") {
-            if (m_loadedPath != EditorScene::selectedMaterial) {
-                try {
-                    m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
-                    m_loadedPath = EditorScene::selectedMaterial;
-                }
-                catch (...) {
-                    m_loadedMaterial.reset();
-                    m_loadedPath.clear();
-                }
-            }
+            //if (m_loadedPath != EditorScene::selectedMaterial) {
+            //    try {
+            //        m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
+            //        m_loadedPath = EditorScene::selectedMaterial;
+            //    }
+            //    catch (...) {
+            //        m_loadedMaterial.reset();
+            //        m_loadedPath.clear();
+            //    }
+            //}
 
             if (m_loadedMaterial) {
                 bool openPopup = false;
@@ -675,29 +675,29 @@ namespace Editor {
                     ImGui::OpenPopup("AssetPicker_Shader");
                 }
 
-                static std::string searchQuery;
-                if (ImGui::BeginPopup("AssetPicker_Shader")) {
-                    ImGui::Text("Select a Shader");
-                    ImGui::Separator();
-                    auto& assets = NE::GetAllShaders();
+                //static std::string searchQuery;
+                //if (ImGui::BeginPopup("AssetPicker_Shader")) {
+                //    ImGui::Text("Select a Shader");
+                //    ImGui::Separator();
+                //    auto& assets = NE::GetAllShaders();
 
-                    if (ImSearch::BeginSearch()) {
-                        ImSearch::SearchBar();
+                //    if (ImSearch::BeginSearch()) {
+                //        ImSearch::SearchBar();
 
-                        for (const auto& [name, asset] : assets) {
-                            ImSearch::SearchableItem(name.c_str(),
-                                [name, this](const char*) {
-                                    if (ImGui::Selectable(name.c_str())) {
-                                        m_loadedMaterial->SetShader(name);
-                                        ImGui::CloseCurrentPopup();
-                                    }
-                                });
-                        }
+                //        for (const auto& [name, asset] : assets) {
+                //            ImSearch::SearchableItem(name.c_str(),
+                //                [name, this](const char*) {
+                //                    if (ImGui::Selectable(name.c_str())) {
+                //                        m_loadedMaterial->SetShader(name);
+                //                        ImGui::CloseCurrentPopup();
+                //                    }
+                //                });
+                //        }
 
-                        ImSearch::EndSearch();
-                    }
-                    ImGui::EndPopup();
-                }
+                //        ImSearch::EndSearch();
+                //    }
+                //    ImGui::EndPopup();
+                //}
 
                 ImGui::SeparatorText("Material Uniforms");
 
@@ -729,22 +729,22 @@ namespace Editor {
 
                 ImGui::SeparatorText("Material Textures");
 
-                for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
-                    // Preview + picker (96px thumb)
-                    DrawTextureField(
-                        uName.c_str(), tex, 96.0f,
-                        [this, &tex, &uName](const std::string& id) {
-                            auto t = NE::GetTexture(id);
-                            m_loadedMaterial->SetTexture(uName, t);
+                //for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
+                //    // Preview + picker (96px thumb)
+                //    DrawTextureField(
+                //        uName.c_str(), tex, 96.0f,
+                //        [this, &tex, &uName](const std::string& id) {
+                //            auto t = NE::GetTexture(id);
+                //            m_loadedMaterial->SetTexture(uName, t);
 
-                            // for keeping u_HasBaseMap in sync for toggle
-                            std::string has = "u_Has" + uName.substr(2);
-                            auto& ints = m_loadedMaterial->GetIntUniforms();
-                            if (ints.find(has) != ints.end())
-                                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
-                        }
-                    );
-                }
+                //            // for keeping u_HasBaseMap in sync for toggle
+                //            std::string has = "u_Has" + uName.substr(2);
+                //            auto& ints = m_loadedMaterial->GetIntUniforms();
+                //            if (ints.find(has) != ints.end())
+                //                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
+                //        }
+                //    );
+                //}
             }
         }
 

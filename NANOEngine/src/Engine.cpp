@@ -11,7 +11,7 @@
 //#include <glad/glad.h>
 #include "SceneManagement/Scene.hpp"
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
-#include "AssetManager.hpp"
+//#include "AssetManager.hpp"
 #include <iostream>
 #include <glfw/glfw3.h>
 #include <stb_image/stb_image.h>
@@ -121,35 +121,35 @@ namespace NE {
 		Serialization::JsonSceneSerializer::Deserialize(*gSceneManager.GetActive(), targetPath);
 	}
 
-	void LoadShader(std::string_view filePath) {
-		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(filePath.data(), false);
-	}
+	//void LoadShader(std::string_view filePath) {
+	//	//Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(filePath.data(), false);
+	//}
 
-	void LoadTexture(std::string_view filePath) {
-		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
-	}
+	//void LoadTexture(std::string_view filePath) {
+	//	//Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
+	//}
 
-	std::shared_ptr<Graphics::OpenGL::GLTexture> GetTexture(std::string_view filePath)
-	{
-		return Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
-	}
+	//std::shared_ptr<Graphics::OpenGL::GLTexture> GetTexture(std::string_view filePath)
+	//{
+	//	//return Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
+	//}
 
-	std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {
-		return Asset::AssetManager::GetInstance().Load<NE::Graphics::Material>(path.data(), false);
-	}
+	//std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {
+	//	//return Asset::AssetManager::GetInstance().Load<NE::Graphics::Material>(path.data(), false);
+	//}
 
-	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()
-	{
-		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
-	}
+	//const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()
+	//{
+	//	//return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
+	//}
 
-	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::OpenGL::GLShader>>>& GetAllShaders() {
-		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::OpenGL::GLShader>();
-	}
-	
-	const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks() {
-		return Asset::AssetManager::GetInstance().GetAssetsOfType<Asset::AudioBank>();
-	}
+	//const std::vector<std::pair<std::string, std::shared_ptr<Graphics::OpenGL::GLShader>>>& GetAllShaders() {
+	//	//return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::OpenGL::GLShader>();
+	//}
+	//
+	//const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks() {
+	//	//return Asset::AssetManager::GetInstance().GetAssetsOfType<Asset::AudioBank>();
+	//}
 
 	size_t GetNumEntities() {
 		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities().size();

@@ -5,6 +5,7 @@
 #include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
 #include <Utility/MetadataHandler.hpp>
+#include "../AssetManagement/AssetManager.hpp"
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
@@ -18,19 +19,23 @@ namespace Editor {
             std::filesystem::path filePath = entry.path();
 
             // Skip meta files themselves
-            if (filePath.extension() == ".meta") continue;
+            if (filePath.extension() == ".nanometa" || filePath.extension() == ".meta") continue;
 
-            if (!NE::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
-                NE::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
+            if (!std::filesystem::exists(entry.path().string() + ".nanometa")) {
+                AssetManager::GetInstance().GenerateMetadata(entry.path().string());
             }
 
-            if (filePath.extension() == ".nanoshader") {
-                NE::LoadShader(filePath.string());
-            }
+            //if (!NE::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
+            //    NE::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
+            //}
 
-            if (filePath.extension() == ".jpg" || filePath.extension() == ".png") {
-                NE::LoadTexture(filePath.string());
-            }
+            //if (filePath.extension() == ".nanoshader") {
+            //    NE::LoadShader(filePath.string());
+            //}
+
+            //if (filePath.extension() == ".jpg" || filePath.extension() == ".png") {
+            //    NE::LoadTexture(filePath.string());
+            //}
         }
 	}
 

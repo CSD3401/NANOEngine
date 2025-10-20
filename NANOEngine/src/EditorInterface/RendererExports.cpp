@@ -1,5 +1,5 @@
 #include "RendererExports.hpp"
-#include "../AssetManager.hpp"
+//#include "../AssetManager.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Renderer.hpp"
 
@@ -17,18 +17,18 @@ namespace NE::Renderer {
 		void AssignModel(uint32_t e, std::string_view path) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.modelPath = std::string(path);
-			r.model = Asset::AssetManager::GetInstance().Get<Graphics::Model>(path.data());
+			//r.model = Asset::AssetManager::GetInstance().Get<Graphics::Model>(path.data());
 
 			if (r.materialPath.empty()) {
 				r.materialPath = "Assets/Basic.nanomat";
-				r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>("Assets/Basic.nanomat", false);
+				//r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>("Assets/Basic.nanomat", false);
 			}
 		}
 
 		void AssignMaterial(uint32_t e, std::string_view path) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.materialPath = std::string(path);
-			r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(path.data(), false);
+			//r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(path.data(), false);
 		}
 	}
 
