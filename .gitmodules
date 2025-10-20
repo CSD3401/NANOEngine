@@ -6,6 +6,3 @@
 	path = extern/jolt
 	url = https://github.com/jrouwe/JoltPhysics.git
 	ignore = untracked
-[submodule "extern/compressonator"]
-	path = extern/compressonator
-	url = https://github.com/GPUOpen-Tools/compressonator.git

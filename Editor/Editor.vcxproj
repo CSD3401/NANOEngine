@@ -116,13 +116,13 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NANOEngine.lib;glfw\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>NANOEngine.lib;glfw\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)\CMP_Compressonator.lib;compressonator\$(Configuration)\CMP_Core.lib;compressonator\$(Configuration)\CMP_Core_SSE.lib;compressonator\$(Configuration)\CMP_Framework.lib;compressonator\$(Configuration)\CMP_Core_AVX.lib;compressonator\$(Configuration)\CMP_Core_AVX512.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
       <Command>
@@ -144,15 +144,15 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(ProjectDir)vendor;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)\CMP_Compressonator.lib;compressonator\$(Configuration)\CMP_Core.lib;compressonator\$(Configuration)\CMP_Core_SSE.lib;compressonator\$(Configuration)\CMP_Framework.lib;compressonator\$(Configuration)\CMP_Core_AVX.lib;compressonator\$(Configuration)\CMP_Core_AVX512.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
       <Command>

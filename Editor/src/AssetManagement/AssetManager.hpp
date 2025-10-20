@@ -8,14 +8,6 @@ namespace Editor {
 
 constexpr uint32_t CURRENT_FORMAT_VERSION = 1;
 
-// here temporarily
-struct NanoTexHeader {
-	bool sRGB;
-	bool alphaIsTransparency;
-	// maybe anisotropic filtering?
-
-};
-
 	class AssetManager {
 	public:
 		static AssetManager& GetInstance();
@@ -28,12 +20,13 @@ struct NanoTexHeader {
 
 
 	private:
-		AssetManager() {}
-		~AssetManager() {}
+		AssetManager() = default;
+		~AssetManager() = default;
 		
 		AssetType GetAssetTypeFromExtension(std::string_view);
 
 		bool ImportTexture();
+		bool CookTexture(const std::string& sourcePath);
 
 		std::unordered_map<UUID, AssetMetadata> m_assets;
 

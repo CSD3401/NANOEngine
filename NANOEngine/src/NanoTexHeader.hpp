@@ -5,6 +5,7 @@ namespace NE::Resource {
 
 	constexpr int CURRENT_IMPORTER_VERSION = 1;
 
+#pragma pack(push, 1)
 	struct NanoTexHeader {
 		uint32_t magic = 0x4E544558;
 		uint16_t importerVersion = CURRENT_IMPORTER_VERSION;
@@ -14,5 +15,6 @@ namespace NE::Resource {
 		uint8_t shape;
 		uint8_t format;
 	};
+#pragma pack(pop)
 
 }
