@@ -3,6 +3,7 @@
 #include <memory>
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/Body.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 //#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Core/TempAllocator.h>
@@ -10,6 +11,9 @@
 #include "../Math/Vec3.hpp"
 
 //#include <Jolt/Core/Factory.h>
+#include "../ECS/Core/Entity.hpp"
+
+using namespace NE::ECS;
 
 namespace NE::Physics {
 
@@ -32,9 +36,24 @@ namespace NE::Physics {
         //static void SetMotionType(uint32_t bodyid, JPH::EMotionType motionType);
         static void SetMotionType(uint32_t bodyid, JPH::EMotionType motionType);
 
-
         static JPH::PhysicsSystem* GetPhysicsSystem();
         static std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> s_shapeMap;
+
+        // Collider
+        static uint32_t CreateBoxBody(const Math::Vec3& pos,
+            const Math::Vec3& rot,
+            const Math::Vec3& size,
+            JPH::EMotionType motionType);
+
+		static void UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize);
+
+		// Entity-physics mapping
+		static void RegisterEntityBody(Entity entity, uint32_t bodyID);
+        static void UnregisterEntityBody(Entity entity);
+        static uint32_t GetEntityBodyId(Entity entity);
+
+
+
     private:
         static std::vector<JPH::BodyID> s_BodyIDs;
 		static std::unordered_map<uint32_t, size_t> s_BodyIndexMap; // Maps bodyID to index in s_BodyIDs
@@ -42,6 +61,8 @@ namespace NE::Physics {
         static std::unique_ptr<JPH::PhysicsSystem> s_PhysicsSystem;
         static std::unique_ptr<JPH::TempAllocatorImpl> s_TempAllocator;
         static std::unique_ptr<JPH::JobSystemThreadPool> s_JobSystem;
+
+		static std::unordered_map<Entity, uint32_t> s_EntityToBodyMap;
     };
 
 }

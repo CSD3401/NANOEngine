@@ -442,18 +442,42 @@ namespace Editor {
                             }
                         });
                 } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
+                    // original backup - does nothing but reflection
+                    //auto& comp = NE::ECS::Query::GetEntityCollider(entity);
+                    //ImGui::SeparatorText("Collider");
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
+                    //    [&](auto const& desc, auto const& currentValue) {
+                    //        using FieldT = std::decay_t<decltype(currentValue)>;
+
+                    //        FieldT edited = currentValue;
+
+                    //        if (DrawField(desc, edited)) {
+
+                    //        }
+                    //    });
+
                     auto& comp = NE::ECS::Query::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
+
+					// Store original values to detect changes
+					auto originalShapeType = comp.shapeType;
+					auto originalHalfExtents = comp.halfExtents;
+
+                    // Collider fields
                     NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
                         [&](auto const& desc, auto const& currentValue) {
                             using FieldT = std::decay_t<decltype(currentValue)>;
 
                             FieldT edited = currentValue;
 
-                            if (DrawField(desc, edited)) {
+                            DrawField(desc, edited);
+                    });
 
-                            }
-                        });
+                    // Check if entity has physics body component
+					bool hasPhysicsBody = NE::ECS::Query::HasComponent<NE::ECS::Component::PhysicsBody>(entity);
+
+                    // END
+
                 } else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
                     auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
                     ImGui::SeparatorText("Rigidbody");

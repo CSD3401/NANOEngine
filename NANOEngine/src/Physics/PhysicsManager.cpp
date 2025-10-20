@@ -4,6 +4,7 @@
 
 namespace NE::Physics {
 
+
     // Object layers used by the engine
     namespace Layers {
         inline constexpr JPH::ObjectLayer NON_MOVING = 0;
@@ -61,6 +62,7 @@ namespace NE::Physics {
     std::unique_ptr<JPH::PhysicsSystem> PhysicsManager::s_PhysicsSystem;
     std::unique_ptr<JPH::TempAllocatorImpl> PhysicsManager::s_TempAllocator;
     std::unique_ptr<JPH::JobSystemThreadPool> PhysicsManager::s_JobSystem;
+    std::unordered_map<NE::ECS::Entity, uint32_t> PhysicsManager::s_EntityToBodyMap;
 
     static BPLayerInterfaceImpl s_BPLayerInterface;
     static ObjectVsBroadPhaseLayerFilterImpl s_ObjectVsBroadPhaseLayerFilter;
@@ -216,4 +218,83 @@ namespace NE::Physics {
         return s_PhysicsSystem.get();
     }
 
+    uint32_t PhysicsManager::CreateBoxBody(const Math::Vec3& pos, const Math::Vec3& rot, const Math::Vec3& size, JPH::EMotionType motionType)
+    {
+        if (!s_PhysicsSystem)
+            return 0;
+
+		// Create box shape
+		JPH::Vec3 halfExtents(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f);
+		JPH::BoxShapeSettings boxSettings(halfExtents);
+		JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create();
+
+        if (shapeResult.HasError()) 
+        {
+            printf("PhysicsManager: Error creating box shape: %s\n", shapeResult.GetError().c_str());
+            return 0;
+		}
+        
+		JPH::RefConst<JPH::Shape> boxShape = shapeResult.Get();
+
+        // Determine appropriate layer
+		JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
+
+        // Create body
+        JPH::BodyCreationSettings bodySettings(
+            boxShape, 
+            JPH::RVec3(pos.x, pos.y, pos.z), 
+            JPH::Quat::sEulerAngles({
+                JPH::DegreesToRadians(rot.x),
+                JPH::DegreesToRadians(rot.y),
+                JPH::DegreesToRadians(rot.z) 
+                }),
+            motionType, 
+			layer
+        );
+
+        printf("CreateBoxBody successful\n");
+		return CreateBody(bodySettings);
+    }
+
+    void PhysicsManager::UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize)
+    {
+        if (!s_PhysicsSystem)
+			return;
+
+        JPH::BodyID id(bodyID);
+		JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+
+        // Create new shape with updated size
+		JPH::Vec3 halfExtents(newSize.x * 0.5f, newSize.y * 0.5f, newSize.z * 0.5f);
+		JPH::BoxShapeSettings boxSettings(halfExtents);
+		JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create(); 
+
+        if (shapeResult.HasError())
+        {
+            printf("PhysicsManager: Error creating box shape: %s\n", shapeResult.GetError().c_str());
+			return;
+		}
+
+        JPH::RefConst<JPH::Shape> newShape = shapeResult.Get();
+		// Update the body's shape
+		bodyInterface.SetShape(id, newShape, true, JPH::EActivation::DontActivate);
+    }
+
+    void PhysicsManager::RegisterEntityBody(Entity entity, uint32_t bodyID)
+    {
+		s_EntityToBodyMap[entity] = bodyID;
+    }
+
+    void PhysicsManager::UnregisterEntityBody(Entity entity)
+    {
+		s_EntityToBodyMap.erase(entity);
+    }
+
+    uint32_t PhysicsManager::GetEntityBodyId(Entity entity)
+    {
+		auto it = s_EntityToBodyMap.find(entity);
+
+        // recap wtf this do
+		return (it != s_EntityToBodyMap.end()) ? it->second : 0;
+    }
 }

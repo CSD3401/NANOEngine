@@ -18,6 +18,7 @@ namespace NE::ECS {
 		struct EntityMeta;
 		struct AudioSource;
 		struct NativeScript;
+		struct PhysicsBody;
 	}
 
 	namespace Query {
