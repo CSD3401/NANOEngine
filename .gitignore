@@ -357,5 +357,5 @@ FodyWeavers.xsd
 
 
 Editor/imgui.ini
-!/NANOEngine/Editor/vendor/lib/compressonator/Debug/
-!/NANOEngine/Editor/vendor/lib/compressonator/Release/
+!/NANOEngine/Editor/vendor/lib/compressonator/[dD]ebug/
+!/NANOEngine/Editor/vendor/lib/compressonator/[rR]elease/
