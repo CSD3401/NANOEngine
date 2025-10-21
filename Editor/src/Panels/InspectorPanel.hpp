@@ -14,6 +14,10 @@ namespace Editor {
 		void OnImGuiRender() override;
 
 	private:
+
+		void RenderTextureImportSettings();
+		void RenderMaterialSettings();
+
 		std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
 		std::string m_loadedPath;
 	};

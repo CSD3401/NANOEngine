@@ -121,7 +121,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NANOEngine.lib;glfw\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)\CMP_Compressonator.lib;compressonator\$(Configuration)\CMP_Core.lib;compressonator\$(Configuration)\CMP_Core_SSE.lib;compressonator\$(Configuration)\CMP_Framework.lib;compressonator\$(Configuration)\CMP_Core_AVX.lib;compressonator\$(Configuration)\CMP_Core_AVX512.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>NANOEngine.lib;glfw\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)-$(Platform)\CMP_Compressonator.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_SSE.lib;compressonator\$(Configuration)-$(Platform)\CMP_Framework.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX512.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
@@ -151,7 +151,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)\CMP_Compressonator.lib;compressonator\$(Configuration)\CMP_Core.lib;compressonator\$(Configuration)\CMP_Core_SSE.lib;compressonator\$(Configuration)\CMP_Framework.lib;compressonator\$(Configuration)\CMP_Core_AVX.lib;compressonator\$(Configuration)\CMP_Core_AVX512.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)-$(Platform)\CMP_Compressonator.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_SSE.lib;compressonator\$(Configuration)-$(Platform)\CMP_Framework.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX512.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
@@ -166,7 +166,6 @@
     <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
     <ClCompile Include="src\AssetManagement\UUID.cpp" />
     <ClCompile Include="src\EditorUI.cpp" />
-    <ClCompile Include="src\Panels\HistoryPanel.cpp" />
     <ClCompile Include="src\EditorScene.cpp" />
     <ClCompile Include="src\Command\CommandHistory.cpp" />
     <ClCompile Include="src\Command\EditorCommands.cpp" />
@@ -204,7 +203,6 @@
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
-    <ClInclude Include="src\Panels\HistoryPanel.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />
     <ClInclude Include="src\Command\CommandHistory.hpp" />
     <ClInclude Include="src\Command\EditorCommands.hpp" />

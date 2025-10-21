@@ -90,9 +90,6 @@
     <ClCompile Include="src\Panels\HierarchyPanel.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\HistoryPanel.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
     <ClCompile Include="src\Panels\InspectorPanel.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
@@ -195,9 +192,6 @@
       <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Panels\HierarchyPanel.hpp">
-      <Filter>Header Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\HistoryPanel.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Command\ICommand.hpp">

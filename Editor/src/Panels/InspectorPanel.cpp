@@ -28,6 +28,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include "../AssetManagement/Settings/TextureImportSettings.hpp"
 
 namespace {
     template<typename Owner, typename T>
@@ -749,5 +750,49 @@ namespace Editor {
         }
 
         ImGui::End();
+    }
+
+    void InspectorPanel::RenderTextureImportSettings() {
+        static const char* TextureTypeNames[] = { "Default", "Normal Map", "Sprite" };
+        static const char* TextureShapeNames[] = { "2D", "Cube", "2D Array" };
+        static const char* TextureWrapMode[] = { "Repeat", "Clamp", "Mirror", "MirrorOnce", "PerAxis" };
+        static const char* TextureFilterMode[] = { "Point", "Bilinear", "Trilinear" };
+        static const char* AlphaSourceNames[] = { "InputTextureAlpha", "GrayscaleSource", "None" };
+        
+        int currentType = 0;
+        if (ImGui::Combo("Texture Type", &currentType, TextureTypeNames, IM_ARRAYSIZE(TextureTypeNames))) {
+        }
+
+        int currentShape = 0;
+        if (ImGui::Combo("Texture Shape", &currentShape, TextureShapeNames, IM_ARRAYSIZE(TextureShapeNames))) {
+        }
+
+		bool isSRGB = true;
+        if (Editor::DrawCheckbox("sRGB (Color Texture)", isSRGB)) {
+		}
+
+        int currentAlpha = 0;
+        if (ImGui::Combo("Alpha Source", &currentAlpha, AlphaSourceNames, IM_ARRAYSIZE(AlphaSourceNames))) {
+		}
+
+        if (ImGui::TreeNode("Advanced")) {
+            bool generateMips = true;
+            if (Editor::DrawCheckbox("Generate Mipmaps", generateMips)) {
+            }
+            bool preserveCoverage = false;
+            if (Editor::DrawCheckbox("Preserve Coverage", preserveCoverage)) {
+            }
+            ImGui::TreePop();
+		}
+
+        int currentFilter = 0;
+        if (ImGui::Combo("Filter Mode", &currentFilter, TextureFilterMode, IM_ARRAYSIZE(TextureFilterMode))) {
+        }
+        int currentWrap = 0;
+        if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
+        }
+    }
+
+    void InspectorPanel::RenderMaterialSettings() {
     }
 }

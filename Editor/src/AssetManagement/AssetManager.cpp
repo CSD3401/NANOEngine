@@ -11,7 +11,7 @@
 
 #include "compressonator/cmp_compressonatorlib/compressonator.h"
 #include "UUID.hpp"
-#include <NanoTexHeader.hpp>
+#include <ResourceManagement/NanoTexHeader.hpp>
 
 
 namespace {
