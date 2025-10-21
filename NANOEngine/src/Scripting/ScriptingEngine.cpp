@@ -234,7 +234,7 @@ namespace NE::Scripting {
     // === Utility ===
 
     void ScriptingEngine::PrintSummary() const {
-        SPD_INFO("\n=== Scripting Engine Summary ===");
+        SPD_INFO("=== Scripting Engine Summary ===");
 
         // Print loaded DLLs
         SPD_INFO("Loaded DLLs (" << m_loadedDLLs.size() << "):");

@@ -97,17 +97,7 @@ namespace Editor {
 			});
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
-		
-		SPD_INFO("==========================================");
-		SPD_INFO("About to load startup scene...");
-		SPD_INFO("==========================================");
-		
 		NE::LoadStartupScene();
-		
-		SPD_INFO("==========================================");
-		SPD_INFO("Startup scene loaded successfully");
-		SPD_INFO("==========================================");
-		
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
