@@ -1,6 +1,6 @@
 #include "Window.hpp"
 #define GLFW_DLL
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
 
 #include "../../src/Core/Logger.hpp"
 

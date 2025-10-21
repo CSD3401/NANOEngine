@@ -1,6 +1,9 @@
 #include <imgui/imgui.h>
 #include <string>
 #include <imgui/imgui_internal.h>
+#include <functional>
+#include <memory>
+#include "Graphics/OpenGL/GLTexture.hpp"
 
 namespace NE::Math {
     struct Vec3;
@@ -22,6 +25,12 @@ namespace Editor {
     bool DrawStringControl(const std::string& label, std::string& value, size_t bufferSize = 256);
 
     bool DrawAssetField(const char* label, const std::string& assetPath, const char* buttonLabel = "+", float width = 0, bool* openPopup = nullptr);
+
+    bool DrawTextureField(
+        const char* label,
+        const std::shared_ptr<NE::Graphics::OpenGL::GLTexture>& slotTex,
+        float previewSize,
+        std::function<void(const std::string&)> assignById);
 
     // Enum Combo
     template<typename EnumType>

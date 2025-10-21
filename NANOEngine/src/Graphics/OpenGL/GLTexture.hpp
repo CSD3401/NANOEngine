@@ -9,11 +9,15 @@ namespace NE::Graphics::OpenGL {
         using GLuint = unsigned int;
         using GLuint64 = uint64_t;
     public:
-        GLTexture(const std::string& path);
+        GLTexture();
         ~GLTexture();
+
+        bool LoadFromFile(const std::string& fileName) override;
 
         uint64_t GetBindlessHandle() const override { return m_Handle; }
         void MakeResident() override;
+
+        GLuint GLName() const { return m_ID; }
 
     private:
         GLuint m_ID = 0;

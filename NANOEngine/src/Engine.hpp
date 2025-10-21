@@ -8,6 +8,8 @@
 #include "Graphics/Core/Model.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
+#include "Audio/AudioBank.hpp"
+#include "Graphics/OpenGL/GLShader.hpp"
 
 namespace NE {
 	NANOENGINE_API void Initialize();
@@ -26,10 +28,15 @@ namespace NE {
 	NANOENGINE_API void LoadTargetScene(std::string targetPath);
 
 	NANOENGINE_API void LoadShader(std::string_view);
+	NANOENGINE_API void LoadTexture(std::string_view filePath);
 
+	NANOENGINE_API std::shared_ptr<Graphics::OpenGL::GLTexture> GetTexture(std::string_view filePath);
 	NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path);
 	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels();
+	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::OpenGL::GLShader>>>& GetAllShaders();
 	NANOENGINE_API size_t GetNumEntities();
+
+	NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
 	NANOENGINE_API void EditorPlay();
 	NANOENGINE_API void EditorPause();

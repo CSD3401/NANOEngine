@@ -6,6 +6,7 @@
 #include "../ECS/Components/Light.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/Collider.hpp"
+#include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
@@ -50,6 +51,10 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(e);
 		}
 
+		const Component::AudioSource& GetEntityAudioSource(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::AudioSource>(e);
+		}
+
 		const Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
@@ -83,6 +88,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
 		}
 
+		void AddAudioSourceComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::AudioSource{});
+		}
+
 		void AddScriptComponent(uint32_t e) {
 			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e))
 				return;
@@ -113,6 +122,10 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(e);
 		}
 
+		Component::AudioSource& GetEntityAudioSource(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::AudioSource>(e);
+		}
+		
 		Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}

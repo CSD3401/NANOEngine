@@ -261,6 +261,12 @@
     <ClInclude Include="src\Core\SpdLogger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ECS\Systems\AudioSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ECS\Components\AudioSource.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\Graphics\Core\Frustum.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -283,6 +289,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Input\InputManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Audio\AudioBank.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\Core\PipelineCache.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ResourceManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -422,6 +437,12 @@
     <ClCompile Include="src\EditorInterface\RendererExports.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\ECS\Systems\AudioSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Audio\AudioBank.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Scripting\ScriptingEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -444,6 +465,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Input\InputManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Core\PipelineCache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -8,6 +8,7 @@
 #include <ECS/Components/Light.hpp>
 #include <ECS/Components/Rigidbody.hpp>
 #include <ECS/Components/Collider.hpp>
+#include <ECS/Components/AudioSource.hpp>
 #include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <Core/Reflection.hpp>
@@ -45,6 +46,17 @@ namespace {
             bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
             ImGui::EndGroup();
             return changed;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            // String support added here -> check w irwen
+            char buffer[256];
+            strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer));
+            buffer[sizeof(buffer) - 1] = '\0';
+
+            if (ImGui::InputText(desc.name.data(), buffer, sizeof(buffer))) {
+                value = buffer;
+                return true;
+            }
+            return false;
         }
         else {
             ImGui::Text("%s (unsupported)", desc.name.data());
@@ -163,11 +175,10 @@ namespace Editor {
 
     void InspectorPanel::OnImGuiRender()
     {
-        ImGui::Begin("Inspector", nullptr,
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::Begin("Inspector", nullptr);
 
-        ImVec2 panelPos = ImGui::GetCursorScreenPos();
-        ImVec2 panelSize = ImGui::GetContentRegionAvail();
+        //ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
+        //ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
 
         if (EditorScene::s_selectedEntity) {
             uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
@@ -359,14 +370,10 @@ namespace Editor {
                     }
 
                     if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) { 
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
 
-                            if (comp.materialPath.empty()) { // If material is not set, assign a default one
-                                //AssignRendererMaterial(comp, "Assets/Basic.nanomat");
-                            } // done for rapid prototyping, should be removed later
-
-                            //AssignRendererModel(comp, dropped);
+                            NE::Renderer::Command::AssignModel(entity, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -403,7 +410,8 @@ namespace Editor {
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
-                            //AssignRendererMaterial(comp, dropped);
+                            //NE::AssignRendererMaterial(comp, dropped);
+                            NE::Renderer::Command::AssignMaterial(entity, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -416,45 +424,104 @@ namespace Editor {
                     int currentType = static_cast<int>(comp.type);
                     if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
                         //comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
+                        // temp
+                        auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+                        tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
                     }
 
-                    //NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp, [](auto&& desc, auto& field) {
-                    //    DrawField(desc, field);
-                    //    });
-                }
-                else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+
+                            FieldT edited = currentValue;
+
+                            if (DrawField(desc, edited)) {
+                                SubmitSetFieldCommand<NE::ECS::Component::Light, FieldT>(
+                                    entity, desc, currentValue, edited
+                                );
+                            }
+                        });
+                } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
                     auto& comp = NE::ECS::Query::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
                     NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
                         [&](auto const& desc, auto const& currentValue) {
                             using FieldT = std::decay_t<decltype(currentValue)>;
 
-                            // make a local editable copy
                             FieldT edited = currentValue;
 
-                            // render widget; returns true if user changed it
                             if (DrawField(desc, edited)) {
-                                // don't write to comp.* here; push a command to the engine:
-                                //SubmitSetFieldCommand(entity, desc, edited);
+
                             }
                         });
-                }
-                else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
+                } else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
                     auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
                     ImGui::SeparatorText("Rigidbody");
                     NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
                         [&](auto const& desc, auto const& currentValue) {
                             using FieldT = std::decay_t<decltype(currentValue)>;
 
-                            // make a local editable copy
                             FieldT edited = currentValue;
 
-                            // render widget; returns true if user changed it
                             if (DrawField(desc, edited)) {
-                                // don't write to comp.* here; push a command to the engine:
-                                //SubmitSetFieldCommand(entity, desc, edited);
+                                SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
+                                    entity, desc, currentValue, edited
+                                );
                             }
                         });
+                }
+                else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) 
+                {
+                    auto& comp = NE::ECS::Query::GetEntityAudioSource(entity);
+                    ImGui::SeparatorText("AudioSource");
+
+                    bool openPopup = false;
+                    DrawAssetField("Audio", comp.modelPath.string(), "+", 0.f, &openPopup);
+                    if (openPopup) {
+                        ImGui::OpenPopup("AudioPicker_Model");
+                    }
+
+                    //static std::string searchQuery;
+                    if (ImGui::BeginPopup("AudioPicker_Model")) {
+                        ImGui::Text("Select Audio");
+                        ImGui::Separator();
+                        auto& assets = NE::GetAllModels();
+
+                        if (ImSearch::BeginSearch()) {
+                            ImSearch::SearchBar();
+
+                            // warning entity in capture clause not used -RF
+                            for (const auto& [name, asset] : assets) {
+                                ImSearch::SearchableItem(name.c_str(),
+                                    [name/*, &entity*/](const char*) {
+                                        if (ImGui::Selectable(name.c_str())) {
+                                            //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+                                            printf("Audio Adding Works?");
+                                            ImGui::CloseCurrentPopup();
+                                        }
+                                    });
+                            }
+
+                            ImSearch::EndSearch();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+
+                    // This renders all the external properties of AudioSource but cant edit atm
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::AudioSource>(comp,
+                    //    [&](auto const& desc, auto const& currentValue) {
+                    //        using FieldT = std::decay_t<decltype(currentValue)>;
+
+                    //        // make a local editable copy
+                    //        FieldT edited = currentValue;
+
+                    //        // render widget; returns true if user changed it
+                    //        if (DrawField(desc, edited)) {
+                    //            // don't write to comp.* here; push a command to the engine:
+                    //            //SubmitSetFieldCommand(entity, desc, edited);
+                    //        }
+                    //    });
                 }
                 else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
                     auto& comp = NE::ECS::Query::GetEntityScript(entity);
@@ -578,6 +645,9 @@ namespace Editor {
                 if (ImGui::MenuItem("Light")) {
                     NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
+                if (ImGui::MenuItem("AudioSource")) {
+                    NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
                 if (ImGui::MenuItem("Script")) {
                     NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
@@ -588,7 +658,7 @@ namespace Editor {
         else if (EditorScene::selectedMaterial != "") {
             if (m_loadedPath != EditorScene::selectedMaterial) {
                 try {
-                    //m_loadedMaterial = GetMaterial(EditorScene::selectedMaterial);
+                    m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
                     m_loadedPath = EditorScene::selectedMaterial;
                 }
                 catch (...) {
@@ -598,12 +668,42 @@ namespace Editor {
             }
 
             if (m_loadedMaterial) {
+                bool openPopup = false;
+                DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
+                if (openPopup) {
+                    ImGui::OpenPopup("AssetPicker_Shader");
+                }
+
+                static std::string searchQuery;
+                if (ImGui::BeginPopup("AssetPicker_Shader")) {
+                    ImGui::Text("Select a Shader");
+                    ImGui::Separator();
+                    auto& assets = NE::GetAllShaders();
+
+                    if (ImSearch::BeginSearch()) {
+                        ImSearch::SearchBar();
+
+                        for (const auto& [name, asset] : assets) {
+                            ImSearch::SearchableItem(name.c_str(),
+                                [name, this](const char*) {
+                                    if (ImGui::Selectable(name.c_str())) {
+                                        m_loadedMaterial->SetShader(name);
+                                        ImGui::CloseCurrentPopup();
+                                    }
+                                });
+                        }
+
+                        ImSearch::EndSearch();
+                    }
+                    ImGui::EndPopup();
+                }
+
                 ImGui::SeparatorText("Material Uniforms");
 
                 for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
-                    float v = val;
-                    if (Editor::DrawFloatControl(name.c_str(), v, 0.1f)) {
-                        m_loadedMaterial->SetUniformFloat(name, v);
+                    //float v = val;
+                    if (Editor::DrawFloatControl(name.c_str(), val, 0.1f)) {
+                        //m_loadedMaterial->SetUniformFloat(name, v);
                     }
                 }
 
@@ -616,10 +716,33 @@ namespace Editor {
 
                 for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
                     int i = val;
-                    Editor::DrawIntControl(name.c_str(), i);
+                    //Editor::DrawIntControl(name.c_str(), i);
                     if (ImGui::DragInt(name.c_str(), &i)) {
                         m_loadedMaterial->SetUniformInt(name, i);
                     }
+                }
+
+                if (ImGui::Button("Save Material", { 100.f, 30.f })) {
+                    m_loadedMaterial->SaveMaterial("");
+                }
+
+                ImGui::SeparatorText("Material Textures");
+
+                for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
+                    // Preview + picker (96px thumb)
+                    DrawTextureField(
+                        uName.c_str(), tex, 96.0f,
+                        [this, &tex, &uName](const std::string& id) {
+                            auto t = NE::GetTexture(id);
+                            m_loadedMaterial->SetTexture(uName, t);
+
+                            // for keeping u_HasBaseMap in sync for toggle
+                            std::string has = "u_Has" + uName.substr(2);
+                            auto& ints = m_loadedMaterial->GetIntUniforms();
+                            if (ints.find(has) != ints.end())
+                                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
+                        }
+                    );
                 }
             }
         }

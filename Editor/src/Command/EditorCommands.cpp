@@ -11,6 +11,8 @@ namespace Editor {
 	{
 		m_entity = NE::ECS::Command::CreateEntity();
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
+		Editor::EditorScene::BuildFlatHierarchy();
+		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
 	}
 
 	void CreateEntityCommand::Undo()
@@ -25,8 +27,9 @@ namespace Editor {
 			EditorScene::s_entities.erase(it);
 		}
 
-		
+		Editor::EditorScene::s_selectedEntity = nullptr;
 		NE::ECS::Command::DestroyEntity(m_entity);
+		Editor::EditorScene::BuildFlatHierarchy();
 	}
 
 	DeleteEntityCommand::DeleteEntityCommand(uint32_t deletedEntity) : m_entity(deletedEntity) {}

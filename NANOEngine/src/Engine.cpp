@@ -13,15 +13,17 @@
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
 #include "AssetManager.hpp"
 #include <iostream>
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
 #include <stb_image/stb_image.h>
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "EngineState.hpp"
+#include "Audio/AudioBank.hpp"
 #include "SceneManagement/SceneManager.hpp"
 #include "Tween/TweenManager.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
+#include "Graphics/OpenGL/GLTexture.hpp"
 
 namespace NE {
 
@@ -31,8 +33,6 @@ namespace NE {
 	static std::unique_ptr<Graphics::IFrameBuffer> s_pickingFrameBuffer; // temp
 
 	static SceneManagement::SceneManager gSceneManager;
-
-	
 
 	void Initialize() {
 		NE_PROFILE_FUNCTION();
@@ -65,8 +65,8 @@ namespace NE {
 
 		s_sceneFrameBuffer->Bind();
 		Graphics::GraphicsManager::BeginFrame();
-		TweenManager::Get().Update(static_cast<float>(dt));
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
+		TweenManager::Get().Update(static_cast<float>(dt));
 		Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();
 		
@@ -125,6 +125,15 @@ namespace NE {
 		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(filePath.data(), false);
 	}
 
+	void LoadTexture(std::string_view filePath) {
+		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
+	}
+
+	std::shared_ptr<Graphics::OpenGL::GLTexture> GetTexture(std::string_view filePath)
+	{
+		return Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
+	}
+
 	std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {
 		return Asset::AssetManager::GetInstance().Load<NE::Graphics::Material>(path.data(), false);
 	}
@@ -132,6 +141,14 @@ namespace NE {
 	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels()
 	{
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::Model>();
+	}
+
+	const std::vector<std::pair<std::string, std::shared_ptr<Graphics::OpenGL::GLShader>>>& GetAllShaders() {
+		return Asset::AssetManager::GetInstance().GetAssetsOfType<Graphics::OpenGL::GLShader>();
+	}
+	
+	const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks() {
+		return Asset::AssetManager::GetInstance().GetAssetsOfType<Asset::AudioBank>();
 	}
 
 	size_t GetNumEntities() {

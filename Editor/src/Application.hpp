@@ -11,7 +11,7 @@ namespace Editor {
 		void Exit();
 
 		static bool isRunning;
-		Timer timer;
+		static Timer timer;
 	};
 }
 
