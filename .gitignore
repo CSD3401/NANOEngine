@@ -376,4 +376,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+
 Editor/imgui.ini
+!NANOEngine/Editor/vendor/lib/compressonator
