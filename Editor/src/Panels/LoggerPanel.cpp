@@ -133,11 +133,11 @@ namespace Editor {
         // Color based on log level
         ImVec4 color;
         switch (entry.level) {
-        case SpdLogLevel::Debug:    color = ImVec4(0.6f, 0.6f, 0.6f, 1.0f); break; // Gray
+        case SpdLogLevel::Debug:    color = ImVec4(0.3f, 1.0f, 0.3f, 1.0f); break; // Green
         case SpdLogLevel::Info:     color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break; // White
         case SpdLogLevel::Warning:  color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); break; // Yellow
-        case SpdLogLevel::Error:    color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); break; // Red
-        case SpdLogLevel::Critical: color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); break; // Bright Red
+        case SpdLogLevel::Error:    color = ImVec4(1.0f, 0.3f, 0.3f, 1.0f); break; // Red
+        case SpdLogLevel::Critical: color = ImVec4(1.0f, 0.0f, 1.0f, 1.0f); break; // Magenta
         default:                    color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break;
         }
 

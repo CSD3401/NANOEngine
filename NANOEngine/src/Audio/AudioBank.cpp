@@ -1,6 +1,7 @@
 ﻿#include "AudioBank.hpp"
 #include <filesystem>
-#include <iostream>
+#include "Core/SpdLogger.hpp"
+
 namespace NE::Asset
 {
 	AudioBank::AudioBank()
@@ -97,7 +98,7 @@ namespace NE::Asset
 
 					m_events[eventPath] = eventInfo;
 
-					std::cout << "Found event: " << eventPath << " -> " << displayedName << std::endl;
+					SPD_INFO("Found event: " << eventPath << " -> " << displayedName);
 				}
 			}
 		}
