@@ -193,4 +193,11 @@ namespace NE::Graphics::OpenGL {
     bool GLShader::HasUniform(std::string_view name) const {
         return glGetUniformLocation(m_programID, std::string(name).c_str()) != -1;
     }
+
+    void GLShader::SetUniformMat4Array(const std::string& uName, const Mat4* data, int count) {
+        GLint loc = GetUniformLocation(uName);
+        if (loc >= 0) {
+            glUniformMatrix4fv(loc, count, GL_FALSE, reinterpret_cast<const float*>(data));
+        }
+    }
 }

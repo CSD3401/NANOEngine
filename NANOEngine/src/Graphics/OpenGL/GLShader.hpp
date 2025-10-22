@@ -31,6 +31,7 @@ namespace NE::Graphics::OpenGL {
 
 		std::vector<UniformDesc> EnumerateActiveUniforms() const;
 		bool HasUniform(std::string_view name) const;
+		void SetUniformMat4Array(const std::string& uName, const NE::Math::Mat4* data, int count) override;
 	private:
 		uint32_t m_programID;
 		std::unordered_map<std::string, int> m_uniformLocationCache;

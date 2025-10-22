@@ -44,7 +44,7 @@ namespace NE::Graphics {
         void SaveMaterial(const std::string& path) const;
         bool LoadFromFile(const std::string& fileName) override;
         void SetShader(const std::string& shaderUUID);
-
+        void SetUniformMat4Array(const std::string& name, const std::vector<NE::Math::Mat4>& values);
     private:
         std::shared_ptr<IPipeline> m_Pipeline;
 

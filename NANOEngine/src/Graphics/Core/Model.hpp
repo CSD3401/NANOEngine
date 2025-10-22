@@ -3,9 +3,14 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include "Vertex.hpp"
 #include "../Interfaces/IGeometryBuffer.hpp"
 #include "../../Asset.hpp"
+#include "../../../src/Math/Mat4.hpp"
+#include "../../../src/Math/Vec3.hpp"
+
+namespace ai { struct Scene; struct Node; struct Animation; struct Mesh; struct Bone; class Importer; }
 
 namespace NE::Graphics {
 
@@ -15,19 +20,81 @@ namespace NE::Graphics {
         std::shared_ptr<IGeometryBuffer> buffer;
     };
 
-    class Model : virtual public Asset::IAsset {
+    // --- Skeleton / Animation structs ---
+    constexpr int MAX_BONES = 128;
+
+    struct BoneInfo {
+        NE::Math::Mat4 offset;        // inverse bind matrix (from mesh to bone space)
+        NE::Math::Mat4 finalTransform; // for skinning
+        int parent = -1;
+        std::string name;
+    };
+
+    struct AnimKeyVec3 { NE::Math::Vec3 value; double time; };
+    struct AnimKeyQuat { float x, y, z, w; double time; };
+
+    struct AnimChannel {
+        int boneIndex = -1; // which bone this channel animates (-1 if not a skin bone)
+        std::string nodeName;
+        std::vector<AnimKeyVec3> positions;
+        std::vector<AnimKeyQuat> rotations;
+        std::vector<AnimKeyVec3> scales;
+    };
+
+    struct AnimationClip {
+        std::string name;
+        double duration = 0.0;        // in ticks
+        double ticksPerSecond = 25.0; // default if not provided
+        std::vector<AnimChannel> channels;
+        // Node name -> index into channels (speed up lookups)
+        std::unordered_map<std::string, int> nodeToChannel;
+    };
+
+    class Model : public Asset::IAsset {
     public:
         std::vector<SubMesh> meshes;
 
+        // Sphere bounds (model space)
         NE::Math::Vec3 sphereCenterLS{ 0,0,0 };
         float sphereRadiusLS = 0.0f;
         bool hasSphereBoundsLS = false;
 
+        // Skeleton / Anim
+        std::unordered_map<std::string, int> m_BoneMapping; // name->index
+        std::vector<BoneInfo> m_Bones;
+        NE::Math::Mat4 m_GlobalInverse{};
+
+        // Node hierarchy for animation evaluation
+        struct Node {
+            std::string name;
+            int parent = -1;
+            NE::Math::Mat4 defaultTransform;
+            std::vector<int> children;
+        };
+        std::vector<Node> m_Nodes;
+        std::unordered_map<std::string, int> m_NodeIndex; // name->index
+
+        std::vector<AnimationClip> m_Clips;
+        int m_CurrentClip = 0;
+        double m_AnimTime = 0.0;
+        std::vector<NE::Math::Mat4> m_FinalBones; // size == MAX_BONES
+
         bool LoadFromFile(const std::string& path) override;
 
         void ComputeModelSphereBounds();
-    };
 
-    //std::shared_ptr<Model> LoadModel(const std::string& path);
+        // Animation API
+        bool HasSkeleton() const { return !m_Bones.empty(); }
+        const std::vector<NE::Math::Mat4>& GetBoneMatrices() const { return m_FinalBones; }
+        void PlayAnimation(int index);
+        void UpdateAnimation(double dt);
+
+        // IAsset
+        const std::string& GetUUID() const { return uuid; }
+        void SetUUID(const std::string& id) { uuid = id; }
+
+    private:
+        std::string m_UUID = "Model";
+    };
 
 }
