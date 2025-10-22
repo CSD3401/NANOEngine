@@ -15,6 +15,7 @@ namespace Editor {
     EditorEntity* EditorScene::s_selectedEntity;
 
     std::string EditorScene::selectedMaterial;
+    std::string EditorScene::selectedAsset;
 
     std::string EditorScene::currentScenePath("Assets/NewScene.scene");
 

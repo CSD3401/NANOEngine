@@ -18,7 +18,9 @@ namespace Editor {
 		void RenderTextureImportSettings();
 		void RenderMaterialSettings();
 
-		std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
-		std::string m_loadedPath;
+		//std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
+		//std::string m_loadedPath;
+
+
 	};
 }

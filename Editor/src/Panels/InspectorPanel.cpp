@@ -657,7 +657,7 @@ namespace Editor {
             }
 
         }
-        else if (EditorScene::selectedMaterial != "") {
+        else if (EditorScene::selectedAsset != "") {
             //if (m_loadedPath != EditorScene::selectedMaterial) {
             //    try {
             //        m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
@@ -669,12 +669,12 @@ namespace Editor {
             //    }
             //}
 
-            if (m_loadedMaterial) {
-                bool openPopup = false;
-                DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
-                if (openPopup) {
-                    ImGui::OpenPopup("AssetPicker_Shader");
-                }
+            //if (m_loadedMaterial) {
+            //    bool openPopup = false;
+            //    DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
+            //    if (openPopup) {
+            //        ImGui::OpenPopup("AssetPicker_Shader");
+            //    }
 
                 //static std::string searchQuery;
                 //if (ImGui::BeginPopup("AssetPicker_Shader")) {
@@ -700,35 +700,35 @@ namespace Editor {
                 //    ImGui::EndPopup();
                 //}
 
-                ImGui::SeparatorText("Material Uniforms");
+                //ImGui::SeparatorText("Material Uniforms");
 
-                for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
-                    float v = val;
-                    if (Editor::DrawFloatControl(name.c_str(), v, 0.1f)) {
-                        m_loadedMaterial->SetUniformFloat(name, v);
-                    }
-                }
+                //for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
+                //    float v = val;
+                //    if (Editor::DrawFloatControl(name.c_str(), v, 0.1f)) {
+                //        m_loadedMaterial->SetUniformFloat(name, v);
+                //    }
+                //}
 
-                for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
-                    NE::Math::Vec3 v = val;
-                    if (Editor::DrawVec3Control(name.c_str(), v, 0.0f, 100.0f)) {
-                        m_loadedMaterial->SetUniformVec3(name, v);
-                    }
-                }
+                //for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
+                //    NE::Math::Vec3 v = val;
+                //    if (Editor::DrawVec3Control(name.c_str(), v, 0.0f, 100.0f)) {
+                //        m_loadedMaterial->SetUniformVec3(name, v);
+                //    }
+                //}
 
-                for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
-                    int i = val;
-                    //Editor::DrawIntControl(name.c_str(), i);
-                    if (ImGui::DragInt(name.c_str(), &i)) {
-                        m_loadedMaterial->SetUniformInt(name, i);
-                    }
-                }
+                //for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
+                //    int i = val;
+                //    //Editor::DrawIntControl(name.c_str(), i);
+                //    if (ImGui::DragInt(name.c_str(), &i)) {
+                //        m_loadedMaterial->SetUniformInt(name, i);
+                //    }
+                //}
 
-                if (ImGui::Button("Save Material", { 100.f, 30.f })) {
-                    m_loadedMaterial->SaveMaterial("");
-                }
+                //if (ImGui::Button("Save Material", { 100.f, 30.f })) {
+                //    m_loadedMaterial->SaveMaterial("");
+                //}
 
-                ImGui::SeparatorText("Material Textures");
+                //ImGui::SeparatorText("Material Textures");
 
                 //for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
                 //    // Preview + picker (96px thumb)
@@ -746,7 +746,7 @@ namespace Editor {
                 //        }
                 //    );
                 //}
-            }
+            //}
         }
 
         ImGui::End();

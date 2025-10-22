@@ -16,7 +16,7 @@ namespace Editor {
     public:
         static std::vector<EditorEntity> s_entities;
         static EditorEntity* s_selectedEntity;
-        static std::string selectedMaterial;
+        static std::string selectedAsset;
         static std::string currentScenePath;
 
         // NEW: hierarchy index

@@ -8,8 +8,6 @@ namespace NE::Resource {
 	using ResourceHandle = uint64_t;
 	constexpr ResourceHandle InvalidResourceHandle = 0;
 
-	struct IResource {};
-
 	struct ResourceHandle {
 		std::shared_ptr<IResource> resource;
 		uint32_t refCount;

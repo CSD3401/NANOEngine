@@ -98,14 +98,8 @@ namespace {
     {
         using namespace NE::Resource;
 
-        // Strongly recommended in your header:
-        //  #pragma pack(push, 1)
-        //  struct NanoTexHeader { ... };
-        //  #pragma pack(pop)
-        //  static_assert(sizeof(NanoTexHeader) == 21, "layout");
-
         NanoTexHeader hdr{};
-        hdr.magic = 0x4E544558; // 'NTEX', already defaulted in your header
+        hdr.magic = 0x4E544558;
         hdr.importerVersion = CURRENT_IMPORTER_VERSION;
         hdr.width = w;
         hdr.height = h;

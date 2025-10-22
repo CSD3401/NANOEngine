@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />
     <ClInclude Include="src\ResourceManagement\NanoTexHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourceHandle.hpp" />

@@ -3,10 +3,11 @@
 
 #include <cstdint>
 #include "../../Asset.hpp"
+#include "ResourceManagement/IResource.hpp"
 
 namespace NE::Graphics {
 
-    class ITexture : public virtual Asset::IAsset {
+    class ITexture : public virtual Resource::IResource {
     public:
         virtual ~ITexture() = default;
         virtual uint64_t GetBindlessHandle() const = 0;
