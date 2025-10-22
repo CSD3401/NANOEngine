@@ -278,6 +278,8 @@ namespace NE::Physics {
         JPH::RefConst<JPH::Shape> newShape = shapeResult.Get();
 		// Update the body's shape
 		bodyInterface.SetShape(id, newShape, true, JPH::EActivation::DontActivate);
+
+        printf("PhysicsManager::UpdateBoxSize called\n");
     }
 
     void PhysicsManager::RegisterEntityBody(Entity entity, uint32_t bodyID)
@@ -296,5 +298,10 @@ namespace NE::Physics {
 
         // recap wtf this do
 		return (it != s_EntityToBodyMap.end()) ? it->second : 0;
+    }
+
+    bool PhysicsManager::EntityHasPhysicsBody(Entity entity)
+    {
+        return s_EntityToBodyMap.find(entity) != s_EntityToBodyMap.end();
     }
 }

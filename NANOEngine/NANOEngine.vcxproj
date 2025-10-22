@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
+    <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\ResourceManager.hpp" />
     <ClInclude Include="src\Audio\AudioBank.hpp" />
     <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
@@ -116,6 +118,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\ResourceManager.cpp" />
     <ClCompile Include="src\Audio\AudioBank.cpp" />
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />

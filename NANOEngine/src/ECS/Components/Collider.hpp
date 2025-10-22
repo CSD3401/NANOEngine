@@ -14,7 +14,7 @@ namespace NE::ECS::Component {
         };
 
         // Exposed
-        ShapeType shapeType{ ShapeType::None };
+        ShapeType shapeType{ ShapeType::Box };
         Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f }; // For box
         float radius{ 0.5f };                      // For sphere/capsule
         float height{ 1.0f };                      // For capsule

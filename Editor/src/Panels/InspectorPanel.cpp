@@ -2,6 +2,7 @@
 #include <imgui/imgui.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
+#include <EditorInterface/PhysicsExports.hpp>
 #include "ECS/Core/Signature.hpp"
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
@@ -442,26 +443,9 @@ namespace Editor {
                             }
                         });
                 } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
-                    // original backup - does nothing but reflection
-                    //auto& comp = NE::ECS::Query::GetEntityCollider(entity);
-                    //ImGui::SeparatorText("Collider");
-                    //NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
-                    //    [&](auto const& desc, auto const& currentValue) {
-                    //        using FieldT = std::decay_t<decltype(currentValue)>;
-
-                    //        FieldT edited = currentValue;
-
-                    //        if (DrawField(desc, edited)) {
-
-                    //        }
-                    //    });
 
                     auto& comp = NE::ECS::Query::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
-
-					// Store original values to detect changes
-					auto originalShapeType = comp.shapeType;
-					auto originalHalfExtents = comp.halfExtents;
 
                     // Collider fields
                     NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
@@ -473,8 +457,103 @@ namespace Editor {
                             DrawField(desc, edited);
                     });
 
+                    // Store original values to detect changes
+                    auto originalShapeType = comp.shapeType;
+                    auto originalHalfExtents = comp.halfExtents;
+                    auto originalRadius = comp.radius;
+                    auto originalHeight = comp.height;
+
                     // Check if entity has physics body component
-					bool hasPhysicsBody = NE::ECS::Query::HasComponent<NE::ECS::Component::PhysicsBody>(entity);
+                    bool hasPhysicsBody = NE::Physics::Query::HasPhysicsBody(entity);
+                    uint32_t currentBodyID = NE::Physics::Query::GetPhysicsBodyId(entity);
+
+                    // Calculate full size from half extents
+                    NE::Math::Vec3 fullsize = {
+                        comp.halfExtents.x * 2.0f,
+                        comp.halfExtents.y * 2.0f,
+                        comp.halfExtents.z * 2.0f
+                                        };
+
+                    if (!hasPhysicsBody)
+                    {
+                        if (ImGui::Button("Create Physics Body"))
+                        {
+                            NE::Physics::Command::CreatePhysicsBody(entity);
+                        }
+                        if (comp.shapeType != NE::ECS::Component::Collider::ShapeType::Box)
+                        {
+                            ImGui::TextDisabled("Only support box collider currently");
+                        }
+                    }
+
+                    else
+                    {
+                        // Entity has valid physics body
+                        ImGui::Text("Physics Body ID: %u", currentBodyID);
+
+                        // Check if properties changed
+                        bool colliderChanged = (originalShapeType != comp.shapeType ||
+                            originalHalfExtents != comp.halfExtents ||
+                            originalRadius != comp.radius,
+                            originalHeight != comp.height);
+
+                        if (comp.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
+                        {
+                            if (ImGui::Button("Update Physics Body") || colliderChanged)
+                            {
+                                //NE::Physics::PhysicsManager::UpdateBoxSize(currentBodyID, fullsize);
+                                NE::Physics::Command::UpdatePhysicsBody(entity);
+                            }
+                        }
+                        else
+                        {
+                            ImGui::TextDisabled("Physics body exists but shape type changed!\n");
+                        }
+
+                        ImGui::SameLine();
+                        if (ImGui::Button("Remove Physics Body"))
+                        {
+                            NE::Physics::Command::RemovePhysicsBody(entity);
+                            
+                            //NE::Physics::PhysicsManager::DestroyBody(currentBodyID);
+                            //NE::Physics::Command::DestroyBody(currentBodyID);
+                            //NE::Physics::PhysicsManager::UnregisterEntityBody(entity);
+                            //NE::Physics::Command::UnregisterEntityBody(entity);
+                        }
+
+                        ImGui::Spacing();
+                        if (ImGui::Button("Activate Body"))
+                        {
+                            //NE::Physics::PhysicsManager::ActivateBodies();
+                            NE::Physics::Command::ActivateBodies();
+                        }
+                        ImGui::SameLine();
+                        if (ImGui::Button("DeActivate Body"))
+                        {
+                            //NE::Physics::PhysicsManager::DeactivateBodies();
+                            NE::Physics::Command::DeactivateBodies();
+                        }
+                    }
+
+                    ImGui::Spacing();
+                    ImGui::Separator();
+
+                    if (hasPhysicsBody)
+                    {
+                        ImGui::TextDisabled("Physics : ACTIVE");
+
+                        // Show physics transform
+                        NE::Math::Vec3 physicsPos, physicsRot;
+                        //NE::Physics::PhysicsManager::GetTransform(currentBodyID, physicsPos, physicsRot);
+                        NE::Physics::Query::GetPhysicsTransform(currentBodyID, physicsPos, physicsRot);
+                        ImGui::Text("Physics Position: (%.2f, %.2f, %.2f)",
+                            physicsPos.x, physicsPos.y, physicsPos.z);
+                    }
+                    else
+                    {
+                        ImGui::TextDisabled("Physics : INACTIVE");
+                    }
+                    
 
                     // END
 
