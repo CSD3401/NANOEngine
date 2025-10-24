@@ -17,7 +17,7 @@
 
 
 namespace NE::Graphics {
-    void InitDebugLines();
+    void InitDebugPrimitives();
 
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
 
@@ -26,6 +26,7 @@ namespace NE::Graphics {
     Camera* GraphicsManager::s_ActiveCamera = nullptr;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
+    std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -63,7 +64,7 @@ namespace NE::Graphics {
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
 
         // temp
-        InitDebugLines();
+        InitDebugPrimitives();
     }
 
     void GraphicsManager::BeginFrame() {
@@ -173,7 +174,7 @@ namespace NE::Graphics {
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
 
-    void InitDebugLines() {
+    void InitDebugPrimitives() {
         // Compile shaders
         GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -241,4 +242,50 @@ namespace NE::Graphics {
         s_DebugLines.clear();
     }
 
+    void GraphicsManager::AddDebugTriangle(const Math::Vec3& v0, const Math::Vec3& v1, const Math::Vec3& v2, const Math::Vec3& color) {
+        s_DebugTriangles.push_back({ v0, v1, v2, color });
+    }
+
+    void GraphicsManager::DrawDebugTriangles() {
+        if (s_DebugTriangles.empty()) return;
+
+        std::vector<float> vertices;
+        vertices.reserve(s_DebugTriangles.size() * 18); // 3 vertices * 6 floats per vertex
+
+        for (const auto& tri : s_DebugTriangles) {
+            // Vertex 0
+            vertices.push_back(tri.v0.x);
+            vertices.push_back(tri.v0.y);
+            vertices.push_back(tri.v0.z);
+            vertices.push_back(tri.color.x);
+            vertices.push_back(tri.color.y);
+            vertices.push_back(tri.color.z);
+
+            // Vertex 1
+            vertices.push_back(tri.v1.x);
+            vertices.push_back(tri.v1.y);
+            vertices.push_back(tri.v1.z);
+            vertices.push_back(tri.color.x);
+            vertices.push_back(tri.color.y);
+            vertices.push_back(tri.color.z);
+
+            // Vertex 2
+            vertices.push_back(tri.v2.x);
+            vertices.push_back(tri.v2.y);
+            vertices.push_back(tri.v2.z);
+            vertices.push_back(tri.color.x);
+            vertices.push_back(tri.color.y);
+            vertices.push_back(tri.color.z);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+
+        glUseProgram(debugShaderProgram);
+        glBindVertexArray(debugVAO);
+
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(s_DebugTriangles.size() * 3));
+
+        s_DebugTriangles.clear();
+    }
 }

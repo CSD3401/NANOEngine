@@ -3,10 +3,9 @@
 #include "../Components/Transform.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../src/EngineState.hpp"
+#include "../../Core/SpdLogger.hpp"
 #include <fmod/fmod_errors.h>
 
-
-#include <iostream>
 #include <direct.h>
 #include <cstring>
 
@@ -30,12 +29,12 @@ namespace NE::ECS::Systems {
 			{
 				FMOD::System_Create(&system);
 				system->init(512, FMOD_INIT_NORMAL, 0);
-				std::cout << "AudioEngine constructor called \n";
+				SPD_INFO("AudioEngine constructor called");
 			}
 
 			~AudioEngine() 
 			{
-				std::cout << "AudioEngine destructor called \n";
+				SPD_INFO("AudioEngine destructor called");
 				// Cleanup all loaded sounds
 				for (auto& [path, sound] : loadedClips) {
 					sound->release();
@@ -195,7 +194,7 @@ namespace NE::ECS::Systems {
 
 		FMOD_RESULT result = FMOD::Studio::System::create(&studioSystem);
 		if (result != FMOD_OK)
-			std::cout << "Failed to create FMOD Studio System " << FMOD_ErrorString(result) << std::endl;
+			SPD_ERROR("Failed to create FMOD Studio System: " << FMOD_ErrorString(result));
 
 		// initialize the system!
 		result = studioSystem->initialize(
@@ -206,14 +205,14 @@ namespace NE::ECS::Systems {
 		);
 		if (result != FMOD_OK) 
 		{
-			std::cout << "FMOD init failed: " << FMOD_ErrorString(result) << std::endl;
+			SPD_ERROR("FMOD init failed: " << FMOD_ErrorString(result));
 			return;
 		}
 
 		// Prepare for Extraction
 		auto banks = GetLoadedBanks();
 
-		std::cout << "Loading " << banks.size() << " banks into FMOD..." << std::endl;
+		SPD_INFO("Loading " << banks.size() << " banks into FMOD...");
 
 		// First pass: Load all .bank files
 		for (const auto& [uuid, bank] : banks)
@@ -228,12 +227,12 @@ namespace NE::ECS::Systems {
 			if (bankResult == FMOD_OK && fmodBank != nullptr) 
 			{
 				bank->SetFMODBank(fmodBank);
-				std::cout << "Loaded bank: " << bank->GetDisplayName() << std::endl;
+				SPD_INFO("Loaded bank: " << bank->GetDisplayName());
 			}
 		}
 
 		// SECOND PASS: Look for and load the strings bank specifically
-		std::cout << "Looking for strings bank..." << std::endl;
+		SPD_INFO("Looking for strings bank...");
 		for (const auto& [uuid, bank] : banks) 
 		{
 			std::string bankName = bank->GetDisplayName();
@@ -242,7 +241,7 @@ namespace NE::ECS::Systems {
 			if (bankName.find("strings") != std::string::npos ||
 				bank->filePath.find("strings") != std::string::npos) {
 
-				std::cout << "Loading strings bank: " << bankName << std::endl;
+				SPD_INFO("Loading strings bank: " << bankName);
 
 				// The strings bank should already be loaded from first pass, but make sure
 				// it's processed for string data
@@ -250,14 +249,14 @@ namespace NE::ECS::Systems {
 				if (fmodBank) 
 				{
 					// Strings bank is automatically used by FMOD once loaded
-					std::cout << "Strings bank ready: " << bankName << std::endl;
+					SPD_INFO("Strings bank ready: " << bankName);
 				}
 			}
 		}
 
 		// Note: This step does not work if there is invalid bank or string bank
 		// THIRD PASS: Now extract events (after strings bank is loaded)
-		std::cout << "Extracting events from all banks..." << std::endl;
+		SPD_INFO("Extracting events from all banks...");
 		for (const auto& [uuid, bank] : banks) 
 		{
 			// Skip strings banks for event extraction
@@ -279,7 +278,7 @@ namespace NE::ECS::Systems {
 
 		if (eventDesc == nullptr) 
 		{
-			std::cout << "Failed to get event: " << eventName << std::endl;
+			SPD_ERROR("Failed to get event: " << eventName);
 			return;
 		}
 
@@ -288,7 +287,7 @@ namespace NE::ECS::Systems {
 
 		if (eventInstance == nullptr)
 		{
-			std::cout << "Failed to create eventInstance" << std::endl;
+			SPD_ERROR("Failed to create eventInstance");
 			return;
 		}
 
@@ -303,23 +302,36 @@ namespace NE::ECS::Systems {
 
 	void AudioSystem::LoadBankAssets(const std::string& audioDirectory)
 	{
+		SPD_INFO("LoadBankAssets - Checking directory: " << audioDirectory);
+		
+		// Check if directory exists
+		if (!std::filesystem::exists(audioDirectory)) {
+			SPD_WARNING("Audio bank directory does not exist: " << audioDirectory);
+			return;
+		}
+
 		auto& assetManager = Asset::AssetManager::GetInstance();
 		size_t banksLoaded = 0;
-		for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
-		{
-			if (entry.path().extension() == ".bank")
+		
+		try {
+			for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
 			{
-				// Load thru AssetManager (this creates AudioBank assets)
-				std::string bankPath = entry.path().string();
-				auto bankAsset = assetManager.Load<NE::Asset::AudioBank>(bankPath, false);
-				if (bankAsset)
+				if (entry.path().extension() == ".bank")
 				{
-					banksLoaded++;
-					std::cout << "Loaded bank asset: " << bankAsset->GetDisplayName() << std::endl;
+					// Load thru AssetManager (this creates AudioBank assets)
+					std::string bankPath = entry.path().string();
+					auto bankAsset = assetManager.Load<NE::Asset::AudioBank>(bankPath, false);
+					if (bankAsset)
+					{
+						banksLoaded++;
+						SPD_INFO("Loaded bank asset: " << bankAsset->GetDisplayName());
+					}
 				}
 			}
+			SPD_INFO(banksLoaded << " banks loaded successfully");
+		} catch (const std::exception& e) {
+			SPD_ERROR("Error loading bank assets: " << e.what());
 		}
-		std::cout << banksLoaded << " banksLoaded" << std::endl;
 	}
 
 	AudioSystem::AudioSystem(ComponentManager* cm) : m_componentManager(cm)
@@ -336,15 +348,19 @@ namespace NE::ECS::Systems {
 
 	void AudioSystem::Init()
 	{
+		SPD_INFO("AudioSystem::Init() - Starting initialization");
+		
 		// Get current directory as std::string
 		std::string currentDir = std::filesystem::current_path().string();
 		std::string bankDir = currentDir + "/Assets/Bank";
-		//std::cout << "Target Bank Dir: " << bankDir << std::endl;
+		SPD_INFO("Working directory: " << currentDir);
+		SPD_INFO("Bank directory: " << bankDir);
 
 		LoadBankAssets(bankDir);
 		SetupStudioSystem();
 		PlaySound("event:/OnClick");
 
+		SPD_INFO("AudioSystem::Init() - Completed");
 		return;
 	}
 
@@ -380,7 +396,7 @@ namespace NE::ECS::Systems {
 	void AudioSystem::Exit()
 	{
 		CleanupStudioSystem();
-		std::cout << "AudioSystem shutdown" << std::endl;
+		SPD_INFO("AudioSystem shutdown");
 	}
 
 	

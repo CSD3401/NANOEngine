@@ -18,6 +18,7 @@ prior written consent of DigiPen Institute of Technology is prohibited.
 
 #define FMT_UNICODE 0  // Disable Unicode to avoid UTF-8 requirement
 
+#include "NANOEngineAPI.hpp"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -79,7 +80,33 @@ protected:
         std::lock_guard<std::mutex> lock(logs_mutex_);
         
         SpdLogEntry entry;
-        entry.level = static_cast<SpdLogLevel>(static_cast<int>(msg.level));
+        
+        // Map spdlog levels to our SpdLogLevel enum
+        // spdlog: trace=0, debug=1, info=2, warn=3, err=4, critical=5
+        // ours:   Debug=0, Info=1, Warning=2, Error=3, Critical=4
+        switch (msg.level) {
+            case spdlog::level::trace:
+            case spdlog::level::debug:
+                entry.level = SpdLogLevel::Debug;
+                break;
+            case spdlog::level::info:
+                entry.level = SpdLogLevel::Info;
+                break;
+            case spdlog::level::warn:
+                entry.level = SpdLogLevel::Warning;
+                break;
+            case spdlog::level::err:
+                entry.level = SpdLogLevel::Error;
+                break;
+            case spdlog::level::critical:
+            case spdlog::level::off:
+                entry.level = SpdLogLevel::Critical;
+                break;
+            default:
+                entry.level = SpdLogLevel::Info;
+                break;
+        }
+        
         entry.message = std::string(msg.payload.data(), msg.payload.size());
         entry.file = msg.source.filename ? std::string(msg.source.filename) : "";
         entry.line = msg.source.line;
@@ -109,7 +136,11 @@ private:
 
 using panel_sink_mt = panel_sink<std::mutex>;
 
-class SpdLogger {
+// Suppress warning about DLL interface for STL types
+#pragma warning(push)
+#pragma warning(disable: 4251)  // 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
+
+class NANOENGINE_API SpdLogger {
 public:
     static SpdLogger& GetInstance() {
         static SpdLogger instance;
@@ -332,12 +363,24 @@ public:
     // Keep this for backwards compatibility but make it optional
     void EnableFileLogging(const std::string& logFilePath = "logs/session.log") {
         try {
+            // Create directory if it doesn't exist
+            std::filesystem::path logPath(logFilePath);
+            if (logPath.has_parent_path()) {
+                std::filesystem::create_directories(logPath.parent_path());
+            }
+            
             auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath, true);
             file_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%L%$] [%s:%#] %v");
             
-            // Create logger with file sink and panel sink (no console)
-            auto logger = std::make_shared<spdlog::logger>("file_and_panel", 
-                std::initializer_list<spdlog::sink_ptr>{file_sink, panel_sink_});
+            // Get the current default logger and add the file sink to it
+            auto current_logger = spdlog::default_logger();
+            auto sinks = current_logger->sinks();
+            sinks.push_back(file_sink);
+            
+            // Create a new logger with all sinks (panel + file)
+            auto logger = std::make_shared<spdlog::logger>("multi_sink", sinks.begin(), sinks.end());
+            logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%L%$] [%s:%#] %v");
+            logger->set_level(spdlog::level::debug);
             
             spdlog::set_default_logger(logger);
             spdlog::info("Session logging enabled - all logs will be written to: {}", logFilePath);
@@ -350,7 +393,8 @@ private:
     SpdLogger() {
         panel_sink_ = std::make_shared<panel_sink_mt>();
         
-        // Create logger with ONLY the panel sink (no console output, no file output)
+        // Create logger with ONLY panel sink (no console output)
+        // Note: File logging will be added via EnableFileLogging() in Application::Init()
         auto logger = std::make_shared<spdlog::logger>("panel_only", 
             std::initializer_list<spdlog::sink_ptr>{panel_sink_});
         spdlog::set_default_logger(logger);
@@ -464,6 +508,8 @@ private:
     std::string m_crashLogPath = "crash_logs/";
     bool m_crashOnlyMode = false;
 };
+
+#pragma warning(pop)
 
 // Basic logging macros - use these for normal logging
 #define SPD_DEBUG(...)   do { std::ostringstream oss; oss << __VA_ARGS__; \

@@ -24,6 +24,13 @@ namespace NE::Graphics {
         Math::Vec3 color;
     };
 
+    struct DebugTriangle {
+        Math::Vec3 v0;
+        Math::Vec3 v1;
+        Math::Vec3 v2;
+        Math::Vec3 color;
+    };
+
     struct DrawCommand {
         std::shared_ptr<IGeometryBuffer> mesh;
         std::shared_ptr<Material> material;
@@ -48,6 +55,9 @@ namespace NE::Graphics {
         static void AddDebugLine(const Math::Vec3& from, const Math::Vec3& to, const Math::Vec3& color);
         static void DrawDebugLines();
 
+        static void AddDebugTriangle(const Math::Vec3& v0, const Math::Vec3& v1, const Math::Vec3& v2, const Math::Vec3& color);
+        static void DrawDebugTriangles(); // drawing solid triangles
+
         static std::vector<ECS::Component::Light*> m_lights;
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
@@ -56,6 +66,7 @@ namespace NE::Graphics {
 
         // Gizmo Drawing
         static std::vector<DebugLine> s_DebugLines;
+        static std::vector<DebugTriangle> s_DebugTriangles;
     };
 
 }
