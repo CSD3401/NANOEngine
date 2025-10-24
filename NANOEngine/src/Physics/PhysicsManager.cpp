@@ -126,16 +126,18 @@ namespace NE::Physics {
         if (!s_PhysicsSystem)
             return;
 
+#pragma region test
         // test DrawLine() and DrawTriangle() function
         TestDebugDraw();
 
         s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
 
         JPH::BodyManager::DrawSettings drawSettings;
-        drawSettings.mDrawShape = true;
+        //drawSettings.mDrawShape = true;
         drawSettings.mDrawShape = false; // must be false to use our own jolt implementations
-        drawSettings.mDrawBoundingBox = false;  // show body AABBs 
+        drawSettings.mDrawBoundingBox = true;  // show body AABBs 
         s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
+#pragma endregion
     }
 
     void PhysicsManager::Shutdown() {
