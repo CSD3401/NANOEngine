@@ -42,7 +42,6 @@ namespace NE::Physics {
         // helper functions
         static NE::Math::Vec3 ToVec3(JPH::RVec3Arg v);
         static NE::Math::Vec3 ToColor(JPH::ColorArg c);
-        static JPH::RVec3 Xform(JPH::RMat44Arg M, const JPH::Float3& p);
     };
 }
 

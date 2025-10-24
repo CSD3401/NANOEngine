@@ -1,6 +1,11 @@
 #include "PhysicsManager.hpp"
 #include <Jolt/RegisterTypes.h>
 #include "JoltDebugRenderer.hpp"
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <iostream>
 
 namespace NE::Physics {
 
@@ -70,6 +75,33 @@ namespace NE::Physics {
 
     static JoltDebugRenderer g_joltDebugRenderer;
 
+#pragma region test
+    static void TestDebugDraw()
+    {
+        // --- simple sanity draws to confirm your renderer works ---
+
+        // Draw a single green line from (0,0,0) to (1,1,1)
+        g_joltDebugRenderer.DrawLine(
+            JPH::RVec3(0, 0, 0),
+            JPH::RVec3(1, 1, 1),
+            JPH::Color::sGreen
+        );
+
+        // Draw a single blue triangle in the XY plane
+        g_joltDebugRenderer.DrawTriangle(
+            JPH::RVec3(0, 0, 0),
+            JPH::RVec3(1, 0, 0),
+            JPH::RVec3(0, 1, 0),
+            JPH::Color::sBlue,
+            JPH::DebugRenderer::ECastShadow::Off
+        );
+
+        // (Optional) Draw a few extras if you want to confirm orientation:
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(1, 0, 0), JPH::Color::sRed);    // X-axis
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(0, 1, 0), JPH::Color::sGreen);  // Y-axis
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(0, 0, 1), JPH::Color::sBlue);   // Z-axis
+    }
+#pragma endregion
 
     void PhysicsManager::Init() {
         JPH::RegisterDefaultAllocator();
@@ -93,10 +125,17 @@ namespace NE::Physics {
     void PhysicsManager::Update(float dt) {
         if (!s_PhysicsSystem)
             return;
+
+        // test DrawLine() and DrawTriangle() function
+        TestDebugDraw();
+
         s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
-        //JPH::BodyManager::DrawSettings drawSettings;
-		//drawSettings.mDrawShape = true;
-        //s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
+
+        JPH::BodyManager::DrawSettings drawSettings;
+        drawSettings.mDrawShape = true;
+        drawSettings.mDrawShape = false; // must be false to use our own jolt implementations
+        drawSettings.mDrawBoundingBox = false;  // show body AABBs 
+        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
     }
 
     void PhysicsManager::Shutdown() {
