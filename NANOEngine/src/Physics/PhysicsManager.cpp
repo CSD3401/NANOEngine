@@ -96,9 +96,23 @@ namespace NE::Physics {
         if (!s_PhysicsSystem)
             return;
         s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
-        //JPH::BodyManager::DrawSettings drawSettings;
-		//drawSettings.mDrawShape = true;
-        //s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
+        
+        // Get the body interface and lock interface
+
+        //JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        //JPH::BodyLockInterface& lockInterface = s_PhysicsSystem->GetBodyLockInterface();
+
+        printf("Total bodies in system: %u\n", s_PhysicsSystem->GetNumBodies());
+        printf("Our tracked bodies: %zu\n", s_BodyIDs.size());
+
+        // JPH Draw Settings for debug physics line 
+        JPH::BodyManager::DrawSettings drawSettings;
+		drawSettings.mDrawShape = true;
+        //drawSettings.mDrawBoundingBox = false;
+        //drawSettings.mDrawWorldTransform = true;
+        //drawSettings.mDrawSleepStats = false;
+        //drawSettings.mDrawMassAndInertia = false;
+        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
     }
 
     void PhysicsManager::Shutdown() {
@@ -123,9 +137,30 @@ namespace NE::Physics {
         bodyInterface.DeactivateBodies(s_BodyIDs.data(), static_cast<int>(s_BodyIDs.size()));
     }
 
-    uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {
+    uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) 
+    {
+        printf("CreateBody - called");
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         JPH::BodyID bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
+        
+        if (bodyID.IsInvalid())
+        {
+            printf("CreateBody - Invalid ID\n");
+            return 0;
+        }
+
+        // Verify the body exists in the system
+        JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), bodyID);
+        if (!lock.Succeeded()) 
+        {
+            printf("ERROR: Created body cannot be locked!\n");
+            return 0;
+        }
+
+        //const JPH::Body &body = lock.GetBody();
+        //printf("Body locked successfully, shape: %p\n", body.GetShape().GetPtr())
+
+
         s_BodyIDs.push_back(bodyID);
 		s_BodyIndexMap[bodyID.GetIndexAndSequenceNumber()] = s_BodyIDs.size() - 1;
         return bodyID.GetIndexAndSequenceNumber();
@@ -225,6 +260,7 @@ namespace NE::Physics {
 
 		// Create box shape
 		JPH::Vec3 halfExtents(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f);
+
 		JPH::BoxShapeSettings boxSettings(halfExtents);
 		JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create();
 
@@ -253,7 +289,8 @@ namespace NE::Physics {
         );
 
         printf("CreateBoxBody successful\n");
-		return CreateBody(bodySettings);
+        uint32_t result = CreateBody(bodySettings);
+		return result;
     }
 
     void PhysicsManager::UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize)

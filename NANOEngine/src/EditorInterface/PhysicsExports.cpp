@@ -84,14 +84,68 @@ namespace NE::Physics
 		}
 
 
+		//void CreatePhysicsBody(uint32_t entity)
+		//{
+		//	// return if alr exists
+		//	if (PhysicsManager::EntityHasPhysicsBody(entity))
+		//		return;
+
+		//	auto& transform = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Transform>(entity);
+		//	auto &collider = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(entity);
+
+		//	if (collider.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
+		//	{
+		//		Math::Vec3 fullSize = {
+		//			collider.halfExtents.x * 2.0f,
+		//			collider.halfExtents.y * 2.0f,
+		//			collider.halfExtents.z * 2.0f
+		//		};
+
+		//		uint32_t bodyId = Physics::PhysicsManager::CreateBoxBody(
+		//			transform.position,
+		//			transform.rotation,
+		//			fullSize,
+		//			JPH::EMotionType::Dynamic
+		//		);
+
+		//		if (bodyId != 0)
+		//			Physics::PhysicsManager::RegisterEntityBody(entity, bodyId);
+		//	}
+		//	else
+		//	{
+		//		printf("unsupported shape time %d\n", static_cast<int>(collider.shapeType));
+		//	}
+		//}
+
 		void CreatePhysicsBody(uint32_t entity)
 		{
-			// return if alr exists
-			if (Physics::PhysicsManager::GetEntityBodyId(entity) != 0)
-				return;
+			printf("=== CreatePhysicsBody START for entity %u ===\n", entity);
 
-			auto& transform = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Transform>(entity);
-			auto &collider = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Collider>(entity);
+			// return if alr exists
+			if (PhysicsManager::EntityHasPhysicsBody(entity)) {
+				printf("Entity %u already has physics body, skipping\n", entity);
+				return;
+			}
+
+			auto& coordinator = NE::GetScene().GetECSCoordinator();
+
+			// Check if components exist
+			if (!coordinator.HasComponent<NE::ECS::Component::Transform>(entity)) {
+				printf("ERROR: Entity %u has no Transform component!\n", entity);
+				return;
+			}
+			if (!coordinator.HasComponent<NE::ECS::Component::Collider>(entity)) {
+				printf("ERROR: Entity %u has no Collider component!\n", entity);
+				return;
+			}
+
+			auto& transform = coordinator.GetComponent<NE::ECS::Component::Transform>(entity);
+			auto& collider = coordinator.GetComponent<NE::ECS::Component::Collider>(entity);
+
+			printf("Transform: pos(%.2f, %.2f, %.2f) rot(%.2f, %.2f, %.2f)\n",
+				transform.position.x, transform.position.y, transform.position.z,
+				transform.rotation.x, transform.rotation.y, transform.rotation.z);
+			printf("Collider shapeType: %d\n", static_cast<int>(collider.shapeType));
 
 			if (collider.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
 			{
@@ -101,6 +155,11 @@ namespace NE::Physics
 					collider.halfExtents.z * 2.0f
 				};
 
+				printf("Box collider - halfExtents: (%.2f, %.2f, %.2f)\n",
+					collider.halfExtents.x, collider.halfExtents.y, collider.halfExtents.z);
+				printf("Box collider - fullSize: (%.2f, %.2f, %.2f)\n",
+					fullSize.x, fullSize.y, fullSize.z);
+
 				uint32_t bodyId = Physics::PhysicsManager::CreateBoxBody(
 					transform.position,
 					transform.rotation,
@@ -108,12 +167,22 @@ namespace NE::Physics
 					JPH::EMotionType::Dynamic
 				);
 
-				if (bodyId != 0)
-					Physics::PhysicsManager::RegisterEntityBody(entity, bodyId);
+				printf("CreateBoxBody returned: %u\n", bodyId);
 
+				if (bodyId != 0) {
+					Physics::PhysicsManager::RegisterEntityBody(entity, bodyId);
+					printf("SUCCESS: Registered physics body %u for entity %u\n", bodyId, entity);
+				}
+				else {
+					printf("FAILED: CreateBoxBody returned 0 - body creation failed!\n");
+				}
+			}
+			else
+			{
+				printf("Unsupported shape type: %d\n", static_cast<int>(collider.shapeType));
 			}
 
-
+			printf("=== CreatePhysicsBody END for entity %u ===\n", entity);
 		}
 
 		void UpdatePhysicsBody(uint32_t entity)

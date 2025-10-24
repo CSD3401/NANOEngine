@@ -24,7 +24,7 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(halfExtents),
             NE_REFLECT_FIELD(radius),
             NE_REFLECT_FIELD(height)
-            NE_REFLECT_END()
+        NE_REFLECT_END()
     };
 
 }

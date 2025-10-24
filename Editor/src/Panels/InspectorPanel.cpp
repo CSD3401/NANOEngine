@@ -444,9 +444,19 @@ namespace Editor {
                         });
                 } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
 
-                    auto& comp = NE::ECS::Query::GetEntityCollider(entity);
+                    // START COLLIDER
+
+                    auto& comp = NE::ECS::Command::GetEntityCollider(entity);
                     ImGui::SeparatorText("Collider");
 
+                    // Dropdown shapes
+                    static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "None"};
+                    int currShape = static_cast<int>(comp.shapeType);
+                    if (ImGui::Combo("Shape Type", &currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames)))
+                    {
+                        auto& tempCollider = NE::ECS::Command::GetEntityCollider(entity);
+                        tempCollider.shapeType = static_cast<NE::ECS::Component::Collider::ShapeType>(currShape);
+                    }
                     // Collider fields
                     NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
                         [&](auto const& desc, auto const& currentValue) {
@@ -454,8 +464,13 @@ namespace Editor {
 
                             FieldT edited = currentValue;
 
-                            DrawField(desc, edited);
+                            if (DrawField(desc, edited))
+                            {
+                                SubmitSetFieldCommand<NE::ECS::Component::Collider, FieldT>(
+                                entity, desc, currentValue, edited);
+                            }
                     });
+
 
                     // Store original values to detect changes
                     auto originalShapeType = comp.shapeType;
@@ -489,12 +504,12 @@ namespace Editor {
                     else
                     {
                         // Entity has valid physics body
-                        ImGui::Text("Physics Body ID: %u", currentBodyID);
+                        ImGui::Text("Physics Body Exists ID: %u", currentBodyID);
 
                         // Check if properties changed
                         bool colliderChanged = (originalShapeType != comp.shapeType ||
                             originalHalfExtents != comp.halfExtents ||
-                            originalRadius != comp.radius,
+                            originalRadius != comp.radius ||
                             originalHeight != comp.height);
 
                         if (comp.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
@@ -514,11 +529,6 @@ namespace Editor {
                         if (ImGui::Button("Remove Physics Body"))
                         {
                             NE::Physics::Command::RemovePhysicsBody(entity);
-                            
-                            //NE::Physics::PhysicsManager::DestroyBody(currentBodyID);
-                            //NE::Physics::Command::DestroyBody(currentBodyID);
-                            //NE::Physics::PhysicsManager::UnregisterEntityBody(entity);
-                            //NE::Physics::Command::UnregisterEntityBody(entity);
                         }
 
                         ImGui::Spacing();
