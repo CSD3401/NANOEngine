@@ -58,7 +58,7 @@ namespace NE {
 		s_pickingFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();
-		//Physics::Command::Init();
+		//Physics::PhysicsManager::TestPhysicsSetup();
 	}
 
 	void LoadStartupScene() {

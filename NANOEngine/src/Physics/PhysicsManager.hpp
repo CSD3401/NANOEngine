@@ -56,6 +56,8 @@ namespace NE::Physics {
 
 
         static bool EntityHasPhysicsBody(Entity entity);
+        static void TestPhysicsSetup();  // Add this
+
 
     private:
         static std::vector<JPH::BodyID> s_BodyIDs;

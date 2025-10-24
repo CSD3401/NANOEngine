@@ -39,6 +39,18 @@ namespace NE::Physics {
             std::atomic<JPH::uint32> mRefCount{ 0 };
         };
 
+        // Simple batch placeholder - no complex data structures
+        class SimpleBatch : public JPH::RefTargetVirtual {
+        public:
+            SimpleBatch() = default;
+
+            void AddRef() override { ++mRefCount; }
+            void Release() override { if (--mRefCount == 0) delete this; }
+
+        private:
+            std::atomic<JPH::uint32> mRefCount{ 0 };
+        };
+
         // helper functions
         static NE::Math::Vec3 ToVec3(JPH::RVec3Arg v);
         static NE::Math::Vec3 ToColor(JPH::ColorArg c);
