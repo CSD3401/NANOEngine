@@ -1,25 +1,30 @@
 #include "PhysicsManager.hpp"
 #include <Jolt/RegisterTypes.h>
 #include "JoltDebugRenderer.hpp"
-#include <cmath>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <iostream>
+
 namespace NE::Physics {
 
     //static bool IsFiniteFloat(float f) { return std::isfinite(f); }
 
-    struct Vec3 { float x, y, z; }; // adapt if you have JPH::Vec3 accessible
-    static bool IsFiniteVec3(const JPH::Vec3& v) {
-        return std::isfinite(v.GetX()) && std::isfinite(v.GetY()) && std::isfinite(v.GetZ());
-    }
+    //struct Vec3 { float x, y, z; }; // adapt if you have JPH::Vec3 accessible
+    //static bool IsFiniteVec3(const JPH::Vec3& v) {
+    //    return std::isfinite(v.GetX()) && std::isfinite(v.GetY()) && std::isfinite(v.GetZ());
+    //}
 
-    static bool IsFiniteMat44(const JPH::Mat44& m) {
-        // check the 4x4 elements
-        for (int r = 0; r < 4; ++r)
-            for (int c = 0; c < 4; ++c) {
-                float val = m(r, c); // use Mat44 operator() / index if available
-                if (!std::isfinite(val)) return false;
-            }
-        return true;
-    }
+    //static bool IsFiniteMat44(const JPH::Mat44& m) {
+    //    // check the 4x4 elements
+    //    for (int r = 0; r < 4; ++r)
+    //        for (int c = 0; c < 4; ++c) {
+    //            float val = m(r, c); // use Mat44 operator() / index if available
+    //            if (!std::isfinite(val)) return false;
+    //        }
+    //    return true;
+    //}
 
 
     // Object layers used by the engine
@@ -89,6 +94,33 @@ namespace NE::Physics {
 
     static JoltDebugRenderer g_joltDebugRenderer;
 
+#pragma region test
+    static void TestDebugDraw()
+    {
+        // --- simple sanity draws to confirm your renderer works ---
+
+        // Draw a single green line from (0,0,0) to (1,1,1)
+        g_joltDebugRenderer.DrawLine(
+            JPH::RVec3(0, 0, 0),
+            JPH::RVec3(1, 1, 1),
+            JPH::Color::sGreen
+        );
+
+        // Draw a single blue triangle in the XY plane
+        g_joltDebugRenderer.DrawTriangle(
+            JPH::RVec3(0, 0, 0),
+            JPH::RVec3(1, 0, 0),
+            JPH::RVec3(0, 1, 0),
+            JPH::Color::sBlue,
+            JPH::DebugRenderer::ECastShadow::Off
+        );
+
+        // (Optional) Draw a few extras if you want to confirm orientation:
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(1, 0, 0), JPH::Color::sRed);    // X-axis
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(0, 1, 0), JPH::Color::sGreen);  // Y-axis
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(0, 0, 1), JPH::Color::sBlue);   // Z-axis
+    }
+#pragma endregion
 
     void PhysicsManager::Init() {
         JPH::RegisterDefaultAllocator();
@@ -109,12 +141,23 @@ namespace NE::Physics {
             s_BPLayerInterface, s_ObjectVsBroadPhaseLayerFilter, s_ObjectLayerPairFilter);
     }
 
-  //  void PhysicsManager::Update(float dt) {
-  //      if (!s_PhysicsSystem)
-  //          return;
-  //      s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
-  //      
-  //      // Get the body interface and lock interface
+    void PhysicsManager::Update(float dt) {
+        if (!s_PhysicsSystem)
+            return;
+
+#pragma region test
+        // test DrawLine() and DrawTriangle() function
+        TestDebugDraw();
+
+        s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
+
+        JPH::BodyManager::DrawSettings drawSettings;
+        //drawSettings.mDrawShape = true;
+        drawSettings.mDrawShape = false; // must be false to use our own jolt implementations
+        drawSettings.mDrawBoundingBox = true;  // show body AABBs 
+        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
+#pragma endregion
+    }
 
   //      //JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
   //      //JPH::BodyLockInterface& lockInterface = s_PhysicsSystem->GetBodyLockInterface();
@@ -173,73 +216,73 @@ namespace NE::Physics {
     //    // s_PhysicsSystem->DrawBodies(drawSettings, &g_simpleRenderer);
     //}
 
-    void PhysicsManager::Update(float dt)
-    {
-        (void)dt;
-        bool foundBad = false;
+    //void PhysicsManager::Update(float dt)
+    //{
+    //    (void)dt;
+    //    bool foundBad = false;
 
-        // The lock interface is returned as const&, not pointer
-        //JPH::BodyLockInterfaceNoLock& bodyLockInterface = s_PhysicsSystem->GetBodyLockInterfaceNoLock();
-        const JPH::BodyLockInterfaceNoLock& bodyLockInterface = s_PhysicsSystem->GetBodyLockInterfaceNoLock();
+    //    // The lock interface is returned as const&, not pointer
+    //    //JPH::BodyLockInterfaceNoLock& bodyLockInterface = s_PhysicsSystem->GetBodyLockInterfaceNoLock();
+    //    const JPH::BodyLockInterfaceNoLock& bodyLockInterface = s_PhysicsSystem->GetBodyLockInterfaceNoLock();
 
 
-        // Retrieve all active body IDs
-        JPH::Array<JPH::BodyID> bodyIDs;
-        s_PhysicsSystem->GetBodies(bodyIDs);
+    //    // Retrieve all active body IDs
+    //    JPH::Array<JPH::BodyID> bodyIDs;
+    //    s_PhysicsSystem->GetBodies(bodyIDs);
 
-        for (JPH::BodyID id : bodyIDs)
-        {
-            // Use BodyLockRead for safe access
-            JPH::BodyLockRead lock(bodyLockInterface, id);
-            if (!lock.Succeeded())
-                continue;
+    //    for (JPH::BodyID id : bodyIDs)
+    //    {
+    //        // Use BodyLockRead for safe access
+    //        JPH::BodyLockRead lock(bodyLockInterface, id);
+    //        if (!lock.Succeeded())
+    //            continue;
 
-            const JPH::Body& body = lock.GetBody();
+    //        const JPH::Body& body = lock.GetBody();
 
-            // --- Check transform ---
-            JPH::Mat44 transform = body.GetCenterOfMassTransform();
-            if (!IsFiniteMat44(transform))
-            {
-                foundBad = true;
-                printf("BAD MAT44 for body id %u\n", id.GetIndexAndSequenceNumber());
-                for (int r = 0; r < 4; ++r)
-                    printf("% .6f % .6f % .6f % .6f\n",
-                        transform(r, 0), transform(r, 1), transform(r, 2), transform(r, 3));
-                break;
-            }
+    //        // --- Check transform ---
+    //        JPH::Mat44 transform = body.GetCenterOfMassTransform();
+    //        if (!IsFiniteMat44(transform))
+    //        {
+    //            foundBad = true;
+    //            printf("BAD MAT44 for body id %u\n", id.GetIndexAndSequenceNumber());
+    //            for (int r = 0; r < 4; ++r)
+    //                printf("% .6f % .6f % .6f % .6f\n",
+    //                    transform(r, 0), transform(r, 1), transform(r, 2), transform(r, 3));
+    //            break;
+    //        }
 
-            // --- Check shape ---
-            const JPH::Shape* shape = body.GetShape();
-            if (shape && shape->GetSubType() == JPH::EShapeSubType::Box)
-            {
-                const JPH::BoxShape* box = static_cast<const JPH::BoxShape*>(shape);
-                JPH::Vec3 he = box->GetHalfExtent();
-                if (!IsFiniteVec3(he))
-                {
-                    foundBad = true;
-                    printf("BAD BOX HE for body id %u -> half extents: %f %f %f\n",
-                        id.GetIndexAndSequenceNumber(), he.GetX(), he.GetY(), he.GetZ());
-                    break;
-                }
-            }
-        }
+    //        // --- Check shape ---
+    //        const JPH::Shape* shape = body.GetShape();
+    //        if (shape && shape->GetSubType() == JPH::EShapeSubType::Box)
+    //        {
+    //            const JPH::BoxShape* box = static_cast<const JPH::BoxShape*>(shape);
+    //            JPH::Vec3 he = box->GetHalfExtent();
+    //            if (!IsFiniteVec3(he))
+    //            {
+    //                foundBad = true;
+    //                printf("BAD BOX HE for body id %u -> half extents: %f %f %f\n",
+    //                    id.GetIndexAndSequenceNumber(), he.GetX(), he.GetY(), he.GetZ());
+    //                break;
+    //            }
+    //        }
+    //    }
 
-        if (foundBad)
-        {
-            printf("[Physics] Skipping DrawBodies due to invalid transform/shape values. See above output.\n");
-        }
-        else
-        {
-            // Make sure these exist
-            // JPH::BodyManager::DrawSettings drawSettings;
-            // drawSettings.mDrawShape = true;
-            JPH::BodyManager::DrawSettings drawSettings;
-            drawSettings.mDrawShape = true;
-            drawSettings.mDrawBoundingBox = false;
-            drawSettings.mDrawCenterOfMassTransform = false;
-            s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
-        }
-    }
+    //    if (foundBad)
+    //    {
+    //        printf("[Physics] Skipping DrawBodies due to invalid transform/shape values. See above output.\n");
+    //    }
+    //    else
+    //    {
+    //        // Make sure these exist
+    //        // JPH::BodyManager::DrawSettings drawSettings;
+    //        // drawSettings.mDrawShape = true;
+    //        JPH::BodyManager::DrawSettings drawSettings;
+    //        drawSettings.mDrawShape = true;
+    //        drawSettings.mDrawBoundingBox = false;
+    //        drawSettings.mDrawCenterOfMassTransform = false;
+    //        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
+    //    }
+    //}
     void PhysicsManager::Shutdown() {
         s_PhysicsSystem.reset();
         s_TempAllocator.reset();
