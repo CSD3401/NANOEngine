@@ -235,6 +235,12 @@ namespace NE::Graphics {
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
 
         glUseProgram(debugShaderProgram);
+
+        GLint uViewLoc = glGetUniformLocation(debugShaderProgram, "u_View");
+        GLint uProjLoc = glGetUniformLocation(debugShaderProgram, "u_Projection");
+        glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+
         glBindVertexArray(debugVAO);
         glLineWidth(2.0f);
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2));
@@ -282,6 +288,12 @@ namespace NE::Graphics {
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
 
         glUseProgram(debugShaderProgram);
+
+        GLint uViewLoc = glGetUniformLocation(debugShaderProgram, "u_View");
+        GLint uProjLoc = glGetUniformLocation(debugShaderProgram, "u_Projection");
+        glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+
         glBindVertexArray(debugVAO);
 
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(s_DebugTriangles.size() * 3));

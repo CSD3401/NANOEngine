@@ -35,8 +35,8 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawSkybox(); // here for now
 		m_ecsCoordinator.m_renderSystem->Update(dt);
-		Graphics::GraphicsManager::DrawDebugLines();
-		Graphics::GraphicsManager::DrawDebugTriangles();
+		//Graphics::GraphicsManager::DrawDebugLines();
+		//Graphics::GraphicsManager::DrawDebugTriangles();
 		Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);

@@ -1,26 +1,13 @@
 #include "PhysicsManager.hpp"
 #include <Jolt/RegisterTypes.h>
 #include "JoltDebugRenderer.hpp"
-#include <cmath>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <iostream>
+
 namespace NE::Physics {
-
-    //static bool IsFiniteFloat(float f) { return std::isfinite(f); }
-
-    struct Vec3 { float x, y, z; }; // adapt if you have JPH::Vec3 accessible
-    static bool IsFiniteVec3(const JPH::Vec3& v) {
-        return std::isfinite(v.GetX()) && std::isfinite(v.GetY()) && std::isfinite(v.GetZ());
-    }
-
-    static bool IsFiniteMat44(const JPH::Mat44& m) {
-        // check the 4x4 elements
-        for (int r = 0; r < 4; ++r)
-            for (int c = 0; c < 4; ++c) {
-                float val = m(r, c); // use Mat44 operator() / index if available
-                if (!std::isfinite(val)) return false;
-            }
-        return true;
-    }
-
 
     // Object layers used by the engine
     namespace Layers {
@@ -79,7 +66,6 @@ namespace NE::Physics {
     std::unique_ptr<JPH::PhysicsSystem> PhysicsManager::s_PhysicsSystem;
     std::unique_ptr<JPH::TempAllocatorImpl> PhysicsManager::s_TempAllocator;
     std::unique_ptr<JPH::JobSystemThreadPool> PhysicsManager::s_JobSystem;
-    std::unordered_map<NE::ECS::Entity, uint32_t> PhysicsManager::s_EntityToBodyMap;
 
     static BPLayerInterfaceImpl s_BPLayerInterface;
     static ObjectVsBroadPhaseLayerFilterImpl s_ObjectVsBroadPhaseLayerFilter;
@@ -89,6 +75,33 @@ namespace NE::Physics {
 
     static JoltDebugRenderer g_joltDebugRenderer;
 
+#pragma region test
+    static void TestDebugDraw()
+    {
+        // --- simple sanity draws to confirm your renderer works ---
+
+        // Draw a single green line from (0,0,0) to (1,1,1)
+        g_joltDebugRenderer.DrawLine(
+            JPH::RVec3(0, 0, 0),
+            JPH::RVec3(1, 1, 1),
+            JPH::Color::sGreen
+        );
+
+        // Draw a single blue triangle in the XY plane
+        g_joltDebugRenderer.DrawTriangle(
+            JPH::RVec3(0, 0, 0),
+            JPH::RVec3(1, 0, 0),
+            JPH::RVec3(0, 1, 0),
+            JPH::Color::sBlue,
+            JPH::DebugRenderer::ECastShadow::Off
+        );
+
+        // (Optional) Draw a few extras if you want to confirm orientation:
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(1, 0, 0), JPH::Color::sRed);    // X-axis
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(0, 1, 0), JPH::Color::sGreen);  // Y-axis
+        g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(0, 0, 1), JPH::Color::sBlue);   // Z-axis
+    }
+#pragma endregion
 
     void PhysicsManager::Init() {
         JPH::RegisterDefaultAllocator();
@@ -109,137 +122,24 @@ namespace NE::Physics {
             s_BPLayerInterface, s_ObjectVsBroadPhaseLayerFilter, s_ObjectLayerPairFilter);
     }
 
-  //  void PhysicsManager::Update(float dt) {
-  //      if (!s_PhysicsSystem)
-  //          return;
-  //      s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
-  //      
-  //      // Get the body interface and lock interface
+    void PhysicsManager::Update(float dt) {
+        if (!s_PhysicsSystem)
+            return;
 
-  //      //JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
-  //      //JPH::BodyLockInterface& lockInterface = s_PhysicsSystem->GetBodyLockInterface();
+#pragma region test
+        // test DrawLine() and DrawTriangle() function
+        TestDebugDraw();
 
-  //      printf("Total bodies in system: %u\n", s_PhysicsSystem->GetNumBodies());
-  //      printf("Our tracked bodies: %zu\n", s_BodyIDs.size());
+        s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
 
-  //      // JPH Draw Settings for debug physics line 
-  //      JPH::BodyManager::DrawSettings drawSettings;
-		//drawSettings.mDrawShape = true;
-  //      //drawSettings.mDrawBoundingBox = false;
-  //      //drawSettings.mDrawWorldTransform = true;
-  //      //drawSettings.mDrawSleepStats = false;
-  //      //drawSettings.mDrawMassAndInertia = false;
-  //      s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
-  //  }
-
-    //void PhysicsManager::Update(float dt) {
-    //    if (!s_PhysicsSystem) return;
-
-    //    s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
-
-    //    printf("Total bodies in system: %u\n", s_PhysicsSystem->GetNumBodies());
-    //    printf("Our tracked bodies: %zu\n", s_BodyIDs.size());
-
-    //    // Body validation (keep this to confirm bodies are working)
-    //    for (size_t i = 0; i < s_BodyIDs.size(); ++i) {
-    //        JPH::BodyID bodyID = s_BodyIDs[i];
-    //        JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), bodyID);
-    //        if (lock.Succeeded()) {
-    //            const JPH::Body& body = lock.GetBody();
-    //            JPH::RefConst<JPH::Shape> shape = body.GetShape();
-    //            printf("Body %u - Shape: %p, Active: %s\n",
-    //                bodyID.GetIndexAndSequenceNumber(),
-    //                shape.GetPtr(),
-    //                body.IsActive() ? "YES" : "NO");
-    //        }
-    //    }
-
-    //    // TEMPORARILY DISABLE ALL DEBUG DRAWING
-    //    printf("DEBUG DRAWING DISABLED - Physics simulation is working!\n");
-
-    //    // Uncomment only ONE of these options to test:
-
-    //    // Option 1: Minimal drawing with only basic shapes
-    //    // JPH::BodyManager::DrawSettings drawSettings;
-    //    // drawSettings.mDrawShape = false;  // DISABLE shape drawing
-    //    // drawSettings.mDrawBoundingBox = true;  // Try AABB instead
-    //    // drawSettings.mDrawWorldTransform = false;
-    //    // s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
-
-    //    // Option 2: Try a completely different debug renderer
-    //    // JPH::DebugRendererSimple g_simpleRenderer;
-    //    // JPH::BodyManager::DrawSettings drawSettings;
-    //    // drawSettings.mDrawShape = true;
-    //    // s_PhysicsSystem->DrawBodies(drawSettings, &g_simpleRenderer);
-    //}
-
-    void PhysicsManager::Update(float dt)
-    {
-        (void)dt;
-        bool foundBad = false;
-
-        // The lock interface is returned as const&, not pointer
-        //JPH::BodyLockInterfaceNoLock& bodyLockInterface = s_PhysicsSystem->GetBodyLockInterfaceNoLock();
-        const JPH::BodyLockInterfaceNoLock& bodyLockInterface = s_PhysicsSystem->GetBodyLockInterfaceNoLock();
-
-
-        // Retrieve all active body IDs
-        JPH::Array<JPH::BodyID> bodyIDs;
-        s_PhysicsSystem->GetBodies(bodyIDs);
-
-        for (JPH::BodyID id : bodyIDs)
-        {
-            // Use BodyLockRead for safe access
-            JPH::BodyLockRead lock(bodyLockInterface, id);
-            if (!lock.Succeeded())
-                continue;
-
-            const JPH::Body& body = lock.GetBody();
-
-            // --- Check transform ---
-            JPH::Mat44 transform = body.GetCenterOfMassTransform();
-            if (!IsFiniteMat44(transform))
-            {
-                foundBad = true;
-                printf("BAD MAT44 for body id %u\n", id.GetIndexAndSequenceNumber());
-                for (int r = 0; r < 4; ++r)
-                    printf("% .6f % .6f % .6f % .6f\n",
-                        transform(r, 0), transform(r, 1), transform(r, 2), transform(r, 3));
-                break;
-            }
-
-            // --- Check shape ---
-            const JPH::Shape* shape = body.GetShape();
-            if (shape && shape->GetSubType() == JPH::EShapeSubType::Box)
-            {
-                const JPH::BoxShape* box = static_cast<const JPH::BoxShape*>(shape);
-                JPH::Vec3 he = box->GetHalfExtent();
-                if (!IsFiniteVec3(he))
-                {
-                    foundBad = true;
-                    printf("BAD BOX HE for body id %u -> half extents: %f %f %f\n",
-                        id.GetIndexAndSequenceNumber(), he.GetX(), he.GetY(), he.GetZ());
-                    break;
-                }
-            }
-        }
-
-        if (foundBad)
-        {
-            printf("[Physics] Skipping DrawBodies due to invalid transform/shape values. See above output.\n");
-        }
-        else
-        {
-            // Make sure these exist
-            // JPH::BodyManager::DrawSettings drawSettings;
-            // drawSettings.mDrawShape = true;
-            JPH::BodyManager::DrawSettings drawSettings;
-            drawSettings.mDrawShape = true;
-            drawSettings.mDrawBoundingBox = false;
-            drawSettings.mDrawCenterOfMassTransform = false;
-            s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
-        }
+        JPH::BodyManager::DrawSettings drawSettings;
+        //drawSettings.mDrawShape = true;
+        drawSettings.mDrawShape = false; // must be false to use our own jolt implementations
+        drawSettings.mDrawBoundingBox = true;  // show body AABBs 
+        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
+#pragma endregion
     }
+
     void PhysicsManager::Shutdown() {
         s_PhysicsSystem.reset();
         s_TempAllocator.reset();
@@ -262,30 +162,9 @@ namespace NE::Physics {
         bodyInterface.DeactivateBodies(s_BodyIDs.data(), static_cast<int>(s_BodyIDs.size()));
     }
 
-    uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) 
-    {
-        printf("CreateBody - called");
+    uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         JPH::BodyID bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
-        
-        if (bodyID.IsInvalid())
-        {
-            printf("CreateBody - Invalid ID\n");
-            return 0;
-        }
-
-        // Verify the body exists in the system
-        JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), bodyID);
-        if (!lock.Succeeded()) 
-        {
-            printf("ERROR: Created body cannot be locked!\n");
-            return 0;
-        }
-
-        //const JPH::Body &body = lock.GetBody();
-        //printf("Body locked successfully, shape: %p\n", body.GetShape().GetPtr())
-
-
         s_BodyIDs.push_back(bodyID);
 		s_BodyIndexMap[bodyID.GetIndexAndSequenceNumber()] = s_BodyIDs.size() - 1;
         return bodyID.GetIndexAndSequenceNumber();
@@ -378,122 +257,4 @@ namespace NE::Physics {
         return s_PhysicsSystem.get();
     }
 
-    uint32_t PhysicsManager::CreateBoxBody(const Math::Vec3& pos, const Math::Vec3& rot, const Math::Vec3& size, JPH::EMotionType motionType)
-    {
-        if (!s_PhysicsSystem)
-            return 0;
-
-		// Create box shape
-		JPH::Vec3 halfExtents(size.x * 0.5f, size.y * 0.5f, size.z * 0.5f);
-
-		JPH::BoxShapeSettings boxSettings(halfExtents);
-		JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create();
-
-        if (shapeResult.HasError()) 
-        {
-            printf("PhysicsManager: Error creating box shape: %s\n", shapeResult.GetError().c_str());
-            return 0;
-		}
-        
-		JPH::RefConst<JPH::Shape> boxShape = shapeResult.Get();
-
-        // Determine appropriate layer
-		JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
-
-        // Create body
-        JPH::BodyCreationSettings bodySettings(
-            boxShape, 
-            JPH::RVec3(pos.x, pos.y, pos.z), 
-            JPH::Quat::sEulerAngles({
-                JPH::DegreesToRadians(rot.x),
-                JPH::DegreesToRadians(rot.y),
-                JPH::DegreesToRadians(rot.z) 
-                }),
-            motionType, 
-			layer
-        );
-
-        printf("CreateBoxBody successful\n");
-        uint32_t result = CreateBody(bodySettings);
-		return result;
-    }
-
-    void PhysicsManager::UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize)
-    {
-        if (!s_PhysicsSystem)
-			return;
-
-        JPH::BodyID id(bodyID);
-		JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
-
-        // Create new shape with updated size
-		JPH::Vec3 halfExtents(newSize.x * 0.5f, newSize.y * 0.5f, newSize.z * 0.5f);
-		JPH::BoxShapeSettings boxSettings(halfExtents);
-		JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create(); 
-
-        if (shapeResult.HasError())
-        {
-            printf("PhysicsManager: Error creating box shape: %s\n", shapeResult.GetError().c_str());
-			return;
-		}
-
-        JPH::RefConst<JPH::Shape> newShape = shapeResult.Get();
-		// Update the body's shape
-		bodyInterface.SetShape(id, newShape, true, JPH::EActivation::DontActivate);
-
-        printf("PhysicsManager::UpdateBoxSize called\n");
-    }
-
-    void PhysicsManager::RegisterEntityBody(Entity entity, uint32_t bodyID)
-    {
-		s_EntityToBodyMap[entity] = bodyID;
-    }
-
-    void PhysicsManager::UnregisterEntityBody(Entity entity)
-    {
-		s_EntityToBodyMap.erase(entity);
-    }
-
-    uint32_t PhysicsManager::GetEntityBodyId(Entity entity)
-    {
-		auto it = s_EntityToBodyMap.find(entity);
-
-        // recap wtf this do
-		return (it != s_EntityToBodyMap.end()) ? it->second : 0;
-    }
-
-    bool PhysicsManager::EntityHasPhysicsBody(Entity entity)
-    {
-        return s_EntityToBodyMap.find(entity) != s_EntityToBodyMap.end();
-    }
-    void PhysicsManager::TestPhysicsSetup()
-    {
-        printf("=== PHYSICS TEST SETUP ===\n");
-
-        // Create ground plane
-        Math::Vec3 groundSize(10.0f, 1.0f, 10.0f);
-        uint32_t groundBody = CreateBoxBody(
-            Math::Vec3(0, -3, 0),
-            Math::Vec3(0, 0, 0),
-            groundSize,
-            JPH::EMotionType::Static
-        );
-        printf("Created ground body: %u\n", groundBody);
-
-        // Create falling box  
-        Math::Vec3 boxSize(1.0f, 1.0f, 1.0f);
-        uint32_t boxBody = CreateBoxBody(
-            Math::Vec3(0, 5, 0),
-            Math::Vec3(0, 0, 0),
-            boxSize,
-            JPH::EMotionType::Dynamic
-        );
-        printf("Created falling box body: %u\n", boxBody);
-
-        // Activate all bodies to start simulation
-        ActivateBodies();
-
-        printf("Physics test setup complete! Box should fall onto ground.\n");
-        printf("=== PHYSICS TEST SETUP COMPLETE ===\n");
-    }
 }
