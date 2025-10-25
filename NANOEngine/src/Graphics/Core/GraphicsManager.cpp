@@ -236,10 +236,10 @@ namespace NE::Graphics {
 
         glUseProgram(debugShaderProgram);
 
-        GLint uViewLoc = glGetUniformLocation(debugShaderProgram, "u_View");
-        GLint uProjLoc = glGetUniformLocation(debugShaderProgram, "u_Projection");
-        glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        //GLint uViewLoc = glGetUniformLocation(debugShaderProgram, "u_View");
+        //GLint uProjLoc = glGetUniformLocation(debugShaderProgram, "u_Projection");
+        //glUniformMatrix4fv(uViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
+        //glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
 
         glBindVertexArray(debugVAO);
         glLineWidth(2.0f);

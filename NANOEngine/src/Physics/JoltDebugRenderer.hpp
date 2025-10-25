@@ -12,6 +12,9 @@ namespace NE::Physics {
     class JoltDebugRenderer : public JPH::DebugRenderer {
     public:
 
+        JoltDebugRenderer() = default;
+        void Init() { Initialize(); }
+
         void DrawLine(JPH::RVec3Arg from, JPH::RVec3Arg to, JPH::ColorArg color) override;
         void DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow = ECastShadow::Off) override;
         Batch CreateTriangleBatch(const Triangle* inTriangles, int inTriangleCount) override;
