@@ -53,20 +53,17 @@ public:
             m_timeSinceLastLog = 0.0;
         }
 
-		// Example movement logic:
-		auto transform = GetComponent<NE::ECS::Component::Transform>();
-        if (transform) {
-
-            if(NE::InputManager::IsKeyDown('D'))
-			    transform->position.x += 0.2f * (float)deltaTime;
-			else if (NE::InputManager::IsKeyDown('A'))
-				transform->position.x -= 0.2f * (float)deltaTime;
-			else if (NE::InputManager::IsKeyDown('W'))
-				transform->position.y += 0.2f * (float)deltaTime;
-			else if (NE::InputManager::IsKeyDown('S'))
-				transform->position.y -= 0.2f * (float)deltaTime;
+        // Unity-style movement with helper functions
+        float moveSpeed = speed * (float)deltaTime;
         
-        }
+        if(NE::InputManager::IsKeyDown('D'))
+            Translate(moveSpeed, 0, 0);
+        else if (NE::InputManager::IsKeyDown('A'))
+            Translate(-moveSpeed, 0, 0);
+        else if (NE::InputManager::IsKeyDown('W'))
+            Translate(0, moveSpeed, 0);
+        else if (NE::InputManager::IsKeyDown('S'))
+            Translate(0, -moveSpeed, 0);
     }
 
     void OnDestroy() override {
