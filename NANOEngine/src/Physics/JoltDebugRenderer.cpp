@@ -21,103 +21,73 @@ namespace NE::Physics {
         //    NE::Math::Vec3(float(to.GetX()), float(to.GetY()), float(to.GetZ())),
         //    NE::Math::Vec3(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f)
         //);
-
-        try
-        {
-
-            NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(from), ToVec3(to), ToColor(color));
-
-        }
-        catch (...)
-        {
-            //nth
-        }
-
+        NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(from), ToVec3(to), ToColor(color));
     }
 
     void JoltDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow)
     {
         (void)inCastShadow;
-        //NE::Graphics::GraphicsManager::AddDebugTriangle(ToVec3(inV1), ToVec3(inV2), ToVec3(inV3), ToColor(inColor));
-        try {
-            NE::Math::Vec3 color = ToColor(inColor);
-            NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(inV1), ToVec3(inV2), color);
-            NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(inV2), ToVec3(inV3), color);
-            NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(inV3), ToVec3(inV1), color);
-        }
-        catch (...)
-        {
-
-        }
+        NE::Graphics::GraphicsManager::AddDebugTriangle(ToVec3(inV1), ToVec3(inV2), ToVec3(inV3), ToColor(inColor));
     }
 
     JPH::DebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* inTriangles, int inTriangleCount)
     {
-        (void)inTriangles;
-        (void)inTriangleCount;
-        //if (inTriangles == nullptr || inTriangleCount <= 0) return {};
+        if (inTriangles == nullptr || inTriangleCount <= 0) return {};
 
-        //JPH::Ref<BatchPlaceHolder> batch = new BatchPlaceHolder();
-        //batch->verts.reserve(size_t(inTriangleCount) * 3);
-        //batch->indices.reserve(size_t(inTriangleCount) * 3);
-        //batch->edges.reserve(size_t(inTriangleCount) * 3);
+        JPH::Ref<BatchPlaceHolder> batch = new BatchPlaceHolder();
+        batch->verts.reserve(size_t(inTriangleCount) * 3);
+        batch->indices.reserve(size_t(inTriangleCount) * 3);
+        batch->edges.reserve(size_t(inTriangleCount) * 3);
 
-        //for (int i = 0; i < inTriangleCount; ++i) 
-        //{
-        //    const JPH::uint32 base = (JPH::uint32)batch->verts.size();
+        for (int i = 0; i < inTriangleCount; ++i) 
+        {
+            const JPH::uint32 base = (JPH::uint32)batch->verts.size();
 
-        //    const JPH::Float3 p0 = inTriangles[i].mV[0].mPosition;
-        //    const JPH::Float3 p1 = inTriangles[i].mV[1].mPosition;
-        //    const JPH::Float3 p2 = inTriangles[i].mV[2].mPosition;
+            const JPH::Float3 p0 = inTriangles[i].mV[0].mPosition;
+            const JPH::Float3 p1 = inTriangles[i].mV[1].mPosition;
+            const JPH::Float3 p2 = inTriangles[i].mV[2].mPosition;
 
-        //    batch->verts.emplace_back(p0);
-        //    batch->verts.emplace_back(p1);
-        //    batch->verts.emplace_back(p2);
+            batch->verts.emplace_back(p0);
+            batch->verts.emplace_back(p1);
+            batch->verts.emplace_back(p2);
 
-        //    batch->indices.push_back(base + 0);
-        //    batch->indices.push_back(base + 1);
-        //    batch->indices.push_back(base + 2);
+            batch->indices.push_back(base + 0);
+            batch->indices.push_back(base + 1);
+            batch->indices.push_back(base + 2);
 
-        //    batch->edges.emplace_back(p0, p1);
-        //    batch->edges.emplace_back(p1, p2);
-        //    batch->edges.emplace_back(p2, p0);
-        //}
+            batch->edges.emplace_back(p0, p1);
+            batch->edges.emplace_back(p1, p2);
+            batch->edges.emplace_back(p2, p0);
+        }
 
-        //return JPH::DebugRenderer::Batch(batch); // wrap in Ref<TriangleBatch>
-
-        return Batch(new SimpleBatch());
+        return JPH::DebugRenderer::Batch(batch); // wrap in Ref<TriangleBatch>
     }
 
     JPH::DebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Vertex* inVertices, int inVertexCount, const JPH::uint32* inIndices, int inIndexCount)
     {
-        (void)inVertices;
-        (void)inVertexCount;
-        (void)inIndices;
-        (void)inIndexCount;
-        
-        //if (inVertices == nullptr || inVertexCount <= 0 || inIndices == nullptr || inIndexCount <= 0) return {};
+        if (inVertices == nullptr || inVertexCount <= 0 || inIndices == nullptr || inIndexCount <= 0) return {};
 
-        //JPH::Ref<BatchPlaceHolder> batch = new BatchPlaceHolder();
-        //batch ->verts.reserve(size_t(inVertexCount));
-        //batch->indices.reserve(size_t(inIndexCount));
-        //batch->edges.reserve(size_t(inIndexCount)); // ~3 edges per tri
+        JPH::Ref<BatchPlaceHolder> batch = new BatchPlaceHolder();
+        batch ->verts.reserve(size_t(inVertexCount));
+        batch->indices.reserve(size_t(inIndexCount));
+        batch->edges.reserve(size_t(inIndexCount)); // ~3 edges per tri
 
-        //for (int i = 0; i < inVertexCount; ++i)
-        //{
-        //    batch->verts.emplace_back(inVertices[i].mPosition);
-        //}
+        for (int i = 0; i < inVertexCount; ++i)
+        {
+            batch->verts.emplace_back(inVertices[i].mPosition);
+        }
 
-        //for (int i = 0; i < inIndexCount; ++i)
-        //{
-        //    batch->indices.push_back(inIndices[i]);
-        //}
+        for (int i = 0; i < inIndexCount; ++i)
+        {
+            batch->indices.push_back(inIndices[i]);
+        }
 
-        //// create edges from indices (every 3 indices form a triangle)
-        //for (int i = 0; i + 2 < inIndexCount; i += 3)
-        //{
-        //    const JPH::uint32 i0 = inIndices[i + 0];
-        //    const JPH::uint32 i1 = inIndices[i + 1];
-        //    const JPH::uint32 i2 = inIndices[i + 2];
+        // create edges from indices (every 3 indices form a triangle)
+        for (int i = 0; i + 2 < inIndexCount; i += 3)
+        {
+            const JPH::uint32 i0 = inIndices[i + 0];
+            const JPH::uint32 i1 = inIndices[i + 1];
+            const JPH::uint32 i2 = inIndices[i + 2];
 
             // bounds check
             // if (i0 >= (JPH::uint32)inVertexCount ||
@@ -125,18 +95,16 @@ namespace NE::Physics {
             //     i2 >= (JPH::uint32)inVertexCount)
             //     continue;
 
-            // const JPH::Float3 p0 = inVertices[i0].mPosition;
-            // const JPH::Float3 p1 = inVertices[i1].mPosition;
-            // const JPH::Float3 p2 = inVertices[i2].mPosition;
+            const JPH::Float3 p0 = inVertices[i0].mPosition;
+            const JPH::Float3 p1 = inVertices[i1].mPosition;
+            const JPH::Float3 p2 = inVertices[i2].mPosition;
 
-        //    batch->edges.emplace_back(p0, p1);
-        //    batch->edges.emplace_back(p1, p2);
-        //    batch->edges.emplace_back(p2, p0);
-        //}
+            batch->edges.emplace_back(p0, p1);
+            batch->edges.emplace_back(p1, p2);
+            batch->edges.emplace_back(p2, p0);
+        }
 
-        //return JPH::DebugRenderer::Batch(batch);
-
-        return Batch(new SimpleBatch());
+        return JPH::DebugRenderer::Batch(batch);
     }
 
     void JoltDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::AABox& inWorldSpaceBounds, float inLODScaleSq, JPH::ColorArg inModelColor, const GeometryRef& inGeometry, ECullMode inCullMode, ECastShadow inCastShadow, EDrawMode inDrawMode)
@@ -205,5 +173,3 @@ namespace NE::Physics {
     //{
     //}
 }
-
-
