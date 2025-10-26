@@ -94,18 +94,18 @@ namespace NE::ECS::Systems {
 			collider.halfExtents.z = transform.scale.z * 0.5f;
 			// end of debugging half extents
 
+			Math::Vec3 fullSize =
+			{
+				collider.halfExtents.x * 2.0f,
+				collider.halfExtents.y * 2.0f,
+				collider.halfExtents.z * 2.0f
+			};
 
 			// Use collider's shape and size
 			switch (collider.shapeType)
 			{
 				case Component::Collider::ShapeType::Box:
 				{
-					Math::Vec3 fullSize = 
-					{
-						collider.halfExtents.x * 2.0f,
-						collider.halfExtents.y * 2.0f,
-						collider.halfExtents.z * 2.0f
-					};
 					rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
 						transform.position,
 						transform.rotation,
@@ -118,7 +118,16 @@ namespace NE::ECS::Systems {
 				}
 				case Component::Collider::ShapeType::Sphere:
 					// TODO: Create sphere body
-					printf("Sphere colliders not implemented yet\n");
+
+					rb.bodyID = Physics::PhysicsManager::CreateSphereBody(
+						transform.position,
+						transform.rotation,
+						collider.radius,
+						JPH::EMotionType::Dynamic
+						//rb.motionType,
+					);
+
+					printf("RigidbodySystem::OnEntityAdded - Created SPHERE physics body from collider data\n");
 					break;
 				case Component::Collider::ShapeType::Capsule:
 					// TODO: Create capsule body  

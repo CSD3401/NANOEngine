@@ -152,9 +152,11 @@ namespace NE::Physics {
         s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
 
         JPH::BodyManager::DrawSettings drawSettings;
-        //drawSettings.mDrawShape = true;
-        drawSettings.mDrawShape = false; // must be false to use our own jolt implementations
+        drawSettings.mDrawShape = true;
+        //drawSettings.mDrawShape = false; // must be false to use our own jolt implementations
         drawSettings.mDrawBoundingBox = true;  // show body AABBs 
+
+
         s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
 #pragma endregion
     }
@@ -214,8 +216,8 @@ namespace NE::Physics {
 
         // Actually move the body
         bodyInterface.SetPositionAndRotation(id, joltPos, joltRot, JPH::EActivation::DontActivate);
-        printf("PhysicsManager: Set transform for body ID %d to position (%f, %f, %f) and rotation (%f, %f, %f)\n",
-			index, position.x, position.y, position.z, rotation.x, rotation.y, rotation.z);
+        //printf("PhysicsManager: Set transform for body ID %d to position (%f, %f, %f) and rotation (%f, %f, %f)\n",
+		//	index, position.x, position.y, position.z, rotation.x, rotation.y, rotation.z);
     }
 
     //void PhysicsManager::GetTransform(JPH::BodyID id, Math::Vec3& position, Math::Vec3& rotation) {
@@ -342,10 +344,43 @@ namespace NE::Physics {
         printf("PhysicsManager::UpdateBoxSize called\n");
     }
 
-    //uint32_t PhysicsManager::CreateSphereBody(const Math::Vec3& pos, const Math::Vec3& rot, float radius, JPH::EMotionType motionType)
-    //{
-    //    return 0;
-    //}
+    uint32_t PhysicsManager::CreateSphereBody(const Math::Vec3& pos, const Math::Vec3& rot,
+        float radius, JPH::EMotionType motionType) {
+        if (!s_PhysicsSystem) return 0;
+
+        printf("Creating sphere with radius: %.2f\n", radius);
+
+        // Create sphere shape
+        JPH::SphereShapeSettings sphereSettings(radius);
+        JPH::ShapeSettings::ShapeResult shapeResult = sphereSettings.Create();
+
+        if (shapeResult.HasError()) {
+            printf("PhysicsManager: Error creating sphere shape: %s\n", shapeResult.GetError().c_str());
+            return 0;
+        }
+
+        JPH::RefConst<JPH::Shape> sphereShape = shapeResult.Get();
+
+        // Determine appropriate layer
+        JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
+
+        // Create body
+        JPH::BodyCreationSettings bodySettings(
+            sphereShape,
+            JPH::RVec3(pos.x, pos.y, pos.z),
+            JPH::Quat::sEulerAngles({
+                JPH::DegreesToRadians(rot.x),
+                JPH::DegreesToRadians(rot.y),
+                JPH::DegreesToRadians(rot.z)
+                }),
+            motionType,
+            layer
+        );
+
+        printf("CreateSphereBody successful\n");
+        return CreateBody(bodySettings);
+    }
+
 
     //void PhysicsManager::UpdateSphereRadius(uint32_t bodyID, float newRadius)
     //{
