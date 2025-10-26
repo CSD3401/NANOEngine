@@ -1,5 +1,6 @@
 #include "Scene.hpp"
 #include "../../src/Graphics/Core/GraphicsManager.hpp"
+#include "../../src/Graphics/Core/GizmosRenderer.hpp"
 #include "../ECS/Systems/TransformSystem.hpp"
 #include "../ECS/Systems/RenderSystem.hpp"
 #include "../ECS/Systems/LightSystem.hpp"
@@ -35,8 +36,11 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawSkybox(); // here for now
 		m_ecsCoordinator.m_renderSystem->Update(dt);
-		//Graphics::GraphicsManager::DrawDebugLines();
+		//Graphics::GraphicsManager::DrawDebugLines(); // commented out, as when included, scene::render will not render the lines and triangles as itll be cleared after drawdebuglines/triangles ends
 		//Graphics::GraphicsManager::DrawDebugTriangles();
+#pragma region test gizmos renderer
+		//Graphics::GizmosRenderer::TestGizmosRenderer();
+#pragma endregion
 		Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);

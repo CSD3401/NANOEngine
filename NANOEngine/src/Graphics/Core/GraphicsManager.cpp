@@ -243,6 +243,10 @@ namespace NE::Graphics {
 
         glBindVertexArray(debugVAO);
         glLineWidth(2.0f);
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2));
 
         s_DebugLines.clear();
@@ -295,6 +299,10 @@ namespace NE::Graphics {
         glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
 
         glBindVertexArray(debugVAO);
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glDepthMask(GL_TRUE);
 
         glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(s_DebugTriangles.size() * 3));
 
