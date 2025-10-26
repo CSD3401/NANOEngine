@@ -49,6 +49,13 @@ namespace NE::Physics {
 
 		static void UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize);
 
+        static uint32_t CreateSphereBody(const Math::Vec3& pos, 
+            const Math::Vec3& rot,
+            float radius, 
+            JPH::EMotionType motionType);
+
+        static void UpdateSphereRadius(uint32_t bodyID, float newRadius);
+
 		// Entity-physics mapping
 		static void RegisterEntityBody(Entity entity, uint32_t bodyID);
         static void UnregisterEntityBody(Entity entity);

@@ -342,6 +342,15 @@ namespace NE::Physics {
         printf("PhysicsManager::UpdateBoxSize called\n");
     }
 
+    //uint32_t PhysicsManager::CreateSphereBody(const Math::Vec3& pos, const Math::Vec3& rot, float radius, JPH::EMotionType motionType)
+    //{
+    //    return 0;
+    //}
+
+    //void PhysicsManager::UpdateSphereRadius(uint32_t bodyID, float newRadius)
+    //{
+    //}
+
     void PhysicsManager::RegisterEntityBody(Entity entity, uint32_t bodyID)
     {
         s_EntityToBodyMap[entity] = bodyID;
