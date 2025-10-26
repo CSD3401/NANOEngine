@@ -31,7 +31,7 @@ namespace NE::Scripting {
             ValidateScriptName(name);
 
             if (m_scriptFactories.find(name) != m_scriptFactories.end()) {
-                SPD_WARNING("Script '" << name << "' is already registered. Overwriting...");
+                SPD_WARNING("Script '" << name << "' is already registered.");
             }
 
             m_scriptFactories[name] = factory;
@@ -153,8 +153,6 @@ namespace NE::Scripting {
         }
 
         // Remove scripts that were registered by this DLL
-        // Note: This is a simplified approach. In a more sophisticated system,
-        // you might want to track which DLL registered which scripts.
         SPD_INFO("Unloading DLL: " << dllName << " (scripts will remain registered)");
 
         bool success = UnloadSingleDLL(*dll);
@@ -396,17 +394,30 @@ namespace NE::Scripting {
             // Store the loaded DLL information
             m_loadedDLLs.emplace_back(dllHandle, dllPath, dllName, registerFunc);
 
+            // --- CRITICAL ---
+            // Set temp state *before* calling registerFunc
+            m_currentLoadingDLLHandle = dllHandle;
+
+            // Call the registration function
+            registerFunc(this);
+
+            // Clear temp state
+            m_currentLoadingDLLHandle = nullptr;
+            // --- END CRITICAL ---
+
             SPD_INFO("Successfully loaded and registered scripts from: " << dllPath);
             return true;
 
         }
         catch (const std::exception& e) {
             SetLastError("Exception during script registration: " + std::string(e.what()));
+            m_currentLoadingDLLHandle = nullptr; // Clear temp state
             FreeLibrary(dllHandle);
             return false;
         }
         catch (...) {
             SetLastError("Unknown exception during script registration");
+            m_currentLoadingDLLHandle = nullptr; // Clear temp state
             FreeLibrary(dllHandle);
             return false;
         }

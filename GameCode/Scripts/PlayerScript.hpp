@@ -4,7 +4,7 @@
 #include "Input/InputManager.hpp"
 //#include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/Transform.hpp"
-#include "ExposedFieldRegistry.hpp"
+#include "../ExposedFieldRegistry.hpp"
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -26,7 +26,7 @@ public:
         REGISTER_FIELD(godMode);
         REGISTER_FIELD(label);
 
-        LogMessage("PlayerScript created");
+        LogMessage("PlayerScript created 54");
     }
     
     ~PlayerScript() override {
@@ -48,7 +48,7 @@ public:
         m_timeSinceLastLog += deltaTime;
         
         if (m_timeSinceLastLog >= LOG_INTERVAL) {
-            LogMessage("PlayerScript updating - Entity: " + std::to_string(GetEntity()) + 
+            LogMessage("PlayerScript updating 3 - Entity: " + std::to_string(GetEntity()) + 
                       ", DeltaTime: " + std::to_string(deltaTime));
             m_timeSinceLastLog = 0.0;
         }

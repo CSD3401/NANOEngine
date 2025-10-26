@@ -161,6 +161,7 @@ namespace NE::Scripting {
         // State tracking
         bool m_initialized;
         std::string m_lastError;
+        HMODULE m_currentLoadingDLLHandle = nullptr; // Temp state during LoadSingleDLL
 
         // === Private Helper Methods ===
 

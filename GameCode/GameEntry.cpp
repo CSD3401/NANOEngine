@@ -10,7 +10,7 @@
 // #include "Core/IScript.hpp"
 
 // Include headers for all scripts you want to register
-#include "PlayerScript.hpp"
+#include "Scripts/PlayerScript.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
