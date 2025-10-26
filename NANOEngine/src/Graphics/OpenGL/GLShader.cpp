@@ -133,9 +133,9 @@ namespace NE::Graphics::OpenGL {
             if (compiled != GL_TRUE) {
                 char log[1024];
                 glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-                //SPD_WARNING("Shader compilation failed: " << log << "\nShader Source: " << source);
+                SPD_WARNING("Shader compilation failed: " << log << "\nShader Source: " << source);
                 //SPD_Deb("Shader compilation failed: " << log << "\nShader Source: " << source);
-                std::cerr << "Shader compilation failed: " << log << "\nShader Source: " << source << std::endl;
+                //std::cerr << "Shader compilation failed: " << log << "\nShader Source: " << source << std::endl;
                 return false;
             }
 
