@@ -97,23 +97,127 @@ namespace NE::Physics {
 #pragma region test
     static void TestDebugDraw()
     {
-        // --- simple sanity draws to confirm your renderer works ---
+        using DR = JPH::DebugRenderer;
 
-        // Draw a single green line from (0,0,0) to (1,1,1)
-        g_joltDebugRenderer.DrawLine(
-            JPH::RVec3(0, 0, 0),
-            JPH::RVec3(1, 1, 1),
-            JPH::Color::sGreen
+        // make 3 points (vertices) that form a small triangle
+        DR::Vertex verts[3] = {};
+        verts[0].mPosition = JPH::Float3(0.0f, 0.0f, 0.0f); // bottom-left corner
+        verts[1].mPosition = JPH::Float3(1.0f, 0.0f, 0.0f); // bottom-right corner
+        verts[2].mPosition = JPH::Float3(0.0f, 1.0f, 0.0f); // top corner
+
+        // "indices" tell how to connect the points into a triangle
+        const JPH::uint32 indices[3] = { 0, 1, 2 };
+
+        // ask Jolt to bundle this vertex + index data into a "triangle batch"
+        DR::Batch batch = g_joltDebugRenderer.CreateTriangleBatch(verts, 3, indices, 3);
+        if (!batch) return; 
+
+        // compute the triangle’s bounding box (needed for culling)
+        const JPH::AABox bounds = DR::sCalculateBounds(verts, 3);
+        
+        // wrap the batch + bounds into a "Geometry" object
+        // jolt uses this to store all info it needs to render a shape
+        DR::GeometryRef geom = new DR::Geometry(batch, bounds);
+
+        // scaling factor
+        const float lodScaleSq = 1.0f;
+
+        // 1. draw a white filled triangle at position(0, 0, 0)
+        JPH::RMat44 Msolid = JPH::RMat44::sTranslation(JPH::RVec3(0.0, 0.0, 0.0));  // RMat44 is just a 4x4 transform matrix — here we use identity (no move)
+        g_joltDebugRenderer.DrawGeometry(
+            Msolid,
+            geom->mBounds.Transformed(Msolid),
+            lodScaleSq,
+            JPH::Color::sWhite,
+            geom,
+            DR::ECullMode::Off,
+            DR::ECastShadow::Off,
+            DR::EDrawMode::Solid
         );
 
-        // Draw a single blue triangle in the XY plane
-        g_joltDebugRenderer.DrawTriangle(
-            JPH::RVec3(0, 0, 0),
-            JPH::RVec3(1, 0, 0),
-            JPH::RVec3(0, 1, 0),
-            JPH::Color::sBlue,
-            JPH::DebugRenderer::ECastShadow::Off
+        // 2. draw a red wireframe triangle, a little to the right
+        JPH::RMat44 Mwire = JPH::RMat44::sTranslation(JPH::RVec3(1.25, 0.0, 0.0));
+        g_joltDebugRenderer.DrawGeometry(
+            Mwire,
+            geom->mBounds.Transformed(Mwire),
+            lodScaleSq,
+            JPH::Color::sRed,
+            geom,
+            DR::ECullMode::Off,
+            DR::ECastShadow::Off,
+            DR::EDrawMode::Wireframe
         );
+
+        // 3. test draw sphere, capsule, cylinder
+        // sphere
+        {
+            // solid
+            g_joltDebugRenderer.DrawSphere(
+                JPH::RVec3(0.0, 0.0, 1.5),   // center position (x, y, z)
+                0.5f,                        // how big the ball is
+                JPH::Color::sGreen,          // its color
+                DR::ECastShadow::Off,        // no shadows
+                DR::EDrawMode::Solid         // make it solid (not just a wireframe)
+            );
+
+            // wireframe
+            // Use DrawUnitSphere with a transform: scale = radius, translation = position
+            JPH::RMat44 T = JPH::RMat44::sTranslation(JPH::RVec3(1.25, 0.0, 1.5));
+            JPH::RMat44 S = JPH::RMat44::sScale(JPH::Vec3(0.5f, 0.5f, 0.5f));
+            JPH::RMat44 M = T * S;
+            g_joltDebugRenderer.DrawUnitSphere(
+                M,
+                JPH::Color::sRed,
+                DR::ECastShadow::Off,
+                DR::EDrawMode::Wireframe
+            );
+        }
+
+        // capsule
+        {
+            // solid
+            g_joltDebugRenderer.DrawCapsule(
+                JPH::RMat44::sTranslation(JPH::RVec3(3.0, 0.0, 1.5)), // place it further right
+                0.5f,                 // half the height of the cylinder part
+                0.25f,                // radius (how fat it is)
+                JPH::Color::sYellow,  // color
+                DR::ECastShadow::Off,
+                DR::EDrawMode::Solid  // solid fill
+            );
+
+            // wireframe
+            g_joltDebugRenderer.DrawCapsule(
+                JPH::RMat44::sTranslation(JPH::RVec3(4.0, 0.0, 1.5)),
+                0.5f,
+                0.25f,
+                JPH::Color::sOrange,
+                DR::ECastShadow::Off,
+                DR::EDrawMode::Wireframe
+            );
+        }
+
+        // cylinder
+        {
+            // solid
+            g_joltDebugRenderer.DrawCylinder(
+                JPH::RMat44::sTranslation(JPH::RVec3(5.5, 0.0, 1.5)), // push it further right
+                0.5f,                // half-height (so total height = 1.0)
+                0.3f,                // radius
+                JPH::Color::sCyan,   // color
+                DR::ECastShadow::Off,
+                DR::EDrawMode::Solid // solid fill
+            );
+
+            // wireframe
+            g_joltDebugRenderer.DrawCylinder(
+                JPH::RMat44::sTranslation(JPH::RVec3(6.5, 0.0, 1.5)),
+                0.5f,
+                0.3f,
+                JPH::Color::sBlue,
+                DR::ECastShadow::Off,
+                DR::EDrawMode::Wireframe
+            );
+        }
 
         // (Optional) Draw a few extras if you want to confirm orientation:
         g_joltDebugRenderer.DrawLine(JPH::RVec3(0, 0, 0), JPH::RVec3(1, 0, 0), JPH::Color::sRed);    // X-axis
@@ -128,6 +232,9 @@ namespace NE::Physics {
         s_Factory = std::make_unique<JPH::Factory>();
         JPH::Factory::sInstance = s_Factory.get();
         JPH::RegisterTypes();
+
+        JPH::DebugRenderer::sInstance = &g_joltDebugRenderer;
+        g_joltDebugRenderer.Init();
 
         s_TempAllocator = std::make_unique<JPH::TempAllocatorImpl>(10 * 1024 * 1024);
         s_JobSystem = std::make_unique<JPH::JobSystemThreadPool>(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, -1);

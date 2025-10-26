@@ -109,64 +109,58 @@ namespace NE::Physics {
 
     void JoltDebugRenderer::DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::AABox& inWorldSpaceBounds, float inLODScaleSq, JPH::ColorArg inModelColor, const GeometryRef& inGeometry, ECullMode inCullMode, ECastShadow inCastShadow, EDrawMode inDrawMode)
     {
-        (void)inModelMatrix;
+        //(void)inModelMatrix;
         (void)inWorldSpaceBounds;
         (void)inLODScaleSq;
-        (void)inModelColor;
-        (void)inGeometry;
+        //(void)inModelColor;
+        //(void)inGeometry;
         (void)inCullMode;
         (void)inCastShadow;
-        (void)inDrawMode;
+        //(void)inDrawMode;
 
-        //if (!inGeometry || inGeometry->mLODs.empty()) return;
+        if (!inGeometry || inGeometry->mLODs.empty()) return;
 
-        //const DebugRenderer::LOD& lod = inGeometry->mLODs.front();
-        //if (!lod.mTriangleBatch) return;
+        const DebugRenderer::LOD& lod = inGeometry->mLODs.front();
+        if (!lod.mTriangleBatch) return;
 
-        //const auto* batch = static_cast<const BatchPlaceHolder*>(lod.mTriangleBatch.GetPtr());
-        //if (!batch) return;
+        const auto* batch = static_cast<const BatchPlaceHolder*>(lod.mTriangleBatch.GetPtr());
+        if (!batch) return;
 
-        //const NE::Math::Vec3 color = ToColor(inModelColor);
+        const NE::Math::Vec3 color = ToColor(inModelColor);
 
-        //// draw based on the draw mode
-        //if (inDrawMode == EDrawMode::Solid)
-        //{
-        //    // draw triangles
-        //    for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
-        //    {
-        //        const JPH::uint32 idx0 = batch->indices[i + 0];
-        //        const JPH::uint32 idx1 = batch->indices[i + 1];
-        //        const JPH::uint32 idx2 = batch->indices[i + 2];
+        // draw triangles
+        for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
+        {
+            const JPH::uint32 idx0 = batch->indices[i + 0];
+            const JPH::uint32 idx1 = batch->indices[i + 1];
+            const JPH::uint32 idx2 = batch->indices[i + 2];
 
-        //        // bounds check
-        //        if (idx0 >= batch->verts.size() ||
-        //            idx1 >= batch->verts.size() ||
-        //            idx2 >= batch->verts.size())
-        //            continue;
+            // bounds check
+            if (idx0 >= batch->verts.size() ||
+                idx1 >= batch->verts.size() ||
+                idx2 >= batch->verts.size())
+                continue;
 
-        //        const JPH::Float3& p0 = batch->verts[idx0];
-        //        const JPH::Float3& p1 = batch->verts[idx1];
-        //        const JPH::Float3& p2 = batch->verts[idx2];
+            const JPH::Float3& p0 = batch->verts[idx0];
+            const JPH::Float3& p1 = batch->verts[idx1];
+            const JPH::Float3& p2 = batch->verts[idx2];
 
-        //        const JPH::RVec3 v0 = inModelMatrix * JPH::Vec3(p0.x, p0.y, p0.z);
-        //        const JPH::RVec3 v1 = inModelMatrix * JPH::Vec3(p1.x, p1.y, p1.z);
-        //        const JPH::RVec3 v2 = inModelMatrix * JPH::Vec3(p2.x, p2.y, p2.z);
+            const JPH::RVec3 v0 = inModelMatrix * JPH::Vec3(p0.x, p0.y, p0.z);
+            const JPH::RVec3 v1 = inModelMatrix * JPH::Vec3(p1.x, p1.y, p1.z);
+            const JPH::RVec3 v2 = inModelMatrix * JPH::Vec3(p2.x, p2.y, p2.z);
 
 
-        //        if (inDrawMode == EDrawMode::Solid)
-        //        {
-        //            NE::Graphics::GraphicsManager::AddDebugTriangle(ToVec3(v0), ToVec3(v1), ToVec3(v2), color);
-        //        }
-        //        else if (inDrawMode == EDrawMode::Wireframe)
-        //        {
-        //            NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v0), ToVec3(v1), color);
-        //            NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v1), ToVec3(v2), color);
-        //            NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v2), ToVec3(v0), color);
-        //        }
-        //    }
-        //}
-
-        return;
+            if (inDrawMode == EDrawMode::Solid)
+            {
+                NE::Graphics::GraphicsManager::AddDebugTriangle(ToVec3(v0), ToVec3(v1), ToVec3(v2), color);
+            }
+            else if (inDrawMode == EDrawMode::Wireframe)
+            {
+                NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v0), ToVec3(v1), color);
+                NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v1), ToVec3(v2), color);
+                NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v2), ToVec3(v0), color);
+            }
+        }
     }
 
     //void JoltDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor, float inHeight)
