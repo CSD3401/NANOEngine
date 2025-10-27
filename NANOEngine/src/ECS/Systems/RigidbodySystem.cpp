@@ -122,67 +122,9 @@ namespace NE::ECS::Systems {
 		Physics::PhysicsManager::DestroyBody(rb.bodyID);
 	}
 
-	//void RigidbodySystem::OnShapeChange(Entity entity, Component::Collider::ShapeType oldShape, Component::Collider::ShapeType newShape)
-	//{
-	//	printf("OnShapeChange - from %d to %d - recreating physics body\n",
-	//		static_cast<int>(oldShape), static_cast<int>(newShape));
-
-	//	if (!m_componentManager->HasComponent<Component::Rigidbody>(entity)) 
-	//	{
-	//		printf("OnShapeChange: No Rigidbody component found, cannot recreate physics body\n");
-	//		return;
-	//	}
-
-	//	auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-	//	auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-	//	auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
-
-	//	// Store the current motion type before destroying
-	//	JPH::EMotionType oldMotionType = JPH::EMotionType::Dynamic; // Default
-	//	if (rb.bodyID != 0) 
-	//	{
-	//		// Get current motion type from existing body
-	//		oldMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
-	//		// Destroy old physics body
-	//		Physics::PhysicsManager::DestroyBody(rb.bodyID);
-	//	}
-
-	//	// Create new physics body with updated shape
-	//	CreatePhysicsBodyFromComponent(entity, transform, rb, collider, oldMotionType);
-	//}
-
-	//void RigidbodySystem::OnPropertyChange(Entity entity)
-	//{
-	//	printf("OnPropertyChange - recreating physics body\n");
-
-	//	if (!m_componentManager->HasComponent<Component::Rigidbody>(entity)) 
-	//	{
-	//		return;
-	//	}
-
-	//	auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-	//	auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-	//	auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
-
-	//	// Store current motion type
-	//	JPH::EMotionType oldMotionType = JPH::EMotionType::Dynamic;
-	//	if (rb.bodyID != 0) 
-	//	{
-	//		oldMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
-	//		Physics::PhysicsManager::DestroyBody(rb.bodyID);
-	//	}
-
-	//	// Recreate with updated properties
-	//	CreatePhysicsBodyFromComponent(entity, transform, rb, collider, oldMotionType);
-	//}
-
 	void RigidbodySystem::CreatePhysicsBodyFromComponent(Entity entity, Component::Transform& transform, Component::Rigidbody& rb, Component::Collider& collider, JPH::EMotionType motionType)
 	{
 		(void)entity; // unused	
-		// Update half extents based on current transform scale
-		collider.halfExtents.x = transform.scale.x * 0.5f;
-		collider.halfExtents.y = transform.scale.y * 0.5f;
-		collider.halfExtents.z = transform.scale.z * 0.5f;
 
 		Math::Vec3 fullSize = {
 			collider.halfExtents.x * 2.0f,
@@ -244,12 +186,21 @@ namespace NE::ECS::Systems {
 	{
 		const auto& entities = GetEntities();
 
-		for (Entity e : entities) {
-			if (!m_componentManager->HasComponent<Component::Collider>(e)) {
+		for (Entity e : entities) 
+		{
+			if (!m_componentManager->HasComponent<Component::Collider>(e)) 
+			{
 				continue;
 			}
 
 			auto& collider = m_componentManager->GetComponent<Component::Collider>(e);
+
+			// Clamp values prevent negative size
+			collider.halfExtents.x = std::max(0.1f, collider.halfExtents.x);
+			collider.halfExtents.y = std::max(0.1f, collider.halfExtents.y);
+			collider.halfExtents.z = std::max(0.1f, collider.halfExtents.z);
+			collider.radius = std::max(0.1f, collider.radius);
+			collider.height = std::max(0.1f, collider.height);
 
 			bool needsRecreation = false;
 
