@@ -168,7 +168,7 @@ namespace Editor {
                 bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
                     Editor::EditorScene::s_selectedEntity = ent;
-                    EditorScene::selectedMaterial = "";
+                    EditorScene::selectedAsset = "";
                 }
 
                 // row rect

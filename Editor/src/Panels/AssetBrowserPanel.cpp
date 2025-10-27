@@ -276,7 +276,7 @@ namespace Editor {
                         ImGui::EndDragDropSource();
                     } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         EditorScene::s_selectedEntity = nullptr;
-                        EditorScene::selectedMaterial = entryPath.string();
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 } else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
                     if (ImGui::BeginDragDropSource()) {
@@ -284,6 +284,9 @@ namespace Editor {
                         ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", texturePath.c_str(), texturePath.size() + 1);
                         ImGui::TextUnformatted(name.c_str());
                         ImGui::EndDragDropSource();
+                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 }
             }
@@ -338,7 +341,7 @@ namespace Editor {
             ImGui::PopID();
         }
 
-        ImGui::Columns(1);
+        ImGui::Columns();
 
         if (m_triggerRenameNextFrame) {
             m_triggerRenameNextFrame = false;
