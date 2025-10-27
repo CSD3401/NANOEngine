@@ -24,6 +24,7 @@
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
 
 namespace NE {
 
@@ -176,5 +177,9 @@ namespace NE {
 		g_EngineState = EngineState::Edit;
 		Physics::PhysicsManager::DeactivateBodies();
 		gSceneManager.GetActive()->ScriptStop();
+	}
+
+	int GetDrawCallCount() {
+		return Graphics::GraphicsManager::drawCount;
 	}
 }

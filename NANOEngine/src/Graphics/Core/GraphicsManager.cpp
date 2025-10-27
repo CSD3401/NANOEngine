@@ -30,6 +30,8 @@ namespace NE::Graphics {
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
 
+    int GraphicsManager::drawCount = 0;
+
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
@@ -72,6 +74,8 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::BeginFrame() {
+        drawCount = 0;
+
 		s_StateCache->InvalidateAll();
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
@@ -129,6 +133,7 @@ namespace NE::Graphics {
             // Draw indexed
             //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
             command.mesh->Draw();
+            ++drawCount;
 
             glBindVertexArray(0);
 		}

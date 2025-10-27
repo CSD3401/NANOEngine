@@ -47,7 +47,7 @@ namespace NE::Graphics {
         const RenderQueue& GetQueueBase() const { return m_BaseRQ; }
 		    const uint16_t& GetQueueOffset() const { return m_OffsetRQ; }
 		    const uint16_t GetQueueOrder() const { return static_cast<uint16_t>(m_BaseRQ) + m_OffsetRQ; }
-        const std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>>& GetTextures() const { return m_Textures; }
+        const std::unordered_map<std::string, std::shared_ptr<ITexture>>& GetTextures() const { return m_Textures; }
 
         void SaveMaterial(const std::string& path) const;
         bool LoadFromFile(const std::string& fileName) override;
@@ -68,7 +68,7 @@ namespace NE::Graphics {
 		    // Render queue
 		    RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
 		    uint16_t m_OffsetRQ = 0;
-        std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
+        //std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
 	};
 
     //void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);

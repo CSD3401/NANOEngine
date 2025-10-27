@@ -54,10 +54,10 @@ namespace NE::Graphics {
         m_Mat4Uniforms[uName] = value;
     }
 
-    void Material::SetTexture(const std::string& uName, std::shared_ptr<OpenGL::GLTexture> texture) {
-        m_Textures[uName] = std::move(texture);
-        m_Textures[uName]->MakeResident();
-    }
+    //void Material::SetTexture(const std::string& uName, std::shared_ptr<OpenGL::GLTexture> texture) {
+    //    m_Textures[uName] = std::move(texture);
+    //    m_Textures[uName]->MakeResident();
+    //}
 
     void Material::SetQueueBase(RenderQueue queue) {
 		m_BaseRQ = queue;
