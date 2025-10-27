@@ -1,6 +1,5 @@
 ﻿#include "ScenePanel.hpp"
 #include "Math/Vec3.hpp"
-#include "Math/Mat4.hpp"
 #include <imgui/imgui.h>
 #include "../EditorScene.hpp"
 #include "Engine.hpp"
@@ -9,7 +8,6 @@
 #include <ECS/Components/Transform.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
-#include "Graphics/Core/GizmosRenderer.hpp"
 
 namespace Editor {
 	static uint32_t temp;
@@ -165,15 +163,6 @@ namespace Editor {
 								break;
 							}
 						}
-
-						if (EditorScene::s_selectedEntity) {
-							auto* e = EditorScene::s_selectedEntity;
-							Mat4 world = e->GetTransformMatrix();
-							Vec3 aabbMin = e->GetAABBMin();
-							Vec3 aabbMax = e->GetAABBMax();
-
-							NE::Graphics::GizmosRenderer::SetColor({ 1.0f, 0.0f, 0.0f });
-							NE::Graphics::GizmosRenderer::OnDrawGizmosSelected(world, aabbMin, aabbMax);
 					}
 				}
 			}

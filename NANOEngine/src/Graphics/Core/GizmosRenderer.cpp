@@ -339,41 +339,41 @@ namespace NE::Graphics {
         GizmosRenderer::DrawSphere({ 1, 0, 0 }, 0.3f, 8, 6);
         std::cout << "Drew complex scene with bounding box and 3 colored spheres" << std::endl;
 
-        //// Test 19: Calculating LODs
-        //std::cout << "\n[19] Testing calculating LODs..." << std::endl;
+        // Test 19: Calculating LODs
+        std::cout << "\n[19] Testing calculating LODs..." << std::endl;
 
-        //// Get active camera from GraphicsManager
-        //Camera* cam = GraphicsManager::GetCamera();
-        //if (!cam)
-        //{
-        //    std::cout << "No active camera found!\n";
-        //    return;
-        //}
+        // Get active camera from GraphicsManager
+        Camera* cam = GraphicsManager::GetCamera();
+        if (!cam)
+        {
+            std::cout << "No active camera found!\n";
+            return;
+        }
 
-        //// Mock the camera position: Set its position manually
-        //cam->SetPosition({ 0.0f, 0.0f, 0.0f });
+        // Mock the camera position: Set its position manually
+        cam->SetPosition({ 0.0f, 0.0f, 0.0f });
 
-        //// Example objects at different distances
-        //struct Obj { Math::Vec3 pos; float radius; };
-        //Obj objects[] = {
-        //    { { 0.0f, 0.0f, 2.0f }, 1.0f },   // near
-        //    { { 0.0f, 0.0f, 10.0f }, 1.0f },  // medium
-        //    { { 0.0f, 0.0f, 50.0f }, 1.0f },  // far
-        //    { { 0.0f, 0.0f, 100.0f }, 5.0f }  // very far, large radius
-        //};
+        // Example objects at different distances
+        struct Obj { Math::Vec3 pos; float radius; };
+        Obj objects[] = {
+            { { 0.0f, 0.0f, 2.0f }, 1.0f },   // near
+            { { 0.0f, 0.0f, 10.0f }, 1.0f },  // medium
+            { { 0.0f, 0.0f, 50.0f }, 1.0f },  // far
+            { { 0.0f, 0.0f, 100.0f }, 5.0f }  // very far, large radius
+        };
 
-        //std::cout << "Testing LOD function:\n";
-        //for (auto& o : objects)
-        //{
-        //    float lod = NE::Graphics::GizmosRenderer::CalculateLOD(o.pos, o.radius);
-        //    std::cout << "Object at " << o.pos.z << " -> LOD = " << lod << "\n";
-        //}
+        std::cout << "Testing LOD function:\n";
+        for (auto& o : objects)
+        {
+            float lod = NE::Graphics::GizmosRenderer::CalculateLOD(o.pos, o.radius);
+            std::cout << "Object at " << o.pos.z << " -> LOD = " << lod << "\n";
+        }
 
-        // Expected output:
-        // Object at 2->LOD = 0.5
-        // Object at 10->LOD = 0.1
-        // Object at 50->LOD = 0.02
-        // Object at 100->LOD = 0.05
+         Expected output:
+         Object at 2->LOD = 0.5
+         Object at 10->LOD = 0.1
+         Object at 50->LOD = 0.02
+         Object at 100->LOD = 0.05
 
         std::cout << "\n=== All tests completed! ===" << std::endl;
         std::cout << "Total tests: 18" << std::endl;
@@ -401,6 +401,55 @@ namespace NE::Graphics {
         return lod;
     }
 
-    //void GizmosRenderer::OnDrawGizmos();         // always visible
-    //void GizmosRenderer::OnDrawGizmosSelected(); // only for selected entities
+#pragma region example implementations for overriding virutal functions
+    // example implementation when overriding for scripting
+    //// Example: PlayerController.hpp
+    //#include "GizmosRenderer.hpp"
+
+    //    class PlayerController : public IGizmosDrawable {
+    //    private:
+    //        Math::Vec3 m_Position;
+    //        float m_ViewRadius = 5.0f;
+
+    //    public:
+    //        // Implement the virtual methods HERE
+    //        void OnDrawGizmos() override {
+    //            // Draw view radius (always visible)
+    //            GizmosRenderer::SetColor({ 0.0f, 1.0f, 0.0f });
+    //            GizmosRenderer::DrawWireSphere(m_Position, m_ViewRadius, 24);
+    //        }
+
+    //        void OnDrawGizmosSelected() override {
+    //            // Draw detailed info when selected
+    //            GizmosRenderer::SetColor({ 1.0f, 1.0f, 0.0f });
+    //            GizmosRenderer::DrawWireCube(
+    //                m_Position - Math::Vec3{ 0.5f, 0.5f, 0.5f },
+    //                m_Position + Math::Vec3{ 0.5f, 2.0f, 0.5f }
+    //            );
+
+    //            Math::Mat4 transform = Math::Mat4::Identity();
+    //            transform.SetTranslation(m_Position);
+    //            GizmosRenderer::DrawAxes(transform, 1.0f);
+    //        }
+    //    };
+
+    //// then in editor/scene manager
+    //// EditorManager.cpp or SceneRenderer.cpp
+    //void EditorManager::RenderGizmos() {
+    //    // Loop through all objects in scene
+    //    for (auto* obj : m_SceneObjects) {
+    //        // Check if object implements IGizmosDrawable
+    //        if (auto* drawable = dynamic_cast<IGizmosDrawable*>(obj)) {
+    //            drawable->OnDrawGizmos(); // Call always
+    //        }
+    //    }
+
+    //    // Draw selected object's gizmos
+    //    if (m_SelectedObject) {
+    //        if (auto* drawable = dynamic_cast<IGizmosDrawable*>(m_SelectedObject)) {
+    //            drawable->OnDrawGizmosSelected(); // Call only for selected
+    //        }
+    //    }
+    //}
+#pragma endregion
 }

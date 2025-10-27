@@ -5,6 +5,7 @@
 
 namespace NE::Graphics {
 
+    // Static utility class for drawing (like Unity's Gizmos static class)
     class GizmosRenderer {
     public:
         // basic primitives
@@ -31,15 +32,22 @@ namespace NE::Graphics {
         static void SetColor(const Math::Vec3& color);
         static const Math::Vec3& GetColor();
 
-        // editor hooks (optional)
+        // other utilities
         static float CalculateLOD(const Math::Vec3& position, float radius);
-        //static void OnDrawGizmos();         // always visible
-        //static void OnDrawGizmosSelected(); // only for selected entities
-        
         static void TestGizmosRenderer();
 
     private:
         static Math::Vec3 m_CurrentColor;
+    };
+
+    // Interface for objects that can draw gizmos (like Unity's MonoBehaviour)
+    class IGizmosDrawable {
+    public:
+        virtual ~IGizmosDrawable() = default;
+
+        // Override these in your game objects/components
+        virtual void OnDrawGizmos() {}                  // always visible
+        virtual void OnDrawGizmosSelected() {}          // only when selected
     };
 
 } // namespace NE::Graphics
