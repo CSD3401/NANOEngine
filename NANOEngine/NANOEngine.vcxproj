@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Core\SpdLoggerInternal.hpp" />
     <ClInclude Include="src\ResourceManager.hpp" />
     <ClInclude Include="src\Audio\AudioBank.hpp" />
     <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
@@ -116,6 +117,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Core\SpdLogger.cpp" />
     <ClCompile Include="src\ResourceManager.cpp" />
     <ClCompile Include="src\Audio\AudioBank.cpp" />
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
