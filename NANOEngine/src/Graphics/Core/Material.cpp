@@ -59,6 +59,14 @@ namespace NE::Graphics {
         m_Textures[uName]->MakeResident();
     }
 
+    void Material::SetQueueBase(RenderQueue queue) {
+		m_BaseRQ = queue;
+    }
+
+	void Material::SetQueueOffset(uint16_t offset) {
+		m_OffsetRQ = offset;
+	}
+
     void Material::Bind() const {
         //m_Pipeline->Bind();
 

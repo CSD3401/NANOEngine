@@ -4,15 +4,16 @@
 #include <sstream>
 #include <iostream>
 
+
 namespace NE::Graphics::OpenGL {
 
     GLPipeline::GLPipeline(const PipelineSpecification& spec, std::string name)
         : m_name(name), m_Spec(spec)
     {}
 
-    GLPipeline::GLPipeline(const PipelineSpecification & spec) : m_Spec(spec)
-    {
-    }
+    GLPipeline::GLPipeline(const PipelineSpecification& spec) : 
+        m_Spec(spec), m_Key(PipelineKey::MakeKey(spec))
+    {}
 
     void GLPipeline::Bind() const {
         if (m_Spec.EnableDepthTest)
@@ -35,6 +36,7 @@ namespace NE::Graphics::OpenGL {
 
         m_Spec.shader->Bind();
     }
+
 
     const std::string_view GLPipeline::GetShaderUUID() const
     {
