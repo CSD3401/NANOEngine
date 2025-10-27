@@ -32,7 +32,7 @@ namespace NE::Graphics {
         static const Math::Vec3& GetColor();
 
         // editor hooks (optional)
-        //static float CalculateLOD(const Math::Vec3& position, float radius);
+        static float CalculateLOD(const Math::Vec3& position, float radius);
         //static void OnDrawGizmos();         // always visible
         //static void OnDrawGizmosSelected(); // only for selected entities
         

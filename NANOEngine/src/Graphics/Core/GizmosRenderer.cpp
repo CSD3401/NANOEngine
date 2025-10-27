@@ -1,5 +1,7 @@
 #include "GizmosRenderer.hpp"
 #include "../../Math/Mat4.hpp"
+#include "GraphicsManager.hpp"
+#include "Camera.hpp"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -337,13 +339,68 @@ namespace NE::Graphics {
         GizmosRenderer::DrawSphere({ 1, 0, 0 }, 0.3f, 8, 6);
         std::cout << "Drew complex scene with bounding box and 3 colored spheres" << std::endl;
 
+        //// Test 19: Calculating LODs
+        //std::cout << "\n[19] Testing calculating LODs..." << std::endl;
+
+        //// Get active camera from GraphicsManager
+        //Camera* cam = GraphicsManager::GetCamera();
+        //if (!cam)
+        //{
+        //    std::cout << "No active camera found!\n";
+        //    return;
+        //}
+
+        //// Mock the camera position: Set its position manually
+        //cam->SetPosition({ 0.0f, 0.0f, 0.0f });
+
+        //// Example objects at different distances
+        //struct Obj { Math::Vec3 pos; float radius; };
+        //Obj objects[] = {
+        //    { { 0.0f, 0.0f, 2.0f }, 1.0f },   // near
+        //    { { 0.0f, 0.0f, 10.0f }, 1.0f },  // medium
+        //    { { 0.0f, 0.0f, 50.0f }, 1.0f },  // far
+        //    { { 0.0f, 0.0f, 100.0f }, 5.0f }  // very far, large radius
+        //};
+
+        //std::cout << "Testing LOD function:\n";
+        //for (auto& o : objects)
+        //{
+        //    float lod = NE::Graphics::GizmosRenderer::CalculateLOD(o.pos, o.radius);
+        //    std::cout << "Object at " << o.pos.z << " -> LOD = " << lod << "\n";
+        //}
+
+        // Expected output:
+        // Object at 2->LOD = 0.5
+        // Object at 10->LOD = 0.1
+        // Object at 50->LOD = 0.02
+        // Object at 100->LOD = 0.05
+
         std::cout << "\n=== All tests completed! ===" << std::endl;
         std::cout << "Total tests: 18" << std::endl;
         std::cout << "\nNote: Verify visual output in your graphics window" << std::endl;
     }
 
     // editor hooks (optional)
-    //float CalculateLOD(const Math::Vec3& position, float radius);
+    float GizmosRenderer::CalculateLOD(const Math::Vec3& position, float radius) {
+        // get the camera position
+        Math::Vec3 cameraPos = GraphicsManager::GetCamera()->GetPosition();
+
+        // compute distance between the camera and the object
+        float distance = (position - cameraPos).Length();
+
+        // basic LOD rule: smaller value = closer (more detail)
+        // larger value = farther (less detail)
+        // here we just divide radius by distance, clamped so it doesn't blow up
+        float lod = radius / std::max(distance, 0.001f);
+
+        // optionally clamp between 0 and 1 for consistency
+        // LOD ~ 1.0 -> close to camera (high detail)
+        // LOD ~ 0.0 -> far away (low detail)
+        lod = std::clamp(lod, 0.0f, 1.0f);
+
+        return lod;
+    }
+
     //void GizmosRenderer::OnDrawGizmos();         // always visible
     //void GizmosRenderer::OnDrawGizmosSelected(); // only for selected entities
 }

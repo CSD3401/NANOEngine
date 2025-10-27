@@ -39,7 +39,7 @@ namespace NE::SceneManagement {
 		//Graphics::GraphicsManager::DrawDebugLines(); // commented out, as when included, scene::render will not render the lines and triangles as itll be cleared after drawdebuglines/triangles ends
 		//Graphics::GraphicsManager::DrawDebugTriangles();
 #pragma region test gizmos renderer
-		//Graphics::GizmosRenderer::TestGizmosRenderer();
+		Graphics::GizmosRenderer::TestGizmosRenderer();
 #pragma endregion
 		Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
