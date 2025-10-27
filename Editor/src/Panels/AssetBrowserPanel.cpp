@@ -5,6 +5,8 @@
 #include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
 #include <Utility/MetadataHandler.hpp>
+#include <Core/SpdLogger.hpp>
+#include <fstream>
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
@@ -26,6 +28,10 @@ namespace Editor {
 
             if (filePath.extension() == ".nanoshader") {
                 NE::LoadShader(filePath.string());
+            }
+
+            if (filePath.extension() == ".jpg" || filePath.extension() == ".png") {
+                NE::LoadTexture(filePath.string());
             }
         }
 	}
@@ -125,9 +131,9 @@ namespace Editor {
             ImGui::PushID(label.c_str());
 
             // Get mouse hover
-            ImVec2 min = ImGui::GetCursorScreenPos();
+            //ImVec2 min = ImGui::GetCursorScreenPos(); // warning unused var - RF
             ImGui::TextUnformatted(label.c_str());
-            ImVec2 max = ImGui::GetCursorScreenPos();
+            //ImVec2 max = ImGui::GetCursorScreenPos(); // warning unused var - RF
 
             ImVec2 textMin = ImGui::GetItemRectMin();
             ImVec2 textMax = ImGui::GetItemRectMax();
@@ -207,7 +213,7 @@ namespace Editor {
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
         int columnCount = (int)(panelWidth / cellSize);
-        if (columnCount < 1) columnCount = 1;
+        if (columnCount < 1) columnCount = 1; // NOLINT 
 
         ImGui::Columns(columnCount, 0, false);
 
@@ -268,6 +274,13 @@ namespace Editor {
                     } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         EditorScene::s_selectedEntity = nullptr;
                         EditorScene::selectedMaterial = entryPath.string();
+                    }
+                } else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
+                    if (ImGui::BeginDragDropSource()) {
+                        std::string texturePath = entry.path().string();
+                        ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", texturePath.c_str(), texturePath.size() + 1);
+                        ImGui::TextUnformatted(name.c_str());
+                        ImGui::EndDragDropSource();
                     }
                 }
             }
@@ -356,7 +369,7 @@ namespace Editor {
                 if (ImGui::BeginMenu("Rendering")) {
 
                     if (ImGui::MenuItem("Material")) {
-                        //CreateNewFolder();
+                        CreateNewMaterial();
                     }
 
                     ImGui::EndMenu();
@@ -431,5 +444,62 @@ namespace Editor {
 
         std::filesystem::create_directory(newFolderPath);
     }
+
+    void AssetBrowserPanel::CreateNewMaterial() {
+        namespace fs = std::filesystem;
+
+        try {
+            // 1) Decide where to place the file
+            fs::path targetDir = m_currentDirectory;               // assumes you already track this
+            if (targetDir.empty()) targetDir = fs::current_path();  // fallback, just in case
+            if (!fs::exists(targetDir)) fs::create_directories(targetDir);
+
+            // 2) Pick a unique filename
+            const std::string baseName = "NewShader";
+            fs::path outPath = targetDir / (baseName + ".nanoshader");
+            int counter = 1;
+            while (fs::exists(outPath)) {
+                outPath = targetDir / (baseName + " (" + std::to_string(counter++) + ").nanoshader");
+            }
+
+            // 3) JSON preset content (exactly as requested)
+            static constexpr const char* kPreset = R"({
+    "Shader": "Unlit",
+    "DepthTest": true,
+    "BlendMode": true,
+    "CullMode": 1029,
+    "PolygonMode": 6914,
+    "Properties": {
+        "u_BaseColor": [
+            0.0,
+            0.5,
+            1.0
+        ]
+    }
+}
+)";
+
+            // 4) Write file
+            std::ofstream ofs(outPath, std::ios::out | std::ios::trunc);
+            if (!ofs) {
+                // Replace with your logger if different
+                SPD_WARNING(std::string("Failed to create file: ") + outPath.string());
+                return;
+            }
+            ofs << kPreset;
+            ofs.close();
+
+            // 5) (Optional) Notify / refresh selection
+            SPD_INFO(std::string("Created shader preset: ") + outPath.string());
+            // If you have such methods, you can refresh the panel / select the new file here:
+            // RefreshDirectoryListing();
+            // m_selectedPath = outPath;
+            // m_clickedOnItem = true;
+
+        } catch (const std::exception& e) {
+            SPD_WARNING(std::string("CreateNewMaterial() error: ") + e.what());
+        }
+    }
+    
 }
 

@@ -13,201 +13,222 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\vendor">
+      <UniqueIdentifier>{a52dba7d-9051-4820-95bb-c7aa5b8b30bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\src">
+      <UniqueIdentifier>{2bb49863-5939-404d-a10b-7ed5d7fdff56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\src">
+      <UniqueIdentifier>{f9e9317a-1c43-4d1f-9c50-23a09ea349cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vendor">
+      <UniqueIdentifier>{a30cd6b5-bd17-428b-b93a-b0e165c17487}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Application.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGuiLayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="vendor\imgui\imgui.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_impl_opengl3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_impl_glfw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EditorLayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_tables.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_widgets.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
     <ClCompile Include="vendor\imgui\imgui_draw.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\AssetBrowserPanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="vendor\imgui\imgui_impl_glfw.cpp">
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\ScenePanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="vendor\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\GamePanel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Panels\HierarchyPanel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Panels\InspectorPanel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Panels\ConsolePanel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ThumbnailManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Command\CommandHistory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Command\EditorCommands.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EditorScene.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Panels\HistoryPanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="vendor\imgui\imgui_tables.cpp">
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
     <ClCompile Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\ProfilerPanel.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="vendor\imgui\imgui_widgets.cpp">
+      <Filter>Source Files\vendor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ImGuiLayer.cpp">
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
     <ClCompile Include="vendor\imgui\widgets\imguizmo\ImGuizmo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EditorUI.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
     <ClCompile Include="vendor\imgui\widgets\imsearch\imsearch.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
     <ClCompile Include="vendor\imgui\widgets\imsearch\imsearch_demo.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\vendor</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\SceneCameraTweener.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\Application.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\AssetBrowserPanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Command\CommandHistory.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\ConsolePanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Command\EditorCommands.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorLayer.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorScene.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorUI.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\GamePanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\HierarchyPanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\HistoryPanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\InspectorPanel.cpp">
+      <Filter>Source Files\src</Filter>
     </ClCompile>
     <ClCompile Include="src\Panels\LoggerPanel.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\ProfilerPanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\SceneCameraTweener.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Panels\ScenePanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ThumbnailManager.cpp">
+      <Filter>Source Files\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Application.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="vendor\imgui\imconfig.h">
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\imgui.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imconfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imgui_impl_opengl3_loader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imgui_impl_opengl3.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\imgui_impl_glfw.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
-    <ClInclude Include="src\ImGuiLayer.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="vendor\imgui\imgui_impl_opengl3.h">
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
-    <ClInclude Include="src\EditorLayer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorUI.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="vendor\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\imgui_internal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\IPanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\AssetBrowserPanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\ScenePanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\GamePanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\HierarchyPanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\InspectorPanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\ConsolePanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ThumbnailManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorEntity.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Command\CommandHistory.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Command\ICommand.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Command\EditorCommands.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorScene.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\HistoryPanel.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorEvents.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
-    <ClInclude Include="src\Panels\ProfilerPanel.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\ImGuiLayer.hpp">
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\widgets\imguizmo\ImGuizmo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\widgets\imsearch\imsearch.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\widgets\imsearch\imsearch_internal.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\vendor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Application.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\AssetBrowserPanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Command\CommandHistory.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\ConsolePanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Command\EditorCommands.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorEntity.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorEvents.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorLayer.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorScene.hpp">
+      <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\Panels\SceneCameraTweener.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\EditorUI.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\GamePanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\HierarchyPanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\HistoryPanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Command\ICommand.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\InspectorPanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\IPanel.hpp">
+      <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Panels\LoggerPanel.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\ProfilerPanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\SceneCameraTweener.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\ScenePanel.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ThumbnailManager.hpp">
+      <Filter>Header Files\src</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h">
+      <Filter>Header Files\vendor</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_textedit.h">
+      <Filter>Header Files\vendor</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_truetype.h">
+      <Filter>Header Files\vendor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

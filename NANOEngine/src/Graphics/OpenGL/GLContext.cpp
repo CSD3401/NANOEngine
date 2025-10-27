@@ -1,8 +1,9 @@
 #include "GLContext.hpp"
 #include <glad/glad.h>
 #define GLFW_DLL
-#include "GLFW/glfw3.h"
+#include "glfw/glfw3.h"
 #include "../../src/Core/Logger.hpp"
+#include "Core/SPDLogger.hpp"
 
 
 namespace NE::Graphics::OpenGL {
@@ -21,7 +22,7 @@ namespace NE::Graphics::OpenGL {
 		}
 
 
-		LOG_INFO("OpenGL Version: ", glGetString(GL_VERSION));
+		SPD_INFO("OpenGL Version: ", glGetString(GL_VERSION));
 
 		return true;
 	}

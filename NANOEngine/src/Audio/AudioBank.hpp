@@ -25,7 +25,7 @@ namespace NE::Asset
 		struct EventInfo 
 		{
 			std::string path;        // "event:/Footsteps/Concrete"
-			std::string displayName; // "Footsteps Concrete"
+			std::string audioName; // "Footsteps Concrete"
 			FMOD::Studio::EventDescription* eventDesc = nullptr;
 		};
 

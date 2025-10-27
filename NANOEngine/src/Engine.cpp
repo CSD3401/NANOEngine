@@ -13,7 +13,7 @@
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
 #include "AssetManager.hpp"
 #include <iostream>
-#include <GLFW/glfw3.h>
+#include <glfw/glfw3.h>
 #include <stb_image/stb_image.h>
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
@@ -23,6 +23,7 @@
 #include "Tween/TweenManager.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
+#include "Graphics/OpenGL/GLTexture.hpp"
 
 namespace NE {
 
@@ -64,8 +65,8 @@ namespace NE {
 
 		s_sceneFrameBuffer->Bind();
 		Graphics::GraphicsManager::BeginFrame();
-		TweenManager::Get().Update(static_cast<float>(dt));
 		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
+		TweenManager::Get().Update(static_cast<float>(dt));
 		Graphics::GraphicsManager::EndFrame();
 		s_sceneFrameBuffer->Unbind();
 		
@@ -122,6 +123,15 @@ namespace NE {
 
 	void LoadShader(std::string_view filePath) {
 		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(filePath.data(), false);
+	}
+
+	void LoadTexture(std::string_view filePath) {
+		Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
+	}
+
+	std::shared_ptr<Graphics::OpenGL::GLTexture> GetTexture(std::string_view filePath)
+	{
+		return Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(filePath.data(), false);
 	}
 
 	std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path) {

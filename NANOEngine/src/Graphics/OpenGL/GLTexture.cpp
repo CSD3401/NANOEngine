@@ -7,14 +7,24 @@
 #include "../../Core/Logger.hpp"
 
 namespace NE::Graphics::OpenGL {
-    GLTexture::GLTexture(const std::string& path) {
+    GLTexture::GLTexture() {
+
+    }
+
+    GLTexture::~GLTexture() {
+        if (m_Handle) glMakeTextureHandleNonResidentARB(m_Handle);
+        if (m_ID)     glDeleteTextures(1, &m_ID);
+    }
+
+    bool GLTexture::LoadFromFile(const std::string& fileName)
+    {
         int width, height, channels;
-        stbi_set_flip_vertically_on_load(true);
-        unsigned char* data = stbi_load(path.c_str(), &width, &height, &channels, 4); // force RGBA
+        //stbi_set_flip_vertically_on_load(true); to be changed from global state to individually flippable
+        unsigned char* data = stbi_load(fileName.c_str(), &width, &height, &channels, 4); // force RGBA
 
         if (!data) {
-            LOG_WARNING("Failed to load texture: " + path);
-            return;
+            LOG_WARNING("Failed to load texture: " + fileName);
+            return false;
         }
 
         glGenTextures(1, &m_ID);
@@ -36,10 +46,8 @@ namespace NE::Graphics::OpenGL {
         // Bindless handle
         m_Handle = glGetTextureHandleARB(m_ID);
         glMakeTextureHandleResidentARB(m_Handle);
-    }
 
-    GLTexture::~GLTexture() {
-        glDeleteTextures(1, &m_ID);
+        return true;
     }
 
     void GLTexture::MakeResident() {

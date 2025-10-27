@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <string>
 #include "../Interfaces/IPipeline.hpp"
-#include "../Interfaces/ITexture.hpp"
+#include "../OpenGL/GLTexture.hpp"
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
 #include "../../NANOEngineAPI.hpp"
@@ -38,13 +38,16 @@ namespace NE::Graphics {
 
         std::shared_ptr<IPipeline> GetPipeline() const { return m_Pipeline; }
 
-        const std::unordered_map<std::string, int>& GetIntUniforms() const { return m_IntUniforms; }
-        const std::unordered_map<std::string, float>& GetFloatUniforms() const { return m_FloatUniforms; }
+        //const std::unordered_map<std::string, int>& GetIntUniforms() const { return m_IntUniforms; }
+        //const std::unordered_map<std::string, float>& GetFloatUniforms() const { return m_FloatUniforms; }
+        std::unordered_map<std::string, int>& GetIntUniforms() { return m_IntUniforms; }
+        std::unordered_map<std::string, float>& GetFloatUniforms() { return m_FloatUniforms; }
         const std::unordered_map<std::string, Vec3>& GetVec3Uniforms() const { return m_Vec3Uniforms; }
         const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
         const RenderQueue& GetQueueBase() const { return m_BaseRQ; }
-		const uint16_t& GetQueueOffset() const { return m_OffsetRQ; }
-		const uint16_t GetQueueOrder() const { return static_cast<uint16_t>(m_BaseRQ) + m_OffsetRQ; }
+		    const uint16_t& GetQueueOffset() const { return m_OffsetRQ; }
+		    const uint16_t GetQueueOrder() const { return static_cast<uint16_t>(m_BaseRQ) + m_OffsetRQ; }
+        const std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>>& GetTextures() const { return m_Textures; }
 
         void SaveMaterial(const std::string& path) const;
         bool LoadFromFile(const std::string& fileName) override;
@@ -62,9 +65,10 @@ namespace NE::Graphics {
         // Texture units (assume 1 per name for now)
         std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
 
-		// Render queue
-		RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
-		uint16_t m_OffsetRQ = 0;
+		    // Render queue
+		    RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
+		    uint16_t m_OffsetRQ = 0;
+        std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
 	};
 
     //void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);

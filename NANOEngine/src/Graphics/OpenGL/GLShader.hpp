@@ -22,6 +22,9 @@ namespace NE::Graphics::OpenGL {
 		void SetUniformVec3(const std::string& name, const Vec3& value) override;
 		void SetUniformMat4(const std::string& name, const Mat4& matrix) override;
 
+		void SetUniformHandle(const std::string& uName, uint64_t handle) override;
+		void SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) override;
+
 		bool LoadFromFile(const std::string& fileName) override;
 
 		const uint32_t GetProgramID() const override { return m_programID; }

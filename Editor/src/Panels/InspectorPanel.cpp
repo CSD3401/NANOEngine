@@ -175,11 +175,10 @@ namespace Editor {
 
     void InspectorPanel::OnImGuiRender()
     {
-        ImGui::Begin("Inspector", nullptr,
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::Begin("Inspector", nullptr);
 
-        ImVec2 panelPos = ImGui::GetCursorScreenPos();
-        ImVec2 panelSize = ImGui::GetContentRegionAvail();
+        //ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
+        //ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
 
         if (EditorScene::s_selectedEntity) {
             uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
@@ -491,9 +490,10 @@ namespace Editor {
                         if (ImSearch::BeginSearch()) {
                             ImSearch::SearchBar();
 
+                            // warning entity in capture clause not used -RF
                             for (const auto& [name, asset] : assets) {
                                 ImSearch::SearchableItem(name.c_str(),
-                                    [name, &entity](const char*) {
+                                    [name/*, &entity*/](const char*) {
                                         if (ImGui::Selectable(name.c_str())) {
                                             //NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
                                             printf("Audio Adding Works?");
@@ -668,26 +668,12 @@ namespace Editor {
             }
 
             if (m_loadedMaterial) {
-
                 bool openPopup = false;
                 DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
                 if (openPopup) {
                     ImGui::OpenPopup("AssetPicker_Shader");
                 }
 
-                ////if (ImGui::BeginDragDropTarget()) {
-                ////    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-                ////        std::string dropped((const char*)p->Data, p->DataSize - 1);
-
-                ////        if (comp.materialPath.empty()) { // If material is not set, assign a default one
-                ////            //AssignRendererMaterial(comp, "Assets/Basic.nanomat");
-                ////        } // done for rapid prototyping, should be removed later
-
-                ////        NE::Renderer::Command::AssignModel(EditorScene::s_selectedEntity->linkedEntity, dropped);
-                ////    }
-                ////    ImGui::EndDragDropTarget();
-                ////}
-                ////m_loadedMaterial->SetPipeline()
                 static std::string searchQuery;
                 if (ImGui::BeginPopup("AssetPicker_Shader")) {
                     ImGui::Text("Select a Shader");
@@ -715,9 +701,9 @@ namespace Editor {
                 ImGui::SeparatorText("Material Uniforms");
 
                 for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
-                    float v = val;
-                    if (Editor::DrawFloatControl(name.c_str(), v, 0.1f)) {
-                        m_loadedMaterial->SetUniformFloat(name, v);
+                    //float v = val;
+                    if (Editor::DrawFloatControl(name.c_str(), val, 0.1f)) {
+                        //m_loadedMaterial->SetUniformFloat(name, v);
                     }
                 }
 
@@ -730,7 +716,7 @@ namespace Editor {
 
                 for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
                     int i = val;
-                    Editor::DrawIntControl(name.c_str(), i);
+                    //Editor::DrawIntControl(name.c_str(), i);
                     if (ImGui::DragInt(name.c_str(), &i)) {
                         m_loadedMaterial->SetUniformInt(name, i);
                     }
@@ -738,6 +724,25 @@ namespace Editor {
 
                 if (ImGui::Button("Save Material", { 100.f, 30.f })) {
                     m_loadedMaterial->SaveMaterial("");
+                }
+
+                ImGui::SeparatorText("Material Textures");
+
+                for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
+                    // Preview + picker (96px thumb)
+                    DrawTextureField(
+                        uName.c_str(), tex, 96.0f,
+                        [this, &tex, &uName](const std::string& id) {
+                            auto t = NE::GetTexture(id);
+                            m_loadedMaterial->SetTexture(uName, t);
+
+                            // for keeping u_HasBaseMap in sync for toggle
+                            std::string has = "u_Has" + uName.substr(2);
+                            auto& ints = m_loadedMaterial->GetIntUniforms();
+                            if (ints.find(has) != ints.end())
+                                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
+                        }
+                    );
                 }
             }
         }

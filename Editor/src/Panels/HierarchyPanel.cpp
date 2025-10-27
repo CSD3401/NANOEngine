@@ -26,8 +26,8 @@ namespace Editor {
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
 			| ImGuiWindowFlags_MenuBar);
 
-		ImVec2 panelPos = ImGui::GetCursorScreenPos();
-		ImVec2 panelSize = ImGui::GetContentRegionAvail();
+		//ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
+		//ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
 
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 			ImGui::OpenPopup("HierarchyContextMenu");
@@ -80,6 +80,7 @@ namespace Editor {
 
             if (ImGui::MenuItem("Create Entity")) {
                 NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
+                //NE::
                 Editor::EditorScene::BuildFlatHierarchy();
                 // need to add into display list also currently creates but not shown in hierarchy
             }
@@ -127,7 +128,7 @@ namespace Editor {
 
         // ---- Drag state ----
         static uint32_t draggingId = NE::ECS::NO_ENTITY;
-        static bool     hadDragThisFrame = false;
+        //static bool     hadDragThisFrame = false; // warning unused var - RF 
 
         static bool     previewAsChild = false;  // highlight a row to adopt as parent
         static uint32_t previewParent = NE::ECS::NO_ENTITY;
@@ -165,11 +166,20 @@ namespace Editor {
                 // if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
                 bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
-                if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+                if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
                     Editor::EditorScene::s_selectedEntity = ent;
+                    EditorScene::selectedMaterial = "";
+                }
 
                 // row rect
                 ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+
+                // DO NOT REMOVE - Needed for tween to work
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                {
+                    // Broadcast message
+                    NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
+                }
 
                 // -------- begin drag from this row ----------
                 if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
@@ -181,7 +191,7 @@ namespace Editor {
 
                 // -------- hover bands while dragging ----------
                 if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                    hadDragThisFrame = true;
+                    //hadDragThisFrame = true; // warning unused var - RF
 
                     if (ImGui::IsMouseHoveringRect(r.Min, r.Max, true)) {
                         const float h = r.Max.y - r.Min.y;
@@ -232,7 +242,6 @@ namespace Editor {
             }
         };
 
-        // draw roots (and recurse)
         DrawLevel(NE::ECS::NO_ENTITY, childrenOf0, 0);
 
         if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && previewLineY >= 0.f) {
@@ -241,7 +250,6 @@ namespace Editor {
             dl->AddLine(ImVec2(previewLineX2, previewLineY - 3), ImVec2(previewLineX2, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
         }
 
-        // auto-scroll
         {
             ImGuiWindow* win = ImGui::GetCurrentWindow();
             const float innerTop = win->InnerRect.Min.y;
