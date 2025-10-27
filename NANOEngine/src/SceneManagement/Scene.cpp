@@ -10,6 +10,7 @@
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
+#include "../src/Physics/JoltDebugRenderer.hpp"
 #include <iostream>
 
 

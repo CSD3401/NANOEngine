@@ -2,7 +2,6 @@
 #include "../Graphics/Core/GraphicsManager.hpp"
 
 namespace NE::Physics {
-
     NE::Math::Vec3 JoltDebugRenderer::ToVec3(JPH::RVec3Arg v) 
     {
         return { (float)v.GetX(), (float)v.GetY(), (float)v.GetZ() };
