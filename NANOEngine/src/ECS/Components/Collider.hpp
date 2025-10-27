@@ -3,6 +3,8 @@
 #include "../../Math/Vec3.hpp"
 #include "../../Core/Reflection.hpp"
 
+
+
 namespace NE::ECS::Component {
 
     struct Collider {
@@ -10,14 +12,27 @@ namespace NE::ECS::Component {
             Box,
             Sphere,
             Capsule,
-            None
+            None 
         };
 
         // Exposed
-        ShapeType shapeType{ ShapeType::Sphere };
+        ShapeType shapeType{ ShapeType::Capsule };
         Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f }; // For box
         float radius{ 0.5f };                      // For sphere/capsule
         float height{ 1.0f };                      // For capsule
+
+		// INTERNAL NOT FOR REFLECTION
+        // Dirty flags for change detection
+        bool isShapeDirty = true;    // True for new colliders
+        bool isPropertiesDirty = true;
+
+        // Store previous values for comparison
+        ShapeType previousShapeType = ShapeType::Box;
+        Math::Vec3 previousHalfExtents{ 0.5f, 0.5f, 0.5f };
+        float previousRadius = 0.5f;
+        float previousHeight = 1.0f;
+
+
 
         NE_REFLECT_BEGIN(Collider)
             NE_REFLECT_FIELD(shapeType),

@@ -88,59 +88,22 @@ namespace NE::ECS::Systems {
 		{
 			auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);	
 
-			// debugging half extents
-			collider.halfExtents.x = transform.scale.x * 0.5f;
-			collider.halfExtents.y = transform.scale.y * 0.5f;
-			collider.halfExtents.z = transform.scale.z * 0.5f;
-			// end of debugging half extents
+			// Initialize previous values to current values
+			collider.previousShapeType = collider.shapeType;
+			collider.previousHalfExtents = collider.halfExtents;
+			collider.previousRadius = collider.radius;
+			collider.previousHeight = collider.height;
 
-			Math::Vec3 fullSize =
-			{
-				collider.halfExtents.x * 2.0f,
-				collider.halfExtents.y * 2.0f,
-				collider.halfExtents.z * 2.0f
-			};
+			// Clear dirty flags (they might be true for new entities)
+			collider.isShapeDirty = false;
+			collider.isPropertiesDirty = false;
 
-			// Use collider's shape and size
-			switch (collider.shapeType)
-			{
-				case Component::Collider::ShapeType::Box:
-				{
-					rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
-						transform.position,
-						transform.rotation,
-						fullSize,
-						JPH::EMotionType::Dynamic
-						//rb.motionType,
-					);
-					printf("RigidbodySystem::OnEntityAdded - Created BOX physics body from collider data\n");
-					break;
-				}
-				case Component::Collider::ShapeType::Sphere:
-					// TODO: Create sphere body
-
-					rb.bodyID = Physics::PhysicsManager::CreateSphereBody(
-						transform.position,
-						transform.rotation,
-						collider.radius,
-						JPH::EMotionType::Dynamic
-						//rb.motionType,
-					);
-
-					printf("RigidbodySystem::OnEntityAdded - Created SPHERE physics body from collider data\n");
-					break;
-				case Component::Collider::ShapeType::Capsule:
-					// TODO: Create capsule body  
-					printf("Capsule colliders not implemented yet\n");
-					break;
-				case Component::Collider::ShapeType::None:
-					printf("Collider shape type is None - no physics body created\n");
-					break;
-			}
+			CreatePhysicsBodyFromComponent(entity, transform, rb, collider, JPH::EMotionType::Dynamic);
 		}
 		else
 		{
 			// fallback to default box shape
+			// untested fallback code - RF
 			printf("No collider found - creating default box\n");
 			Math::Vec3 defaultSize(1.0f, 1.0f, 1.0f);
 			rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
@@ -159,12 +122,189 @@ namespace NE::ECS::Systems {
 		Physics::PhysicsManager::DestroyBody(rb.bodyID);
 	}
 
+	//void RigidbodySystem::OnShapeChange(Entity entity, Component::Collider::ShapeType oldShape, Component::Collider::ShapeType newShape)
+	//{
+	//	printf("OnShapeChange - from %d to %d - recreating physics body\n",
+	//		static_cast<int>(oldShape), static_cast<int>(newShape));
+
+	//	if (!m_componentManager->HasComponent<Component::Rigidbody>(entity)) 
+	//	{
+	//		printf("OnShapeChange: No Rigidbody component found, cannot recreate physics body\n");
+	//		return;
+	//	}
+
+	//	auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+	//	auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+	//	auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+
+	//	// Store the current motion type before destroying
+	//	JPH::EMotionType oldMotionType = JPH::EMotionType::Dynamic; // Default
+	//	if (rb.bodyID != 0) 
+	//	{
+	//		// Get current motion type from existing body
+	//		oldMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
+	//		// Destroy old physics body
+	//		Physics::PhysicsManager::DestroyBody(rb.bodyID);
+	//	}
+
+	//	// Create new physics body with updated shape
+	//	CreatePhysicsBodyFromComponent(entity, transform, rb, collider, oldMotionType);
+	//}
+
+	//void RigidbodySystem::OnPropertyChange(Entity entity)
+	//{
+	//	printf("OnPropertyChange - recreating physics body\n");
+
+	//	if (!m_componentManager->HasComponent<Component::Rigidbody>(entity)) 
+	//	{
+	//		return;
+	//	}
+
+	//	auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+	//	auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+	//	auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+
+	//	// Store current motion type
+	//	JPH::EMotionType oldMotionType = JPH::EMotionType::Dynamic;
+	//	if (rb.bodyID != 0) 
+	//	{
+	//		oldMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
+	//		Physics::PhysicsManager::DestroyBody(rb.bodyID);
+	//	}
+
+	//	// Recreate with updated properties
+	//	CreatePhysicsBodyFromComponent(entity, transform, rb, collider, oldMotionType);
+	//}
+
+	void RigidbodySystem::CreatePhysicsBodyFromComponent(Entity entity, Component::Transform& transform, Component::Rigidbody& rb, Component::Collider& collider, JPH::EMotionType motionType)
+	{
+		(void)entity; // unused	
+		// Update half extents based on current transform scale
+		collider.halfExtents.x = transform.scale.x * 0.5f;
+		collider.halfExtents.y = transform.scale.y * 0.5f;
+		collider.halfExtents.z = transform.scale.z * 0.5f;
+
+		Math::Vec3 fullSize = {
+			collider.halfExtents.x * 2.0f,
+			collider.halfExtents.y * 2.0f,
+			collider.halfExtents.z * 2.0f
+		};
+
+		// Create appropriate shape
+		switch (collider.shapeType)
+		{
+		case Component::Collider::ShapeType::Box:
+		{
+			rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
+				transform.position,
+				transform.rotation,
+				fullSize,
+				motionType
+			);
+			printf("Created BOX physics body\n");
+			break;
+		}
+		case Component::Collider::ShapeType::Sphere:
+		{
+			rb.bodyID = Physics::PhysicsManager::CreateSphereBody(
+				transform.position,
+				transform.rotation,
+				collider.radius,
+				motionType
+			);
+			printf("Created SPHERE physics body\n");
+			break;
+		}
+		case Component::Collider::ShapeType::Capsule:
+		{
+			rb.bodyID = Physics::PhysicsManager::CreateCapsuleBody(
+				transform.position,
+				transform.rotation,
+				collider.height,
+				collider.radius,
+				motionType
+			);
+			printf("Created CAPSULE physics body\n");
+			break;
+		}
+		case Component::Collider::ShapeType::None:
+		{
+			// Destroy existing body if switching to None
+			if (rb.bodyID != 0) {
+				Physics::PhysicsManager::DestroyBody(rb.bodyID);
+				rb.bodyID = 0;
+			}
+			printf("WARNING: No physics body - shape type is None\n");
+			break;
+		}
+		}
+	}
+
+	void RigidbodySystem::CheckForColliderChanges()
+	{
+		const auto& entities = GetEntities();
+
+		for (Entity e : entities) {
+			if (!m_componentManager->HasComponent<Component::Collider>(e)) {
+				continue;
+			}
+
+			auto& collider = m_componentManager->GetComponent<Component::Collider>(e);
+
+			bool needsRecreation = false;
+
+			// Check shape type change
+			if (collider.shapeType != collider.previousShapeType) {
+				printf("Shape type changed for entity %d\n", e);
+				needsRecreation = true;
+				collider.previousShapeType = collider.shapeType;
+			}
+			// Check any property changes
+			else if (collider.halfExtents != collider.previousHalfExtents ||
+				collider.radius != collider.previousRadius ||
+				collider.height != collider.previousHeight) {
+				printf("Collider properties changed for entity %d\n", e);
+				needsRecreation = true;
+
+				// Update all previous values
+				collider.previousHalfExtents = collider.halfExtents;
+				collider.previousRadius = collider.radius;
+				collider.previousHeight = collider.height;
+			}
+
+			if (needsRecreation) {
+				RecreatePhysicsBody(e);
+			}
+		}
+	}
+	
+	void RigidbodySystem::RecreatePhysicsBody(Entity entity)
+	{
+		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+		auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+		auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+
+		// Store current motion type
+		JPH::EMotionType oldMotionType = JPH::EMotionType::Dynamic;
+		if (rb.bodyID != 0) {
+			oldMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
+			Physics::PhysicsManager::DestroyBody(rb.bodyID);
+			rb.bodyID = 0; // Clear old ID
+		}
+
+		// Create new body with updated shape/properties
+		CreatePhysicsBodyFromComponent(entity, transform, rb, collider, oldMotionType);
+	}
+
 	void RigidbodySystem::Init()
 	{
 	}
 
 	void RigidbodySystem::Update(double dt)
 	{
+		// Check for collider changes and recreate physics bodies if needed
+		CheckForColliderChanges();
+
 		if (NE::GetEngineState() == EngineState::Play) {
 			Physics::PhysicsManager::Update(static_cast<float>(dt));
 

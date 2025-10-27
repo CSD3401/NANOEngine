@@ -5,26 +5,27 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+
+// debug
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/CylinderShape.h>
+#include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/ScaledShape.h>
+
+// end debug
+
 #include <iostream>
 
 namespace NE::Physics {
 
-    //static bool IsFiniteFloat(float f) { return std::isfinite(f); }
+	// Self notes:
+    // Body: Physics representation of that entity (collision, forces, movement)
+    // Not to be confused with 
+    // Entity: Your game object (has transform, model, logic)
 
-    //struct Vec3 { float x, y, z; }; // adapt if you have JPH::Vec3 accessible
-    //static bool IsFiniteVec3(const JPH::Vec3& v) {
-    //    return std::isfinite(v.GetX()) && std::isfinite(v.GetY()) && std::isfinite(v.GetZ());
-    //}
-
-    //static bool IsFiniteMat44(const JPH::Mat44& m) {
-    //    // check the 4x4 elements
-    //    for (int r = 0; r < 4; ++r)
-    //        for (int c = 0; c < 4; ++c) {
-    //            float val = m(r, c); // use Mat44 operator() / index if available
-    //            if (!std::isfinite(val)) return false;
-    //        }
-    //    return true;
-    //}
 
 
     // Object layers used by the engine
@@ -255,17 +256,145 @@ namespace NE::Physics {
 #pragma region test
         // test DrawLine() and DrawTriangle() function
         TestDebugDraw();
+#pragma endregion
 
+        // Update before render
         s_PhysicsSystem->Update(dt, 1, s_TempAllocator.get(), s_JobSystem.get());
 
-        JPH::BodyManager::DrawSettings drawSettings;
-        drawSettings.mDrawShape = true;
+        // I'll leave this here first... - RF
+        //JPH::BodyManager::DrawSettings drawSettings;
+        ////drawSettings.mDrawShape = true;
         //drawSettings.mDrawShape = false; // must be false to use our own jolt implementations
-        drawSettings.mDrawBoundingBox = true;  // show body AABBs 
+        //drawSettings.mDrawBoundingBox = true;  // show body AABBs 
+        //s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
 
+        RenderAllBodyShapes();
+    }
 
-        s_PhysicsSystem->DrawBodies(drawSettings, &g_joltDebugRenderer);
-#pragma endregion
+    void PhysicsManager::RenderAllBodyShapes()
+    {
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        (void)bodyInterface; // suppress warning
+
+        JPH::BodyIDVector bodyIDs;
+        s_PhysicsSystem->GetBodies(bodyIDs);
+
+        for (JPH::BodyID bodyID : bodyIDs) 
+        {
+            // This lock is for race condition NOT transform lock !
+            JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), bodyID);
+            if (lock.Succeeded()) 
+            {
+                const JPH::Body& body = lock.GetBody();
+
+                //if (body.IsActive() || body.IsKinematic()) 
+                {
+                    RenderBodyShape(body);
+                }
+            }
+        }
+    }
+
+    void PhysicsManager::RenderBodyShape(const JPH::Body& body)
+    {
+        const JPH::Shape* shape = body.GetShape();
+        if (!shape)
+            return;
+
+        const JPH::RMat44 transform = body.GetWorldTransform();
+        const JPH::Color color =
+            body.IsDynamic() ? JPH::Color::sGreen : body.IsKinematic() ? JPH::Color::sRed : JPH::Color::sGrey;
+
+        const JPH::EShapeSubType subType = shape->GetSubType();
+		(void)subType; // suppress warning
+
+        shape->Draw(
+            &g_joltDebugRenderer,
+            transform,
+            JPH::Vec3::sReplicate(1.0f),
+            color,
+            false,
+            true
+        );
+
+        return; //early
+
+   //     switch (subType)
+   //     {
+   //     case JPH::EShapeSubType::Box:
+   //     {
+   //         //const JPH::BoxShape* boxShape = static_cast<const JPH::BoxShape*>(shape);
+   //         //const JPH::Vec3 halfExtent = boxShape->GetHalfExtent();
+
+   //         // //Create an AABox from the half extents
+   //         //JPH::AABox box(-halfExtent, halfExtent); // From -halfExtent to +halfExtent
+
+   //         //g_joltDebugRenderer.DrawBox(
+   //         //    transform,
+   //         //    box,
+   //         //    color,
+   //         //    DR::ECastShadow::Off,
+   //         //    DR::EDrawMode::Wireframe
+   //         //);
+   //         //break;
+   //     }
+
+   //     case JPH::EShapeSubType::Sphere:
+   //     {
+   //         const JPH::SphereShape* sphereShape = static_cast<const JPH::SphereShape*>(shape);
+   //         g_joltDebugRenderer.DrawSphere(
+   //             transform.GetTranslation(),
+   //             sphereShape->GetRadius(),
+   //             color,
+   //             DR::ECastShadow::Off,
+   //             DR::EDrawMode::Wireframe
+   //         );
+   //         break;
+   //     }
+
+   //     case JPH::EShapeSubType::Capsule:
+   //     {
+   //         const JPH::CapsuleShape* capsuleShape = static_cast<const JPH::CapsuleShape*>(shape);
+   //         g_joltDebugRenderer.DrawCapsule(
+   //             transform,
+   //             capsuleShape->GetHalfHeightOfCylinder(),
+   //             capsuleShape->GetRadius(),
+   //             color,
+   //             DR::ECastShadow::Off,
+   //             DR::EDrawMode::Wireframe
+   //         );
+   //         break;
+   //     }
+
+   //     case JPH::EShapeSubType::Cylinder:
+   //     {
+   //         const JPH::CylinderShape* cylinderShape = static_cast<const JPH::CylinderShape*>(shape);
+   //         g_joltDebugRenderer.DrawCylinder(
+   //             transform,
+   //             cylinderShape->GetHalfHeight(),
+   //             cylinderShape->GetRadius(),
+   //             color,
+   //             DR::ECastShadow::Off,
+   //             DR::EDrawMode::Wireframe
+   //         );
+   //         break;
+   //     }
+
+   //     default:
+   //     {
+   //         // For complex shapes, use built-in shape drawing (safe fallback)
+   //         // Untested default code - RF
+   //         shape->Draw(
+   //             &g_joltDebugRenderer,
+   //             transform,
+   //             JPH::Vec3::sReplicate(1.0f),
+   //             color,
+   //             false, 
+   //             true
+   //         );
+   //         break;
+   //     }
+   //     }
     }
 
     void PhysicsManager::Shutdown() {
@@ -381,6 +510,19 @@ namespace NE::Physics {
 		printf("PhysicsManager: Set motion type for body ID %d to %d\n", bodyid, static_cast<int>(motionType));
     }
 
+    JPH::EMotionType PhysicsManager::GetMotionType(uint32_t bodyid)
+    {
+        if (!s_PhysicsSystem) 
+            return JPH::EMotionType::Static;
+
+        JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), JPH::BodyID(bodyid));
+        if (lock.Succeeded()) 
+        {
+            return lock.GetBody().GetMotionType();
+        }
+        return JPH::EMotionType::Static;
+    }
+
     JPH::PhysicsSystem* PhysicsManager::GetPhysicsSystem() {
         return s_PhysicsSystem.get();
     }
@@ -444,6 +586,7 @@ namespace NE::Physics {
             return;
         }
 
+
         JPH::RefConst<JPH::Shape> newShape = shapeResult.Get();
         // Update the body's shape
         bodyInterface.SetShape(id, newShape, true, JPH::EActivation::DontActivate);
@@ -493,6 +636,44 @@ namespace NE::Physics {
     //{
     //}
 
+    uint32_t PhysicsManager::CreateCapsuleBody(const Math::Vec3& pos, const Math::Vec3& rot,
+        float halfHeight, float radius, JPH::EMotionType motionType) 
+    {
+        if (!s_PhysicsSystem) return 0;
+
+        printf("Creating capsule with halfHeight: %.2f, radius: %.2f\n", halfHeight, radius);
+
+        // Create capsule shape
+        JPH::CapsuleShapeSettings capsuleSettings(halfHeight, radius);
+        JPH::ShapeSettings::ShapeResult shapeResult = capsuleSettings.Create();
+
+        if (shapeResult.HasError()) {
+            printf("PhysicsManager: Error creating capsule shape: %s\n", shapeResult.GetError().c_str());
+            return 0;
+        }
+
+        JPH::RefConst<JPH::Shape> capsuleShape = shapeResult.Get();
+
+        // Determine appropriate layer
+        JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
+
+        // Create body
+        JPH::BodyCreationSettings bodySettings(
+            capsuleShape,
+            JPH::RVec3(pos.x, pos.y, pos.z),
+            JPH::Quat::sEulerAngles({
+                JPH::DegreesToRadians(rot.x),
+                JPH::DegreesToRadians(rot.y),
+                JPH::DegreesToRadians(rot.z)
+                }),
+            motionType,
+            layer
+        );
+
+        printf("CreateCapsuleBody successful\n");
+        return CreateBody(bodySettings);
+    }
+
     void PhysicsManager::RegisterEntityBody(Entity entity, uint32_t bodyID)
     {
         s_EntityToBodyMap[entity] = bodyID;
@@ -511,6 +692,7 @@ namespace NE::Physics {
         return (it != s_EntityToBodyMap.end()) ? it->second : 0;
     }
 
+   
     bool PhysicsManager::EntityHasPhysicsBody(Entity entity)
     {
         return s_EntityToBodyMap.find(entity) != s_EntityToBodyMap.end();

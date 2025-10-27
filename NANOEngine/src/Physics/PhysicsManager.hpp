@@ -15,6 +15,7 @@
 //#include <Jolt/Core/Factory.h>
 #include "../ECS/Core/Entity.hpp"
 
+
 using namespace NE::ECS;
 
 namespace NE::Physics {
@@ -35,8 +36,8 @@ namespace NE::Physics {
         static void GetTransform(uint32_t index, Math::Vec3& position, Math::Vec3& rotation);
 
         // For changing settings
-        //static void SetMotionType(uint32_t bodyid, JPH::EMotionType motionType);
         static void SetMotionType(uint32_t bodyid, JPH::EMotionType motionType);
+		static JPH::EMotionType GetMotionType(uint32_t bodyid);
 
         static JPH::PhysicsSystem* GetPhysicsSystem();
         static std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> s_shapeMap;
@@ -56,10 +57,19 @@ namespace NE::Physics {
 
         static void UpdateSphereRadius(uint32_t bodyID, float newRadius);
 
+        static uint32_t CreateCapsuleBody(const Math::Vec3& pos, const Math::Vec3& rot,
+            float halfHeight, float radius, JPH::EMotionType motionType);
+
+        static void RenderAllBodyShapes();
+        static void RenderBodyShape(const JPH::Body& body);
+
+
 		// Entity-physics mapping
 		static void RegisterEntityBody(Entity entity, uint32_t bodyID);
         static void UnregisterEntityBody(Entity entity);
         static uint32_t GetEntityBodyId(Entity entity);
+
+ 
 
 
         static bool EntityHasPhysicsBody(Entity entity);
@@ -75,6 +85,7 @@ namespace NE::Physics {
         static std::unique_ptr<JPH::JobSystemThreadPool> s_JobSystem;
 
 		static std::unordered_map<Entity, uint32_t> s_EntityToBodyMap;
+
     };
 
 }
