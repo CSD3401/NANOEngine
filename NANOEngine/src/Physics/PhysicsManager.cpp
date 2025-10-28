@@ -79,8 +79,8 @@ namespace NE::Physics {
         virtual bool ShouldCollide(JPH::ObjectLayer, JPH::BroadPhaseLayer) const override { return true; }
     };
 
-    std::vector<JPH::BodyID> PhysicsManager::s_BodyIDs;
-    std::unordered_map<uint32_t, size_t> PhysicsManager::s_BodyIndexMap;
+    //std::vector<JPH::BodyID> PhysicsManager::s_BodyIDs;
+    //std::unordered_map<uint32_t, size_t> PhysicsManager::s_BodyIndexMap;
     std::unique_ptr<JPH::Factory> PhysicsManager::s_Factory;
     std::unique_ptr<JPH::PhysicsSystem> PhysicsManager::s_PhysicsSystem;
     std::unique_ptr<JPH::TempAllocatorImpl> PhysicsManager::s_TempAllocator;
@@ -409,21 +409,27 @@ namespace NE::Physics {
 
     void PhysicsManager::ActivateBodies()
     {
+        JPH::BodyIDVector allBodies;
+        s_PhysicsSystem->GetBodies(allBodies);
+
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
-        bodyInterface.ActivateBodies(s_BodyIDs.data(), static_cast<int>(s_BodyIDs.size()));
+        bodyInterface.ActivateBodies(allBodies.data(), static_cast<int>(allBodies.size()));
     }
 
     void PhysicsManager::DeactivateBodies()
     {
+        JPH::BodyIDVector allBodies;
+        s_PhysicsSystem->GetBodies(allBodies);
+
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
-        bodyInterface.DeactivateBodies(s_BodyIDs.data(), static_cast<int>(s_BodyIDs.size()));
+        bodyInterface.DeactivateBodies(allBodies.data(), static_cast<int>(allBodies.size()));
     }
 
     uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         JPH::BodyID bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
-        s_BodyIDs.push_back(bodyID);
-		s_BodyIndexMap[bodyID.GetIndexAndSequenceNumber()] = s_BodyIDs.size() - 1;
+        //s_BodyIDs.push_back(bodyID);
+		//s_BodyIndexMap[bodyID.GetIndexAndSequenceNumber()] = s_BodyIDs.size() - 1;
         return bodyID.GetIndexAndSequenceNumber();
     }
 
@@ -485,27 +491,27 @@ namespace NE::Physics {
         bodyInterface.SetLinearVelocity(id, JPH::Vec3::sZero());
         bodyInterface.SetAngularVelocity(id, JPH::Vec3::sZero());
 
-        auto it = s_BodyIndexMap.find(bodyid);
-        if (it == s_BodyIndexMap.end())
-            return; // not found
+        //auto it = s_BodyIndexMap.find(bodyid);
+        //if (it == s_BodyIndexMap.end())
+        //    return; // not found
 
-        size_t index = it->second;
-        size_t lastIndex = s_BodyIDs.size() - 1;
+        //size_t index = it->second;
+        //size_t lastIndex = s_BodyIDs.size() - 1;
 
-        // If it's not the last element, swap with the last
-        if (index != lastIndex) {
-            JPH::BodyID lastID = s_BodyIDs[lastIndex];
-            s_BodyIDs[index] = lastID;
+        //// If it's not the last element, swap with the last
+        //if (index != lastIndex) {
+        //    JPH::BodyID lastID = s_BodyIDs[lastIndex];
+        //    s_BodyIDs[index] = lastID;
 
-            // Update the map entry for the moved element
-            s_BodyIndexMap[lastID.GetIndexAndSequenceNumber()] = index;
-        }
+        //    // Update the map entry for the moved element
+        //    s_BodyIndexMap[lastID.GetIndexAndSequenceNumber()] = index;
+        //}
 
-        // Remove last element
-        s_BodyIDs.pop_back();
+        //// Remove last element
+        //s_BodyIDs.pop_back();
 
-        // Remove from map
-        s_BodyIndexMap.erase(it);
+        //// Remove from map
+        //s_BodyIndexMap.erase(it);
 
 		printf("PhysicsManager: Set motion type for body ID %d to %d\n", bodyid, static_cast<int>(motionType));
     }

@@ -77,8 +77,9 @@ namespace NE::Physics {
 
 
     private:
-        static std::vector<JPH::BodyID> s_BodyIDs;
-		static std::unordered_map<uint32_t, size_t> s_BodyIndexMap; // Maps bodyID to index in s_BodyIDs
+        // swap manual tracking to jolt in built
+        //static std::vector<JPH::BodyID> s_BodyIDs;
+		//static std::unordered_map<uint32_t, size_t> s_BodyIndexMap; // Maps bodyID to index in s_BodyIDs
         static std::unique_ptr<JPH::Factory> s_Factory;
         static std::unique_ptr<JPH::PhysicsSystem> s_PhysicsSystem;
         static std::unique_ptr<JPH::TempAllocatorImpl> s_TempAllocator;
