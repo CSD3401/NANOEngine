@@ -239,24 +239,6 @@ namespace NE::Physics {
             JPH::PhysicsSystem* ps = NE::Physics::PhysicsManager::GetPhysicsSystem();
             if (ps)
             {
-                // DEBUG: Print body count and positions
-                const JPH::BodyInterface& bi = ps->GetBodyInterface();
-                JPH::BodyIDVector bodyIDs;
-                ps->GetBodies(bodyIDs);
-
-                std::cout << "[DEBUG] Total bodies in physics system: " << bodyIDs.size() << std::endl;
-                for (const JPH::BodyID& id : bodyIDs)
-                {
-                    if (bi.IsAdded(id))
-                    {
-                        JPH::RVec3 pos = bi.GetPosition(id);
-                        bool isActive = bi.IsActive(id);
-                        std::cout << "  Body " << id.GetIndex()
-                            << " - Pos: (" << pos.GetX() << ", " << pos.GetY() << ", " << pos.GetZ() << ")"
-                            << " - Active: " << (isActive ? "YES" : "NO") << std::endl;
-                    }
-                }
-
                 JPH::BodyManager::DrawSettings drawSettings;
                 drawSettings.mDrawShape = true;                       // Draw solid shapes
                 drawSettings.mDrawShapeWireframe = false;             // Set true to overlay wireframe on shapes

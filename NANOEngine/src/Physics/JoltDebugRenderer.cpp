@@ -65,32 +65,39 @@ namespace NE::Physics {
         if (inTriangles == nullptr || inTriangleCount <= 0) return {};
 
         JPH::Ref<BatchPlaceHolder> batch = new BatchPlaceHolder();
-        batch->verts.reserve(size_t(inTriangleCount) * 3);
-        batch->indices.reserve(size_t(inTriangleCount) * 3);
-        batch->edges.reserve(size_t(inTriangleCount) * 3);
 
-        for (int i = 0; i < inTriangleCount; ++i) 
+        const size_t vertCount = size_t(inTriangleCount) * 3;
+        batch->verts.resize(vertCount);
+        batch->indices.resize(vertCount);
+        batch->edges.resize(vertCount);
+
+        size_t vertIdx = 0;
+        size_t indexIdx = 0;
+        size_t edgeIdx = 0;
+
+        for (int i = 0; i < inTriangleCount; ++i)
         {
-            const JPH::uint32 base = (JPH::uint32)batch->verts.size();
+            const JPH::uint32 base = (JPH::uint32)vertIdx;
 
-            const JPH::Float3 p0 = inTriangles[i].mV[0].mPosition;
-            const JPH::Float3 p1 = inTriangles[i].mV[1].mPosition;
-            const JPH::Float3 p2 = inTriangles[i].mV[2].mPosition;
+            const JPH::Float3& p0 = inTriangles[i].mV[0].mPosition;
+            const JPH::Float3& p1 = inTriangles[i].mV[1].mPosition;
+            const JPH::Float3& p2 = inTriangles[i].mV[2].mPosition;
 
-            batch->verts.emplace_back(p0);
-            batch->verts.emplace_back(p1);
-            batch->verts.emplace_back(p2);
+            // Direct writes instead of emplace_back/push_back
+            batch->verts[vertIdx++] = p0;
+            batch->verts[vertIdx++] = p1;
+            batch->verts[vertIdx++] = p2;
 
-            batch->indices.push_back(base + 0);
-            batch->indices.push_back(base + 1);
-            batch->indices.push_back(base + 2);
+            batch->indices[indexIdx++] = base + 0;
+            batch->indices[indexIdx++] = base + 1;
+            batch->indices[indexIdx++] = base + 2;
 
-            batch->edges.emplace_back(p0, p1);
-            batch->edges.emplace_back(p1, p2);
-            batch->edges.emplace_back(p2, p0);
+            batch->edges[edgeIdx++] = std::make_pair(JPH::RVec3(p0.x, p0.y, p0.z), JPH::RVec3(p1.x, p1.y, p1.z));
+            batch->edges[edgeIdx++] = std::make_pair(JPH::RVec3(p1.x, p1.y, p1.z), JPH::RVec3(p2.x, p2.y, p2.z));
+            batch->edges[edgeIdx++] = std::make_pair(JPH::RVec3(p2.x, p2.y, p2.z), JPH::RVec3(p0.x, p0.y, p0.z));
         }
 
-        return JPH::DebugRenderer::Batch(batch); // wrap in Ref<TriangleBatch>
+        return JPH::DebugRenderer::Batch(batch);
     }
 
     JPH::DebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Vertex* inVertices, int inVertexCount, const JPH::uint32* inIndices, int inIndexCount)
@@ -98,41 +105,47 @@ namespace NE::Physics {
         if (inVertices == nullptr || inVertexCount <= 0 || inIndices == nullptr || inIndexCount <= 0) return {};
 
         JPH::Ref<BatchPlaceHolder> batch = new BatchPlaceHolder();
-        batch ->verts.reserve(size_t(inVertexCount));
-        batch->indices.reserve(size_t(inIndexCount));
-        batch->edges.reserve(size_t(inIndexCount)); // ~3 edges per tri
 
+        batch->verts.resize(size_t(inVertexCount));
+        batch->indices.resize(size_t(inIndexCount));
+        batch->edges.resize(size_t(inIndexCount)); // will trim later if needed
+
+        // Copy vertices
         for (int i = 0; i < inVertexCount; ++i)
         {
-            batch->verts.emplace_back(inVertices[i].mPosition);
+            batch->verts[i] = inVertices[i].mPosition;
         }
 
+        // Copy indices
         for (int i = 0; i < inIndexCount; ++i)
         {
-            batch->indices.push_back(inIndices[i]);
+            batch->indices[i] = inIndices[i];
         }
 
-        // create edges from indices (every 3 indices form a triangle)
+        // Create edges from indices
+        size_t edgeIdx = 0;
         for (int i = 0; i + 2 < inIndexCount; i += 3)
         {
             const JPH::uint32 i0 = inIndices[i + 0];
             const JPH::uint32 i1 = inIndices[i + 1];
             const JPH::uint32 i2 = inIndices[i + 2];
 
-            // bounds check
+            // Bounds check
             if (i0 >= (JPH::uint32)inVertexCount ||
                 i1 >= (JPH::uint32)inVertexCount ||
                 i2 >= (JPH::uint32)inVertexCount)
                 continue;
 
-            const JPH::Float3 p0 = inVertices[i0].mPosition;
-            const JPH::Float3 p1 = inVertices[i1].mPosition;
-            const JPH::Float3 p2 = inVertices[i2].mPosition;
+            const JPH::Float3& p0 = inVertices[i0].mPosition;
+            const JPH::Float3& p1 = inVertices[i1].mPosition;
+            const JPH::Float3& p2 = inVertices[i2].mPosition;
 
-            batch->edges.emplace_back(p0, p1);
-            batch->edges.emplace_back(p1, p2);
-            batch->edges.emplace_back(p2, p0);
+            batch->edges[edgeIdx++] = std::make_pair(JPH::RVec3(p0.x, p0.y, p0.z), JPH::RVec3(p1.x, p1.y, p1.z));
+            batch->edges[edgeIdx++] = std::make_pair(JPH::RVec3(p1.x, p1.y, p1.z), JPH::RVec3(p2.x, p2.y, p2.z));
+            batch->edges[edgeIdx++] = std::make_pair(JPH::RVec3(p2.x, p2.y, p2.z), JPH::RVec3(p0.x, p0.y, p0.z));
         }
+
+        batch->edges.resize(edgeIdx); // Trim if we skipped any triangles
 
         return JPH::DebugRenderer::Batch(batch);
     }
@@ -163,18 +176,18 @@ namespace NE::Physics {
         // Pre-allocate output buffer
         std::vector<NE::Math::Vec3> positions;
 
-
         if (inDrawMode == EDrawMode::Solid)
         {
-            positions.reserve((batch->indices.size() / 3) * 3); // 3 verts per triangle
+            const size_t numVerts = (batch->indices.size() / 3) * 3;
+            positions.resize(numVerts); // Allocate once
 
+            size_t outIdx = 0;
             for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
             {
                 const JPH::uint32 idx0 = batch->indices[i + 0];
                 const JPH::uint32 idx1 = batch->indices[i + 1];
                 const JPH::uint32 idx2 = batch->indices[i + 2];
 
-                // bounds check
                 if (idx0 >= batch->verts.size() ||
                     idx1 >= batch->verts.size() ||
                     idx2 >= batch->verts.size())
@@ -184,26 +197,27 @@ namespace NE::Physics {
                 const JPH::Float3& p1 = batch->verts[idx1];
                 const JPH::Float3& p2 = batch->verts[idx2];
 
-                // Transform with float matrix (not RMat44!)
-                positions.push_back(ToVec3(modelMatrix * JPH::Vec3(p0.x, p0.y, p0.z)));
-                positions.push_back(ToVec3(modelMatrix * JPH::Vec3(p1.x, p1.y, p1.z)));
-                positions.push_back(ToVec3(modelMatrix * JPH::Vec3(p2.x, p2.y, p2.z)));
+                // Direct indexed writes - no reallocation
+                positions[outIdx++] = ToVec3(modelMatrix * JPH::Vec3(p0.x, p0.y, p0.z));
+                positions[outIdx++] = ToVec3(modelMatrix * JPH::Vec3(p1.x, p1.y, p1.z));
+                positions[outIdx++] = ToVec3(modelMatrix * JPH::Vec3(p2.x, p2.y, p2.z));
             }
 
-            // Single batched call instead of thousands of individual calls
+            positions.resize(outIdx); // Trim if we skipped any
             NE::Graphics::GraphicsManager::AddDebugTrianglesBatch(positions, color);
         }
         else if (inDrawMode == EDrawMode::Wireframe)
         {
-            positions.reserve((batch->indices.size() / 3) * 6); // 3 edges * 2 verts per triangle
+            const size_t numVerts = (batch->indices.size() / 3) * 6;
+            positions.resize(numVerts); // Allocate once
 
+            size_t outIdx = 0;
             for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
             {
                 const JPH::uint32 idx0 = batch->indices[i + 0];
                 const JPH::uint32 idx1 = batch->indices[i + 1];
                 const JPH::uint32 idx2 = batch->indices[i + 2];
 
-                // bounds check
                 if (idx0 >= batch->verts.size() ||
                     idx1 >= batch->verts.size() ||
                     idx2 >= batch->verts.size())
@@ -213,18 +227,17 @@ namespace NE::Physics {
                 const JPH::Float3& p1 = batch->verts[idx1];
                 const JPH::Float3& p2 = batch->verts[idx2];
 
-                // Transform with float matrix
                 const NE::Math::Vec3 v0 = ToVec3(modelMatrix * JPH::Vec3(p0.x, p0.y, p0.z));
                 const NE::Math::Vec3 v1 = ToVec3(modelMatrix * JPH::Vec3(p1.x, p1.y, p1.z));
                 const NE::Math::Vec3 v2 = ToVec3(modelMatrix * JPH::Vec3(p2.x, p2.y, p2.z));
 
-                // Add 3 edges (6 vertices total) for the triangle wireframe
-                positions.push_back(v0); positions.push_back(v1);
-                positions.push_back(v1); positions.push_back(v2);
-                positions.push_back(v2); positions.push_back(v0);
+                // Direct indexed writes for 3 edges
+                positions[outIdx++] = v0; positions[outIdx++] = v1;
+                positions[outIdx++] = v1; positions[outIdx++] = v2;
+                positions[outIdx++] = v2; positions[outIdx++] = v0;
             }
 
-            // Single batched call
+            positions.resize(outIdx); // Trim if we skipped any
             NE::Graphics::GraphicsManager::AddDebugLinesBatch(positions, color);
         }
     }
