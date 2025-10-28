@@ -348,11 +348,11 @@ namespace NE::Graphics {
     void GraphicsManager::AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
         if (positions.size() < 2) return;
 
-        // Reserve space upfront to avoid reallocations
+        // reserve space upfront to avoid reallocations
         const size_t lineCount = positions.size() / 2;
         s_DebugLines.reserve(s_DebugLines.size() + lineCount);
 
-        // Add lines in pairs
+        // add lines in pairs
         for (size_t i = 0; i + 1 < positions.size(); i += 2) {
             s_DebugLines.push_back({ positions[i], positions[i + 1], color });
         }
@@ -361,11 +361,11 @@ namespace NE::Graphics {
     void GraphicsManager::AddDebugTrianglesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
         if (positions.size() < 3) return;
 
-        // Reserve space upfront to avoid reallocations
+        // reserve space upfront to avoid reallocations
         const size_t triCount = positions.size() / 3;
         s_DebugTriangles.reserve(s_DebugTriangles.size() + triCount);
 
-        // Add triangles in groups of 3
+        // add triangles in groups of 3
         for (size_t i = 0; i + 2 < positions.size(); i += 3) {
             s_DebugTriangles.push_back({ positions[i], positions[i + 1], positions[i + 2], color });
         }
@@ -376,21 +376,21 @@ namespace NE::Graphics {
 
         s_DebugVertexBuffer.clear();
 
-        // Calculate exact size needed
+        // calculate exact size needed
         const size_t lineVertexCount = s_DebugLines.size() * 2;
         const size_t triVertexCount = s_DebugTriangles.size() * 3;
         const size_t totalFloats = (lineVertexCount * 6) + (triVertexCount * 6);
 
-        // Resize once (no clear/reserve dance needed)
+        // resize once (no clear/reserve dance needed)
         s_DebugVertexBuffer.resize(totalFloats);
 
-        // Get raw pointer to data - direct memory writes!
+        // get raw pointer to data - direct memory writes!
         float* ptr = s_DebugVertexBuffer.data();
 
         // add all line vertices
         for (const auto& line : s_DebugLines) 
         {
-            // Vertex 1 (from)
+            // vertex 1 (from)
             *ptr++ = line.from.x;
             *ptr++ = line.from.y;
             *ptr++ = line.from.z;
@@ -398,7 +398,7 @@ namespace NE::Graphics {
             *ptr++ = line.color.y;
             *ptr++ = line.color.z;
 
-            // Vertex 2 (to)
+            // vertex 2 (to)
             *ptr++ = line.to.x;
             *ptr++ = line.to.y;
             *ptr++ = line.to.z;
@@ -410,7 +410,7 @@ namespace NE::Graphics {
         // add all triangle vertices
         for (const auto& tri : s_DebugTriangles) 
         {
-            // Vertex 0
+            // vertex 0
             *ptr++ = tri.v0.x;
             *ptr++ = tri.v0.y;
             *ptr++ = tri.v0.z;
@@ -418,7 +418,7 @@ namespace NE::Graphics {
             *ptr++ = tri.color.y;
             *ptr++ = tri.color.z;
 
-            // Vertex 1
+            // vertex 1
             *ptr++ = tri.v1.x;
             *ptr++ = tri.v1.y;
             *ptr++ = tri.v1.z;
@@ -426,7 +426,7 @@ namespace NE::Graphics {
             *ptr++ = tri.color.y;
             *ptr++ = tri.color.z;
 
-            // Vertex 2
+            // vertex 2
             *ptr++ = tri.v2.x;
             *ptr++ = tri.v2.y;
             *ptr++ = tri.v2.z;

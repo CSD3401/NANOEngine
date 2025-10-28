@@ -83,7 +83,6 @@ namespace NE::Physics {
             const JPH::Float3& p1 = inTriangles[i].mV[1].mPosition;
             const JPH::Float3& p2 = inTriangles[i].mV[2].mPosition;
 
-            // Direct writes instead of emplace_back/push_back
             batch->verts[vertIdx++] = p0;
             batch->verts[vertIdx++] = p1;
             batch->verts[vertIdx++] = p2;
@@ -110,19 +109,19 @@ namespace NE::Physics {
         batch->indices.resize(size_t(inIndexCount));
         batch->edges.resize(size_t(inIndexCount)); // will trim later if needed
 
-        // Copy vertices
+        // copy vertices
         for (int i = 0; i < inVertexCount; ++i)
         {
             batch->verts[i] = inVertices[i].mPosition;
         }
 
-        // Copy indices
+        // copy indices
         for (int i = 0; i < inIndexCount; ++i)
         {
             batch->indices[i] = inIndices[i];
         }
 
-        // Create edges from indices
+        // create edges from indices
         size_t edgeIdx = 0;
         for (int i = 0; i + 2 < inIndexCount; i += 3)
         {
@@ -130,7 +129,7 @@ namespace NE::Physics {
             const JPH::uint32 i1 = inIndices[i + 1];
             const JPH::uint32 i2 = inIndices[i + 2];
 
-            // Bounds check
+            // bounds check
             if (i0 >= (JPH::uint32)inVertexCount ||
                 i1 >= (JPH::uint32)inVertexCount ||
                 i2 >= (JPH::uint32)inVertexCount)
@@ -145,7 +144,7 @@ namespace NE::Physics {
             batch->edges[edgeIdx++] = std::make_pair(JPH::RVec3(p2.x, p2.y, p2.z), JPH::RVec3(p0.x, p0.y, p0.z));
         }
 
-        batch->edges.resize(edgeIdx); // Trim if we skipped any triangles
+        batch->edges.resize(edgeIdx); // trim if we skipped any triangles
 
         return JPH::DebugRenderer::Batch(batch);
     }
@@ -173,13 +172,13 @@ namespace NE::Physics {
 
         const JPH::Mat44 modelMatrix = inModelMatrix.ToMat44();
 
-        // Pre-allocate output buffer
+        // pre-allocate output buffer
         std::vector<NE::Math::Vec3> positions;
 
         if (inDrawMode == EDrawMode::Solid)
         {
             const size_t numVerts = (batch->indices.size() / 3) * 3;
-            positions.resize(numVerts); // Allocate once
+            positions.resize(numVerts); // allocate once
 
             size_t outIdx = 0;
             for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
@@ -197,19 +196,18 @@ namespace NE::Physics {
                 const JPH::Float3& p1 = batch->verts[idx1];
                 const JPH::Float3& p2 = batch->verts[idx2];
 
-                // Direct indexed writes - no reallocation
                 positions[outIdx++] = ToVec3(modelMatrix * JPH::Vec3(p0.x, p0.y, p0.z));
                 positions[outIdx++] = ToVec3(modelMatrix * JPH::Vec3(p1.x, p1.y, p1.z));
                 positions[outIdx++] = ToVec3(modelMatrix * JPH::Vec3(p2.x, p2.y, p2.z));
             }
 
-            positions.resize(outIdx); // Trim if we skipped any
+            positions.resize(outIdx); // trim if we skipped any
             NE::Graphics::GraphicsManager::AddDebugTrianglesBatch(positions, color);
         }
         else if (inDrawMode == EDrawMode::Wireframe)
         {
             const size_t numVerts = (batch->indices.size() / 3) * 6;
-            positions.resize(numVerts); // Allocate once
+            positions.resize(numVerts); // allocate once
 
             size_t outIdx = 0;
             for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
@@ -231,13 +229,12 @@ namespace NE::Physics {
                 const NE::Math::Vec3 v1 = ToVec3(modelMatrix * JPH::Vec3(p1.x, p1.y, p1.z));
                 const NE::Math::Vec3 v2 = ToVec3(modelMatrix * JPH::Vec3(p2.x, p2.y, p2.z));
 
-                // Direct indexed writes for 3 edges
                 positions[outIdx++] = v0; positions[outIdx++] = v1;
                 positions[outIdx++] = v1; positions[outIdx++] = v2;
                 positions[outIdx++] = v2; positions[outIdx++] = v0;
             }
 
-            positions.resize(outIdx); // Trim if we skipped any
+            positions.resize(outIdx); // trim if we skipped any
             NE::Graphics::GraphicsManager::AddDebugLinesBatch(positions, color);
         }
     }
