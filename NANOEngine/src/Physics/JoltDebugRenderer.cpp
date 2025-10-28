@@ -12,6 +12,37 @@ namespace NE::Physics {
         return { c.r / 255.0f, c.g / 255.0f, c.b / 255.0f };
     }
 
+    void JoltDebugRenderer::BeginFrame() {
+        // clear but keep capacity
+        m_BatchedLines.clear();
+        m_BatchedTriangles.clear();
+
+        // reserve large capacity once
+        if (m_BatchedLines.capacity() < INITIAL_LINE_CAPACITY)
+        {
+            m_BatchedLines.reserve(INITIAL_LINE_CAPACITY);
+        }
+
+        if (m_BatchedTriangles.capacity() < INITIAL_TRI_CAPACITY) 
+        {
+            m_BatchedTriangles.reserve(INITIAL_TRI_CAPACITY);
+        }
+    }
+
+    void JoltDebugRenderer::EndFrame() {
+        // batch send all lines to GraphicsManager
+        for (const auto& line : m_BatchedLines) 
+        {
+            NE::Graphics::GraphicsManager::AddDebugLine(line.from, line.to, line.color);
+        }
+
+        // batch send all triangles to GraphicsManager
+        for (const auto& tri : m_BatchedTriangles)
+        {
+            NE::Graphics::GraphicsManager::AddDebugTriangle(tri.v0, tri.v1, tri.v2, tri.color);
+        }
+    }
+
 	void JoltDebugRenderer::DrawLine(JPH::RVec3Arg from, JPH::RVec3Arg to, JPH::ColorArg color)
     {
         // Convert Jolt vectors/colors to your engine's math/color types
@@ -20,13 +51,13 @@ namespace NE::Physics {
         //    NE::Math::Vec3(float(to.GetX()), float(to.GetY()), float(to.GetZ())),
         //    NE::Math::Vec3(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f)
         //);
-        NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(from), ToVec3(to), ToColor(color));
+        m_BatchedLines.push_back({ ToVec3(from), ToVec3(to), ToColor(color) });
     }
 
     void JoltDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow)
     {
         (void)inCastShadow;
-        NE::Graphics::GraphicsManager::AddDebugTriangle(ToVec3(inV1), ToVec3(inV2), ToVec3(inV3), ToColor(inColor));
+        m_BatchedTriangles.push_back({ ToVec3(inV1), ToVec3(inV2), ToVec3(inV3), ToColor(inColor) });
     }
 
     JPH::DebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* inTriangles, int inTriangleCount)
@@ -127,38 +158,74 @@ namespace NE::Physics {
 
         const NE::Math::Vec3 color = ToColor(inModelColor);
 
-        // draw triangles
-        for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
+        const JPH::Mat44 modelMatrix = inModelMatrix.ToMat44();
+
+        // Pre-allocate output buffer
+        std::vector<NE::Math::Vec3> positions;
+
+
+        if (inDrawMode == EDrawMode::Solid)
         {
-            const JPH::uint32 idx0 = batch->indices[i + 0];
-            const JPH::uint32 idx1 = batch->indices[i + 1];
-            const JPH::uint32 idx2 = batch->indices[i + 2];
+            positions.reserve((batch->indices.size() / 3) * 3); // 3 verts per triangle
 
-            // bounds check
-            if (idx0 >= batch->verts.size() ||
-                idx1 >= batch->verts.size() ||
-                idx2 >= batch->verts.size())
-                continue;
-
-            const JPH::Float3& p0 = batch->verts[idx0];
-            const JPH::Float3& p1 = batch->verts[idx1];
-            const JPH::Float3& p2 = batch->verts[idx2];
-
-            const JPH::RVec3 v0 = inModelMatrix * JPH::Vec3(p0.x, p0.y, p0.z);
-            const JPH::RVec3 v1 = inModelMatrix * JPH::Vec3(p1.x, p1.y, p1.z);
-            const JPH::RVec3 v2 = inModelMatrix * JPH::Vec3(p2.x, p2.y, p2.z);
-
-
-            if (inDrawMode == EDrawMode::Solid)
+            for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
             {
-                NE::Graphics::GraphicsManager::AddDebugTriangle(ToVec3(v0), ToVec3(v1), ToVec3(v2), color);
+                const JPH::uint32 idx0 = batch->indices[i + 0];
+                const JPH::uint32 idx1 = batch->indices[i + 1];
+                const JPH::uint32 idx2 = batch->indices[i + 2];
+
+                // bounds check
+                if (idx0 >= batch->verts.size() ||
+                    idx1 >= batch->verts.size() ||
+                    idx2 >= batch->verts.size())
+                    continue;
+
+                const JPH::Float3& p0 = batch->verts[idx0];
+                const JPH::Float3& p1 = batch->verts[idx1];
+                const JPH::Float3& p2 = batch->verts[idx2];
+
+                // Transform with float matrix (not RMat44!)
+                positions.push_back(ToVec3(modelMatrix * JPH::Vec3(p0.x, p0.y, p0.z)));
+                positions.push_back(ToVec3(modelMatrix * JPH::Vec3(p1.x, p1.y, p1.z)));
+                positions.push_back(ToVec3(modelMatrix * JPH::Vec3(p2.x, p2.y, p2.z)));
             }
-            else if (inDrawMode == EDrawMode::Wireframe)
+
+            // Single batched call instead of thousands of individual calls
+            NE::Graphics::GraphicsManager::AddDebugTrianglesBatch(positions, color);
+        }
+        else if (inDrawMode == EDrawMode::Wireframe)
+        {
+            positions.reserve((batch->indices.size() / 3) * 6); // 3 edges * 2 verts per triangle
+
+            for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
             {
-                NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v0), ToVec3(v1), color);
-                NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v1), ToVec3(v2), color);
-                NE::Graphics::GraphicsManager::AddDebugLine(ToVec3(v2), ToVec3(v0), color);
+                const JPH::uint32 idx0 = batch->indices[i + 0];
+                const JPH::uint32 idx1 = batch->indices[i + 1];
+                const JPH::uint32 idx2 = batch->indices[i + 2];
+
+                // bounds check
+                if (idx0 >= batch->verts.size() ||
+                    idx1 >= batch->verts.size() ||
+                    idx2 >= batch->verts.size())
+                    continue;
+
+                const JPH::Float3& p0 = batch->verts[idx0];
+                const JPH::Float3& p1 = batch->verts[idx1];
+                const JPH::Float3& p2 = batch->verts[idx2];
+
+                // Transform with float matrix
+                const NE::Math::Vec3 v0 = ToVec3(modelMatrix * JPH::Vec3(p0.x, p0.y, p0.z));
+                const NE::Math::Vec3 v1 = ToVec3(modelMatrix * JPH::Vec3(p1.x, p1.y, p1.z));
+                const NE::Math::Vec3 v2 = ToVec3(modelMatrix * JPH::Vec3(p2.x, p2.y, p2.z));
+
+                // Add 3 edges (6 vertices total) for the triangle wireframe
+                positions.push_back(v0); positions.push_back(v1);
+                positions.push_back(v1); positions.push_back(v2);
+                positions.push_back(v2); positions.push_back(v0);
             }
+
+            // Single batched call
+            NE::Graphics::GraphicsManager::AddDebugLinesBatch(positions, color);
         }
     }
 

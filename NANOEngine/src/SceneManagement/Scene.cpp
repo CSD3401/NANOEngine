@@ -47,8 +47,9 @@ namespace NE::SceneManagement {
 		if (pass == RenderPass::Main) {
 			Graphics::GraphicsManager::DrawSkybox();
 			m_ecsCoordinator.m_renderSystem->Update(0.0);
-			Graphics::GraphicsManager::DrawDebugLines();
-			Graphics::GraphicsManager::DrawDebugTriangles();
+			//Graphics::GraphicsManager::DrawDebugLines();
+			//Graphics::GraphicsManager::DrawDebugTriangles();
+			Graphics::GraphicsManager::DrawAllDebugGeometry();
 		} else if (pass == RenderPass::Picking) {
 			m_ecsCoordinator.m_renderSystem->RenderPicking();
 		}
