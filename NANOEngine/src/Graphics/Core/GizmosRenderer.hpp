@@ -33,6 +33,7 @@ namespace NE::Graphics {
         static const Math::Vec3& GetColor();
 
         // other utilities
+        static void DrawFrustum(const Math::Vec3& center, float fov, float maxRange, float minRange, float aspect);
         static float CalculateLOD(const Math::Vec3& position, float radius);
         static void TestGizmosRenderer();
 

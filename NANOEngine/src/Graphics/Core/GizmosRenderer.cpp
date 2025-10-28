@@ -192,8 +192,87 @@ namespace NE::Graphics {
         NE::Graphics::GraphicsManager::AddDebugLine(O, O + Z * axisLength, { 0,0,1 }); // blue Z
     }
 
-    void GizmosRenderer::SetColor(const Math::Vec3& c) { m_CurrentColor = c; }
-    const Math::Vec3& GizmosRenderer::GetColor() { return m_CurrentColor; }
+    void GizmosRenderer::SetColor(const Math::Vec3& c) { 
+        m_CurrentColor = c; 
+    }
+
+    const Math::Vec3& GizmosRenderer::GetColor() { 
+        return m_CurrentColor; 
+    }
+
+    void GizmosRenderer::DrawFrustum(const Math::Vec3& center, float fov, float maxRange, float minRange, float aspect) {
+        // convert FOV from degrees to radians
+        float halfFovRad = (fov * 0.5f) * (Math::PI / 180.0f);
+
+        // compute height & width of near/far planes
+        float tanHalfFov = std::tan(halfFovRad);
+        float nearHeight = 2.0f * tanHalfFov * minRange;
+        float nearWidth = nearHeight * aspect;
+        float farHeight = 2.0f * tanHalfFov * maxRange;
+        float farWidth = farHeight * aspect;
+
+        // camera faces -Z in local space
+        Math::Vec3 forward = { 0.0f, 0.0f, -1.0f };  // -Z direction
+        Math::Vec3 up = { 0.0f, 1.0f, 0.0f };        // Y axis
+        Math::Vec3 right = { 1.0f, 0.0f, 0.0f };     // X axis
+
+        // centers of near and far planes
+        Math::Vec3 nearCenter = center + forward * minRange;
+        Math::Vec3 farCenter = center + forward * maxRange;
+
+        // 8 corners
+        const Math::Vec3 corners[8] = {
+            // near plane
+            { nearCenter + (up * (nearHeight * 0.5f)) - (right * (nearWidth * 0.5f)) }, // top-left
+            { nearCenter + (up * (nearHeight * 0.5f)) + (right * (nearWidth * 0.5f)) }, // top-right
+            { nearCenter - (up * (nearHeight * 0.5f)) - (right * (nearWidth * 0.5f)) }, // bottom-left
+            { nearCenter - (up * (nearHeight * 0.5f)) + (right * (nearWidth * 0.5f)) }, // bottom-right
+
+            // far plane
+            { farCenter + (up * (farHeight * 0.5f)) - (right * (farWidth * 0.5f)) },    // top-left
+            { farCenter + (up * (farHeight * 0.5f)) + (right * (farWidth * 0.5f)) },    // top-right
+            { farCenter - (up * (farHeight * 0.5f)) - (right * (farWidth * 0.5f)) },    // bottom-left
+            { farCenter - (up * (farHeight * 0.5f)) + (right * (farWidth * 0.5f)) }     // bottom-right
+        };
+
+        // draw near plane rectangle
+        GizmosRenderer::DrawLine(corners[0], corners[1]);
+        GizmosRenderer::DrawLine(corners[1], corners[3]);
+        GizmosRenderer::DrawLine(corners[3], corners[2]);
+        GizmosRenderer::DrawLine(corners[2], corners[0]);
+
+        // draw far plane rectangle
+        GizmosRenderer::DrawLine(corners[4], corners[5]);
+        GizmosRenderer::DrawLine(corners[5], corners[7]);
+        GizmosRenderer::DrawLine(corners[7], corners[6]);
+        GizmosRenderer::DrawLine(corners[6], corners[4]);
+
+        // connect near to far (the frustum edges)
+        for (int i = 0; i < 4; ++i)
+        {
+            GizmosRenderer::DrawLine(corners[i], corners[i + 4]);
+        }
+    }
+
+    float GizmosRenderer::CalculateLOD(const Math::Vec3& position, float radius) {
+        // get the camera position
+        Math::Vec3 cameraPos = GraphicsManager::GetCamera()->GetPosition();
+
+        // compute distance between the camera and the object
+        float distance = (position - cameraPos).Length();
+
+        // basic LOD rule: smaller value = closer (more detail)
+        // larger value = farther (less detail)
+        // here we just divide radius by distance, clamped so it doesn't blow up
+        float lod = radius / std::max(distance, 0.001f);
+
+        // optionally clamp between 0 and 1 for consistency
+        // LOD ~ 1.0 -> close to camera (high detail)
+        // LOD ~ 0.0 -> far away (low detail)
+        lod = std::clamp(lod, 0.0f, 1.0f);
+
+        return lod;
+    }
 
     void GizmosRenderer::TestGizmosRenderer() {
         std::cout << "=== Testing GizmosRenderer ===" << std::endl;
@@ -339,8 +418,14 @@ namespace NE::Graphics {
         GizmosRenderer::DrawSphere({ 1, 0, 0 }, 0.3f, 8, 6);
         std::cout << "Drew complex scene with bounding box and 3 colored spheres" << std::endl;
 
-        //// Test 19: Calculating LODs
-        //std::cout << "\n[19] Testing calculating LODs..." << std::endl;
+        // Test 19: Drawing Frustum
+        std::cout << "\n[19] Testing DrawFrustum..." << std::endl;
+        GizmosRenderer::SetColor({ 1.0f, 1.0f, 1.0f });
+        GizmosRenderer::DrawFrustum(Math::Vec3(0, 1, 0), 60.f, 10.f, 1.f, 16.f / 9.f);
+        std::cout << "Drew frustum successfully" << std::endl;
+
+        //// Test 20: Calculating LODs
+        //std::cout << "\n[20] Testing calculating LODs..." << std::endl;
 
         //// Get active camera from GraphicsManager
         //Camera* cam = GraphicsManager::GetCamera();
@@ -380,27 +465,6 @@ namespace NE::Graphics {
         std::cout << "\n=== All tests completed! ===" << std::endl;
         std::cout << "Total tests: 18" << std::endl;
         std::cout << "\nNote: Verify visual output in your graphics window" << std::endl;
-    }
-
-    // editor hooks (optional)
-    float GizmosRenderer::CalculateLOD(const Math::Vec3& position, float radius) {
-        // get the camera position
-        Math::Vec3 cameraPos = GraphicsManager::GetCamera()->GetPosition();
-
-        // compute distance between the camera and the object
-        float distance = (position - cameraPos).Length();
-
-        // basic LOD rule: smaller value = closer (more detail)
-        // larger value = farther (less detail)
-        // here we just divide radius by distance, clamped so it doesn't blow up
-        float lod = radius / std::max(distance, 0.001f);
-
-        // optionally clamp between 0 and 1 for consistency
-        // LOD ~ 1.0 -> close to camera (high detail)
-        // LOD ~ 0.0 -> far away (low detail)
-        lod = std::clamp(lod, 0.0f, 1.0f);
-
-        return lod;
     }
 
 #pragma region example implementations for overriding virutal functions
