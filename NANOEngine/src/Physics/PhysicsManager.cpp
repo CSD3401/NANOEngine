@@ -324,12 +324,14 @@ namespace NE::Physics {
         if (!s_PhysicsSystem)
             return;
 
-        // Clamp huge frames (esp. first frame)
-        const float maxStep = 1.0f / 30.0f;   // or 1/60 if you prefer
-        float dt_clamped = (dt > maxStep) ? maxStep : dt;
+        static bool firstFrame = true;
+        if (firstFrame) {
+            firstFrame = false;
+            return;  // Skip physics on first frame, due to first frame dt spike
+        }
 
         // A couple substeps improves robustness vs tunneling
-        s_PhysicsSystem->Update(dt_clamped, /*numSubSteps=*/2, s_TempAllocator.get(), s_JobSystem.get());
+        s_PhysicsSystem->Update(dt, /*numSubSteps=*/2, s_TempAllocator.get(), s_JobSystem.get());
 
 #pragma region test Jolt Physics Debug Draw
         TestJoltPhysicsDebugDraw_Render();
