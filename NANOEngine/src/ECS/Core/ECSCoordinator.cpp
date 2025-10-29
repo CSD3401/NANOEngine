@@ -17,6 +17,9 @@
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
 
+#include "../Components/Animator.hpp"
+#include "../Systems/AnimatorSystem.hpp"  
+
 
 namespace NE::ECS {
 
@@ -34,7 +37,7 @@ namespace NE::ECS {
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
         RegisterComponent<Component::NativeScript>();
-        
+        RegisterComponent<Component::Animator>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -83,6 +86,14 @@ namespace NE::ECS {
 			sig.set(GetComponentType<Component::NativeScript>());
 			SetSystemSignature<Systems::ScriptSystem>(sig);
 		}
+
+        m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Transform>());  // Animator works on Transform
+            sig.set(GetComponentType<Component::Animator>());   // and requires Animator
+            SetSystemSignature<Systems::AnimatorSystem>(sig);
+        }
     }
 
     Entity ECSCoordinator::CreateEntity() {

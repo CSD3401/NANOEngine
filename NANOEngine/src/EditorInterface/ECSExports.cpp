@@ -10,6 +10,7 @@
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
+#include "../ECS/Components/Animator.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -57,6 +58,14 @@ namespace NE::ECS {
 
 		const Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
+		}
+
+		bool HasAnimator(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Animator>(e);
+		}
+
+		const Component::Animator& GetEntityAnimator(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
 	}
 
@@ -197,6 +206,16 @@ namespace NE::ECS {
 				return scriptSystem->GetScriptingEngine()->IsScriptRegistered(scriptName);
 			}
 			return false;
+		}
+
+		void AddAnimatorComponent(uint32_t e) {
+			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Animator>(e))
+				return;
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Animator{});
+		}
+
+		Component::Animator& GetEntityAnimator(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
 	}
 

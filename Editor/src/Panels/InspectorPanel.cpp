@@ -11,6 +11,7 @@
 #include <ECS/Components/AudioSource.hpp>
 #include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include <ECS/Components/Animator.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "../EditorScene.hpp"
@@ -625,6 +626,76 @@ namespace Editor {
                         }
                     }
                 }
+                else if (typeIdx == typeid(NE::ECS::Component::Animator)) {
+                    auto& comp = NE::ECS::Command::GetEntityAnimator(entity);
+                    ImGui::SeparatorText("Animator");
+
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Animator>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using Owner = NE::ECS::Component::Animator;
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+
+                            FieldT edited = currentValue;
+
+                            ImGui::PushID(desc.name.data());
+                            const bool changed = DrawField(desc, edited);
+                            const bool activated = ImGui::IsItemActivated();
+                            const bool active = ImGui::IsItemActive();
+                            const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+                            ImGui::PopID();
+
+                            FieldKey key{
+                                entity,
+                                &typeid(Owner),
+                                MemberPointerHasher<Owner, FieldT>{}(desc.member)
+                            };
+
+                            if (activated) {
+                                using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                                auto cmd = std::make_unique<Cmd>(
+                                    entity,
+                                    std::string("Set Animator ") + desc.name.data(),
+                                    desc.member,
+                                    currentValue,
+                                    currentValue,
+                                    &NE::ECS::Command::GetEntityAnimator
+                                );
+                                g_activeCommands[key] = std::move(cmd);
+                            }
+
+                            if (active && changed) {
+                                auto it = g_activeCommands.find(key);
+                                if (it != g_activeCommands.end()) {
+                                    using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                                    Cmd tmp(
+                                        entity,
+                                        std::string{},
+                                        desc.member,
+                                        currentValue,
+                                        edited,
+                                        &NE::ECS::Command::GetEntityAnimator
+                                    );
+                                    it->second->CoalesceFrom(tmp);
+                                }
+                            }
+
+                            if (deactivated) {
+                                auto it = g_activeCommands.find(key);
+                                if (it != g_activeCommands.end()) {
+                                    auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+                                    if (asSet && Equal(asSet->Before(), asSet->After())) {
+                                        g_activeCommands.erase(it);
+                                    }
+                                    else {
+                                        Editor::CommandHistory::GetInstance()
+                                            .ExecuteCommand(std::move(it->second));
+                                        g_activeCommands.erase(it);
+                                    }
+                                }
+                            }
+                        });
+}
+
             }
 
             if (ImGui::Button("Add Component")) {
@@ -650,6 +721,9 @@ namespace Editor {
                 }
                 if (ImGui::MenuItem("Script")) {
                     NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
+                }
+                if (ImGui::MenuItem("Animator")) {
+                    NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selectedEntity->linkedEntity);
                 }
                 ImGui::EndPopup();
             }

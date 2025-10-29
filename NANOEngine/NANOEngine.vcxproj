@@ -19,6 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Animation\TransformClip.hpp" />
+    <ClInclude Include="src\Animation\TransformClipIO.hpp" />
+    <ClInclude Include="src\ECS\Components\Animator.hpp" />
+    <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
     <ClInclude Include="src\ResourceManager.hpp" />
     <ClInclude Include="src\Audio\AudioBank.hpp" />
     <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
@@ -116,6 +120,8 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Animation\TransformClipIO.cpp" />
+    <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
     <ClCompile Include="src\ResourceManager.cpp" />
     <ClCompile Include="src\Audio\AudioBank.cpp" />
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />

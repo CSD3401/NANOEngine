@@ -114,6 +114,9 @@
     <ClCompile Include="src\ThumbnailManager.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
+    <ClCompile Include="src\Panels\AnimationPanel.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vendor\imgui\imconfig.h">
@@ -229,6 +232,9 @@
     </ClInclude>
     <ClInclude Include="vendor\imgui\imstb_truetype.h">
       <Filter>Header Files\vendor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Panels\AnimationPanel.hpp">
+      <Filter>Header Files\src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
