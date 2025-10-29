@@ -37,10 +37,11 @@ namespace NE::Graphics {
         static float CalculateLOD(const Math::Vec3& position, float radius);
         static void TestGizmosRenderer();
 
-        // batch management - call these at the start/end of your render loop
+        // batch management
         static void BeginFrame();
         static void EndFrame();
 
+        // clean up
         static void Cleanup();
 
     private:
@@ -53,13 +54,13 @@ namespace NE::Graphics {
         static std::vector<LineData> m_BatchedLines;
         static std::vector<TriData> m_BatchedTriangles;
 
-        static size_t m_LineIndex; // current wr
+        static size_t m_LineIndex;
         static size_t m_TriangleIndex;
 
         static constexpr size_t INITIAL_LINE_CAPACITY = 50000;
         static constexpr size_t INITIAL_TRI_CAPACITY = 20000;
 
-        static bool IsVisible(const Math::Vec3& center, float radius);
+        static bool IsVisible(const Math::Vec3& center, float radius); // for frustum culling
     };
 
     // Interface for objects that can draw gizmos (like Unity's MonoBehaviour)

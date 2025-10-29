@@ -16,7 +16,7 @@ namespace NE::Graphics {
     size_t GizmosRenderer::m_TriangleIndex = 0;
 
     void GizmosRenderer::BeginFrame() {
-        // reset indices without deallocating
+        // reset drawing counters
         m_LineIndex = 0;
         m_TriangleIndex = 0;
 
@@ -34,6 +34,7 @@ namespace NE::Graphics {
     void GizmosRenderer::EndFrame() {
         if (m_LineIndex > 0)
         {
+            // sort lines by color
             std::sort(m_BatchedLines.begin(), m_BatchedLines.begin() + m_LineIndex,
                 [](const LineData& a, const LineData& b) {
                     if (a.color.x != b.color.x) return a.color.x < b.color.x;
@@ -41,32 +42,33 @@ namespace NE::Graphics {
                     return a.color.z < b.color.z;
                 });
 
-            // Reusable vertex buffer
             std::vector<Math::Vec3> vertices;
 
             size_t start = 0;
-            while (start < m_LineIndex) {
+            while (start < m_LineIndex) 
+            {
                 const Math::Vec3& currentColor = m_BatchedLines[start].color;
                 size_t end = start + 1;
 
                 while (end < m_LineIndex &&
                     m_BatchedLines[end].color.x == currentColor.x &&
                     m_BatchedLines[end].color.y == currentColor.y &&
-                    m_BatchedLines[end].color.z == currentColor.z) {
+                    m_BatchedLines[end].color.z == currentColor.z) 
+                {
                     ++end;
                 }
 
-                // Build vertex array for this color batch
+                // build vertex array for this color batch
                 const size_t batchSize = end - start;
                 vertices.clear();
                 vertices.reserve(batchSize * 2);
 
-                for (size_t i = start; i < end; ++i) {
+                for (size_t i = start; i < end; ++i) 
+                {
                     vertices.push_back(m_BatchedLines[i].from);
                     vertices.push_back(m_BatchedLines[i].to);
                 }
 
-                // This now matches the expected signature
                 GraphicsManager::AddDebugLinesBatch(vertices, currentColor);
                 start = end;
             }
@@ -74,6 +76,7 @@ namespace NE::Graphics {
 
         if (m_TriangleIndex > 0)
         {
+            // sort triangles by color
             std::sort(m_BatchedTriangles.begin(), m_BatchedTriangles.begin() + m_TriangleIndex,
                 [](const TriData& a, const TriData& b) {
                     if (a.color.x != b.color.x) return a.color.x < b.color.x;
@@ -84,14 +87,16 @@ namespace NE::Graphics {
             std::vector<Math::Vec3> vertices;
 
             size_t start = 0;
-            while (start < m_TriangleIndex) {
+            while (start < m_TriangleIndex) 
+            {
                 const Math::Vec3& currentColor = m_BatchedTriangles[start].color;
                 size_t end = start + 1;
 
                 while (end < m_TriangleIndex &&
                     m_BatchedTriangles[end].color.x == currentColor.x &&
                     m_BatchedTriangles[end].color.y == currentColor.y &&
-                    m_BatchedTriangles[end].color.z == currentColor.z) {
+                    m_BatchedTriangles[end].color.z == currentColor.z) 
+                {
                     ++end;
                 }
 
@@ -99,7 +104,8 @@ namespace NE::Graphics {
                 vertices.clear();
                 vertices.reserve(batchSize * 3);
 
-                for (size_t i = start; i < end; ++i) {
+                for (size_t i = start; i < end; ++i)
+                {
                     vertices.push_back(m_BatchedTriangles[i].v0);
                     vertices.push_back(m_BatchedTriangles[i].v1);
                     vertices.push_back(m_BatchedTriangles[i].v2);
@@ -144,7 +150,8 @@ namespace NE::Graphics {
             m_BatchedLines.resize(std::max(m_BatchedLines.size() * 2, m_LineIndex + numLines));
         }
 
-        for (size_t i = 0; i + 1 < points.size(); i += 2) {
+        for (size_t i = 0; i + 1 < points.size(); i += 2) 
+        {
             m_BatchedLines[m_LineIndex].from = points[i];
             m_BatchedLines[m_LineIndex].to = points[i + 1];
             m_BatchedLines[m_LineIndex].color = m_CurrentColor;
@@ -187,7 +194,7 @@ namespace NE::Graphics {
 
         // 8 vertices of the cube
         Math::Vec3 v[8] = {
-          center + Math::Vec3{-h.x, -h.y, -h.z},  // 0
+          center + Math::Vec3{-h.x, -h.y, -h.z},    // 0
             center + Math::Vec3{ h.x, -h.y, -h.z},  // 1
             center + Math::Vec3{-h.x,  h.y, -h.z},  // 2
             center + Math::Vec3{ h.x,  h.y, -h.z},  // 3
@@ -207,13 +214,12 @@ namespace NE::Graphics {
             1,5,7, 1,7,3   // +X face
         };
 
-        // Ensure capacity for 12 triangles
+        // ensure enough capacity for 12 triangles
         if (m_TriangleIndex + 12 > m_BatchedTriangles.size()) 
         {
             m_BatchedTriangles.resize(std::max(m_BatchedTriangles.size() * 2, m_TriangleIndex + 12));
         }
 
-        // Direct write - unrolled for performance
         for (size_t i = 0; i < 36; i += 3) 
         {
             m_BatchedTriangles[m_TriangleIndex].v0 = v[indices[i]];
@@ -231,21 +237,24 @@ namespace NE::Graphics {
 
         const size_t numTriangles = 2 * slices * stacks;
 
-        if (m_TriangleIndex + numTriangles > m_BatchedTriangles.size()) {
+        if (m_TriangleIndex + numTriangles > m_BatchedTriangles.size()) 
+        {
             m_BatchedTriangles.resize(std::max(m_BatchedTriangles.size() * 2, m_TriangleIndex + numTriangles));
         }
 
-        // Pre-calculate sin/cos tables - stack allocated
+        // pre-calculate sin/cos tables - stack allocated
         float* cosTheta = (float*)alloca((slices + 1) * sizeof(float));
         float* sinTheta = (float*)alloca((slices + 1) * sizeof(float));
 
-        for (int i = 0; i <= slices; ++i) {
+        for (int i = 0; i <= slices; ++i) 
+        {
             float theta = ((float)i / slices) * TAU;
             cosTheta[i] = std::cos(theta);
             sinTheta[i] = std::sin(theta);
         }
 
-        for (int j = 0; j < stacks; ++j) {
+        for (int j = 0; j < stacks; ++j) 
+        {
             float v0 = (float)j / stacks;
             float v1 = (float)(j + 1) / stacks;
             float phi0 = v0 * Math::PI;
@@ -253,7 +262,8 @@ namespace NE::Graphics {
             float sinPhi0 = std::sin(phi0), cosPhi0 = std::cos(phi0);
             float sinPhi1 = std::sin(phi1), cosPhi1 = std::cos(phi1);
 
-            for (int i = 0; i < slices; ++i) {
+            for (int i = 0; i < slices; ++i) 
+            {
                 float cosTheta0 = cosTheta[i];
                 float sinTheta0 = sinTheta[i];
                 float cosTheta1 = cosTheta[i + 1];
@@ -280,14 +290,14 @@ namespace NE::Graphics {
                     radius * sinPhi1 * sinTheta1
                 };
 
-                // Triangle 1
+                // triangle 1
                 m_BatchedTriangles[m_TriangleIndex].v0 = p00;
                 m_BatchedTriangles[m_TriangleIndex].v1 = p10;
                 m_BatchedTriangles[m_TriangleIndex].v2 = p11;
                 m_BatchedTriangles[m_TriangleIndex].color = m_CurrentColor;
                 ++m_TriangleIndex;
 
-                // Triangle 2
+                // triangle 2
                 m_BatchedTriangles[m_TriangleIndex].v0 = p00;
                 m_BatchedTriangles[m_TriangleIndex].v1 = p11;
                 m_BatchedTriangles[m_TriangleIndex].v2 = p01;
@@ -336,7 +346,8 @@ namespace NE::Graphics {
 
         constexpr float TAU = 2.0f * Math::PI;
 
-        if (m_LineIndex + 3 * segments > m_BatchedLines.size()) {
+        if (m_LineIndex + 3 * segments > m_BatchedLines.size()) 
+        {
             m_BatchedLines.resize(std::max(m_BatchedLines.size() * 2, m_LineIndex + 3 * segments));
         }
 
@@ -344,13 +355,15 @@ namespace NE::Graphics {
         float* cosValues = (float*)alloca((segments + 1) * sizeof(float));
         float* sinValues = (float*)alloca((segments + 1) * sizeof(float));
 
-        for (int i = 0; i <= segments; ++i) {
+        for (int i = 0; i <= segments; ++i) 
+        {
             float angle = ((float)i / segments) * TAU;
             cosValues[i] = std::cos(angle);
             sinValues[i] = std::sin(angle);
         }
 
-        auto drawCircle = [&](const Math::Vec3& axis1, const Math::Vec3& axis2) {
+        auto drawCircle = [&](const Math::Vec3& axis1, const Math::Vec3& axis2)
+        {
             Math::Vec3 prev = center + axis1 * radius;
 
             for (int i = 1; i <= segments; ++i) {
@@ -361,7 +374,7 @@ namespace NE::Graphics {
                 ++m_LineIndex;
                 prev = curr;
             }
-            };
+        };
 
         // 3 orthogonal great circles
         drawCircle({ 1,0,0 }, { 0,1,0 });  // XY plane
@@ -374,11 +387,12 @@ namespace NE::Graphics {
 
         Math::Vec3 tip = origin + direction * length;
 
-        if (m_LineIndex + 3 > m_BatchedLines.size()) {
+        if (m_LineIndex + 3 > m_BatchedLines.size()) 
+        {
             m_BatchedLines.resize(std::max(m_BatchedLines.size() * 2, m_LineIndex + 3));
         }
 
-        // Main line
+        // main line
         m_BatchedLines[m_LineIndex].from = origin;
         m_BatchedLines[m_LineIndex].to = tip;
         m_BatchedLines[m_LineIndex].color = m_CurrentColor;
@@ -387,11 +401,13 @@ namespace NE::Graphics {
         float arrowSize = std::max(0.02f, length * 0.05f);
 
         Math::Vec3 perp1, perp2;
-        if (std::abs(direction.y) > 0.9f) {
+        if (std::abs(direction.y) > 0.9f) 
+        {
             perp1 = { 1.0f, 0.0f, 0.0f };
             perp2 = { 0.0f, 0.0f, 1.0f };
         }
-        else {
+        else
+        {
             perp1 = { direction.z, 0.0f, -direction.x };
             perp2 = { 0.0f, 1.0f, 0.0f };
         }
@@ -400,7 +416,7 @@ namespace NE::Graphics {
         Math::Vec3 side1 = base + perp1 * (arrowSize * 0.3f);
         Math::Vec3 side2 = base + perp2 * (arrowSize * 0.3f);
 
-        // Arrow lines
+        // arrow head
         m_BatchedLines[m_LineIndex].from = tip;
         m_BatchedLines[m_LineIndex].to = side1;
         m_BatchedLines[m_LineIndex].color = m_CurrentColor;
@@ -495,19 +511,19 @@ namespace NE::Graphics {
             m_BatchedLines.resize(std::max(m_BatchedLines.size() * 2, m_LineIndex + 16));
         }
 
-        // Near plane (4 lines)
+        // near plane (4 lines)
         m_BatchedLines[m_LineIndex++] = { corners[0], corners[1], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[1], corners[3], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[3], corners[2], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[2], corners[0], m_CurrentColor };
 
-        // Far plane (4 lines)
+        // far plane (4 lines)
         m_BatchedLines[m_LineIndex++] = { corners[4], corners[5], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[5], corners[7], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[7], corners[6], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[6], corners[4], m_CurrentColor };
 
-        // Connecting edges (4 lines)
+        // connecting edges (4 lines)
         m_BatchedLines[m_LineIndex++] = { corners[0], corners[4], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[1], corners[5], m_CurrentColor };
         m_BatchedLines[m_LineIndex++] = { corners[2], corners[6], m_CurrentColor };
@@ -536,15 +552,15 @@ namespace NE::Graphics {
 
     bool GizmosRenderer::IsVisible(const Math::Vec3& center, float radius) {
         auto* cam = GraphicsManager::GetCamera();
-        if (!cam) return true; // No camera = draw everything
+        if (!cam) return true; // no camera = draw everything
 
-        // Build frustum (same as your RenderSystem does)
+        // build frustum
         const Math::Mat4& V = cam->GetViewMatrix();
         const Math::Mat4& P = cam->GetProjectionMatrix();
         Mat4 nonConstPCopy = P;
         Frustum frustum = Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
 
-        // Test sphere intersection (same as your RenderSystem)
+        // test sphere intersection
         return frustum.IntersectsSphere(center, radius);
     }
 
@@ -751,9 +767,6 @@ namespace NE::Graphics {
         //std::cout << "\n=== All tests completed! ===" << std::endl;
         //std::cout << "Total tests: 18" << std::endl;
         //std::cout << "\nNote: Verify visual output in your graphics window" << std::endl;
-
-        int* test = new int(3);
-        std::cout << test << std::endl;
     }
 
 #pragma region example implementations for overriding virutal functions

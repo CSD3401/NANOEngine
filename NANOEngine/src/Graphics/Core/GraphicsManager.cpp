@@ -31,6 +31,8 @@ namespace NE::Graphics {
     GLint GraphicsManager::s_DebugViewLoc = -1;
     GLint GraphicsManager::s_DebugProjLoc = -1;
 
+    GLuint debugShaderProgram, debugVAO, debugVBO;
+
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
@@ -199,8 +201,6 @@ namespace NE::Graphics {
         FragColor = vec4(color, 1.0);
     }
 )";
-
-    GLuint debugShaderProgram, debugVAO, debugVBO;
 
     void GraphicsManager::InitDebugPrimitives() {
         // Compile shaders
