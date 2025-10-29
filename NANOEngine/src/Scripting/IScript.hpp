@@ -435,6 +435,62 @@ public:
         (void)value; 
     }
 
+    // === Array/Vector Field Support ===
+    
+    /**
+     * Get the size of an array/vector field.
+     * @param fieldName Name of the array field
+     * @return Number of elements in the array
+     */
+    virtual size_t GetArraySize(const std::string& fieldName) const {
+(void)fieldName;
+        return 0;
+    }
+    
+    /**
+     * Get an array element as a string.
+ * @param fieldName Name of the array field
+  * @param index Index of the element
+     * @return Element value as string
+     */
+    virtual std::string GetArrayElement(const std::string& fieldName, size_t index) const {
+        (void)fieldName;
+        (void)index;
+        return "";
+    }
+    
+    /**
+ * Set an array element from a string.
+     * @param fieldName Name of the array field
+     * @param index Index of the element
+   * @param value New value as string
+     * @return true if successful
+     */
+    virtual bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) {
+        (void)fieldName;
+        (void)index;
+  (void)value;
+    return false;
+    }
+    
+    /**
+     * Add a new element to the end of an array/vector.
+     * @param fieldName Name of the array field
+     */
+    virtual void AddArrayElement(const std::string& fieldName) {
+        (void)fieldName;
+    }
+    
+    /**
+     * Remove an element from an array/vector.
+     * @param fieldName Name of the array field
+     * @param index Index of the element to remove
+     */
+    virtual void RemoveArrayElement(const std::string& fieldName, size_t index) {
+        (void)fieldName;
+        (void)index;
+    }
+
     /**
      * Check if Start() has been called on this script.
      * @return true if Start() has been called, false otherwise
