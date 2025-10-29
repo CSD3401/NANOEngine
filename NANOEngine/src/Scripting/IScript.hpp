@@ -386,8 +386,8 @@ public:
      */
     virtual std::vector<std::string> GetExposedFieldNames() const { return {}; }
 
-    /**
-     * Return the type token for a named field. Example tokens: "bool","int","float","vec3","string"
+ /**
+     * Return the type token for a named field. Example tokens: "bool","int","float","vec3","string","enum"
      */
     virtual std::string GetFieldType(const std::string& name) const { (void)name; return std::string(); }
 
@@ -401,6 +401,39 @@ public:
      * Set the field value from a string. Return true if successful.
      */
     virtual bool SetFieldValueFromString(const std::string& name, const std::string& value) { (void)name; (void)value; return false; }
+
+  // === Enum Field Support ===
+    
+  /**
+     * Get the list of possible enum values for a field (editor support).
+     * Return empty vector if field is not an enum.
+     * @param fieldName Name of the field
+     * @return Vector of enum option names (e.g., {"Grunt", "Elite", "Boss"})
+     */
+    virtual std::vector<std::string> GetEnumOptions(const std::string& fieldName) const { 
+        (void)fieldName; 
+        return {}; 
+    }
+
+    /**
+     * Get the current enum value index for a field.
+     * @param fieldName Name of the enum field
+     * @return Current enum value as integer index
+     */
+    virtual int GetEnumValue(const std::string& fieldName) const { 
+        (void)fieldName; 
+      return 0; 
+    }
+
+    /**
+     * Set the enum value by index.
+     * @param fieldName Name of the enum field
+     * @param value Enum value as integer index
+     */
+    virtual void SetEnumValue(const std::string& fieldName, int value) { 
+        (void)fieldName; 
+        (void)value; 
+    }
 
     /**
      * Check if Start() has been called on this script.

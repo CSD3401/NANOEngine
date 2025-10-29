@@ -607,13 +607,49 @@ namespace Editor {
                                             fieldChanged = true;
                                         }
                                     }
+                                    else if (ftype == "enum") {
+                                            // Enum dropdown support
+                                         auto enumOptions = comp.Instance->GetEnumOptions(fname);
+                                             if (!enumOptions.empty()) {
+                                               int currentValue = 0;
+                                               if (!fval.empty()) {
+                                                 try {
+                                                     currentValue = std::stoi(fval);
+                                                       } catch (...) {
+                                                      currentValue = 0;
+                                                 }
+                                               }
+                                               
+                                             // Clamp to valid range
+                                              if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
+                                               currentValue = 0;
+                                             }
+                                               
+                                              if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
+                                                for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
+                                                  bool isSelected = (currentValue == i);
+                                                   if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
+                                                       comp.Instance->SetFieldValueFromString(fname, std::to_string(i));
+                                                      fieldChanged = true;
+                                                  }
+                                                  if (isSelected) {
+                                                   ImGui::SetItemDefaultFocus();
+                                                 }
+                                              }
+                                            ImGui::EndCombo();
+                                          }
+                                           } else {
+                                       // Fallback if no enum options provided
+                                     ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
+                                   }
+                                       }
                                     else { // treat as string
-                                        char buf[256];
-                                        strncpy_s(buf, fval.c_str(), sizeof(buf));
-                                        if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
-                                            comp.Instance->SetFieldValueFromString(fname, std::string(buf));
+                                      char buf[256];
+                                           strncpy_s(buf, fval.c_str(), sizeof(buf));
+                                     if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
+                                    comp.Instance->SetFieldValueFromString(fname, std::string(buf));
                                             fieldChanged = true;
-                                        }
+                                      }
                                     }
 
                                     // Call OnValidate() when a field changes (editor-only)
