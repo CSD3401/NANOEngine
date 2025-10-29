@@ -1,5 +1,7 @@
 #include "JoltDebugRenderer.hpp"
 #include "../Graphics/Core/GraphicsManager.hpp"
+#include "../Graphics/Core/Frustum.hpp"
+#include "../Graphics/Core/Camera.hpp" 
 
 namespace NE::Physics {
     NE::Math::Vec3 JoltDebugRenderer::ToVec3(JPH::RVec3Arg v) 
@@ -43,6 +45,33 @@ namespace NE::Physics {
         }
     }
 
+    bool JoltDebugRenderer::IsVisible(const NE::Math::Vec3& center, float radius) {
+        auto* cam = NE::Graphics::GraphicsManager::GetCamera();
+        if (!cam) return true;
+
+        const NE::Math::Mat4& V = cam->GetViewMatrix();
+        const NE::Math::Mat4& P = cam->GetProjectionMatrix();
+        NE::Math::Mat4 nonConstPCopy = P;
+        NE::Graphics::Frustum frustum = NE::Graphics::Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
+
+        return frustum.IntersectsSphere(center, radius);
+    }
+
+    bool JoltDebugRenderer::IsVisible(const JPH::AABox& worldBounds) {
+        auto* cam = NE::Graphics::GraphicsManager::GetCamera();
+        if (!cam) return true;
+
+        const NE::Math::Mat4& V = cam->GetViewMatrix();
+        const NE::Math::Mat4& P = cam->GetProjectionMatrix();
+        NE::Math::Mat4 nonConstPCopy = P;
+        NE::Graphics::Frustum frustum = NE::Graphics::Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
+
+        NE::Math::Vec3 min = ToVec3(worldBounds.mMin);
+        NE::Math::Vec3 max = ToVec3(worldBounds.mMax);
+
+        return frustum.IntersectsAABB(min, max);
+    }
+
 	void JoltDebugRenderer::DrawLine(JPH::RVec3Arg from, JPH::RVec3Arg to, JPH::ColorArg color)
     {
         // Convert Jolt vectors/colors to your engine's math/color types
@@ -51,12 +80,33 @@ namespace NE::Physics {
         //    NE::Math::Vec3(float(to.GetX()), float(to.GetY()), float(to.GetZ())),
         //    NE::Math::Vec3(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f)
         //);
+
+        NE::Math::Vec3 fromVec = ToVec3(from);
+        NE::Math::Vec3 toVec = ToVec3(to);
+        NE::Math::Vec3 midpoint = (fromVec + toVec) * 0.5f;
+        float length = (toVec - fromVec).Length();
+
+        if (!IsVisible(midpoint, length * 0.5f)) return;
+
         m_BatchedLines.push_back({ ToVec3(from), ToVec3(to), ToColor(color) });
     }
 
     void JoltDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow)
     {
         (void)inCastShadow;
+
+        NE::Math::Vec3 v1 = ToVec3(inV1);
+        NE::Math::Vec3 v2 = ToVec3(inV2);
+        NE::Math::Vec3 v3 = ToVec3(inV3);
+
+        NE::Math::Vec3 center = (v1 + v2 + v3) * (1.0f / 3.0f);
+        float r1 = (v1 - center).Length();
+        float r2 = (v2 - center).Length();
+        float r3 = (v3 - center).Length();
+        float radius = std::max({ r1, r2, r3 });
+
+        if (!IsVisible(center, radius)) return;
+
         m_BatchedTriangles.push_back({ ToVec3(inV1), ToVec3(inV2), ToVec3(inV3), ToColor(inColor) });
     }
 
@@ -159,6 +209,8 @@ namespace NE::Physics {
         (void)inCullMode;
         (void)inCastShadow;
         //(void)inDrawMode;
+
+        if (!IsVisible(inWorldSpaceBounds)) return;
 
         if (!inGeometry || inGeometry->mLODs.empty()) return;
 

@@ -27,6 +27,10 @@ namespace NE::Physics {
         void BeginFrame(); // call before physics debug draw
         void EndFrame();   // call after physics debug draw to flush batches
 
+        // frustum culling
+        static bool IsVisible(const NE::Math::Vec3& center, float radius);
+        static bool IsVisible(const JPH::AABox& worldBounds);
+
     private:
         // helper class to store batch data
         class BatchPlaceHolder : public JPH::RefTargetVirtual {
