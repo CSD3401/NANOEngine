@@ -34,6 +34,13 @@ public:
     virtual ~IScript();
 
     /**
+     * Called when the script is first created, even if disabled.
+     * Use this for initialization that needs to happen regardless of enabled state.
+     * Called before Initialize().
+     */
+    virtual void Awake() {}
+
+    /**
      * Called when the script is first attached to an entity.
      * Use this for one-time initialization.
      * @param entity The entity this script is attached to
@@ -41,10 +48,22 @@ public:
     virtual void Initialize(NE::ECS::Entity entity) = 0;
 
     /**
+     * Called before the first Update() call, only if the script is enabled.
+     * Use this for initialization that should only happen when active.
+     */
+    virtual void Start() {}
+
+    /**
      * Called every frame to update the script.
      * @param deltaTime Time elapsed since last frame in seconds
      */
     virtual void Update(double deltaTime) = 0;
+
+    /**
+     * Called when script values are changed in the editor (editor-only).
+  * Use this to validate or respond to inspector changes.
+     */
+ virtual void OnValidate() {}
 
     /**
      * Called when the script is being destroyed.
@@ -383,9 +402,22 @@ public:
      */
     virtual bool SetFieldValueFromString(const std::string& name, const std::string& value) { (void)name; (void)value; return false; }
 
+    /**
+     * Check if Start() has been called on this script.
+     * @return true if Start() has been called, false otherwise
+     */
+    bool HasStarted() const { return m_hasStarted; }
+
+    /**
+   * Internal method called by ScriptSystem to mark Start() as called.
+     * Should not be called by user code.
+     */
+    void MarkStartCalled() { m_hasStarted = true; }
+
 private:
     NE::ECS::Entity m_entity = 0;
     bool m_enabled = true;
+    bool m_hasStarted = false;
 
 protected:
     NE::ECS::ComponentManager* m_componentManager = nullptr;

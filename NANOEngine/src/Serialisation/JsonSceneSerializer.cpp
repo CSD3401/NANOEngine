@@ -10,6 +10,7 @@
 #include "../ECS/Components/Light.hpp"
 #include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
+#include "../ECS/Components/NativeScript.hpp"
 
 #include "../Graphics/Core/Model.hpp"
 #include "../ECS/Components/ComponentKey.hpp"
@@ -55,7 +56,8 @@ namespace {
         NE::ECS::Component::Renderer,
         NE::ECS::Component::Light,
         NE::ECS::Component::Collider,
-        NE::ECS::Component::Rigidbody
+        NE::ECS::Component::Rigidbody,
+        NE::ECS::Component::NativeScript
     >;
 
     template <class F>

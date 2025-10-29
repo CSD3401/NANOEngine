@@ -37,6 +37,11 @@ public:
     }
 
     // === IScript Interface ===
+    void Awake() override {
+        SPD_DEBUG("PlayerScript::Awake() called for entity {}", GetEntity());
+        // Initialize things that should happen even if disabled
+    }
+
     void Initialize(NE::ECS::Entity entity) override {
         //LogMessage("PlayerScript initialized for entity " + std::to_string(entity));
 		SPD_DEBUG("PlayerScript initialized for entity {}", entity);
@@ -46,6 +51,18 @@ public:
         // - Set up initial state
         // - Subscribe to input events
         // - Initialize physics properties
+    }
+
+    void Start() override {
+  SPD_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
+ // Called before first Update(), only if enabled
+ }
+
+    void OnValidate() override {
+  SPD_DEBUG("PlayerScript::OnValidate() - speed={}, lives={}", speed, lives);
+        // Validate field values when changed in editor
+        if (speed < 0) speed = 0;
+if (lives < 0) lives = 0;
     }
 
     void Update(double deltaTime) override {

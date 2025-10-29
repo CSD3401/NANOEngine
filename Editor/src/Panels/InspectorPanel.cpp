@@ -577,28 +577,34 @@ namespace Editor {
 
                                     ImGui::PushID(fname.c_str());
 
+                                    bool fieldChanged = false;
+
                                     if (ftype == "bool") {
                                         bool v = (fval == "1" || fval == "true");
                                         if (ImGui::Checkbox(fname.c_str(), &v)) {
                                             comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+                                            fieldChanged = true;
                                         }
                                     }
                                     else if (ftype == "int") {
                                         int v = 0; if (!fval.empty()) v = std::stoi(fval);
                                         if (ImGui::DragInt(fname.c_str(), &v)) {
                                             comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+                                            fieldChanged = true;
                                         }
                                     }
                                     else if (ftype == "float") {
                                         float v = 0.f; if (!fval.empty()) v = std::stof(fval);
                                         if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
                                             comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+                                            fieldChanged = true;
                                         }
                                     }
                                     else if (ftype == "vec3") {
                                         NE::Math::Vec3 vv = Vec3FromString(fval);
                                         if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
                                             comp.Instance->SetFieldValueFromString(fname, Vec3ToString(vv));
+                                            fieldChanged = true;
                                         }
                                     }
                                     else { // treat as string
@@ -606,7 +612,13 @@ namespace Editor {
                                         strncpy_s(buf, fval.c_str(), sizeof(buf));
                                         if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
                                             comp.Instance->SetFieldValueFromString(fname, std::string(buf));
+                                            fieldChanged = true;
                                         }
+                                    }
+
+                                    // Call OnValidate() when a field changes (editor-only)
+                                    if (fieldChanged) {
+                                        comp.Instance->OnValidate();
                                     }
 
                                     ImGui::PopID();
