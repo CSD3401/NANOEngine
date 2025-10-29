@@ -299,7 +299,7 @@ namespace NE::Physics {
         s_PhysicsSystem->Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints,
             s_BPLayerInterface, s_ObjectVsBroadPhaseLayerFilter, s_ObjectLayerPairFilter);
 
-        TestJoltPhysicsDebugDraw_Init();
+        //TestJoltPhysicsDebugDraw_Init();
     }
 
     void PhysicsManager::Update(float dt) {
@@ -316,12 +316,12 @@ namespace NE::Physics {
         s_PhysicsSystem->Update(dt, /*numSubSteps=*/2, s_TempAllocator.get(), s_JobSystem.get());
 
 #pragma region test Jolt Physics Debug Draw
-        TestJoltPhysicsDebugDraw_Render();
+        //TestJoltPhysicsDebugDraw_Render();
 #pragma endregion
     }
 
     void PhysicsManager::Shutdown() {
-        TestJoltPhysicsDebugDraw_Shutdown(); // Clean up test bodies first
+        //TestJoltPhysicsDebugDraw_Shutdown(); // Clean up test bodies first
         s_PhysicsSystem.reset();
         s_TempAllocator.reset();
         s_JobSystem.reset();

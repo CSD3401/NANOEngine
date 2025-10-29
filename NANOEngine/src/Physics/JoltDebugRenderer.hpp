@@ -24,8 +24,8 @@ namespace NE::Physics {
         void DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor = JPH::Color::sWhite, float inHeight = 0.5f) override {};
         
         // batch management
-        void BeginFrame(); // call before physics debug draw
-        void EndFrame();   // call after physics debug draw to flush batches
+        static void BeginFrame(); // call before physics debug draw
+        static void EndFrame();   // call after physics debug draw to flush batches
 
     private:
         // helper class to store batch data
@@ -50,8 +50,8 @@ namespace NE::Physics {
         struct LineData { NE::Math::Vec3 from, to, color; };
         struct TriData { NE::Math::Vec3 v0, v1, v2, color; };
 
-        std::vector<LineData> m_BatchedLines;
-        std::vector<TriData> m_BatchedTriangles;
+        static std::vector<LineData> m_BatchedLines;
+        static std::vector<TriData> m_BatchedTriangles;
 
         static constexpr size_t INITIAL_LINE_CAPACITY = 50000;
         static constexpr size_t INITIAL_TRI_CAPACITY = 20000;

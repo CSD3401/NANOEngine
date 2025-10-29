@@ -13,6 +13,7 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
+#include "GizmosRenderer.hpp"
 #include <GL/gl.h>
 
 
@@ -131,6 +132,31 @@ namespace NE::Graphics {
     void GraphicsManager::Shutdown() {
         s_skybox.reset();
         s_CommandBuffer.reset();
+
+        if (debugVBO) {
+            glDeleteBuffers(1, &debugVBO);
+            debugVBO = 0;
+        }
+
+        if (debugVAO) {
+            glDeleteVertexArrays(1, &debugVAO);
+            debugVAO = 0;
+        }
+
+        if (debugShaderProgram) {
+            glDeleteProgram(debugShaderProgram);
+            debugShaderProgram = 0;
+        }
+
+        s_DebugLines.clear();
+        s_DebugTriangles.clear();
+        s_DebugVertexBuffer.clear();
+
+        s_DebugLines.shrink_to_fit();
+        s_DebugTriangles.shrink_to_fit();
+        s_DebugVertexBuffer.shrink_to_fit();
+
+        NE::Graphics::GizmosRenderer::Cleanup();
     }
 
     void GraphicsManager::SetCamera(Camera* cam) {
