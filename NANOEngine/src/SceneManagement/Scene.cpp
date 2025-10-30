@@ -10,7 +10,6 @@
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
-#include "../src/Physics/JoltDebugRenderer.hpp"
 #include <iostream>
 
 
@@ -38,7 +37,6 @@ namespace NE::SceneManagement {
 		//Graphics::GraphicsManager::DrawFrame();
 		m_ecsCoordinator.m_renderSystem->Update(dt);
 		//Graphics::GraphicsManager::DrawDebugLines();
-		//Graphics::GraphicsManager::DrawDebugTriangles();
 		//Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
@@ -51,7 +49,7 @@ namespace NE::SceneManagement {
 			Graphics::GraphicsManager::EndFrame();
 			//Graphics::GraphicsManager::DrawSkybox();
 			//m_ecsCoordinator.m_renderSystem->Update(0.0);
-			Graphics::GraphicsManager::DrawAllDebugGeometry();
+			Graphics::GraphicsManager::DrawDebugLines();
 		} else if (pass == RenderPass::Picking) {
 			m_ecsCoordinator.m_renderSystem->RenderPicking();
 			Graphics::GraphicsManager::BeginFrame();
