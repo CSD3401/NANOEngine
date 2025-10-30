@@ -1,5 +1,7 @@
 #pragma once
 
+// Force recompile timestamp: 2025-01-09
+
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
 #include "../src/Scripting/ScriptingEngine.hpp"
@@ -8,6 +10,10 @@
 #include <mutex>
 #include <atomic>
 
+// Forward declaration to avoid circular dependency
+namespace NE::ECS::Component {
+    struct NativeScript;
+}
 
 namespace NE::ECS::Systems {
 
@@ -27,6 +33,18 @@ namespace NE::ECS::Systems {
 		void StopScripts(); //Stop
 
 		void OnScriptComponentDestroyed(Entity entity);
+
+        /**
+         * Saves all exposed field values from a script instance to SerializedFields.
+         * Called when saving scenes or when stopping play mode.
+         */
+        void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
+
+        /**
+         * Restores field values from SerializedFields to a script instance.
+         * Called when loading scenes or creating script instances.
+         */
+        void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
 
 		Scripting::ScriptingEngine* GetScriptingEngine() const { return scriptingEngine.get(); }
 
