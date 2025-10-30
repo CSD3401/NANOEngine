@@ -409,6 +409,108 @@ public:
      */
     virtual bool SetFieldValueFromString(const std::string& name, const std::string& value);
 
+    // === Enum Field Support (Public for Editor access) ===
+    
+ /**
+     * Get the list of possible enum values for a field (editor support).
+     * Return empty vector if field is not an enum.
+     * @param fieldName Name of the field
+  * @return Vector of enum option names (e.g., {"Grunt", "Elite", "Boss"})
+     */
+    virtual std::vector<std::string> GetEnumOptions(const std::string& fieldName) const { 
+        (void)fieldName; 
+  return {}; 
+    }
+
+  /**
+     * Get the current enum value index for a field.
+     * @param fieldName Name of the enum field
+     * @return Current enum value as integer index
+  */
+virtual int GetEnumValue(const std::string& fieldName) const { 
+        (void)fieldName; 
+      return 0; 
+    }
+
+    /**
+     * Set the enum value by index.
+   * @param fieldName Name of the enum field
+     * @param value Enum value as integer index
+     */
+    virtual void SetEnumValue(const std::string& fieldName, int value) { 
+        (void)fieldName; 
+        (void)value; 
+    }
+
+    // === Array/Vector Field Support (Public for Editor access) ===
+    
+    /**
+     * Get the size of an array/vector field.
+     * @param fieldName Name of the array field
+     * @return Number of elements in the array
+     */
+    virtual size_t GetArraySize(const std::string& fieldName) const {
+        (void)fieldName;
+        return 0;
+    }
+    
+    /**
+   * Get an array element as a string.
+     * @param fieldName Name of the array field
+     * @param index Index of the element
+     * @return Element value as string
+   */
+    virtual std::string GetArrayElement(const std::string& fieldName, size_t index) const {
+        (void)fieldName;
+    (void)index;
+        return "";
+    }
+    
+    /**
+     * Set an array element from a string.
+     * @param fieldName Name of the array field
+     * @param index Index of the element
+     * @param value New value as string
+     * @return true if successful
+     */
+    virtual bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) {
+        (void)fieldName;
+        (void)index;
+        (void)value;
+        return false;
+    }
+    
+    /**
+ * Add a new element to the end of an array/vector.
+     * @param fieldName Name of the array field
+     */
+    virtual void AddArrayElement(const std::string& fieldName) {
+    (void)fieldName;
+    }
+    
+    /**
+     * Remove an element from an array/vector.
+     * @param fieldName Name of the array field
+     * @param index Index of the element to remove
+     */
+    virtual void RemoveArrayElement(const std::string& fieldName, size_t index) {
+        (void)fieldName;
+        (void)index;
+    }
+
+    /**
+     * Check if Start() has been called on this script.
+     * Used internally by ScriptSystem.
+     * @return true if Start() has been called, false otherwise
+     */
+    bool HasStarted() const { return m_hasStarted; }
+
+    /**
+     * Internal method called by ScriptSystem to mark Start() as called.
+     * Should not be called by user code.
+     */
+    void MarkStartCalled() { m_hasStarted = true; }
+
 protected:
     // === Protected field registration methods ===
     // Scripts should call these in their constructor to register fields
@@ -434,110 +536,9 @@ protected:
     void RegisterStringField(const std::string& name, std::string* memberPtr);
     
     /**
-     * Register a Vec3 field for editor exposure.
+* Register a Vec3 field for editor exposure.
      */
     void RegisterVec3Field(const std::string& name, NE::Math::Vec3* memberPtr);
-
-  // === Enum Field Support ===
-    
-  /**
-     * Get the list of possible enum values for a field (editor support).
-     * Return empty vector if field is not an enum.
-     * @param fieldName Name of the field
-     * @return Vector of enum option names (e.g., {"Grunt", "Elite", "Boss"})
-     */
-    virtual std::vector<std::string> GetEnumOptions(const std::string& fieldName) const { 
-        (void)fieldName; 
-        return {}; 
-    }
-
-    /**
-     * Get the current enum value index for a field.
-     * @param fieldName Name of the enum field
-     * @return Current enum value as integer index
-     */
-    virtual int GetEnumValue(const std::string& fieldName) const { 
-        (void)fieldName; 
-      return 0; 
-    }
-
-    /**
-     * Set the enum value by index.
-     * @param fieldName Name of the enum field
-     * @param value Enum value as integer index
-     */
-    virtual void SetEnumValue(const std::string& fieldName, int value) { 
-        (void)fieldName; 
-        (void)value; 
-    }
-
-    // === Array/Vector Field Support ===
-    
-    /**
-     * Get the size of an array/vector field.
-     * @param fieldName Name of the array field
-     * @return Number of elements in the array
-     */
-    virtual size_t GetArraySize(const std::string& fieldName) const {
-(void)fieldName;
-        return 0;
-    }
-    
-    /**
-     * Get an array element as a string.
- * @param fieldName Name of the array field
-  * @param index Index of the element
-     * @return Element value as string
-     */
-    virtual std::string GetArrayElement(const std::string& fieldName, size_t index) const {
-        (void)fieldName;
-        (void)index;
-        return "";
-    }
-    
-    /**
- * Set an array element from a string.
-     * @param fieldName Name of the array field
-     * @param index Index of the element
-   * @param value New value as string
-     * @return true if successful
-     */
-    virtual bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) {
-        (void)fieldName;
-        (void)index;
-  (void)value;
-    return false;
-    }
-    
-    /**
-     * Add a new element to the end of an array/vector.
-     * @param fieldName Name of the array field
-     */
-    virtual void AddArrayElement(const std::string& fieldName) {
-        (void)fieldName;
-    }
-    
-    /**
-     * Remove an element from an array/vector.
-     * @param fieldName Name of the array field
-     * @param index Index of the element to remove
-     */
-    virtual void RemoveArrayElement(const std::string& fieldName, size_t index) {
-        (void)fieldName;
-        (void)index;
-    }
-
-    /**
-     * Check if Start() has been called on this script.
-     * @return true if Start() has been called, false otherwise
-     */
-    bool HasStarted() const { return m_hasStarted; }
-
-    /**
-   * Internal method called by ScriptSystem to mark Start() as called.
-     * Should not be called by user code.
-     */
-    void MarkStartCalled() { m_hasStarted = true; }
 
 private:
     // Forward declaration to hide implementation details from DLL interface
