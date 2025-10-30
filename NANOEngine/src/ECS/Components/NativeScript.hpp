@@ -1,7 +1,9 @@
 #pragma once
 #include "../../Scripting/IScript.hpp"
+#include "../../Core/Reflection.hpp"
 #include <string>
 #include <functional>
+#include <unordered_map>
 
 namespace NE::ECS::Component {
     struct NativeScript {
@@ -14,6 +16,10 @@ namespace NE::ECS::Component {
         std::function<IScript* ()> CreateScript;
         std::function<void(IScript*)> DestroyScript;
 
+        // Serialized field values (field name -> string value)
+        // Populated when saving scene, restored when loading scene
+        std::unordered_map<std::string, std::string> SerializedFields;
+
         // Binds the functions from the ScriptingEngine to this component.
         // This is called by the user when adding the component.
         void Bind(const std::string& name) {
@@ -24,6 +30,10 @@ namespace NE::ECS::Component {
 
         // Unbind is handled automatically when the component is destroyed.
         // The ScriptSystem will call DestroyScript(Instance).
+
+        NE_REFLECT_BEGIN(NativeScript)
+            NE_REFLECT_FIELD(ScriptName)
+        NE_REFLECT_END()
     };
 }
 
