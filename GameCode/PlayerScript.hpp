@@ -4,7 +4,6 @@
 #include "Input/InputManager.hpp"
 //#include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/Transform.hpp"
-#include "ExposedFieldRegistry.hpp"
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -14,17 +13,18 @@
 
 /**
  * Example player script demonstrating how to implement IScript.
+ * Now uses the built-in field system from IScript base class.
  */
 class PlayerScript : public IScript {
 
 public:
     PlayerScript() {
-        // register fields with the helper (macro convenience)
-        REGISTER_FIELD(speed);
-        REGISTER_FIELD(color);
-        REGISTER_FIELD(lives);
-        REGISTER_FIELD(godMode);
-        REGISTER_FIELD(label);
+        // Register fields using the new simplified system
+        SCRIPT_FIELD(speed, Float);
+        SCRIPT_FIELD(color, Vec3);
+        SCRIPT_FIELD(lives, Int);
+        SCRIPT_FIELD(godMode, Bool);
+        SCRIPT_FIELD(label, String);
 
         //LogMessage("PlayerScript created");
 		SPD_DEBUG("PlayerScript created");
@@ -54,7 +54,7 @@ public:
         if (m_timeSinceLastLog >= LOG_INTERVAL) {
             //LogMessage("PlayerScript updating - Entity: " + std::to_string(GetEntity()) + 
             //          ", DeltaTime: " + std::to_string(deltaTime));
-			SPD_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
+            SPD_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
             m_timeSinceLastLog = 0.0;
         }
 
@@ -119,25 +119,18 @@ public:
 		SPD_DEBUG("PlayerScript trigger exit with entity {}", other);
     }
 
-    // === Exposed editable fields via registry === NEED TO CHANGE
-    std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
-    std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
-    std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-    bool SetFieldValueFromString(const std::string& name, const std::string& value) override { return m_fields.SetValue(name, value); }
-
 private:
     double m_timeSinceLastLog = 0.0;
     static constexpr double LOG_INTERVAL = 2.0; // Log every 2 seconds
 
-    // Editable fields
+    // === Editable fields ===
+    // These fields will be automatically exposed to the editor
+    // using the new built-in field system
     float speed = 5.0f;
     NE::Math::Vec3 color{1.0f, 0.5f, 0.25f};
     int lives = 3;
     bool godMode = false;
     std::string label = "Player";
-
-    // Field registry
-    ExposedFieldRegistry m_fields;
 
     // Helper methods
     void LogMessage(const std::string& message) const {
