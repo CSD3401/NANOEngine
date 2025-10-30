@@ -30,8 +30,10 @@ namespace NANOEngine::Events {
         using Listener = std::function<void(const EventT&)>;
 
         template<class EventT>
-        Subscription Subscribe(EventDomain domain, Listener<EventT> listener) {
+        std::shared_ptr<Subscription> Subscribe(EventDomain domain, Listener<EventT> listener) {
             DomainKey key = { domain, std::type_index(typeid(EventT)) };
+
+            std::scoped_lock lock(mutex_);
 
             auto& base = callbacks_[key];
             if (!base) {
@@ -39,18 +41,33 @@ namespace NANOEngine::Events {
             }
 
             auto* typed = static_cast<TypedCallback<EventT>*>(base.get());
-            typed->listeners.emplace_back(std::move(listener));
-            size_t index = typed->listeners.size() - 1;
 
-            // Return an RAII unsubscriber
-            Subscription sub;
-            sub.unsubscribe = [this, key, index]() {
+            // Use shared_ptr for lifetime tracking
+            auto listenerPtr = std::make_shared<Listener<EventT>>(std::move(listener));
+            typed->listeners.emplace_back(*listenerPtr);
+
+            auto sub = std::make_shared<Subscription>();
+            std::weak_ptr<Listener<EventT>> weakListener = listenerPtr;
+
+            sub->unsubscribe = [this, key, weakListener]() {
+                std::scoped_lock lock(mutex_);
                 auto it = callbacks_.find(key);
                 if (it == callbacks_.end()) return;
+
                 auto* typed = static_cast<TypedCallback<EventT>*>(it->second.get());
-                if (index < typed->listeners.size())
-                    typed->listeners[index] = nullptr; // or erase later for safety
+                // Remove by comparing addresses instead of using indices
+                auto listenerLock = weakListener.lock();
+                if (listenerLock) {
+                    typed->listeners.erase(
+                        std::remove_if(typed->listeners.begin(), typed->listeners.end(),
+                            [&](const Listener<EventT>& l) {
+                                return &l == listenerLock.get();
+                            }),
+                        typed->listeners.end()
+                    );
+                }
                 };
+
             return sub;
         }
 
@@ -79,16 +96,35 @@ namespace NANOEngine::Events {
 
         template<class EventT>
         void Dispatch(EventDomain domain, const EventT& event) const {
-            std::scoped_lock lock(mutex_);
+            thread_local bool dispatching = false;
+            if (dispatching) return; // ignore recursive dispatch of same event type
+            dispatching = true;
+
             DomainKey key = { domain, std::type_index(typeid(EventT)) };
 
-            auto it = callbacks_.find(key);
-            if (it == callbacks_.end()) return;
+            // Copy listeners under lock, but call them after unlocking
+            std::vector<std::function<void(const EventT&)>> listenersCopy;
+            {
+                std::scoped_lock lock(mutex_);
+                auto it = callbacks_.find(key);
+                if (it != callbacks_.end()) {
+                    auto* typed = static_cast<TypedCallback<EventT>*>(it->second.get());
+                    listenersCopy.reserve(typed->listeners.size());
+                    for (const auto& listener : typed->listeners) {
+                        if (listener) // Skip null listeners
+                            listenersCopy.push_back(listener);
+                    }
+                }
+            }
 
-            auto* typed = static_cast<TypedCallback<EventT>*>(it->second.get());
-            for (const auto& listener : typed->listeners)
+            // Now call listeners outside of the lock
+            for (auto& listener : listenersCopy) {
                 listener(event);
+            }
+
+            dispatching = false;
         }
+
 
         
     private:

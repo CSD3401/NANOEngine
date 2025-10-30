@@ -121,9 +121,6 @@ public:
 	void Update(double deltaTime) override {
 		m_timeSinceLastLog += deltaTime;
 
-		int dt = (int)deltaTime;
-		NANOEngine::Events::SendScriptEvent("PlayerStart", &dt);
-
 		if (m_timeSinceLastLog >= LOG_INTERVAL) {
 			//SPD_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
 			//SPD_DEBUG("  State: {}", static_cast<int>(state));
@@ -154,6 +151,11 @@ public:
 		}
 		else {
 			state = PlayerState::Idle;
+		}
+
+		if (NE::InputManager::IsKeyDown('K')) {
+			int dmg = 20;
+			NANOEngine::Events::SendScriptEvent("OnPlayerHit", &dmg);
 		}
 
 		//  EXAMPLE: Use the bool flags

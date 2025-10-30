@@ -12,7 +12,8 @@
 
 void PlayerTestEvent(void* data) {
     int tmp = *reinterpret_cast<int*>(data);
-    SPD_CRITICAL("HIIII Player {}", data);
+   // SPD_CRITICAL("HIIII Player {}", tmp);
+    std::cout << tmp << std::endl;
 }
 
 
@@ -40,7 +41,7 @@ public:
         //std::cout << "  - Is Active: " << (isActive ? "true" : "false") << std::endl;
         //std::cout << "  - Object Name: " << objectName << std::endl;
 
-        NANOEngine::Events::RegisterScriptEventListener("PlayerStart", PlayerTestEvent);
+        NANOEngine::Events::RegisterScriptEventListener("OnPlayerHit", PlayerTestEvent);
     }
 
     void Update(double deltaTime) override {
