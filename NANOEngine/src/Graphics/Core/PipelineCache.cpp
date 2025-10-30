@@ -1,24 +1,11 @@
 #include "PipelineCache.hpp"
-#include "../OpenGL/GLPipeline.hpp"
 //#include "../OpenGL/GLShader.hpp"
 //#include "../../AssetManager.hpp"
 
 namespace NE::Graphics {
 
-    static PipelineKey MakeKey(const PipelineSpecification& s) {
-        PipelineKey k;
-        // GLShader exposes GetUUID() (used by GLPipeline::GetShaderUUID), so we use it here too.
-        //k.shaderUUID = std::string(s.shader ? s.shader->GetUUID() : std::string_view{});
-        k.shaderUUID = s.shaderName;
-        k.depthTest = s.EnableDepthTest;
-        k.blending = s.EnableBlending;
-        k.cullMode = s.CullMode;
-        k.polygonMode = s.PolygonMode;
-        return k;
-    }
-
     std::shared_ptr<IPipeline> PipelineCache::GetOrCreate(const PipelineSpecification& spec) {
-        auto key = MakeKey(spec);
+        auto key = PipelineKey::MakeKey(spec);
         if (auto it = m_cache.find(key); it != m_cache.end()) {
             if (auto sp = it->second.lock()) return sp;
         }

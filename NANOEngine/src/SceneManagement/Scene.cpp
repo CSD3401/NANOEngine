@@ -32,22 +32,29 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
-		Graphics::GraphicsManager::BeginFrame();
-		Graphics::GraphicsManager::DrawSkybox(); // here for now
+		//Graphics::GraphicsManager::BeginFrame();
+		//Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
+		//Graphics::GraphicsManager::DrawFrame();
 		m_ecsCoordinator.m_renderSystem->Update(dt);
-		Graphics::GraphicsManager::DrawDebugLines();
-		Graphics::GraphicsManager::EndFrame();
+		//Graphics::GraphicsManager::DrawDebugLines();
+		//Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
 
 	void Scene::Render(RenderPass pass) {
 		if (pass == RenderPass::Main) {
-			Graphics::GraphicsManager::DrawSkybox();
-			m_ecsCoordinator.m_renderSystem->Update(0.0);
+			Graphics::GraphicsManager::BeginFrame();
+			Graphics::GraphicsManager::DrawFrame();
+			Graphics::GraphicsManager::EndFrame();
+			//Graphics::GraphicsManager::DrawSkybox();
+			//m_ecsCoordinator.m_renderSystem->Update(0.0);
 			Graphics::GraphicsManager::DrawDebugLines();
 		} else if (pass == RenderPass::Picking) {
 			m_ecsCoordinator.m_renderSystem->RenderPicking();
+			Graphics::GraphicsManager::BeginFrame();
+			Graphics::GraphicsManager::DrawFrame();
+			Graphics::GraphicsManager::EndFrame();
 		}
 	}
 
