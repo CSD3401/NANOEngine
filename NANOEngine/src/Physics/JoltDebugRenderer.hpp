@@ -22,7 +22,15 @@ namespace NE::Physics {
         void DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::AABox& inWorldSpaceBounds, float inLODScaleSq, JPH::ColorArg inModelColor, const GeometryRef& inGeometry, ECullMode inCullMode = ECullMode::CullBackFace, ECastShadow inCastShadow = ECastShadow::On, EDrawMode inDrawMode = EDrawMode::Solid) override;
         
         void DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor = JPH::Color::sWhite, float inHeight = 0.5f) override {};
-    
+        
+        // batch management
+        void BeginFrame(); // call before physics debug draw
+        void EndFrame();   // call after physics debug draw to flush batches
+
+        // frustum culling
+        static bool IsVisible(const NE::Math::Vec3& center, float radius);
+        static bool IsVisible(const JPH::AABox& worldBounds);
+
     private:
         // helper class to store batch data
         class BatchPlaceHolder : public JPH::RefTargetVirtual {
@@ -42,17 +50,15 @@ namespace NE::Physics {
             std::atomic<JPH::uint32> mRefCount{ 0 };
         };
 
-        // Simple batch placeholder - no complex data structures
-        class SimpleBatch : public JPH::RefTargetVirtual {
-        public:
-            SimpleBatch() = default;
+        // local batching before sending to GraphicsManager
+        struct LineData { NE::Math::Vec3 from, to, color; };
+        struct TriData { NE::Math::Vec3 v0, v1, v2, color; };
 
-            void AddRef() override { ++mRefCount; }
-            void Release() override { if (--mRefCount == 0) delete this; }
+        std::vector<LineData> m_BatchedLines;
+        std::vector<TriData> m_BatchedTriangles;
 
-        private:
-            std::atomic<JPH::uint32> mRefCount{ 0 };
-        };
+        static constexpr size_t INITIAL_LINE_CAPACITY = 50000;
+        static constexpr size_t INITIAL_TRI_CAPACITY = 20000;
 
         // helper functions
         static NE::Math::Vec3 ToVec3(JPH::RVec3Arg v);

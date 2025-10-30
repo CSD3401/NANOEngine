@@ -25,6 +25,7 @@
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
 
 // Replace with forward declarations if needed
 // Forward declare instead of including
@@ -195,5 +196,9 @@ namespace NE {
 		Physics::PhysicsManager::DeactivateBodies();
 		//Physics::Command::DeactivateBodies();
 		gSceneManager.GetActive()->ScriptStop();
+	}
+
+	int GetDrawCallCount() {
+		return Graphics::GraphicsManager::drawCount;
 	}
 }

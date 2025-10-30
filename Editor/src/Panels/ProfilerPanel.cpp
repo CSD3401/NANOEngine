@@ -4,6 +4,7 @@
 #include <imgui/widgets/imgui_widget_flamegraph/imgui_widget_flamegraph.h>
 #include <Core/Profiler.hpp>
 #include "../Application.hpp"
+#include <Engine.hpp>
 
 namespace Editor {
 
@@ -50,6 +51,8 @@ namespace Editor {
         }
 
         ImGui::Text("FPS: %d", Application::timer.GetFPS());
+
+        ImGui::Text("Draw Call Count: %d", NE::GetDrawCallCount());
 
         ImGui::End();
     }

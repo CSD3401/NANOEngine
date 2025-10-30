@@ -6,6 +6,7 @@
 #include "../../src/EditorScene.hpp"
 #include <Utility/MetadataHandler.hpp>
 #include <Core/SpdLogger.hpp>
+#include <fstream>
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
