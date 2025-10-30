@@ -3,6 +3,7 @@
 
 #include "../Interfaces/IShader.hpp"
 #include <unordered_map>
+#include "ResourceManagement/BinaryView.hpp"
 
 namespace NE::Graphics::OpenGL {
 
@@ -25,18 +26,29 @@ namespace NE::Graphics::OpenGL {
 		void SetUniformHandle(const std::string& uName, uint64_t handle) override;
 		void SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) override;
 
-		bool LoadFromFile(const std::string& fileName) override;
+		//bool LoadFromFile(const std::string& fileName) override;
 
-		const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
+		//const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
+
+		bool Preload(NE::Resource::BinaryView blob) override;
+		void Finalize() override;
 
 		std::vector<UniformDesc> EnumerateActiveUniforms() const;
 		bool HasUniform(std::string_view name) const;
 	private:
+		const uint8_t* progBlob = nullptr;
+		size_t progSize = 0;
+		uint32_t progFormat = 0;
+
+		bool hasFallback = false;
+		const char* vsSrc = nullptr;
+		size_t vsLen = 0;
+		const char* fsSrc = nullptr;
+		size_t fsLen = 0;
+
+
 		uint32_t m_programID;
 		std::unordered_map<std::string, int> m_uniformLocationCache;
-		std::string LoadShaderSource(const std::string& path);
-		std::unordered_map<unsigned int, std::string> Preprocess(const std::string& source);
-		bool Compile(const std::unordered_map<unsigned int, std::string>& shaderSources);
 
 		int GetUniformLocation(const std::string& name);
 	};

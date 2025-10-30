@@ -6,7 +6,7 @@
 
 namespace Editor {
 
-constexpr uint32_t CURRENT_FORMAT_VERSION = 1;
+	constexpr uint16_t CURRENT_META_SCHEMA_VERSION = 1;
 
 	class AssetManager {
 	public:
@@ -26,7 +26,10 @@ constexpr uint32_t CURRENT_FORMAT_VERSION = 1;
 		AssetType GetAssetTypeFromExtension(std::string_view);
 
 		bool ImportTexture();
-		bool CookTexture(const std::string& sourcePath);
+		bool CookTexture(const std::string& sourcePath, const std::string& outPath);
+		bool CookShader(const std::string& sourcePath, const std::string& outPath);
+		bool CookMaterial(const std::string& sourcePath, const std::string& outPath);
+		bool CookMesh(const std::string& sourcePath, const std::string& outPath);
 
 		std::unordered_map<UUID, AssetMetadata> m_assets;
 

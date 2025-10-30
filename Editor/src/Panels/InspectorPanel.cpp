@@ -168,8 +168,8 @@ namespace Editor {
         FieldKeyHash> g_activeCommands;
 
     InspectorPanel::InspectorPanel() {
-        m_loadedMaterial = nullptr;
-        m_loadedPath = "";
+        //m_loadedMaterial = nullptr;
+        //m_loadedPath = "";
 
         componentTypeRegistry = NE::ECS::Query::GetRegisteredComponentTypes();
     }
@@ -658,95 +658,14 @@ namespace Editor {
 
         }
         else if (EditorScene::selectedAsset != "") {
-            //if (m_loadedPath != EditorScene::selectedMaterial) {
-            //    try {
-            //        m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
-            //        m_loadedPath = EditorScene::selectedMaterial;
-            //    }
-            //    catch (...) {
-            //        m_loadedMaterial.reset();
-            //        m_loadedPath.clear();
-            //    }
-            //}
+            
+            std::filesystem::path assetPath = EditorScene::selectedAsset;
 
-            //if (m_loadedMaterial) {
-            //    bool openPopup = false;
-            //    DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
-            //    if (openPopup) {
-            //        ImGui::OpenPopup("AssetPicker_Shader");
-            //    }
-
-                //static std::string searchQuery;
-                //if (ImGui::BeginPopup("AssetPicker_Shader")) {
-                //    ImGui::Text("Select a Shader");
-                //    ImGui::Separator();
-                //    auto& assets = NE::GetAllShaders();
-
-                //    if (ImSearch::BeginSearch()) {
-                //        ImSearch::SearchBar();
-
-                //        for (const auto& [name, asset] : assets) {
-                //            ImSearch::SearchableItem(name.c_str(),
-                //                [name, this](const char*) {
-                //                    if (ImGui::Selectable(name.c_str())) {
-                //                        m_loadedMaterial->SetShader(name);
-                //                        ImGui::CloseCurrentPopup();
-                //                    }
-                //                });
-                //        }
-
-                //        ImSearch::EndSearch();
-                //    }
-                //    ImGui::EndPopup();
-                //}
-
-                //ImGui::SeparatorText("Material Uniforms");
-
-                //for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
-                //    float v = val;
-                //    if (Editor::DrawFloatControl(name.c_str(), v, 0.1f)) {
-                //        m_loadedMaterial->SetUniformFloat(name, v);
-                //    }
-                //}
-
-                //for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
-                //    NE::Math::Vec3 v = val;
-                //    if (Editor::DrawVec3Control(name.c_str(), v, 0.0f, 100.0f)) {
-                //        m_loadedMaterial->SetUniformVec3(name, v);
-                //    }
-                //}
-
-                //for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
-                //    int i = val;
-                //    //Editor::DrawIntControl(name.c_str(), i);
-                //    if (ImGui::DragInt(name.c_str(), &i)) {
-                //        m_loadedMaterial->SetUniformInt(name, i);
-                //    }
-                //}
-
-                //if (ImGui::Button("Save Material", { 100.f, 30.f })) {
-                //    m_loadedMaterial->SaveMaterial("");
-                //}
-
-                //ImGui::SeparatorText("Material Textures");
-
-                //for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
-                //    // Preview + picker (96px thumb)
-                //    DrawTextureField(
-                //        uName.c_str(), tex, 96.0f,
-                //        [this, &tex, &uName](const std::string& id) {
-                //            auto t = NE::GetTexture(id);
-                //            m_loadedMaterial->SetTexture(uName, t);
-
-                //            // for keeping u_HasBaseMap in sync for toggle
-                //            std::string has = "u_Has" + uName.substr(2);
-                //            auto& ints = m_loadedMaterial->GetIntUniforms();
-                //            if (ints.find(has) != ints.end())
-                //                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
-                //        }
-                //    );
-                //}
-            //}
+            if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
+                RenderTextureImportSettings();
+            } else if (assetPath.extension() == ".nanomat") {
+                RenderMaterialSettings();
+            }
         }
 
         ImGui::End();
@@ -794,5 +713,94 @@ namespace Editor {
     }
 
     void InspectorPanel::RenderMaterialSettings() {
+        if (m_loadedPath != EditorScene::selectedAsset) {
+            try {
+                //m_loadedMaterial = NE::GetMaterial(EditorScene::selectedAsset);
+                m_loadedPath = EditorScene::selectedAsset;
+            }
+            catch (...) {
+                m_loadedMaterial.reset();
+                m_loadedPath.clear();
+            }
+        }
+
+        //if (m_loadedMaterial) {
+        //    bool openPopup = false;
+        //    DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
+        //    if (openPopup) {
+        //        ImGui::OpenPopup("AssetPicker_Shader");
+        //    }
+
+        //    static std::string searchQuery;
+        //    if (ImGui::BeginPopup("AssetPicker_Shader")) {
+        //        ImGui::Text("Select a Shader");
+        //        ImGui::Separator();
+        //        //auto& assets = NE::GetAllShaders();
+
+        //        if (ImSearch::BeginSearch()) {
+        //            ImSearch::SearchBar();
+
+        //            for (const auto& [name, asset] : assets) {
+        //                ImSearch::SearchableItem(name.c_str(),
+        //                    [name, this](const char*) {
+        //                        if (ImGui::Selectable(name.c_str())) {
+        //                            m_loadedMaterial->SetShader(name);
+        //                            ImGui::CloseCurrentPopup();
+        //                        }
+        //                    });
+        //            }
+
+        //            ImSearch::EndSearch();
+        //        }
+        //        ImGui::EndPopup();
+        //    }
+
+        //    ImGui::SeparatorText("Material Uniforms");
+
+        //    for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
+        //        float v = val;
+        //        if (Editor::DrawFloatControl(name.c_str(), v, 0.1f)) {
+        //            m_loadedMaterial->SetUniformFloat(name, v);
+        //        }
+        //    }
+
+        //    for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
+        //        NE::Math::Vec3 v = val;
+        //        if (Editor::DrawVec3Control(name.c_str(), v, 0.0f, 100.0f)) {
+        //            m_loadedMaterial->SetUniformVec3(name, v);
+        //        }
+        //    }
+
+        //    for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
+        //        int i = val;
+        //        //Editor::DrawIntControl(name.c_str(), i);
+        //        if (ImGui::DragInt(name.c_str(), &i)) {
+        //            m_loadedMaterial->SetUniformInt(name, i);
+        //        }
+        //    }
+
+        //    if (ImGui::Button("Save Material", { 100.f, 30.f })) {
+        //        m_loadedMaterial->SaveMaterial("");
+        //    }
+
+        //    ImGui::SeparatorText("Material Textures");
+
+        //    for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
+        //        // Preview + picker (96px thumb)
+        //        DrawTextureField(
+        //            uName.c_str(), tex, 96.0f,
+        //            [this, &tex, &uName](const std::string& id) {
+        //                auto t = NE::GetTexture(id);
+        //                m_loadedMaterial->SetTexture(uName, t);
+
+        //                // for keeping u_HasBaseMap in sync for toggle
+        //                std::string has = "u_Has" + uName.substr(2);
+        //                auto& ints = m_loadedMaterial->GetIntUniforms();
+        //                if (ints.find(has) != ints.end())
+        //                    m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
+        //            }
+        //        );
+        //    }
+        //}
     }
 }

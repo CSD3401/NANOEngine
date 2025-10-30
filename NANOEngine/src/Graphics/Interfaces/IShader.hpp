@@ -2,7 +2,7 @@
 #define NANOENGINE_GRAPHICS_ISHADER_HPP
 
 #include <string>
-#include "../../Asset.hpp"
+#include "ResourceManagement/IResource.hpp"
 
 namespace NE::Math {
     struct Vec3;
@@ -13,7 +13,7 @@ namespace NE::Graphics {
     using NE::Math::Vec3;
     using NE::Math::Mat4;
 
-    class IShader : public virtual Asset::IAsset {
+    class IShader : public virtual Resource::IResource {
     public:
         virtual ~IShader() = default;
 

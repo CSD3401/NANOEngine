@@ -19,9 +19,9 @@ namespace Editor {
             std::filesystem::path filePath = entry.path();
 
             // Skip meta files themselves
-            if (filePath.extension() == ".nanometa" || filePath.extension() == ".meta") continue;
+            if (filePath.extension() == ".meta") continue;
 
-            if (!std::filesystem::exists(entry.path().string() + ".nanometa")) {
+            if (!std::filesystem::exists(entry.path().string() + ".meta")) {
                 AssetManager::GetInstance().GenerateMetadata(entry.path().string());
             }
 

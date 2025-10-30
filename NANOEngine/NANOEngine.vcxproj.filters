@@ -294,16 +294,25 @@
     <ClInclude Include="src\ResourceManagement\ResourceManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\ResourceManagement\NanoTexHeader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ResourceManagement\ResourceHandle.hpp">
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoTexHeader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\ResourceManagement\IResource.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ResourceManagement\ResourcePaths.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

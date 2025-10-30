@@ -10,6 +10,7 @@ namespace Editor {
 	enum class AssetType : uint16_t {
 		Texture,
 		Mesh,
+		Shader,
 		Material,
 		Audio,
 		Prefab,
@@ -17,7 +18,7 @@ namespace Editor {
 	};
 
 	struct AssetMetadata {
-		UUID uuid;
+		UUID uuid; // maybe not needed here? remove in future if not needed
 		AssetType type;
 		std::string sourcePath;
 	};

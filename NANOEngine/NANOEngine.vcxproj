@@ -19,15 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />
-    <ClInclude Include="src\ResourceManagement\NanoTexHeader.hpp" />
-    <ClInclude Include="src\ResourceManagement\ResourceHandle.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoTexHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourceManager.hpp" />
     <ClInclude Include="src\Audio\AudioBank.hpp" />
     <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
     <ClInclude Include="src\Graphics\Core\PipelineCache.hpp" />
     <ClInclude Include="src\Input\InputManager.hpp" />
+    <ClInclude Include="src\ResourceManagement\ResourcePaths.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
     <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
