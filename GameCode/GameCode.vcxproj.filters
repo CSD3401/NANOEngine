@@ -24,6 +24,9 @@
     <ClInclude Include="PlayerScript.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="TestScript.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -35,5 +38,8 @@
     <ClCompile Include="GameEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ScriptFieldImprovements.md" />
   </ItemGroup>
 </Project>

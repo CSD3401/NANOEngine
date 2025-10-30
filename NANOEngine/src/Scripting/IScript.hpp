@@ -17,7 +17,7 @@ namespace NE::ECS {
 }
 
 namespace NE::Math {
-  struct Vec3;
+    struct Vec3;
 }
 
 //namespace NE::Core {
@@ -381,26 +381,62 @@ public:
     // Scripts that want to expose editable fields to the editor can override
     // these methods. We keep the API string-based to avoid reflection across DLLs.
 
+  
+  
+    // === Built-in field management system ===
+  
     /**
      * Return a list of exposed field names.
+     * This is now implemented in the base class.
      */
-    virtual std::vector<std::string> GetExposedFieldNames() const { return {}; }
+    virtual std::vector<std::string> GetExposedFieldNames() const;
 
  /**
      * Return the type token for a named field. Example tokens: "bool","int","float","vec3","string","enum"
      */
-    virtual std::string GetFieldType(const std::string& name) const { (void)name; return std::string(); }
+    virtual std::string GetFieldType(const std::string& name) const;
 
     /**
      * Get the current field value as a string. The format for complex types (eg vec3) is up to the script,
      * but the Editor will use a simple whitespace-separated list for vec3: "x y z".
+     * This is now implemented in the base class.
      */
-    virtual std::string GetFieldValueAsString(const std::string& name) const { (void)name; return std::string(); }
+    virtual std::string GetFieldValueAsString(const std::string& name) const;
 
     /**
      * Set the field value from a string. Return true if successful.
+     * This is now implemented in the base class.
      */
-    virtual bool SetFieldValueFromString(const std::string& name, const std::string& value) { (void)name; (void)value; return false; }
+    virtual bool SetFieldValueFromString(const std::string& name, const std::string& value);
+
+protected:
+    // === Protected field registration methods ===
+    // Scripts should call these in their constructor to register fields
+    
+    /**
+     * Register a float field for editor exposure.
+     */
+    void RegisterFloatField(const std::string& name, float* memberPtr);
+    
+    /**
+     * Register an int field for editor exposure.
+     */
+    void RegisterIntField(const std::string& name, int* memberPtr);
+    
+    /**
+     * Register a bool field for editor exposure.
+     */
+    void RegisterBoolField(const std::string& name, bool* memberPtr);
+    
+    /**
+     * Register a string field for editor exposure.
+     */
+    void RegisterStringField(const std::string& name, std::string* memberPtr);
+    
+    /**
+     * Register a Vec3 field for editor exposure.
+     */
+    void RegisterVec3Field(const std::string& name, NE::Math::Vec3* memberPtr);
 
   // === Enum Field Support ===
     
@@ -504,13 +540,18 @@ public:
     void MarkStartCalled() { m_hasStarted = true; }
 
 private:
+    // Forward declaration to hide implementation details from DLL interface
+    class FieldRegistry;
+    
     NE::ECS::Entity m_entity = 0;
     bool m_enabled = true;
     bool m_hasStarted = false;
+    
+    // Use PIMPL pattern to hide std containers from DLL interface
+    FieldRegistry* m_fieldRegistry = nullptr;
 
 protected:
     NE::ECS::ComponentManager* m_componentManager = nullptr;
-
 };
 
 template<typename T>
@@ -522,6 +563,20 @@ T* IScript::GetComponent() const {
     return &m_componentManager->GetComponent<T>(m_entity);
 }
 
+// === Convenience macros for field registration ===
+// Use these in your script constructor to easily register fields
+
+#ifndef SCRIPT_REGISTER_FIELD
+#define SCRIPT_REGISTER_FIELD(fieldName, fieldType) \
+    Register##fieldType##Field(#fieldName, &this->fieldName)
+#endif
+
+// Specific type macros for cleaner code
+#ifndef SCRIPT_FIELD
+#define SCRIPT_FIELD(fieldName, fieldType) \
+    SCRIPT_REGISTER_FIELD(fieldName, fieldType)
+#endif
+
 template<typename T>
 bool IScript::HasComponent() const {
     if (!m_componentManager) {
@@ -529,4 +584,3 @@ bool IScript::HasComponent() const {
     }
     return m_componentManager->HasComponent<T>(m_entity);
 }
-

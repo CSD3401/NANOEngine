@@ -4,6 +4,7 @@
 #include "Input/InputManager.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ExposedFieldRegistry.hpp"
+#include <iostream>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -12,6 +13,7 @@
 
 /**
  * Example player script demonstrating how to implement IScript.
+ * Now uses the built-in field system from IScript base class.
  */
 class PlayerScript : public IScript {
 public:
