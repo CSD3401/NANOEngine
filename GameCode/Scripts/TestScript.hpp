@@ -2,12 +2,20 @@
 #include <iostream>
 #include "Scripting/IScript.hpp"
 #include "ECS/Components/Transform.hpp"
+#include "Events/EventBus.hpp"
 #include <Math/Vec3.hpp>
 
 /**
  * Test script to demonstrate the new built-in field system.
  * This script shows how easy it is to expose fields to the editor.
  */
+
+void PlayerTestEvent(void* data) {
+    int tmp = *reinterpret_cast<int*>(data);
+    SPD_CRITICAL("HIIII Player {}", data);
+}
+
+
 class TestScript : public IScript {
 public:
     TestScript() {
@@ -31,6 +39,8 @@ public:
         //std::cout << "  - Particle Count: " << particleCount << std::endl;
         //std::cout << "  - Is Active: " << (isActive ? "true" : "false") << std::endl;
         //std::cout << "  - Object Name: " << objectName << std::endl;
+
+        NANOEngine::Events::RegisterScriptEventListener("PlayerStart", PlayerTestEvent);
     }
 
     void Update(double deltaTime) override {

@@ -4,7 +4,7 @@
 #include "Input/InputManager.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ExposedFieldRegistry.hpp"
-#include <iostream>
+#include "Events/EventBus.hpp"
 #include <string>
 #include <sstream>
 #include <vector>
@@ -120,6 +120,9 @@ public:
 
 	void Update(double deltaTime) override {
 		m_timeSinceLastLog += deltaTime;
+
+		int dt = (int)deltaTime;
+		NANOEngine::Events::SendScriptEvent("PlayerStart", &dt);
 
 		if (m_timeSinceLastLog >= LOG_INTERVAL) {
 			//SPD_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
