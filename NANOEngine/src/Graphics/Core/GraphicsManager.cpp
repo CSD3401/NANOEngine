@@ -18,8 +18,6 @@
 
 
 namespace NE::Graphics {
-    void InitDebugLines();
-
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
 
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
@@ -29,6 +27,11 @@ namespace NE::Graphics {
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
+    std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
+
+    std::vector<float> GraphicsManager::s_DebugVertexBuffer;
+    GLint GraphicsManager::s_DebugViewLoc = -1;
+    GLint GraphicsManager::s_DebugProjLoc = -1;
 
     int GraphicsManager::drawCount = 0;
 
@@ -70,7 +73,7 @@ namespace NE::Graphics {
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
 
         // temp
-        InitDebugLines();
+        InitDebugPrimitives();
     }
 
     void GraphicsManager::BeginFrame() {
@@ -197,7 +200,7 @@ namespace NE::Graphics {
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
 
-    void InitDebugLines() {
+    void GraphicsManager::InitDebugPrimitives() {
         // Compile shaders
         GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -215,6 +218,10 @@ namespace NE::Graphics {
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
 
+        // cache uniform locations ONCE at initialization
+        GraphicsManager::s_DebugViewLoc = glGetUniformLocation(debugShaderProgram, "u_View");
+        GraphicsManager::s_DebugProjLoc = glGetUniformLocation(debugShaderProgram, "u_Projection");
+
         glGenVertexArrays(1, &debugVAO);
         glGenBuffers(1, &debugVBO);
 
@@ -228,6 +235,9 @@ namespace NE::Graphics {
         glEnableVertexAttribArray(1);
 
         glBindVertexArray(0);
+
+        // pre-allocate debug vertex buffer
+        GraphicsManager::s_DebugVertexBuffer.reserve(INITIAL_DEBUG_BUFFER_SIZE);
     }
 
     void GraphicsManager::AddDebugLine(const Math::Vec3& from, const Math::Vec3& to, const Math::Vec3& color) {
@@ -237,34 +247,254 @@ namespace NE::Graphics {
     void GraphicsManager::DrawDebugLines() {
         if (s_DebugLines.empty()) return;
 
-        std::vector<float> vertices;
-        for (const auto& line : s_DebugLines) {
-            vertices.push_back(line.from.x);
-            vertices.push_back(line.from.y);
-            vertices.push_back(line.from.z);
-            vertices.push_back(line.color.x);
-            vertices.push_back(line.color.y);
-            vertices.push_back(line.color.z);
+        // clear buffer but keep capacity (avoid reallocation)
+        s_DebugVertexBuffer.clear();
 
-            vertices.push_back(line.to.x);
-            vertices.push_back(line.to.y);
-            vertices.push_back(line.to.z);
-            vertices.push_back(line.color.x);
-            vertices.push_back(line.color.y);
-            vertices.push_back(line.color.z);
+        // reserve exact size needed (2 vertices * 6 floats per line)
+        size_t requiredSize = s_DebugLines.size() * 12;
+        if (s_DebugVertexBuffer.capacity() < requiredSize)
+        {
+            s_DebugVertexBuffer.reserve(requiredSize * 2); // Extra room for growth
         }
 
-        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+        // build vertex data
+        for (const auto& line : s_DebugLines) 
+        {
+            // vertex 1 (from)
+            s_DebugVertexBuffer.push_back(line.from.x);
+            s_DebugVertexBuffer.push_back(line.from.y);
+            s_DebugVertexBuffer.push_back(line.from.z);
+            s_DebugVertexBuffer.push_back(line.color.x);
+            s_DebugVertexBuffer.push_back(line.color.y);
+            s_DebugVertexBuffer.push_back(line.color.z);
 
+            // vertex 2 (to)
+            s_DebugVertexBuffer.push_back(line.to.x);
+            s_DebugVertexBuffer.push_back(line.to.y);
+            s_DebugVertexBuffer.push_back(line.to.z);
+            s_DebugVertexBuffer.push_back(line.color.x);
+            s_DebugVertexBuffer.push_back(line.color.y);
+            s_DebugVertexBuffer.push_back(line.color.z);
+        }
+
+        // upload to GPU
+        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
+        glBufferData(GL_ARRAY_BUFFER, s_DebugVertexBuffer.size() * sizeof(float), s_DebugVertexBuffer.data(), GL_STREAM_DRAW);
+
+        // use shader
         glUseProgram(debugShaderProgram);
+
+        // use cached uniform locations (no glGetUniformLocation call)
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+
+        // draw
         glBindVertexArray(debugVAO);
         glLineWidth(2.0f);
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2));
 
+        // clear for next frame
         s_DebugLines.clear();
 
         s_StateCache->InvalidateAll(); // TEMP
     }
 
+    void GraphicsManager::AddDebugTriangle(const Math::Vec3& v0, const Math::Vec3& v1, const Math::Vec3& v2, const Math::Vec3& color) {
+        s_DebugTriangles.push_back({ v0, v1, v2, color });
+    }
+
+    void GraphicsManager::DrawDebugTriangles() {
+        if (s_DebugTriangles.empty()) return;
+
+        // clear buffer but keep capacity (avoid reallocation)
+        s_DebugVertexBuffer.clear();
+
+        // reserve exact size needed (2 vertices * 6 floats per line)
+        size_t requiredSize = s_DebugTriangles.size() * 12;
+        if (s_DebugVertexBuffer.capacity() < requiredSize)
+        {
+            s_DebugVertexBuffer.reserve(requiredSize * 2); // Extra room for growth
+        }
+
+        // build vertex data
+        for (const auto& tri : s_DebugTriangles) 
+        {
+            // Vertex 0
+            s_DebugVertexBuffer.push_back(tri.v0.x);
+            s_DebugVertexBuffer.push_back(tri.v0.y);
+            s_DebugVertexBuffer.push_back(tri.v0.z);
+            s_DebugVertexBuffer.push_back(tri.color.x);
+            s_DebugVertexBuffer.push_back(tri.color.y);
+            s_DebugVertexBuffer.push_back(tri.color.z);
+
+            // Vertex 1
+            s_DebugVertexBuffer.push_back(tri.v1.x);
+            s_DebugVertexBuffer.push_back(tri.v1.y);
+            s_DebugVertexBuffer.push_back(tri.v1.z);
+            s_DebugVertexBuffer.push_back(tri.color.x);
+            s_DebugVertexBuffer.push_back(tri.color.y);
+            s_DebugVertexBuffer.push_back(tri.color.z);
+
+            // Vertex 2
+            s_DebugVertexBuffer.push_back(tri.v2.x);
+            s_DebugVertexBuffer.push_back(tri.v2.y);
+            s_DebugVertexBuffer.push_back(tri.v2.z);
+            s_DebugVertexBuffer.push_back(tri.color.x);
+            s_DebugVertexBuffer.push_back(tri.color.y);
+            s_DebugVertexBuffer.push_back(tri.color.z);
+        }
+
+        // upload to GPU
+        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
+        glBufferData(GL_ARRAY_BUFFER, s_DebugVertexBuffer.size() * sizeof(float), s_DebugVertexBuffer.data(), GL_STREAM_DRAW);
+
+        // use shader
+        glUseProgram(debugShaderProgram);
+
+        // Use cached uniform locations (no glGetUniformLocation call!)
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+
+        // draw
+        glBindVertexArray(debugVAO);
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glDepthMask(GL_TRUE);
+
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(s_DebugTriangles.size() * 3));
+
+        s_DebugTriangles.clear();
+    }
+
+    void GraphicsManager::AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
+        if (positions.size() < 2) return;
+
+        // reserve space upfront to avoid reallocations
+        const size_t lineCount = positions.size() / 2;
+        s_DebugLines.reserve(s_DebugLines.size() + lineCount);
+
+        // add lines in pairs
+        for (size_t i = 0; i + 1 < positions.size(); i += 2) {
+            s_DebugLines.push_back({ positions[i], positions[i + 1], color });
+        }
+    }
+
+    void GraphicsManager::AddDebugTrianglesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
+        if (positions.size() < 3) return;
+
+        // reserve space upfront to avoid reallocations
+        const size_t triCount = positions.size() / 3;
+        s_DebugTriangles.reserve(s_DebugTriangles.size() + triCount);
+
+        // add triangles in groups of 3
+        for (size_t i = 0; i + 2 < positions.size(); i += 3) {
+            s_DebugTriangles.push_back({ positions[i], positions[i + 1], positions[i + 2], color });
+        }
+    }
+
+    void GraphicsManager::DrawAllDebugGeometry() {
+        if (s_DebugLines.empty() && s_DebugTriangles.empty()) return;
+
+        s_DebugVertexBuffer.clear();
+
+        // calculate exact size needed
+        const size_t lineVertexCount = s_DebugLines.size() * 2;
+        const size_t triVertexCount = s_DebugTriangles.size() * 3;
+        const size_t totalFloats = (lineVertexCount * 6) + (triVertexCount * 6);
+
+        // resize once (no clear/reserve dance needed)
+        s_DebugVertexBuffer.resize(totalFloats);
+
+        // get raw pointer to data - direct memory writes!
+        float* ptr = s_DebugVertexBuffer.data();
+
+        // add all line vertices
+        for (const auto& line : s_DebugLines) 
+        {
+            // vertex 1 (from)
+            *ptr++ = line.from.x;
+            *ptr++ = line.from.y;
+            *ptr++ = line.from.z;
+            *ptr++ = line.color.x;
+            *ptr++ = line.color.y;
+            *ptr++ = line.color.z;
+
+            // vertex 2 (to)
+            *ptr++ = line.to.x;
+            *ptr++ = line.to.y;
+            *ptr++ = line.to.z;
+            *ptr++ = line.color.x;
+            *ptr++ = line.color.y;
+            *ptr++ = line.color.z;
+        }
+
+        // add all triangle vertices
+        for (const auto& tri : s_DebugTriangles) 
+        {
+            // vertex 0
+            *ptr++ = tri.v0.x;
+            *ptr++ = tri.v0.y;
+            *ptr++ = tri.v0.z;
+            *ptr++ = tri.color.x;
+            *ptr++ = tri.color.y;
+            *ptr++ = tri.color.z;
+
+            // vertex 1
+            *ptr++ = tri.v1.x;
+            *ptr++ = tri.v1.y;
+            *ptr++ = tri.v1.z;
+            *ptr++ = tri.color.x;
+            *ptr++ = tri.color.y;
+            *ptr++ = tri.color.z;
+
+            // vertex 2
+            *ptr++ = tri.v2.x;
+            *ptr++ = tri.v2.y;
+            *ptr++ = tri.v2.z;
+            *ptr++ = tri.color.x;
+            *ptr++ = tri.color.y;
+            *ptr++ = tri.color.z;
+        }
+
+        // single upload to GPU
+        glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
+        glBufferData(GL_ARRAY_BUFFER,
+            totalFloats * sizeof(float),
+            s_DebugVertexBuffer.data(),
+            GL_STREAM_DRAW);
+
+        // setup shader
+        glUseProgram(debugShaderProgram);
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        glBindVertexArray(debugVAO);
+        glEnable(GL_DEPTH_TEST);
+
+        // draw lines
+        if (!s_DebugLines.empty()) 
+        {
+            glLineWidth(2.0f);
+            glDepthFunc(GL_LEQUAL);
+            glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(lineVertexCount));
+        }
+
+        // draw triangles
+        if (!s_DebugTriangles.empty()) 
+        {
+            glDepthFunc(GL_LESS);
+            glDepthMask(GL_TRUE);
+            glDrawArrays(GL_TRIANGLES,
+                static_cast<GLsizei>(lineVertexCount),
+                static_cast<GLsizei>(s_DebugTriangles.size() * 3));
+        }
+
+        // clear both buffers
+        s_DebugLines.clear();
+        s_DebugTriangles.clear();
+    }
 }
