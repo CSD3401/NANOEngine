@@ -9,6 +9,7 @@
 #include <sstream>
 #include <vector>
 #include <Math/Vec3.hpp>
+#include <Core/SpdLogger.hpp>
 
 /**
  * Example player script demonstrating how to implement IScript.
@@ -25,50 +26,54 @@ public:
         SCRIPT_FIELD(godMode, Bool);
         SCRIPT_FIELD(label, String);
 
-        LogMessage("PlayerScript created");
+        //LogMessage("PlayerScript created");
+		SPD_DEBUG("PlayerScript created");
+
     }
     
     ~PlayerScript() override {
-        LogMessage("PlayerScript destroyed");
+        //LogMessage("PlayerScript destroyed");
+		SPD_DEBUG("PlayerScript destroyed");
     }
 
     // === IScript Interface ===
     void Initialize(NE::ECS::Entity entity) override {
-        LogMessage("PlayerScript initialized for entity " + std::to_string(entity));
+        //LogMessage("PlayerScript initialized for entity " + std::to_string(entity));
+		SPD_DEBUG("PlayerScript initialized for entity {}", entity);
+
+        // In a real implementation, you might:
+        // - Get references to other components (Transform, Renderer, etc.)
+        // - Set up initial state
+        // - Subscribe to input events
+        // - Initialize physics properties
     }
 
     void Update(double deltaTime) override {
         m_timeSinceLastLog += deltaTime;
         
         if (m_timeSinceLastLog >= LOG_INTERVAL) {
-            LogMessage("PlayerScript updating - Entity: " + std::to_string(GetEntity()) + 
-                      ", DeltaTime: " + std::to_string(deltaTime) +
-                      ", Speed: " + std::to_string(speed) +
-                      ", Lives: " + std::to_string(lives) +
-                      ", GodMode: " + (godMode ? "true" : "false"));
+            //LogMessage("PlayerScript updating - Entity: " + std::to_string(GetEntity()) + 
+            //          ", DeltaTime: " + std::to_string(deltaTime));
+            SPD_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
             m_timeSinceLastLog = 0.0;
         }
 
-        // Example movement logic using the speed field:
-        auto transform = GetComponent<NE::ECS::Component::Transform>();
-        if (transform) {
-            // Use the speed field directly - this will now be properly synchronized with the editor
-            float deltaSpeed = speed * static_cast<float>(deltaTime);
-
-            if(NE::InputManager::IsKeyDown('D'))
-			    transform->position.x += 0.2f * (float)deltaTime;
-			else if (NE::InputManager::IsKeyDown('A'))
-				transform->position.x -= 0.2f * (float)deltaTime;
-			else if (NE::InputManager::IsKeyDown('W'))
-				transform->position.y += 0.2f * (float)deltaTime;
-			else if (NE::InputManager::IsKeyDown('S'))
-				transform->position.y -= 0.2f * (float)deltaTime;
+        // Unity-style movement with helper functions
+        float moveSpeed = speed * (float)deltaTime;
         
-        }
+        if(NE::InputManager::IsKeyDown('D'))
+            Translate(moveSpeed, 0, 0);
+        else if (NE::InputManager::IsKeyDown('A'))
+            Translate(-moveSpeed, 0, 0);
+        else if (NE::InputManager::IsKeyDown('W'))
+            Translate(0, moveSpeed, 0);
+        else if (NE::InputManager::IsKeyDown('S'))
+            Translate(0, -moveSpeed, 0);
     }
 
     void OnDestroy() override {
-        LogMessage("PlayerScript cleanup for entity " + std::to_string(GetEntity()));
+        //LogMessage("PlayerScript cleanup for entity " + std::to_string(GetEntity()));
+		SPD_DEBUG("PlayerScript cleanup for entity {}", GetEntity());
 
         // In a real implementation, you might:
         // - Unsubscribe from events
@@ -77,12 +82,14 @@ public:
     }
 
     void OnEnable() override {
-        LogMessage("PlayerScript enabled for entity " + std::to_string(GetEntity()));
+        //LogMessage("PlayerScript enabled for entity " + std::to_string(GetEntity()));
+		SPD_DEBUG("PlayerScript enabled for entity {}", GetEntity());
         // Resume player functionality
     }
 
     void OnDisable() override {
-        LogMessage("PlayerScript disabled for entity " + std::to_string(GetEntity()));
+        //LogMessage("PlayerScript disabled for entity " + std::to_string(GetEntity()));
+		SPD_DEBUG("PlayerScript disabled for entity {}", GetEntity());
         // Pause player functionality, reset input
     }
 
@@ -92,20 +99,24 @@ public:
 
     // === Event Handlers ===
     void OnCollisionEnter(NE::ECS::Entity other) override {
-        LogMessage("PlayerScript collision enter with entity " + std::to_string(other));
+        //LogMessage("PlayerScript collision enter with entity " + std::to_string(other));
+		SPD_DEBUG("PlayerScript collision enter with entity {}", other);
         // Your collision logic goes here
     }
 
     void OnCollisionExit(NE::ECS::Entity other) override {
-        LogMessage("PlayerScript collision exit with entity " + std::to_string(other));
+        //LogMessage("PlayerScript collision exit with entity " + std::to_string(other));
+		SPD_DEBUG("PlayerScript collision exit with entity {}", other);
     }
 
     void OnTriggerEnter(NE::ECS::Entity other) override {
         LogMessage("PlayerScript trigger enter with entity " + std::to_string(other));
+		SPD_DEBUG("PlayerScript trigger enter with entity {}", other);
     }
 
     void OnTriggerExit(NE::ECS::Entity other) override {
-        LogMessage("PlayerScript trigger exit with entity " + std::to_string(other));
+        //LogMessage("PlayerScript trigger exit with entity " + std::to_string(other));
+		SPD_DEBUG("PlayerScript trigger exit with entity {}", other);
     }
 
 private:

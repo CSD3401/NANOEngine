@@ -1,6 +1,7 @@
 #include "ScriptSystem.hpp" 
 #include <iostream>
 #include "../Components/NativeScript.hpp"
+#include "Core/SpdLogger.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -18,7 +19,7 @@ namespace NE::ECS::Systems {
             nsc.Instance->SetEntity(entity);
             nsc.Instance->Initialize(entity);
             nsc.Instance->SetEnabled(false); // Start disabled
-            std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+            SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
         }
     }
 
@@ -29,6 +30,8 @@ namespace NE::ECS::Systems {
     }
 
     void ScriptSystem::Init() {
+        SPD_INFO("ScriptSystem::Init() - Starting initialization");
+        
         // Logic to initialize the system when a scene loads
         scriptingEngine = std::make_unique<Scripting::ScriptingEngine>();
         //Scripting Test
@@ -36,15 +39,15 @@ namespace NE::ECS::Systems {
         bool loaded = scriptingEngine->LoadGameDLL(dllPath);
 
         if (!loaded) {
-            std::cerr << "TEST FAILED: Could not load " << dllPath << std::endl;
-            std::cerr << "Error: " << scriptingEngine->GetLastError() << std::endl;
+            SPD_ERROR("Failed to load " << dllPath);
+            SPD_ERROR("Error: " << scriptingEngine->GetLastError());
         }
         else {
-            std::cout << "DLL loaded successfully." << std::endl;
-
+            SPD_INFO("DLL loaded successfully: " << dllPath);
             scriptingEngine->PrintSummary();
-           
         }
+        
+        SPD_INFO("ScriptSystem::Init() - Completed");
     }
 
     void ScriptSystem::Exit() {
@@ -53,36 +56,26 @@ namespace NE::ECS::Systems {
 			OnScriptComponentDestroyed(entity);
 		}
 
-        std::cout << "\n--- SCRIPT SYSTEM TEST COMPLETE ---\n" << std::endl;
+        SPD_INFO("Script system shutdown complete");
         scriptingEngine->Shutdown(); //tmp
     }
 
     void ScriptSystem::StartScripts()
     {
-        std::cout << "ScriptSystem: Entering Play Mode..." << std::endl;
+        SPD_INFO("ScriptSystem: Entering Play Mode...");
         const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
         for (Entity entity : entities) {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-            // Only create if the component is valid and not already instantiated
-            //if (nsc.CreateScript && !nsc.Instance) {
-            //    nsc.Instance = nsc.CreateScript();
-            //    nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
-            //    nsc.Instance->SetEntity(entity);
-            //    nsc.Instance->Initialize(entity);
-            //    std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
-            //}
-            //else if(nsc.Instance){
 			if (nsc.Instance)
 				nsc.Instance->SetEnabled(true);
-            //}
         }
     }
 
     void ScriptSystem::PauseScripts()
     {
-		std::cout << "ScriptSystem: Pausing Play Mode..." << std::endl;
+		SPD_INFO("ScriptSystem: Pausing Play Mode...");
 		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
 		for (Entity entity : entities) {
@@ -90,14 +83,14 @@ namespace NE::ECS::Systems {
 
 			if (nsc.Instance) {
 				nsc.Instance->SetEnabled(false);
-				std::cout << "Paused script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+				SPD_INFO("Paused script '" << nsc.ScriptName << "' for entity " << (int)entity);
 			}
 		}
     }
 
     void ScriptSystem::StopScripts()
     {
-        std::cout << "ScriptSystem: Exiting Play Mode..." << std::endl;
+        SPD_INFO("ScriptSystem: Exiting Play Mode...");
         const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
         for (Entity entity : entities) {
@@ -113,7 +106,7 @@ namespace NE::ECS::Systems {
                 }
                 // CRITICAL: Reset the instance pointer to null
                 nsc.Instance = nullptr;
-                std::cout << "Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+                SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
             }
 
 			// Recreate the script instance for the next play session
@@ -123,7 +116,7 @@ namespace NE::ECS::Systems {
                 nsc.Instance->SetEntity(entity);
                 nsc.Instance->Initialize(entity);
 				nsc.Instance->SetEnabled(false); // Start disabled
-                std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+                SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
             }
         }
     }
@@ -131,25 +124,6 @@ namespace NE::ECS::Systems {
 
     void ScriptSystem::Update(double deltaTime) {
         const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
-
-        // First loop: Instantiate and Initialize new scripts
-        //for (Entity entity : entities) {
-        //    auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-
-        //    if (nsc.CreateScript && !nsc.Instance) {
-        //        // Instantiate the script
-        //        nsc.Instance = nsc.CreateScript();
-
-        //        // Give the script a handle to its entity owner
-        //        nsc.Instance->SetEntity(entity);
-
-        //        nsc.Instance->LinkToEngine(m_componentManager);
-
-        //        nsc.Instance->Initialize(entity);
-
-        //        std::cout << "Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
-        //    }
-        //}
 
         // Second loop: Update all active scripts
         for (Entity entity : entities) {
@@ -171,7 +145,7 @@ namespace NE::ECS::Systems {
                 delete nsc.Instance; // Fallback
             }
             nsc.Instance = nullptr;
-            std::cout << "Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity << std::endl;
+            SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
         }
     }
 }
