@@ -21,14 +21,14 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scripts\PlayerScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ExposedFieldRegistry.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TestScript.hpp">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="Scripts\PlayerScript.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\TestScript.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -41,8 +41,5 @@
     <ClCompile Include="GameEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ScriptFieldImprovements.md" />
   </ItemGroup>
 </Project>

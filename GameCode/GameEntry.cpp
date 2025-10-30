@@ -11,7 +11,7 @@
 
 // Include headers for all scripts you want to register
 #include "Scripts/PlayerScript.hpp"
-#include "TestScript.hpp"
+#include "Scripts/TestScript.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {

@@ -1,5 +1,6 @@
 #include "ScriptSystem.hpp" 
 #include <iostream>
+#include <filesystem>
 #include "../Components/NativeScript.hpp"
 #include "Core/SpdLogger.hpp"
 
