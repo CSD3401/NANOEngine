@@ -17,6 +17,7 @@
 #include <stb_image/stb_image.h>
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
+//#include "EditorInterface/PhysicsExports.hpp"
 #include "EngineState.hpp"
 #include "Audio/AudioBank.hpp"
 #include "SceneManagement/SceneManager.hpp"
@@ -24,6 +25,14 @@
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+
+// Replace with forward declarations if needed
+// Forward declare instead of including
+// Physics as a export
+//namespace NE::Physics {
+//	class PhysicsManager; 
+//}
 
 namespace NE {
 
@@ -50,6 +59,7 @@ namespace NE {
 		s_pickingFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();
+		//Physics::PhysicsManager::TestPhysicsSetup();
 	}
 
 	void LoadStartupScene() {
@@ -61,6 +71,8 @@ namespace NE {
 		//s_window->PollEvents();
 
 		Physics::PhysicsManager::Update(static_cast<float>(dt));
+		//Physics::Command::Update(static_cast<float>(dt));
+
 		gSceneManager.Update(dt);
 
 		s_sceneFrameBuffer->Bind();
@@ -83,6 +95,8 @@ namespace NE {
 		NE_PROFILE_FUNCTION();
 		SaveCurrentScene("Assets/NewScene.scene");
 		Physics::PhysicsManager::Shutdown();
+		//Physics::Command::Shutdown();
+
 		gSceneManager.ExitScene();
 
 		s_sceneFrameBuffer.reset();
@@ -151,6 +165,9 @@ namespace NE {
 		return Asset::AssetManager::GetInstance().GetAssetsOfType<Asset::AudioBank>();
 	}
 
+	
+
+
 	size_t GetNumEntities() {
 		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities().size();
 	}
@@ -163,18 +180,25 @@ namespace NE {
 	void EditorPlay() {
 		g_EngineState = EngineState::Play;
 		Physics::PhysicsManager::ActivateBodies();
+		//Physics::Command::ActivateBodies();
 		gSceneManager.GetActive()->ScriptStart();
 	}
 
 	void EditorPause() {
 		g_EngineState = EngineState::Play;
 		Physics::PhysicsManager::DeactivateBodies();
+		//Physics::Command::DeactivateBodies();
 		gSceneManager.GetActive()->ScriptPause();
 	}
 
 	void EditorEdit() {
 		g_EngineState = EngineState::Edit;
 		Physics::PhysicsManager::DeactivateBodies();
+		//Physics::Command::DeactivateBodies();
 		gSceneManager.GetActive()->ScriptStop();
+	}
+
+	int GetDrawCallCount() {
+		return Graphics::GraphicsManager::drawCount;
 	}
 }

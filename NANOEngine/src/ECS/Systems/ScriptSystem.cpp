@@ -14,12 +14,21 @@ namespace NE::ECS::Systems {
         // Logic for when an entity relevant to the script system is added
         auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
         if (nsc.CreateScript && !nsc.Instance) {
-            nsc.Instance = nsc.CreateScript();
-            nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
-            nsc.Instance->SetEntity(entity);
-            nsc.Instance->Initialize(entity);
-            nsc.Instance->SetEnabled(false); // Start disabled
-            SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+ nsc.Instance = nsc.CreateScript();
+  nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
+        nsc.Instance->SetEntity(entity);
+      
+      // Call Awake() first (even if disabled)
+            nsc.Instance->Awake();
+    
+   // Then Initialize()
+ nsc.Instance->Initialize(entity);
+            
+        // Restore serialized field values if they exist
+       RestoreSerializedFields(nsc);
+
+   nsc.Instance->SetEnabled(false); // Start disabled
+     SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
         }
     }
 
@@ -93,31 +102,41 @@ namespace NE::ECS::Systems {
         SPD_INFO("ScriptSystem: Exiting Play Mode...");
         const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-        for (Entity entity : entities) {
+ for (Entity entity : entities) {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-            if (nsc.Instance) {
+      if (nsc.Instance) {
+    // Save field values before destroying
+       SaveSerializedFields(nsc);
+  
                 nsc.Instance->OnDestroy();
-                if (nsc.DestroyScript) {
-                    nsc.DestroyScript(nsc.Instance);
-                }
-                else {
-                    delete nsc.Instance; // Fallback
-                }
-                // CRITICAL: Reset the instance pointer to null
-                nsc.Instance = nullptr;
-                SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
-            }
+      if (nsc.DestroyScript) {
+    nsc.DestroyScript(nsc.Instance);
+  }
+         else {
+             delete nsc.Instance; // Fallback
+          }
+    // CRITICAL: Reset the instance pointer to null
+       nsc.Instance = nullptr;
+        SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
+      }
 
 			// Recreate the script instance for the next play session
-            if (nsc.CreateScript && !nsc.Instance) {
+       if (nsc.CreateScript && !nsc.Instance) {
                 nsc.Instance = nsc.CreateScript();
-                nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
-                nsc.Instance->SetEntity(entity);
-                nsc.Instance->Initialize(entity);
+    nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
+          nsc.Instance->SetEntity(entity);
+        
+  // Call Awake() and Initialize()
+   nsc.Instance->Awake();
+      nsc.Instance->Initialize(entity);
+  
+                // Restore the saved field values
+RestoreSerializedFields(nsc);
+            
 				nsc.Instance->SetEnabled(false); // Start disabled
-                SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
-            }
+    SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+     }
         }
     }
     
@@ -129,8 +148,14 @@ namespace NE::ECS::Systems {
         for (Entity entity : entities) {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
             if (nsc.Instance && nsc.Instance->IsEnabled()) {
-                nsc.Instance->Update(deltaTime);
-            }
+         // Call Start() before first Update() if not yet called
+       if (!nsc.Instance->HasStarted()) {
+        nsc.Instance->Start();
+            nsc.Instance->MarkStartCalled();
+         }
+        
+   nsc.Instance->Update(deltaTime);
+   }
         }
     }
 
@@ -147,5 +172,37 @@ namespace NE::ECS::Systems {
             nsc.Instance = nullptr;
             SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
         }
+    }
+
+    void ScriptSystem::SaveSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+        if (!nsc.Instance) return;
+
+        // Clear existing serialized fields
+        nsc.SerializedFields.clear();
+
+        // Get all exposed field names from the script
+     auto fieldNames = nsc.Instance->GetExposedFieldNames();
+        
+    // Save each field's current value as a string
+   for (const auto& fieldName : fieldNames) {
+      std::string value = nsc.Instance->GetFieldValueAsString(fieldName);
+  nsc.SerializedFields[fieldName] = value;
+        }
+
+     SPD_DEBUG("Saved " << nsc.SerializedFields.size() << " fields for script '" << nsc.ScriptName << "'");
+    }
+
+    void ScriptSystem::RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+     if (!nsc.Instance || nsc.SerializedFields.empty()) return;
+
+        // Restore each serialized field value
+        for (const auto& [fieldName, value] : nsc.SerializedFields) {
+       bool success = nsc.Instance->SetFieldValueFromString(fieldName, value);
+     if (!success) {
+     SPD_WARNING("Failed to restore field '" << fieldName << "' for script '" << nsc.ScriptName << "'");
+        }
+        }
+
+     SPD_DEBUG("Restored " << nsc.SerializedFields.size() << " fields for script '" << nsc.ScriptName << "'");
     }
 }
