@@ -30,7 +30,7 @@
     <ClInclude Include="Scripts\TestScript.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PhysicsPlayerController.hpp">
+    <ClInclude Include="Scripts\PhysicsPlayerController.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
