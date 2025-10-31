@@ -69,7 +69,7 @@ public:
      * Called when the script is being destroyed.
      * Use this for cleanup operations.
      */
-    virtual void OnDestroy() { delete m_componentManager; }
+    virtual void OnDestroy() { m_componentManager = nullptr; }
 
     /**
      * Called when the script is enabled.
