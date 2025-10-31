@@ -312,6 +312,12 @@
     <ClInclude Include="src\Animation\TransformClipIO.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Animation\AnimatorController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Animation\AnimatorControllerIO.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -489,6 +495,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Animation\TransformClipIO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimatorControllerIO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

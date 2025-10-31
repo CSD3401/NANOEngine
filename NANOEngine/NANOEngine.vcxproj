@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Animation\AnimatorController.hpp" />
+    <ClInclude Include="src\Animation\AnimatorControllerIO.hpp" />
     <ClInclude Include="src\Animation\TransformClip.hpp" />
     <ClInclude Include="src\Animation\TransformClipIO.hpp" />
     <ClInclude Include="src\ECS\Components\Animator.hpp" />
@@ -120,6 +122,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Animation\AnimatorControllerIO.cpp" />
     <ClCompile Include="src\Animation\TransformClipIO.cpp" />
     <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
     <ClCompile Include="src\ResourceManager.cpp" />
