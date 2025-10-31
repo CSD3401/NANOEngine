@@ -4,7 +4,10 @@
 #include "../Graphics/Core/Camera.hpp" 
 
 namespace NE::Physics {
-    NE::Math::Vec3 JoltDebugRenderer::ToVec3(JPH::RVec3Arg v)
+    std::vector<JoltDebugRenderer::LineData> JoltDebugRenderer::m_BatchedLines;
+    std::vector<JoltDebugRenderer::TriData> JoltDebugRenderer::m_BatchedTriangles;
+
+    NE::Math::Vec3 JoltDebugRenderer::ToVec3(JPH::RVec3Arg v) 
     {
         return { (float)v.GetX(), (float)v.GetY(), (float)v.GetZ() };
     }

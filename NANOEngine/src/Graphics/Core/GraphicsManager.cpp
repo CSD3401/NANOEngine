@@ -13,9 +13,9 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
+#include "GizmosRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
-#include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
-
+#include <GL/gl.h>
 
 namespace NE::Graphics {
     void InitDebugLines();
@@ -37,6 +37,8 @@ namespace NE::Graphics {
 
     int GraphicsManager::drawCount = 0;
 	bool GraphicsManager::enableSorting = true;
+
+    GLuint debugShaderProgram, debugVAO, debugVBO;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -165,6 +167,31 @@ namespace NE::Graphics {
     void GraphicsManager::Shutdown() {
         s_skybox.reset();
         s_CommandBuffer.reset();
+
+        if (debugVBO) {
+            glDeleteBuffers(1, &debugVBO);
+            debugVBO = 0;
+        }
+
+        if (debugVAO) {
+            glDeleteVertexArrays(1, &debugVAO);
+            debugVAO = 0;
+        }
+
+        if (debugShaderProgram) {
+            glDeleteProgram(debugShaderProgram);
+            debugShaderProgram = 0;
+        }
+
+        s_DebugLines.clear();
+        s_DebugTriangles.clear();
+        s_DebugVertexBuffer.clear();
+
+        s_DebugLines.shrink_to_fit();
+        s_DebugTriangles.shrink_to_fit();
+        s_DebugVertexBuffer.shrink_to_fit();
+
+        NE::Graphics::GizmosRenderer::Cleanup();
     }
 
     void GraphicsManager::SetCamera(Camera* cam) {
@@ -207,8 +234,6 @@ namespace NE::Graphics {
         FragColor = vec4(color, 1.0);
     }
 )";
-
-    GLuint debugShaderProgram, debugVAO, debugVBO;
 
     void GraphicsManager::InitDebugPrimitives() {
         // Compile shaders
