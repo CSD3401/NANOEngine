@@ -33,18 +33,12 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
-		//Graphics::GraphicsManager::BeginFrame();
-		//Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
-		//Graphics::GraphicsManager::DrawFrame();
 		m_ecsCoordinator.m_renderSystem->Update(dt);
 		//Graphics::GraphicsManager::DrawDebugLines(); // commented out, as when included, scene::render will not render the lines and triangles as itll be cleared after drawdebuglines/triangles ends
 		//Graphics::GraphicsManager::DrawDebugTriangles();
 #pragma region test gizmos renderer
-		Graphics::GizmosRenderer::TestGizmosRenderer();
+		//Graphics::GizmosRenderer::TestGizmosRenderer();
 #pragma endregion
-		//Graphics::GraphicsManager::EndFrame();
-		//Graphics::GraphicsManager::DrawDebugLines();
-		//Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
@@ -57,7 +51,7 @@ namespace NE::SceneManagement {
 			Graphics::GraphicsManager::EndFrame();
 			//Graphics::GraphicsManager::DrawSkybox();
 			//m_ecsCoordinator.m_renderSystem->Update(0.0);
-			Graphics::GraphicsManager::DrawDebugLines();
+			//Graphics::GraphicsManager::DrawDebugLines();
 		} else if (pass == RenderPass::Picking) {
 			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
 			m_ecsCoordinator.m_renderSystem->RenderPicking();
