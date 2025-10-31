@@ -80,7 +80,7 @@ namespace NE::Graphics {
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
 
-		DrawSkybox(); // temp
+		//DrawSkybox(); // temp
     }
 
     void GraphicsManager::DrawSkybox()

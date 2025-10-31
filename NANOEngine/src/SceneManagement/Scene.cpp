@@ -45,6 +45,7 @@ namespace NE::SceneManagement {
 	void Scene::Render(RenderPass pass) {
 		if (pass == RenderPass::Main) {
 			Graphics::GraphicsManager::BeginFrame();
+			Graphics::GraphicsManager::DrawSkybox();
 			Graphics::GraphicsManager::DrawFrame();
 			Graphics::GraphicsManager::EndFrame();
 			//Graphics::GraphicsManager::DrawSkybox();
