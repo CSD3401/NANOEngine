@@ -3,8 +3,11 @@
 #include "../Interfaces/ICommandBuffer.hpp"
 #include "../Interfaces/IPipeline.hpp"
 #include "../Interfaces/IGeometryBuffer.hpp"
+#include "../Interfaces/IStateCache.hpp"
 #include "Material.hpp"
 #include "../../Math/Mat4.hpp"
+#include "DrawCommand.hpp"
+#include "DrawQueue.hpp"
 
 namespace NE::ECS::Component {
     struct DirectionalLight;
@@ -24,17 +27,12 @@ namespace NE::Graphics {
         Math::Vec3 color;
     };
 
-    struct DrawCommand {
-        std::shared_ptr<IGeometryBuffer> mesh;
-        std::shared_ptr<Material> material;
-        Math::Mat4 transform;
-    };
-
     class GraphicsManager {
     public:
         static void Init();
         static void BeginFrame();
         static void DrawSkybox();
+		static void DrawFrame();
         static void Submit(const DrawCommand& command);
         static void EndFrame();
         static void Shutdown();
@@ -49,6 +47,13 @@ namespace NE::Graphics {
         static void DrawDebugLines();
 
         static std::vector<ECS::Component::Light*> m_lights;
+
+        // Draw Count Profiling
+        static int drawCount;
+
+        // Flag to toggle sorting
+		static bool enableSorting;
+
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;
@@ -56,6 +61,13 @@ namespace NE::Graphics {
 
         // Gizmo Drawing
         static std::vector<DebugLine> s_DebugLines;
+
+		// Pipeline state cache
+		static std::unique_ptr<IStateCache> s_StateCache;
+
+		// Draw Queue
+		static std::unique_ptr<DrawQueue> s_DrawQueue;
+
     };
 
 }

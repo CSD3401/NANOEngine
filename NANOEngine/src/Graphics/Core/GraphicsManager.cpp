@@ -13,7 +13,8 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
-#include <GL/gl.h>
+#include "../OpenGL/GLStateCache.hpp"
+#include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
 namespace NE::Graphics {
@@ -24,12 +25,19 @@ namespace NE::Graphics {
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
     std::unique_ptr<Skybox> GraphicsManager::s_skybox;
     Camera* GraphicsManager::s_ActiveCamera = nullptr;
+	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
+	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
+
+    int GraphicsManager::drawCount = 0;
+	bool GraphicsManager::enableSorting = true;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
+        s_StateCache = std::make_unique<OpenGL::GLStateCache>();
+        s_DrawQueue = std::make_unique<DrawQueue>();
 
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
@@ -71,60 +79,84 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::BeginFrame() {
-        glClearColor(1.f, 1.f, 1.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        drawCount = 0;
+
+		s_StateCache->InvalidateAll();
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
+
+		//DrawSkybox(); // temp
     }
 
-    void GraphicsManager::DrawSkybox()
-    {
-        if (s_skybox)
-            s_skybox->Draw();
+    void GraphicsManager::DrawSkybox() {
+        if (s_skybox) s_skybox->Draw();
+    }
+
+    void GraphicsManager::DrawFrame() {
+        NE_PROFILE_FUNCTION();
+		if (enableSorting) s_DrawQueue->Sort(s_ActiveCamera);
+		for (const auto& command : s_DrawQueue->GetCommands()) {
+            // Bind the pipeline (shader program + GL state)
+            //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
+
+            // Bind pipeline state and update the cache
+            s_StateCache->Bind(command.material->GetPipeline());
+
+            // Bind the vertex/index buffers
+            command.mesh->Bind();
+
+            // Bind material (textures, uniforms, etc.)
+            command.material->Bind();
+
+            // Upload transform matrix to shader
+            auto shader = command.material->GetPipeline()->GetSpecification().shader;
+            shader->SetUniformMat4("u_Model", command.transform);
+            shader->SetUniformMat4("u_View", s_ActiveCamera->GetViewMatrix());
+            shader->SetUniformMat4("u_Projection", s_ActiveCamera->GetProjectionMatrix());
+            shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
+            shader->SetUniformVec3("u_CameraPos", s_ActiveCamera->GetPosition());
+
+            shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
+            for (size_t i = 0; i < m_lights.size(); ++i) {
+                const auto* light = m_lights[i];
+                std::string base = "u_lights[" + std::to_string(i) + "]";
+                shader->SetUniformInt(base + ".type", light->type);
+                shader->SetUniformVec3(base + ".position", light->position);
+                shader->SetUniformVec3(base + ".direction", light->direction);
+                shader->SetUniformVec3(base + ".color", light->color);
+                shader->SetUniformFloat(base + ".intensity", light->intensity);
+                shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
+                shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
+                shader->SetUniformFloat(base + ".constant", light->constant);
+                shader->SetUniformFloat(base + ".linear", light->linear);
+                shader->SetUniformFloat(base + ".quadratic", light->quadratic);
+            }
+
+            shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
+
+            // For object picking
+            if (command.entity.has_value()) {
+                float r = (float)(*command.entity & 0xFF) / 255.0f;
+                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
+                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
+                shader->SetUniformVec3("u_ID", { r, g, b });
+			}
+
+            // Draw indexed
+            //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
+            command.mesh->Draw();
+            ++drawCount;
+
+            glBindVertexArray(0);
+		}
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) {
-        NE_PROFILE_FUNCTION();
-
-        s_CommandBuffer->BindPipeline(command.material->GetPipeline());
-
-        command.mesh->Bind();
-
-        command.material->Bind();
-
-        auto shader = command.material->GetPipeline()->GetSpecification().shader;
-        shader->SetUniformMat4("u_Model", command.transform);
-        shader->SetUniformMat4("u_View", s_ActiveCamera->GetViewMatrix());
-        shader->SetUniformMat4("u_Projection", s_ActiveCamera->GetProjectionMatrix());
-        shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
-        shader->SetUniformVec3("u_CameraPos", s_ActiveCamera->GetPosition());
-
-        shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
-        for (size_t i = 0; i < m_lights.size(); ++i) {
-            const auto* light = m_lights[i];
-            std::string base = "u_lights[" + std::to_string(i) + "]";
-            shader->SetUniformInt(base + ".type", light->type);
-            shader->SetUniformVec3(base + ".position", light->position);
-            shader->SetUniformVec3(base + ".direction", light->direction);
-            shader->SetUniformVec3(base + ".color", light->color);
-            shader->SetUniformFloat(base + ".intensity", light->intensity);
-            shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
-            shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
-            shader->SetUniformFloat(base + ".constant", light->constant);
-            shader->SetUniformFloat(base + ".linear", light->linear);
-            shader->SetUniformFloat(base + ".quadratic", light->quadratic);
-        }
-
-        shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
-
-        // Draw indexed
-        //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
-        command.mesh->Draw();
-
-        glBindVertexArray(0);
+		s_DrawQueue->Submit(command);
     }
 
     void GraphicsManager::EndFrame() {
+        s_DrawQueue->Clear();
         s_CommandBuffer->EndRenderPass();
         s_CommandBuffer->End();
     }
@@ -243,6 +275,8 @@ namespace NE::Graphics {
         glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(s_DebugLines.size() * 2));
 
         s_DebugLines.clear();
+
+        s_StateCache->InvalidateAll(); // TEMP
     }
 
 }

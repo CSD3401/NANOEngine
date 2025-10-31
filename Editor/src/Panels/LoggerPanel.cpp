@@ -15,6 +15,7 @@ prior written consent of DigiPen Institute of Technology is prohibited.
 #include <imgui/imgui.h>
 #include <algorithm>
 #include <cctype>
+#include <functional>
 
 namespace Editor {
    /*!

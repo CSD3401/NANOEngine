@@ -27,6 +27,7 @@ namespace NE::Graphics::OpenGL {
 
 		bool LoadFromFile(const std::string& fileName) override;
 
+		const uint32_t GetProgramID() const override { return m_programID; }
 		const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
 
 		std::vector<UniformDesc> EnumerateActiveUniforms() const;
