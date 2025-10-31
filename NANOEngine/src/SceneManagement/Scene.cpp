@@ -52,10 +52,12 @@ namespace NE::SceneManagement {
 			//m_ecsCoordinator.m_renderSystem->Update(0.0);
 			Graphics::GraphicsManager::DrawDebugLines();
 		} else if (pass == RenderPass::Picking) {
+			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
 			m_ecsCoordinator.m_renderSystem->RenderPicking();
 			Graphics::GraphicsManager::BeginFrame();
 			Graphics::GraphicsManager::DrawFrame();
 			Graphics::GraphicsManager::EndFrame();
+			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
 		}
 	}
 

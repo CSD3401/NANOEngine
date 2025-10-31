@@ -65,9 +65,9 @@ namespace NE::Graphics {
         // Texture units (assume 1 per name for now)
         std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
 
-		    // Render queue
-		    RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
-		    uint16_t m_OffsetRQ = 0;
+		// Render queue
+		RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
+		uint16_t m_OffsetRQ = 0;
         //std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
 	};
 

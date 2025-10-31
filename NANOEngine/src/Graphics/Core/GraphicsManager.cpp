@@ -31,6 +31,7 @@ namespace NE::Graphics {
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
 
     int GraphicsManager::drawCount = 0;
+	bool GraphicsManager::enableSorting = true;
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -83,14 +84,13 @@ namespace NE::Graphics {
 		//DrawSkybox(); // temp
     }
 
-    void GraphicsManager::DrawSkybox()
-    {
+    void GraphicsManager::DrawSkybox() {
         if (s_skybox) s_skybox->Draw();
     }
 
     void GraphicsManager::DrawFrame() {
         NE_PROFILE_FUNCTION();
-		s_DrawQueue->Sort(s_ActiveCamera);
+		if (enableSorting) s_DrawQueue->Sort(s_ActiveCamera);
 		for (const auto& command : s_DrawQueue->GetCommands()) {
             // Bind the pipeline (shader program + GL state)
             //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
@@ -129,6 +129,14 @@ namespace NE::Graphics {
             }
 
             shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
+
+            // For object picking
+            if (command.entity.has_value()) {
+                float r = (float)(*command.entity & 0xFF) / 255.0f;
+                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
+                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
+                shader->SetUniformVec3("u_ID", { r, g, b });
+			}
 
             // Draw indexed
             //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
