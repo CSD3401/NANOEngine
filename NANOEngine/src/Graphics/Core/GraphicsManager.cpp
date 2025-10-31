@@ -28,7 +28,12 @@ namespace NE::Graphics {
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 
+
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
+    std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
+    std::vector<float> GraphicsManager::s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
+    int GraphicsManager::s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
+    int GraphicsManager::s_DebugProjLoc;
 
     int GraphicsManager::drawCount = 0;
 	bool GraphicsManager::enableSorting = true;
@@ -71,7 +76,7 @@ namespace NE::Graphics {
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
 
         // temp
-        InitDebugLines();
+        //InitDebugLines();
     }
 
     void GraphicsManager::BeginFrame() {

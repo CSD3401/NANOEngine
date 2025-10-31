@@ -32,12 +32,12 @@ namespace NE::Physics {
         static uint32_t CreateBody(const JPH::BodyCreationSettings& settings);
         static void DestroyBody(uint32_t index);
 
-		static void SetTransform(uint32_t index, const Math::Vec3& position, const Math::Vec3& rotation);
+        static void SetTransform(uint32_t index, const Math::Vec3& position, const Math::Vec3& rotation);
         static void GetTransform(uint32_t index, Math::Vec3& position, Math::Vec3& rotation);
 
         // For changing settings
         static void SetMotionType(uint32_t bodyid, JPH::EMotionType motionType);
-		static JPH::EMotionType GetMotionType(uint32_t bodyid);
+        static JPH::EMotionType GetMotionType(uint32_t bodyid);
 
         static JPH::PhysicsSystem* GetPhysicsSystem();
         static std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> s_shapeMap;
@@ -48,11 +48,11 @@ namespace NE::Physics {
             const Math::Vec3& size,
             JPH::EMotionType motionType);
 
-		static void UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize);
+        static void UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize);
 
-        static uint32_t CreateSphereBody(const Math::Vec3& pos, 
+        static uint32_t CreateSphereBody(const Math::Vec3& pos,
             const Math::Vec3& rot,
-            float radius, 
+            float radius,
             JPH::EMotionType motionType);
 
         static void UpdateSphereRadius(uint32_t bodyID, float newRadius);
@@ -64,12 +64,12 @@ namespace NE::Physics {
         static void RenderBodyShape(const JPH::Body& body);
 
 
-		// Entity-physics mapping
-		static void RegisterEntityBody(Entity entity, uint32_t bodyID);
+        // Entity-physics mapping
+        static void RegisterEntityBody(Entity entity, uint32_t bodyID);
         static void UnregisterEntityBody(Entity entity);
         static uint32_t GetEntityBodyId(Entity entity);
 
- 
+
 
 
         static bool EntityHasPhysicsBody(Entity entity);
@@ -79,13 +79,13 @@ namespace NE::Physics {
     private:
         // swap manual tracking to jolt in built
         //static std::vector<JPH::BodyID> s_BodyIDs;
-		//static std::unordered_map<uint32_t, size_t> s_BodyIndexMap; // Maps bodyID to index in s_BodyIDs
+        //static std::unordered_map<uint32_t, size_t> s_BodyIndexMap; // Maps bodyID to index in s_BodyIDs
         static std::unique_ptr<JPH::Factory> s_Factory;
         static std::unique_ptr<JPH::PhysicsSystem> s_PhysicsSystem;
         static std::unique_ptr<JPH::TempAllocatorImpl> s_TempAllocator;
         static std::unique_ptr<JPH::JobSystemThreadPool> s_JobSystem;
 
-		static std::unordered_map<Entity, uint32_t> s_EntityToBodyMap;
+        static std::unordered_map<Entity, uint32_t> s_EntityToBodyMap;
 
     };
 
