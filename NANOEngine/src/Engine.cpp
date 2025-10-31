@@ -24,14 +24,11 @@
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
-#include "Graphics/Core/GraphicsManager.hpp"
 
 namespace NE {
 
 	static std::unique_ptr<Graphics::Window> s_window;
 	static std::unique_ptr<Graphics::IRenderContext> s_renderContext;
-	static std::unique_ptr<Graphics::IFrameBuffer> s_sceneFrameBuffer; // temp
-	static std::unique_ptr<Graphics::IFrameBuffer> s_pickingFrameBuffer; // temp
 
 	static SceneManagement::SceneManager gSceneManager;
 
@@ -47,8 +44,6 @@ namespace NE {
 		s_renderContext = std::make_unique<Graphics::OpenGL::GLContext>();
 		s_renderContext->Init(s_window->GetNativeWindow());
 
-		s_sceneFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
-		s_pickingFrameBuffer = std::make_unique<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();
 	}
@@ -64,18 +59,22 @@ namespace NE {
 		Physics::PhysicsManager::Update(static_cast<float>(dt));
 		gSceneManager.Update(dt);
 
-		s_sceneFrameBuffer->Bind();
+		Graphics::GraphicsManager::DrawSkybox();
+		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::SCENE);
 		Graphics::GraphicsManager::BeginFrame();
-		gSceneManager.Render(NE::SceneManagement::RenderPass::Main);
+		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE);
+
+		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::GAME);
+		Graphics::GraphicsManager::BeginFrame();
+		gSceneManager.Render(NE::SceneManagement::RenderPass::GAME);
+
 		TweenManager::Get().Update(static_cast<float>(dt));
 		Graphics::GraphicsManager::EndFrame();
-		s_sceneFrameBuffer->Unbind();
 		
-		s_pickingFrameBuffer->Bind();
+		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::SCENE_PICKING);
 		Graphics::GraphicsManager::BeginFrame();
-		gSceneManager.Render(NE::SceneManagement::RenderPass::Picking);
+		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE_PICKING);
 		Graphics::GraphicsManager::EndFrame();
-		s_pickingFrameBuffer->Unbind();
 
 		//s_renderContext->SwapBuffers();
 	}
@@ -84,10 +83,9 @@ namespace NE {
 		NE_PROFILE_FUNCTION();
 		SaveCurrentScene("Assets/NewScene.scene");
 		Physics::PhysicsManager::Shutdown();
+		Graphics::GraphicsManager::Shutdown();
 		gSceneManager.ExitScene();
 
-		s_sceneFrameBuffer.reset();
-		s_pickingFrameBuffer.reset();
 		s_renderContext->Shutdown();
 		s_renderContext.reset();
 		s_window.reset();
@@ -103,15 +101,19 @@ namespace NE {
 	}
 
 	uint32_t GetSceneFrameBuffer() {
-		return s_sceneFrameBuffer->GetColorAttachment();
+		return Graphics::GraphicsManager::s_SceneFrameBuffer->GetColorAttachment(); // temp
+	}
+
+	uint32_t GetGameFrameBuffer() {
+		return Graphics::GraphicsManager::s_GameFrameBuffer->GetColorAttachment(); // temp
 	}
 
 	void SetEditorCamera(void* camera) {
-		Graphics::GraphicsManager::SetCamera(reinterpret_cast<Graphics::Camera*>(camera));
+		Graphics::GraphicsManager::SetEditorCamera(reinterpret_cast<Graphics::EditorCamera*>(camera));
 	}
 
 	uint32_t GetPickedEntity(uint32_t x, uint32_t y) {
-		return Graphics::GraphicsManager::ReadPixel(s_pickingFrameBuffer.get(), x, y);
+		return Graphics::GraphicsManager::ReadPixel(x, y);
 	}
 
 	void SaveCurrentScene(std::string path) {

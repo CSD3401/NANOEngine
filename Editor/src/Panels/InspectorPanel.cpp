@@ -11,6 +11,7 @@
 #include <ECS/Components/AudioSource.hpp>
 #include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include <ECS/Components/Camera.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "../EditorScene.hpp"
@@ -862,6 +863,85 @@ namespace Editor {
 						}
 					}
 				}
+				else if (typeIdx == typeid(NE::ECS::Component::Camera)) {
+					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
+					ImGui::SeparatorText("Camera");
+
+					NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
+						[&](auto const& desc, auto const& currentValue) {
+							using Owner = NE::ECS::Component::Camera;
+							using FieldT = std::decay_t<decltype(currentValue)>;
+
+							FieldT edited = currentValue;
+
+							// --- draw widget, track edit lifecycle ---
+							ImGui::PushID(desc.name.data());
+							const bool changed = DrawField(desc, edited);  // your field drawer
+							const bool activated = ImGui::IsItemActivated();
+							const bool active = ImGui::IsItemActive();
+							const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+							ImGui::PopID();
+
+							// Key to coalesce continuous edits (dragging slider, etc.)
+							FieldKey key{
+								entity,
+								&typeid(Owner),
+								MemberPointerHasher<Owner, FieldT>{}(desc.member)
+							};
+
+							// 1) Begin an active command when editing starts
+							if (activated) {
+								using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+								auto cmd = std::make_unique<Cmd>(
+									entity,
+									std::string("Set Camera ") + desc.name.data(),
+									desc.member,
+									currentValue,  // before
+									currentValue,  // after (will change while dragging)
+									&NE::ECS::Command::GetEntityCamera
+								);
+								g_activeCommands[key] = std::move(cmd);
+							}
+
+							// 2) While dragging, coalesce into the active command
+							if (active && changed) {
+								auto it = g_activeCommands.find(key);
+								if (it != g_activeCommands.end()) {
+									using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+									Cmd tmp(
+										entity,
+										std::string{},     // no label for interim updates
+										desc.member,
+										currentValue,      // before (ignored by CoalesceFrom)
+										edited,            // new after value
+										&NE::ECS::Command::GetEntityCamera
+									);
+									it->second->CoalesceFrom(tmp);
+								}
+							}
+
+							// 3) When edit ends, either discard (no net change) or commit
+							if (deactivated) {
+								auto it = g_activeCommands.find(key);
+								if (it != g_activeCommands.end()) {
+									// If no net change, drop it; else execute & mark camera dirty
+									if (auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+										asSet && Equal(asSet->Before(), asSet->After())) {
+										g_activeCommands.erase(it);
+									}
+									else {
+										Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+										g_activeCommands.erase(it);
+
+										// Ensure projection is rebuilt after param changes
+										// (Either handle in SetFieldCommand::Apply, or do it here.)
+										auto& cam = NE::ECS::Command::GetEntityCamera(entity);
+										cam.isDirty = true;  // projection rebuild flag
+									}
+								}
+							}
+						});
+				}
 			}
 
 			if (ImGui::Button("Add Component")) {
@@ -887,6 +967,9 @@ namespace Editor {
 				}
 				if (ImGui::MenuItem("Script")) {
 					NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				if (ImGui::MenuItem("Camera")) {
+					NE::ECS::Command::AddCameraComponent(EditorScene::s_selectedEntity->linkedEntity);
 				}
 				ImGui::EndPopup();
 			}

@@ -6,6 +6,7 @@
 #include "../ECS/Systems/RigidbodySystem.hpp"
 #include "../ECS/Systems/ColliderSystem.hpp"
 #include "../ECS/Systems/AudioSystem.hpp"
+#include "../ECS/Systems/CameraSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
@@ -21,9 +22,11 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
+		m_ecsCoordinator.m_cameraSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
+
 	}
 
 	void Scene::Update(double dt)
@@ -32,32 +35,29 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
-		//Graphics::GraphicsManager::BeginFrame();
-		//Graphics::GraphicsManager::DrawSkybox(); // here for now, not sure if theres a better place to put this
-		//Graphics::GraphicsManager::DrawFrame();
+		m_ecsCoordinator.m_cameraSystem->Update(dt);
 		m_ecsCoordinator.m_renderSystem->Update(dt);
-		//Graphics::GraphicsManager::DrawDebugLines();
-		//Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 	}
 
 	void Scene::Render(RenderPass pass) {
-		if (pass == RenderPass::Main) {
-			Graphics::GraphicsManager::BeginFrame();
-			Graphics::GraphicsManager::DrawSkybox();
+		switch (pass) {
+		case RenderPass::SCENE:
 			Graphics::GraphicsManager::DrawFrame();
-			Graphics::GraphicsManager::EndFrame();
-			//Graphics::GraphicsManager::DrawSkybox();
-			//m_ecsCoordinator.m_renderSystem->Update(0.0);
 			Graphics::GraphicsManager::DrawDebugLines();
-		} else if (pass == RenderPass::Picking) {
-			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
-			m_ecsCoordinator.m_renderSystem->RenderPicking();
-			Graphics::GraphicsManager::BeginFrame();
+			break;
+		case RenderPass::GAME:
 			Graphics::GraphicsManager::DrawFrame();
-			Graphics::GraphicsManager::EndFrame();
+			break;
+		case RenderPass::SCENE_PICKING:
+			Graphics::GraphicsManager::UpdatePicking();
+			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
+
+			Graphics::GraphicsManager::DrawFrame();
+
 			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
+			break;
 		}
 	}
 
@@ -66,6 +66,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
+		m_ecsCoordinator.m_cameraSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
 		m_ecsCoordinator.m_scriptSystem->Exit();	
