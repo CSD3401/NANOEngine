@@ -50,9 +50,6 @@ namespace NE::Physics {
         static void SetMotionType(uint32_t bodyid, JPH::EMotionType motionType);
         static JPH::EMotionType GetMotionType(uint32_t bodyid);
 
-        static JPH::PhysicsSystem* GetPhysicsSystem();
-        static std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> s_shapeMap;
-
         // Collider
         static uint32_t CreateBoxBody(const Math::Vec3& pos,
             const Math::Vec3& rot,
