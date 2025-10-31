@@ -3,6 +3,9 @@
 #include <functional>
 #include "NANOEngineAPI.hpp"
 
+#pragma warning(push)
+#pragma warning(disable: 4251)
+
 // Handle type
 typedef unsigned int CoroutineHandle;
 
@@ -59,3 +62,5 @@ struct NANOENGINE_API CoroutineWaitForSeconds
 };
 
 NANOENGINE_API CoroutineHandle Engine_WaitForSeconds(float seconds);
+
+#pragma warning(pop)
