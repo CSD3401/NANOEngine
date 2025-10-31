@@ -1,94 +1,15 @@
 #include "JoltDebugRenderer.hpp"
 #include "../Graphics/Core/GraphicsManager.hpp"
-#include "../Graphics/Core/Frustum.hpp"
-#include "../Graphics/Core/Camera.hpp" 
 
 namespace NE::Physics {
-    NE::Math::Vec3 JoltDebugRenderer::ToVec3(JPH::RVec3Arg v) 
-    {
-        return { (float)v.GetX(), (float)v.GetY(), (float)v.GetZ() };
-    }
-
-    NE::Math::Vec3 JoltDebugRenderer::ToColor(JPH::ColorArg c) 
-    {
-        return { c.r / 255.0f, c.g / 255.0f, c.b / 255.0f };
-    }
-
-    void JoltDebugRenderer::BeginFrame() {
-        // clear but keep capacity
-        m_BatchedLines.clear();
-        m_BatchedTriangles.clear();
-
-        // reserve large capacity once
-        if (m_BatchedLines.capacity() < INITIAL_LINE_CAPACITY)
-        {
-            m_BatchedLines.reserve(INITIAL_LINE_CAPACITY);
-        }
-
-        if (m_BatchedTriangles.capacity() < INITIAL_TRI_CAPACITY) 
-        {
-            m_BatchedTriangles.reserve(INITIAL_TRI_CAPACITY);
-        }
-    }
-
-    void JoltDebugRenderer::EndFrame() {
-        // batch send all lines to GraphicsManager
-        for (const auto& line : m_BatchedLines) 
-        {
-            NE::Graphics::GraphicsManager::AddDebugLine(line.from, line.to, line.color);
-        }
-
-        // batch send all triangles to GraphicsManager
-        for (const auto& tri : m_BatchedTriangles)
-        {
-            NE::Graphics::GraphicsManager::AddDebugTriangle(tri.v0, tri.v1, tri.v2, tri.color);
-        }
-    }
-
-    bool JoltDebugRenderer::IsVisible(const NE::Math::Vec3& center, float radius) {
-        auto* cam = NE::Graphics::GraphicsManager::GetCamera();
-        if (!cam) return true;
-
-        const NE::Math::Mat4& V = cam->GetViewMatrix();
-        const NE::Math::Mat4& P = cam->GetProjectionMatrix();
-        NE::Math::Mat4 nonConstPCopy = P;
-        NE::Graphics::Frustum frustum = NE::Graphics::Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
-
-        return frustum.IntersectsSphere(center, radius);
-    }
-
-    bool JoltDebugRenderer::IsVisible(const JPH::AABox& worldBounds) {
-        auto* cam = NE::Graphics::GraphicsManager::GetCamera();
-        if (!cam) return true;
-
-        const NE::Math::Mat4& V = cam->GetViewMatrix();
-        const NE::Math::Mat4& P = cam->GetProjectionMatrix();
-        NE::Math::Mat4 nonConstPCopy = P;
-        NE::Graphics::Frustum frustum = NE::Graphics::Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
-
-        NE::Math::Vec3 min = ToVec3(worldBounds.mMin);
-        NE::Math::Vec3 max = ToVec3(worldBounds.mMax);
-
-        return frustum.IntersectsAABB(min, max);
-    }
-
 	void JoltDebugRenderer::DrawLine(JPH::RVec3Arg from, JPH::RVec3Arg to, JPH::ColorArg color)
     {
         // Convert Jolt vectors/colors to your engine's math/color types
-        //NE::Graphics::GraphicsManager::AddDebugLine(
-        //    NE::Math::Vec3(float(from.GetX()), float(from.GetY()), float(from.GetZ())),
-        //    NE::Math::Vec3(float(to.GetX()), float(to.GetY()), float(to.GetZ())),
-        //    NE::Math::Vec3(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f)
-        //);
-
-        NE::Math::Vec3 fromVec = ToVec3(from);
-        NE::Math::Vec3 toVec = ToVec3(to);
-        NE::Math::Vec3 midpoint = (fromVec + toVec) * 0.5f;
-        float length = (toVec - fromVec).Length();
-
-        if (!IsVisible(midpoint, length * 0.5f)) return;
-
-        m_BatchedLines.push_back({ ToVec3(from), ToVec3(to), ToColor(color) });
+        NE::Graphics::GraphicsManager::AddDebugLine(
+            NE::Math::Vec3(float(from.GetX()), float(from.GetY()), float(from.GetZ())),
+            NE::Math::Vec3(float(to.GetX()), float(to.GetY()), float(to.GetZ())),
+            NE::Math::Vec3(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f)
+        );
     }
 
     void JoltDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow)
@@ -293,5 +214,13 @@ namespace NE::Physics {
 
     //void JoltDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor, float inHeight)
     //{
+    //}
+    //Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* inTriangles, int inTriangleCount)
+    //{
+    //    return Batch();
+    //}
+    //Batch JoltDebugRenderer::CreateTriangleBatch(const Vertex* inVertices, int inVertexCount, const JPH::uint32* inIndices, int inIndexCount)
+    //{
+    //    return Batch();
     //}
 }
