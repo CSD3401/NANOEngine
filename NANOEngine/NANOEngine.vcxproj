@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
+    <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
     <ClInclude Include="src\Graphics\Core\PipelineData.hpp" />
@@ -123,6 +125,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
     <ClCompile Include="src\Core\SpdLogger.cpp" />
