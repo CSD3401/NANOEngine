@@ -346,6 +346,15 @@
     <ClInclude Include="src\ResourceManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp">
+          <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorInterface\PhysicsExports.hpp">
+          <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="src\Core\SpdLoggerInternal.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -521,6 +530,12 @@
     </ClCompile>
     <ClCompile Include="src\ResourceManager.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp">
+          <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp">
+          <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Core\SpdLogger.cpp">
       <Filter>Source Files</Filter>
