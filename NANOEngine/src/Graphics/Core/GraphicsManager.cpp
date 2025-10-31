@@ -130,6 +130,14 @@ namespace NE::Graphics {
 
             shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
+            // For object picking
+            if (command.entity.has_value()) {
+                float r = (float)(*command.entity & 0xFF) / 255.0f;
+                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
+                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
+                shader->SetUniformVec3("u_ID", { r, g, b });
+			}
+
             // Draw indexed
             //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
             command.mesh->Draw();
