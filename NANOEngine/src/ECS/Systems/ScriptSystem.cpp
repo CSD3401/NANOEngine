@@ -52,15 +52,15 @@ namespace NE::ECS::Systems {
         // Logic for when an entity relevant to the script system is added
         auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
         if (nsc.CreateScript && !nsc.Instance) {
- nsc.Instance = nsc.CreateScript();
-  nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
+        nsc.Instance = nsc.CreateScript();
+         nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
         nsc.Instance->SetEntity(entity);
       
-      // Call Awake() first (even if disabled)
+        // Call Awake() first (even if disabled)
             nsc.Instance->Awake();
     
-   // Then Initialize()
- nsc.Instance->Initialize(entity);
+        // Then Initialize()
+        nsc.Instance->Initialize(entity);
             
         // Restore serialized field values if they exist
        RestoreSerializedFields(nsc);
@@ -100,7 +100,7 @@ namespace NE::ECS::Systems {
                 "cmd /C \"\"" + msbuildPath + "\" "
                 "\"../../../NANOEngine.sln\" "
                 "/t:GameCode "
-                "/p:Configuration=Release /p:Platform=x64\"";
+                "/p:Configuration=Release /p:Platform=x64 /p:LanguageStandard=stdcpp20\"";
 
             std::cout << "Command: " << m_scriptBuildCommand << std::endl;
         //}
@@ -234,8 +234,8 @@ namespace NE::ECS::Systems {
     nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
           nsc.Instance->SetEntity(entity);
         
-  // Call Awake() and Initialize()
-   nsc.Instance->Awake();
+        // Call Awake() and Initialize()
+        nsc.Instance->Awake();
       nsc.Instance->Initialize(entity);
   
                 // Restore the saved field values
@@ -389,14 +389,15 @@ RestoreSerializedFields(nsc);
             state.scriptName = nsc.ScriptName;
             state.isEnabled = nsc.Instance->IsEnabled();
 
-            auto fieldNames = nsc.Instance->GetExposedFieldNames();
-            for (const auto& fieldName : fieldNames) {
-                state.fields[fieldName] = nsc.Instance->GetFieldValueAsString(fieldName);
-            }
+            
+            SaveSerializedFields(nsc);
+            state.fields = nsc.SerializedFields;
 
             stateToRestore[entity] = state;
 
             OnScriptComponentDestroyed(entity);
+
+            nsc.CreateScript = nullptr;
             
         }
 
@@ -430,8 +431,9 @@ RestoreSerializedFields(nsc);
             }
 
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-
+            SPD_DEBUG("Crashing after 3?");
             nsc.CreateScript = scriptingEngine->GetScriptFactory(state.scriptName);
+            SPD_DEBUG("Crashing after 4?");
             nsc.DestroyScript = [](IScript* script) { delete script; };
 
             if (!nsc.CreateScript) {
@@ -442,17 +444,22 @@ RestoreSerializedFields(nsc);
             nsc.Instance = nsc.CreateScript();
             nsc.Instance->LinkToEngine(m_componentManager);
             nsc.Instance->SetEntity(entity);
+            nsc.Instance->Awake();
             nsc.Instance->Initialize(entity);
 
-            SPD_INFO("Restoring state for entity " << (int)entity << " (Script: " << state.scriptName << ")");
-            for (auto const& [fieldName, fieldValue] : state.fields) {
-                if (!nsc.Instance->SetFieldValueFromString(fieldName, fieldValue)) {
-                    SPD_WARNING("Failed to set field '" << fieldName << "' to value '" << fieldValue << "'");
-                }
-            }
+            nsc.SerializedFields = state.fields; // Give the component its old data
+            RestoreSerializedFields(nsc);
 
+            nsc.Instance->SetEnabled(false);
+        }
+
+        // Only enable when all scripts are fully initialized
+        for (auto const& [entity, state] : stateToRestore) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
             nsc.Instance->SetEnabled(state.isEnabled);
         }
+
+
 
         SPD_INFO("--- END HOT RELOAD ---");
     }
@@ -480,9 +487,9 @@ RestoreSerializedFields(nsc);
 
         // Restore each serialized field value
         for (const auto& [fieldName, value] : nsc.SerializedFields) {
-       bool success = nsc.Instance->SetFieldValueFromString(fieldName, value);
-     if (!success) {
-     SPD_WARNING("Failed to restore field '" << fieldName << "' for script '" << nsc.ScriptName << "'");
+            bool success = nsc.Instance->SetFieldValueFromString(fieldName, value);
+        if (!success) {
+            SPD_WARNING("Failed to restore field '" << fieldName << "' for script '" << nsc.ScriptName << "'");
         }
         }
 

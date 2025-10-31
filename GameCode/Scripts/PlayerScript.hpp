@@ -5,11 +5,33 @@
 #include "ECS/Components/Transform.hpp"
 #include "ExposedFieldRegistry.hpp"
 #include "Events/EventBus.hpp"
+#include "Core/Couroutine.hpp"
 #include <string>
 #include <sstream>
 #include <vector>
 #include <Math/Vec3.hpp>
 #include <Core/SpdLogger.hpp>
+
+//CoroutineHandle ctimer = 0;
+
+struct DelayedPrintData {
+    float timeLeft;
+};
+
+static bool DelayedPrintUpdate(void* userData, float dt) {
+    DelayedPrintData* data = static_cast<DelayedPrintData*>(userData);
+    data->timeLeft -= dt;
+    
+    if (data->timeLeft <= 0.0f) {
+        // Timer finished! Do your action here
+        SPD_DEBUG("hi 3 seconds over player");
+        std::cout << "santa clause" << std::endl;
+        
+        delete data;
+        return true;  // Finished
+    }
+    return false;  // Keep waiting
+}
 
 /**
  * Example player script demonstrating how to implement IScript.
@@ -156,7 +178,26 @@ public:
 		if (NE::InputManager::IsKeyDown('K')) {
 			int dmg = 20;
 			NANOEngine::Events::SendScriptEvent("OnPlayerHit", &dmg);
+			SPD_DEBUG("Santaclaus is coming to town");
 		}
+		// else if (NE::InputManager::IsKeyDown('C'))
+		// {
+		// 	// Couroutine Test
+		// 	if (ctimer == 0 || !Engine_IsCoroutineRunning(ctimer)) {
+        //     	// ctimer = Engine_WaitForSeconds(3.f);
+		// 		DelayedPrintData* data = new DelayedPrintData{ 3.0f };
+        // 		Engine_StartCoroutine(&DelayedPrintUpdate, data);
+     
+        //     	SPD_DEBUG("Timer started!");
+        // 	}
+		// }
+
+		//Courutine Test
+		// if (ctimer != 0 && !Engine_IsCoroutineRunning(ctimer)) {
+        // SPD_DEBUG("hi 3 seconds over player");
+        // std::cout << "santa clause" << std::endl;
+        // ctimer = 0;  // Reset so we don't print every frame
+    	// }
 
 		//  EXAMPLE: Use the bool flags
 		if (NE::InputManager::IsKeyDown(VK_SPACE) && playerFlags.canJump) {
@@ -273,3 +314,4 @@ private:
 	// Field registry
 	ExposedFieldRegistry m_fields;
 };
+

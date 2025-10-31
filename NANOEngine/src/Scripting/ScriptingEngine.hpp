@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <Windows.h>
+#include <mutex>
 
 // Forward declarations
 class IScript;
@@ -157,6 +158,8 @@ namespace NE::Scripting {
 
         // DLL management storage
         std::vector<LoadedDLL> m_loadedDLLs;
+
+        mutable std::mutex m_mutex;
 
         // State tracking
         bool m_initialized;

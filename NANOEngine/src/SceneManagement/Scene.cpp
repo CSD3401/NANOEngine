@@ -10,6 +10,7 @@
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
+#include "Core/Couroutine.hpp"
 #include <iostream>
 
 
@@ -40,6 +41,7 @@ namespace NE::SceneManagement {
 		//Graphics::GraphicsManager::EndFrame();
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
+		Engine_UpdateCoroutines(dt); //couroutine ticks
 	}
 
 	void Scene::Render(RenderPass pass) {
