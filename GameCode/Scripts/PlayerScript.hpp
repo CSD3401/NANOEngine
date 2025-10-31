@@ -12,7 +12,7 @@
 #include <Math/Vec3.hpp>
 #include <Core/SpdLogger.hpp>
 
-//CoroutineHandle ctimer = 0;
+CoroutineHandle ctimer = 0;
 
 struct DelayedPrintData {
     float timeLeft;
@@ -180,17 +180,17 @@ public:
 			NANOEngine::Events::SendScriptEvent("OnPlayerHit", &dmg);
 			SPD_DEBUG("Santaclaus is coming to town");
 		}
-		// else if (NE::InputManager::IsKeyDown('C'))
-		// {
-		// 	// Couroutine Test
-		// 	if (ctimer == 0 || !Engine_IsCoroutineRunning(ctimer)) {
-        //     	// ctimer = Engine_WaitForSeconds(3.f);
-		// 		DelayedPrintData* data = new DelayedPrintData{ 3.0f };
-        // 		Engine_StartCoroutine(&DelayedPrintUpdate, data);
+		else if (NE::InputManager::IsKeyDown('C'))
+		{
+			// Couroutine Test
+			if (ctimer == 0 || !Engine_IsCoroutineRunning(ctimer)) {
+            	// ctimer = Engine_WaitForSeconds(3.f);
+				DelayedPrintData* data = new DelayedPrintData{ 3.0f };
+        		Engine_StartCoroutine(&DelayedPrintUpdate, data);
      
-        //     	SPD_DEBUG("Timer started!");
-        // 	}
-		// }
+            	SPD_DEBUG("Timer started!");
+        	}
+		}
 
 		//Courutine Test
 		// if (ctimer != 0 && !Engine_IsCoroutineRunning(ctimer)) {

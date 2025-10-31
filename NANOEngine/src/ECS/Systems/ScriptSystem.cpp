@@ -431,9 +431,7 @@ RestoreSerializedFields(nsc);
             }
 
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-            SPD_DEBUG("Crashing after 3?");
             nsc.CreateScript = scriptingEngine->GetScriptFactory(state.scriptName);
-            SPD_DEBUG("Crashing after 4?");
             nsc.DestroyScript = [](IScript* script) { delete script; };
 
             if (!nsc.CreateScript) {
