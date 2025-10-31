@@ -12,9 +12,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NANOEngine", "NANOEngine\NANOEngine.vcxproj", "{9C23839B-FCD8-4844-9915-10F801C600D7}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameCode", "GameCode\GameCode.vcxproj", "{6057F555-CAF2-4BFB-AF5D-2C1494E55CC9}"
-	ProjectSection(ProjectDependencies) = postProject
-		{9C23839B-FCD8-4844-9915-10F801C600D7} = {9C23839B-FCD8-4844-9915-10F801C600D7}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
