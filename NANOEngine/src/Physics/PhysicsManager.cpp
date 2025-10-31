@@ -123,8 +123,8 @@ namespace NE::Physics {
 
     uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
-        JPH::BodyID bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
-        s_BodyIDs.push_back(bodyID);
+      JPH::BodyID bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::Activate); // ACTIVATE the body!
+      s_BodyIDs.push_back(bodyID);
 		s_BodyIndexMap[bodyID.GetIndexAndSequenceNumber()] = s_BodyIDs.size() - 1;
         return bodyID.GetIndexAndSequenceNumber();
     }
@@ -189,21 +189,21 @@ namespace NE::Physics {
 
         auto it = s_BodyIndexMap.find(bodyid);
         if (it == s_BodyIndexMap.end())
-            return; // not found
+   return; // not found
 
         size_t index = it->second;
         size_t lastIndex = s_BodyIDs.size() - 1;
 
         // If it's not the last element, swap with the last
         if (index != lastIndex) {
-            JPH::BodyID lastID = s_BodyIDs[lastIndex];
-            s_BodyIDs[index] = lastID;
+   JPH::BodyID lastID = s_BodyIDs[lastIndex];
+ s_BodyIDs[index] = lastID;
 
-            // Update the map entry for the moved element
-            s_BodyIndexMap[lastID.GetIndexAndSequenceNumber()] = index;
-        }
+    // Update the map entry for the moved element
+         s_BodyIndexMap[lastID.GetIndexAndSequenceNumber()] = index;
+    }
 
-        // Remove last element
+   // Remove last element
         s_BodyIDs.pop_back();
 
         // Remove from map
@@ -212,7 +212,34 @@ namespace NE::Physics {
 		printf("PhysicsManager: Set motion type for body ID %d to %d\n", bodyid, static_cast<int>(motionType));
     }
 
-    JPH::PhysicsSystem* PhysicsManager::GetPhysicsSystem() {
+    // === Velocity and Force Methods ===
+
+    Math::Vec3 PhysicsManager::GetLinearVelocity(uint32_t bodyID) {
+        JPH::BodyID id(bodyID);
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+      JPH::Vec3 velocity = bodyInterface.GetLinearVelocity(id);
+        return Math::Vec3(velocity.GetX(), velocity.GetY(), velocity.GetZ());
+    }
+
+    void PhysicsManager::SetLinearVelocity(uint32_t bodyID, const Math::Vec3& velocity) {
+        JPH::BodyID id(bodyID);
+JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        bodyInterface.SetLinearVelocity(id, JPH::Vec3(velocity.x, velocity.y, velocity.z));
+    }
+
+    void PhysicsManager::AddForce(uint32_t bodyID, const Math::Vec3& force) {
+        JPH::BodyID id(bodyID);
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        bodyInterface.AddForce(id, JPH::Vec3(force.x, force.y, force.z));
+    }
+
+    void PhysicsManager::AddImpulse(uint32_t bodyID, const Math::Vec3& impulse) {
+        JPH::BodyID id(bodyID);
+      JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        bodyInterface.AddImpulse(id, JPH::Vec3(impulse.x, impulse.y, impulse.z));
+    }
+
+  JPH::PhysicsSystem* PhysicsManager::GetPhysicsSystem() {
         return s_PhysicsSystem.get();
     }
 

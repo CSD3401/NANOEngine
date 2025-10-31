@@ -12,6 +12,7 @@
 // Include headers for all scripts you want to register
 #include "PlayerScript.hpp"
 #include "TestScript.hpp"
+#include "PhysicsPlayerController.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -32,6 +33,11 @@ extern "C" {
 
         registrar->RegisterScript("TestScript", []() -> IScript* {
             return new TestScript();
+            });
+
+        // Register the new physics-based player controller
+        registrar->RegisterScript("PhysicsPlayerController", []() -> IScript* {
+            return new PhysicsPlayerController();
             });
 
        

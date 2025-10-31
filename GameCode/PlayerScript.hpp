@@ -40,7 +40,7 @@ public:
 			NE_REFLECT_END()
 	};
 
-	//  Example struct with 4 bools 
+	//  Example struct with 4 bools
 	struct PlayerFlags {
 		bool canJump = true;
 		bool canDoubleJump = false;
@@ -76,9 +76,9 @@ public:
 		REGISTER_REFLECTABLE_STRUCT(playerFlags);  //  4 bool struct
 
 		//  PRE-FILL TEST DATA  working
-		enemyIDs = {42, 57, 103, 999};  // 4 enemy IDs to test remove
-		waypoints = {10.5f, 25.0f, 42.3f, 58.7f};  // 4 waypoint positions
-		flags = {true, false, true, false, true};// 5 quest flags
+		enemyIDs = { 42, 57, 103, 999 };  // 4 enemy IDs to test remove
+		waypoints = { 10.5f, 25.0f, 42.3f, 58.7f };  // 4 waypoint positions
+		flags = { true, false, true, false, true };// 5 quest flags
 
 		//SPD_DEBUG("PlayerScript created");
 	}
@@ -107,10 +107,10 @@ public:
 		//for (size_t i = 0; i < flags.size(); ++i) {
 		//	SPD_DEBUG("    flags[{}] = {}", i, flags[i] ? "true" : "false");
 		//}
-		//SPD_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}", 
-		//	playerFlags.canJump ? "true" : "false", 
-		//	playerFlags.canDoubleJump ? "true" : "false", 
-		//	playerFlags.hasKey ? "true" : "false", 
+		//SPD_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}",
+		//	playerFlags.canJump ? "true" : "false",
+		//	playerFlags.canDoubleJump ? "true" : "false",
+		//	playerFlags.hasKey ? "true" : "false",
 		//	playerFlags.questComplete ? "true" : "false");
 
 		// Validate field values when changed in editor

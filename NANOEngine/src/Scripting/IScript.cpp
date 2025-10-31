@@ -7,6 +7,7 @@
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/AudioSource.hpp"
+#include "../Physics/PhysicsManager.hpp"
 
 // PIMPL implementation to hide std containers from DLL interface
 class IScript::FieldRegistry {
@@ -365,11 +366,62 @@ bool IScript::IsStatic() const {
 
 void IScript::SetStatic(bool isStatic) {
     if (!m_componentManager) return;
-    
-    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+  
+  if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
         auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
         rigidbody.isStatic = isStatic;
+  }
+}
+
+// === Velocity and Force Methods ===
+
+NE::Math::Vec3 IScript::GetVelocity() const {
+    if (!m_componentManager) return NE::Math::Vec3{0, 0, 0};
+    
+    if (!m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity))
+        return NE::Math::Vec3{0, 0, 0};
+    
+    const auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+    return NE::Physics::PhysicsManager::GetLinearVelocity(rb.bodyID);
+}
+
+void IScript::SetVelocity(const NE::Math::Vec3& velocity) {
+    if (!m_componentManager) return;
+    
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+       auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+      NE::Physics::PhysicsManager::SetLinearVelocity(rb.bodyID, velocity);
     }
+}
+
+void IScript::SetVelocity(float x, float y, float z) {
+    SetVelocity(NE::Math::Vec3{x, y, z});
+}
+
+void IScript::AddForce(const NE::Math::Vec3& force) {
+    if (!m_componentManager) return;
+ 
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+        auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+       NE::Physics::PhysicsManager::AddForce(rb.bodyID, force);
+    }
+}
+
+void IScript::AddForce(float x, float y, float z) {
+    AddForce(NE::Math::Vec3{x, y, z});
+}
+
+void IScript::AddImpulse(const NE::Math::Vec3& impulse) {
+    if (!m_componentManager) return;
+    
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+    auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+   NE::Physics::PhysicsManager::AddImpulse(rb.bodyID, impulse);
+    }
+}
+
+void IScript::AddImpulse(float x, float y, float z) {
+    AddImpulse(NE::Math::Vec3{x, y, z});
 }
 
 // === AudioSource Helper Functions ===
