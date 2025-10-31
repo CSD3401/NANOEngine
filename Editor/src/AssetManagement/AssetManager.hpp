@@ -16,6 +16,7 @@ namespace Editor {
 		void SaveAssetRegistry();
 
 		void GenerateMetadata(const std::string& sourcePath);
+
 		
 
 
@@ -23,6 +24,7 @@ namespace Editor {
 		AssetManager() = default;
 		~AssetManager() = default;
 		
+		AssetType GetAssetTypeFromString(std::string_view extension);
 		AssetType GetAssetTypeFromExtension(std::string_view);
 
 		bool ImportTexture();

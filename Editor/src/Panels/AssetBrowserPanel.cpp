@@ -21,9 +21,7 @@ namespace Editor {
             // Skip meta files themselves
             if (filePath.extension() == ".meta") continue;
 
-            if (!std::filesystem::exists(entry.path().string() + ".meta")) {
-                AssetManager::GetInstance().GenerateMetadata(entry.path().string());
-            }
+            AssetManager::GetInstance().GenerateMetadata(entry.path().string());
 
             //if (!NE::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
             //    NE::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());

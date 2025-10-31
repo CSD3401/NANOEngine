@@ -63,7 +63,7 @@ namespace NE::Graphics {
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
 
         // temp
-        InitDebugLines();
+        //InitDebugLines();
     }
 
     void GraphicsManager::BeginFrame() {

@@ -38,6 +38,8 @@ namespace NE {
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
+	NANOENGINE_API bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages); // here for now
+
 	NANOENGINE_API void EditorPlay();
 	NANOENGINE_API void EditorPause();
 	NANOENGINE_API void EditorEdit();

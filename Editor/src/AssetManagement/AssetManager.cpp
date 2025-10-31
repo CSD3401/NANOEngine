@@ -16,6 +16,7 @@
 #include <ResourceManagement/ResourcePaths.hpp>
 #include <glad/glad.h>
 #include <Core/SpdLogger.hpp>
+#include <Engine.hpp>
 
 
 namespace {
@@ -164,49 +165,6 @@ namespace {
         return shaderSources;
     }
 
-    bool Compile(const std::unordered_map<GLenum, std::string>& shaderSources, uint32_t& programID)
-    {
-        uint32_t program = glCreateProgram();
-        std::vector<GLuint> shaderIDs;
-
-        for (auto& [type, source] : shaderSources) {
-            GLuint shader = glCreateShader(type);
-            const char* src = source.c_str();
-            glShaderSource(shader, 1, &src, nullptr);
-            glCompileShader(shader);
-
-            GLint compiled;
-            glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-            if (compiled != GL_TRUE) {
-                char log[1024];
-                glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-                SPD_WARNING("Shader compilation failed: " << log << "\nShader Source: " << source);
-                return false;
-            }
-
-            glAttachShader(program, shader);
-            shaderIDs.push_back(shader);
-        }
-
-        glLinkProgram(program);
-        GLint linked;
-        glGetProgramiv(program, GL_LINK_STATUS, &linked);
-        if (linked != GL_TRUE) {
-            char log[1024];
-            glGetProgramInfoLog(program, sizeof(log), nullptr, log);
-            SPD_WARNING("Program linking failed: " << log);
-            return false;
-        }
-
-        for (auto id : shaderIDs) {
-            glDetachShader(program, id);
-            glDeleteShader(id);
-        }
-        
-        programID = program;
-        return true;
-    }
-
 }
 
 namespace Editor {
@@ -220,7 +178,42 @@ namespace Editor {
 		std::filesystem::path fsSourcePath = sourcePath;
 		std::filesystem::path metaPath = sourcePath + ".meta";
 
+        AssetMetadata metadata{};
+        metadata.sourcePath = sourcePath;
+
+        if (std::filesystem::exists(metaPath)) {
+            std::ifstream ifs(metaPath);
+            if (!ifs) {
+                SPD_WARNING("Failed to read meta file: " << metaPath.string());
+                return;
+            }
+
+            std::string line;
+            while (std::getline(ifs, line)) {
+                if (line.starts_with("uuid:")) {
+                    metadata.uuid = line.substr(line.find(':') + 1);
+                    metadata.uuid.erase(0, metadata.uuid.find_first_not_of(" \t"));
+                } else if (line.starts_with("assetType:")) {
+                    std::string typeStr = line.substr(line.find(':') + 1);
+                    typeStr.erase(0, typeStr.find_first_not_of(" \t"));
+                    metadata.type = GetAssetTypeFromString(typeStr);
+                } else if (line.starts_with("sourcePath:")) {
+                    metadata.sourcePath = line.substr(line.find(':') + 1);
+                    metadata.sourcePath.erase(0, metadata.sourcePath.find_first_not_of(" \t"));
+                }
+            }
+
+            if (metadata.uuid.empty())
+                metadata.uuid = GenerateUUID(); // fallback, should rarely happen
+            if (metadata.type == AssetType::Unknown)
+                metadata.type = GetAssetTypeFromExtension(fsSourcePath.extension().string());
+
+            m_assets[metadata.uuid] = std::move(metadata);
+            return;
+        }
+
 		std::string uuid = GenerateUUID();
+        std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
 
 		std::ofstream ofs(metaPath);
 		ofs << "importerVersion: " << CURRENT_META_SCHEMA_VERSION << '\n'
@@ -232,9 +225,7 @@ namespace Editor {
 		case AssetType::Texture: {
 			ofs << "assetType: Texture\n"
 				<< "sourcePath: " << sourcePath << '\n';
-
-
-            std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
+            
             CookTexture(sourcePath, outPath);
 
 			break;
@@ -249,7 +240,6 @@ namespace Editor {
             ofs << "assetType: Shader\n"
                 << "sourcePath: " << sourcePath << '\n';
 
-            std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
             CookShader(sourcePath, outPath);
 
             break;
@@ -270,13 +260,23 @@ namespace Editor {
 
 		ofs.close();
 
-		AssetMetadata metadata;
+
 		metadata.uuid = uuid;
 		metadata.type = assetType;
-		metadata.sourcePath = sourcePath;
+
 
 		m_assets[uuid] = std::move(metadata);
 	}
+
+    AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {
+        std::string e = ToLower(std::string(extension));
+        if (e == "Texture") return AssetType::Texture;
+        else if (e == "Mesh") return AssetType::Mesh;
+        else if (e == "Shader") return AssetType::Shader;
+        else if (e == "Material") return AssetType::Material;
+        else if (e == "Audio") return AssetType::Audio;
+        return AssetType::Unknown;
+    }
 
 	AssetType AssetManager::GetAssetTypeFromExtension(std::string_view extension) {
 		std::string e = ToLower(std::string(extension));
@@ -338,48 +338,12 @@ namespace Editor {
     }
 
     bool AssetManager::CookShader(const std::string& sourcePath, const std::string& outPath) {
-        std::string source = LoadShaderSource(sourcePath);
+        std::filesystem::create_directories(std::filesystem::path(outPath).parent_path());
+
+        const std::string source = LoadShaderSource(sourcePath);
         auto shaderStages = Preprocess(source);
 
-        bool embedSourceFallback = false; // temp
-        uint32_t linkedProgram;
-        if (Compile(shaderStages, linkedProgram)) {
-            GLint binLen = 0;
-            glGetProgramiv(linkedProgram, GL_PROGRAM_BINARY_LENGTH, &binLen);
-            if (binLen <= 0) return false;
-
-            std::vector<uint8_t> blob(binLen);
-            GLsizei written = 0; GLenum fmt = 0;
-            glGetProgramBinary(linkedProgram, binLen, &written, &fmt, blob.data());
-
-            // 2) Fill header
-            NE::Resource::NanoShdHeader h{};
-            h.stagesMask = ((shaderStages.count(GL_VERTEX_SHADER) ? 1 : 0) << 0)
-                | ((shaderStages.count(GL_FRAGMENT_SHADER) ? 1 : 0) << 4);
-            //h.sourceHash = Hash64(shaderStages.at(GL_VERTEX_SHADER)) ^ (Hash64(shaderStages.at(GL_FRAGMENT_SHADER)) << 1);
-            h.sourceHash = 0; // 0 for now
-            h.definesHash = 0; // 0 for now
-            h.permutationKey = 0; // 0 for now
-            h.programBinaryFormat = static_cast<uint32_t>(fmt);
-            h.programOffset = sizeof(NE::Resource::NanoShdHeader);
-            h.programSize = static_cast<uint64_t>(written);
-            if (embedSourceFallback) h.programFlags |= 1u;
-
-            // 3) Write cache file
-            std::ofstream ofs(outPath, std::ios::binary);
-            if (!ofs) return false;
-            ofs.write(reinterpret_cast<const char*>(&h), sizeof(h));
-            ofs.write(reinterpret_cast<const char*>(blob.data()), written);
-
-            if (embedSourceFallback) {
-                auto& vs = shaderStages.at(GL_VERTEX_SHADER);
-                auto& fs = shaderStages.at(GL_FRAGMENT_SHADER);
-                uint32_t vsLen = (uint32_t)vs.size(), fsLen = (uint32_t)fs.size();
-                ofs.write(reinterpret_cast<const char*>(&vsLen), 4); ofs.write(vs.data(), vsLen);
-                ofs.write(reinterpret_cast<const char*>(&fsLen), 4); ofs.write(fs.data(), fsLen);
-            }
-        }
-        return true;
+        return NE::CookShader(sourcePath, outPath, shaderStages);
     }
 
 }

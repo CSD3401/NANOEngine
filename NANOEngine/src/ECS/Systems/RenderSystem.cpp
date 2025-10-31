@@ -17,8 +17,8 @@
 #include "../../Graphics/OpenGL/GLPipeline.hpp"
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Core/Profiler.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
-//#include "AssetManager.hpp"
 
 #include <iostream>
 
@@ -69,7 +69,7 @@ namespace NE::ECS::Systems {
 		//pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
 		//material = std::make_shared<Graphics::Material>(pipeline);
 
-        pickingShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Picking.glsl");
+        pickingShader = NE::Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>("nepicking");
         Graphics::PipelineSpecification pickSpec;
         pickSpec.shader = pickingShader;
         pickSpec.CullMode = GL_BACK;

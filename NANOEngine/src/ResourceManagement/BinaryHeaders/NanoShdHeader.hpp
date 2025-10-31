@@ -27,7 +27,7 @@ namespace NE::Resource {
 		uint64_t reflSize = 0;
 
 		uint32_t endianMarker = 0x01020304;
-		uint32_t headerSize = sizeof(NanoShdHeader_Min);
+		uint32_t headerSize = sizeof(NanoShdHeader);
 	};
 #pragma pack(pop)
 

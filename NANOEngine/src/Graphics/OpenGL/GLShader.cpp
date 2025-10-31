@@ -153,18 +153,23 @@ namespace NE::Graphics::OpenGL {
             size_t off = static_cast<size_t>(progEnd);
 
             if (off + 4 > blob.size) { hasFallback = false; return true; }
-            uint32_t vsLen = *reinterpret_cast<const uint32_t*>(blob.data + off);
+            uint32_t vsLen32 = 0;
+            std::memcpy(&vsLen32, blob.data + off, 4);
             off += 4;
-            if (off + vsLen + 4 > blob.size) { hasFallback = false; return true; }
-            vsSrc = reinterpret_cast<const char*>(blob.data + off);
-            vsLen = vsLen;
-            off += vsLen;
 
-            uint32_t fsLen = *reinterpret_cast<const uint32_t*>(blob.data + off);
+            if (off + vsLen32 + 4 > blob.size) { hasFallback = false; return true; }
+            vsSrc = reinterpret_cast<const char*>(blob.data + off);
+            vsLen = static_cast<size_t>(vsLen32);
+            off += vsLen32;
+
+            if (off + 4 > blob.size) { hasFallback = false; return true; }
+            uint32_t fsLen32 = 0;
+            std::memcpy(&fsLen32, blob.data + off, 4);
             off += 4;
-            if (off + fsLen > blob.size) { hasFallback = false; return true; }
+
+            if (off + fsLen32 > blob.size) { hasFallback = false; return true; }
             fsSrc = reinterpret_cast<const char*>(blob.data + off);
-            fsLen = fsLen;
+            fsLen = static_cast<size_t>(fsLen32);
         }
 
         return true;
@@ -187,6 +192,8 @@ namespace NE::Graphics::OpenGL {
         glGetProgramiv(m_programID, GL_LINK_STATUS, &linked);
         if (linked == GL_TRUE) {
             return; // success
+        } else {
+            SPD_WARNING("glProgramBinary failed; attempting embedded source fallback.");
         }
 
         // Failed to load binary — fall back to embedded source if available

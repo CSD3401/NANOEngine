@@ -1,9 +1,5 @@
 #include "GLTexture.hpp"
 #include <glad/glad.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image/stb_image.h"
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include "stb_image/stb_image_resize2.h"
 #include "../../Core/Logger.hpp"
 #include "ResourceManagement/BinaryHeaders/NanoTexHeader.hpp"
 
@@ -39,7 +35,7 @@ namespace {
     }
 
     // Map your runtime header format to GL internal format (BC7 example)
-    static GLenum MapFormatToGL(uint8_t fmt, bool srgb) {
+    static GLenum MapFormatToGL(uint8_t /*fmt*/, bool srgb) {
         // Assuming fmt encodes BC7; expand as you add more formats.
         // Requires GL_ARB_texture_compression_bptc
         return srgb ? GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM :
@@ -56,19 +52,9 @@ namespace NE::Graphics::OpenGL {
         if (m_ID)     glDeleteTextures(1, &m_ID);
     }
 
-    // Keep parsed info as locals via Preload -> Finalize handoff
-    struct ParsedTexture {
-        uint32_t w = 0, h = 0;
-        uint16_t mips = 1;
-        uint8_t  format = 0;
-        bool     srgb = false;
-        const uint8_t* payload = nullptr;
-        size_t payloadSize = 0;
-        std::vector<size_t> offsets, sizes;
-    };
 
     // stash between phases
-    static thread_local ParsedTexture g_tmpParsed; // simple for now; move to a member if you prefer
+    //static thread_local ParsedTexture g_tmpParsed; // simple for now; move to a member if you prefer
 
     bool GLTexture::Preload(NE::Resource::BinaryView blob) {
         if (blob.size < sizeof(NE::Resource::NanoTexHeader)) return false;
@@ -77,24 +63,24 @@ namespace NE::Graphics::OpenGL {
         if (hdr->magic != NE::Resource::NTEX_MAGIC) return false;                               // 'NTEX'
         if (hdr->importerVersion != NE::Resource::CURRENT_NANOTEX_FORMAT_VERSION) return false;       // version gate
 
-        g_tmpParsed.w = hdr->width;
-        g_tmpParsed.h = hdr->height;
-        g_tmpParsed.mips = hdr->mipCount ? hdr->mipCount : 1;
-        g_tmpParsed.format = hdr->format;
-        g_tmpParsed.srgb = (hdr->isSRGB != 0);
+        m_stage.w = hdr->width;
+        m_stage.h = hdr->height;
+        m_stage.mips = hdr->mipCount ? hdr->mipCount : 1;
+        m_stage.format = hdr->format;
+        m_stage.srgb = (hdr->isSRGB != 0);
 
         const size_t off = sizeof(NE::Resource::NanoTexHeader);
         const size_t pay = (blob.size > off) ? (blob.size - off) : 0;
         const uint8_t* data = blob.at(off, pay);
         if (!data || pay == 0) return false;
 
-        g_tmpParsed.payload = data;
-        g_tmpParsed.payloadSize = pay;
+        m_stage.payload = data;
+        m_stage.payloadSize = pay;
 
         // compute mip layout to verify payload integrity
-        if (!ComputeMipLayout(g_tmpParsed.w, g_tmpParsed.h, g_tmpParsed.mips,
-            g_tmpParsed.format, g_tmpParsed.payloadSize,
-            g_tmpParsed.offsets, g_tmpParsed.sizes)) {
+        if (!ComputeMipLayout(m_stage.w, m_stage.h, m_stage.mips,
+            m_stage.format, m_stage.payloadSize,
+            m_stage.offsets, m_stage.sizes)) {
             LOG_WARNING("GLTexture::Preload: payload size mismatch for NTEX.");
             return false;
         }
@@ -104,24 +90,24 @@ namespace NE::Graphics::OpenGL {
     void GLTexture::Finalize() {
         // Create storage
         glCreateTextures(GL_TEXTURE_2D, 1, &m_ID);
-        const GLenum internalFormat = MapFormatToGL(g_tmpParsed.format, g_tmpParsed.srgb);
-        glTextureStorage2D(m_ID, g_tmpParsed.mips, internalFormat, g_tmpParsed.w, g_tmpParsed.h);
+        const GLenum internalFormat = MapFormatToGL(m_stage.format, m_stage.srgb);
+        glTextureStorage2D(m_ID, m_stage.mips, internalFormat, m_stage.w, m_stage.h);
 
         // Upload each mip (BC compressed data)
-        for (uint16_t mip = 0; mip < g_tmpParsed.mips; ++mip) {
-            const uint32_t mw = std::max(1u, g_tmpParsed.w >> mip);
-            const uint32_t mh = std::max(1u, g_tmpParsed.h >> mip);
-            const size_t   sz = g_tmpParsed.sizes[mip];
-            const size_t   off = g_tmpParsed.offsets[mip];
+        for (uint16_t mip = 0; mip < m_stage.mips; ++mip) {
+            const uint32_t mw = std::max(1u, m_stage.w >> mip);
+            const uint32_t mh = std::max(1u, m_stage.h >> mip);
+            const size_t   sz = m_stage.sizes[mip];
+            const size_t   off = m_stage.offsets[mip];
             glCompressedTextureSubImage2D(
                 m_ID, mip, 0, 0, mw, mh,
                 internalFormat, static_cast<GLsizei>(sz),
-                g_tmpParsed.payload + off
+                m_stage.payload + off
             );
         }
 
         // Sampler state (tweak as needed)
-        glTextureParameteri(m_ID, GL_TEXTURE_MIN_FILTER, g_tmpParsed.mips > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+        glTextureParameteri(m_ID, GL_TEXTURE_MIN_FILTER, m_stage.mips > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
         glTextureParameteri(m_ID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTextureParameteri(m_ID, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTextureParameteri(m_ID, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -131,7 +117,7 @@ namespace NE::Graphics::OpenGL {
         glMakeTextureHandleResidentARB(m_Handle);
 
         // clear TLS staging
-        g_tmpParsed = ParsedTexture{};
+        m_stage = ParsedTexture{};
     }
 
     //bool GLTexture::LoadFromFile(const std::string& fileName)

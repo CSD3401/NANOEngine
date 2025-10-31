@@ -3,6 +3,7 @@
 
 #include "../Interfaces/ITexture.hpp"
 #include <string>
+#include <vector>
 #include "ResourceManagement/BinaryView.hpp"
 
 namespace NE::Graphics::OpenGL {
@@ -24,6 +25,18 @@ namespace NE::Graphics::OpenGL {
     private:
         unsigned int m_ID = 0;
         uint64_t m_Handle = 0;
+
+        struct ParsedTexture {
+            uint32_t w = 0, h = 0;
+            uint16_t mips = 1;
+            uint8_t  format = 0;
+            bool     srgb = false;
+            const uint8_t* payload = nullptr;
+            size_t payloadSize = 0;
+            std::vector<size_t> offsets, sizes;
+        };
+
+        ParsedTexture m_stage;
 	};
 
 }
