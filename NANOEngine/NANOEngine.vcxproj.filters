@@ -1,18 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
+    <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
+    <ClCompile Include="src\Audio\AudioBank.cpp" />
+    <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
+    <ClCompile Include="src\Input\InputManager.cpp" />
+    <ClCompile Include="src\Scripting\IScript.cpp" />
+    <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
+    <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
+    <ClCompile Include="src\Scripting\ScriptingEngine.cpp" />
+    <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\RigidbodySystem.cpp" />
+    <ClCompile Include="src\EditorInterface\ECSExports.cpp" />
+    <ClCompile Include="src\EditorInterface\RendererExports.cpp" />
+    <ClCompile Include="src\EngineState.cpp" />
+    <ClCompile Include="src\Graphics\Core\Frustum.cpp" />
+    <ClCompile Include="src\Physics\JoltDebugRenderer.cpp" />
+    <ClCompile Include="src\Physics\PhysicsManager.cpp" />
+    <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
+    <ClCompile Include="src\Core\Profiler.cpp" />
+    <ClCompile Include="src\ECSInternals.cpp" />
+    <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\Camera.cpp" />
+    <ClCompile Include="src\Core\Timer.cpp" />
+    <ClCompile Include="src\Engine.cpp" />
+    <ClCompile Include="src\Graphics\Core\Model.cpp" />
+    <ClCompile Include="src\Graphics\Core\Skybox.cpp" />
+    <ClCompile Include="src\ECS\Systems\RenderSystem.cpp" />
+    <ClCompile Include="src\Events\EventBus.cpp" />
+    <ClCompile Include="src\SceneManagement\Scene.cpp" />
+    <ClCompile Include="src\SceneManagement\SceneManager.cpp" />
+    <ClCompile Include="src\ECS\Core\ECSCoordinator.cpp" />
+    <ClCompile Include="src\ECS\Core\EntityManager.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLFrameBuffer.cpp" />
+    <ClCompile Include="src\Graphics\Core\GraphicsManager.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLGeometryBuffer.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLIndexBuffer.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLVertexBuffer.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLTexture.cpp" />
+    <ClCompile Include="src\Graphics\Core\Material.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLShader.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLPipeline.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLCommandBuffer.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\glad.c" />
+    <ClCompile Include="src\Graphics\OpenGL\GLContext.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLUtilities.cpp" />
+    <ClCompile Include="src\Graphics\Core\Window.cpp" />
+    <ClCompile Include="src\Math\Mat3.cpp" />
+    <ClCompile Include="src\Math\Mat4.cpp" />
+    <ClCompile Include="src\Math\Vec2.cpp" />
+    <ClCompile Include="src\Math\Vec3.cpp" />
+    <ClCompile Include="src\Math\Vec4.cpp" />
+    <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
+    <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
+    <ClCompile Include="src\AssetManager.cpp" />
+    <ClCompile Include="src\Tween\TweenBase.cpp" />
+    <ClCompile Include="src\Tween\TweenManager.cpp" />
+    <ClCompile Include="src\Utility\MetadataHandler.cpp" />
+    <ClCompile Include="src\Core\SpdLogger.cpp" />
+    <ClCompile Include="src\ResourceManager.cpp" />
+    <ClCompile Include="src\Core\Couroutine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Timer.hpp">
@@ -315,6 +364,19 @@
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp">
+          <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorInterface\PhysicsExports.hpp">
+          <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core\SpdLoggerInternal.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core\Couroutine.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -480,6 +542,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp">
+          <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp">
+          <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\SpdLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,5 +1,6 @@
 #include "Scene.hpp"
 #include "../../src/Graphics/Core/GraphicsManager.hpp"
+#include "../../src/Graphics/Core/GizmosRenderer.hpp"
 #include "../ECS/Systems/TransformSystem.hpp"
 #include "../ECS/Systems/RenderSystem.hpp"
 #include "../ECS/Systems/LightSystem.hpp"
@@ -10,6 +11,7 @@
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
+#include "Core/Couroutine.hpp"
 #include <iostream>
 
 
@@ -32,22 +34,33 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
-		Graphics::GraphicsManager::BeginFrame();
-		Graphics::GraphicsManager::DrawSkybox(); // here for now
 		m_ecsCoordinator.m_renderSystem->Update(dt);
-		Graphics::GraphicsManager::DrawDebugLines();
-		Graphics::GraphicsManager::EndFrame();
+		//Graphics::GraphicsManager::DrawDebugLines(); // commented out, as when included, scene::render will not render the lines and triangles as itll be cleared after drawdebuglines/triangles ends
+		//Graphics::GraphicsManager::DrawDebugTriangles();
+#pragma region test gizmos renderer
+		//Graphics::GizmosRenderer::TestGizmosRenderer();
+#pragma endregion
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
+		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
 	}
 
 	void Scene::Render(RenderPass pass) {
 		if (pass == RenderPass::Main) {
+			Graphics::GraphicsManager::BeginFrame();
 			Graphics::GraphicsManager::DrawSkybox();
-			m_ecsCoordinator.m_renderSystem->Update(0.0);
-			Graphics::GraphicsManager::DrawDebugLines();
+			Graphics::GraphicsManager::DrawFrame();
+			Graphics::GraphicsManager::EndFrame();
+			//Graphics::GraphicsManager::DrawSkybox();
+			//m_ecsCoordinator.m_renderSystem->Update(0.0);
+			//Graphics::GraphicsManager::DrawDebugLines();
 		} else if (pass == RenderPass::Picking) {
+			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
 			m_ecsCoordinator.m_renderSystem->RenderPicking();
+			Graphics::GraphicsManager::BeginFrame();
+			Graphics::GraphicsManager::DrawFrame();
+			Graphics::GraphicsManager::EndFrame();
+			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
 		}
 	}
 

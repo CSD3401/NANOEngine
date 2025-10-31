@@ -52,10 +52,15 @@ namespace Editor {
     // Generic float
     bool DrawFloatControl(const std::string& label, float& value, float step)
     {
+        //bool changed = false;
+        //ImGui::Text("%s", label.c_str());
+        //ImGui::SameLine();
+        //changed = ImGui::DragFloat(("##" + label).c_str(), &value, step);
+        //return changed;
         bool changed = false;
         ImGui::Text("%s", label.c_str());
         ImGui::SameLine();
-        changed = ImGui::DragFloat(("##" + label).c_str(), &value, step);
+        changed = ImGui::InputFloat(("##" + label).c_str(), &value, step);
         return changed;
     }
 

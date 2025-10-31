@@ -10,7 +10,8 @@
 // #include "Core/IScript.hpp"
 
 // Include headers for all scripts you want to register
-#include "PlayerScript.hpp"
+#include "Scripts/PlayerScript.hpp"
+#include "Scripts/TestScript.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -27,6 +28,10 @@ extern "C" {
         // Register all your game-specific scripts here
         registrar->RegisterScript("PlayerScript", []() -> IScript* {
             return new PlayerScript();
+            });
+
+        registrar->RegisterScript("TestScript", []() -> IScript* {
+            return new TestScript();
             });
 
        

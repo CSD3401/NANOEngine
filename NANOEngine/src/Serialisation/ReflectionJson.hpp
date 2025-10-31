@@ -6,6 +6,7 @@
 #include "../../src/Math/Vec3.hpp"
 #include "../Core/Reflection.hpp"
 #include "ECS/Components/Light.hpp" //temp
+#include "ECS/Components/NativeScript.hpp"
 
 namespace NE::Serialization {
 
@@ -99,6 +100,45 @@ namespace NE::Serialization {
         using namespace NE::Serialization;
         from_json<NE::ECS::Component::Light>(v, out);
         if (v.HasMember("type")) from_json(v["type"], out.type);
+    }
+
+    // ----------- NativeScript serialization -----------
+    // Custom serialization to handle ScriptName and SerializedFields
+    inline RJson to_json(const NE::ECS::Component::NativeScript& script, Alloc& a) {
+        RJson obj(rapidjson::kObjectType);
+  
+     // Serialize script name
+        obj.AddMember("ScriptName", to_json(script.ScriptName, a), a);
+     
+        // Serialize field values as a nested object
+        if (!script.SerializedFields.empty()) {
+          RJson fieldsObj(rapidjson::kObjectType);
+       for (const auto& [name, value] : script.SerializedFields) {
+   RJson keyJson(name.c_str(), a);
+     fieldsObj.AddMember(keyJson, to_json(value, a), a);
+            }
+   obj.AddMember("SerializedFields", fieldsObj, a);
+        }
+        
+        return obj;
+    }
+
+    inline void from_json(const RJson& v, NE::ECS::Component::NativeScript& out) {
+   // Deserialize script name
+     if (v.HasMember("ScriptName")) {
+   from_json(v["ScriptName"], out.ScriptName);
+     }
+
+        // Deserialize field values
+   if (v.HasMember("SerializedFields")) {
+ const auto& fieldsObj = v["SerializedFields"];
+            for (auto it = fieldsObj.MemberBegin(); it != fieldsObj.MemberEnd(); ++it) {
+     std::string fieldName = it->name.GetString();
+    std::string fieldValue;
+                from_json(it->value, fieldValue);
+     out.SerializedFields[fieldName] = fieldValue;
+      }
+    }
     }
 
 }

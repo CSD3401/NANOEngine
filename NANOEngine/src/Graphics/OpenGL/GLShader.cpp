@@ -196,7 +196,7 @@ namespace NE::Graphics::OpenGL {
             SPD_WARNING("glProgramBinary failed; attempting embedded source fallback.");
         }
 
-        // Failed to load binary — fall back to embedded source if available
+        // Failed to load binary ï¿½ fall back to embedded source if available
         glDeleteProgram(m_programID);
         m_programID = 0;
 

@@ -1,9 +1,9 @@
 #include "ScriptingEngine.hpp"
 #include <stdexcept>
 #include <algorithm>
-#include <iostream>
 #include <filesystem>
 #include <Windows.h>
+#include "Core/SpdLogger.hpp"
 
 namespace NE::Scripting {
 
@@ -16,7 +16,9 @@ namespace NE::Scripting {
     }
 
     std::function<IScript* ()> ScriptingEngine::GetScriptFactory(const std::string& name) const {
+        std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_scriptFactories.find(name);
+       
         if (it != m_scriptFactories.end()) {
             return it->second;
         }
@@ -27,15 +29,16 @@ namespace NE::Scripting {
     // === IScriptRegistrar Interface Implementation ===
 
     void ScriptingEngine::RegisterScript(const std::string& name, std::function<IScript* ()> factory) {
+        std::lock_guard<std::mutex> lock(m_mutex);
         try {
             ValidateScriptName(name);
 
             if (m_scriptFactories.find(name) != m_scriptFactories.end()) {
-                std::cerr << "Warning: Script '" << name << "' is already registered. Overwriting..." << std::endl;
+                SPD_WARNING("Script '" << name << "' is already registered.");
             }
 
             m_scriptFactories[name] = factory;
-            std::cout << "Registered script: " << name << std::endl;
+            SPD_INFO("Registered script: " << name);
 
         }
         catch (const std::exception& e) {
@@ -45,24 +48,31 @@ namespace NE::Scripting {
     }
 
     bool ScriptingEngine::IsScriptRegistered(const std::string& name) const {
+        std::lock_guard<std::mutex> lock(m_mutex);
         return m_scriptFactories.find(name) != m_scriptFactories.end();
     }
 
     size_t ScriptingEngine::GetRegisteredScriptCount() const {
+        std::lock_guard<std::mutex> lock(m_mutex);
         return m_scriptFactories.size();
     }
 
     // === Script Management ===
 
     std::unique_ptr<IScript> ScriptingEngine::CreateScript(const std::string& name) const {
-        auto it = m_scriptFactories.find(name);
-        if (it == m_scriptFactories.end()) {
-            const_cast<ScriptingEngine*>(this)->SetLastError("Script '" + name + "' is not registered");
-            return nullptr;
-        }
+        std::function<IScript* ()> factory;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            auto it = m_scriptFactories.find(name);
+            if (it == m_scriptFactories.end()) {
+                const_cast<ScriptingEngine*>(this)->SetLastError("Script '" + name + "' is not registered");
+                return nullptr;
+            }
+            factory = it->second; // copy
+        } // unlock before calling into DLL
 
         try {
-            IScript* rawScript = it->second();
+            IScript* rawScript = factory();
             return std::unique_ptr<IScript>(rawScript);
         }
         catch (const std::exception& e) {
@@ -72,6 +82,7 @@ namespace NE::Scripting {
     }
 
     std::vector<std::string> ScriptingEngine::GetRegisteredScriptNames() const {
+        std::lock_guard<std::mutex> lock(m_mutex);
         std::vector<std::string> names;
         names.reserve(m_scriptFactories.size());
 
@@ -116,23 +127,23 @@ namespace NE::Scripting {
                 return 0;
             }
 
-            std::cout << "Scanning directory for DLLs: " << directory << std::endl;
+            SPD_INFO("Scanning directory for DLLs: " << directory);
 
             for (const auto& entry : std::filesystem::directory_iterator(directory)) {
                 if (entry.is_regular_file() && entry.path().extension() == ".dll") {
                     std::string dllPath = entry.path().string();
-                    std::cout << "Found DLL: " << dllPath << std::endl;
+                    SPD_INFO("Found DLL: " << dllPath);
 
                     if (LoadGameDLL(dllPath)) {
                         loadedCount++;
                     }
                     else {
-                        std::cerr << "Failed to load DLL: " << dllPath << " - " << GetLastError() << std::endl;
+                        SPD_ERROR("Failed to load DLL: " << dllPath << " - " << GetLastError());
                     }
                 }
             }
 
-            std::cout << "Successfully loaded " << loadedCount << " DLLs from directory: " << directory << std::endl;
+            SPD_INFO("Successfully loaded " << loadedCount << " DLLs from directory: " << directory);
 
         }
         catch (const std::filesystem::filesystem_error& e) {
@@ -153,9 +164,10 @@ namespace NE::Scripting {
         }
 
         // Remove scripts that were registered by this DLL
-        // Note: This is a simplified approach. In a more sophisticated system,
-        // you might want to track which DLL registered which scripts.
-        std::cout << "Unloading DLL: " << dllName << " (scripts will remain registered)" << std::endl;
+        //SPD_INFO("Unloading DLL: " << dllName << " (scripts will remain registered)");
+
+        ClearRegisteredScripts();
+       
 
         bool success = UnloadSingleDLL(*dll);
         if (success) {
@@ -170,16 +182,17 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::UnloadAllDLLs() {
-        std::cout << "Unloading all DLLs..." << std::endl;
+        SPD_INFO("Unloading all DLLs...");
 
         for (auto& dll : m_loadedDLLs) {
             UnloadSingleDLL(dll);
         }
 
         m_loadedDLLs.clear();
-        m_scriptFactories.clear(); // Clear all registered scripts
 
-        std::cout << "All DLLs unloaded and scripts cleared." << std::endl;
+        ClearRegisteredScripts();
+
+        SPD_INFO("All DLLs unloaded and scripts cleared.");
     }
 
     const std::vector<ScriptingEngine::LoadedDLL>& ScriptingEngine::GetLoadedDLLs() const {
@@ -194,18 +207,18 @@ namespace NE::Scripting {
 
     void ScriptingEngine::Initialize() {
         if (m_initialized) {
-            std::cout << "ScriptingEngine already initialized." << std::endl;
+            SPD_INFO("ScriptingEngine already initialized.");
             return;
         }
 
-        std::cout << "Initializing ScriptingEngine..." << std::endl;
-        std::cout << "  - " << m_loadedDLLs.size() << " DLLs loaded" << std::endl;
-        std::cout << "  - " << m_scriptFactories.size() << " scripts registered" << std::endl;
+        SPD_INFO("Initializing ScriptingEngine...");
+        SPD_INFO("  - " << m_loadedDLLs.size() << " DLLs loaded");
+        SPD_INFO("  - " << m_scriptFactories.size() << " scripts registered");
 
         PrintSummary();
 
         m_initialized = true;
-        std::cout << "ScriptingEngine initialization complete." << std::endl;
+        SPD_INFO("ScriptingEngine initialization complete.");
     }
 
     void ScriptingEngine::Shutdown() {
@@ -213,12 +226,12 @@ namespace NE::Scripting {
             return;
         }
 
-        std::cout << "Shutting down ScriptingEngine..." << std::endl;
+        SPD_INFO("Shutting down ScriptingEngine...");
 
         UnloadAllDLLs();
 
         m_initialized = false;
-        std::cout << "ScriptingEngine shutdown complete." << std::endl;
+        SPD_INFO("ScriptingEngine shutdown complete.");
     }
 
     bool ScriptingEngine::IsInitialized() const {
@@ -234,37 +247,37 @@ namespace NE::Scripting {
     // === Utility ===
 
     void ScriptingEngine::PrintSummary() const {
-        std::cout << "\n=== Scripting Engine Summary ===" << std::endl;
+        SPD_INFO("=== Scripting Engine Summary ===");
 
         // Print loaded DLLs
-        std::cout << "Loaded DLLs (" << m_loadedDLLs.size() << "):" << std::endl;
+        SPD_INFO("Loaded DLLs (" << m_loadedDLLs.size() << "):");
         if (m_loadedDLLs.empty()) {
-            std::cout << "  (none)" << std::endl;
+            SPD_INFO("  (none)");
         }
         else {
             for (const auto& dll : m_loadedDLLs) {
-                std::cout << "  - " << dll.name << " (" << dll.filepath << ")" << std::endl;
+                SPD_INFO("  - " << dll.name << " (" << dll.filepath << ")");
             }
         }
 
         // Print registered scripts
         auto scriptNames = GetRegisteredScriptNames();
-        std::cout << "Registered Scripts (" << scriptNames.size() << "):" << std::endl;
+        SPD_INFO("Registered Scripts (" << scriptNames.size() << "):");
         if (scriptNames.empty()) {
-            std::cout << "  (none)" << std::endl;
+            SPD_INFO("  (none)");
         }
         else {
             for (const auto& name : scriptNames) {
-                std::cout << "  - " << name << std::endl;
+                SPD_INFO("  - " << name);
             }
         }
-        std::cout << "================================\n" << std::endl;
+        SPD_INFO("================================\n");
     }
 
     bool ScriptingEngine::ReloadDLL(const std::string& dllPath) {
         std::string dllName = GetDLLName(dllPath);
 
-        std::cout << "Reloading DLL: " << dllName << std::endl;
+        SPD_INFO("Reloading DLL: " << dllName);
 
         // Unload if currently loaded
         if (IsDLLLoaded(dllName)) {
@@ -279,9 +292,10 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::ClearRegisteredScripts() {
-        std::cout << "Clearing all registered scripts..." << std::endl;
+        std::lock_guard<std::mutex> lock(m_mutex);
+        SPD_INFO("Clearing all registered scripts...");
         m_scriptFactories.clear();
-        std::cout << "All scripts cleared." << std::endl;
+        SPD_INFO("All scripts cleared.");
     }
 
     // === Private Helper Methods ===
@@ -347,7 +361,7 @@ namespace NE::Scripting {
 
     void ScriptingEngine::SetLastError(const std::string& error) {
         m_lastError = error;
-        std::cerr << "ScriptingEngine Error: " << error << std::endl;
+        SPD_ERROR("ScriptingEngine Error: " << error);
     }
 
     std::string ScriptingEngine::GetSystemError() const {
@@ -390,23 +404,31 @@ namespace NE::Scripting {
         try {
             std::string dllName = GetDLLName(dllPath);
 
-            // Call the registration function
-            registerFunc(this);
-
             // Store the loaded DLL information
             m_loadedDLLs.emplace_back(dllHandle, dllPath, dllName, registerFunc);
 
-            std::cout << "Successfully loaded and registered scripts from: " << dllPath << std::endl;
+            // Set temp state *before* calling registerFunc
+            m_currentLoadingDLLHandle = dllHandle;
+
+            // Call the registration function
+            registerFunc(this);
+
+            // Clear temp state
+            m_currentLoadingDLLHandle = nullptr;
+
+            SPD_INFO("Successfully loaded and registered scripts from: " << dllPath);
             return true;
 
         }
         catch (const std::exception& e) {
             SetLastError("Exception during script registration: " + std::string(e.what()));
+            m_currentLoadingDLLHandle = nullptr; // Clear temp state
             FreeLibrary(dllHandle);
             return false;
         }
         catch (...) {
             SetLastError("Unknown exception during script registration");
+            m_currentLoadingDLLHandle = nullptr; // Clear temp state
             FreeLibrary(dllHandle);
             return false;
         }
@@ -414,7 +436,7 @@ namespace NE::Scripting {
 
     bool ScriptingEngine::UnloadSingleDLL(LoadedDLL& dll) {
         if (FreeLibrary(dll.handle)) {
-            std::cout << "Unloaded DLL: " << dll.name << std::endl;
+            SPD_INFO("Unloaded DLL: " << dll.name);
             return true;
         }
         else {

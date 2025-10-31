@@ -36,6 +36,7 @@ namespace NE::Graphics::OpenGL {
 
 		bool Preload(NE::Resource::BinaryView blob) override;
 		void Finalize() override;
+		const uint32_t GetProgramID() const override { return m_programID; }
 
 		std::vector<UniformDesc> EnumerateActiveUniforms() const;
 		bool HasUniform(std::string_view name) const;

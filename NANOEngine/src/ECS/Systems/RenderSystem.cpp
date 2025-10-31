@@ -134,16 +134,17 @@ namespace NE::ECS::Systems {
             //if (!renderer.model)
             //    continue;
 
-            float r = (float)(entity & 0xFF) / 255.0f;
-            float g = (float)((entity >> 8) & 0xFF) / 255.0f;
-            float b = (float)((entity >> 16) & 0xFF) / 255.0f;
+            //float r = (float)(entity & 0xFF) / 255.0f;
+            //float g = (float)((entity >> 8) & 0xFF) / 255.0f;
+            //float b = (float)((entity >> 16) & 0xFF) / 255.0f;
 
             for (auto& sub : renderer.model->meshes) {
                 Graphics::DrawCommand cmd;
                 cmd.mesh = sub.buffer;
                 cmd.material = pickingMaterial;
                 cmd.transform = transform.modelMatrix;
-                pickingMaterial->SetUniformVec3("u_ID", { r, g, b });
+				cmd.entity = entity;
+                //pickingMaterial->SetUniformVec3("u_ID", { r, g, b });
                 Graphics::GraphicsManager::Submit(cmd);
             }
         }

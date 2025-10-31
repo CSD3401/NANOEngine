@@ -39,31 +39,48 @@ in vec2 v_TexCoord;
 out vec4 FragColor;
 
 // ===== Scene / Lighting =====
-uniform vec3 u_CameraPos;
-uniform vec3 u_AmbientColor; // simple ambient for now to move to scene-wide ambient/IBL tint in the future
+uniform vec3 		u_CameraPos;
+uniform vec3 		u_AmbientColor; // simple ambient for now to move to scene-wide ambient/IBL tint in the future
 
 // Base (albedo)
 uniform vec3 u_BaseColor;
-uniform sampler2D u_AlbedoMap;
-uniform int u_HasAlbedoMap;
+uniform sampler2D 	u_AlbedoMap;
+uniform int 		u_HasAlbedoMap;
 
 // Normal
-uniform sampler2D u_NormalMap;
-uniform int u_HasNormalMap;
+uniform sampler2D 	u_NormalMap;
+uniform int 		u_HasNormalMap;
 
 // Roughness / Metallic
-uniform float u_Roughness;
-uniform sampler2D u_RoughnessMap;
-uniform int u_HasRoughnessMap;
+uniform float 		u_Roughness;
+uniform sampler2D 	u_RoughnessMap;
+uniform int 		u_HasRoughnessMap;
 
-uniform float u_Metallic;
-uniform sampler2D u_MetallicMap;
-uniform int u_HasMetallicMap;
+uniform float 		u_Metallic;
+uniform sampler2D 	u_MetallicMap;
+uniform int 		u_HasMetallicMap;
 
 // Ambient Occlusion
-uniform float u_AmbientOcclusion;
-uniform sampler2D u_AmbientOcclusionMap;
-uniform int u_HasAOMap;
+uniform float 		u_AmbientOcclusion;
+uniform sampler2D 	u_AmbientOcclusionMap;
+uniform int 		u_HasAOMap;
+
+// Displacement Mapping
+uniform sampler2D 	u_DisplacementMap;   // height map (R channel 0..1)
+uniform int 		u_HasDisplacementMap;
+uniform float 		u_ParallaxScale;     // e.g. 0.02 .. 0.06 (world-agnostic scalar)
+uniform float 		u_ParallaxMid;       // usually 0.5 if mid-gray = no height
+
+uniform int 		u_ParallaxMode; 	// Parallax mode: 0 = off, 1 = simple parallax offset, 2 = POM
+uniform int 		u_ParallaxInvert;
+
+// POM quality (dynamic layer count by angle)
+uniform int       u_ParallaxMinLayers; // e.g. 16
+uniform int       u_ParallaxMaxLayers; // e.g. 48
+
+// NEW: border clipping controls
+uniform int   u_ParallaxClipBorders;  // 0=off, 1=hard clip, 2=smart clip
+uniform float u_ParallaxEdgeFade;     // smart-clip ring width in UV units (e.g. 0.04)
 
 struct Light {
     int   type; // 0 = directional, 1 = point, 2 = spot
@@ -87,6 +104,12 @@ uniform Light u_lights[MAX_LIGHTS];
 uniform vec3  u_Emissive;
 
 const float PI = 3.14159265359;
+
+float EdgeFade(vec2 uv, float edgeWidth) {
+    if (edgeWidth <= 0.0) return 1.0; // disabled
+    float d = min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y));
+    return smoothstep(0.0, edgeWidth, d); // 0 at edge -> 1 in the middle
+}
 
 vec3 srgb_to_linear(vec3 c) {
     bvec3 cutoff = lessThanEqual(c, vec3(0.04045));
@@ -171,6 +194,111 @@ mat3 ComputeTBN(vec3 N, vec3 P, vec2 uv)
     return mat3(T, B, N);
 }
 
+// --- Simple Parallax Offset (cheap) ---
+vec2 ParallaxOffset_Basic(vec2 uv, vec3 viewTS, float scale, float mid)
+{
+    // viewTS is the view vector in tangent space
+    float h = texture(u_DisplacementMap, uv).r - mid;   // center around mid (e.g., 0.5)
+    // Push along view direction projected onto the surface
+    vec2 offset = (viewTS.xy / max(viewTS.z, 1e-5)) * (h * scale);
+    return uv - offset;
+}
+
+// --- Parallax Occlusion Mapping (ray-march) + linear refinement ---
+//vec2 ParallaxOffset_POM(vec2 uv, vec3 viewTS, float scale, bool invertHeight, int minL, int maxL)
+//{
+//    float ndotv  = clamp(abs(viewTS.z), 0.0, 1.0);
+//    float layers = mix(float(maxL), float(minL), ndotv);   // more layers at grazing
+//    float layerDepth = 1.0 / layers;
+//
+//    // Total parallax shift in UVs (projected along view)
+//    vec2 totalParallax = (viewTS.xy / max(viewTS.z, 1e-5)) * scale;
+//    vec2 dUV = totalParallax / layers;
+//
+//    // March
+//    float currentLayerDepth = 0.0;     // goes 0..1
+//    vec2  currUV = uv;
+//    float heightSample = texture(u_DisplacementMap, currUV).r;
+//    if (invertHeight) heightSample = 1.0 - heightSample;
+//
+//    // Compare "how far we've marched" vs "surface height"
+//    while (currentLayerDepth < heightSample) {
+//        currUV -= dUV;
+//        currentLayerDepth += layerDepth;
+//
+//        // Early out if we step off the UVs (prevents dark seams)
+//        if (any(lessThan(currUV, vec2(0.0))) || any(greaterThan(currUV, vec2(1.0))))
+//            break;
+//
+//        heightSample = texture(u_DisplacementMap, currUV).r;
+//        if (invertHeight) heightSample = 1.0 - heightSample;
+//    }
+//
+//    // Step back one layer and linearly refine along the last segment
+//    vec2  prevUV = currUV + dUV;
+//    float prevLayerDepth = currentLayerDepth - layerDepth;
+//
+//    float hAfter  = heightSample - currentLayerDepth;
+//    float hBefore = (texture(u_DisplacementMap, prevUV).r * (invertHeight ? -1.0 : 1.0) + (invertHeight ? 1.0 : 0.0)) - prevLayerDepth;
+//
+//    float w = hBefore / max((hBefore - hAfter), 1e-5);
+//    vec2 refinedUV = mix(currUV, prevUV, clamp(w, 0.0, 1.0));
+//    return refinedUV;
+//}
+
+vec2 ParallaxOffset_POM(vec2 uv,
+                        vec3 viewTS,
+                        float scale,
+                        bool invertHeight,
+                        int minL, int maxL,
+                        out bool offEdge)
+{
+    offEdge = false;
+
+    // More layers at grazing angles
+    float ndotv  = clamp(abs(viewTS.z), 0.0, 1.0);
+    float layers = mix(float(maxL), float(minL), ndotv); // 0->grazing=maxL, 1->front=minL
+    float layerDepth = 1.0 / layers;
+
+    // Total UV shift along the view direction
+    vec2 totalParallax = (viewTS.xy / max(viewTS.z, 1e-5)) * scale;
+    vec2 dUV = totalParallax / layers;
+
+    // March forward until depth >= height
+    float currentLayerDepth = 0.0;
+    vec2  currUV = uv;
+
+    float h = texture(u_DisplacementMap, currUV).r;
+    if (invertHeight) h = 1.0 - h;
+
+    while (currentLayerDepth < h) {
+        currUV -= dUV;
+        currentLayerDepth += layerDepth;
+
+        // If we walked off the UVs, mark and stop
+        if (any(lessThan(currUV, vec2(0.0))) || any(greaterThan(currUV, vec2(1.0)))) {
+            offEdge = true;
+            return currUV; // early out; caller can decide to discard
+        }
+
+        h = texture(u_DisplacementMap, currUV).r;
+        if (invertHeight) h = 1.0 - h;
+    }
+
+    // Linear refinement between last two samples
+    vec2  prevUV = currUV + dUV;
+    float prevLayerDepth = currentLayerDepth - layerDepth;
+
+    float hPrev = texture(u_DisplacementMap, prevUV).r;
+    if (invertHeight) hPrev = 1.0 - hPrev;
+
+    float fPrev = hPrev - prevLayerDepth;
+    float fCurr = h     - currentLayerDepth;
+
+    float w = fPrev / max(fPrev - fCurr, 1e-5);
+    return mix(currUV, prevUV, clamp(w, 0.0, 1.0));
+}
+
 // ===== Light evaluators =====
 vec3 EvalDirectional(in Light Lgt, vec3 N, vec3 V, vec3 albedo, float metallic, float roughness)
 {
@@ -223,11 +351,62 @@ vec3 EvalSpot(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic,
 
 void main()
 {
-	const vec2 uv = v_TexCoord;
+	vec2 uv = v_TexCoord;
 
     // view/normal
     vec3 V = normalize(u_CameraPos - v_FragPos);
     vec3 N = normalize(v_Normal);
+
+	mat3 TBN = ComputeTBN(N, v_FragPos, uv);
+	vec3 Vts = normalize(transpose(TBN) * V);
+	
+	// --- Parallax UV adjustment ---
+	//if (u_HasDisplacementMap != 0 && u_ParallaxMode != 0) {
+	//	if (u_ParallaxMode == 1) {
+	//		// Simple offset — if you keep "mid", it's fine here
+	//		uv = ParallaxOffset_Basic(uv, Vts, u_ParallaxScale, u_ParallaxMid);
+	//	} else { // POM
+	//		bool invertH = (u_ParallaxInvert != 0);
+	//		uv = ParallaxOffset_POM(uv, Vts, u_ParallaxScale, invertH,
+	//								u_ParallaxMinLayers, u_ParallaxMaxLayers);
+	//	}
+	//	uv = clamp(uv, vec2(0.0), vec2(1.0));
+	//}
+	
+	if (u_HasDisplacementMap != 0 && u_ParallaxMode == 2) {
+		// View direction in world
+		vec3 V = normalize(u_CameraPos - v_FragPos);
+
+		// Convert to tangent space (world->tangent)
+		vec3 viewTS = normalize(transpose(TBN) * V);
+
+		// Run POM
+		bool offEdge = false;
+		vec2 uvPOM = ParallaxOffset_POM(
+			uv,
+			viewTS,
+			u_ParallaxScale,
+			(u_ParallaxInvert != 0),
+			u_ParallaxMinLayers,
+			u_ParallaxMaxLayers,
+			offEdge
+		);
+
+		// --- Border handling ---
+		if (u_ParallaxClipBorders != 0 && offEdge) {
+			if (u_ParallaxClipBorders == 1) {
+				// Hard alpha cutout
+				discard;
+			} else {
+				// Smart clip: only cut when we're not right on the UV edge
+				float edgeOk = EdgeFade(uv, u_ParallaxEdgeFade); // 0 at edge, 1 inside
+				if (edgeOk > 0.7) discard;
+			}
+		}
+
+		// Use the parallaxed coords for all subsequent sampling
+		uv = clamp(uvPOM, vec2(0.0), vec2(1.0));
+	}
 
     // Albedo
     //vec3 albedo = clamp(u_BaseColor, 0.0, 1.0);
@@ -243,24 +422,24 @@ void main()
     // Normal
     if (u_HasNormalMap != 0) {
         vec3 n = texture(u_NormalMap, uv).xyz * 2.0 - 1.0;  // [-1,1]
-        mat3 TBN = ComputeTBN(N, v_FragPos, uv);
+        //mat3 TBN = ComputeTBN(N, v_FragPos, uv);
         N = normalize(TBN * n);
     }
 
     // Roughness
     float roughness = clamp(u_Roughness, 0.04, 1.0);
     if (u_HasRoughnessMap != 0) {
-        roughness = clamp(texture(u_RoughnessMap, uv).r, 0.04, 1.0);
+        roughness = texture(u_RoughnessMap, uv).r;
     }
 
     // Metallic
     float metallic = clamp(u_Metallic, 0.0, 1.0);
-    // if (u_HasMetallicMap != 0) metallic = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
+    if (u_HasMetallicMap != 0) metallic = texture(u_MetallicMap, uv).r;
 
     // Ambient Occlusion
     float ao = clamp(u_AmbientOcclusion, 0.0, 1.0);
     if (u_HasAOMap != 0) {
-        ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
+        ao = texture(u_AmbientOcclusionMap, uv).r;
     }
 
     // === ambient and direct lighting ===

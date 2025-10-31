@@ -33,31 +33,12 @@ namespace Editor {
 	void Application::Init() {
 		timer.Start();
 
-		//NANOEngine::Graphics::RenderAPI api = NANOEngine::Graphics::RenderAPI::OpenGL;
-
-		//NANOEngine::Graphics::WindowProperties props;
-		//props.title = "NANOEngine";
-		//props.width = 1920;
-		//props.height = 1080;
-		//props.fullscreen = false;
-		//props.setHints = [api]() {
-		//	switch (api) {
-		//	case NANOEngine::Graphics::RenderAPI::OpenGL:
-		//		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-		//		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-		//		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		//		//glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-		//		break;
-		//	case NANOEngine::Graphics::RenderAPI::Vulkan:
-		//		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		//		break;
-		//	}
-		//};
-
-		NE::Initialize();
-		
-		// Enable crash-only logging instead of continuous file logging
+		// Enable logging BEFORE engine initialization
+		SpdLogger::GetInstance().EnableFileLogging("logs/session.log");
 		SpdLogger::GetInstance().EnableCrashOnlyLogging("crash_logs/");
+
+		// Now initialize engine (logs will be captured)
+		NE::Initialize();
 
 		// Testing the SpdLogger with some demo messages
 		SPD_INFO("=== NANOEngine Application Started ===");
@@ -109,7 +90,8 @@ namespace Editor {
 			//if (!ImGui::GetIO().WantCaptureMouse)
 				NE::InputManager::OnScroll(xoff, yoff);
 			});
-		glfwSetCharCallback(window, [](GLFWwindow*, unsigned int c) {
+		glfwSetCharCallback(window, [](GLFWwindow* w, unsigned int c) {
+			ImGui_ImplGlfw_CharCallback(w, c);
 			// ImGui will read it too via its backend; forwarding to engine lets your widgets read raw text if needed
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
@@ -143,7 +125,9 @@ namespace Editor {
 			//LOG_INFO(timer.GetFPS());
 			
 			//SPD_INFO(timer.GetFPS());
-
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) {
+				SPD_INFO(timer.GetFPS());
+			}
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
