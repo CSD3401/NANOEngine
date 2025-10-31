@@ -47,8 +47,13 @@ namespace NE::Graphics {
         static void DrawDebugLines();
 
         static std::vector<ECS::Component::Light*> m_lights;
+
         // Draw Count Profiling
         static int drawCount;
+
+        // Flag to toggle sorting
+		static bool enableSorting;
+
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;
