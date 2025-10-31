@@ -42,7 +42,7 @@ namespace NE::SceneManagement {
 #pragma endregion
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
-		Engine_UpdateCoroutines(dt); //couroutine ticks
+		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
 	}
 
 	void Scene::Render(RenderPass pass) {
