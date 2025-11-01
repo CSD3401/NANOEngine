@@ -19,6 +19,7 @@ namespace NE::ECS {
 		struct AudioSource;
 		struct NativeScript;
 		struct Camera;
+		struct PhysicsBody;
 	}
 
 	namespace Query {
