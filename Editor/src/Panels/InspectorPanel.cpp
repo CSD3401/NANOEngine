@@ -12,6 +12,7 @@
 #include <ECS/Components/AudioSource.hpp>
 #include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include <ECS/Components/Camera.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "../EditorScene.hpp"
@@ -977,128 +978,209 @@ namespace Editor {
 						}
 					}
 				}
-            }
+				else if (typeIdx == typeid(NE::ECS::Component::Camera)) {
+					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
+					ImGui::SeparatorText("Camera");
 
-            if (ImGui::Button("Add Component")) {
-                ImGui::OpenPopup("ComponentList");
-            }
+					NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
+						[&](auto const& desc, auto const& currentValue) {
+							using Owner = NE::ECS::Component::Camera;
+							using FieldT = std::decay_t<decltype(currentValue)>;
 
-            if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
-                if (ImGui::MenuItem("Renderer")) {
-                    NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
-                }
-                if (ImGui::MenuItem("Rigidbody")) {
-                    NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-                    NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
-                }
-                if (ImGui::MenuItem("Collider")) {
-                    NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-                }
-                if (ImGui::MenuItem("Light")) {
-                    NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
-                }
-                if (ImGui::MenuItem("AudioSource")) {
-                    NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
-                }
-                if (ImGui::MenuItem("Script")) {
-                    NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
-                }
-                ImGui::EndPopup();
-            }
+							FieldT edited = currentValue;
 
-        }
-        else if (EditorScene::selectedMaterial != "") {
-            if (m_loadedPath != EditorScene::selectedMaterial) {
-                try {
-                    m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
-                    m_loadedPath = EditorScene::selectedMaterial;
-                }
-                catch (...) {
-                    m_loadedMaterial.reset();
-                    m_loadedPath.clear();
-                }
-            }
+							// --- draw widget, track edit lifecycle ---
+							ImGui::PushID(desc.name.data());
+							const bool changed = DrawField(desc, edited);  // your field drawer
+							const bool activated = ImGui::IsItemActivated();
+							const bool active = ImGui::IsItemActive();
+							const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+							ImGui::PopID();
 
-            if (m_loadedMaterial) {
-                bool openPopup = false;
-                DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
-                if (openPopup) {
-                    ImGui::OpenPopup("AssetPicker_Shader");
-                }
+							// Key to coalesce continuous edits (dragging slider, etc.)
+							FieldKey key{
+								entity,
+								&typeid(Owner),
+								MemberPointerHasher<Owner, FieldT>{}(desc.member)
+							};
 
-                static std::string searchQuery;
-                if (ImGui::BeginPopup("AssetPicker_Shader")) {
-                    ImGui::Text("Select a Shader");
-                    ImGui::Separator();
-                    auto& assets = NE::GetAllShaders();
+							// 1) Begin an active command when editing starts
+							if (activated) {
+								using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+								auto cmd = std::make_unique<Cmd>(
+									entity,
+									std::string("Set Camera ") + desc.name.data(),
+									desc.member,
+									currentValue,  // before
+									currentValue,  // after (will change while dragging)
+									&NE::ECS::Command::GetEntityCamera
+								);
+								g_activeCommands[key] = std::move(cmd);
+							}
 
-                    if (ImSearch::BeginSearch()) {
-                        ImSearch::SearchBar();
+							// 2) While dragging, coalesce into the active command
+							if (active && changed) {
+								auto it = g_activeCommands.find(key);
+								if (it != g_activeCommands.end()) {
+									using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+									Cmd tmp(
+										entity,
+										std::string{},     // no label for interim updates
+										desc.member,
+										currentValue,      // before (ignored by CoalesceFrom)
+										edited,            // new after value
+										&NE::ECS::Command::GetEntityCamera
+									);
+									it->second->CoalesceFrom(tmp);
+								}
+							}
 
-                        for (const auto& [name, asset] : assets) {
-                            ImSearch::SearchableItem(name.c_str(),
-                                [name, this](const char*) {
-                                    if (ImGui::Selectable(name.c_str())) {
-                                        m_loadedMaterial->SetShader(name);
-                                        ImGui::CloseCurrentPopup();
-                                    }
-                                });
-                        }
+							// 3) When edit ends, either discard (no net change) or commit
+							if (deactivated) {
+								auto it = g_activeCommands.find(key);
+								if (it != g_activeCommands.end()) {
+									// If no net change, drop it; else execute & mark camera dirty
+									if (auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+										asSet && Equal(asSet->Before(), asSet->After())) {
+										g_activeCommands.erase(it);
+									}
+									else {
+										Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+										g_activeCommands.erase(it);
 
-                        ImSearch::EndSearch();
-                    }
-                    ImGui::EndPopup();
-                }
+										// Ensure projection is rebuilt after param changes
+										// (Either handle in SetFieldCommand::Apply, or do it here.)
+										auto& cam = NE::ECS::Command::GetEntityCamera(entity);
+										cam.isDirty = true;  // projection rebuild flag
+									}
+								}
+							}
+						});
+				}
+			}
 
-                ImGui::SeparatorText("Material Uniforms");
+			if (ImGui::Button("Add Component")) {
+				ImGui::OpenPopup("ComponentList");
+			}
 
-                for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
-                    //float v = val;
-                    if (Editor::DrawFloatControl(name.c_str(), val, 0.1f)) {
-                        //m_loadedMaterial->SetUniformFloat(name, v);
-                    }
-                }
+			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
+				if (ImGui::MenuItem("Renderer")) {
+					NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				if (ImGui::MenuItem("Rigidbody")) {
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				if (ImGui::MenuItem("Collider")) {
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				if (ImGui::MenuItem("Light")) {
+					NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				if (ImGui::MenuItem("AudioSource")) {
+					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				if (ImGui::MenuItem("Script")) {
+					NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				if (ImGui::MenuItem("Camera")) {
+					NE::ECS::Command::AddCameraComponent(EditorScene::s_selectedEntity->linkedEntity);
+				}
+				ImGui::EndPopup();
+			}
+		}
+		else if (EditorScene::selectedMaterial != "") {
+			if (m_loadedPath != EditorScene::selectedMaterial) {
+				try {
+					m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
+					m_loadedPath = EditorScene::selectedMaterial;
+				}
+				catch (...) {
+					m_loadedMaterial.reset();
+					m_loadedPath.clear();
+				}
+			}
 
-                for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
-                    NE::Math::Vec3 v = val;
-                    if (Editor::DrawVec3Control(name.c_str(), v, 0.0f, 100.0f)) {
-                        m_loadedMaterial->SetUniformVec3(name, v);
-                    }
-                }
+			if (m_loadedMaterial) {
+				bool openPopup = false;
+				DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
+				if (openPopup) {
+					ImGui::OpenPopup("AssetPicker_Shader");
+				}
 
-                for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
-                    int i = val;
-                    //Editor::DrawIntControl(name.c_str(), i);
-                    if (ImGui::DragInt(name.c_str(), &i)) {
-                        m_loadedMaterial->SetUniformInt(name, i);
-                    }
-                }
+				static std::string searchQuery;
+				if (ImGui::BeginPopup("AssetPicker_Shader")) {
+					ImGui::Text("Select a Shader");
+					ImGui::Separator();
+					auto& assets = NE::GetAllShaders();
 
-                if (ImGui::Button("Save Material", { 100.f, 30.f })) {
-                    m_loadedMaterial->SaveMaterial("");
-                }
+					if (ImSearch::BeginSearch()) {
+						ImSearch::SearchBar();
 
-                ImGui::SeparatorText("Material Textures");
+						for (const auto& [name, asset] : assets) {
+							ImSearch::SearchableItem(name.c_str(),
+								[name, this](const char*) {
+									if (ImGui::Selectable(name.c_str())) {
+										m_loadedMaterial->SetShader(name);
+										ImGui::CloseCurrentPopup();
+									}
+								});
+						}
 
-                //for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
-                //    // Preview + picker (96px thumb)
-                //    DrawTextureField(
-                //        uName.c_str(), tex, 96.0f,
-                //        [this, &tex, &uName](const std::string& id) {
-                //            auto t = NE::GetTexture(id);
-                //            m_loadedMaterial->SetTexture(uName, t);
+						ImSearch::EndSearch();
+					}
+					ImGui::EndPopup();
+				}
 
-                //            // for keeping u_HasBaseMap in sync for toggle
-                //            std::string has = "u_Has" + uName.substr(2);
-                //            auto& ints = m_loadedMaterial->GetIntUniforms();
-                //            if (ints.find(has) != ints.end())
-                //                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
-                //        }
-                //    );
-                //}
-            }
-        }
+				ImGui::SeparatorText("Material Uniforms");
 
-        ImGui::End();
-    }
+				for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
+					//float v = val;
+					if (Editor::DrawFloatControl(name.c_str(), val, 0.1f)) {
+						//m_loadedMaterial->SetUniformFloat(name, v);
+					}
+				}
+
+				for (auto& [name, val] : m_loadedMaterial->GetVec3Uniforms()) {
+					NE::Math::Vec3 v = val;
+					if (Editor::DrawVec3Control(name.c_str(), v, 0.0f, 100.0f)) {
+						m_loadedMaterial->SetUniformVec3(name, v);
+					}
+				}
+
+				for (auto& [name, val] : m_loadedMaterial->GetIntUniforms()) {
+					int i = val;
+					//Editor::DrawIntControl(name.c_str(), i);
+					if (ImGui::DragInt(name.c_str(), &i)) {
+						m_loadedMaterial->SetUniformInt(name, i);
+					}
+				}
+
+				if (ImGui::Button("Save Material", { 100.f, 30.f })) {
+					m_loadedMaterial->SaveMaterial("");
+				}
+
+				ImGui::SeparatorText("Material Textures");
+
+				//for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
+				//    // Preview + picker (96px thumb)
+				//    DrawTextureField(
+				//        uName.c_str(), tex, 96.0f,
+				//        [this, &tex, &uName](const std::string& id) {
+				//            auto t = NE::GetTexture(id);
+				//            m_loadedMaterial->SetTexture(uName, t);
+
+				//            // for keeping u_HasBaseMap in sync for toggle
+				//            std::string has = "u_Has" + uName.substr(2);
+				//            auto& ints = m_loadedMaterial->GetIntUniforms();
+				//            if (ints.find(has) != ints.end())
+				//                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
+				//        }
+				//    );
+				//}
+			}
+		}
+
+		ImGui::End();
+	}
 }

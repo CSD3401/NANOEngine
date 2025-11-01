@@ -3,7 +3,7 @@
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
 #include "../../Graphics/Core/Frustum.hpp"
-#include "../../Graphics/Core/Camera.hpp"
+#include "../../Graphics/Core/EditorCamera.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -16,7 +16,6 @@ namespace NE::ECS::Systems {
 
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
-		void RenderPicking();
 		void Exit() override;
 
     private:
