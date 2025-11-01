@@ -1,6 +1,7 @@
 #include "Engine.hpp"
 
 #include <memory>
+#include <fstream>
 #include "Graphics/Core/Window.hpp"
 #include "Graphics/OpenGL/GLContext.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
@@ -10,7 +11,6 @@
 #include "SceneManagement/Scene.hpp"
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
 //#include "AssetManager.hpp"
-#include <iostream>
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 //#include "EditorInterface/PhysicsExports.hpp"
