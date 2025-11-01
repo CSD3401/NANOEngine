@@ -2,7 +2,7 @@
 #include "Frustum.hpp"
 #include "../../Math/Mat4.hpp"
 #include "GraphicsManager.hpp"
-#include "Camera.hpp"
+#include "EditorCamera.hpp"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -532,7 +532,7 @@ namespace NE::Graphics {
 
     float GizmosRenderer::CalculateLOD(const Math::Vec3& position, float radius) {
         // get the camera position
-        Math::Vec3 cameraPos = GraphicsManager::GetCamera()->GetPosition();
+        Math::Vec3 cameraPos = GraphicsManager::GetEditorCamera()->GetPosition();
 
         // compute distance between the camera and the object
         float distance = (position - cameraPos).Length();
@@ -551,7 +551,7 @@ namespace NE::Graphics {
     }
 
     bool GizmosRenderer::IsVisible(const Math::Vec3& center, float radius) {
-        auto* cam = GraphicsManager::GetCamera();
+        auto* cam = GraphicsManager::GetEditorCamera();
         if (!cam) return true; // no camera = draw everything
 
         // build frustum

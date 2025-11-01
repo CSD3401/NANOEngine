@@ -404,8 +404,8 @@ namespace NE::Graphics {
         glUseProgram(debugShaderProgram);
 
         // use cached uniform locations (no glGetUniformLocation call)
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
 
         // draw
         glBindVertexArray(debugVAO);
@@ -473,8 +473,8 @@ namespace NE::Graphics {
         glUseProgram(debugShaderProgram);
 
         // Use cached uniform locations (no glGetUniformLocation call!)
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
 
         // draw
         glBindVertexArray(debugVAO);
@@ -585,8 +585,8 @@ namespace NE::Graphics {
 
         // setup shader
         glUseProgram(debugShaderProgram);
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
         glBindVertexArray(debugVAO);
         glEnable(GL_DEPTH_TEST);
 
