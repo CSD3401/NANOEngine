@@ -36,6 +36,7 @@ namespace NE::ECS::Systems {
 		// Helper functions for camera management
 		void BuildProjection(Camera& cam);
 		void BuildView(Camera& cam, Transform& transform);		
+		inline Vec3 ForwardFromEuler(const Vec3& euler);
 
 		std::optional<Entity> m_mainCameraEntity; // Track main camera entity
 		
