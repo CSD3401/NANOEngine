@@ -15,10 +15,10 @@
 
 /**
  * Physics-based 3D player controller with:
- * 1. Lateral movement with gravity (Arrow keys in all directions)
- * 2. Ground check and jumping
- * 3. Ceiling collision (handled by physics)
- * 4. Slope handling (prevents sliding when standing still)
+ * 1. Lateral movement with manual gravity (Arrow keys in all directions)
+ * 2. Ground check via RAYCAST (accurate detection)
+ * 3. Jumping with physics
+ * 4. Rotation locking ONLY when falling (prevents tipping while in air)
  */
 class PhysicsPlayerController : public IScript {
 public:
@@ -26,10 +26,10 @@ public:
 		// Register editable fields
 		REGISTER_FIELD(moveSpeed);
 		REGISTER_FIELD(jumpForce);
-		REGISTER_FIELD(groundCheckThreshold);
-		REGISTER_FIELD(gravity);
-		REGISTER_FIELD(slopeLimit);
+		REGISTER_FIELD(groundCheckDistance);
+		REGISTER_FIELD(manualGravity);
 		REGISTER_FIELD(frictionCoefficient);
+		REGISTER_FIELD(raycastOriginOffset);
 	}
 
 	~PhysicsPlayerController() override = default;
@@ -48,9 +48,9 @@ public:
 		}
 
 		// Configure rigidbody for character
-		SetUseGravity(true);
+		SetUseGravity(false);  // Use manual gravity for better control
 		SetMass(70.0f); // 70kg player mass
-		
+
 		SPD_INFO("PhysicsPlayerController started for entity " << GetEntity());
 	}
 
@@ -60,17 +60,25 @@ public:
 		// Get current velocity from physics
 		NE::Math::Vec3 velocity = GetVelocity();
 
-		// 2. GROUND CHECK - Improved physics-based check  
-		bool isGrounded = IsGrounded(velocity);
+		// 1. GROUND CHECK - Using RAYCAST for accurate detection
+		bool isGrounded = IsGroundedRaycast();
+		SPD_INFO("IsGrounded: " << isGrounded);
+
+		// 2. ROTATION LOCKING - Only lock when falling to prevent tipping
+		if (!isGrounded) {
+			// Player is in air - lock X and Z rotation to prevent tipping over
+			LockRotation(true, false, true); // Lock X, unlock Y (turning), lock Z
+		}
+		else {
+			// Player is grounded - allow all rotation (unlock everything)
+			LockRotation(false, false, false); // Unlock X, Y, Z
+		}
 
 		// 3. JUMPING - Check if we should jump and get the jump velocity
 		float jumpVelocityY = HandleJump(velocity, isGrounded);
 
-		// 1. LATERAL MOVEMENT - Apply jump velocity if jumping
+		// 4. LATERAL MOVEMENT - Apply jump velocity if jumping
 		HandleMovement(velocity, deltaTime, jumpVelocityY, isGrounded);
-
-		// 4. CEILING CHECK - Automatically handled by physics collisions!
-		// No code needed - Jolt Physics stops upward movement on collision
 	}
 
 	void OnDestroy() override {}
@@ -94,14 +102,14 @@ public:
 	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
 	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
 	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { 
-		return m_fields.SetValue(name, value); 
+	bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
+		return m_fields.SetValue(name, value);
 	}
 
 private:
 	void HandleMovement(NE::Math::Vec3& velocity, double deltaTime, float jumpVelocityY, bool isGrounded) {
 		// Get input for all 4 directions (Arrow keys)
-		NE::Math::Vec3 inputDirection{0, 0, 0};
+		NE::Math::Vec3 inputDirection{ 0, 0, 0 };
 
 		// Forward/Backward (UP/DOWN arrows)
 		if (NE::InputManager::IsKeyDown(GLFW_KEY_UP)) {
@@ -121,7 +129,7 @@ private:
 
 		// Normalize diagonal movement (so moving diagonally isn't faster)
 		float inputMagnitude = std::sqrt(
-			inputDirection.x * inputDirection.x + 
+			inputDirection.x * inputDirection.x +
 			inputDirection.z * inputDirection.z
 		);
 
@@ -132,62 +140,97 @@ private:
 
 		// Get current velocity
 		NE::Math::Vec3 newVelocity = GetVelocity();
-		
+
 		// Determine if player is trying to move
 		bool isMoving = inputMagnitude > 0.01f;
-		
+
 		if (isMoving) {
 			// Player is trying to move - apply input velocity
 			newVelocity.x = inputDirection.x * moveSpeed;
 			newVelocity.z = inputDirection.z * moveSpeed;
-		} else if (isGrounded) {
-			// Player is NOT moving AND grounded - apply strong friction to prevent sliding
-			// This simulates friction when standing still on slopes
+		}
+		else if (isGrounded) {
+			// Player is NOT moving AND grounded - apply strong friction
 			float horizontalSpeed = std::sqrt(newVelocity.x * newVelocity.x + newVelocity.z * newVelocity.z);
-			
+
 			if (horizontalSpeed > 0.01f) {
 				// Apply friction force to slow down horizontal movement
-				float frictionForce = frictionCoefficient * deltaTime * 100.0f; // Scale factor for responsiveness
+				float frictionForce = frictionCoefficient * static_cast<float>(deltaTime) * 100.0f;
 				float speedReduction = std::min(frictionForce, horizontalSpeed);
-				
+
 				// Reduce velocity proportionally
 				float factor = (horizontalSpeed - speedReduction) / horizontalSpeed;
 				if (factor < 0.0f) factor = 0.0f;
-				
+
 				newVelocity.x *= factor;
 				newVelocity.z *= factor;
-				
+
 				// If velocity is very small, set to zero (full stop)
 				if (std::abs(newVelocity.x) < 0.01f) newVelocity.x = 0.0f;
 				if (std::abs(newVelocity.z) < 0.01f) newVelocity.z = 0.0f;
 			}
 		}
-		// else: in air and not moving - preserve momentum (don't modify X/Z)
-		
+
+		// === MANUAL GRAVITY APPLICATION ===
+		if (!isGrounded) {
+			// In air - apply gravity
+			newVelocity.y += manualGravity * static_cast<float>(deltaTime);
+		}
+		else {
+			// On ground - stop falling
+			if (newVelocity.y < 0) {
+				newVelocity.y = 0;
+			}
+		}
+
 		// If we're jumping this frame, apply the jump velocity
 		if (jumpVelocityY > 0.0f) {
 			newVelocity.y = jumpVelocityY;
-			SPD_INFO("JUMP! Setting Y velocity to: " << jumpVelocityY);
 		}
-		// Otherwise, preserve Y velocity from physics (gravity)
-		
+
 		// Apply the velocity back
 		SetVelocity(newVelocity);
 	}
 
-	bool IsGrounded(const NE::Math::Vec3& velocity) const {
-		// Improved ground check: 
-		// 1. Y velocity must be zero or slightly negative (resting on ground)
-		// 2. Not moving upward (which would mean we're jumping/in air)
-		bool grounded = velocity.y <= 0.01f && velocity.y >= -groundCheckThreshold;
+	// RAYCAST-BASED GROUND CHECK
+	bool IsGroundedRaycast() const {
+		// CRITICAL: Start the ray OUTSIDE the player's collider!
+		NE::Math::Vec3 origin = GetPosition();
 		
-		// Debug output (can be removed later)
-		static int frameCount = 0;
-		if (++frameCount % 60 == 0) { // Log every 60 frames
-			SPD_INFO("Grounded: " << grounded << " | Velocity Y: " << velocity.y);
+		// Move origin UP by the collider's half-height + offset
+		origin.y += raycastOriginOffset;
+		
+		NE::Math::Vec3 downDirection{ 0, -1, 0 };
+		
+		// Total distance = offset to get back to player center + ground check distance
+		float totalDistance = raycastOriginOffset + groundCheckDistance;
+
+		// Cast ray downward using base class Raycast method
+		IScript::RaycastHit hit = Raycast(origin, downDirection, totalDistance);
+
+		// DEBUG: Log raycast info
+		SPD_INFO("Raycast - HasHit: " << hit.hasHit 
+			<< ", HitEntity: " << hit.entity 
+			<< ", SelfEntity: " << GetEntity() 
+			<< ", Distance: " << hit.distance 
+			<< ", TotalDistance: " << totalDistance);
+
+		if (hit.hasHit) {
+			// Check if we hit ourselves - THIS IS CRITICAL!
+			if (hit.entity == GetEntity()) {
+				SPD_INFO("Hit self! Ignoring.");
+				return false; // Ignore self-hits
+			}
+
+			// Only consider grounded if hit distance is reasonable
+			// (not too far away from the player's feet)
+			if (hit.distance <= totalDistance) {
+				SPD_INFO("Valid ground hit!");
+				return true;
+			}
 		}
-		
-		return grounded;
+
+		return false;
 	}
 
 	float HandleJump(NE::Math::Vec3& velocity, bool isGrounded) {
@@ -195,31 +238,28 @@ private:
 		if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
 			if (isGrounded && !m_hasJumpedThisFrame) {
 				m_hasJumpedThisFrame = true;
-				// Return the jump velocity (force / mass = acceleration, ~5.7 m/s for 400/70)
 				return jumpForce / 70.0f; // Divide by mass to get velocity
-			} else if (!isGrounded) {
-				SPD_INFO("Can't jump - not grounded (velocity.y = " << velocity.y << ")");
 			}
 		}
-		
+
 		// Reset jump flag when space is released
 		if (!NE::InputManager::IsKeyDown(GLFW_KEY_SPACE)) {
 			m_hasJumpedThisFrame = false;
 		}
-		
-		return 0.0f; // No jump this frame
+
+		return 0.0f;
 	}
 
 	// Editable parameters
-	float moveSpeed = 5.0f;            // Horizontal movement speed
-	float jumpForce = 400.0f;        // Jump impulse force (mass * velocity, so ~5.7 m/s jump for 70kg)
-	float groundCheckThreshold = 1.0f;    // Velocity threshold to detect ground
-	float gravity = -9.81f;  // Gravity strength (handled by physics)
-	float slopeLimit = 45.0f;     // Maximum slope angle in degrees (not currently used, but available for future)
-	float frictionCoefficient = 20.0f;    // Friction when standing still (higher = stops faster on slopes)
+	float moveSpeed = 5.0f;           // Horizontal movement speed
+	float jumpForce = 400.0f;         // Jump impulse force
+	float groundCheckDistance = 0.2f; // How far below player center to check for ground
+	float manualGravity = -9.81f;     // Manual gravity strength
+	float frictionCoefficient = 20.0f;// Friction when standing still
+	float raycastOriginOffset = 1.0f; // How high above player center to start ray (= collider half-height)
 
 	// Internal state
-	bool m_hasJumpedThisFrame = false; // Prevent multiple jumps from one press
+	bool m_hasJumpedThisFrame = false;
 
 	// Field registry for editor
 	ExposedFieldRegistry m_fields;

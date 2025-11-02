@@ -40,6 +40,26 @@ namespace NE::Physics {
         static void AddForce(uint32_t bodyID, const Math::Vec3& force);
         static void AddImpulse(uint32_t bodyID, const Math::Vec3& impulse);
 
+     // === Rotation Locking ===
+        
+        static void LockRotation(uint32_t bodyID, bool lockX, bool lockY, bool lockZ);
+
+        // === Raycasting Methods ===
+        
+        struct RaycastHit {
+            bool hasHit = false;
+            Math::Vec3 point;
+   Math::Vec3 normal;
+       float distance = 0.0f;
+ uint32_t bodyID = 0;
+            Entity entity = 0;
+        };
+        
+        static RaycastHit Raycast(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance = 1000.0f);
+        static std::vector<RaycastHit> RaycastAll(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance = 1000.0f);
+    static Entity GetBodyEntity(uint32_t bodyID);
+
+
         static JPH::PhysicsSystem* GetPhysicsSystem();
     static std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> s_shapeMap;
 

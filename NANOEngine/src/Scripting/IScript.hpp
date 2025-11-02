@@ -32,6 +32,17 @@ namespace NE::ECS {
  */
 class ENGINE_API IScript {
 public:
+    /**
+     * Raycast hit information structure.
+     */
+    struct RaycastHit {
+    bool hasHit = false;           // Did the ray hit anything?
+ NE::Math::Vec3 point;          // World position where ray hit
+   NE::Math::Vec3 normal;         // Surface normal at hit point
+        float distance = 0.0f;         // Distance from ray origin to hit point
+ NE::ECS::Entity entity = 0;    // Entity that was hit
+    };
+
     virtual ~IScript();
 
     /**
@@ -315,6 +326,15 @@ void SetUseGravity(bool use);
     void SetStatic(bool isStatic);
 
     /**
+     * Lock or unlock rotation axes on the rigidbody.
+     * Useful for preventing player characters from tipping over.
+     * @param lockX Lock rotation around X axis (pitch)
+     * @param lockY Lock rotation around Y axis (yaw)
+     * @param lockZ Lock rotation around Z axis (roll)
+     */
+    void LockRotation(bool lockX, bool lockY, bool lockZ);
+
+    /**
      * Get the linear velocity of the rigidbody.
      * @return Velocity as Vec3, or (0,0,0) if no Rigidbody component
      */
@@ -361,6 +381,41 @@ void SetUseGravity(bool use);
      * @param z Z impulse
      */
     void AddImpulse(float x, float y, float z);
+
+    // === Physics Raycasting Functions ===
+    
+    /**
+     * Cast a ray and return the first hit.
+     * @param origin Starting point of the ray
+     * @param direction Direction of the ray (will be normalized)
+* @param maxDistance Maximum distance to check (default: 1000.0f)
+  * @return RaycastHit structure with hit information
+     */
+    RaycastHit Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance = 1000.0f) const;
+
+    /**
+ * Cast a ray and return the first hit (convenience overload).
+     * @param originX Origin X coordinate
+ * @param originY Origin Y coordinate
+     * @param originZ Origin Z coordinate
+     * @param dirX Direction X component
+     * @param dirY Direction Y component
+     * @param dirZ Direction Z component
+   * @param maxDistance Maximum distance to check
+     * @return RaycastHit structure with hit information
+  */
+    RaycastHit Raycast(float originX, float originY, float originZ, 
+ float dirX, float dirY, float dirZ, 
+  float maxDistance = 1000.0f) const;
+
+    /**
+     * Cast a ray and return ALL hits along the ray.
+     * @param origin Starting point of the ray
+   * @param direction Direction of the ray (will be normalized)
+     * @param maxDistance Maximum distance to check (default: 1000.0f)
+     * @return Vector of RaycastHit structures, sorted by distance (closest first)
+  */
+    std::vector<RaycastHit> RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance = 1000.0f) const;
 
     // === Unity-Style AudioSource Helper Functions ===
 

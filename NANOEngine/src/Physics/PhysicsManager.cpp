@@ -7,6 +7,15 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
+// Raycasting includes
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+
+// Constraint includes for rotation locking
+#include <Jolt/Physics/Constraints/SixDOFConstraint.h>
+#include <Jolt/Physics/Constraints/FixedConstraint.h>
+
 // debug
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
@@ -586,7 +595,7 @@ namespace NE::Physics {
         //// Remove from map
         //s_BodyIndexMap.erase(it);
 
-        printf("PhysicsManager: Set motion type for body ID %d to %d\n", bodyid, static_cast<int>(motionType));
+        //printf("PhysicsManager: Set motion type for body ID %d to %d\n", bodyid, static_cast<int>(motionType));
     }
 
     JPH::EMotionType PhysicsManager::GetMotionType(uint32_t bodyid)
@@ -606,13 +615,13 @@ namespace NE::Physics {
     Math::Vec3 PhysicsManager::GetLinearVelocity(uint32_t bodyID) {
         JPH::BodyID id(bodyID);
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
-      JPH::Vec3 velocity = bodyInterface.GetLinearVelocity(id);
+        JPH::Vec3 velocity = bodyInterface.GetLinearVelocity(id);
         return Math::Vec3(velocity.GetX(), velocity.GetY(), velocity.GetZ());
     }
 
     void PhysicsManager::SetLinearVelocity(uint32_t bodyID, const Math::Vec3& velocity) {
         JPH::BodyID id(bodyID);
-JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         bodyInterface.SetLinearVelocity(id, JPH::Vec3(velocity.x, velocity.y, velocity.z));
     }
 
@@ -624,11 +633,61 @@ JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
 
     void PhysicsManager::AddImpulse(uint32_t bodyID, const Math::Vec3& impulse) {
         JPH::BodyID id(bodyID);
-      JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         bodyInterface.AddImpulse(id, JPH::Vec3(impulse.x, impulse.y, impulse.z));
     }
 
-  JPH::PhysicsSystem* PhysicsManager::GetPhysicsSystem() {
+    // === Rotation Locking ===
+
+    void PhysicsManager::LockRotation(uint32_t bodyID, bool lockX, bool lockY, bool lockZ) {
+        if (!s_PhysicsSystem) return;
+
+        JPH::BodyID id(bodyID);
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+
+        // Stop any existing rotation first
+        bodyInterface.SetAngularVelocity(id, JPH::Vec3::sZero());
+
+        // Lock rotation by modifying the body's allowed degrees of freedom
+        JPH::BodyLockWrite lock(s_PhysicsSystem->GetBodyLockInterface(), id);
+        if (lock.Succeeded()) {
+            JPH::Body& body = lock.GetBody();
+
+            if (body.IsDynamic()) {
+                JPH::MotionProperties* motionProps = body.GetMotionProperties();
+
+                // Build the allowed DOFs bitmask
+             // Bits: 0=TransX, 1=TransY, 2=TransZ, 3=RotX, 4=RotY, 5=RotZ
+                uint32_t dofBits = 0;
+
+                // Always allow all translation
+                dofBits |= (1 << 0);  // TranslationX
+                dofBits |= (1 << 1);  // TranslationY
+                dofBits |= (1 << 2);  // TranslationZ
+
+                // Add rotation DOFs only if NOT locked
+                if (!lockX) dofBits |= (1 << 3);  // RotationX
+                if (!lockY) dofBits |= (1 << 4);  // RotationY
+                if (!lockZ) dofBits |= (1 << 5);  // RotationZ
+
+                JPH::EAllowedDOFs allowedDOFs = static_cast<JPH::EAllowedDOFs>(dofBits);
+
+                // Get the current mass from the body
+                float mass = motionProps->GetInverseMass() > 0.0f
+                    ? 1.0f / motionProps->GetInverseMass()
+                    : 70.0f;
+
+                // Get mass properties from the shape
+                JPH::MassProperties massProps = body.GetShape()->GetMassProperties();
+                massProps.mMass = mass;
+
+                // Apply the new mass properties with restricted DOFs
+                motionProps->SetMassProperties(allowedDOFs, massProps);
+            }
+        }
+    }
+
+    JPH::PhysicsSystem* PhysicsManager::GetPhysicsSystem() {
         return s_PhysicsSystem.get();
     }
 
@@ -795,6 +854,15 @@ JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         return (it != s_EntityToBodyMap.end()) ? it->second : 0;
     }
 
+    Entity PhysicsManager::GetBodyEntity(uint32_t bodyID) {
+        // Search through the entity-to-body map to find matching entity
+        for (const auto& [entity, id] : s_EntityToBodyMap) {
+            if (id == bodyID) {
+                return entity;
+            }
+        }
+        return 0; // Return invalid entity if not found
+    }
 
     bool PhysicsManager::EntityHasPhysicsBody(Entity entity)
     {
@@ -830,5 +898,146 @@ JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         printf("Physics test setup complete! Box should fall onto ground.\n");
         printf("=== PHYSICS TEST SETUP COMPLETE ===\n");
     }
+
+    // === Raycasting Methods ===
+
+    PhysicsManager::RaycastHit PhysicsManager::Raycast(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance) {
+        RaycastHit hit;
+        hit.hasHit = false;
+
+        if (!s_PhysicsSystem) {
+            return hit;
+        }
+
+        // Normalize direction
+        JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
+        joltDir = joltDir.Normalized();
+
+        // Create ray
+        JPH::RRayCast ray;
+        ray.mOrigin = JPH::RVec3(origin.x, origin.y, origin.z);
+        ray.mDirection = joltDir * maxDistance;
+
+        // Perform raycast - cast against ALL layers (static and dynamic)
+        JPH::RayCastResult result;
+        bool hasHit = s_PhysicsSystem->GetNarrowPhaseQuery().CastRay(
+            ray,
+            result
+            // No filters = hits everything
+        );
+
+        // Check if we hit something
+        if (hasHit && !result.mBodyID.IsInvalid()) {
+            hit.hasHit = true;
+            hit.distance = result.mFraction * maxDistance;
+
+            // Calculate hit point
+            JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
+            hit.point = Math::Vec3(
+                static_cast<float>(hitPoint.GetX()),
+                static_cast<float>(hitPoint.GetY()),
+                static_cast<float>(hitPoint.GetZ())
+            );
+
+            // Get surface normal (need to lock body to access it)
+            JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
+            if (lock.Succeeded()) {
+                const JPH::Body& body = lock.GetBody();
+
+                // Get the surface normal at hit point
+                JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+                hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
+            }
+
+            // Store body ID and find associated entity
+            hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
+            hit.entity = GetBodyEntity(hit.bodyID);
+        }
+
+        return hit;
+    }
+
+    std::vector<PhysicsManager::RaycastHit> PhysicsManager::RaycastAll(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance) {
+        std::vector<RaycastHit> hits;
+
+        if (!s_PhysicsSystem) {
+            return hits;
+        }
+
+        // Normalize direction
+     JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
+        joltDir = joltDir.Normalized();
+
+   // Create ray
+  JPH::RRayCast ray;
+ray.mOrigin = JPH::RVec3(origin.x, origin.y, origin.z);
+        ray.mDirection = joltDir * maxDistance;
+
+      // Settings for all hits
+        JPH::RayCastSettings settings;
+
+   // Collector to gather all hits
+  class AllHitsCollector : public JPH::CastRayCollector {
+        public:
+  std::vector<JPH::RayCastResult> mResults;
+            std::vector<JPH::BodyID> mBodyIDs;
+
+            virtual void AddHit(const JPH::RayCastResult& inResult) override {
+           mResults.push_back(inResult);
+    mBodyIDs.push_back(inResult.mBodyID);
+  }
+   };
+
+        AllHitsCollector collector;
+
+        // Perform raycast with collector - NO FILTERS to hit all layers
+    s_PhysicsSystem->GetNarrowPhaseQuery().CastRay(
+ray,
+            settings,
+        collector
+  // No filters = hits ALL layers (both static NON_MOVING and dynamic MOVING)
+        );
+
+    // Process all hits
+        for (size_t i = 0; i < collector.mResults.size(); ++i) {
+    const auto& result = collector.mResults[i];
+            const auto& hitBodyID = collector.mBodyIDs[i];
+
+   RaycastHit hit;
+            hit.hasHit = true;
+         hit.distance = result.mFraction * maxDistance;
+
+        // Calculate hit point
+          JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
+hit.point = Math::Vec3(
+   static_cast<float>(hitPoint.GetX()),
+     static_cast<float>(hitPoint.GetY()),
+                static_cast<float>(hitPoint.GetZ())
+      );
+
+    // Get surface normal
+       JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), hitBodyID);
+if (lock.Succeeded()) {
+   const JPH::Body& body = lock.GetBody();
+   JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+        hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
+         }
+
+         // Store body ID and entity
+            hit.bodyID = hitBodyID.GetIndexAndSequenceNumber();
+    hit.entity = GetBodyEntity(hit.bodyID);
+
+       hits.push_back(hit);
+        }
+
+        // Sort hits by distance (closest first)
+        std::sort(hits.begin(), hits.end(), [](const RaycastHit& a, const RaycastHit& b) {
+return a.distance < b.distance;
+        });
+
+    return hits;
+    }
+
+
 
 }

@@ -119,13 +119,15 @@ namespace NE::ECS::Systems {
 		if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
 			return;
 		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-		Physics::PhysicsManager::DestroyBody(rb.bodyID);
+		
+		if (rb.bodyID != 0) {
+			Physics::PhysicsManager::DestroyBody(rb.bodyID);
+			Physics::PhysicsManager::UnregisterEntityBody(entity);
+		}
 	}
 
 	void RigidbodySystem::CreatePhysicsBodyFromComponent(Entity entity, Component::Transform& transform, Component::Rigidbody& rb, Component::Collider& collider, JPH::EMotionType motionType)
 	{
-		(void)entity; // unused	
-
 		Math::Vec3 fullSize = {
 			collider.halfExtents.x * 2.0f,
 			collider.halfExtents.y * 2.0f,
@@ -174,11 +176,18 @@ namespace NE::ECS::Systems {
 			// Destroy existing body if switching to None
 			if (rb.bodyID != 0) {
 				Physics::PhysicsManager::DestroyBody(rb.bodyID);
+				Physics::PhysicsManager::UnregisterEntityBody(entity);
 				rb.bodyID = 0;
 			}
 			printf("WARNING: No physics body - shape type is None\n");
 			break;
 		}
+		}
+
+		// CRITICAL: Register the entity-body mapping after creating the body
+		if (rb.bodyID != 0) {
+			Physics::PhysicsManager::RegisterEntityBody(entity, rb.bodyID);
+			printf("Registered entity %d with body ID %d\n", entity, rb.bodyID);
 		}
 	}
 

@@ -368,9 +368,18 @@ void IScript::SetStatic(bool isStatic) {
     if (!m_componentManager) return;
   
   if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-        auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+  auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
         rigidbody.isStatic = isStatic;
   }
+}
+
+void IScript::LockRotation(bool lockX, bool lockY, bool lockZ) {
+    if (!m_componentManager) return;
+    
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+        auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+        NE::Physics::PhysicsManager::LockRotation(rb.bodyID, lockX, lockY, lockZ);
+    }
 }
 
 // === Velocity and Force Methods ===
@@ -422,6 +431,62 @@ void IScript::AddImpulse(const NE::Math::Vec3& impulse) {
 
 void IScript::AddImpulse(float x, float y, float z) {
     AddImpulse(NE::Math::Vec3{x, y, z});
+}
+
+// === Physics Raycasting Methods ===
+
+IScript::RaycastHit IScript::Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance) const {
+    RaycastHit result;
+    
+    if (!m_componentManager) {
+  result.hasHit = false;
+ return result;
+    }
+    
+    // Call PhysicsManager raycast
+    auto hit = NE::Physics::PhysicsManager::Raycast(origin, direction, maxDistance);
+    
+    // Convert PhysicsManager::RaycastHit to IScript::RaycastHit
+    result.hasHit = hit.hasHit;
+    result.point = hit.point;
+    result.normal = hit.normal;
+    result.distance = hit.distance;
+    result.entity = hit.entity;
+
+    return result;
+}
+
+IScript::RaycastHit IScript::Raycast(float originX, float originY, float originZ, 
+     float dirX, float dirY, float dirZ, 
+              float maxDistance) const {
+    return Raycast(NE::Math::Vec3{originX, originY, originZ}, 
+  NE::Math::Vec3{dirX, dirY, dirZ}, 
+            maxDistance);
+}
+
+std::vector<IScript::RaycastHit> IScript::RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance) const {
+    std::vector<RaycastHit> results;
+    
+    if (!m_componentManager) {
+      return results;
+    }
+    
+    // Call PhysicsManager raycast
+    auto hits = NE::Physics::PhysicsManager::RaycastAll(origin, direction, maxDistance);
+    
+    // Convert PhysicsManager::RaycastHit to IScript::RaycastHit
+    results.reserve(hits.size());
+    for (const auto& hit : hits) {
+    RaycastHit result;
+        result.hasHit = hit.hasHit;
+      result.point = hit.point;
+        result.normal = hit.normal;
+    result.distance = hit.distance;
+   result.entity = hit.entity;
+    results.push_back(result);
+    }
+    
+    return results;
 }
 
 // === AudioSource Helper Functions ===
