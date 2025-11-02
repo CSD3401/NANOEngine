@@ -130,8 +130,11 @@ namespace NE::ECS::Systems {
 	void CameraSystem::BuildView(Camera& cam, Transform& transform)
 	{
 		// Build view matrix from transform
-		Vec3 forward = ForwardFromEuler(transform.rotation);
-		cam.viewMtx = Mat4::BuildViewMtx(transform.position, transform.position + forward, Vec3{ 0.0f, 1.0f, 0.0f });
+		cam.viewMtx = Mat4::BuildViewMtx(
+			transform.position, 
+			transform.position + ForwardFromEuler(transform.rotation), 
+			Vec3{ 0.0f, 1.0f, 0.0f }
+		);
 	}
 
 	inline Vec3 CameraSystem::ForwardFromEuler(const Vec3& euler)
@@ -143,7 +146,6 @@ namespace NE::ECS::Systems {
 		forward.x = std::cos(pitch) * std::sin(yaw);
 		forward.y = -std::sin(pitch);
 		forward.z = -std::cos(pitch) * std::cos(yaw);
-		forward.Normalize();
-		return forward;
+		return forward.Normalize();
 	}
 }
