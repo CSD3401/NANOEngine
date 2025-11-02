@@ -435,57 +435,58 @@ void IScript::AddImpulse(float x, float y, float z) {
 
 // === Physics Raycasting Methods ===
 
-IScript::RaycastHit IScript::Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance) const {
+// === Physics Raycasting Methods ===
+IScript::RaycastHit IScript::Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask) const {
     RaycastHit result;
-    
+
     if (!m_componentManager) {
-  result.hasHit = false;
- return result;
+        result.hasHit = false;
+        return result;
     }
-    
-    // Call PhysicsManager raycast
-    auto hit = NE::Physics::PhysicsManager::Raycast(origin, direction, maxDistance);
-    
+
+    // Call PhysicsManager raycast with layer mask
+    auto hit = NE::Physics::PhysicsManager::Raycast(origin, direction, maxDistance, layerMask);
+
     // Convert PhysicsManager::RaycastHit to IScript::RaycastHit
     result.hasHit = hit.hasHit;
     result.point = hit.point;
     result.normal = hit.normal;
     result.distance = hit.distance;
     result.entity = hit.entity;
-
     return result;
 }
 
-IScript::RaycastHit IScript::Raycast(float originX, float originY, float originZ, 
-     float dirX, float dirY, float dirZ, 
-              float maxDistance) const {
-    return Raycast(NE::Math::Vec3{originX, originY, originZ}, 
-  NE::Math::Vec3{dirX, dirY, dirZ}, 
-            maxDistance);
+IScript::RaycastHit IScript::Raycast(float originX, float originY, float originZ,
+    float dirX, float dirY, float dirZ,
+    float maxDistance, uint32_t layerMask) const {
+    return Raycast(NE::Math::Vec3{ originX, originY, originZ },
+        NE::Math::Vec3{ dirX, dirY, dirZ },
+        maxDistance,
+        layerMask);
 }
 
-std::vector<IScript::RaycastHit> IScript::RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance) const {
+std::vector<IScript::RaycastHit> IScript::RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask) const {
     std::vector<RaycastHit> results;
-    
+
     if (!m_componentManager) {
-      return results;
+        return results;
     }
-    
-    // Call PhysicsManager raycast
-    auto hits = NE::Physics::PhysicsManager::RaycastAll(origin, direction, maxDistance);
-    
+
+    // Call PhysicsManager raycast with layer mask
+    auto hits = NE::Physics::PhysicsManager::RaycastAll(origin, direction, maxDistance, layerMask);
+
     // Convert PhysicsManager::RaycastHit to IScript::RaycastHit
     results.reserve(hits.size());
     for (const auto& hit : hits) {
-    RaycastHit result;
+        RaycastHit result;
         result.hasHit = hit.hasHit;
-      result.point = hit.point;
+        result.point = hit.point;
         result.normal = hit.normal;
-    result.distance = hit.distance;
-   result.entity = hit.entity;
-    results.push_back(result);
+        result.distance = hit.distance;
+        result.entity = hit.entity;
+        results.push_back(result);
     }
-    
+
     return results;
 }
 

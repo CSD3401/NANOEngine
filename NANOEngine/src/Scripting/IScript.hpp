@@ -383,39 +383,13 @@ void SetUseGravity(bool use);
     void AddImpulse(float x, float y, float z);
 
     // === Physics Raycasting Functions ===
-    
-    /**
-     * Cast a ray and return the first hit.
-     * @param origin Starting point of the ray
-     * @param direction Direction of the ray (will be normalized)
-* @param maxDistance Maximum distance to check (default: 1000.0f)
-  * @return RaycastHit structure with hit information
-     */
-    RaycastHit Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance = 1000.0f) const;
+    // In IScript class:
+    RaycastHit Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+    RaycastHit Raycast(float originX, float originY, float originZ, float dirX, float dirY, float dirZ, float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+    std::vector<RaycastHit> RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+ 
 
-    /**
- * Cast a ray and return the first hit (convenience overload).
-     * @param originX Origin X coordinate
- * @param originY Origin Y coordinate
-     * @param originZ Origin Z coordinate
-     * @param dirX Direction X component
-     * @param dirY Direction Y component
-     * @param dirZ Direction Z component
-   * @param maxDistance Maximum distance to check
-     * @return RaycastHit structure with hit information
-  */
-    RaycastHit Raycast(float originX, float originY, float originZ, 
- float dirX, float dirY, float dirZ, 
-  float maxDistance = 1000.0f) const;
 
-    /**
-     * Cast a ray and return ALL hits along the ray.
-     * @param origin Starting point of the ray
-   * @param direction Direction of the ray (will be normalized)
-     * @param maxDistance Maximum distance to check (default: 1000.0f)
-     * @return Vector of RaycastHit structures, sorted by distance (closest first)
-  */
-    std::vector<RaycastHit> RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance = 1000.0f) const;
 
     // === Unity-Style AudioSource Helper Functions ===
 

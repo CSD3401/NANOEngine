@@ -892,9 +892,14 @@ namespace NE::Physics {
 		printf("=== PHYSICS TEST SETUP COMPLETE ===\n");
 	}
 
-	// === Raycasting Methods ===
+	// === Raycasting Methods with Layer Filtering ===
 
-	PhysicsManager::RaycastHit PhysicsManager::Raycast(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance) {
+	PhysicsManager::RaycastHit PhysicsManager::Raycast(
+		const Math::Vec3& origin,
+		const Math::Vec3& direction,
+		float maxDistance,
+		uint32_t layerMask)
+	{
 		RaycastHit hit;
 		hit.hasHit = false;
 
@@ -902,21 +907,47 @@ namespace NE::Physics {
 			return hit;
 		}
 
+		// Validate input
+		if (maxDistance <= 0.0f) {
+			return hit;
+		}
+
 		// Normalize direction
 		JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
-		joltDir = joltDir.Normalized();
+		float dirLength = joltDir.Length();
+		if (dirLength < 0.0001f) {
+			return hit;  // Invalid direction
+		}
+		joltDir = joltDir / dirLength;  // Normalize
 
 		// Create ray
 		JPH::RRayCast ray;
 		ray.mOrigin = JPH::RVec3(origin.x, origin.y, origin.z);
 		ray.mDirection = joltDir * maxDistance;
 
-		// Perform raycast - cast against ALL layers (static and dynamic)
+		// Create object layer filter
+		class ObjectLayerFilter : public JPH::ObjectLayerFilter {
+		public:
+			uint32_t mLayerMask;
+
+			ObjectLayerFilter(uint32_t mask) : mLayerMask(mask) {}
+
+			virtual bool ShouldCollide(JPH::ObjectLayer inLayer) const override {
+				// Check if this layer's bit is set in the mask
+				return (mLayerMask & (1 << inLayer)) != 0;
+			}
+		};
+
+		ObjectLayerFilter layerFilter(layerMask);
+
+		// Perform raycast with object layer filtering
 		JPH::RayCastResult result;
 		bool hasHit = s_PhysicsSystem->GetNarrowPhaseQuery().CastRay(
 			ray,
-			result
-			// No filters = hits everything
+			result,
+			JPH::BroadPhaseLayerFilter(),
+			layerFilter,
+			JPH::BodyFilter()
 		);
 
 		// Check if we hit something
@@ -932,12 +963,10 @@ namespace NE::Physics {
 				static_cast<float>(hitPoint.GetZ())
 			);
 
-			// Get surface normal (need to lock body to access it)
+			// Get surface normal
 			JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
 			if (lock.Succeeded()) {
 				const JPH::Body& body = lock.GetBody();
-
-				// Get the surface normal at hit point
 				JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
 				hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
 			}
@@ -950,16 +979,30 @@ namespace NE::Physics {
 		return hit;
 	}
 
-	std::vector<PhysicsManager::RaycastHit> PhysicsManager::RaycastAll(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance) {
+	std::vector<PhysicsManager::RaycastHit> PhysicsManager::RaycastAll(
+		const Math::Vec3& origin,
+		const Math::Vec3& direction,
+		float maxDistance,
+		uint32_t layerMask)
+	{
 		std::vector<RaycastHit> hits;
 
 		if (!s_PhysicsSystem) {
 			return hits;
 		}
 
+		// Validate input
+		if (maxDistance <= 0.0f) {
+			return hits;
+		}
+
 		// Normalize direction
 		JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
-		joltDir = joltDir.Normalized();
+		float dirLength = joltDir.Length();
+		if (dirLength < 0.0001f) {
+			return hits;  // Invalid direction
+		}
+		joltDir = joltDir / dirLength;  // Normalize
 
 		// Create ray
 		JPH::RRayCast ray;
@@ -969,33 +1012,44 @@ namespace NE::Physics {
 		// Settings for all hits
 		JPH::RayCastSettings settings;
 
+		// Create object layer filter
+		class ObjectLayerFilter : public JPH::ObjectLayerFilter {
+		public:
+			uint32_t mLayerMask;
+
+			ObjectLayerFilter(uint32_t mask) : mLayerMask(mask) {}
+
+			virtual bool ShouldCollide(JPH::ObjectLayer inLayer) const override {
+				return (mLayerMask & (1 << inLayer)) != 0;
+			}
+		};
+
+		ObjectLayerFilter layerFilter(layerMask);
+
 		// Collector to gather all hits
 		class AllHitsCollector : public JPH::CastRayCollector {
 		public:
 			std::vector<JPH::RayCastResult> mResults;
-			std::vector<JPH::BodyID> mBodyIDs;
 
 			virtual void AddHit(const JPH::RayCastResult& inResult) override {
 				mResults.push_back(inResult);
-				mBodyIDs.push_back(inResult.mBodyID);
 			}
 		};
 
 		AllHitsCollector collector;
 
-		// Perform raycast with collector - NO FILTERS to hit all layers
+		// Perform raycast with collector and object layer filtering
 		s_PhysicsSystem->GetNarrowPhaseQuery().CastRay(
 			ray,
 			settings,
-			collector
-			// No filters = hits ALL layers (both static NON_MOVING and dynamic MOVING)
+			collector,
+			JPH::BroadPhaseLayerFilter(),
+			layerFilter,
+			JPH::BodyFilter()
 		);
 
 		// Process all hits
-		for (size_t i = 0; i < collector.mResults.size(); ++i) {
-			const auto& result = collector.mResults[i];
-			const auto& hitBodyID = collector.mBodyIDs[i];
-
+		for (const auto& result : collector.mResults) {
 			RaycastHit hit;
 			hit.hasHit = true;
 			hit.distance = result.mFraction * maxDistance;
@@ -1009,7 +1063,7 @@ namespace NE::Physics {
 			);
 
 			// Get surface normal
-			JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), hitBodyID);
+			JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
 			if (lock.Succeeded()) {
 				const JPH::Body& body = lock.GetBody();
 				JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
@@ -1017,7 +1071,7 @@ namespace NE::Physics {
 			}
 
 			// Store body ID and entity
-			hit.bodyID = hitBodyID.GetIndexAndSequenceNumber();
+			hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
 			hit.entity = GetBodyEntity(hit.bodyID);
 
 			hits.push_back(hit);

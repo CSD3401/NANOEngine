@@ -55,8 +55,24 @@ namespace NE::Physics {
             Entity entity = 0;
         };
         
-        static RaycastHit Raycast(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance = 1000.0f);
-        static std::vector<RaycastHit> RaycastAll(const Math::Vec3& origin, const Math::Vec3& direction, float maxDistance = 1000.0f);
+        static constexpr uint32_t LAYER_NON_MOVING = (1 << 0);  // Bit 0 = static objects
+        static constexpr uint32_t LAYER_MOVING = (1 << 1);      // Bit 1 = dynamic objects
+        static constexpr uint32_t LAYER_ALL = 0xFFFFFFFF;       // All layers
+
+        // Updated raycast method signatures with layer filtering
+        static RaycastHit Raycast(
+            const Math::Vec3& origin,
+            const Math::Vec3& direction,
+            float maxDistance,
+            uint32_t layerMask = LAYER_ALL  // Default: hit everything
+        );
+
+        static std::vector<RaycastHit> RaycastAll(
+            const Math::Vec3& origin,
+            const Math::Vec3& direction,
+            float maxDistance,
+            uint32_t layerMask = LAYER_ALL  // Default: hit everything
+        );
     static Entity GetBodyEntity(uint32_t bodyID);
 
 

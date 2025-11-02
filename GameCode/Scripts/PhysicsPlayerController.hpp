@@ -5,6 +5,7 @@
 #include "Math/Vec3.hpp"
 #include <cmath>
 #include <Core/SpdLogger.hpp>
+#include <bitset>
 
 // GLFW key codes for arrow keys
 #define GLFW_KEY_UP 265
@@ -12,6 +13,7 @@
 #define GLFW_KEY_LEFT 263
 #define GLFW_KEY_RIGHT 262
 #define GLFW_KEY_SPACE 32
+
 
 /**
  * Physics-based 3D player controller with:
@@ -193,41 +195,43 @@ private:
 	}
 
 	// RAYCAST-BASED GROUND CHECK
+	// RAYCAST-BASED GROUND CHECK with Layer Filtering
 	bool IsGroundedRaycast() const {
-		// CRITICAL: Start the ray OUTSIDE the player's collider!
 		NE::Math::Vec3 origin = GetPosition();
-		
-		// Move origin UP by the collider's half-height + offset
+
+		SPD_INFO("=== GROUND CHECK DEBUG ===");
+		SPD_INFO("Player position: (" << origin.x << ", " << origin.y << ", " << origin.z << ")");
+
+		// Start ray at player's feet (below center)
 		origin.y -= raycastOriginOffset;
-		
+
+		SPD_INFO("Ray origin (feet): (" << origin.x << ", " << origin.y << ", " << origin.z << ")");
+		SPD_INFO("Ray offset: " << raycastOriginOffset);
+		SPD_INFO("Ground check distance: " << groundCheckDistance);
+
 		NE::Math::Vec3 downDirection{ 0, -1, 0 };
-		
-		// Total distance = offset to get back to player center + ground check distance
-		float totalDistance = raycastOriginOffset + groundCheckDistance;
+		float totalDistance = groundCheckDistance;
 
-		// Cast ray downward using base class Raycast method
-		IScript::RaycastHit hit = Raycast(origin, downDirection, totalDistance);
+		// LAYER FILTERING: Only hit static (ground) objects on layer 0 (NON_MOVING)
+		uint32_t layerMask = (1 << 0);  // Only layer 0 = static ground
 
-		// DEBUG: Log raycast info
-		SPD_INFO("Raycast - HasHit: " << hit.hasHit 
-			<< ", HitEntity: " << hit.entity 
-			<< ", SelfEntity: " << GetEntity() 
-			<< ", Distance: " << hit.distance 
-			<< ", TotalDistance: " << totalDistance);
+		SPD_INFO("Layer mask: " << layerMask << " (binary: " << std::bitset<8>(layerMask) << ")");
 
-		if (hit.hasHit) {
-			// Check if we hit ourselves - THIS IS CRITICAL!
-			if (hit.entity == GetEntity()) {
-				SPD_INFO("Hit self! Ignoring.");
-				return false; // Ignore self-hits
-			}
+		// First try WITHOUT layer filter to see if we can hit anything at all
+		//IScript::RaycastHit hitAll = Raycast(origin, downDirection, totalDistance, 0xFFFFFFFF);
+		//SPD_INFO("Raycast (ALL layers) - HasHit: " << hitAll.hasHit
+		//	<< ", HitEntity: " << hitAll.entity
+		//	<< ", Distance: " << hitAll.distance);
 
-			// Only consider grounded if hit distance is reasonable
-			// (not too far away from the player's feet)
-			if (hit.distance <= totalDistance) {
-				SPD_INFO("Valid ground hit!");
-				return true;
-			}
+		// Now try WITH layer filter
+		IScript::RaycastHit hit = Raycast(origin, downDirection, totalDistance, layerMask);
+		SPD_INFO("Raycast (layer 0 only) - HasHit: " << hit.hasHit
+			<< ", HitEntity: " << hit.entity
+			<< ", Distance: " << hit.distance);
+
+		if (hit.hasHit && hit.distance <= totalDistance) {
+			SPD_INFO("Valid ground hit!");
+			return true;
 		}
 
 		return false;
