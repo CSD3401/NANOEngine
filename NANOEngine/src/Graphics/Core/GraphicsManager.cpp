@@ -1,7 +1,8 @@
 #include "GraphicsManager.hpp"
+#include "../../Math/Mat4.hpp"
 #include "../OpenGL/GLCommandBuffer.hpp"
 #include "../Interfaces/IShader.hpp"
-#include "Camera.hpp"
+#include "EditorCamera.hpp"
 #include "Skybox.hpp"
 #include <glad/glad.h>
 #include "../../Core/Logger.hpp"
@@ -15,16 +16,23 @@
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
-#include <GL/gl.h>
+#include "Graphics/OpenGL/GLFrameBuffer.hpp"
+#include "../../SceneManagement/Scene.hpp"
+#include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
+
 
 namespace NE::Graphics {
     void InitDebugLines();
 
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
+    int GraphicsManager::drawCount = 0;
+    bool GraphicsManager::enableSorting = true;
 
+	SceneManagement::RenderPass GraphicsManager::s_CurrentRenderPass = SceneManagement::RenderPass::SCENE;
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
     std::unique_ptr<Skybox> GraphicsManager::s_skybox;
-    Camera* GraphicsManager::s_ActiveCamera = nullptr;
+    EditorCamera* GraphicsManager::s_EditorCamera;
+	CameraData GraphicsManager::m_ActiveCamera;
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 
@@ -35,8 +43,12 @@ namespace NE::Graphics {
     int GraphicsManager::s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
     int GraphicsManager::s_DebugProjLoc;
 
-    int GraphicsManager::drawCount = 0;
-	bool GraphicsManager::enableSorting = true;
+    // Temp
+	std::vector<DrawCommand> GraphicsManager::s_PickingCommands;
+	std::shared_ptr<IFrameBuffer> GraphicsManager::s_ActiveFrameBuffer;
+    std::shared_ptr<IFrameBuffer> GraphicsManager::s_SceneFrameBuffer;
+    std::shared_ptr<IFrameBuffer> GraphicsManager::s_PickingFrameBuffer;
+	std::shared_ptr<IFrameBuffer> GraphicsManager::s_GameFrameBuffer;
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
 
@@ -45,6 +57,9 @@ namespace NE::Graphics {
         s_skybox = std::make_unique<Skybox>();
         s_StateCache = std::make_unique<OpenGL::GLStateCache>();
         s_DrawQueue = std::make_unique<DrawQueue>();
+        s_SceneFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
+        s_PickingFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
+		s_GameFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
@@ -81,23 +96,43 @@ namespace NE::Graphics {
         //InitDebugLines();
     }
 
-    void GraphicsManager::BeginFrame() {
+    void GraphicsManager::BeginFrame() 
+    {
         drawCount = 0;
-
 		s_StateCache->InvalidateAll();
+        s_ActiveFrameBuffer->Bind();
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
-
-		//DrawSkybox(); // temp
     }
 
-    void GraphicsManager::DrawSkybox() {
+    void GraphicsManager::DrawSkybox() 
+    {
         if (s_skybox) s_skybox->Draw();
     }
 
-    void GraphicsManager::DrawFrame() {
+    void GraphicsManager::DrawFrame() 
+    {
         NE_PROFILE_FUNCTION();
-		if (enableSorting) s_DrawQueue->Sort(s_ActiveCamera);
+
+        // TEMP?
+		Mat4 camProj, camView;
+		Vec3 camPos;
+        switch (s_CurrentRenderPass) {
+        case SceneManagement::RenderPass::SCENE:
+        case SceneManagement::RenderPass::SCENE_PICKING:
+			camProj = s_EditorCamera->GetProjectionMatrix();
+			camView = s_EditorCamera->GetViewMatrix();
+            camPos = s_EditorCamera->GetPosition();
+			break;
+        case SceneManagement::RenderPass::GAME:
+            camProj = m_ActiveCamera.projection;
+            camView = m_ActiveCamera.view;
+            camPos = m_ActiveCamera.position;
+			break;
+            
+        }
+
+		if (enableSorting) s_DrawQueue->Sort(camPos);
 		for (const auto& command : s_DrawQueue->GetCommands()) {
             // Bind the pipeline (shader program + GL state)
             //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
@@ -114,10 +149,10 @@ namespace NE::Graphics {
             // Upload transform matrix to shader
             auto shader = command.material->GetPipeline()->GetSpecification().shader;
             shader->SetUniformMat4("u_Model", command.transform);
-            shader->SetUniformMat4("u_View", s_ActiveCamera->GetViewMatrix());
-            shader->SetUniformMat4("u_Projection", s_ActiveCamera->GetProjectionMatrix());
+            shader->SetUniformMat4("u_View", camView);
+            shader->SetUniformMat4("u_Projection", camProj);
             shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
-            shader->SetUniformVec3("u_CameraPos", s_ActiveCamera->GetPosition());
+            shader->SetUniformVec3("u_CameraPos", camPos);
 
             shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
             for (size_t i = 0; i < m_lights.size(); ++i) {
@@ -154,17 +189,24 @@ namespace NE::Graphics {
 		}
     }
 
-    void GraphicsManager::Submit(const DrawCommand& command) {
+    void GraphicsManager::Submit(const DrawCommand& command) 
+    {
 		s_DrawQueue->Submit(command);
     }
 
-    void GraphicsManager::EndFrame() {
+    void GraphicsManager::EndFrame() 
+    {
         s_DrawQueue->Clear();
+		s_ActiveFrameBuffer->Unbind();
         s_CommandBuffer->EndRenderPass();
         s_CommandBuffer->End();
     }
 
-    void GraphicsManager::Shutdown() {
+    void GraphicsManager::Shutdown() 
+    {
+		s_SceneFrameBuffer.reset();
+		s_PickingFrameBuffer.reset();
+
         s_skybox.reset();
         s_CommandBuffer.reset();
 
@@ -194,19 +236,61 @@ namespace NE::Graphics {
         NE::Graphics::GizmosRenderer::Cleanup();
     }
 
-    void GraphicsManager::SetCamera(Camera* cam) {
-        s_ActiveCamera = cam;
+    void GraphicsManager::SetRenderPass(SceneManagement::RenderPass pass) 
+    {
+		s_CurrentRenderPass = pass;
+        switch (pass) {
+        case SceneManagement::RenderPass::SCENE:
+            s_ActiveFrameBuffer = s_SceneFrameBuffer;
+		    break;
+        case SceneManagement::RenderPass::SCENE_PICKING:
+			s_ActiveFrameBuffer = s_PickingFrameBuffer;
+			break;
+        case SceneManagement::RenderPass::GAME:
+            s_ActiveFrameBuffer = s_GameFrameBuffer;
+			break;
+        default:
+			break;
+        }
     }
 
-    Camera* GraphicsManager::GetCamera() {
-        return s_ActiveCamera;
+    void GraphicsManager::SubmitPicking(const DrawCommand& command) 
+    {
+        s_PickingCommands.push_back(command);
     }
 
-    uint32_t GraphicsManager::ReadPixel(IFrameBuffer* framebuffer, uint32_t x, uint32_t y) {
-        framebuffer->Bind();
+    void GraphicsManager::UpdatePicking() 
+    {
+        for (const auto& cmd : s_PickingCommands) {
+			s_DrawQueue->Submit(cmd);
+		}
+    }
+
+    void GraphicsManager::SetEditorCamera(EditorCamera* cam) 
+    {
+        s_EditorCamera = cam;
+    }
+
+    EditorCamera* GraphicsManager::GetEditorCamera() 
+    {
+        return s_EditorCamera;
+    }
+
+
+    void GraphicsManager::SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain) 
+    {
+		m_ActiveCamera.projection = projection;
+		m_ActiveCamera.view = view;
+		m_ActiveCamera.position = position;
+		m_ActiveCamera.isMain = isMain;
+	}
+
+    uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) 
+    {
+        s_PickingFrameBuffer->Bind();
         uint8_t data[4] = { 0, 0, 0, 0 };
         glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        framebuffer->Unbind();
+        s_PickingFrameBuffer->Unbind();
 
         uint32_t id = data[0] | (data[1] << 8) | (data[2] << 16);
         return id;
@@ -275,11 +359,13 @@ namespace NE::Graphics {
         GraphicsManager::s_DebugVertexBuffer.reserve(INITIAL_DEBUG_BUFFER_SIZE);
     }
 
-    void GraphicsManager::AddDebugLine(const Math::Vec3& from, const Math::Vec3& to, const Math::Vec3& color) {
+    void GraphicsManager::AddDebugLine(const Math::Vec3& from, const Math::Vec3& to, const Math::Vec3& color) 
+    {
         s_DebugLines.push_back({ from, to, color });
     }
 
-    void GraphicsManager::DrawDebugLines() {
+    void GraphicsManager::DrawDebugLines() 
+    {
         if (s_DebugLines.empty()) return;
 
         // clear buffer but keep capacity (avoid reallocation)
@@ -318,8 +404,8 @@ namespace NE::Graphics {
         glUseProgram(debugShaderProgram);
 
         // use cached uniform locations (no glGetUniformLocation call)
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
 
         // draw
         glBindVertexArray(debugVAO);
@@ -387,8 +473,8 @@ namespace NE::Graphics {
         glUseProgram(debugShaderProgram);
 
         // Use cached uniform locations (no glGetUniformLocation call!)
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
 
         // draw
         glBindVertexArray(debugVAO);
@@ -499,8 +585,8 @@ namespace NE::Graphics {
 
         // setup shader
         glUseProgram(debugShaderProgram);
-        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_ActiveCamera->GetViewMatrix().Data());
-        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_ActiveCamera->GetProjectionMatrix().Data());
+        glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
+        glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
         glBindVertexArray(debugVAO);
         glEnable(GL_DEPTH_TEST);
 

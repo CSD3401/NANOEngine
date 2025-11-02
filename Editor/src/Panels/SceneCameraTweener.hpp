@@ -1,5 +1,5 @@
 #pragma once
-#include "Graphics/Core/Camera.hpp"
+#include "Graphics/Core/EditorCamera.hpp"
 #include "../EditorEvents.hpp"
 
 namespace Editor {
@@ -11,12 +11,12 @@ namespace Editor {
 		~SceneCameraTweener();
 
 		static void TweenCameraToEntity(SelectEntityEvent const& event);
-		void SetSceneCamera(NE::Graphics::Camera* camera);
+		void SetSceneCamera(NE::Graphics::EditorCamera* camera);
 
 		static constexpr float tweenDuration = 0.5f;
 		static constexpr float tweenDistanceFactor = 10.0f;
 
 	private:
-		static NE::Graphics::Camera* sceneCamera;
+		static NE::Graphics::EditorCamera* sceneCamera;
 	};
 }

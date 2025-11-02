@@ -1,6 +1,6 @@
 #include <algorithm>
 #include "DrawQueue.hpp"
-#include "Camera.hpp"
+#include "EditorCamera.hpp"
 
 namespace NE::Graphics {
 
@@ -66,8 +66,7 @@ namespace NE::Graphics {
 		m_Commands.push_back(cmd);
 	}
 
-	void DrawQueue::Sort(const Camera* camera) {
-		camera;
+	void DrawQueue::Sort(const Vec3& camPos) {
 		if (m_Commands.size() < 2) return;
 
 		// Step 1: Sort by Render Queue Order (base + offset)
@@ -182,8 +181,6 @@ namespace NE::Graphics {
 			} break;
 			case RenderQueue::TRANSPARENT: {
 				// Step 2b: Sort back to front based on distance to camera
-				if (!camera) break;
-				Vec3 camPos = camera->GetPosition();
 				std::stable_sort(m_Commands.begin() + i, m_Commands.begin() + j,
 					[&](const DrawCommand& a, const DrawCommand& b) {
 						const float da = (a.transform.GetCol3(3) - camPos).LengthSquared();

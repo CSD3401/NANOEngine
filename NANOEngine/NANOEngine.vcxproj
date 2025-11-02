@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Components\Camera.hpp" />
+    <ClInclude Include="src\ECS\Systems\CameraSystem.hpp" />
     <ClInclude Include="src\Core\Couroutine.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
@@ -74,7 +76,7 @@
     <ClInclude Include="src\ECS\Components\Renderer.hpp" />
     <ClInclude Include="src\ECS\Components\Transform.hpp" />
     <ClInclude Include="src\ECS\Core\ComponentManager.hpp" />
-    <ClInclude Include="src\Graphics\Core\Camera.hpp" />
+    <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
     <ClInclude Include="src\Core\Logger.hpp" />
     <ClInclude Include="src\Core\Timer.hpp" />
     <ClInclude Include="src\Engine.hpp" />
@@ -127,6 +129,7 @@
     <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\Core\Couroutine.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
@@ -154,7 +157,7 @@
     <ClCompile Include="src\Core\Profiler.cpp" />
     <ClCompile Include="src\ECSInternals.cpp" />
     <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
-    <ClCompile Include="src\Graphics\Core\Camera.cpp" />
+    <ClCompile Include="src\Graphics\Core\EditorCamera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Graphics\Core\Model.cpp" />
