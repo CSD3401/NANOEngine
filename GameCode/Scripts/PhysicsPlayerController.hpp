@@ -198,7 +198,7 @@ private:
 		NE::Math::Vec3 origin = GetPosition();
 		
 		// Move origin UP by the collider's half-height + offset
-		origin.y += raycastOriginOffset;
+		origin.y -= raycastOriginOffset;
 		
 		NE::Math::Vec3 downDirection{ 0, -1, 0 };
 		
