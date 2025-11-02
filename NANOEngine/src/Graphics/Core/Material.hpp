@@ -9,7 +9,7 @@
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
 #include "../../NANOEngineAPI.hpp"
-#include "../../Asset.hpp"
+#include "ResourceManagement/IResource.hpp"
 #include "RenderQueue.hpp"
 #include "PipelineData.hpp"
 
@@ -18,7 +18,7 @@
 
 namespace NE::Graphics {
 
-	class NANOENGINE_API Material : public Asset::IAsset {
+	class Material : public Resource::IResource {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);
 		Material() = default;
@@ -50,10 +50,30 @@ namespace NE::Graphics {
         const std::unordered_map<std::string, std::shared_ptr<ITexture>>& GetTextures() const { return m_Textures; }
 
         void SaveMaterial(const std::string& path) const;
-        bool LoadFromFile(const std::string& fileName) override;
+        //bool LoadFromFile(const std::string& fileName) override;
         void SetShader(const std::string& shaderUUID);
 
+        bool Preload(Resource::BinaryView blob) override;
+        void Finalize() override;
+
     private:
+
+        struct MatStage {
+            std::string shaderName;
+            bool  depthTest = true;
+            bool  blend = false;
+            uint32_t cullMode = 0;
+            uint32_t polygonMode = 0;
+
+            struct Prop {
+                std::string name;
+                uint8_t type = 0;     // 0=int,1=float,2=vec3,3=mat4 (match below)
+                std::vector<uint8_t> bytes; // raw payload
+            };
+            std::vector<Prop> props;
+            bool has = false; // parsed ok
+        } m_stage;
+
         std::shared_ptr<IPipeline> m_Pipeline;
 
         // Uniforms to be uploaded before draw
@@ -71,8 +91,6 @@ namespace NE::Graphics {
         //std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
 	};
 
-    //void RegisterPipeline(std::shared_ptr<IPipeline> pipeline);
-    //std::shared_ptr<IPipeline> GetPipelineByName(const std::string& name);
 }
 
 #pragma warning(pop)

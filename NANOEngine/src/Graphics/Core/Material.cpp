@@ -30,6 +30,7 @@ namespace {
 }
 
 #include <iostream>
+#include "ResourceManagement/BinaryHeaders/NanoMatHeader.hpp"
 
 namespace NE::Graphics {
 
@@ -89,7 +90,7 @@ namespace NE::Graphics {
     }
 
     // Fix for AddMember issue in SaveMaterial method
-    void Material::SaveMaterial(const std::string&) const {
+    void Material::SaveMaterial(const std::string& filePath) const {
         using namespace rapidjson;
         Document doc;
         doc.SetObject();
@@ -141,7 +142,7 @@ namespace NE::Graphics {
             out << buffer.GetString();
     }
 
-    bool Material::LoadFromFile(const std::string& /*path*/) {
+    //bool Material::LoadFromFile(const std::string& /*path*/) {
   //      using namespace rapidjson;
 
   //      std::ifstream in(path);
@@ -201,8 +202,8 @@ namespace NE::Graphics {
   //      }
 
   //      return true;
-        return false;
-    }
+        //return false;
+    //}
 
     void Material::SetShader(const std::string& /*shaderUUID*/) {
         //auto shader = Asset::AssetManager::GetInstance()
@@ -264,4 +265,101 @@ namespace NE::Graphics {
         //    }
         //}
     }
+
+    bool Material::Preload(Resource::BinaryView blob) {
+        if (blob.size < sizeof(NE::Resource::NanoMatHeader)) return false;
+        const auto* h = blob.as<NE::Resource::NanoMatHeader>(0);
+        if (!h || h->magic != NE::Resource::NMAT_MAGIC || h->version != NE::Resource::CURRENT_NANOMAT_FORMAT_VERSION) return false;
+
+        // Bounds for shader name
+        if (h->shaderNameOffset + h->shaderNameLen > blob.size) return false;
+        const char* s0 = reinterpret_cast<const char*>(blob.data + h->shaderNameOffset);
+        m_stage.shaderName.assign(s0, s0 + h->shaderNameLen);
+
+        // Global state
+        m_stage.depthTest = (h->depthTest != 0);
+        m_stage.blend = (h->blendMode != 0);
+        m_stage.cullMode = h->cullMode;
+        m_stage.polygonMode = h->polygonMode;
+
+        // Property table bounds
+        const size_t recTableSize = size_t(h->propCount) * sizeof(NE::Resource::MatPropRecord);
+        if (h->propsOffset + recTableSize > blob.size) return false;
+
+        const auto* recs = blob.as<NE::Resource::MatPropRecord>(h->propsOffset);
+        m_stage.props.clear();
+        m_stage.props.reserve(h->propCount);
+
+        for (uint16_t i = 0; i < h->propCount; ++i) {
+            const auto& r = recs[i];
+
+            // Bounds: name and data
+            if (size_t(r.nameOffset) + r.nameLen > blob.size) return false;
+            if (size_t(r.dataOffset) + r.dataSize > blob.size) return false;
+
+            const char* n0 = reinterpret_cast<const char*>(blob.data + r.nameOffset);
+            MatStage::Prop p{};
+            p.name.assign(n0, n0 + r.nameLen);
+            p.type = r.type;
+
+            const uint8_t* d0 = blob.data + r.dataOffset;
+            p.bytes.assign(d0, d0 + r.dataSize);
+
+            m_stage.props.push_back(std::move(p));
+        }
+
+        m_stage.has = true;
+        return true;
+    }
+
+    void Material::Finalize() {
+        if (!m_stage.has) return;
+
+        // Build (or fetch) a pipeline from the shader name + state
+        PipelineSpecification spec{};
+        spec.shaderName = m_stage.shaderName;  // your cache will resolve it
+        spec.EnableDepthTest = m_stage.depthTest;
+        spec.EnableBlending = m_stage.blend;
+        spec.CullMode = m_stage.cullMode;
+        spec.PolygonMode = m_stage.polygonMode;
+
+        m_Pipeline = NE::Graphics::GetPipelineCache().GetOrCreate(spec);
+
+        // Push properties into the Material (name-based, matches your Bind())
+        for (const auto& p : m_stage.props) {
+            switch (p.type) {
+            case NE::Resource::MatPropType::INT: {
+                int v = 0;
+                if (p.bytes.size() >= sizeof(int))
+                    std::memcpy(&v, p.bytes.data(), sizeof(int));
+                SetUniformInt(p.name, v);
+            } break;
+            case NE::Resource::MatPropType::FLOAT: {
+                float f = 0.f;
+                if (p.bytes.size() >= sizeof(float))
+                    std::memcpy(&f, p.bytes.data(), sizeof(float));
+                SetUniformFloat(p.name, f);
+            } break;
+            case NE::Resource::MatPropType::VEC3: {
+                if (p.bytes.size() >= 3 * sizeof(float)) {
+                    const float* f = reinterpret_cast<const float*>(p.bytes.data());
+                    SetUniformVec3(p.name, Vec3{ f[0], f[1], f[2] });
+                }
+            } break;
+            case NE::Resource::MatPropType::MAT4: {
+            //    if (p.bytes.size() >= 16 * sizeof(float)) {
+            //        const float* m = reinterpret_cast<const float*>(p.bytes.data());
+            //        Mat4 M{}; // fill according to your Mat4 storage
+            //        for (int i = 0; i < 16; ++i) M.data[i] = m[i];
+            //        SetUniformMat4(p.name, M);
+            //    }
+            } break;
+            default: break; // future: textures/handles
+            }
+        }
+
+        // Drop staging to free memory
+        m_stage = {};
+    }
+
 }
