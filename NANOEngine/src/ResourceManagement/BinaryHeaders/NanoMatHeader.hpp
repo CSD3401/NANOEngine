@@ -29,7 +29,7 @@ namespace NE::Resource {
 	};
 #pragma pack(pop)
 
-    enum class MatPropType : uint8_t { Int = 0, Float = 1, Vec3 = 2, Mat4 = 3, Handle = 4 /*bindless/uuid later*/ };
+    enum MatPropType : uint8_t { INT = 0, FLOAT = 1, VEC3 = 2, MAT4 = 3, HANDLE = 4 /*bindless/uuid later*/ };
 
 #pragma pack(push, 1)
     struct MatPropRecord {
