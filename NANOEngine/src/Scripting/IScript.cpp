@@ -351,7 +351,9 @@ void IScript::SetUseGravity(bool use) {
     
     if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
      auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-rigidbody.useGravity = use;
+    rigidbody.useGravity = use;
+    NE::Physics::PhysicsManager::SetGravityEnabled(rigidbody.bodyID, use);
+
     }
 }
 

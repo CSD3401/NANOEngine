@@ -17,10 +17,11 @@
 
 /**
  * Physics-based 3D player controller with:
- * 1. Lateral movement with manual gravity (Arrow keys in all directions)
+ * 1. Lateral movement with manual gravity
  * 2. Ground check via RAYCAST (accurate detection)
  * 3. Jumping with physics
- * 4. Rotation locking ONLY when falling (prevents tipping while in air)
+ * 4. Slope stability - stays still on slopes when not moving
+ * 5. Kinematic positioning when grounded (no velocity sinking)
  */
 class PhysicsPlayerController : public IScript {
 public:
@@ -29,9 +30,12 @@ public:
 		REGISTER_FIELD(moveSpeed);
 		REGISTER_FIELD(jumpForce);
 		REGISTER_FIELD(groundCheckDistance);
+		REGISTER_FIELD(ceilingCheckDistance);
 		REGISTER_FIELD(manualGravity);
 		REGISTER_FIELD(frictionCoefficient);
 		REGISTER_FIELD(raycastOriginOffset);
+		REGISTER_FIELD(maxSlopeAngle);
+		REGISTER_FIELD(groundSnapDistance);
 	}
 
 	~PhysicsPlayerController() override = default;
@@ -50,37 +54,43 @@ public:
 		}
 
 		// Configure rigidbody for character
-		SetUseGravity(false);  // Use manual gravity for better control
-		SetMass(70.0f); // 70kg player mass
+		SetUseGravity(false);  // CRITICAL: Disable physics engine gravity
+		SetMass(70.0f);        // 70kg player mass
+
+		// Lock rotations to prevent tipping
+		LockRotation(true, false, true); // Lock X and Z, allow Y for turning
 
 		SPD_INFO("PhysicsPlayerController started for entity " << GetEntity());
+		SPD_INFO("Physics gravity disabled - using manual gravity + kinematic grounding");
 	}
 
 	void Update(double deltaTime) override {
 		if (!HasRigidbody()) return;
 
-		// Get current velocity from physics
-		NE::Math::Vec3 velocity = GetVelocity();
+		// Ensure rotation lock stays active
+		LockRotation(true, false, true);
 
 		// 1. GROUND CHECK - Using RAYCAST for accurate detection
-		bool isGrounded = IsGroundedRaycast();
-		SPD_INFO("IsGrounded: " << isGrounded);
+		GroundCheckResult groundCheck = CheckGroundWithNormal();
 
-		// 2. ROTATION LOCKING - Only lock when falling to prevent tipping
-		if (!isGrounded) {
-			// Player is in air - lock X and Z rotation to prevent tipping over
-			LockRotation(true, false, true); // Lock X, unlock Y (turning), lock Z
-		}
-		else {
-			// Player is grounded - allow all rotation (unlock everything)
-			LockRotation(false, false, false); // Unlock X, Y, Z
-		}
+		SPD_INFO("=== FRAME START ===");
+		SPD_INFO("IsGrounded: " << groundCheck.isGrounded
+			<< " | SlopeAngle: " << groundCheck.slopeAngle
+			<< " | OnSlope: " << groundCheck.isOnSlope);
 
-		// 3. JUMPING - Check if we should jump and get the jump velocity
-		float jumpVelocityY = HandleJump(velocity, isGrounded);
+		// 2. Get current velocity
+		NE::Math::Vec3 velocity = GetVelocity();
+		SPD_INFO("Current velocity: (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")");
 
-		// 4. LATERAL MOVEMENT - Apply jump velocity if jumping
-		HandleMovement(velocity, deltaTime, jumpVelocityY, isGrounded);
+		// DEBUG: Check if gravity is actually disabled
+		bool gravityEnabled = GetUseGravity();
+		SPD_INFO("Rigidbody useGravity flag: " << gravityEnabled);
+
+		// 3. JUMPING - Check if we should jump
+		bool attemptingJump = HandleJump(velocity, groundCheck.isGrounded);
+
+		// 4. MOVEMENT & GRAVITY
+		HandleMovementAndGravity(velocity, deltaTime, attemptingJump, groundCheck);
 	}
 
 	void OnDestroy() override {}
@@ -109,27 +119,78 @@ public:
 	}
 
 private:
-	void HandleMovement(NE::Math::Vec3& velocity, double deltaTime, float jumpVelocityY, bool isGrounded) {
-		// Get input for all 4 directions (Arrow keys)
+	struct GroundCheckResult {
+		bool isGrounded = false;
+		bool isOnSlope = false;
+		float slopeAngle = 0.0f;
+		NE::Math::Vec3 groundNormal = { 0, 1, 0 };
+		float distance = 0.0f;
+		NE::Math::Vec3 hitPoint = { 0, 0, 0 };
+	};
+
+	// Enhanced ground check that also returns surface normal and slope angle
+	GroundCheckResult CheckGroundWithNormal() const {
+		GroundCheckResult result;
+
+		NE::Math::Vec3 origin = GetPosition();
+		origin.y -= raycastOriginOffset; // Start at player's feet
+
+		NE::Math::Vec3 downDirection{ 0, -1, 0 };
+		uint32_t layerMask = (1 << 0);  // Only layer 0 = static ground
+
+		// Perform raycast
+		IScript::RaycastHit hit = Raycast(origin, downDirection, groundCheckDistance, layerMask);
+
+		if (hit.hasHit && hit.distance <= groundCheckDistance) {
+			result.isGrounded = true;
+			result.distance = hit.distance;
+			result.groundNormal = hit.normal;
+			result.hitPoint = hit.point;
+
+			// Calculate slope angle
+			float dotProduct = result.groundNormal.y;
+			result.slopeAngle = std::acos(dotProduct) * (180.0f / 3.14159f);
+
+			// Check if on a slope
+			result.isOnSlope = result.slopeAngle > 0.1f && result.slopeAngle <= maxSlopeAngle;
+		}
+
+		return result;
+	}
+
+	// RAYCAST-BASED CEILING CHECK
+	bool IsCeilingAbove() const {
+		NE::Math::Vec3 origin = GetPosition();
+		origin.y += raycastOriginOffset; // Start at player's head
+
+		NE::Math::Vec3 upDirection{ 0, 1, 0 };
+		uint32_t layerMask = (1 << 0);  // Only layer 0 = static geometry
+
+		IScript::RaycastHit hit = Raycast(origin, upDirection, ceilingCheckDistance, layerMask);
+
+		return (hit.hasHit && hit.distance <= ceilingCheckDistance);
+	}
+
+	void HandleMovementAndGravity(NE::Math::Vec3& velocity, double deltaTime,
+		bool attemptingJump, const GroundCheckResult& groundCheck) {
+
+		// Get input for all 4 directions
 		NE::Math::Vec3 inputDirection{ 0, 0, 0 };
 
-		// Forward/Backward (UP/DOWN arrows)
 		if (NE::InputManager::IsKeyDown(GLFW_KEY_UP)) {
-			inputDirection.z -= 1.0f; // Forward in -Z
+			inputDirection.z -= 1.0f;
 		}
 		if (NE::InputManager::IsKeyDown(GLFW_KEY_DOWN)) {
-			inputDirection.z += 1.0f; // Backward in +Z
+			inputDirection.z += 1.0f;
 		}
-
-		// Left/Right (LEFT/RIGHT arrows)
 		if (NE::InputManager::IsKeyDown(GLFW_KEY_LEFT)) {
-			inputDirection.x -= 1.0f; // Left in -X
+			inputDirection.x -= 1.0f;
 		}
 		if (NE::InputManager::IsKeyDown(GLFW_KEY_RIGHT)) {
-			inputDirection.x += 1.0f; // Right in +X
+			inputDirection.x += 1.0f;
 		}
 
-		// Normalize diagonal movement (so moving diagonally isn't faster)
+		// Normalize diagonal movement
 		float inputMagnitude = std::sqrt(
 			inputDirection.x * inputDirection.x +
 			inputDirection.z * inputDirection.z
@@ -140,109 +201,93 @@ private:
 			inputDirection.z /= inputMagnitude;
 		}
 
+		bool isMoving = inputMagnitude > 0.01f;
+
 		// Get current velocity
 		NE::Math::Vec3 newVelocity = GetVelocity();
 
-		// Determine if player is trying to move
-		bool isMoving = inputMagnitude > 0.01f;
-
+		// === HORIZONTAL MOVEMENT ===
 		if (isMoving) {
 			// Player is trying to move - apply input velocity
 			newVelocity.x = inputDirection.x * moveSpeed;
 			newVelocity.z = inputDirection.z * moveSpeed;
+			SPD_INFO("Moving: velocity XZ = (" << newVelocity.x << ", " << newVelocity.z << ")");
 		}
-		else if (isGrounded) {
-			// Player is NOT moving AND grounded - apply strong friction
-			float horizontalSpeed = std::sqrt(newVelocity.x * newVelocity.x + newVelocity.z * newVelocity.z);
+		else if (groundCheck.isGrounded) {
+			// Player is NOT moving AND grounded - apply friction
+			float horizontalSpeed = std::sqrt(
+				newVelocity.x * newVelocity.x +
+				newVelocity.z * newVelocity.z
+			);
 
 			if (horizontalSpeed > 0.01f) {
-				// Apply friction force to slow down horizontal movement
+				// Apply friction force
 				float frictionForce = frictionCoefficient * static_cast<float>(deltaTime) * 100.0f;
 				float speedReduction = std::min(frictionForce, horizontalSpeed);
 
-				// Reduce velocity proportionally
 				float factor = (horizontalSpeed - speedReduction) / horizontalSpeed;
 				if (factor < 0.0f) factor = 0.0f;
 
 				newVelocity.x *= factor;
 				newVelocity.z *= factor;
 
-				// If velocity is very small, set to zero (full stop)
+				// Full stop if very slow
 				if (std::abs(newVelocity.x) < 0.01f) newVelocity.x = 0.0f;
 				if (std::abs(newVelocity.z) < 0.01f) newVelocity.z = 0.0f;
 			}
 		}
 
-		// === MANUAL GRAVITY APPLICATION ===
-		if (!isGrounded) {
-			// In air - apply gravity
-			newVelocity.y += manualGravity * static_cast<float>(deltaTime);
-		}
-		else {
-			// On ground - stop falling
-			if (newVelocity.y < 0) {
-				newVelocity.y = 0;
+		// === VERTICAL MOVEMENT (GRAVITY & JUMPING) ===
+		if (groundCheck.isGrounded) {
+			// === GROUNDED STATE ===
+			if (attemptingJump) {
+				// JUMPING - Apply upward velocity
+				newVelocity.y = jumpForce / 70.0f; // Divide by mass
+				SPD_INFO("JUMPING! Applied Y velocity: " << newVelocity.y);
+			}
+			else {
+				// NOT JUMPING - This is the critical fix for slope stability
+				// OPTION 1: Zero velocity (let collision keep us on ground)
+				newVelocity.y = 0.0f;
+
+				// OPTION 2: Snap to ground position (kinematic approach)
+				// If player is slightly above ground, teleport them down
+				if (groundCheck.distance > 0.01f && groundCheck.distance < groundSnapDistance) {
+					NE::Math::Vec3 currentPos = GetPosition();
+					// Snap to ground surface
+					float snapAmount = groundCheck.distance - 0.01f; // Leave tiny gap
+					currentPos.y -= snapAmount;
+					SetPosition(currentPos);
+					SPD_INFO("Snapped to ground by " << snapAmount << " units");
+				}
+
+				SPD_INFO("Grounded & not jumping: Y velocity = 0");
 			}
 		}
-
-		// If we're jumping this frame, apply the jump velocity
-		if (jumpVelocityY > 0.0f) {
-			newVelocity.y = jumpVelocityY;
+		else {
+			// === IN AIR STATE ===
+			// Apply manual gravity
+			newVelocity.y += manualGravity * static_cast<float>(deltaTime);
+			SPD_INFO("In air: Applying gravity | New Y velocity: " << newVelocity.y);
 		}
 
-		// Apply the velocity back
+		// Apply the new velocity
 		SetVelocity(newVelocity);
+
+		SPD_INFO("Final velocity: (" << newVelocity.x << ", "
+			<< newVelocity.y << ", " << newVelocity.z << ")");
 	}
 
-	// RAYCAST-BASED GROUND CHECK
-	// RAYCAST-BASED GROUND CHECK with Layer Filtering
-	bool IsGroundedRaycast() const {
-		NE::Math::Vec3 origin = GetPosition();
-
-		SPD_INFO("=== GROUND CHECK DEBUG ===");
-		SPD_INFO("Player position: (" << origin.x << ", " << origin.y << ", " << origin.z << ")");
-
-		// Start ray at player's feet (below center)
-		origin.y -= raycastOriginOffset;
-
-		SPD_INFO("Ray origin (feet): (" << origin.x << ", " << origin.y << ", " << origin.z << ")");
-		SPD_INFO("Ray offset: " << raycastOriginOffset);
-		SPD_INFO("Ground check distance: " << groundCheckDistance);
-
-		NE::Math::Vec3 downDirection{ 0, -1, 0 };
-		float totalDistance = groundCheckDistance;
-
-		// LAYER FILTERING: Only hit static (ground) objects on layer 0 (NON_MOVING)
-		uint32_t layerMask = (1 << 0);  // Only layer 0 = static ground
-
-		SPD_INFO("Layer mask: " << layerMask << " (binary: " << std::bitset<8>(layerMask) << ")");
-
-		// First try WITHOUT layer filter to see if we can hit anything at all
-		//IScript::RaycastHit hitAll = Raycast(origin, downDirection, totalDistance, 0xFFFFFFFF);
-		//SPD_INFO("Raycast (ALL layers) - HasHit: " << hitAll.hasHit
-		//	<< ", HitEntity: " << hitAll.entity
-		//	<< ", Distance: " << hitAll.distance);
-
-		// Now try WITH layer filter
-		IScript::RaycastHit hit = Raycast(origin, downDirection, totalDistance, layerMask);
-		SPD_INFO("Raycast (layer 0 only) - HasHit: " << hit.hasHit
-			<< ", HitEntity: " << hit.entity
-			<< ", Distance: " << hit.distance);
-
-		if (hit.hasHit && hit.distance <= totalDistance) {
-			SPD_INFO("Valid ground hit!");
-			return true;
-		}
-
-		return false;
-	}
-
-	float HandleJump(NE::Math::Vec3& velocity, bool isGrounded) {
+	bool HandleJump(NE::Math::Vec3& velocity, bool isGrounded) {
 		// Jump when space pressed and on ground
 		if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
-			if (isGrounded && !m_hasJumpedThisFrame) {
+			if (isGrounded && !m_hasJumpedThisFrame && !IsCeilingAbove()) {
+				SPD_INFO("Jump input registered!");
 				m_hasJumpedThisFrame = true;
-				return jumpForce / 70.0f; // Divide by mass to get velocity
+				return true; // Signal to apply jump velocity
+			}
+			else if (isGrounded && IsCeilingAbove()) {
+				SPD_WARNING("Cannot jump - ceiling too low!");
 			}
 		}
 
@@ -251,16 +296,19 @@ private:
 			m_hasJumpedThisFrame = false;
 		}
 
-		return 0.0f;
+		return false;
 	}
 
-	// Editable parameters
-	float moveSpeed = 5.0f;           // Horizontal movement speed
-	float jumpForce = 400.0f;         // Jump impulse force
-	float groundCheckDistance = 0.2f; // How far below player center to check for ground
-	float manualGravity = -9.81f;     // Manual gravity strength
-	float frictionCoefficient = 20.0f;// Friction when standing still
-	float raycastOriginOffset = 1.0f; // How high above player center to start ray (= collider half-height)
+	// === EDITABLE PARAMETERS ===
+	float moveSpeed = 5.0f;              // Horizontal movement speed
+	float jumpForce = 400.0f;            // Jump impulse force
+	float groundCheckDistance = 0.1f;    // How far to check for ground (small = more accurate)
+	float ceilingCheckDistance = 0.5f;   // How far to check for ceiling
+	float manualGravity = -9.81f;        // Manual gravity (negative = downward)
+	float frictionCoefficient = 20.0f;   // Friction when standing still
+	float raycastOriginOffset = 1.0f;    // Collider half-height
+	float maxSlopeAngle = 45.0f;         // Maximum walkable slope angle
+	float groundSnapDistance = 0.1f;     // Max distance to snap to ground
 
 	// Internal state
 	bool m_hasJumpedThisFrame = false;

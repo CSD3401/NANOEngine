@@ -632,6 +632,45 @@ namespace NE::Physics {
 		bodyInterface.AddImpulse(id, JPH::Vec3(impulse.x, impulse.y, impulse.z));
 	}
 
+	// Add this to PhysicsManager.cpp
+
+	void PhysicsManager::SetGravityEnabled(uint32_t bodyID, bool enabled) {
+		if (!s_PhysicsSystem) {
+			printf("ERROR: PhysicsSystem is null in SetGravityEnabled!\n");
+			return;
+		}
+
+		JPH::BodyID id(bodyID);
+
+		// Lock the body to modify its properties
+		JPH::BodyLockWrite lock(s_PhysicsSystem->GetBodyLockInterface(), id);
+		if (lock.Succeeded()) {
+			JPH::Body& body = lock.GetBody();
+
+			if (body.IsDynamic()) {
+				JPH::MotionProperties* motionProps = body.GetMotionProperties();
+
+				if (enabled) {
+					// Enable gravity - use default gravity factor (1.0)
+					motionProps->SetGravityFactor(1.0f);
+				}
+				else {
+					// Disable gravity - set gravity factor to 0
+					motionProps->SetGravityFactor(0.0f);
+				}
+
+				printf("PhysicsManager: Set gravity for body %u to %s (factor: %.1f)\n",
+					bodyID, enabled ? "ENABLED" : "DISABLED",
+					motionProps->GetGravityFactor());
+			}
+			else {
+				printf("PhysicsManager: Body %u is not dynamic, cannot set gravity\n", bodyID);
+			}
+		}
+		else {
+			printf("PhysicsManager: Failed to lock body %u for gravity change\n", bodyID);
+		}
+	}
 	// === Rotation Locking ===
 
 	void PhysicsManager::LockRotation(uint32_t bodyID, bool lockX, bool lockY, bool lockZ) {

@@ -320,18 +320,39 @@ namespace NE::ECS::Systems {
 			}
 		} 
 		else {
+			// EDIT MODE: Synchronize editor changes to physics
 			const auto& entities = GetEntities();
 			for (Entity e : entities) {
 				auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
 				auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 
+				// Sync transform changes
 				if (transform.isDirty) {
 					Physics::PhysicsManager::SetTransform(
 						rb.bodyID, transform.position, transform.rotation);
 				}
 
-				if (rb.isStatic) {
-					Physics::PhysicsManager::SetMotionType(rb.bodyID, JPH::EMotionType::Static);
+				
+				// Get current motion type from physics body
+				JPH::EMotionType currentMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
+				JPH::EMotionType desiredMotionType;
+				
+				// Convert component motionType to Jolt motion type
+				switch (rb.motionType) {
+					case 0: desiredMotionType = JPH::EMotionType::Static; break;
+					case 1: desiredMotionType = JPH::EMotionType::Kinematic; break;
+					case 2: 
+					default: desiredMotionType = JPH::EMotionType::Dynamic; break;
+				}
+
+				// If motion type changed in Inspector, update physics body
+				if (currentMotionType != desiredMotionType) {
+					printf("RigidbodySystem: Motion type changed for entity %d: %d -> %d\n", 
+						 e, static_cast<int>(currentMotionType), static_cast<int>(desiredMotionType));
+					Physics::PhysicsManager::SetMotionType(rb.bodyID, desiredMotionType);
+					
+					// Keep isStatic in sync
+					rb.isStatic = (desiredMotionType == JPH::EMotionType::Static);
 				}
 			}
 		}

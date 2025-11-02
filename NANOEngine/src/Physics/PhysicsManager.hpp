@@ -81,6 +81,9 @@ namespace NE::Physics {
 
         static void SetTransform(uint32_t index, const Math::Vec3& position, const Math::Vec3& rotation);
         static void GetTransform(uint32_t index, Math::Vec3& position, Math::Vec3& rotation);
+        static void SetGravityEnabled(uint32_t bodyID, bool enabled);
+
+
 
         // For changing settings
         static void SetMotionType(uint32_t bodyid, JPH::EMotionType motionType);
