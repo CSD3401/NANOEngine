@@ -16,6 +16,7 @@
 #include "../Systems/ColliderSystem.hpp"
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
+#include "../Systems/PhysicsSystem.hpp"
 
 
 namespace NE::ECS {
@@ -63,12 +64,13 @@ namespace NE::ECS {
             SetSystemSignature<Systems::RigidbodySystem>(sig);
         }
 
-        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get());
-        {
-            Signature sig;
-            sig.set(GetComponentType<Component::Collider>());
-            SetSystemSignature<Systems::ColliderSystem>(sig);
-        }
+        // I realised only after making PhysicsSystem that this collider system was what is suppose to do - RF
+        //m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get());
+        //{
+        //    Signature sig;
+        //    sig.set(GetComponentType<Component::Collider>());
+        //    SetSystemSignature<Systems::ColliderSystem>(sig);
+        //}
 
         m_audioSystem = m_systemManager->RegisterSystem<Systems::AudioSystem>(m_componentManager.get());
         {
@@ -83,6 +85,13 @@ namespace NE::ECS {
 			sig.set(GetComponentType<Component::NativeScript>());
 			SetSystemSignature<Systems::ScriptSystem>(sig);
 		}
+
+        m_physicsSystem = m_systemManager->RegisterSystem<Systems::PhysicsSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Collider>());
+            SetSystemSignature<Systems::PhysicsSystem>(sig);
+        }
     }
 
     Entity ECSCoordinator::CreateEntity() {

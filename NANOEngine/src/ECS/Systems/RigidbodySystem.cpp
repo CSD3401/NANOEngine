@@ -77,49 +77,54 @@ namespace NE::ECS::Systems {
 	// RF
 	void RigidbodySystem::OnEntityAdded(Entity entity)
 	{
-		if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
-			return;
+		(void)entity;
+		//if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
+		//	return;
 
-		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-		auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+		//auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+		//auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
-		// Check if entity has a Collider component
-		if (m_componentManager->HasComponent < Component::Collider>(entity))
-		{
-			auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);	
+		//(void)rb;
+		//(void)transform;
 
-			// Initialize previous values to current values
-			collider.previousShapeType = collider.shapeType;
-			collider.previousHalfExtents = collider.halfExtents;
-			collider.previousRadius = collider.radius;
-			collider.previousHeight = collider.height;
+		//// Check if entity has a Collider component
+		//if (m_componentManager->HasComponent < Component::Collider>(entity))
+		//{
+		//	auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);	
 
-			// Clear dirty flags (they might be true for new entities)
-			collider.isShapeDirty = false;
-			collider.isPropertiesDirty = false;
+		//	// Initialize previous values to current values
+		//	collider.previousShapeType = collider.shapeType;
+		//	collider.previousHalfExtents = collider.halfExtents;
+		//	collider.previousRadius = collider.radius;
+		//	collider.previousHeight = collider.height;
 
-			CreatePhysicsBodyFromComponent(entity, transform, rb, collider, JPH::EMotionType::Dynamic);
-		}
-		else
-		{
-			// fallback to default box shape
-			// untested fallback code - RF
-			printf("No collider found - creating default box\n");
-			Math::Vec3 defaultSize(1.0f, 1.0f, 1.0f);
-			rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
-				transform.position, 
-				transform.rotation, 
-				defaultSize, 
-				JPH::EMotionType::Dynamic);
-		}
+		//	// Clear dirty flags (they might be true for new entities)
+		//	collider.isShapeDirty = false;
+		//	collider.isPropertiesDirty = false;
+
+		//	CreatePhysicsBodyFromComponent(entity, transform, rb, collider, JPH::EMotionType::Dynamic);
+		//}
+		//else
+		//{
+		//	// fallback to default box shape
+		//	// untested fallback code - RF
+		//	printf("No collider found - creating default box\n");
+		//	Math::Vec3 defaultSize(1.0f, 1.0f, 1.0f);
+		//	rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
+		//		transform.position, 
+		//		transform.rotation, 
+		//		defaultSize, 
+		//		JPH::EMotionType::Dynamic);
+		//}
 	}
 
 	void RigidbodySystem::OnEntityRemoved(Entity entity)
 	{
-		if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
-			return;
-		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-		Physics::PhysicsManager::DestroyBody(rb.bodyID);
+		(void)entity;
+		//if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
+		//	return;
+		//auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+		//Physics::PhysicsManager::DestroyBody(rb.bodyID);
 	}
 
 	void RigidbodySystem::CreatePhysicsBodyFromComponent(Entity entity, Component::Transform& transform, Component::Rigidbody& rb, Component::Collider& collider, JPH::EMotionType motionType)
@@ -253,8 +258,10 @@ namespace NE::ECS::Systems {
 
 	void RigidbodySystem::Update(double dt)
 	{
+		(void)dt;
+
 		// Check for collider changes and recreate physics bodies if needed
-		CheckForColliderChanges();
+		// CheckForColliderChanges();
 
 		if (NE::GetEngineState() == EngineState::Play) {
 			Physics::PhysicsManager::Update(static_cast<float>(dt));

@@ -2,7 +2,8 @@
 
 #include "../../Math/Vec3.hpp"
 #include "../../Core/Reflection.hpp"
-
+#include <functional>
+#include "../../ECS/Core/Entity.hpp"
 
 
 namespace NE::ECS::Component {
@@ -16,12 +17,18 @@ namespace NE::ECS::Component {
         };
 
         // Exposed
-        ShapeType shapeType{ ShapeType::Capsule };
+        ShapeType shapeType{ ShapeType::Box };
         Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f }; // For box
         float radius{ 0.5f };                      // For sphere/capsule
         float height{ 1.0f };                      // For capsule
 
 		// INTERNAL NOT FOR REFLECTION
+        
+        // Collision callbacks (like Unity's MonoBehaviour)
+        std::function<void(Entity otherEntity)> onCollisionEnter;
+        std::function<void(Entity otherEntity)> onCollisionStay;
+        std::function<void(Entity otherEntity)> onCollisionExit;
+
         // Dirty flags for change detection
         bool isShapeDirty = true;    // True for new colliders
         bool isPropertiesDirty = true;
