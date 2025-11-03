@@ -1195,22 +1195,22 @@ namespace Editor {
 
 				ImGui::SeparatorText("Material Textures");
 
-				//for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
-				//    // Preview + picker (96px thumb)
-				//    DrawTextureField(
-				//        uName.c_str(), tex, 96.0f,
-				//        [this, &tex, &uName](const std::string& id) {
-				//            auto t = NE::GetTexture(id);
-				//            m_loadedMaterial->SetTexture(uName, t);
+				for (auto& [uName, tex] : m_loadedMaterial->GetTextures()) {
+				    // Preview + picker (96px thumb)
+				    DrawTextureField(
+				        uName.c_str(), tex, 96.0f,
+				        [this, &tex, &uName](const std::string& id) {
+				            auto t = NE::GetTexture(id);
+				            m_loadedMaterial->SetTexture(uName, t);
 
-				//            // for keeping u_HasBaseMap in sync for toggle
-				//            std::string has = "u_Has" + uName.substr(2);
-				//            auto& ints = m_loadedMaterial->GetIntUniforms();
-				//            if (ints.find(has) != ints.end())
-				//                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
-				//        }
-				//    );
-				//}
+				            // for keeping u_HasBaseMap in sync for toggle
+				            std::string has = "u_Has" + uName.substr(2);
+				            auto& ints = m_loadedMaterial->GetIntUniforms();
+				            if (ints.find(has) != ints.end())
+				                m_loadedMaterial->SetUniformInt(has, t ? 1 : 0);
+				        }
+				    );
+				}
 			}
 		}
 
