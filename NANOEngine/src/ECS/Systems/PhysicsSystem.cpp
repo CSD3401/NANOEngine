@@ -6,9 +6,15 @@
 
 namespace NE::ECS::Systems
 {
+    // Initialize static member
+    ComponentManager* PhysicsSystem::s_componentManager = nullptr;
+
     PhysicsSystem::PhysicsSystem(NE::ECS::ComponentManager* cm)
         : m_componentManager(cm)
     {
+        // Set static pointer for helper methods (allows IScript to access physics)
+        s_componentManager = cm;
+
         // Register collision callbacks
         NE::Physics::PhysicsManager::RegisterCollisionEnterCallback(
             [this](const NE::Physics::CollisionInfo& collision) {
@@ -194,17 +200,16 @@ namespace NE::ECS::Systems
         std::unordered_set<Entity> entities(colliderEntities.begin(), colliderEntities.end());
         entities.insert(rigidbodyEntities.begin(), rigidbodyEntities.end());
 
-        for (auto entity : entities) {
-
-            bool hasPhysicsBody = NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity);
-
-            if (hasPhysicsBody) {
+        for (auto entity : entities)
+        {
+            if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity))
+            {
                 uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
                 JPH::EMotionType motionType = NE::Physics::PhysicsManager::GetMotionType(bodyID);
 
                 // ONLY sync DYNAMIC bodies (physics controls them)
                 if (motionType == JPH::EMotionType::Dynamic) {
-                   
+
 
                     Math::Vec3 position, rotation;
                     NE::Physics::PhysicsManager::GetTransform(bodyID, position, rotation);
