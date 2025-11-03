@@ -37,7 +37,7 @@ public:
     void Initialize(NE::ECS::Entity entity) override {
 
 
-        NANOEngine::Events::RegisterScriptEventListener("TimeSwapNow", [this](void* data) {TextureSwitchActivate(this->GetEntity()); });
+        NANOEngine::Events::RegisterScriptEventListener("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
     }
 
     void Update(double deltaTime) override {
