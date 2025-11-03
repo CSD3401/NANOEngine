@@ -14,218 +14,170 @@
 #include "../../Core/Logger.hpp"
 #include <algorithm>
 
+// Not in used atm, handled by PhysicsSystem - RF
+
 namespace NE::ECS::Systems {
 
 	RigidbodySystem::RigidbodySystem(ComponentManager* cm) : m_componentManager(cm)
 	{
 	}
 
-	// OLD
-	//void RigidbodySystem::OnEntityAdded(Entity entity)
-	//{
-	//	//if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
-	//	//	return;
-	//	////auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-	//	////auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-	//	//Component::Collider* col = nullptr;
-	//	//if (m_componentManager->HasComponent<Component::Collider>(entity))
-	//	//	col = &m_componentManager->GetComponent<Component::Collider>(entity);
-	//	////rb.bodyId = Physics::PhysicsManager::CreateBody(transform, col);
-
-	//	if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
-	//		return;
-	//	auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-	//	auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-
-	//	JPH::Quat rotation = JPH::Quat::sEulerAngles({ JPH::DegreesToRadians(transform.rotation.x),
-	//													JPH::DegreesToRadians(transform.rotation.y),
-	//													JPH::DegreesToRadians(transform.rotation.z) });
-	//	//JPH::BodyCreationSettings settings(Physics::PhysicsManager::s_shapeMap.at(entity).GetPtr(),
-	//	//	{ transform.position.x, transform.position.y, transform.position.z }, rotation,
-	//	//	rb.motionType, rb.motionType == 0U ? 0 : 1);
-	//	//settings.mLinearVelocity = { rb.initialVelocity.x, rb.initialVelocity.y, rb.initialVelocity.z };
-
-	//	//auto shapePtr = Physics::PhysicsManager::s_shapeMap.at(entity).GetPtr();
-	//	//auto it = Physics::PhysicsManager::s_shapeMap.find(entity);
-	//	//if (it == Physics::PhysicsManager::s_shapeMap.end())
-	//	//	return; // collider shape not found
-	//	//auto shapePtr = it->second.GetPtr();
-	//	JPH::RVec3 position(transform.position.x, transform.position.y, transform.position.z);
-	//	//JPH::Quat rotation = ...; // already created
-
-	//	// Map your POD uint8_t to Jolt EMotionType:
-	//	JPH::EMotionType joltMotionType = JPH::EMotionType::Dynamic;
-	//	//switch (rb.motionType) {
-	//	//case 0: joltMotionType = JPH::EMotionType::Static; break;
-	//	//case 1: joltMotionType = JPH::EMotionType::Kinematic; break;
-	//	//case 2: joltMotionType = JPH::EMotionType::Dynamic; break;
-	//	//}
-
-	//	JPH::ObjectLayer objectLayer = (rb.motionType == 0U ? 0 : 1);
-
-	//	//JPH::BodyCreationSettings settings(shapePtr, position, rotation, joltMotionType, objectLayer);
-	//	//settings.mLinearVelocity = { rb.initialVelocity.x, rb.initialVelocity.y, rb.initialVelocity.z };
-
-	//	//rb.bodyID = Physics::PhysicsManager::CreateBody(settings);
-	//	//JPH::BodyID id = Physics::PhysicsManager::CreateBody(settings);
-
-	//	JPH::BodyCreationSettings boxSettings(new JPH::BoxShape({ 0.5f, 0.5f, 0.5f }), position, rotation, joltMotionType, objectLayer);
-	//	rb.bodyID = Physics::PhysicsManager::CreateBody(boxSettings);
-
-
-	//	printf("RigidbodySystem: Created body with ID %d for entity %d\n", rb.bodyID, entity);
-	//}
-
-	// RF
 	void RigidbodySystem::OnEntityAdded(Entity entity)
 	{
-		if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
-			return;
+		// if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
+		// 	return;
 
-		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-		auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+		// auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+		// auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
-		// REMOVED: Auto-detection by name - too unreliable at creation time
-		// Users should set Motion Type manually in the Inspector instead
+		// // REMOVED: Auto-detection by name - too unreliable at creation time
+		// // Users should set Motion Type manually in the Inspector instead
 
-		// Determine motion type from Rigidbody component
-		JPH::EMotionType motionType;
+		// // Determine motion type from Rigidbody component
+		// JPH::EMotionType motionType;
 		
-		// Priority: Check motionType field first, then isStatic flag
-		switch (rb.motionType) {
-		case 0: 
-			motionType = JPH::EMotionType::Static;
-			rb.isStatic = true;  // Keep in sync
-			break;
-		case 1: 
-			motionType = JPH::EMotionType::Kinematic;
-			rb.isStatic = false;
-			break;
-		case 2: 
-		default: 
-			motionType = JPH::EMotionType::Dynamic;
-			rb.isStatic = false;
-			break;
-		}
+		// // Priority: Check motionType field first, then isStatic flag
+		// switch (rb.motionType) {
+		// case 0: 
+		// 	motionType = JPH::EMotionType::Static;
+		// 	rb.isStatic = true;  // Keep in sync
+		// 	break;
+		// case 1: 
+		// 	motionType = JPH::EMotionType::Kinematic;
+		// 	rb.isStatic = false;
+		// 	break;
+		// case 2: 
+		// default: 
+		// 	motionType = JPH::EMotionType::Dynamic;
+		// 	rb.isStatic = false;
+		// 	break;
+		// }
 		
-		// Log final decision
-		const char* motionTypeName = (motionType == JPH::EMotionType::Static) ? "Static (Layer 0)" :
-									 (motionType == JPH::EMotionType::Kinematic) ? "Kinematic (Layer 1)" :
-									 "Dynamic (Layer 1)";
-		printf("Creating physics body for entity %d as %s (motionType=%d)\n", 
-			   entity, motionTypeName, rb.motionType);
+		// // Log final decision
+		// const char* motionTypeName = (motionType == JPH::EMotionType::Static) ? "Static (Layer 0)" :
+		// 							 (motionType == JPH::EMotionType::Kinematic) ? "Kinematic (Layer 1)" :
+		// 							 "Dynamic (Layer 1)";
+		// printf("Creating physics body for entity %d as %s (motionType=%d)\n", 
+		// 	   entity, motionTypeName, rb.motionType);
 
-		// Check if entity has a Collider component
-		if (m_componentManager->HasComponent < Component::Collider>(entity))
-		{
-			auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);	
+		// // Check if entity has a Collider component
+		// if (m_componentManager->HasComponent < Component::Collider>(entity))
+		// {
+		// 	auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);	
 
-			// Initialize previous values to current values
-			collider.previousShapeType = collider.shapeType;
-			collider.previousHalfExtents = collider.halfExtents;
-			collider.previousRadius = collider.radius;
-			collider.previousHeight = collider.height;
+		// 	// Initialize previous values to current values
+		// 	collider.previousShapeType = collider.shapeType;
+		// 	collider.previousHalfExtents = collider.halfExtents;
+		// 	collider.previousRadius = collider.radius;
+		// 	collider.previousHeight = collider.height;
 
-			// Clear dirty flags (they might be true for new entities)
-			collider.isShapeDirty = false;
-			collider.isPropertiesDirty = false;
+		// 	// Clear dirty flags (they might be true for new entities)
+		// 	collider.isShapeDirty = false;
+		// 	collider.isPropertiesDirty = false;
 
-			CreatePhysicsBodyFromComponent(entity, transform, rb, collider, motionType);
-		}
-		else
-		{
-			// fallback to default box shape
-			printf("No collider found - creating default box\n");
-			Math::Vec3 defaultSize(1.0f, 1.0f, 1.0f);
-			rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
-				transform.position, 
-				transform.rotation, 
-				defaultSize, 
-				motionType);
-		}
+		// 	CreatePhysicsBodyFromComponent(entity, transform, rb, collider, motionType);
+		// }
+		// else
+		// {
+		// 	// fallback to default box shape
+		// 	printf("No collider found - creating default box\n");
+		// 	Math::Vec3 defaultSize(1.0f, 1.0f, 1.0f);
+		// 	rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
+		// 		transform.position, 
+		// 		transform.rotation, 
+		// 		defaultSize, 
+		// 		motionType);
+		// }
+		(void)entity;
 	}
 
 	void RigidbodySystem::OnEntityRemoved(Entity entity)
 	{
-		if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
-			return;
-		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+		// if (!m_componentManager->HasComponent<Component::Rigidbody>(entity))
+		// 	return;
+		// auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
 		
-		if (rb.bodyID != 0) {
-			Physics::PhysicsManager::DestroyBody(rb.bodyID);
-			Physics::PhysicsManager::UnregisterEntityBody(entity);
-		}
+		// if (rb.bodyID != 0) {
+		// 	Physics::PhysicsManager::DestroyBody(rb.bodyID);
+		// 	Physics::PhysicsManager::UnregisterEntityBody(entity);
+		// }
+		(void)entity;
 	}
 
 	void RigidbodySystem::CreatePhysicsBodyFromComponent(Entity entity, Component::Transform& transform, Component::Rigidbody& rb, Component::Collider& collider, JPH::EMotionType motionType)
 	{
-		Math::Vec3 fullSize = {
-			collider.halfExtents.x * 2.0f,
-			collider.halfExtents.y * 2.0f,
-			collider.halfExtents.z * 2.0f
-		};
+		// Math::Vec3 fullSize = {
+		// 	collider.halfExtents.x * 2.0f,
+		// 	collider.halfExtents.y * 2.0f,
+		// 	collider.halfExtents.z * 2.0f
+		// };
 
-		// Log which layer this body will be on
-		const char* motionTypeName = (motionType == JPH::EMotionType::Static) ? "Static (Layer 0)" :
-									 (motionType == JPH::EMotionType::Kinematic) ? "Kinematic (Layer 1)" :
-									 "Dynamic (Layer 1)";
-		printf("Creating physics body for entity %d as %s\n", entity, motionTypeName);
+		// // Log which layer this body will be on
+		// const char* motionTypeName = (motionType == JPH::EMotionType::Static) ? "Static (Layer 0)" :
+		// 							 (motionType == JPH::EMotionType::Kinematic) ? "Kinematic (Layer 1)" :
+		// 							 "Dynamic (Layer 1)";
+		// printf("Creating physics body for entity %d as %s\n", entity, motionTypeName);
 
-		// Create appropriate shape
-		switch (collider.shapeType)
-		{
-		case Component::Collider::ShapeType::Box:
-		{
-			rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
-				transform.position,
-				transform.rotation,
-				fullSize,
-				motionType
-			);
-			printf("Created BOX physics body with ID %d\n", rb.bodyID);
-			break;
-		}
-		case Component::Collider::ShapeType::Sphere:
-		{
-			rb.bodyID = Physics::PhysicsManager::CreateSphereBody(
-				transform.position,
-				transform.rotation,
-				collider.radius,
-				motionType
-			);
-			printf("Created SPHERE physics body with ID %d\n", rb.bodyID);
-			break;
-		}
-		case Component::Collider::ShapeType::Capsule:
-		{
-			rb.bodyID = Physics::PhysicsManager::CreateCapsuleBody(
-				transform.position,
-				transform.rotation,
-				collider.height,
-				collider.radius,
-				motionType
-			);
-			printf("Created CAPSULE physics body with ID %d\n", rb.bodyID);
-			break;
-		}
-		case Component::Collider::ShapeType::None:
-		{
-			// Destroy existing body if switching to None
-			if (rb.bodyID != 0) {
-				Physics::PhysicsManager::DestroyBody(rb.bodyID);
-				Physics::PhysicsManager::UnregisterEntityBody(entity);
-				rb.bodyID = 0;
-			}
-			printf("WARNING: No physics body - shape type is None\n");
-			break;
-		}
-		}
+		// // Create appropriate shape
+		// switch (collider.shapeType)
+		// {
+		// case Component::Collider::ShapeType::Box:
+		// {
+		// 	rb.bodyID = Physics::PhysicsManager::CreateBoxBody(
+		// 		transform.position,
+		// 		transform.rotation,
+		// 		fullSize,
+		// 		motionType
+		// 	);
+		// 	printf("Created BOX physics body with ID %d\n", rb.bodyID);
+		// 	break;
+		// }
+		// case Component::Collider::ShapeType::Sphere:
+		// {
+		// 	rb.bodyID = Physics::PhysicsManager::CreateSphereBody(
+		// 		transform.position,
+		// 		transform.rotation,
+		// 		collider.radius,
+		// 		motionType
+		// 	);
+		// 	printf("Created SPHERE physics body with ID %d\n", rb.bodyID);
+		// 	break;
+		// }
+		// case Component::Collider::ShapeType::Capsule:
+		// {
+		// 	rb.bodyID = Physics::PhysicsManager::CreateCapsuleBody(
+		// 		transform.position,
+		// 		transform.rotation,
+		// 		collider.height,
+		// 		collider.radius,
+		// 		motionType
+		// 	);
+		// 	printf("Created CAPSULE physics body with ID %d\n", rb.bodyID);
+		// 	break;
+		// }
+		// case Component::Collider::ShapeType::None:
+		// {
+		// 	// Destroy existing body if switching to None
+		// 	if (rb.bodyID != 0) {
+		// 		Physics::PhysicsManager::DestroyBody(rb.bodyID);
+		// 		Physics::PhysicsManager::UnregisterEntityBody(entity);
+		// 		rb.bodyID = 0;
+		// 	}
+		// 	printf("WARNING: No physics body - shape type is None\n");
+		// 	break;
+		// }
+		// }
 
-		// CRITICAL: Register the entity-body mapping after creating the body
-		if (rb.bodyID != 0) {
-			Physics::PhysicsManager::RegisterEntityBody(entity, rb.bodyID);
-			printf("Registered entity %d with body ID %d\n", entity, rb.bodyID);
-		}
+		// // CRITICAL: Register the entity-body mapping after creating the body
+		// if (rb.bodyID != 0) {
+		// 	Physics::PhysicsManager::RegisterEntityBody(entity, rb.bodyID);
+		// 	printf("Registered entity %d with body ID %d\n", entity, rb.bodyID);
+		// }
+		(void)entity; // unused	
+		(void)transform;
+		(void)rb;
+		(void)collider;
+		(void)motionType;
 	}
 
 	void RigidbodySystem::CheckForColliderChanges()
@@ -299,63 +251,64 @@ namespace NE::ECS::Systems {
 
 	void RigidbodySystem::Update(double dt)
 	{
-		// Check for collider changes and recreate physics bodies if needed
-		CheckForColliderChanges();
+		// // Check for collider changes and recreate physics bodies if needed
+		// CheckForColliderChanges();
 
-		if (NE::GetEngineState() == EngineState::Play) {
-			Physics::PhysicsManager::Update(static_cast<float>(dt));
+		// if (NE::GetEngineState() == EngineState::Play) {
+		// 	Physics::PhysicsManager::Update(static_cast<float>(dt));
 
-			const auto& entities = GetEntities();
-			for (Entity e : entities) {
-				auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
-				auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
+		// 	const auto& entities = GetEntities();
+		// 	for (Entity e : entities) {
+		// 		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
+		// 		auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 
-				Math::Vec3 pos;
-				Math::Vec3 rot;
-				Physics::PhysicsManager::GetTransform(rb.bodyID, pos, rot);
+		// 		Math::Vec3 pos;
+		// 		Math::Vec3 rot;
+		// 		Physics::PhysicsManager::GetTransform(rb.bodyID, pos, rot);
 
-				transform.position = pos;
-				transform.rotation = rot;
-				transform.isDirty = true;
-			}
-		} 
-		else {
-			// EDIT MODE: Synchronize editor changes to physics
-			const auto& entities = GetEntities();
-			for (Entity e : entities) {
-				auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
-				auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
+		// 		transform.position = pos;
+		// 		transform.rotation = rot;
+		// 		transform.isDirty = true;
+		// 	}
+		// } 
+		// else {
+		// 	// EDIT MODE: Synchronize editor changes to physics
+		// 	const auto& entities = GetEntities();
+		// 	for (Entity e : entities) {
+		// 		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
+		// 		auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
 
-				// Sync transform changes
-				if (transform.isDirty) {
-					Physics::PhysicsManager::SetTransform(
-						rb.bodyID, transform.position, transform.rotation);
-				}
+		// 		// Sync transform changes
+		// 		if (transform.isDirty) {
+		// 			Physics::PhysicsManager::SetTransform(
+		// 				rb.bodyID, transform.position, transform.rotation);
+		// 		}
 
 				
-				// Get current motion type from physics body
-				JPH::EMotionType currentMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
-				JPH::EMotionType desiredMotionType;
+		// 		// Get current motion type from physics body
+		// 		JPH::EMotionType currentMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
+		// 		JPH::EMotionType desiredMotionType;
 				
-				// Convert component motionType to Jolt motion type
-				switch (rb.motionType) {
-					case 0: desiredMotionType = JPH::EMotionType::Static; break;
-					case 1: desiredMotionType = JPH::EMotionType::Kinematic; break;
-					case 2: 
-					default: desiredMotionType = JPH::EMotionType::Dynamic; break;
-				}
+		// 		// Convert component motionType to Jolt motion type
+		// 		switch (rb.motionType) {
+		// 			case 0: desiredMotionType = JPH::EMotionType::Static; break;
+		// 			case 1: desiredMotionType = JPH::EMotionType::Kinematic; break;
+		// 			case 2: 
+		// 			default: desiredMotionType = JPH::EMotionType::Dynamic; break;
+		// 		}
 
-				// If motion type changed in Inspector, update physics body
-				if (currentMotionType != desiredMotionType) {
-					printf("RigidbodySystem: Motion type changed for entity %d: %d -> %d\n", 
-						 e, static_cast<int>(currentMotionType), static_cast<int>(desiredMotionType));
-					Physics::PhysicsManager::SetMotionType(rb.bodyID, desiredMotionType);
+		// 		// If motion type changed in Inspector, update physics body
+		// 		if (currentMotionType != desiredMotionType) {
+		// 			printf("RigidbodySystem: Motion type changed for entity %d: %d -> %d\n", 
+		// 				 e, static_cast<int>(currentMotionType), static_cast<int>(desiredMotionType));
+		// 			Physics::PhysicsManager::SetMotionType(rb.bodyID, desiredMotionType);
 					
-					// Keep isStatic in sync
-					rb.isStatic = (desiredMotionType == JPH::EMotionType::Static);
-				}
-			}
-		}
+		// 			// Keep isStatic in sync
+		// 			rb.isStatic = (desiredMotionType == JPH::EMotionType::Static);
+		// 		}
+		// 	}
+		// }
+		(void)dt;
 	}
 
 	void RigidbodySystem::Exit()
