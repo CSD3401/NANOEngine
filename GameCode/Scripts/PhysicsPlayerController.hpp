@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 #include "Scripting/IScript.hpp"
 #include "Input/InputManager.hpp"
 #include "ExposedFieldRegistry.hpp"
 #include "Math/Vec3.hpp"
+#include "ECS/Components/Transform.hpp"
 #include <cmath>
 #include <Core/SpdLogger.hpp>
 #include <bitset>
@@ -13,6 +14,8 @@
 #define GLFW_KEY_LEFT 263
 #define GLFW_KEY_RIGHT 262
 #define GLFW_KEY_SPACE 32
+#define GLFW_KEY_X 88  // Toggle forward raycast detection
+#define GLFW_KEY_Z 90  // Interaction key
 
 
 /**
@@ -22,6 +25,7 @@
  * 3. Jumping with physics
  * 4. Slope stability - stays still on slopes when not moving
  * 5. Kinematic positioning when grounded (no velocity sinking)
+ * 6. Forward raycast detection for interaction/targeting
  */
 class PhysicsPlayerController : public IScript {
 public:
@@ -36,6 +40,16 @@ public:
 		REGISTER_FIELD(raycastOriginOffset);
 		REGISTER_FIELD(maxSlopeAngle);
 		REGISTER_FIELD(groundSnapDistance);
+
+		// Forward raycast fields
+		REGISTER_FIELD(enableForwardRaycast);
+		REGISTER_FIELD(forwardRaycastDistance);
+		REGISTER_FIELD(forwardRaycastHeightOffset);
+		REGISTER_FIELD(forwardRaycastStartOffset);
+		REGISTER_FIELD(targetHeightOffset);
+		REGISTER_FIELD(continuousForwardCheck);
+		REGISTER_FIELD(highlightScaleMultiplier);
+		REGISTER_FIELD(debugRaycastInfo);
 	}
 
 	~PhysicsPlayerController() override = default;
@@ -62,6 +76,11 @@ public:
 
 		SPD_INFO("PhysicsPlayerController started for entity " << GetEntity());
 		SPD_INFO("Physics gravity disabled - using manual gravity + kinematic grounding");
+
+		if (enableForwardRaycast) {
+			SPD_INFO("Forward raycast detection enabled - Press E to interact");
+			SPD_INFO("Raycast distance: " << forwardRaycastDistance << " units");
+		}
 	}
 
 	void Update(double deltaTime) override {
@@ -73,24 +92,29 @@ public:
 		// 1. GROUND CHECK - Using RAYCAST for accurate detection
 		GroundCheckResult groundCheck = CheckGroundWithNormal();
 
-		SPD_INFO("=== FRAME START ===");
-		SPD_INFO("IsGrounded: " << groundCheck.isGrounded
-			<< " | SlopeAngle: " << groundCheck.slopeAngle
-			<< " | OnSlope: " << groundCheck.isOnSlope);
-
 		// 2. Get current velocity
 		NE::Math::Vec3 velocity = GetVelocity();
-		SPD_INFO("Current velocity: (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")");
 
 		// DEBUG: Check if gravity is actually disabled
 		bool gravityEnabled = GetUseGravity();
-		SPD_INFO("Rigidbody useGravity flag: " << gravityEnabled);
 
 		// 3. JUMPING - Check if we should jump
 		bool attemptingJump = HandleJump(velocity, groundCheck.isGrounded);
 
 		// 4. MOVEMENT & GRAVITY
 		HandleMovementAndGravity(velocity, deltaTime, attemptingJump, groundCheck);
+
+		// 5. TOGGLE FORWARD RAYCAST DETECTION
+		if (NE::InputManager::WasKeyPressed(GLFW_KEY_X))
+		{
+			enableForwardRaycast = !enableForwardRaycast;
+			SPD_INFO("enableForwardRaycast :" << enableForwardRaycast);
+		}
+
+		// 6. FORWARD RAYCAST DETECTION
+		if (enableForwardRaycast) {
+			HandleForwardDetection();
+		}
 	}
 
 	void OnDestroy() override {}
@@ -171,6 +195,229 @@ private:
 		return (hit.hasHit && hit.distance <= ceilingCheckDistance);
 	}
 
+	// ========================================
+	// FORWARD RAYCAST DETECTION (FIXED!)
+	// ========================================
+
+	/**
+	 * Calculate the forward direction vector from the player's rotation.
+	 * FIXED: Now properly calculates forward based on rotation
+	 */
+	NE::Math::Vec3 GetForwardVector() const {
+		NE::Math::Vec3 rotation = GetRotation(); // (pitch, yaw, roll)
+
+		// Convert degrees to radians
+		float pitch = rotation.x * (3.14159265f / 180.0f);
+		float yaw = rotation.y * (3.14159265f / 180.0f);
+
+		// Calculate forward vector from Euler angles
+		NE::Math::Vec3 forward;
+		forward.x = std::cos(pitch) * std::sin(yaw);
+		forward.y = -std::sin(pitch);
+		forward.z = -std::cos(pitch) * std::cos(yaw);
+
+		// Normalize to get unit vector
+		float length = std::sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
+		if (length > 0.0001f) {
+			forward.x /= length;
+			forward.y /= length;
+			forward.z /= length;
+		}
+
+		return forward;
+	}
+
+	/**
+	 * Perform forward raycast to detect what the player is looking at.
+	 * FIXED VERSION with proper offset and debug info
+	 */
+	void HandleForwardDetection() {
+		// Continuous check every frame
+		if (continuousForwardCheck) {
+			PerformForwardRaycast(false); // Don't spam console
+		}
+
+		// Manual check when pressing E
+		if (NE::InputManager::WasKeyPressed(GLFW_KEY_Z)) {
+			SPD_INFO("E pressed - Performing forward raycast...");
+			PerformForwardRaycast(true); // Show detailed info
+
+			// If we hit something, trigger interaction
+			if (m_lookingAtEntity != 0) {
+				OnInteractWithEntity(m_lookingAtEntity);
+			}
+			else {
+				SPD_WARNING("No entity detected in front!");
+			}
+		}
+	}
+
+	/**
+	 * Perform the actual forward raycast.
+	 * FIXED: Proper forward offset and adjustable target height
+	 */
+	void PerformForwardRaycast(bool verbose) {
+		// Get player position
+		NE::Math::Vec3 playerPos = GetPosition();
+
+		// Get forward direction
+		NE::Math::Vec3 forward = GetForwardVector();
+
+		// Create MULTIPLE raycasts at different heights to increase hit chances
+		// This ensures we can hit objects even if they're at different Y positions
+		std::vector<float> heightOffsets = {
+			forwardRaycastHeightOffset,          // Eye level (default)
+			forwardRaycastHeightOffset + 0.5f,   // Above
+			forwardRaycastHeightOffset - 0.5f,   // Below
+			targetHeightOffset                    // Custom target height
+		};
+
+		bool foundHit = false;
+		IScript::RaycastHit bestHit;
+		float closestDistance = forwardRaycastDistance + 1.0f;
+
+		// Try raycasts at different heights
+		for (float heightOffset : heightOffsets) {
+			NE::Math::Vec3 origin = playerPos;
+			origin.y += heightOffset;
+
+			// FIXED: Offset along the FORWARD DIRECTION, not just X axis!
+			// This prevents the raycast from starting inside the player collider
+			origin = origin + forward * forwardRaycastStartOffset;
+
+			// Debug output for first raycast
+			if (verbose && heightOffset == forwardRaycastHeightOffset) {
+				SPD_INFO("═══════════════════════════════════════");
+				SPD_INFO("RAYCAST DEBUG INFO:");
+				SPD_INFO("Player Position: (" << playerPos.x << ", " << playerPos.y << ", " << playerPos.z << ")");
+				SPD_INFO("Player Rotation: (" << GetRotation().x << ", " << GetRotation().y << ", " << GetRotation().z << ")");
+				SPD_INFO("Forward Vector: (" << forward.x << ", " << forward.y << ", " << forward.z << ")");
+				SPD_INFO("Raycast Origin: (" << origin.x << ", " << origin.y << ", " << origin.z << ")");
+				SPD_INFO("Max Distance: " << forwardRaycastDistance);
+				SPD_INFO("═══════════════════════════════════════");
+			}
+
+			// Perform raycast
+			uint32_t layerMask = 0xFFFFFFFF;  // Check all layers
+			IScript::RaycastHit hit = Raycast(origin, forward, forwardRaycastDistance, layerMask);
+
+			// IMPORTANT: Ignore hits on ourselves!
+			if (hit.hasHit && hit.entity == GetEntity()) {
+				// We hit ourselves, try a second raycast starting further forward
+				NE::Math::Vec3 newOrigin = origin + forward * (forwardRaycastStartOffset + 0.5f);
+				hit = Raycast(newOrigin, forward, forwardRaycastDistance - forwardRaycastStartOffset - 0.5f, layerMask);
+			}
+
+			// Keep the closest hit
+			if (hit.hasHit && hit.distance < closestDistance) {
+				foundHit = true;
+				bestHit = hit;
+				closestDistance = hit.distance;
+			}
+		}
+
+		// Update what we're looking at
+		NE::ECS::Entity previousEntity = m_lookingAtEntity;
+		m_lookingAtEntity = foundHit ? bestHit.entity : 0;
+
+		// Entity changed - trigger callbacks
+		if (previousEntity != m_lookingAtEntity) {
+			if (previousEntity != 0) {
+				OnStopLookingAt(previousEntity);
+			}
+			if (m_lookingAtEntity != 0) {
+				OnStartLookingAt(m_lookingAtEntity);
+			}
+		}
+
+		// Verbose output when requested (e.g., pressing E)
+		if (verbose) {
+			if (foundHit) {
+				SPD_INFO("----------------------------------------");
+				SPD_INFO("     FORWARD RAYCAST HIT!            ");
+				SPD_INFO("----------------------------------------");
+				SPD_INFO("Hit Entity: " << bestHit.entity);
+				SPD_INFO("Distance: " << bestHit.distance << " units");
+				SPD_INFO("Hit Point: (" << bestHit.point.x << ", " << bestHit.point.y << ", " << bestHit.point.z << ")");
+				SPD_INFO("Surface Normal: (" << bestHit.normal.x << ", " << bestHit.normal.y << ", " << bestHit.normal.z << ")");
+				SPD_INFO("----------------------------------------");
+			}
+			else {
+				SPD_INFO("----------------------------------------");
+				SPD_INFO("Forward raycast: NO HIT");
+				SPD_INFO("Checked distance: " << forwardRaycastDistance << " units");
+				SPD_INFO("Try:");
+				SPD_INFO("  1. Increase 'forwardRaycastDistance' in Inspector");
+				SPD_INFO("  2. Adjust 'targetHeightOffset' to match target Y position");
+				SPD_INFO("  3. Make sure target has a collider");
+				SPD_INFO("----------------------------------------");
+			}
+		}
+
+		// Extra debug info if enabled
+		if (debugRaycastInfo && verbose) {
+			SPD_INFO("Debug: Tried " << heightOffsets.size() << " height offsets");
+			SPD_INFO("Debug: Forward direction magnitude: " <<
+				std::sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z));
+		}
+	}
+
+	/**
+	 * Called when player starts looking at an entity.
+	 */
+	void OnStartLookingAt(NE::ECS::Entity entity) {
+		if (debugRaycastInfo) {
+			SPD_INFO("Started looking at entity " << entity);
+		}
+
+		// Store original scale before modifying
+		if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Transform>(entity)) {
+			auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(entity);
+			m_originalScale = transform.scale;  // Remember original size
+
+			// Apply highlight scale
+			transform.scale = m_originalScale * highlightScaleMultiplier;
+			transform.isDirty = true;
+
+			SPD_INFO("Highlighting entity " << entity << " (scale: x" << highlightScaleMultiplier << ")");
+		}
+	}
+
+	/**
+	 * Called when player stops looking at an entity.
+	 */
+	void OnStopLookingAt(NE::ECS::Entity entity) {
+		if (debugRaycastInfo) {
+			SPD_INFO("Stopped looking at entity " << entity);
+		}
+
+		// Restore original scale
+		if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Transform>(entity)) {
+			auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(entity);
+			transform.scale = m_originalScale;  // Restore original size
+			transform.isDirty = true;
+
+			SPD_INFO("↩️  Restored entity " << entity << " to original scale");
+		}
+	}
+
+	/**
+	 * Called when player presses E while looking at an entity.
+	 */
+	void OnInteractWithEntity(NE::ECS::Entity entity) {
+		SPD_INFO("----------------------------------------");
+		SPD_INFO("|    INTERACTING WITH ENTITY!          |");
+		SPD_INFO("----------------------------------------");
+		SPD_INFO("Entity: " << entity);
+		SPD_INFO("----------------------------------------");
+
+		// Add your interaction code here
+	}
+
+	// ========================================
+	// END FORWARD RAYCAST DETECTION
+	// ========================================
+
 	void HandleMovementAndGravity(NE::Math::Vec3& velocity, double deltaTime,
 		bool attemptingJump, const GroundCheckResult& groundCheck) {
 
@@ -208,20 +455,17 @@ private:
 
 		// === HORIZONTAL MOVEMENT ===
 		if (isMoving) {
-			// Player is trying to move - apply input velocity
 			newVelocity.x = inputDirection.x * moveSpeed;
 			newVelocity.z = inputDirection.z * moveSpeed;
-			SPD_INFO("Moving: velocity XZ = (" << newVelocity.x << ", " << newVelocity.z << ")");
 		}
 		else if (groundCheck.isGrounded) {
-			// Player is NOT moving AND grounded - apply friction
+			// Apply friction
 			float horizontalSpeed = std::sqrt(
 				newVelocity.x * newVelocity.x +
 				newVelocity.z * newVelocity.z
 			);
 
 			if (horizontalSpeed > 0.01f) {
-				// Apply friction force
 				float frictionForce = frictionCoefficient * static_cast<float>(deltaTime) * 100.0f;
 				float speedReduction = std::min(frictionForce, horizontalSpeed);
 
@@ -231,67 +475,46 @@ private:
 				newVelocity.x *= factor;
 				newVelocity.z *= factor;
 
-				// Full stop if very slow
 				if (std::abs(newVelocity.x) < 0.01f) newVelocity.x = 0.0f;
 				if (std::abs(newVelocity.z) < 0.01f) newVelocity.z = 0.0f;
 			}
 		}
 
-		// === VERTICAL MOVEMENT (GRAVITY & JUMPING) ===
+		// === VERTICAL MOVEMENT ===
 		if (groundCheck.isGrounded) {
-			// === GROUNDED STATE ===
 			if (attemptingJump) {
-				// JUMPING - Apply upward velocity
-				newVelocity.y = jumpForce / 70.0f; // Divide by mass
-				SPD_INFO("JUMPING! Applied Y velocity: " << newVelocity.y);
+				newVelocity.y = jumpForce / 70.0f;
 			}
 			else {
-				// NOT JUMPING - This is the critical fix for slope stability
-				// OPTION 1: Zero velocity (let collision keep us on ground)
 				newVelocity.y = 0.0f;
 
-				// OPTION 2: Snap to ground position (kinematic approach)
-				// If player is slightly above ground, teleport them down
 				if (groundCheck.distance > 0.01f && groundCheck.distance < groundSnapDistance) {
 					NE::Math::Vec3 currentPos = GetPosition();
-					// Snap to ground surface
-					float snapAmount = groundCheck.distance - 0.01f; // Leave tiny gap
+					float snapAmount = groundCheck.distance - 0.01f;
 					currentPos.y -= snapAmount;
 					SetPosition(currentPos);
-					SPD_INFO("Snapped to ground by " << snapAmount << " units");
 				}
-
-				SPD_INFO("Grounded & not jumping: Y velocity = 0");
 			}
 		}
 		else {
-			// === IN AIR STATE ===
-			// Apply manual gravity
 			newVelocity.y += manualGravity * static_cast<float>(deltaTime);
-			SPD_INFO("In air: Applying gravity | New Y velocity: " << newVelocity.y);
 		}
 
-		// Apply the new velocity
 		SetVelocity(newVelocity);
-
-		SPD_INFO("Final velocity: (" << newVelocity.x << ", "
-			<< newVelocity.y << ", " << newVelocity.z << ")");
 	}
 
 	bool HandleJump(NE::Math::Vec3& velocity, bool isGrounded) {
-		// Jump when space pressed and on ground
 		if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
 			if (isGrounded && !m_hasJumpedThisFrame && !IsCeilingAbove()) {
 				SPD_INFO("Jump input registered!");
 				m_hasJumpedThisFrame = true;
-				return true; // Signal to apply jump velocity
+				return true;
 			}
 			else if (isGrounded && IsCeilingAbove()) {
 				SPD_WARNING("Cannot jump - ceiling too low!");
 			}
 		}
 
-		// Reset jump flag when space is released
 		if (!NE::InputManager::IsKeyDown(GLFW_KEY_SPACE)) {
 			m_hasJumpedThisFrame = false;
 		}
@@ -300,18 +523,32 @@ private:
 	}
 
 	// === EDITABLE PARAMETERS ===
-	float moveSpeed = 5.0f;              // Horizontal movement speed
-	float jumpForce = 400.0f;            // Jump impulse force
-	float groundCheckDistance = 0.1f;    // How far to check for ground (small = more accurate)
-	float ceilingCheckDistance = 0.5f;   // How far to check for ceiling
-	float manualGravity = -9.81f;        // Manual gravity (negative = downward)
-	float frictionCoefficient = 20.0f;   // Friction when standing still
-	float raycastOriginOffset = 1.0f;    // Collider half-height
-	float maxSlopeAngle = 45.0f;         // Maximum walkable slope angle
-	float groundSnapDistance = 0.1f;     // Max distance to snap to ground
+
+	// Movement parameters
+	float moveSpeed = 5.0f;
+	float jumpForce = 400.0f;
+	float groundCheckDistance = 0.5f;     // INCREASED for better detection
+	float ceilingCheckDistance = 0.5f;
+	float manualGravity = -9.81f;
+	float frictionCoefficient = 20.0f;
+	float raycastOriginOffset = 1.0f;
+	float maxSlopeAngle = 45.0f;
+	float groundSnapDistance = 0.1f;
+
+	// Forward raycast parameters (IMPROVED!)
+	bool enableForwardRaycast = true;
+	float forwardRaycastDistance = 10.0f;      // INCREASED from 5.0 to 10.0
+	float forwardRaycastHeightOffset = 0.5f;   // Eye level
+	float forwardRaycastStartOffset = 1.5f;    // NEW: How far forward to start raycast (prevents self-hit)
+	float targetHeightOffset = 1.0f;           // NEW: Custom height for hitting objects
+	bool continuousForwardCheck = true;
+	float highlightScaleMultiplier = 1.2f;     // NEW: How much to scale up when looking at entity (1.2 = 20% bigger)
+	bool debugRaycastInfo = true;              // NEW: Enable debug output
 
 	// Internal state
 	bool m_hasJumpedThisFrame = false;
+	NE::ECS::Entity m_lookingAtEntity = 0;
+	NE::Math::Vec3 m_originalScale = { 1.0f, 1.0f, 1.0f };  // NEW: Store original scale for restoration
 
 	// Field registry for editor
 	ExposedFieldRegistry m_fields;
