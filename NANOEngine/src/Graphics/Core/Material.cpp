@@ -206,7 +206,11 @@ namespace NE::Graphics {
                         SetUniformMat4(uName, m);
                     }
                 } else if (value.IsString()) {
-                    SetTexture(uName, Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(value.GetString()));
+                    //if (value.GetString() != "")
+                    //    SetTexture(uName, Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(value.GetString()));
+                    std::string_view str = value.GetString();
+                    if (!str.empty())
+                        SetTexture(uName, Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(std::string(str)));
                 }
             }
         }
