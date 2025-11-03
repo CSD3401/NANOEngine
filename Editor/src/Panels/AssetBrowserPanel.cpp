@@ -7,6 +7,8 @@
 #include <Utility/MetadataHandler.hpp>
 #include <Core/SpdLogger.hpp>
 #include <fstream>
+#include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
@@ -448,57 +450,52 @@ namespace Editor {
     void AssetBrowserPanel::CreateNewMaterial() {
         namespace fs = std::filesystem;
 
-        try {
-            // 1) Decide where to place the file
-            fs::path targetDir = m_currentDirectory;               // assumes you already track this
-            if (targetDir.empty()) targetDir = fs::current_path();  // fallback, just in case
-            if (!fs::exists(targetDir)) fs::create_directories(targetDir);
+        // 1) decide where to put it — assuming you have a "current folder" in the browser
+        fs::path targetDir = m_currentDirectory;   // adjust to whatever your panel uses
+        if (!fs::exists(targetDir))
+            return;
 
-            // 2) Pick a unique filename
-            const std::string baseName = "NewShader";
-            fs::path outPath = targetDir / (baseName + ".nanoshader");
-            int counter = 1;
-            while (fs::exists(outPath)) {
-                outPath = targetDir / (baseName + " (" + std::to_string(counter++) + ").nanoshader");
-            }
+        // 2) make a unique name
+        static int s_MatCounter = 1;
+        fs::path matPath;
+        do {
+            matPath = targetDir / ("NewMaterial_" + std::to_string(s_MatCounter++) + ".nanomat");
+        } while (fs::exists(matPath));
 
-            // 3) JSON preset content (exactly as requested)
-            static constexpr const char* kPreset = R"({
-    "Shader": "Unlit",
-    "DepthTest": true,
-    "BlendMode": true,
-    "CullMode": 1029,
-    "PolygonMode": 6914,
-    "Properties": {
-        "u_BaseColor": [
-            0.0,
-            0.5,
-            1.0
-        ]
-    }
-}
-)";
+        // 3) build the JSON in the exact format your Material::LoadFromFile expects
+        rapidjson::Document doc;
+        doc.SetObject();
+        auto& alloc = doc.GetAllocator();
 
-            // 4) Write file
-            std::ofstream ofs(outPath, std::ios::out | std::ios::trunc);
-            if (!ofs) {
-                // Replace with your logger if different
-                SPD_WARNING(std::string("Failed to create file: ") + outPath.string());
-                return;
-            }
-            ofs << kPreset;
-            ofs.close();
+        // default shader — you can change this to "Basic" or whatever your engine ships with
+        doc.AddMember("Shader", rapidjson::Value("Unlit", alloc), alloc);
 
-            // 5) (Optional) Notify / refresh selection
-            SPD_INFO(std::string("Created shader preset: ") + outPath.string());
-            // If you have such methods, you can refresh the panel / select the new file here:
-            // RefreshDirectoryListing();
-            // m_selectedPath = outPath;
-            // m_clickedOnItem = true;
+        // pipeline settings (these match what your material save/load uses)
+        doc.AddMember("DepthTest", true, alloc);
+        doc.AddMember("BlendMode", true, alloc);
 
-        } catch (const std::exception& e) {
-            SPD_WARNING(std::string("CreateNewMaterial() error: ") + e.what());
+        // these numbers are exactly the ones your material code saved earlier:
+        // 1029  -> GL_BACK
+        // 6914  -> GL_FILL
+        doc.AddMember("CullMode", 1029, alloc);
+        doc.AddMember("PolygonMode", 6914, alloc);
+
+        // empty properties for now — when the material is opened in inspector,
+        // and user changes values, you can overwrite this.
+        rapidjson::Value props(rapidjson::kObjectType);
+        doc.AddMember("Properties", props, alloc);
+
+        // 4) write to disk
+        rapidjson::StringBuffer buffer;
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+        doc.Accept(writer);
+
+        std::ofstream out(matPath);
+        if (out.is_open()) {
+            out << buffer.GetString();
+            out.close();
         }
+
     }
     
 }
