@@ -3,7 +3,7 @@
 #include "../ECS/Core/ECSCoordinator.hpp"
 
 namespace NE::SceneManagement {
-	enum class RenderPass { Main, Picking };
+	enum class RenderPass { SCENE, SCENE_PICKING, GAME };
 
 	class Scene {
 	public:

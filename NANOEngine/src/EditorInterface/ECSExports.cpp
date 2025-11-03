@@ -8,6 +8,7 @@
 #include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/NativeScript.hpp"
+#include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
@@ -67,6 +68,10 @@ namespace NE::ECS {
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
+		
+		const Component::Camera& GetEntityCamera(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
+		}
 	}
 
 	namespace Command {
@@ -107,6 +112,12 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{});
 		}
 
+		void AddCameraComponent(uint32_t e) {
+			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Camera>(e))
+				return;
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
+		}
+
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -137,6 +148,10 @@ namespace NE::ECS {
 		
 		Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
+		}
+
+		Component::Camera& GetEntityCamera(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
 		// === Script Management Implementation ===

@@ -59,10 +59,10 @@ namespace NE::Graphics {
         m_Mat4Uniforms[uName] = value;
     }
 
-    //void Material::SetTexture(const std::string& uName, std::shared_ptr<OpenGL::GLTexture> texture) {
-    //    m_Textures[uName] = std::move(texture);
-    //    m_Textures[uName]->MakeResident();
-    //}
+    void Material::SetTexture(const std::string& uName, std::shared_ptr<OpenGL::GLTexture> texture) {
+        m_Textures[uName] = std::move(texture);
+        m_Textures[uName]->MakeResident();
+    }
 
     void Material::SetQueueBase(RenderQueue queue) {
 		m_BaseRQ = queue;
@@ -134,10 +134,10 @@ namespace NE::Graphics {
         //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
         // }
         // Textures (TBD SOON)
-         //for (const auto& [name, tex] : m_Textures) {
-         //    std::string uuid = tex ? tex->GetUUID() : "";
-         //    uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(uuid.c_str(), alloc).Move(), alloc);
-         //}
+        for (const auto& [name, tex] : m_Textures) {
+            std::string _uuid = tex ? tex->uuid : "";
+            uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(_uuid.c_str(), alloc).Move(), alloc);
+        }
 
         doc.AddMember("Properties", uniforms, alloc);
 
@@ -185,6 +185,8 @@ namespace NE::Graphics {
         m_Pipeline = Graphics::GetPipelineCache().GetOrCreate(pipelineSpec);
         //m_Pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec);
 
+        SetShader(shaderUUID);
+
         if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
             const auto& props = doc["Properties"];
             for (auto it = props.MemberBegin(); it != props.MemberEnd(); ++it) {
@@ -204,8 +206,7 @@ namespace NE::Graphics {
                         SetUniformMat4(uName, m);
                     }
                 } else if (value.IsString()) {
-                    // Texture serialization not yet done
-                    // mat->SetTexture(name, LoadTexture(value.GetString()));
+                    SetTexture(uName, Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLTexture>(value.GetString()));
                 }
             }
         }

@@ -102,7 +102,7 @@ namespace Editor {
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		NE::LoadStartupScene();
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
-		editorLayer.AddPanel<GamePanel>();
+		editorLayer.AddPanel<GamePanel>(NE::GetGameFrameBuffer());
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
