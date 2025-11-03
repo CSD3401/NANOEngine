@@ -85,6 +85,10 @@ namespace NE::Graphics {
         litBlinnPhong->LoadFromFile("Library/Shaders/Lit_BlinnPhong.nanoshader");
         Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litBlinnPhong, "Lit_BlinnPhong");
 
+        auto skinned = std::make_shared<OpenGL::GLShader>();
+        skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
+        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
+
         // Load Primitives
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");

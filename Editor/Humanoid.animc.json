@@ -1,0 +1,58 @@
+{
+    "name": "Humanoid",
+    "defaultState": 0,
+    "parameters": [
+        {
+            "name": "Speed",
+            "type": "Float",
+            "default": 0.0
+        },
+        {
+            "name": "Jump",
+            "type": "Trigger",
+            "default": false
+        }
+    ],
+    "states": [
+        {
+            "name": "Idle",
+            "clipId": "Assets/Animations/idle.neclip",
+            "speed": 1.0,
+            "transitions": [
+                {
+                    "to": 1,
+                    "hasExitTime": false,
+                    "exitTime": 0.0,
+                    "duration": 0.2,
+                    "conditions": [
+                        {
+                            "param": "Speed",
+                            "op": ">",
+                            "f": 0.1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Walk",
+            "clipId": "Assets/Animations/walk.neclip",
+            "speed": 1.0,
+            "transitions": [
+                {
+                    "to": 0,
+                    "hasExitTime": false,
+                    "exitTime": 0.0,
+                    "duration": 0.2,
+                    "conditions": [
+                        {
+                            "param": "Speed",
+                            "op": "<",
+                            "f": 0.05
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

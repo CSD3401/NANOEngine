@@ -79,8 +79,7 @@ namespace NE::ECS::Systems {
         pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
     }
 
-    void RenderSystem::Update(double) 
-    {
+    void RenderSystem::Update(double deltaTime) {
 		NE_PROFILE_FUNCTION();
 
         FrustumCulling();
@@ -116,7 +115,16 @@ namespace NE::ECS::Systems {
                 //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
                 //cmd.material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
                 //cmd.material->SetUniformFloat("u_Material.shininess", 32.0f);
+                if (renderer.model && renderer.model->HasSkeleton()) {
+                    // advance time (dt variable is available in Update)
+                    renderer.model->UpdateAnimation(deltaTime);
 
+                    // upload bones to the material (Material::Bind will push them to the shader)
+                    const auto& bones = renderer.model->GetBoneMatrices();
+                    if (!bones.empty()) {
+                        renderer.material->SetUniformMat4Array("u_Bones", bones);
+                    }
+                }
 				Graphics::GraphicsManager::Submit(cmd);
 
                 // Object picking

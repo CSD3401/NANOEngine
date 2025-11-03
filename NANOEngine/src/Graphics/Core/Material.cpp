@@ -9,7 +9,7 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "PipelineCache.hpp"
 #include <glad/glad.h>
-
+#include <vector>
 namespace {
     static bool IsEngineUniform(std::string_view n) {
         return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
@@ -27,11 +27,16 @@ namespace {
         default: return false;
         }
     }
+    std::unordered_map<std::string, std::vector<NE::Math::Mat4>> m_Mat4ArrayUniforms;
 }
 
 #include <iostream>
 
 namespace NE::Graphics {
+
+    void Material::SetUniformMat4Array(const std::string& name, const std::vector<Mat4>& values) {
+        m_Mat4ArrayUniforms[name] = values;
+    }
 
     Material::Material(std::shared_ptr<IPipeline> pipeline)
         : m_Pipeline(std::move(pipeline)) {}
@@ -80,12 +85,17 @@ namespace NE::Graphics {
         for (const auto& [uName, val] : m_IntUniforms)
             shader->SetUniformInt(uName, val);
 
+        for (const auto& [name, mats] : m_Mat4ArrayUniforms) {
+            shader->SetUniformMat4Array(name, mats.data(), static_cast<int>(mats.size()));
+        }
+
         for (auto& [uName, tex] : m_Textures) {
             if (!tex) continue;
             //tex->MakeResident();
             uint64_t h = tex->GetBindlessHandle();
             shader->SetUniformHandle(uName, h);
         }
+
     }
 
     // Fix for AddMember issue in SaveMaterial method

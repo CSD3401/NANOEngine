@@ -1,4 +1,4 @@
-#include "Application.hpp"
+	#include "Application.hpp"
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
@@ -24,6 +24,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image\stb_image.h>
 #include <Input/InputManager.hpp>
+#include "Panels/AnimationPanel.hpp"
+#include "Panels/AnimationRuntimePanel.hpp"
+#include "Panels/AnimationGraphPanel.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -104,6 +107,10 @@ namespace Editor {
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
+		editorLayer.AddPanel<AnimationPanel>();		
+		editorLayer.AddPanel<AnimatorRuntimePanel>();
+		editorLayer.AddPanel<AnimatorGraphPanel>();
+
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
 

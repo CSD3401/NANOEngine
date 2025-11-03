@@ -30,6 +30,7 @@ namespace NE::Graphics {
         virtual void SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) = 0;
 
 		virtual const std::string_view GetUUID() const = 0;
+        virtual void SetUniformMat4Array(const std::string& name, const NE::Math::Mat4* data, int count) = 0;
     };
 
 }

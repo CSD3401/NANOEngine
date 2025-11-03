@@ -164,6 +164,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\EditorUI.cpp" />
+    <ClCompile Include="src\Panels\AnimationGraphPanel.cpp" />
+    <ClCompile Include="src\Panels\AnimationPanel.cpp" />
+    <ClCompile Include="src\Panels\AnimationRuntimePanel.cpp" />
     <ClCompile Include="src\Panels\HistoryPanel.cpp" />
     <ClCompile Include="src\EditorScene.cpp" />
     <ClCompile Include="src\Command\CommandHistory.cpp" />
@@ -198,6 +201,9 @@
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
+    <ClInclude Include="src\Panels\AnimationGraphPanel.hpp" />
+    <ClInclude Include="src\Panels\AnimationPanel.hpp" />
+    <ClInclude Include="src\Panels\AnimationRuntimePanel.hpp" />
     <ClInclude Include="src\Panels\HistoryPanel.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />
     <ClInclude Include="src\Command\CommandHistory.hpp" />

@@ -7,6 +7,9 @@
 #include "../ECS/Systems/RigidbodySystem.hpp"
 #include "../ECS/Systems/ColliderSystem.hpp"
 #include "../ECS/Systems/AudioSystem.hpp"
+#include "../ECS/Systems/AnimatorSystem.hpp"
+#include "../Animation/TransformClipIO.hpp"
+#include <filesystem>
 #include "../ECS/Systems/CameraSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
@@ -15,7 +18,20 @@
 #include "Core/Couroutine.hpp"
 #include <iostream>
 
-
+static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
+	namespace fs = std::filesystem;
+	const char* root = "Assets/Animations";
+	if (!fs::exists(root)) return;
+	for (auto& e : fs::recursive_directory_iterator(root)) {
+		if (e.path().extension() == ".neclip") {
+			auto clip = std::make_shared<NE::Animation::TransformClip>();
+			if (NE::Animation::LoadTransformClip(*clip, e.path().string())) {
+				// Use the file path as the registry key
+				sys->RegisterClip(e.path().string(), clip);
+			}
+		}
+	}
+}
 namespace NE::SceneManagement {
 
 	void Scene::Init() {
@@ -28,6 +44,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
+		m_ecsCoordinator.m_animatorSystem->Init();
+		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
 
 	}
 
@@ -46,6 +64,7 @@ namespace NE::SceneManagement {
 #pragma endregion
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
+		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
 	}
 
@@ -77,7 +96,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
-		m_ecsCoordinator.m_scriptSystem->Exit();	
+		m_ecsCoordinator.m_scriptSystem->Exit();
+		m_ecsCoordinator.m_animatorSystem->Exit();
 	}
 
 	void Scene::ScriptStart() {
