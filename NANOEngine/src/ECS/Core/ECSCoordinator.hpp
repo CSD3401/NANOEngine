@@ -11,6 +11,7 @@ namespace NE::ECS::Systems {
     class ColliderSystem; 
     class AudioSystem;
 	class ScriptSystem;
+    class UIRenderSystem;
 }
 
 namespace NE::ECS {
@@ -103,6 +104,7 @@ namespace NE::ECS {
         std::shared_ptr<Systems::ColliderSystem> m_colliderSystem;
         std::shared_ptr<Systems::AudioSystem> m_audioSystem;
 		std::shared_ptr<Systems::ScriptSystem> m_scriptSystem;
+		std::shared_ptr<Systems::UIRenderSystem> m_uiRenderSystem;
 
     private:
 

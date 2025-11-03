@@ -8,6 +8,8 @@
 #include "../Components/EntityMeta.hpp"
 #include "../Components/AudioSource.hpp"
 #include "../Components/NativeScript.hpp"
+#include "../Components/UIRectTransform.hpp"
+#include "../Components/UIImage.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -16,6 +18,7 @@
 #include "../Systems/ColliderSystem.hpp"
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
+#include "../Systems/UIRenderSystem.hpp"
 
 
 namespace NE::ECS {
@@ -34,7 +37,8 @@ namespace NE::ECS {
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
         RegisterComponent<Component::NativeScript>();
-        
+        RegisterComponent<Component::UIRectTransform>();
+        RegisterComponent<Component::UIImage>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -83,6 +87,14 @@ namespace NE::ECS {
 			sig.set(GetComponentType<Component::NativeScript>());
 			SetSystemSignature<Systems::ScriptSystem>(sig);
 		}
+
+        m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
+            sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIImage>());
+            SetSystemSignature<Systems::UIRenderSystem>(sig);
+        }
     }
 
     Entity ECSCoordinator::CreateEntity() {

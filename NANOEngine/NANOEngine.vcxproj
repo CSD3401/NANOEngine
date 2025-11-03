@@ -20,6 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
+    <ClInclude Include="src\ECS\Components\UIImage.hpp" />
+    <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
+    <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
@@ -27,6 +30,8 @@
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
     <ClInclude Include="src\Graphics\Core\PipelineData.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderQueue.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIDrawCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIRenderer.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IStateCache.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLStateCache.hpp" />
     <ClInclude Include="src\Core\SpdLoggerInternal.hpp" />
@@ -128,9 +133,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Couroutine.cpp" />
+    <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
+    <ClCompile Include="src\Graphics\Core\UIRenderer.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
     <ClCompile Include="src\Core\SpdLogger.cpp" />
     <ClCompile Include="src\ResourceManager.cpp" />

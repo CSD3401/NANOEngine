@@ -18,6 +18,9 @@ namespace NE::SceneManagement {
 
 		ECS::ECSCoordinator& GetECSCoordinator();
 
+		// temp
+		void CreateTestUI();
+
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
 	};

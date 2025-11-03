@@ -14,6 +14,7 @@
 #include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
+#include "UIRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include <GL/gl.h>
 
@@ -28,7 +29,6 @@ namespace NE::Graphics {
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 
-
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
     std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
     std::vector<float> GraphicsManager::s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
@@ -39,6 +39,7 @@ namespace NE::Graphics {
 	bool GraphicsManager::enableSorting = true;
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
+
 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -79,6 +80,14 @@ namespace NE::Graphics {
 
         // temp
         //InitDebugLines();
+
+        // initialize UI renderer
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
+        uint32_t width = static_cast<uint32_t>(viewport[2]);
+        uint32_t height = static_cast<uint32_t>(viewport[3]);
+
+        UIRenderer::Init(width, height);
     }
 
     void GraphicsManager::BeginFrame() {
@@ -191,6 +200,7 @@ namespace NE::Graphics {
         s_DebugTriangles.shrink_to_fit();
         s_DebugVertexBuffer.shrink_to_fit();
 
+        UIRenderer::Shutdown();
         NE::Graphics::GizmosRenderer::Cleanup();
     }
 
@@ -525,4 +535,10 @@ namespace NE::Graphics {
         s_DebugTriangles.clear();
     }
 
+    void GraphicsManager::DrawUI() {
+        UIRenderer::BeginFrame();
+        UIRenderer::DrawFrame();
+        UIRenderer::EndFrame();
+        UIRenderer::Composite();
+    }
 }

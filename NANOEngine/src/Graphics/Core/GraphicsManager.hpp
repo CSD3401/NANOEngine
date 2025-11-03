@@ -62,6 +62,10 @@ namespace NE::Graphics {
         static void AddDebugTrianglesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);
         static void DrawAllDebugGeometry();
 
+        // UI
+        static void DrawUI();
+
+        // lights
         static std::vector<ECS::Component::Light*> m_lights;
 
         // Draw Count Profiling
@@ -91,7 +95,5 @@ namespace NE::Graphics {
 
 		// Draw Queue
 		static std::unique_ptr<DrawQueue> s_DrawQueue;
-
     };
-
 }

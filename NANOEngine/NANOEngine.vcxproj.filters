@@ -62,306 +62,123 @@
     <ClCompile Include="src\Core\SpdLogger.cpp" />
     <ClCompile Include="src\ResourceManager.cpp" />
     <ClCompile Include="src\Core\Couroutine.cpp" />
+    <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
+    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
+    <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\UIRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Core\Timer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\NANOEngineAPI.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\IRenderContext.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLContext.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Vulkan\VkContext.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Core\Logger.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Window.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\ICommandBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\IPipeline.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLCommandBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLPipeline.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLUtilities.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\IShader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Math\Vec4.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Math\Mat3.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Math\Mat4.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Math\Math.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Math\Vec2.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Math\Vec3.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLShader.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Material.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\ITexture.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLTexture.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\IVertexBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\IIndexBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\IGeometryBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLVertexBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLIndexBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLGeometryBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\GraphicsManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Interfaces\IFrameBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\OpenGL\GLFrameBuffer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\Signature.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\EntityManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Camera.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Vertex.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\Entity.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\Component.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\System.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\ComponentManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\SparseSet.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\ComponentPool.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\Renderer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\Transform.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\SystemManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Core\ECSCoordinator.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Systems\TransformSystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\SceneManagement\Scene.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\SceneManagement\SceneManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Systems\RenderSystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECSInternals.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Events\EventBus.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Skybox.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Core\Profiler.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Core\Reflection.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Model.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Systems\LightSystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Serialisation\ISceneSerializer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\Light.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Asset.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Utility\MetadataHandler.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\AssetManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\Name.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Primitives.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\Rigidbody.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\Collider.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Physics\PhysicsManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Physics\JoltDebugRenderer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EngineState.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Serialisation\ReflectionJson.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\EntityMeta.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorInterface\ECSExports.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorInterface\RendererExports.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Scripting\ScriptingEngine.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\NativeScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Scripting\IScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Core\SpdLogger.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Systems\AudioSystem.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\AudioSource.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\Frustum.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\ComponentKey.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Tween\Tween.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Tween\TweenBase.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Tween\TweenManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Scripting\IScriptRegistrar.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Input\InputManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Audio\AudioBank.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\PipelineCache.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ResourceManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp">
-          <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorInterface\PhysicsExports.hpp">
-          <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Core\SpdLoggerInternal.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Core\Couroutine.hpp" />
+    <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
+    <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
+    <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
+    <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
+    <ClInclude Include="src\Graphics\Core\PipelineData.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderQueue.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IStateCache.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLStateCache.hpp" />
+    <ClInclude Include="src\Core\SpdLoggerInternal.hpp" />
+    <ClInclude Include="src\ResourceManager.hpp" />
+    <ClInclude Include="src\Audio\AudioBank.hpp" />
+    <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
+    <ClInclude Include="src\Graphics\Core\PipelineCache.hpp" />
+    <ClInclude Include="src\Input\InputManager.hpp" />
+    <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
+    <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
+    <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
+    <ClInclude Include="src\Scripting\IScript.hpp" />
+    <ClInclude Include="src\ECS\Components\NativeScript.hpp" />
+    <ClInclude Include="src\Scripting\ScriptingEngine.hpp" />
+    <ClInclude Include="src\Core\SpdLogger.hpp" />
+    <ClInclude Include="src\ECS\Components\ComponentKey.hpp" />
+    <ClInclude Include="src\ECS\Components\EntityMeta.hpp" />
+    <ClInclude Include="src\ECS\Systems\AudioSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\ColliderSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\RigidbodySystem.hpp" />
+    <ClInclude Include="src\EditorInterface\ECSExports.hpp" />
+    <ClInclude Include="src\EditorInterface\RendererExports.hpp" />
+    <ClInclude Include="src\EngineState.hpp" />
+    <ClInclude Include="src\Graphics\Core\Frustum.hpp" />
+    <ClInclude Include="src\Physics\JoltDebugRenderer.hpp" />
+    <ClInclude Include="src\Physics\PhysicsManager.hpp" />
+    <ClInclude Include="src\ECS\Components\Collider.hpp" />
+    <ClInclude Include="src\ECS\Components\Rigidbody.hpp" />
+    <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
+    <ClInclude Include="src\Asset.hpp" />
+    <ClInclude Include="src\AssetManager.hpp" />
+    <ClInclude Include="src\Core\Profiler.hpp" />
+    <ClInclude Include="src\Core\Reflection.hpp" />
+    <ClInclude Include="src\ECSInternals.hpp" />
+    <ClInclude Include="src\ECS\Components\Light.hpp" />
+    <ClInclude Include="src\ECS\Components\Name.hpp" />
+    <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
+    <ClInclude Include="src\Graphics\Core\Model.hpp" />
+    <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
+    <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
+    <ClInclude Include="src\Events\EventBus.hpp" />
+    <ClInclude Include="src\SceneManagement\Scene.hpp" />
+    <ClInclude Include="src\SceneManagement\SceneManager.hpp" />
+    <ClInclude Include="src\ECS\Core\ECSCoordinator.hpp" />
+    <ClInclude Include="src\ECS\Components\Renderer.hpp" />
+    <ClInclude Include="src\ECS\Components\Transform.hpp" />
+    <ClInclude Include="src\ECS\Core\ComponentManager.hpp" />
+    <ClInclude Include="src\Graphics\Core\Camera.hpp" />
+    <ClInclude Include="src\Core\Logger.hpp" />
+    <ClInclude Include="src\Core\Timer.hpp" />
+    <ClInclude Include="src\Engine.hpp" />
+    <ClInclude Include="src\Graphics\Core\Vertex.hpp" />
+    <ClInclude Include="src\ECS\Core\Component.hpp" />
+    <ClInclude Include="src\ECS\Core\ComponentPool.hpp" />
+    <ClInclude Include="src\ECS\Core\Entity.hpp" />
+    <ClInclude Include="src\ECS\Core\EntityManager.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLFrameBuffer.hpp" />
+    <ClInclude Include="src\Graphics\Core\GraphicsManager.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IFrameBuffer.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLGeometryBuffer.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLIndexBuffer.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLVertexBuffer.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLTexture.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\ITexture.hpp" />
+    <ClInclude Include="src\Graphics\Core\Material.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLShader.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IShader.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLPipeline.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLCommandBuffer.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\ICommandBuffer.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IPipeline.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLContext.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IRenderContext.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLUtilities.hpp" />
+    <ClInclude Include="src\Graphics\Vulkan\VkContext.hpp" />
+    <ClInclude Include="src\Graphics\Core\Window.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IGeometryBuffer.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IIndexBuffer.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IVertexBuffer.hpp" />
+    <ClInclude Include="src\Math\Mat3.hpp" />
+    <ClInclude Include="src\Math\Mat4.hpp" />
+    <ClInclude Include="src\Math\Math.hpp" />
+    <ClInclude Include="src\Math\Vec2.hpp" />
+    <ClInclude Include="src\Math\Vec3.hpp" />
+    <ClInclude Include="src\Math\Vec4.hpp" />
+    <ClInclude Include="src\NANOEngineAPI.hpp" />
+    <ClInclude Include="src\ECS\Core\SparseSet.hpp" />
+    <ClInclude Include="src\ECS\Core\System.hpp" />
+    <ClInclude Include="src\ECS\Core\Signature.hpp" />
+    <ClInclude Include="src\ECS\Core\SystemManager.hpp" />
+    <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
+    <ClInclude Include="src\Serialisation\ISceneSerializer.hpp" />
+    <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
+    <ClInclude Include="src\Serialisation\ReflectionJson.hpp" />
+    <ClInclude Include="src\Tween\Tween.hpp" />
+    <ClInclude Include="src\Tween\TweenBase.hpp" />
+    <ClInclude Include="src\Tween\TweenManager.hpp" />
+    <ClInclude Include="src\Utility\MetadataHandler.hpp" />
+    <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
+    <ClInclude Include="src\ECS\Components\UIImage.hpp" />
+    <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIDrawCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIRenderer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -534,12 +351,6 @@
     </ClCompile>
     <ClCompile Include="src\ResourceManager.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp">
-          <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp">
-          <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Core\SpdLogger.cpp">
       <Filter>Source Files</Filter>
