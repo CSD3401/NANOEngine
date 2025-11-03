@@ -15,6 +15,8 @@
 #include "../Graphics/Core/Model.hpp"
 #include "../ECS/Components/ComponentKey.hpp"
 
+#include "ECS/Systems/ScriptSystem.hpp"
+
 // rapidjson
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>

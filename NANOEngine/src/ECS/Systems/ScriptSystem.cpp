@@ -159,6 +159,8 @@ namespace NE::ECS::Systems {
             m_sourceWatcher.reset();
         }
 
+        InitializeExistingScripts();
+
         SPD_INFO("ScriptSystem::Init() - Completed");
     }
 
@@ -174,6 +176,36 @@ namespace NE::ECS::Systems {
 
         SPD_INFO("Script system shutdown complete");
         scriptingEngine->Shutdown(); //tmp
+    }
+
+    // WOI WENGKONG IDK IF THIS IS HOW ITS SUPPOSED TO BE DONE HELP ME CHECK BUT IT WORKS FOR NOW
+    void ScriptSystem::InitializeExistingScripts() {
+        const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
+
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+
+            if (scriptingEngine && !nsc.ScriptName.empty()) {
+                nsc.CreateScript = scriptingEngine->GetScriptFactory(nsc.ScriptName);
+                nsc.DestroyScript = [](IScript* s) { delete s; };
+            }
+
+            if (nsc.CreateScript && !nsc.Instance) {
+                nsc.Instance = nsc.CreateScript();
+                nsc.Instance->LinkToEngine(m_componentManager);
+                nsc.Instance->SetEntity(entity);
+
+                nsc.Instance->Awake();
+                nsc.Instance->Initialize(entity);
+
+                RestoreSerializedFields(nsc);
+
+                nsc.Instance->SetEnabled(false);
+
+                SPD_INFO("Initialized existing script '" << nsc.ScriptName
+                    << "' for entity " << (int)entity << " during ScriptSystem::Init()");
+            }
+        }
     }
 
     void ScriptSystem::StartScripts()
