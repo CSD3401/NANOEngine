@@ -73,24 +73,32 @@ public:
 		// 1. GROUND CHECK - Using RAYCAST for accurate detection
 		GroundCheckResult groundCheck = CheckGroundWithNormal();
 
-		SPD_INFO("=== FRAME START ===");
-		SPD_INFO("IsGrounded: " << groundCheck.isGrounded
-			<< " | SlopeAngle: " << groundCheck.slopeAngle
-			<< " | OnSlope: " << groundCheck.isOnSlope);
+		//SPD_INFO("=== FRAME START ===");
+		//SPD_INFO("IsGrounded: " << groundCheck.isGrounded
+		//	<< " | SlopeAngle: " << groundCheck.slopeAngle
+		//	<< " | OnSlope: " << groundCheck.isOnSlope);
 
 		// 2. Get current velocity
 		NE::Math::Vec3 velocity = GetVelocity();
-		SPD_INFO("Current velocity: (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")");
+		//SPD_INFO("Current velocity: (" << velocity.x << ", " << velocity.y << ", " << velocity.z << ")");
 
 		// DEBUG: Check if gravity is actually disabled
 		bool gravityEnabled = GetUseGravity();
-		SPD_INFO("Rigidbody useGravity flag: " << gravityEnabled);
+		//SPD_INFO("Rigidbody useGravity flag: " << gravityEnabled);
 
 		// 3. JUMPING - Check if we should jump
 		bool attemptingJump = HandleJump(velocity, groundCheck.isGrounded);
 
 		// 4. MOVEMENT & GRAVITY
 		HandleMovementAndGravity(velocity, deltaTime, attemptingJump, groundCheck);
+	
+		if (NE::InputManager::WasKeyPressed('C'))
+		{
+			NANOEngine::Events::SendScriptEvent("TimeSwapNow", nullptr);
+
+			SPD_DEBUG("Timer started for Texture switching 5 seconds!");
+		}
+	
 	}
 
 	void OnDestroy() override {}
@@ -103,7 +111,7 @@ public:
 
 	// Collision events
 	void OnCollisionEnter(NE::ECS::Entity other) override {
-		SPD_INFO("Player collided with entity " << other);
+		//SPD_INFO("Player collided with entity " << other);
 	}
 
 	void OnCollisionExit(NE::ECS::Entity other) override {}
@@ -211,7 +219,7 @@ private:
 			// Player is trying to move - apply input velocity
 			newVelocity.x = inputDirection.x * moveSpeed;
 			newVelocity.z = inputDirection.z * moveSpeed;
-			SPD_INFO("Moving: velocity XZ = (" << newVelocity.x << ", " << newVelocity.z << ")");
+			//SPD_INFO("Moving: velocity XZ = (" << newVelocity.x << ", " << newVelocity.z << ")");
 		}
 		else if (groundCheck.isGrounded) {
 			// Player is NOT moving AND grounded - apply friction
@@ -243,7 +251,7 @@ private:
 			if (attemptingJump) {
 				// JUMPING - Apply upward velocity
 				newVelocity.y = jumpForce / 70.0f; // Divide by mass
-				SPD_INFO("JUMPING! Applied Y velocity: " << newVelocity.y);
+				//SPD_INFO("JUMPING! Applied Y velocity: " << newVelocity.y);
 			}
 			else {
 				// NOT JUMPING - This is the critical fix for slope stability
@@ -258,31 +266,31 @@ private:
 					float snapAmount = groundCheck.distance - 0.01f; // Leave tiny gap
 					currentPos.y -= snapAmount;
 					SetPosition(currentPos);
-					SPD_INFO("Snapped to ground by " << snapAmount << " units");
+					//SPD_INFO("Snapped to ground by " << snapAmount << " units");
 				}
 
-				SPD_INFO("Grounded & not jumping: Y velocity = 0");
+				//SPD_INFO("Grounded & not jumping: Y velocity = 0");
 			}
 		}
 		else {
 			// === IN AIR STATE ===
 			// Apply manual gravity
 			newVelocity.y += manualGravity * static_cast<float>(deltaTime);
-			SPD_INFO("In air: Applying gravity | New Y velocity: " << newVelocity.y);
+			//SPD_INFO("In air: Applying gravity | New Y velocity: " << newVelocity.y);
 		}
 
 		// Apply the new velocity
 		SetVelocity(newVelocity);
 
-		SPD_INFO("Final velocity: (" << newVelocity.x << ", "
-			<< newVelocity.y << ", " << newVelocity.z << ")");
+		//SPD_INFO("Final velocity: (" << newVelocity.x << ", "
+		//	<< newVelocity.y << ", " << newVelocity.z << ")");
 	}
 
 	bool HandleJump(NE::Math::Vec3& velocity, bool isGrounded) {
 		// Jump when space pressed and on ground
 		if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
 			if (isGrounded && !m_hasJumpedThisFrame && !IsCeilingAbove()) {
-				SPD_INFO("Jump input registered!");
+				//SPD_INFO("Jump input registered!");
 				m_hasJumpedThisFrame = true;
 				return true; // Signal to apply jump velocity
 			}

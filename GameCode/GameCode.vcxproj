@@ -177,6 +177,7 @@
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerScript.hpp" />
     <ClInclude Include="Scripts\TestScript.hpp" />
+    <ClInclude Include="Scripts\TextureSwitch.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
