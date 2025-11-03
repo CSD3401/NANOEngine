@@ -9,7 +9,7 @@ namespace NE::ECS::Component {
 		uint32_t bodyID;
 
 		float mass{ 1.0f };
-		uint8_t motionType = 2U;
+		uint8_t motionType = 2U;  // 0 = Static, 1 = Kinematic, 2 = Dynamic
 		bool useGravity = true;
 
 		// temp
@@ -19,6 +19,7 @@ namespace NE::ECS::Component {
 
 		NE_REFLECT_BEGIN(Rigidbody)
 			NE_REFLECT_FIELD(mass),
+			NE_REFLECT_FIELD(motionType),
 			NE_REFLECT_FIELD(useGravity),
 			NE_REFLECT_FIELD(isStatic),
 			NE_REFLECT_FIELD(initialVelocity)
