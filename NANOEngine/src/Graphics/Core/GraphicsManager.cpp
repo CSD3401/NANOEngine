@@ -197,7 +197,6 @@ namespace NE::Graphics {
     void GraphicsManager::EndFrame() 
     {
         s_DrawQueue->Clear();
-        s_PickingCommands.clear();
 		s_ActiveFrameBuffer->Unbind();
         s_CommandBuffer->EndRenderPass();
         s_CommandBuffer->End();

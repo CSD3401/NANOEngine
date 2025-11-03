@@ -63,7 +63,7 @@ namespace NE::SceneManagement {
 			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
 
 			Graphics::GraphicsManager::DrawFrame();
-
+			Graphics::GraphicsManager::s_PickingCommands.clear();
 			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
 			break;
 		}
