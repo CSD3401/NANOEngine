@@ -12,6 +12,7 @@
 // Include headers for all scripts you want to register
 #include "Scripts/PlayerScript.hpp"
 #include "Scripts/TestScript.hpp"
+#include "Scripts/TextureSwitch.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -34,6 +35,9 @@ extern "C" {
             return new TestScript();
             });
 
+        registrar->RegisterScript("TextureSwitch", []() -> IScript* {
+            return new TextureSwitch();
+            });
        
     }
 }

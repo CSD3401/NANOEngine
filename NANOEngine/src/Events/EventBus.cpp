@@ -18,8 +18,11 @@ namespace NANOEngine::Events {
         EventBus::Get().Dispatch(EventDomain::Script, e);
     }
 
-    NANOENGINE_API void RegisterScriptEventListener(const char* eventName, void(*callback)(void* data))
+    NANOENGINE_API void RegisterScriptEventListener(
+        const char* eventName,
+        std::function<void(void* data)> callback)
     {
+        using namespace NANOEngine::Events;
         EventBus::Get().Subscribe<ScriptEvent>(EventDomain::Script, [=](const ScriptEvent& e) {
             if (e.name == eventName)
                 callback(e.data);
