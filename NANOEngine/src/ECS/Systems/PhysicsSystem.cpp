@@ -179,16 +179,7 @@ namespace NE::ECS::Systems
 
                 if (NE::Physics::PhysicsManager::GetMotionType(bodyID) == JPH::EMotionType::Kinematic) {
                     auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-
-                    // In PLAY mode: Always sync kinematic bodies (allows manual movement for testing)
-                    // In EDITOR mode: Only sync if transform was marked dirty
-                    if (NE::GetEngineState() == EngineState::Play) {
-                        NE::Physics::PhysicsManager::SetTransform(bodyID, transform.position, transform.rotation);
-                    }
-                    else if (transform.isDirty) {
-                        NE::Physics::PhysicsManager::SetTransform(bodyID, transform.position, transform.rotation);
-                        transform.isDirty = false;
-                    }
+                    NE::Physics::PhysicsManager::SetTransform(bodyID, transform.position, transform.rotation);
                 }
             }
         }
@@ -205,16 +196,13 @@ namespace NE::ECS::Systems
         for (auto entity : entities) {
             if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
                 uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
-                JPH::EMotionType motionType = NE::Physics::PhysicsManager::GetMotionType(bodyID);
 
                 // ONLY sync DYNAMIC bodies (physics controls them)
-                // NEVER sync Static or Kinematic (transform controls them)
-                if (motionType == JPH::EMotionType::Dynamic) {
+                if (NE::Physics::PhysicsManager::GetMotionType(bodyID) == JPH::EMotionType::Dynamic) {
                     Math::Vec3 position, rotation;
                     NE::Physics::PhysicsManager::GetTransform(bodyID, position, rotation);
 
                     auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-
                     transform.position = position;
                     transform.rotation = rotation;
                     transform.isDirty = true;
@@ -329,21 +317,6 @@ namespace NE::ECS::Systems
         }
 
         uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
-        auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-
-        // Sync kinematic body transforms
-        JPH::EMotionType motionType = NE::Physics::PhysicsManager::GetMotionType(bodyID);
-        if (motionType == JPH::EMotionType::Kinematic) {
-            // In PLAY mode: Always sync (allows manual editing)
-            // In EDITOR mode: Only sync if dirty
-            if (NE::GetEngineState() == EngineState::Play) {
-                NE::Physics::PhysicsManager::SetTransform(bodyID, transform.position, transform.rotation);
-            }
-            else if (transform.isDirty) {
-                NE::Physics::PhysicsManager::SetTransform(bodyID, transform.position, transform.rotation);
-                transform.isDirty = false;
-            }
-        }
 
         if (m_componentManager->HasComponent<Component::Rigidbody>(entity)) {
             auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
@@ -358,32 +331,19 @@ namespace NE::ECS::Systems
             }
 
             if (currentMotionType != desiredMotionType) {
-                // CRITICAL FIX: When transitioning motion types, sync FROM physics body TO transform
-                // (Editor manipulates physics body directly, so we need to read its current position)
+                // When transitioning, sync FROM physics TO transform
                 Math::Vec3 currentPhysicsPos, currentPhysicsRot;
                 NE::Physics::PhysicsManager::GetTransform(bodyID, currentPhysicsPos, currentPhysicsRot);
 
-                printf("DEBUG: MOTION TYPE CHANGE for entity %d:\n", entity);
-                printf("  - From: %d To: %d\n", (int)currentMotionType, (int)desiredMotionType);
-                printf("  - Transform pos (OLD): (%.2f, %.2f, %.2f)\n",
-                    transform.position.x, transform.position.y, transform.position.z);
-                printf("  - Physics body pos: (%.2f, %.2f, %.2f)\n",
-                    currentPhysicsPos.x, currentPhysicsPos.y, currentPhysicsPos.z);
-
-                // Update transform to match physics body (in case editor moved it)
+                auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
                 transform.position = currentPhysicsPos;
                 transform.rotation = currentPhysicsRot;
 
-                printf("  - Transform pos (NEW): (%.2f, %.2f, %.2f)\n",
-                    transform.position.x, transform.position.y, transform.position.z);
-
-                // Now change motion type (physics body already at correct position)
                 NE::Physics::PhysicsManager::SetMotionType(bodyID, desiredMotionType);
             }
         }
 
-        printf("Engine state: %d\n", (int)NE::GetEngineState());
-
+        // Handle collider changes (only in editor)
         if (NE::GetEngineState() != EngineState::Play &&
             m_componentManager->HasComponent<Component::Collider>(entity))
         {

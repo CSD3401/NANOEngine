@@ -126,7 +126,7 @@ namespace NE::Physics
 		uint32_t index = bodyID.GetIndex();
 		std::cout << "UnmapBody called for BodyID index: " << index << std::endl;
 
-		m_BodyToEntityMap.erase(index);  // Use index, not bodyID!
+		m_BodyToEntityMap.erase(index);
 
 		// Clean up any collisions involving this body
 		std::vector<uint64_t> collisionsToRemove;
@@ -136,7 +136,7 @@ namespace NE::Physics
 			uint32_t id1 = static_cast<uint32_t>(collisionKey >> 32);
 			uint32_t id2 = static_cast<uint32_t>(collisionKey & 0xFFFFFFFF);
 
-			if (id1 == index || id2 == index)  // Use index, not bodyID.GetIndex()!
+			if (id1 == index || id2 == index)
 			{
 				collisionsToRemove.push_back(collisionKey);
 			}

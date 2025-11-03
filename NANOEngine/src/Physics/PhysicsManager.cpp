@@ -114,7 +114,7 @@ namespace NE::Physics {
             return;
         }
 
-        // OPTION 1: Keep bodies awake so contacts keep reporting (recommended for development)
+        // Keep bodies awake so collision callbacks keep firing
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         JPH::BodyIDVector allBodies;
         s_PhysicsSystem->GetBodies(allBodies);
