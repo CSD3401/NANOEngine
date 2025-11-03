@@ -29,135 +29,137 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <Core/SpdLogger.hpp>
 
 namespace {
-    template<typename Owner, typename T>
-    bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, T& value) {
-        if constexpr (std::is_same_v<T, bool>) {
-            return ImGui::Checkbox(desc.name.data(), &value);
-        }
-        else if constexpr (std::is_same_v<T, int>) {
-            return ImGui::DragInt(desc.name.data(), &value);
-        }
-        else if constexpr (std::is_same_v<T, float>) {
-            return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
-        }
-        else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
-            ImGui::BeginGroup();
-            bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
-            ImGui::EndGroup();
-            return changed;
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            // String support added here -> check w irwen
-            char buffer[256];
-            strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer));
-            buffer[sizeof(buffer) - 1] = '\0';
+	template<typename Owner, typename T>
+	bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, T& value) {
+		if constexpr (std::is_same_v<T, bool>) {
+			return ImGui::Checkbox(desc.name.data(), &value);
+		}
+		else if constexpr (std::is_same_v<T, int>) {
+			return ImGui::DragInt(desc.name.data(), &value);
+		}
+		else if constexpr (std::is_same_v<T, float>) {
+			return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
+		}
+		else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+			ImGui::BeginGroup();
+			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+			ImGui::EndGroup();
+			return changed;
+		} else if constexpr (std::is_same_v<T, std::string>) {
+		}
+		else if constexpr (std::is_same_v<T, std::string>) {
+			// String support added here -> check w irwen
+			char buffer[256];
+			strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer));
+			buffer[sizeof(buffer) - 1] = '\0';
 
-            if (ImGui::InputText(desc.name.data(), buffer, sizeof(buffer))) {
-                value = buffer;
-                return true;
-            }
-            return false;
-        }
-        else {
-            ImGui::Text("%s (unsupported)", desc.name.data());
-            return false;
-        }
-    }
+			if (ImGui::InputText(desc.name.data(), buffer, sizeof(buffer))) {
+				value = buffer;
+				return true;
+			}
+			return false;
+		}
+		else {
+			ImGui::Text("%s (unsupported)", desc.name.data());
+			return false;
+		}
+	}
 
-    // Helpers for scripting field parsing/formatting
-    static NE::Math::Vec3 Vec3FromString(const std::string& s) {
-        NE::Math::Vec3 v{ 0.f,0.f,0.f };
-        std::istringstream iss(s);
-        iss >> v.x >> v.y >> v.z;
-        return v;
-    }
-    static std::string Vec3ToString(const NE::Math::Vec3& v) {
-        std::ostringstream oss;
-        oss << v.x << ' ' << v.y << ' ' << v.z;
-        return oss.str();
-    }
+	// Helpers for scripting field parsing/formatting
+	static NE::Math::Vec3 Vec3FromString(const std::string& s) {
+		NE::Math::Vec3 v{ 0.f,0.f,0.f };
+		std::istringstream iss(s);
+		iss >> v.x >> v.y >> v.z;
+		return v;
+	}
+	static std::string Vec3ToString(const NE::Math::Vec3& v) {
+		std::ostringstream oss;
+		oss << v.x << ' ' << v.y << ' ' << v.z;
+		return oss.str();
+	}
 
-    template <typename Owner, typename T>
-    static void SubmitSetFieldCommand(uint32_t entity,
-        const NE::Core::FieldDescriptor<Owner, T>& desc,
-        const T& before,
-        const T& after) {
-        using Cmd = Editor::SetFieldCommand<Owner, T>;
+	template <typename Owner, typename T>
+	static void SubmitSetFieldCommand(uint32_t entity,
+		const NE::Core::FieldDescriptor<Owner, T>& desc,
+		const T& before,
+		const T& after) {
+		using Cmd = Editor::SetFieldCommand<Owner, T>;
 
-        auto getter = [=](uint32_t e) -> Owner& {
-            if constexpr (std::is_same_v<Owner, NE::ECS::Component::Transform>) {
-                return NE::ECS::Command::GetEntityTransform(e);
-            }
-            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Collider>) {
-                return NE::ECS::Command::GetEntityCollider(e);
-            }
-            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Rigidbody>) {
-                return NE::ECS::Command::GetEntityRigidbody(e);
-            }
-            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Renderer>) {
-                return NE::ECS::Command::GetEntityRenderer(e);
-            }
-            else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
-                return NE::ECS::Command::GetEntityLight(e);
-            }
-            else {
-                static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
-            }
-            };
+		auto getter = [=](uint32_t e) -> Owner& {
+			if constexpr (std::is_same_v<Owner, NE::ECS::Component::Transform>) {
+				return NE::ECS::Command::GetEntityTransform(e);
+			}
+			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Collider>) {
+				return NE::ECS::Command::GetEntityCollider(e);
+			}
+			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Rigidbody>) {
+				return NE::ECS::Command::GetEntityRigidbody(e);
+			}
+			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Renderer>) {
+				return NE::ECS::Command::GetEntityRenderer(e);
+			}
+			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
+				return NE::ECS::Command::GetEntityLight(e);
+			}
+			else {
+				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
+			}
+			};
 
-        auto cmd = std::make_unique<Cmd>(entity,
-            std::string(desc.name),
-            desc.member,
-            before,
-            after,
-            getter);
+		auto cmd = std::make_unique<Cmd>(entity,
+			std::string(desc.name),
+			desc.member,
+			before,
+			after,
+			getter);
 
-        Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
-    }
+		Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+	}
 
-    template <class Owner, class T>
-    struct MemberPointerHasher {
-        size_t operator()(T Owner::* mp) const noexcept {
-            auto bytes = std::bit_cast<std::array<std::byte, sizeof(mp)>>(mp);
-            size_t h = 1469598103934665603ull;
-            for (std::byte b : bytes) {
-                h ^= static_cast<unsigned char>(b);
-                h *= 1099511628211ull;
-            }
-            return h;
-        }
-    };
+	template <class Owner, class T>
+	struct MemberPointerHasher {
+		size_t operator()(T Owner::* mp) const noexcept {
+			auto bytes = std::bit_cast<std::array<std::byte, sizeof(mp)>>(mp);
+			size_t h = 1469598103934665603ull;
+			for (std::byte b : bytes) {
+				h ^= static_cast<unsigned char>(b);
+				h *= 1099511628211ull;
+			}
+			return h;
+		}
+	};
 
-    struct FieldKey {
-        uint32_t entity;
-        const std::type_info* ownerType;
-        size_t memberId;  // hashed member pointer
+	struct FieldKey {
+		uint32_t entity;
+		const std::type_info* ownerType;
+		size_t memberId;  // hashed member pointer
 
-        bool operator==(const FieldKey& o) const noexcept {
-            return entity == o.entity && ownerType == o.ownerType && memberId == o.memberId;
-        }
-    };
+		bool operator==(const FieldKey& o) const noexcept {
+			return entity == o.entity && ownerType == o.ownerType && memberId == o.memberId;
+		}
+	};
 
-    struct FieldKeyHash {
-        size_t operator()(const FieldKey& k) const noexcept {
-            size_t h = std::hash<uint32_t>{}(k.entity);
-            h ^= std::hash<const void*>{}(k.ownerType) + 0x9e3779b9 + (h << 6) + (h >> 2);
-            h ^= k.memberId + 0x9e3779b9 + (h << 6) + (h >> 2);
-            return h;
-        }
-    };
+	struct FieldKeyHash {
+		size_t operator()(const FieldKey& k) const noexcept {
+			size_t h = std::hash<uint32_t>{}(k.entity);
+			h ^= std::hash<const void*>{}(k.ownerType) + 0x9e3779b9 + (h << 6) + (h >> 2);
+			h ^= k.memberId + 0x9e3779b9 + (h << 6) + (h >> 2);
+			return h;
+		}
+	};
 
-    template<class T>
-    static bool Equal(const T& a, const T& b) {
-        if constexpr (std::is_floating_point_v<T>) {
-            return std::fabs(a - b) <= 1e-6f;
-        }
-        else {
-            return a == b;
-        }
-    }
-
+	template<class T>
+	static bool Equal(const T& a, const T& b) {
+		if constexpr (std::is_floating_point_v<T>) {
+			return std::fabs(a - b) <= 1e-6f;
+		}
+		else {
+			return a == b;
+		}
+	}
 }
 
 namespace Editor {
@@ -556,108 +558,345 @@ namespace Editor {
                     //        }
                     //    });
                 }
-                else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
-                    auto& comp = NE::ECS::Query::GetEntityScript(entity);
-                    ImGui::SeparatorText("Script");
+				else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
+					auto& comp = NE::ECS::Query::GetEntityScript(entity);
+					ImGui::SeparatorText("Script");
 
-                    // Display current script name or "None"
-                    std::string currentScript = comp.ScriptName.empty() ? "None" : comp.ScriptName;
+					// Display current script name or "None"
+					std::string currentScript = comp.ScriptName.empty() ? "None" : comp.ScriptName;
 
-                    ImGui::Text("Current Script: %s", currentScript.c_str());
+					ImGui::Text("Current Script: %s", currentScript.c_str());
 
-                    // Script selection dropdown
-                    if (ImGui::BeginCombo("Script Type", currentScript.c_str())) {
-                        // "None" option to remove script
-                        if (ImGui::Selectable("None", comp.ScriptName.empty())) {
-                            NE::ECS::Command::RemoveEntityScript(entity);
-                        }
+					// Script selection dropdown
+					if (ImGui::BeginCombo("Script Type", currentScript.c_str())) {
+						// "None" option to remove script
+						if (ImGui::Selectable("None", comp.ScriptName.empty())) {
+							NE::ECS::Command::RemoveEntityScript(entity);
+						}
 
-                        // List all registered scripts
-                        auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
-                        for (const auto& scriptName : scriptNames) {
-                            bool isSelected = (comp.ScriptName == scriptName);
-                            if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
-                                NE::ECS::Command::SetEntityScript(entity, scriptName);
-                            }
-                            if (isSelected) {
-                                ImGui::SetItemDefaultFocus();
-                            }
-                        }
-                        ImGui::EndCombo();
-                    }
+						// List all registered scripts
+						auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
+						for (const auto& scriptName : scriptNames) {
+							bool isSelected = (comp.ScriptName == scriptName);
+							if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
+								NE::ECS::Command::SetEntityScript(entity, scriptName);
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
+					}
 
-                    // Display script status
-                    if (!comp.ScriptName.empty()) {
-                        ImGui::Separator();
+					// Display script status
+					if (!comp.ScriptName.empty()) {
+						ImGui::Separator();
 
-                        // Script enabled/disabled checkbox
-                        if (comp.Instance) {
-                            bool enabled = comp.Instance->IsEnabled();
-                            if (ImGui::Checkbox("Enabled", &enabled)) {
-                                comp.Instance->SetEnabled(enabled);
-                            }
+						// Script enabled/disabled checkbox
+						if (comp.Instance) {
+							bool enabled = comp.Instance->IsEnabled();
+							if (ImGui::Checkbox("Enabled", &enabled)) {
+								comp.Instance->SetEnabled(enabled);
+							}
 
-                            ImGui::Text("Status: Active");
-                            ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+							ImGui::Text("Status: Active");
+							ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
 
-                            // --- Scripting Fields UI ---
-                            auto fieldNames = comp.Instance->GetExposedFieldNames();
-                            if (!fieldNames.empty()) {
-                                ImGui::SeparatorText("Script Fields");
-                                for (const auto& fname : fieldNames) {
-                                    std::string ftype = comp.Instance->GetFieldType(fname);
-                                    std::string fval = comp.Instance->GetFieldValueAsString(fname);
+							// --- Scripting Fields UI ---
+							auto fieldNames = comp.Instance->GetExposedFieldNames();
+							if (!fieldNames.empty()) {
+								ImGui::SeparatorText("Script Fields");
 
-                                    ImGui::PushID(fname.c_str());
+								// ? NEW: Group struct fields under collapsible headers
+								std::unordered_map<std::string, std::vector<std::string>> structGroups;
+								std::vector<std::string> normalFields;
 
-                                    if (ftype == "bool") {
-                                        bool v = (fval == "1" || fval == "true");
-                                        if (ImGui::Checkbox(fname.c_str(), &v)) {
-                                            comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
-                                        }
-                                    }
-                                    else if (ftype == "int") {
-                                        int v = 0; if (!fval.empty()) v = std::stoi(fval);
-                                        if (ImGui::DragInt(fname.c_str(), &v)) {
-                                            comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
-                                        }
-                                    }
-                                    else if (ftype == "float") {
-                                        float v = 0.f; if (!fval.empty()) v = std::stof(fval);
-                                        if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
-                                            comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
-                                        }
-                                    }
-                                    else if (ftype == "vec3") {
-                                        NE::Math::Vec3 vv = Vec3FromString(fval);
-                                        if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
-                                            comp.Instance->SetFieldValueFromString(fname, Vec3ToString(vv));
-                                        }
-                                    }
-                                    else { // treat as string
-                                        char buf[256];
-                                        strncpy_s(buf, fval.c_str(), sizeof(buf));
-                                        if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
-                                            comp.Instance->SetFieldValueFromString(fname, std::string(buf));
-                                        }
-                                    }
+								// Separate struct fields (contain '.') from normal fields
+								for (const auto& fname : fieldNames) {
+									if (fname.find('.') != std::string::npos) {
+										// Extract struct name (e.g., "stats" from "stats.health")
+										size_t dotPos = fname.find('.');
+										std::string structName = fname.substr(0, dotPos);
+										structGroups[structName].push_back(fname);
+									}
+									else {
+										normalFields.push_back(fname);
+									}
+								}
 
-                                    ImGui::PopID();
-                                }
-                            }
+								// Render normal fields first
+								for (const auto& fname : normalFields) {
+									std::string ftype = comp.Instance->GetFieldType(fname);
+									std::string fval = comp.Instance->GetFieldValueAsString(fname);
 
-                        }
-                        else {
-                            ImGui::Text("Status: Not Instantiated");
-                        }
+									ImGui::PushID(fname.c_str());
 
-                        // Show if script is properly registered
-                        bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
-                        if (!isRegistered) {
-                            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Warning: Script not registered!");
-                        }
-                    }
-                }
+									bool fieldChanged = false;
+
+									if (ftype == "bool") {
+										bool v = (fval == "1" || fval == "true");
+										if (ImGui::Checkbox(fname.c_str(), &v)) {
+											comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "int") {
+										int v = 0; if (!fval.empty()) v = std::stoi(fval);
+										if (ImGui::DragInt(fname.c_str(), &v)) {
+											comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "float") {
+										float v = 0.f; if (!fval.empty()) v = std::stof(fval);
+										if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
+											comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "vec3") {
+										NE::Math::Vec3 vv = Vec3FromString(fval);
+										if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
+											comp.Instance->SetFieldValueFromString(fname, Vec3ToString(vv));
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "enum") {
+										// Enum dropdown support
+										auto enumOptions = comp.Instance->GetEnumOptions(fname);
+										if (!enumOptions.empty()) {
+										 int currentValue = 0;
+										 if (!fval.empty()) {
+											 try {
+												 currentValue = std::stoi(fval);
+											 }
+											 catch (...) {
+												 currentValue = 0;
+											 }
+										 }
+
+										 // Clamp to valid range
+										 if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
+											 currentValue = 0;
+										 }
+
+										 if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
+											 for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
+												 bool isSelected = (currentValue == i);
+												 if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
+													 comp.Instance->SetFieldValueFromString(fname, std::to_string(i));
+													 fieldChanged = true;
+												 }
+												 if (isSelected) {
+													 ImGui::SetItemDefaultFocus();
+												 }
+											 }
+											 ImGui::EndCombo();
+										 }
+										}
+										else {
+											// Fallback if no enum options provided
+											ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
+										}
+									}
+									else if (ftype.starts_with("vector<")) {
+										// Array/Vector support (int, float, bool, string)
+										// NOTE: Nested struct vectors not yet supported - will be added in future commit
+									 size_t arraySize = comp.Instance->GetArraySize(fname);
+
+										if (ImGui::TreeNode(fname.c_str(), "%s [%zu]", fname.c_str(), arraySize)) {
+											// Add element button
+											if (ImGui::Button("+##add")) {
+												comp.Instance->AddArrayElement(fname);
+												fieldChanged = true;
+											}
+											ImGui::SameLine();
+											ImGui::Text("Add Element");
+
+											// Display each element
+										 for (size_t i = 0; i < arraySize; ++i) {
+												ImGui::PushID(static_cast<int>(i));
+
+												std::string elemValue = comp.Instance->GetArrayElement(fname, i);
+
+												// Determine element type from vector<T>
+												std::string elementType = ftype.substr(7, ftype.length() - 8); // Extract T from "vector<T>"
+
+												ImGui::Text("[%zu]", i);
+												ImGui::SameLine();
+
+												bool elemChanged = false;
+												if (elementType == "int") {
+												 int val = elemValue.empty() ? 0 : std::stoi(elemValue);
+												 if (ImGui::DragInt("##elem", &val)) {
+													 comp.Instance->SetArrayElement(fname, i, std::to_string(val));
+													 elemChanged = true;
+												 }
+												}
+												else if (elementType == "float") {
+												 float val = elemValue.empty() ? 0.0f : std::stof(elemValue);
+												 if (ImGui::DragFloat("##elem", &val, 0.01f)) {
+													 comp.Instance->SetArrayElement(fname, i, std::to_string(val));
+													 elemChanged = true;
+												 }
+												}
+												else if (elementType == "bool") {
+												 bool val = (elemValue == "1" || elemValue == "true");
+												 if (ImGui::Checkbox("##elem", &val)) {
+													 comp.Instance->SetArrayElement(fname, i, val ? "1" : "0");
+													 elemChanged = true;
+													 
+													 // Verification removed for release
+													 //std::string verifyValue = comp.Instance->GetArrayElement(fname, i);
+													 //SPD_DEBUG(" Verification: flags[" << i << "] is now '" << verifyValue << "'");
+												 }
+												}
+												else if (elementType == "string") {
+													// String support for vector<string>
+													char buf[256];
+													strncpy_s(buf, elemValue.c_str(), sizeof(buf));
+													buf[sizeof(buf) - 1] = '\0';
+													if (ImGui::InputText("##elem", buf, sizeof(buf))) {
+														comp.Instance->SetArrayElement(fname, i, std::string(buf));
+														elemChanged = true;
+													}
+												}
+												else {
+													// Unknown type fallback - treat as string
+													char buf[256];
+													strncpy_s(buf, elemValue.c_str(), sizeof(buf));
+													buf[sizeof(buf) - 1] = '\0';
+													if (ImGui::InputText("##elem", buf, sizeof(buf))) {
+														comp.Instance->SetArrayElement(fname, i, std::string(buf));
+														elemChanged = true;
+													}
+												}
+
+												ImGui::SameLine();
+												if (ImGui::Button("-##remove")) {
+													comp.Instance->RemoveArrayElement(fname, i);
+													fieldChanged = true;
+												}
+
+												if (elemChanged) {
+													fieldChanged = true;
+												}
+
+												ImGui::PopID();
+											}
+
+												ImGui::TreePop();
+											}
+										}
+									else if (fname.find('.') != std::string::npos) {
+										// Struct field (contains dot notation)
+										// NOTE: Nested struct serialization not fully supported yet - will be added in future commit
+									   // Display as normal field, but with indentation
+										ImGui::Indent();
+
+										if (ftype == "int") {
+											int v = 0;
+											if (!fval.empty()) v = std::stoi(fval);
+											if (ImGui::DragInt(fname.c_str(), &v)) {
+												comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+												fieldChanged = true;
+											}
+										}
+										else if (ftype == "float") {
+											float v = 0.0f;
+											if (!fval.empty()) v = std::stof(fval);
+											if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
+												comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+												fieldChanged = true;
+											}
+										}
+										else if (ftype == "bool") {
+											bool v = (fval == "1" || fval == "true");
+											if (ImGui::Checkbox(fname.c_str(), &v)) {
+												comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+												fieldChanged = true;
+											}
+										}
+
+										ImGui::Unindent();
+									}
+									else { // treat as string
+										char buf[256];
+										strncpy_s(buf, fval.c_str(), sizeof(buf));
+										if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
+											comp.Instance->SetFieldValueFromString(fname, std::string(buf));
+											fieldChanged = true;
+										}
+									}
+
+									// Call OnValidate() when a field changes (editor-only)
+									if (fieldChanged) {
+										comp.Instance->OnValidate();
+									}
+
+									ImGui::PopID();
+								}
+
+								//  NOW RENDER STRUCT GROUPS
+								for (const auto& [structName, fields] : structGroups) {
+									if (ImGui::TreeNode(structName.c_str())) {
+										for (const auto& fname : fields) {
+											std::string ftype = comp.Instance->GetFieldType(fname);
+											std::string fval = comp.Instance->GetFieldValueAsString(fname);
+
+											// Extract field name after dot (e.g., "health" from "stats.health")
+											size_t dotPos = fname.find('.');
+											std::string fieldName = fname.substr(dotPos + 1);
+
+											ImGui::PushID(fname.c_str());
+											bool fieldChanged = false;
+
+											if (ftype == "int") {
+												int v = 0;
+												if (!fval.empty()) v = std::stoi(fval);
+												if (ImGui::DragInt(fieldName.c_str(), &v)) {
+													comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+													fieldChanged = true;
+												}
+											}
+											else if (ftype == "float") {
+												float v = 0.0f;
+												if (!fval.empty()) v = std::stof(fval);
+												if (ImGui::DragFloat(fieldName.c_str(), &v, 0.01f)) {
+													comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+													fieldChanged = true;
+												}
+											}
+											else if (ftype == "bool") {
+												bool v = (fval == "1" || fval == "true");
+												if (ImGui::Checkbox(fieldName.c_str(), &v)) {
+													comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+													fieldChanged = true;
+												}
+											}
+
+											if (fieldChanged) {
+												comp.Instance->OnValidate();
+											}
+
+											ImGui::PopID();
+										}
+										ImGui::TreePop();
+									}
+								}
+							}
+						}
+						else {
+							ImGui::Text("Status: Not Instantiated");
+						}
+
+						// Show if script is properly registered
+						bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
+						if (!isRegistered) {
+							ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Warning: Script not registered!");
+						}
+					}
+				}
             }
 
             if (ImGui::Button("Add Component")) {

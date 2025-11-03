@@ -17,7 +17,7 @@ namespace NE::ECS {
 }
 
 namespace NE::Math {
-  struct Vec3;
+    struct Vec3;
 }
 
 //namespace NE::Core {
@@ -34,6 +34,13 @@ public:
     virtual ~IScript();
 
     /**
+     * Called when the script is first created, even if disabled.
+     * Use this for initialization that needs to happen regardless of enabled state.
+     * Called before Initialize().
+     */
+    virtual void Awake() {}
+
+    /**
      * Called when the script is first attached to an entity.
      * Use this for one-time initialization.
      * @param entity The entity this script is attached to
@@ -41,10 +48,22 @@ public:
     virtual void Initialize(NE::ECS::Entity entity) = 0;
 
     /**
+     * Called before the first Update() call, only if the script is enabled.
+     * Use this for initialization that should only happen when active.
+     */
+    virtual void Start() {}
+
+    /**
      * Called every frame to update the script.
      * @param deltaTime Time elapsed since last frame in seconds
      */
     virtual void Update(double deltaTime) = 0;
+
+    /**
+     * Called when script values are changed in the editor (editor-only).
+  * Use this to validate or respond to inspector changes.
+     */
+ virtual void OnValidate() {}
 
     /**
      * Called when the script is being destroyed.
@@ -362,34 +381,178 @@ public:
     // Scripts that want to expose editable fields to the editor can override
     // these methods. We keep the API string-based to avoid reflection across DLLs.
 
+  
+  
+    // === Built-in field management system ===
+  
     /**
      * Return a list of exposed field names.
+     * This is now implemented in the base class.
      */
-    virtual std::vector<std::string> GetExposedFieldNames() const { return {}; }
+    virtual std::vector<std::string> GetExposedFieldNames() const;
 
-    /**
-     * Return the type token for a named field. Example tokens: "bool","int","float","vec3","string"
+ /**
+     * Return the type token for a named field. Example tokens: "bool","int","float","vec3","string","enum"
      */
-    virtual std::string GetFieldType(const std::string& name) const { (void)name; return std::string(); }
+    virtual std::string GetFieldType(const std::string& name) const;
 
     /**
      * Get the current field value as a string. The format for complex types (eg vec3) is up to the script,
      * but the Editor will use a simple whitespace-separated list for vec3: "x y z".
+     * This is now implemented in the base class.
      */
-    virtual std::string GetFieldValueAsString(const std::string& name) const { (void)name; return std::string(); }
+    virtual std::string GetFieldValueAsString(const std::string& name) const;
 
     /**
      * Set the field value from a string. Return true if successful.
+     * This is now implemented in the base class.
      */
-    virtual bool SetFieldValueFromString(const std::string& name, const std::string& value) { (void)name; (void)value; return false; }
+    virtual bool SetFieldValueFromString(const std::string& name, const std::string& value);
+
+    // === Enum Field Support (Public for Editor access) ===
+    
+ /**
+     * Get the list of possible enum values for a field (editor support).
+     * Return empty vector if field is not an enum.
+     * @param fieldName Name of the field
+  * @return Vector of enum option names (e.g., {"Grunt", "Elite", "Boss"})
+     */
+    virtual std::vector<std::string> GetEnumOptions(const std::string& fieldName) const { 
+        (void)fieldName; 
+  return {}; 
+    }
+
+  /**
+     * Get the current enum value index for a field.
+     * @param fieldName Name of the enum field
+     * @return Current enum value as integer index
+  */
+virtual int GetEnumValue(const std::string& fieldName) const { 
+        (void)fieldName; 
+      return 0; 
+    }
+
+    /**
+     * Set the enum value by index.
+   * @param fieldName Name of the enum field
+     * @param value Enum value as integer index
+     */
+    virtual void SetEnumValue(const std::string& fieldName, int value) { 
+        (void)fieldName; 
+        (void)value; 
+    }
+
+    // === Array/Vector Field Support (Public for Editor access) ===
+    
+    /**
+     * Get the size of an array/vector field.
+     * @param fieldName Name of the array field
+     * @return Number of elements in the array
+     */
+    virtual size_t GetArraySize(const std::string& fieldName) const {
+        (void)fieldName;
+        return 0;
+    }
+    
+    /**
+   * Get an array element as a string.
+     * @param fieldName Name of the array field
+     * @param index Index of the element
+     * @return Element value as string
+   */
+    virtual std::string GetArrayElement(const std::string& fieldName, size_t index) const {
+        (void)fieldName;
+    (void)index;
+        return "";
+    }
+    
+    /**
+     * Set an array element from a string.
+     * @param fieldName Name of the array field
+     * @param index Index of the element
+     * @param value New value as string
+     * @return true if successful
+     */
+    virtual bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) {
+        (void)fieldName;
+        (void)index;
+        (void)value;
+        return false;
+    }
+    
+    /**
+ * Add a new element to the end of an array/vector.
+     * @param fieldName Name of the array field
+     */
+    virtual void AddArrayElement(const std::string& fieldName) {
+    (void)fieldName;
+    }
+    
+    /**
+     * Remove an element from an array/vector.
+     * @param fieldName Name of the array field
+     * @param index Index of the element to remove
+     */
+    virtual void RemoveArrayElement(const std::string& fieldName, size_t index) {
+        (void)fieldName;
+        (void)index;
+    }
+
+    /**
+     * Check if Start() has been called on this script.
+     * Used internally by ScriptSystem.
+     * @return true if Start() has been called, false otherwise
+     */
+    bool HasStarted() const { return m_hasStarted; }
+
+    /**
+     * Internal method called by ScriptSystem to mark Start() as called.
+     * Should not be called by user code.
+     */
+    void MarkStartCalled() { m_hasStarted = true; }
+
+protected:
+    // === Protected field registration methods ===
+    // Scripts should call these in their constructor to register fields
+    
+    /**
+     * Register a float field for editor exposure.
+     */
+    void RegisterFloatField(const std::string& name, float* memberPtr);
+    
+    /**
+     * Register an int field for editor exposure.
+     */
+    void RegisterIntField(const std::string& name, int* memberPtr);
+    
+    /**
+     * Register a bool field for editor exposure.
+     */
+    void RegisterBoolField(const std::string& name, bool* memberPtr);
+    
+    /**
+     * Register a string field for editor exposure.
+     */
+    void RegisterStringField(const std::string& name, std::string* memberPtr);
+    
+    /**
+* Register a Vec3 field for editor exposure.
+     */
+    void RegisterVec3Field(const std::string& name, NE::Math::Vec3* memberPtr);
 
 private:
+    // Forward declaration to hide implementation details from DLL interface
+    class FieldRegistry;
+    
     NE::ECS::Entity m_entity = 0;
     bool m_enabled = true;
+    bool m_hasStarted = false;
+    
+    // Use PIMPL pattern to hide std containers from DLL interface
+    FieldRegistry* m_fieldRegistry = nullptr;
 
 protected:
     NE::ECS::ComponentManager* m_componentManager = nullptr;
-
 };
 
 template<typename T>
@@ -401,6 +564,20 @@ T* IScript::GetComponent() const {
     return &m_componentManager->GetComponent<T>(m_entity);
 }
 
+// === Convenience macros for field registration ===
+// Use these in your script constructor to easily register fields
+
+#ifndef SCRIPT_REGISTER_FIELD
+#define SCRIPT_REGISTER_FIELD(fieldName, fieldType) \
+    Register##fieldType##Field(#fieldName, &this->fieldName)
+#endif
+
+// Specific type macros for cleaner code
+#ifndef SCRIPT_FIELD
+#define SCRIPT_FIELD(fieldName, fieldType) \
+    SCRIPT_REGISTER_FIELD(fieldName, fieldType)
+#endif
+
 template<typename T>
 bool IScript::HasComponent() const {
     if (!m_componentManager) {
@@ -408,4 +585,3 @@ bool IScript::HasComponent() const {
     }
     return m_componentManager->HasComponent<T>(m_entity);
 }
-

@@ -20,9 +20,9 @@ namespace NE::Physics {
         Batch CreateTriangleBatch(const Triangle* inTriangles, int inTriangleCount) override;
         Batch CreateTriangleBatch(const Vertex* inVertices, int inVertexCount, const JPH::uint32* inIndices, int inIndexCount) override;
         void DrawGeometry(JPH::RMat44Arg inModelMatrix, const JPH::AABox& inWorldSpaceBounds, float inLODScaleSq, JPH::ColorArg inModelColor, const GeometryRef& inGeometry, ECullMode inCullMode = ECullMode::CullBackFace, ECastShadow inCastShadow = ECastShadow::On, EDrawMode inDrawMode = EDrawMode::Solid) override;
-        
+
         void DrawText3D(JPH::RVec3Arg inPosition, const std::string_view& inString, JPH::ColorArg inColor = JPH::Color::sWhite, float inHeight = 0.5f) override {};
-        
+
         // batch management
         void BeginFrame(); // call before physics debug draw
         void EndFrame();   // call after physics debug draw to flush batches

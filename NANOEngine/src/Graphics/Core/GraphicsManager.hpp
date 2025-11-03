@@ -34,12 +34,6 @@ namespace NE::Graphics {
         Math::Vec3 color;
     };
 
-    //struct DrawCommand {
-    //    std::shared_ptr<IGeometryBuffer> mesh;
-    //    std::shared_ptr<Material> material;
-    //    Math::Mat4 transform;
-    //};
-
     class GraphicsManager {
     public:
         static void Init();
@@ -69,8 +63,13 @@ namespace NE::Graphics {
         static void DrawAllDebugGeometry();
 
         static std::vector<ECS::Component::Light*> m_lights;
+
         // Draw Count Profiling
         static int drawCount;
+
+        // Flag to toggle sorting
+		static bool enableSorting;
+
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;
@@ -87,11 +86,11 @@ namespace NE::Graphics {
 
         static constexpr size_t INITIAL_DEBUG_BUFFER_SIZE = 10000;
 
-        // Pipeline state cache
-        static std::unique_ptr<IStateCache> s_StateCache;
+		// Pipeline state cache
+		static std::unique_ptr<IStateCache> s_StateCache;
 
-        // Draw Queue
-        static std::unique_ptr<DrawQueue> s_DrawQueue;
+		// Draw Queue
+		static std::unique_ptr<DrawQueue> s_DrawQueue;
 
     };
 

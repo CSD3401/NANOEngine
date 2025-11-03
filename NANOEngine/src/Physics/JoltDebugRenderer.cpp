@@ -4,12 +4,12 @@
 #include "../Graphics/Core/Camera.hpp" 
 
 namespace NE::Physics {
-    NE::Math::Vec3 JoltDebugRenderer::ToVec3(JPH::RVec3Arg v) 
+    NE::Math::Vec3 JoltDebugRenderer::ToVec3(JPH::RVec3Arg v)
     {
         return { (float)v.GetX(), (float)v.GetY(), (float)v.GetZ() };
     }
 
-    NE::Math::Vec3 JoltDebugRenderer::ToColor(JPH::ColorArg c) 
+    NE::Math::Vec3 JoltDebugRenderer::ToColor(JPH::ColorArg c)
     {
         return { c.r / 255.0f, c.g / 255.0f, c.b / 255.0f };
     }
@@ -20,27 +20,23 @@ namespace NE::Physics {
         m_BatchedTriangles.clear();
 
         // reserve large capacity once
-        if (m_BatchedLines.capacity() < INITIAL_LINE_CAPACITY)
-        {
+        if (m_BatchedLines.capacity() < INITIAL_LINE_CAPACITY) {
             m_BatchedLines.reserve(INITIAL_LINE_CAPACITY);
         }
 
-        if (m_BatchedTriangles.capacity() < INITIAL_TRI_CAPACITY) 
-        {
+        if (m_BatchedTriangles.capacity() < INITIAL_TRI_CAPACITY) {
             m_BatchedTriangles.reserve(INITIAL_TRI_CAPACITY);
         }
     }
 
     void JoltDebugRenderer::EndFrame() {
         // batch send all lines to GraphicsManager
-        for (const auto& line : m_BatchedLines) 
-        {
+        for (const auto& line : m_BatchedLines) {
             NE::Graphics::GraphicsManager::AddDebugLine(line.from, line.to, line.color);
         }
 
         // batch send all triangles to GraphicsManager
-        for (const auto& tri : m_BatchedTriangles)
-        {
+        for (const auto& tri : m_BatchedTriangles) {
             NE::Graphics::GraphicsManager::AddDebugTriangle(tri.v0, tri.v1, tri.v2, tri.color);
         }
     }
@@ -72,7 +68,7 @@ namespace NE::Physics {
         return frustum.IntersectsAABB(min, max);
     }
 
-	void JoltDebugRenderer::DrawLine(JPH::RVec3Arg from, JPH::RVec3Arg to, JPH::ColorArg color)
+    void JoltDebugRenderer::DrawLine(JPH::RVec3Arg from, JPH::RVec3Arg to, JPH::ColorArg color)
     {
         // Convert Jolt vectors/colors to your engine's math/color types
         //NE::Graphics::GraphicsManager::AddDebugLine(
@@ -125,8 +121,7 @@ namespace NE::Physics {
         size_t indexIdx = 0;
         size_t edgeIdx = 0;
 
-        for (int i = 0; i < inTriangleCount; ++i)
-        {
+        for (int i = 0; i < inTriangleCount; ++i) {
             const JPH::uint32 base = (JPH::uint32)vertIdx;
 
             const JPH::Float3& p0 = inTriangles[i].mV[0].mPosition;
@@ -160,21 +155,18 @@ namespace NE::Physics {
         batch->edges.resize(size_t(inIndexCount)); // will trim later if needed
 
         // copy vertices
-        for (int i = 0; i < inVertexCount; ++i)
-        {
+        for (int i = 0; i < inVertexCount; ++i) {
             batch->verts[i] = inVertices[i].mPosition;
         }
 
         // copy indices
-        for (int i = 0; i < inIndexCount; ++i)
-        {
+        for (int i = 0; i < inIndexCount; ++i) {
             batch->indices[i] = inIndices[i];
         }
 
         // create edges from indices
         size_t edgeIdx = 0;
-        for (int i = 0; i + 2 < inIndexCount; i += 3)
-        {
+        for (int i = 0; i + 2 < inIndexCount; i += 3) {
             const JPH::uint32 i0 = inIndices[i + 0];
             const JPH::uint32 i1 = inIndices[i + 1];
             const JPH::uint32 i2 = inIndices[i + 2];
@@ -227,14 +219,12 @@ namespace NE::Physics {
         // pre-allocate output buffer
         std::vector<NE::Math::Vec3> positions;
 
-        if (inDrawMode == EDrawMode::Solid)
-        {
+        if (inDrawMode == EDrawMode::Solid) {
             const size_t numVerts = (batch->indices.size() / 3) * 3;
             positions.resize(numVerts); // allocate once
 
             size_t outIdx = 0;
-            for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
-            {
+            for (size_t i = 0; i + 2 < batch->indices.size(); i += 3) {
                 const JPH::uint32 idx0 = batch->indices[i + 0];
                 const JPH::uint32 idx1 = batch->indices[i + 1];
                 const JPH::uint32 idx2 = batch->indices[i + 2];
@@ -255,15 +245,12 @@ namespace NE::Physics {
 
             positions.resize(outIdx); // trim if we skipped any
             NE::Graphics::GraphicsManager::AddDebugTrianglesBatch(positions, color);
-        }
-        else if (inDrawMode == EDrawMode::Wireframe)
-        {
+        } else if (inDrawMode == EDrawMode::Wireframe) {
             const size_t numVerts = (batch->indices.size() / 3) * 6;
             positions.resize(numVerts); // allocate once
 
             size_t outIdx = 0;
-            for (size_t i = 0; i + 2 < batch->indices.size(); i += 3)
-            {
+            for (size_t i = 0; i + 2 < batch->indices.size(); i += 3) {
                 const JPH::uint32 idx0 = batch->indices[i + 0];
                 const JPH::uint32 idx1 = batch->indices[i + 1];
                 const JPH::uint32 idx2 = batch->indices[i + 2];

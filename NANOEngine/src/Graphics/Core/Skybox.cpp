@@ -47,6 +47,7 @@ namespace NE::Graphics {
         spec.PolygonMode = GL_FILL;
         auto pipeline = std::make_shared<GLPipeline>(spec, "Skybox");
         m_Material = std::make_shared<Material>(pipeline);
+		m_Material->SetQueueBase(RenderQueue::BACKGROUND);
     }
 
     void Skybox::Draw() const {

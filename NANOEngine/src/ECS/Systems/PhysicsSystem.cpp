@@ -187,6 +187,7 @@ namespace NE::ECS::Systems
 
     void PhysicsSystem::SyncPhysicsToTransforms()
     {
+
         auto colliderEntities = m_componentManager->GetEntitiesWithComponent<Component::Collider>();
         auto rigidbodyEntities = m_componentManager->GetEntitiesWithComponent<Component::Rigidbody>();
 
@@ -194,18 +195,32 @@ namespace NE::ECS::Systems
         entities.insert(rigidbodyEntities.begin(), rigidbodyEntities.end());
 
         for (auto entity : entities) {
-            if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
+
+            bool hasPhysicsBody = NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity);
+
+            if (hasPhysicsBody) {
                 uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
+                JPH::EMotionType motionType = NE::Physics::PhysicsManager::GetMotionType(bodyID);
 
                 // ONLY sync DYNAMIC bodies (physics controls them)
-                if (NE::Physics::PhysicsManager::GetMotionType(bodyID) == JPH::EMotionType::Dynamic) {
+                if (motionType == JPH::EMotionType::Dynamic) {
+                   
+
                     Math::Vec3 position, rotation;
                     NE::Physics::PhysicsManager::GetTransform(bodyID, position, rotation);
 
                     auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+
+                    //printf("  OLD transform: (%.2f, %.2f, %.2f)\n",
+                    //    transform.position.x, transform.position.y, transform.position.z);
+                    //printf("  NEW physics:   (%.2f, %.2f, %.2f)\n",
+                    //    position.x, position.y, position.z);
+
                     transform.position = position;
                     transform.rotation = rotation;
                     transform.isDirty = true;
+
+                    //printf("  UPDATED! isDirty = %d\n", transform.isDirty);
                 }
             }
         }
