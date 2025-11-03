@@ -13,9 +13,9 @@ namespace NE::Graphics {
         Orthographic
     };
 
-    class NANOENGINE_API Camera {
+    class NANOENGINE_API EditorCamera {
     public:
-        Camera();
+        EditorCamera();
 
         void SetPerspective(float fovYRadians, float aspectRatio, float nearPlane, float farPlane,
             bool reverseZ = false, bool flipY = false);

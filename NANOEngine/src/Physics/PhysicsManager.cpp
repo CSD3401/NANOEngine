@@ -378,14 +378,15 @@ namespace NE::Physics {
         const JPH::EShapeSubType subType = shape->GetSubType();
         (void)subType; // suppress warning
 
-        shape->Draw(
-            &g_joltDebugRenderer,
-            transform,
-            JPH::Vec3::sReplicate(1.0f),
-            color,
-            false,
-            true
-        );
+        // commented out for now due to leak - irwen
+        //shape->Draw(
+        //    &g_joltDebugRenderer,
+        //    transform,
+        //    JPH::Vec3::sReplicate(1.0f),
+        //    color,
+        //    false,
+        //    true
+        //);
 
         return; //early
 
