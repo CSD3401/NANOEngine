@@ -185,9 +185,6 @@ namespace NE {
 		Physics::PhysicsManager::ActivateBodies();
 		//Physics::Command::ActivateBodies();
 		gSceneManager.GetActive()->ScriptStart();
-
-		// TEMPORARY
-		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 
 	void EditorPause() {

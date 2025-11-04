@@ -124,17 +124,10 @@ namespace NE::Graphics {
 		Vec3 camPos;
         switch (s_CurrentRenderPass) {
         case SceneManagement::RenderPass::SCENE:
-            camProj = s_EditorCamera->GetProjectionMatrix();
-            camView = s_EditorCamera->GetViewMatrix();
-            camPos = s_EditorCamera->GetPosition();
-            break;
         case SceneManagement::RenderPass::SCENE_PICKING:
-			//camProj = s_EditorCamera->GetProjectionMatrix();
-			//camView = s_EditorCamera->GetViewMatrix();
-   //         camPos = s_EditorCamera->GetPosition();
-            camProj = m_ActiveCamera.projection;
-            camView = m_ActiveCamera.view;
-            camPos = m_ActiveCamera.position;
+			camProj = s_EditorCamera->GetProjectionMatrix();
+			camView = s_EditorCamera->GetViewMatrix();
+            camPos = s_EditorCamera->GetPosition();
 			break;
         case SceneManagement::RenderPass::GAME:
             camProj = m_ActiveCamera.projection;
