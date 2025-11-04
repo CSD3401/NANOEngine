@@ -25,6 +25,9 @@ namespace NE::ECS {
 
         void DestroyEntity(Entity e);
 
+        // --- UI API ---
+        Entity CreateUIEntity();
+
         // --- Component API ---
         template<typename T>
         void RegisterComponent() {

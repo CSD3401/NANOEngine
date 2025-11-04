@@ -19,6 +19,8 @@ namespace NE::ECS {
 		struct AudioSource;
 		struct NativeScript;
 		struct PhysicsBody;
+		struct UIRectTransform;
+		struct UIImage;
 	}
 
 	namespace Query {
@@ -37,10 +39,13 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::Collider& GetEntityCollider(uint32_t e);
 		NANOENGINE_API const Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API const Component::NativeScript& GetEntityScript(uint32_t e);
+		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
+		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
 	}
 
 	namespace Command {
 		NANOENGINE_API uint32_t CreateEntity();
+		NANOENGINE_API uint32_t CreateUIEntity();
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 
 		NANOENGINE_API void AddLightComponent(uint32_t e);
@@ -49,6 +54,8 @@ namespace NE::ECS {
 		NANOENGINE_API void AddColliderComponent(uint32_t e);
 		NANOENGINE_API void AddAudioSourceComponent(uint32_t e);
 		NANOENGINE_API void AddScriptComponent(uint32_t e);
+		NANOENGINE_API void AddUIRectTransformComponent(uint32_t e);
+		NANOENGINE_API void AddUIImageComponent(uint32_t e);
 
 		// --- Editor Component Mutators --- //
 		NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
@@ -59,6 +66,8 @@ namespace NE::ECS {
 		NANOENGINE_API Component::Collider& GetEntityCollider(uint32_t e);
 		NANOENGINE_API Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API Component::NativeScript& GetEntityScript(uint32_t e);
+		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
+		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();

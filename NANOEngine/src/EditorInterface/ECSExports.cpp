@@ -8,7 +8,10 @@
 #include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/NativeScript.hpp"
+#include "../ECS/Components/UIRectTransform.hpp"
+#include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
+#include "../ECS/Systems/UIRenderSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 
 namespace NE {
@@ -58,12 +61,24 @@ namespace NE::ECS {
 		const Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
+
+		const Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectTransform>(e);
+		}
+
+		const Component::UIImage& GetUIImage(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
+		}
 	}
 
 	namespace Command {
 
 		uint32_t CreateEntity() {
 			return GetScene().GetECSCoordinator().CreateEntity();
+		}
+
+		uint32_t CreateUIEntity() {
+			return GetScene().GetECSCoordinator().CreateUIEntity();
 		}
 
 		void DestroyEntity(uint32_t e) {
@@ -98,6 +113,14 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{});
 		}
 
+		void AddUIRectTransformComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIRectTransform{});
+		}
+
+		void AddUIImageComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIImage{});
+		}
+
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -128,6 +151,14 @@ namespace NE::ECS {
 		
 		Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
+		}
+
+		Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectTransform>(e);
+		}
+
+		Component::UIImage& GetUIImage(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
 		}
 
 		// === Script Management Implementation ===

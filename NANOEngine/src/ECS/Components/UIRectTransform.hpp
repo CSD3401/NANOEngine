@@ -15,7 +15,7 @@ namespace NE::ECS::Component {
         float width = 100.0f;
         float height = 40.0f;
 
-        // later you can add anchor, pivot, rotation
+        // later can add anchor, pivot, rotation
     };
 
 } // namespace NE::ECS::Component

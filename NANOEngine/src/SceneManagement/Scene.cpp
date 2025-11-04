@@ -24,15 +24,16 @@ namespace NE::SceneManagement {
 		using ECS::Component::UIRectTransform;
 		using ECS::Component::UIImage;
 
+		std::cout << "\n=== Creating Test UI ===" << std::endl;
+
 		// Test 1: Red Box (top-left)
 		{
 			ECS::Entity e = m_ecsCoordinator.CreateEntity();
+			std::cout << "Created entity " << e << " (Red Box)" << std::endl;
 
-			// Add default components
 			m_ecsCoordinator.AddComponent<UIRectTransform>(e, UIRectTransform{});
 			m_ecsCoordinator.AddComponent<UIImage>(e, UIImage{});
 
-			// Modify after adding
 			auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
 			rect.x = 50.f;  rect.y = 50.f;
 			rect.width = 200.f;  rect.height = 100.f;
@@ -40,52 +41,12 @@ namespace NE::SceneManagement {
 			auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
 			img.color = Math::Vec4{ 1.f, 0.f, 0.f, 0.8f };
 			img.material = nullptr;
+
+			std::cout << "  Position: (" << rect.x << ", " << rect.y << ")" << std::endl;
+			std::cout << "  Size: " << rect.width << "x" << rect.height << std::endl;
 		}
 
-		// Test 2: Blue Box (center-ish)
-		{
-			ECS::Entity e = m_ecsCoordinator.CreateEntity();
-			m_ecsCoordinator.AddComponent<UIRectTransform>(e, UIRectTransform{});
-			m_ecsCoordinator.AddComponent<UIImage>(e, UIImage{});
-
-			auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
-			rect.x = 300.f; rect.y = 200.f;
-			rect.width = 150.f; rect.height = 150.f;
-
-			auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
-			img.color = Math::Vec4{ 0.f, 0.5f, 1.f, 1.f };
-			img.material = nullptr;
-		}
-
-		// Test 3: Green Box (bottom-right)
-		{
-			ECS::Entity e = m_ecsCoordinator.CreateEntity();
-			m_ecsCoordinator.AddComponent<UIRectTransform>(e, UIRectTransform{});
-			m_ecsCoordinator.AddComponent<UIImage>(e, UIImage{});
-
-			auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
-			rect.x = 500.f; rect.y = 400.f;
-			rect.width = 250.f; rect.height = 80.f;
-
-			auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
-			img.color = Math::Vec4{ 0.f, 1.f, 0.f, 0.6f };
-			img.material = nullptr;
-		}
-
-		// Test 4: Semi-transparent black overlay
-		{
-			ECS::Entity e = m_ecsCoordinator.CreateEntity();
-			m_ecsCoordinator.AddComponent<UIRectTransform>(e, UIRectTransform{});
-			m_ecsCoordinator.AddComponent<UIImage>(e, UIImage{});
-
-			auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
-			rect.x = 20.f; rect.y = 20.f;
-			rect.width = 300.f; rect.height = 40.f;
-
-			auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
-			img.color = Math::Vec4{ 0.f, 0.f, 0.f, 0.7f };
-			img.material = nullptr;
-		}
+		std::cout << "Test UI creation complete!\n" << std::endl;
 	}
 
 	void Scene::Init() {
@@ -127,6 +88,7 @@ namespace NE::SceneManagement {
 			Graphics::GraphicsManager::DrawSkybox();
 			Graphics::GraphicsManager::DrawFrame();
 			Graphics::GraphicsManager::EndFrame();
+
 			Graphics::GraphicsManager::DrawUI();
 
 			//Graphics::GraphicsManager::DrawSkybox();

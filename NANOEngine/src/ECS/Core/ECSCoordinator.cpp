@@ -104,6 +104,15 @@ namespace NE::ECS {
         return entt;
     }
 
+    Entity ECSCoordinator::CreateUIEntity()
+    {
+        Entity entt = m_entityManager->CreateEntity();
+        AddComponent(entt, Component::EntityMeta{"Unnamed UI Entity"});
+        AddComponent(entt, Component::UIRectTransform{});
+        AddComponent(entt, Component::UIImage{});
+        return entt;
+    }
+
     void ECSCoordinator::DestroyEntity(Entity e) {
         m_entityManager->DestroyEntity(e);
         m_componentManager->EntityDestroyed(e);

@@ -2,6 +2,7 @@
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include <glad/glad.h>
+#include <iostream>
 
 namespace NE::Graphics {
 
@@ -192,16 +193,25 @@ namespace NE::Graphics {
 
 
     void UIRenderer::BeginFrame() {
+
         // bind UI framebuffer for off-screen rendering
         if (s_FBO) 
         {
             s_FBO->Bind();
+
+            // Verify FBO is bound correctly
+            GLint currentFBO;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &currentFBO);
+            std::cout << "  Current FBO: " << currentFBO << std::endl;
+
             glViewport(0, 0, s_ScreenW, s_ScreenH);
         }
 
         // clear the framebuffer with transparent bg
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        std::cout << "  UI FBO cleared" << std::endl;
     }
 
     void UIRenderer::Submit(const UIDrawCommand& cmd) {
@@ -209,13 +219,40 @@ namespace NE::Graphics {
     }
 
     void UIRenderer::DrawFrame() {
-        if (s_Commands.empty()) return;
+       // if (s_Commands.empty()) return;
 
-        // setup OpenGL state for UI rendering
+        static int frameCount = 0;
+        static size_t lastCommandCount = 0;
+        bool shouldPrint = (frameCount < 5) || (s_Commands.size() != lastCommandCount);
+
+        if (shouldPrint) {
+            std::cout << "\n[UIRenderer::DrawFrame] Frame " << frameCount << std::endl;
+            std::cout << "  Commands queued: " << s_Commands.size() << std::endl;
+            std::cout << "  Screen size: " << s_ScreenW << "x" << s_ScreenH << std::endl;
+        }
+
+        if (s_Commands.empty()) {
+            if (shouldPrint) {
+                std::cout << "  WARNING: No commands to draw!" << std::endl;
+            }
+            frameCount++;
+            lastCommandCount = s_Commands.size();
+            return;
+        }
+
+        // save current OpenGL state
         GLboolean depthTestWasEnabled;
-        glGetBooleanv(GL_DEPTH_TEST, &depthTestWasEnabled);
+        GLboolean blendWasEnabled;
+        GLint blendSrc, blendDst;
 
+        glGetBooleanv(GL_DEPTH_TEST, &depthTestWasEnabled);
+        glGetBooleanv(GL_BLEND, &blendWasEnabled);
+        glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
+        glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
+
+        // set up openGL state for UI rendering
         glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -229,8 +266,17 @@ namespace NE::Graphics {
         glBindVertexArray(s_VAO);
 
         // draw each command
+        int cmdIndex = 0;
         for (const auto& cmd : s_Commands)
         {
+            if (shouldPrint) {
+                std::cout << "  Drawing command " << cmdIndex << ": "
+                    << "pos(" << cmd.x << "," << cmd.y << ") "
+                    << "size(" << cmd.width << "," << cmd.height << ") "
+                    << "color(" << cmd.color.x << "," << cmd.color.y << ","
+                    << cmd.color.z << "," << cmd.color.w << ")" << std::endl;
+            }
+
             // build quad vertices in pixel space
             float x = cmd.x;
             float y = cmd.y;
@@ -261,7 +307,7 @@ namespace NE::Graphics {
                 if (it != textures.end() && it->second) 
                 {
                     uint64_t handle = it->second->GetBindlessHandle();
-                    it->second->MakeResident(); // not *it — call on the texture object itself
+                    it->second->MakeResident();
                     glUniformHandleui64ARB(glGetUniformLocation(s_Shader, "uTex"), handle);
                     glUniform1i(glGetUniformLocation(s_Shader, "uUseTexture"), 1);
                 }
@@ -279,6 +325,11 @@ namespace NE::Graphics {
 
             // draw the quad
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            cmdIndex++;
+        }
+
+        if (shouldPrint) {
+            std::cout << "  Drew " << cmdIndex << " UI elements" << std::endl;
         }
 
         // restore OpenGL state
@@ -289,10 +340,25 @@ namespace NE::Graphics {
         {
             glEnable(GL_DEPTH_TEST);
         }
+
+        if (!blendWasEnabled)
+        {
+            glDisable(GL_BLEND);
+        }
+        else
+        {
+            glBlendFunc(blendSrc, blendDst);
+        }
+
+        frameCount++;
+        lastCommandCount = s_Commands.size();
     }
 
     void UIRenderer::EndFrame() {
-        s_FBO->Unbind();
+        if (s_FBO) s_FBO->Unbind();
+    }
+
+    void UIRenderer::ClearCommands() {
         s_Commands.clear();
     }
 
@@ -303,8 +369,21 @@ namespace NE::Graphics {
     void UIRenderer::Composite() {
         if (!s_FBO) return;
 
+        std::cout << "[UIRenderer::Composite] Compositing UI to screen" << std::endl;
+        std::cout << "  FBO Color Attachment: " << s_FBO->GetColorAttachment() << std::endl;
+        std::cout << "  Screen size: " << s_ScreenW << "x" << s_ScreenH << std::endl;
+
         // bind default framebuffer (screen)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Get current viewport to verify
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
+        std::cout << "  Current viewport: " << viewport[0] << "," << viewport[1]
+            << " " << viewport[2] << "x" << viewport[3] << std::endl;
+
+        // restore viewport to screen size
+        glViewport(0, 0, s_ScreenW, s_ScreenH);
 
         // setup for alpha blending
         glDisable(GL_DEPTH_TEST);
@@ -323,6 +402,19 @@ namespace NE::Graphics {
         glBindVertexArray(s_CompositeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
+
+        // Check for OpenGL errors
+        GLenum err = glGetError();
+        if (err != GL_NO_ERROR) {
+            std::cout << "  ERROR: OpenGL error during composite: " << err << std::endl;
+        }
+        else {
+            std::cout << "  Composite complete (no errors)" << std::endl;
+        }
+
+        // cleanup
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glUseProgram(0);
 
         // restore depth test
         glEnable(GL_DEPTH_TEST);

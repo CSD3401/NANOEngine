@@ -536,9 +536,21 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::DrawUI() {
+        static int frameCount = 0;
+        static bool shouldPrint = true;
+
+        if (shouldPrint && frameCount < 5) {
+            std::cout << "\n[GraphicsManager::DrawUI] Frame " << frameCount << std::endl;
+        }
+
         UIRenderer::BeginFrame();
         UIRenderer::DrawFrame();
         UIRenderer::EndFrame();
         UIRenderer::Composite();
+        UIRenderer::ClearCommands();
+
+        if (shouldPrint && frameCount < 5) {
+            std::cout << "[GraphicsManager::DrawUI] Complete\n" << std::endl;
+        }
     }
 }

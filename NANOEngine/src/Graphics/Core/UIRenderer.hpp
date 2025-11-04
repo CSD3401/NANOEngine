@@ -20,6 +20,7 @@ namespace NE::Graphics {
         static void Submit(const UIDrawCommand& cmd);
         static void DrawFrame();
         static void EndFrame();
+        static void ClearCommands();
 
         static void SetWindowSize(uint32_t width, uint32_t height);
 

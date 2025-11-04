@@ -4,6 +4,7 @@
 #include "../../Graphics/Core/UIDrawCommand.hpp" 
 #include "../../Graphics/Core/UIRenderer.hpp" 
 #include "../../Graphics/Core/GraphicsManager.hpp"
+#include <iostream>
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -34,6 +35,11 @@ namespace NE::ECS::Systems {
 
             NE::Graphics::UIRenderer::Submit(cmd);
         }
+
+        std::cout << "[UIRenderSystem::Update]" << std::endl;
+
+        const auto& entitiess = GetEntities();
+        std::cout << "  System has " << entitiess.size() << " registered entities" << std::endl;
     }
 
     void UIRenderSystem::Exit() {}
