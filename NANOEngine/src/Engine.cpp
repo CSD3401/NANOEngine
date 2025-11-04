@@ -25,6 +25,7 @@
 #include "Core/SpdLogger.hpp"
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
+#include "Audio/AudioBank.hpp"
 
 // Replace with forward declarations if needed
 // Forward declare instead of including
@@ -184,6 +185,9 @@ namespace NE {
 		Physics::PhysicsManager::ActivateBodies();
 		//Physics::Command::ActivateBodies();
 		gSceneManager.GetActive()->ScriptStart();
+
+		// TEMPORARY
+		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 
 	void EditorPause() {

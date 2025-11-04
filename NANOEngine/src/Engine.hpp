@@ -8,10 +8,15 @@
 #include "Graphics/Core/Model.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
-#include "Audio/AudioBank.hpp"
+
 #include "Graphics/OpenGL/GLShader.hpp"
 
 namespace NE {
+
+	namespace Asset {
+		class AudioBank;
+	}
+
 	NANOENGINE_API void Initialize();
 	NANOENGINE_API void LoadStartupScene();
 	NANOENGINE_API void Run(double dt);

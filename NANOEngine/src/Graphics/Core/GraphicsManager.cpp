@@ -18,6 +18,7 @@
 #include "../OpenGL/GLStateCache.hpp"
 #include "Graphics/OpenGL/GLFrameBuffer.hpp"
 #include "../../SceneManagement/Scene.hpp"
+#include "Core/SpdLogger.hpp"
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
@@ -123,10 +124,17 @@ namespace NE::Graphics {
 		Vec3 camPos;
         switch (s_CurrentRenderPass) {
         case SceneManagement::RenderPass::SCENE:
-        case SceneManagement::RenderPass::SCENE_PICKING:
-			camProj = s_EditorCamera->GetProjectionMatrix();
-			camView = s_EditorCamera->GetViewMatrix();
+            camProj = s_EditorCamera->GetProjectionMatrix();
+            camView = s_EditorCamera->GetViewMatrix();
             camPos = s_EditorCamera->GetPosition();
+            break;
+        case SceneManagement::RenderPass::SCENE_PICKING:
+			//camProj = s_EditorCamera->GetProjectionMatrix();
+			//camView = s_EditorCamera->GetViewMatrix();
+   //         camPos = s_EditorCamera->GetPosition();
+            camProj = m_ActiveCamera.projection;
+            camView = m_ActiveCamera.view;
+            camPos = m_ActiveCamera.position;
 			break;
         case SceneManagement::RenderPass::GAME:
             camProj = m_ActiveCamera.projection;
@@ -291,6 +299,7 @@ namespace NE::Graphics {
 
     uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) 
     {
+        //SPD_DEBUG("Clicked on X: " << x << " Y: " << y);
         s_PickingFrameBuffer->Bind();
         uint8_t data[4] = { 0, 0, 0, 0 };
         glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
