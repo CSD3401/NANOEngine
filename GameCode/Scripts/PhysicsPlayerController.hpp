@@ -160,7 +160,9 @@ private:
 		origin.y -= raycastOriginOffset; // Start at player's feet
 
 		NE::Math::Vec3 downDirection{ 0, -1, 0 };
-		uint32_t layerMask = (1 << 0);  // Only layer 0 = static ground
+		//uint32_t layerMask = (1 << 0) | (1<<1);  // Only layer 0 = static ground
+		uint32_t layerMask = 0xFFFFFFFF;  // Only layer 0 = static ground
+
 
 		// Perform raycast
 		IScript::RaycastHit hit = Raycast(origin, downDirection, groundCheckDistance, layerMask);
