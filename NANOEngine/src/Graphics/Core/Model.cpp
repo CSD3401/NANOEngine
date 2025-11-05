@@ -127,8 +127,6 @@ namespace NE::Graphics {
     //}
 
     bool Model::Preload(Resource::BinaryView blob) {
-
-        // 1) basic size check
         if (blob.size < sizeof(Resource::NanoMeshHeader))
             return false;
 
@@ -148,7 +146,6 @@ namespace NE::Graphics {
         m_staged.clear();
         m_staged.reserve(hdr->submeshCount);
 
-        // for each submesh, validate that the vertex/index data is inside the blob
         for (uint16_t i = 0; i < hdr->submeshCount; ++i) {
             const auto& d = subdescs[i];
 
@@ -194,7 +191,6 @@ namespace NE::Graphics {
         for (const auto& sm : m_staged) {
             SubMesh sub{};
 
-            // 1) copy vertices
             const auto* cv = reinterpret_cast<const CookVertex*>(sm.vdata);
             sub.vertices.resize(sm.vertexCount);
             for (uint32_t i = 0; i < sm.vertexCount; ++i) {
@@ -205,11 +201,9 @@ namespace NE::Graphics {
                 sub.vertices[i] = v;
             }
 
-            // 2) copy indices
             const auto* idx = reinterpret_cast<const uint32_t*>(sm.idata);
             sub.indices.assign(idx, idx + sm.indexCount);
 
-            // 3) create GPU buffers (same as your old code)
             auto vb = std::make_shared<NE::Graphics::OpenGL::GLVertexBuffer>(
                 sub.vertices.data(),
                 static_cast<uint32_t>(sub.vertices.size() * sizeof(NE::Graphics::Vertex)),

@@ -50,7 +50,6 @@ namespace NE::Graphics {
         const std::unordered_map<std::string, std::shared_ptr<ITexture>>& GetTextures() const { return m_Textures; }
 
         void SaveMaterial(const std::string& path) const;
-        //bool LoadFromFile(const std::string& fileName) override;
         void SetShader(const std::string& shaderUUID);
 
         bool Preload(Resource::BinaryView blob) override;
@@ -68,7 +67,7 @@ namespace NE::Graphics {
 
             struct Prop {
                 std::string name;
-                uint8_t type = 0;     // 0=int,1=float,2=vec3,3=mat4 (match below)
+                uint8_t type = 0;     // see NanoMatHeader for type ref
                 std::vector<uint8_t> bytes; // raw payload
             };
             std::vector<Prop> props;

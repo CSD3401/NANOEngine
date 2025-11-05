@@ -30,7 +30,6 @@ namespace {
     }
 }
 
-#include <iostream>
 #include "ResourceManagement/BinaryHeaders/NanoMatHeader.hpp"
 
 namespace NE::Graphics {
@@ -74,8 +73,6 @@ namespace NE::Graphics {
 	}
 
     void Material::Bind() const {
-        //m_Pipeline->Bind();
-
         auto* shader = m_Pipeline->GetSpecification().shader.get();
         for (const auto& [uName, val] : m_FloatUniforms)
             shader->SetUniformFloat(uName, val);
@@ -92,7 +89,6 @@ namespace NE::Graphics {
 
         for (auto& [uName, tex] : m_Textures) {
             if (!tex) continue;
-            //tex->MakeResident();
             uint64_t h = tex->GetBindlessHandle();
             shader->SetUniformHandle(uName, h);
         }
@@ -152,69 +148,6 @@ namespace NE::Graphics {
             out << buffer.GetString();
     }
 
-    //bool Material::LoadFromFile(const std::string& /*path*/) {
-  //      using namespace rapidjson;
-
-  //      std::ifstream in(path);
-  //      if (!in.is_open())
-  //          throw std::runtime_error("Failed to open material file: " + path);
-
-  //      std::string json((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-  //      Document doc;
-  //      doc.Parse(json.c_str());
-
-  //      if (!doc.IsObject())
-  //          throw std::runtime_error("Invalid material file");
-
-  //      std::string shaderUUID = doc["Shader"].GetString();
-
-  //      if (shaderUUID.empty()) shaderUUID = "Basic";
-		//	//throw std::runtime_error("Material file missing shader UUID");
-  //      auto shader = Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>(shaderUUID);
-  //      auto depthTest = doc["DepthTest"].GetBool();
-  //      auto blendMode = doc["BlendMode"].GetBool();
-		//auto cullMode = doc["CullMode"].GetInt();
-		//auto polygonMode = doc["PolygonMode"].GetInt();
-
-  //      Graphics::PipelineSpecification pipelineSpec;
-  //      pipelineSpec.shader = shader;
-  //      pipelineSpec.shaderName = shaderUUID;
-  //      pipelineSpec.EnableDepthTest = depthTest;
-		//pipelineSpec.EnableBlending = blendMode;
-  //      pipelineSpec.CullMode = cullMode;
-  //      pipelineSpec.PolygonMode = polygonMode;
-  //      m_Pipeline = Graphics::GetPipelineCache().GetOrCreate(pipelineSpec);
-  //      //m_Pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec);
-
-  //      if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
-  //          const auto& props = doc["Properties"];
-  //          for (auto it = props.MemberBegin(); it != props.MemberEnd(); ++it) {
-  //              std::string uName = it->name.GetString();
-  //              const auto& value = it->value;
-
-  //              if (value.IsNumber()) {
-  //                  SetUniformFloat(uName, value.GetFloat());
-  //              } else if (value.IsArray()) {
-  //                  if (value.Size() == 3) {
-  //                      Vec3 v{ value[0].GetFloat(), value[1].GetFloat(), value[2].GetFloat() };
-  //                      SetUniformVec3(uName, v);
-  //                  } else if (value.Size() == 16) {
-  //                      Mat4 m{};
-  //                      for (SizeType i = 0; i < 16; ++i)
-  //                          m[i] = value[i].GetFloat();
-  //                      SetUniformMat4(uName, m);
-  //                  }
-  //              } else if (value.IsString()) {
-  //                  // Texture serialization not yet done
-  //                  // mat->SetTexture(name, LoadTexture(value.GetString()));
-  //              }
-  //          }
-  //      }
-
-  //      return true;
-        //return false;
-    //}
-
     void Material::SetShader(const std::string& shaderUUID) {
         auto shader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>(shaderUUID);
         auto spec = m_Pipeline->GetSpecification();
@@ -231,7 +164,7 @@ namespace NE::Graphics {
         //auto defaultWhite = Asset::AssetManager::GetInstance().Load<NE::Graphics::OpenGL::GLTexture>("WhiteTex");
 
         for (auto& u : shader->EnumerateActiveUniforms()) {
-            std::cout << u.name << " type=" << std::hex << u.type << "\n";
+            //std::cout << u.name << " type=" << std::hex << u.type << "\n";
             if (IsEngineUniform(u.name)) continue;
 
             if (IsSampler(u.type)) {
@@ -281,18 +214,15 @@ namespace NE::Graphics {
         const auto* h = blob.as<NE::Resource::NanoMatHeader>(0);
         if (!h || h->magic != NE::Resource::NMAT_MAGIC || h->version != NE::Resource::CURRENT_NANOMAT_FORMAT_VERSION) return false;
 
-        // Bounds for shader name
         if (h->shaderNameOffset + h->shaderNameLen > blob.size) return false;
         const char* s0 = reinterpret_cast<const char*>(blob.data + h->shaderNameOffset);
         m_stage.shaderName.assign(s0, s0 + h->shaderNameLen);
 
-        // Global state
         m_stage.depthTest = (h->depthTest != 0);
         m_stage.blend = (h->blendMode != 0);
         m_stage.cullMode = h->cullMode;
         m_stage.polygonMode = h->polygonMode;
 
-        // Property table bounds
         const size_t recTableSize = size_t(h->propCount) * sizeof(NE::Resource::MatPropRecord);
         if (h->propsOffset + recTableSize > blob.size) return false;
 
@@ -303,7 +233,6 @@ namespace NE::Graphics {
         for (uint16_t i = 0; i < h->propCount; ++i) {
             const auto& r = recs[i];
 
-            // Bounds: name and data
             if (size_t(r.nameOffset) + r.nameLen > blob.size) return false;
             if (size_t(r.dataOffset) + r.dataSize > blob.size) return false;
 
@@ -325,10 +254,8 @@ namespace NE::Graphics {
     void Material::Finalize() {
         if (!m_stage.has) return;
 
-        // Build (or fetch) a pipeline from the shader name + state
         PipelineSpecification spec{};
-
-        spec.shaderName = m_stage.shaderName;  // your cache will resolve it
+        spec.shaderName = m_stage.shaderName;
         spec.shader = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>(spec.shaderName);
         spec.EnableDepthTest = m_stage.depthTest;
         spec.EnableBlending = m_stage.blend;
@@ -337,7 +264,6 @@ namespace NE::Graphics {
 
         m_Pipeline = NE::Graphics::GetPipelineCache().GetOrCreate(spec);
 
-        // Push properties into the Material (name-based, matches your Bind())
         for (const auto& p : m_stage.props) {
             switch (p.type) {
             case NE::Resource::MatPropType::INT: {
@@ -370,7 +296,6 @@ namespace NE::Graphics {
             }
         }
 
-        // Drop staging to free memory
         m_stage = {};
     }
 

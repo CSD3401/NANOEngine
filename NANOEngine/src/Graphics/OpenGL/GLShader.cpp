@@ -137,17 +137,14 @@ namespace NE::Graphics::OpenGL {
         if (h->magic != NE::Resource::NSHD_MAGIC) return false;
         if (h->importerVersion != NE::Resource::CURRENT_NANOSHD_FORMAT_VERSION) return false;
 
-        // Bounds check the program blob
         const uint64_t progEnd = h->programOffset + h->programSize;
         if (progEnd > blob.size) return false;
 
-        // Map fields for Finalize()
         progFormat = h->programBinaryFormat;
         progBlob = blob.data + h->programOffset;
         progSize = static_cast<size_t>(h->programSize);
 
-        // Optional embedded source fallback layout:
-        // [u32 vsLen][vs bytes][u32 fsLen][fs bytes]
+        // embedded source fallback layout
         hasFallback = (h->programFlags & 1u) != 0;
         if (hasFallback) {
             size_t off = static_cast<size_t>(progEnd);
@@ -175,11 +172,10 @@ namespace NE::Graphics::OpenGL {
         return true;
     }
 
+    // Need to delete blob after finalizing TODO
     void GLShader::Finalize() {
-        // Guard: Preload must have succeeded
         if (!progBlob || progSize == 0) { m_programID = 0; return; }
 
-        // Fast path: load cached program binary
         m_programID = glCreateProgram();
         if (!m_programID) { return; }
 
@@ -196,7 +192,7 @@ namespace NE::Graphics::OpenGL {
             SPD_WARNING("glProgramBinary failed; attempting embedded source fallback.");
         }
 
-        // Failed to load binary � fall back to embedded source if available
+        // Failed to load binary... fall back to embedded source if available
         glDeleteProgram(m_programID);
         m_programID = 0;
 
@@ -220,10 +216,8 @@ namespace NE::Graphics::OpenGL {
         if (prog) {
             m_programID = prog;
 
-            // (Optional) Re-dump a fresh binary to disk here to refresh the cache:
-            //  - glGetProgramiv(program_, GL_PROGRAM_BINARY_LENGTH, &len)
-            //  - glGetProgramBinary(program_, ...)
-            //  - write back to your .nshbin alongside updated header
+            // TODO maybe redump fresh binary to disk to refresh the cache and write back into .nshbin
+            // using the embedded fallback
         } else {
             // leave program_ = 0 (Finalize failed)
         }
