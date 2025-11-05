@@ -30,7 +30,7 @@ namespace NE::Graphics {
         void SetUniformFloat(const std::string& name, float value);
         void SetUniformVec3(const std::string& name, const Vec3& value);
         void SetUniformMat4(const std::string& name, const Mat4& value);
-        void SetTexture(const std::string& name, std::shared_ptr<ITexture> texture);
+        void SetTexture(const std::string& name, std::shared_ptr<OpenGL::GLTexture> texture);
         void SetQueueBase(RenderQueue queue);
         void SetQueueOffset(uint16_t offset);
 
@@ -47,7 +47,7 @@ namespace NE::Graphics {
         const RenderQueue& GetQueueBase() const { return m_BaseRQ; }
 		    const uint16_t& GetQueueOffset() const { return m_OffsetRQ; }
 		    const uint16_t GetQueueOrder() const { return static_cast<uint16_t>(m_BaseRQ) + m_OffsetRQ; }
-        const std::unordered_map<std::string, std::shared_ptr<ITexture>>& GetTextures() const { return m_Textures; }
+        const std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>>& GetTextures() const { return m_Textures; }
 
         void SaveMaterial(const std::string& path) const;
         //bool LoadFromFile(const std::string& fileName) override;
@@ -56,6 +56,7 @@ namespace NE::Graphics {
         bool Preload(Resource::BinaryView blob) override;
         void Finalize() override;
 
+        void SetUniformMat4Array(const std::string& name, const std::vector<NE::Math::Mat4>& values);
     private:
 
         struct MatStage {
@@ -83,10 +84,10 @@ namespace NE::Graphics {
 
         std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
 
-		// Render queue
-		RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
-		uint16_t m_OffsetRQ = 0;
-	};
+        // Render queue
+        RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
+        uint16_t m_OffsetRQ = 0;
+        };
 
 }
 

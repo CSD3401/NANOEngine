@@ -23,7 +23,7 @@ namespace NE::ECS::Component {
 		NE_REFLECT_BEGIN(Renderer)
 			NE_REFLECT_FIELD(modelPath),
 			NE_REFLECT_FIELD(materialPath)
-			NE_REFLECT_END()
+		NE_REFLECT_END()
 	};
 
 }

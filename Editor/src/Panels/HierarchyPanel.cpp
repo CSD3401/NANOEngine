@@ -8,6 +8,8 @@
 #include <ECS/Core/Entity.hpp>
 #include <Engine.hpp>
 #include <imgui/imgui_internal.h>
+#include <EditorInterface/ECSExports.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
@@ -150,7 +152,13 @@ namespace Editor {
                 // -------- label & selection ----------
                 Editor::EditorEntity* ent = nullptr;
                 for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } }
-                std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
+                //std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
+
+                std::string entityName;
+                const auto& meta = NE::ECS::Query::GetEntityMeta(id);
+                entityName = !meta.name.empty() ? meta.name : "Entity";
+
+                std::string label = entityName + "##" + std::to_string(id);
 
                 const auto& kids = Editor::EditorScene::ChildrenOf(id);
                 bool isLeaf = kids.empty();

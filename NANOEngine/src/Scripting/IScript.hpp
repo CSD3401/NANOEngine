@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "../ECS/Core/ComponentManager.hpp"
+#include "../Math/Vec3.hpp"
 
 // Export macros for when Engine is built as DLL
 #ifdef NANOENGINE_EXPORTS
@@ -16,12 +17,12 @@ namespace NE::ECS {
     using Entity = unsigned int;
 }
 
-namespace NE::Math {
-    struct Vec3;
-}
+//namespace NE::Math {
+//    struct Vec3;
+//}
 
 //namespace NE::Core {
-//    class Transform;
+//  class Transform;
 //    class GameObject;
 //}
 
@@ -31,6 +32,17 @@ namespace NE::Math {
  */
 class ENGINE_API IScript {
 public:
+    /**
+     * Raycast hit information structure.
+     */
+    struct RaycastHit {
+    bool hasHit = false;           // Did the ray hit anything?
+ NE::Math::Vec3 point;          // World position where ray hit
+   NE::Math::Vec3 normal;         // Surface normal at hit point
+        float distance = 0.0f;         // Distance from ray origin to hit point
+ NE::ECS::Entity entity = 0;    // Entity that was hit
+    };
+
     virtual ~IScript();
 
     /**
@@ -272,15 +284,15 @@ public:
     // === Unity-Style Rigidbody Helper Functions ===
 
     /**
-     * Check if the entity has a Rigidbody component.
+ * Check if the entity has a Rigidbody component.
      * @return true if Rigidbody exists, false otherwise
      */
     bool HasRigidbody() const;
 
-    /**
+  /**
      * Get the mass of the rigidbody.
-     * @return Mass value, or 0 if no Rigidbody component
-     */
+  * @return Mass value, or 0 if no Rigidbody component
+  */
     float GetMass() const;
 
     /**
@@ -295,11 +307,11 @@ public:
      */
     bool GetUseGravity() const;
 
-    /**
+ /**
      * Enable or disable gravity for the rigidbody.
-     * @param use Whether to use gravity
+  * @param use Whether to use gravity
      */
-    void SetUseGravity(bool use);
+void SetUseGravity(bool use);
 
     /**
      * Check if the rigidbody is static.
@@ -312,6 +324,72 @@ public:
      * @param isStatic Whether the body should be static
      */
     void SetStatic(bool isStatic);
+
+    /**
+     * Lock or unlock rotation axes on the rigidbody.
+     * Useful for preventing player characters from tipping over.
+     * @param lockX Lock rotation around X axis (pitch)
+     * @param lockY Lock rotation around Y axis (yaw)
+     * @param lockZ Lock rotation around Z axis (roll)
+     */
+    void LockRotation(bool lockX, bool lockY, bool lockZ);
+
+    /**
+     * Get the linear velocity of the rigidbody.
+     * @return Velocity as Vec3, or (0,0,0) if no Rigidbody component
+     */
+  NE::Math::Vec3 GetVelocity() const;
+
+    /**
+     * Set the linear velocity of the rigidbody.
+     * @param velocity New velocity
+     */
+    void SetVelocity(const NE::Math::Vec3& velocity);
+
+    /**
+     * Set the linear velocity of the rigidbody.
+     * @param x X velocity
+     * @param y Y velocity
+     * @param z Z velocity
+     */
+    void SetVelocity(float x, float y, float z);
+
+    /**
+     * Add force to the rigidbody (affected by mass).
+     * @param force Force vector to apply
+     */
+    void AddForce(const NE::Math::Vec3& force);
+
+    /**
+     * Add force to the rigidbody.
+     * @param x X force
+     * @param y Y force
+     * @param z Z force
+     */
+    void AddForce(float x, float y, float z);
+
+    /**
+     * Add impulse to the rigidbody (instant velocity change, affected by mass).
+     * @param impulse Impulse vector to apply
+     */
+    void AddImpulse(const NE::Math::Vec3& impulse);
+
+    /**
+     * Add impulse to the rigidbody.
+     * @param x X impulse
+     * @param y Y impulse
+     * @param z Z impulse
+     */
+    void AddImpulse(float x, float y, float z);
+
+    // === Physics Raycasting Functions ===
+    // In IScript class:
+    RaycastHit Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+    RaycastHit Raycast(float originX, float originY, float originZ, float dirX, float dirY, float dirZ, float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+    std::vector<RaycastHit> RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+ 
+
+
 
     // === Unity-Style AudioSource Helper Functions ===
 

@@ -7,7 +7,7 @@
 #include "Math/Vec3.hpp"
 #include <iostream>
 
-NE::Graphics::Camera* Editor::SceneCameraTweener::sceneCamera = nullptr;
+NE::Graphics::EditorCamera* Editor::SceneCameraTweener::sceneCamera = nullptr;
 float isTweening = 0.0f;
 
 namespace Editor {
@@ -60,7 +60,7 @@ namespace Editor {
 		// Tween
 		TweenManager::Get().StartTween(
 			sceneCamera,
-			&NE::Graphics::Camera::SetPosition,
+			&NE::Graphics::EditorCamera::SetPosition,
 			sceneCamera->GetPosition(),
 			targetPosition,
 			tweenDuration,
@@ -68,7 +68,7 @@ namespace Editor {
 		);
 	}
 
-	void SceneCameraTweener::SetSceneCamera(NE::Graphics::Camera* camera)
+	void SceneCameraTweener::SetSceneCamera(NE::Graphics::EditorCamera* camera)
 	{
 		sceneCamera = camera;
 	}

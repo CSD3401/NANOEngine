@@ -7,6 +7,7 @@
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/AudioSource.hpp"
+#include "../Physics/PhysicsManager.hpp"
 
 // PIMPL implementation to hide std containers from DLL interface
 class IScript::FieldRegistry {
@@ -350,7 +351,9 @@ void IScript::SetUseGravity(bool use) {
     
     if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
      auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-rigidbody.useGravity = use;
+    rigidbody.useGravity = use;
+    NE::Physics::PhysicsManager::SetGravityEnabled(rigidbody.bodyID, use);
+
     }
 }
 
@@ -365,11 +368,128 @@ bool IScript::IsStatic() const {
 
 void IScript::SetStatic(bool isStatic) {
     if (!m_componentManager) return;
+  
+  if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+  auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+        rigidbody.isStatic = isStatic;
+  }
+}
+
+void IScript::LockRotation(bool lockX, bool lockY, bool lockZ) {
+    if (!m_componentManager) return;
     
     if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-        auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-        rigidbody.isStatic = isStatic;
+        auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+        NE::Physics::PhysicsManager::LockRotation(rb.bodyID, lockX, lockY, lockZ);
     }
+}
+
+// === Velocity and Force Methods ===
+
+NE::Math::Vec3 IScript::GetVelocity() const {
+    if (!m_componentManager) return NE::Math::Vec3{0, 0, 0};
+    
+    if (!m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity))
+        return NE::Math::Vec3{0, 0, 0};
+    
+    const auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+    return NE::Physics::PhysicsManager::GetLinearVelocity(rb.bodyID);
+}
+
+void IScript::SetVelocity(const NE::Math::Vec3& velocity) {
+    if (!m_componentManager) return;
+    
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+       auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+      NE::Physics::PhysicsManager::SetLinearVelocity(rb.bodyID, velocity);
+    }
+}
+
+void IScript::SetVelocity(float x, float y, float z) {
+    SetVelocity(NE::Math::Vec3{x, y, z});
+}
+
+void IScript::AddForce(const NE::Math::Vec3& force) {
+    if (!m_componentManager) return;
+ 
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+        auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+       NE::Physics::PhysicsManager::AddForce(rb.bodyID, force);
+    }
+}
+
+void IScript::AddForce(float x, float y, float z) {
+    AddForce(NE::Math::Vec3{x, y, z});
+}
+
+void IScript::AddImpulse(const NE::Math::Vec3& impulse) {
+    if (!m_componentManager) return;
+    
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+    auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+   NE::Physics::PhysicsManager::AddImpulse(rb.bodyID, impulse);
+    }
+}
+
+void IScript::AddImpulse(float x, float y, float z) {
+    AddImpulse(NE::Math::Vec3{x, y, z});
+}
+
+// === Physics Raycasting Methods ===
+
+// === Physics Raycasting Methods ===
+IScript::RaycastHit IScript::Raycast(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask) const {
+    RaycastHit result;
+
+    if (!m_componentManager) {
+        result.hasHit = false;
+        return result;
+    }
+
+    // Call PhysicsManager raycast with layer mask
+    auto hit = NE::Physics::PhysicsManager::Raycast(origin, direction, maxDistance, layerMask);
+
+    // Convert PhysicsManager::RaycastHit to IScript::RaycastHit
+    result.hasHit = hit.hasHit;
+    result.point = hit.point;
+    result.normal = hit.normal;
+    result.distance = hit.distance;
+    result.entity = hit.entity;
+    return result;
+}
+
+IScript::RaycastHit IScript::Raycast(float originX, float originY, float originZ,
+    float dirX, float dirY, float dirZ,
+    float maxDistance, uint32_t layerMask) const {
+    return Raycast(NE::Math::Vec3{ originX, originY, originZ },
+        NE::Math::Vec3{ dirX, dirY, dirZ },
+        maxDistance,
+        layerMask);
+}
+
+std::vector<IScript::RaycastHit> IScript::RaycastAll(const NE::Math::Vec3& origin, const NE::Math::Vec3& direction, float maxDistance, uint32_t layerMask) const {
+    std::vector<RaycastHit> results;
+
+    if (!m_componentManager) {
+        return results;
+    }
+
+    // Call PhysicsManager raycast with layer mask
+    auto hits = NE::Physics::PhysicsManager::RaycastAll(origin, direction, maxDistance, layerMask);
+
+    // Convert PhysicsManager::RaycastHit to IScript::RaycastHit
+    results.reserve(hits.size());
+    for (const auto& hit : hits) {
+        RaycastHit result;
+        result.hasHit = hit.hasHit;
+        result.point = hit.point;
+        result.normal = hit.normal;
+        result.distance = hit.distance;
+        result.entity = hit.entity;
+        results.push_back(result);
+    }
+
+    return results;
 }
 
 // === AudioSource Helper Functions ===

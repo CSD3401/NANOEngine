@@ -8,6 +8,7 @@
 #include "../Components/EntityMeta.hpp"
 #include "../Components/AudioSource.hpp"
 #include "../Components/NativeScript.hpp"
+#include "../Components/Camera.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -16,6 +17,10 @@
 #include "../Systems/ColliderSystem.hpp"
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
+#include "../Systems/CameraSystem.hpp"
+
+#include "../Components/Animator.hpp"
+#include "../Systems/AnimatorSystem.hpp"  
 
 
 namespace NE::ECS {
@@ -34,6 +39,8 @@ namespace NE::ECS {
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
         RegisterComponent<Component::NativeScript>();
+        RegisterComponent<Component::Animator>();
+		RegisterComponent<Component::Camera>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
@@ -82,6 +89,22 @@ namespace NE::ECS {
 			Signature sig;
 			sig.set(GetComponentType<Component::NativeScript>());
 			SetSystemSignature<Systems::ScriptSystem>(sig);
+		}
+
+        m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Transform>());  // Animator works on Transform
+            sig.set(GetComponentType<Component::Animator>());   // and requires Animator
+            SetSystemSignature<Systems::AnimatorSystem>(sig);
+        }
+        
+        m_cameraSystem = m_systemManager->RegisterSystem<Systems::CameraSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Camera>());
+            sig.set(GetComponentType<Component::Transform>());
+            SetSystemSignature<Systems::CameraSystem>(sig);
 		}
     }
 

@@ -74,7 +74,7 @@ namespace NE::ECS::Systems {
         pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
     }
 
-    void RenderSystem::Update(double) {
+    void RenderSystem::Update(double deltaTime) {
 		NE_PROFILE_FUNCTION();
 
         FrustumCulling();
@@ -83,7 +83,6 @@ namespace NE::ECS::Systems {
         for (Entity entity : entities) {
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
             if (!renderer.visible || !renderer.model) continue;
-
             auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
             //if (!renderer.visible)
@@ -111,37 +110,26 @@ namespace NE::ECS::Systems {
                 //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
                 //cmd.material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
                 //cmd.material->SetUniformFloat("u_Material.shininess", 32.0f);
+                if (renderer.model && renderer.model->HasSkeleton()) {
+                    // advance time (dt variable is available in Update)
+                    renderer.model->UpdateAnimation(deltaTime);
 
+                    // upload bones to the material (Material::Bind will push them to the shader)
+                    const auto& bones = renderer.model->GetBoneMatrices();
+                    if (!bones.empty()) {
+                        renderer.material->SetUniformMat4Array("u_Bones", bones);
+                    }
+                }
 				Graphics::GraphicsManager::Submit(cmd);
+
+                // Object picking
+                Graphics::DrawCommand cmdPicking;
+                cmdPicking.mesh = sub.buffer;
+                cmdPicking.material = pickingMaterial;
+                cmdPicking.transform = transform.modelMatrix;
+                cmdPicking.entity = entity;
+                Graphics::GraphicsManager::SubmitPicking(cmdPicking);
 			}
-        }
-    }
-
-    void RenderSystem::RenderPicking() {
-        const auto& entities = GetEntities();
-        for (Entity entity : entities) {
-            auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-            if (!renderer.visible || !renderer.model) continue;
-            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-
-            //if (!renderer.model && !renderer.modelPath.empty())
-            //    renderer.model = Graphics::LoadModel(renderer.modelPath.string());
-            //if (!renderer.model)
-            //    continue;
-
-            //float r = (float)(entity & 0xFF) / 255.0f;
-            //float g = (float)((entity >> 8) & 0xFF) / 255.0f;
-            //float b = (float)((entity >> 16) & 0xFF) / 255.0f;
-
-            for (auto& sub : renderer.model->meshes) {
-                Graphics::DrawCommand cmd;
-                cmd.mesh = sub.buffer;
-                cmd.material = pickingMaterial;
-                cmd.transform = transform.modelMatrix;
-				cmd.entity = entity;
-                //pickingMaterial->SetUniformVec3("u_ID", { r, g, b });
-                Graphics::GraphicsManager::Submit(cmd);
-            }
         }
     }
 
@@ -149,8 +137,9 @@ namespace NE::ECS::Systems {
     {
     }
 
-    Frustum RenderSystem::BuildFrustum() {
-        auto* cam = GraphicsManager::GetCamera();
+    Frustum RenderSystem::BuildFrustum() 
+    {
+        auto* cam = GraphicsManager::GetEditorCamera();
 
         if (!cam)
         {
@@ -164,7 +153,8 @@ namespace NE::ECS::Systems {
         return Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
     }
 
-    bool RenderSystem::TestSphereFrustum(const Frustum& F, const Mat4& M, const Vec3& centerLS, float radiusLS) {
+    bool RenderSystem::TestSphereFrustum(const Frustum& F, const Mat4& M, const Vec3& centerLS, float radiusLS) 
+    {
         // transform center from local space to world space
         Vec3 centerWS{
             M.a[0] * centerLS.x + M.a[4] * centerLS.y + M.a[8] * centerLS.z + M.a[12],

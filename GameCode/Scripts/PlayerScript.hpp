@@ -12,25 +12,9 @@
 #include <Math/Vec3.hpp>
 #include <Core/SpdLogger.hpp>
 
-CoroutineHandle ctimer = 0;
-
-struct DelayedPrintData {
-    float timeLeft;
-};
-
-static bool DelayedPrintUpdate(void* userData, float dt) {
-    DelayedPrintData* data = static_cast<DelayedPrintData*>(userData);
-    data->timeLeft -= dt;
-    
-    if (data->timeLeft <= 0.0f) {
-        // Timer finished! Do your action here
-        SPD_DEBUG("hi 3 seconds over player");
-        std::cout << "santa clause" << std::endl;
+void DelayedPrintUpdate() {
+	SPD_DEBUG("hi 3 seconds over player");
         
-        delete data;
-        return true;  // Finished
-    }
-    return false;  // Keep waiting
 }
 
 /**
@@ -62,7 +46,7 @@ public:
 			NE_REFLECT_END()
 	};
 
-	//  Example struct with 4 bools 
+	//  Example struct with 4 bools
 	struct PlayerFlags {
 		bool canJump = true;
 		bool canDoubleJump = false;
@@ -98,9 +82,9 @@ public:
 		REGISTER_REFLECTABLE_STRUCT(playerFlags);  //  4 bool struct
 
 		//  PRE-FILL TEST DATA  working
-		enemyIDs = {42, 57, 103, 999};  // 4 enemy IDs to test remove
-		waypoints = {10.5f, 25.0f, 42.3f, 58.7f};  // 4 waypoint positions
-		flags = {true, false, true, false, true};// 5 quest flags
+		enemyIDs = { 42, 57, 103, 999 };  // 4 enemy IDs to test remove
+		waypoints = { 10.5f, 25.0f, 42.3f, 58.7f };  // 4 waypoint positions
+		flags = { true, false, true, false, true };// 5 quest flags
 
 		//SPD_DEBUG("PlayerScript created");
 	}
@@ -112,6 +96,8 @@ public:
 	// === IScript Interface ===
 	void Awake() override {
 		//SPD_DEBUG("PlayerScript::Awake() called for entity {}", GetEntity());
+
+		chandle = Engine_CreateCoroutine();
 	}
 
 	void Initialize(NE::ECS::Entity entity) override {
@@ -129,10 +115,10 @@ public:
 		//for (size_t i = 0; i < flags.size(); ++i) {
 		//	SPD_DEBUG("    flags[{}] = {}", i, flags[i] ? "true" : "false");
 		//}
-		//SPD_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}", 
-		//	playerFlags.canJump ? "true" : "false", 
-		//	playerFlags.canDoubleJump ? "true" : "false", 
-		//	playerFlags.hasKey ? "true" : "false", 
+		//SPD_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}",
+		//	playerFlags.canJump ? "true" : "false",
+		//	playerFlags.canDoubleJump ? "true" : "false",
+		//	playerFlags.hasKey ? "true" : "false",
 		//	playerFlags.questComplete ? "true" : "false");
 
 		// Validate field values when changed in editor
@@ -175,21 +161,28 @@ public:
 			state = PlayerState::Idle;
 		}
 
-		if (NE::InputManager::IsKeyDown('K')) {
+		if (NE::InputManager::WasKeyPressed('K')) {
 			int dmg = 20;
 			NANOEngine::Events::SendScriptEvent("OnPlayerHit", &dmg);
 			SPD_DEBUG("Santaclaus is coming to town");
 		}
-		else if (NE::InputManager::IsKeyDown('C'))
+		else if (NE::InputManager::WasKeyPressed('C'))
 		{
-			// Couroutine Test
-			if (ctimer == 0 || !Engine_IsCoroutineRunning(ctimer)) {
-            	// ctimer = Engine_WaitForSeconds(3.f);
-				DelayedPrintData* data = new DelayedPrintData{ 3.0f };
-        		Engine_StartCoroutine(&DelayedPrintUpdate, data);
-     
-            	SPD_DEBUG("Timer started!");
-        	}
+			// Create a new coroutine
+			/*CoroutineHandle h = Engine_CreateCoroutine();*/
+
+			NANOEngine::Events::SendScriptEvent("TimeSwapNow",nullptr);
+
+			//// Wait 3 seconds
+			//Engine_AddWaitForSeconds(h, 3.0f);
+
+			//// Action after wait
+			//Engine_AddAction(h, DelayedPrintUpdate);
+
+			//// Start the coroutine
+			//Engine_StartCoroutine(h);
+
+			SPD_DEBUG("Timer started!");
 		}
 
 		//Courutine Test
@@ -310,6 +303,9 @@ private:
 	// Struct fields
 	PlayerStats stats;
 	PlayerFlags playerFlags;  //  4 bool struct
+
+	// Coroutine
+	CoroutineHandle chandle;
 
 	// Field registry
 	ExposedFieldRegistry m_fields;

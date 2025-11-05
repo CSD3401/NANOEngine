@@ -10,7 +10,7 @@
 #include "../Command/CommandHistory.hpp"
 
 namespace Editor {
-	static uint32_t temp;
+	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
 
@@ -389,7 +389,7 @@ namespace Editor {
 		ImGui::End();
 	}
 
-	NE::Graphics::Camera* ScenePanel::GetCamera()
+	NE::Graphics::EditorCamera* ScenePanel::GetCamera()
 	{
 		return &m_editorCamera;
 	}

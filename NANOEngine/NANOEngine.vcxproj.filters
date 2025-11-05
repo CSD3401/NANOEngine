@@ -23,7 +23,7 @@
     <ClCompile Include="src\Core\Profiler.cpp" />
     <ClCompile Include="src\ECSInternals.cpp" />
     <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
-    <ClCompile Include="src\Graphics\Core\Camera.cpp" />
+    <ClCompile Include="src\Graphics\Core\EditorCamera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Graphics\Core\Model.cpp" />
@@ -243,7 +243,7 @@
     <ClCompile Include="src\ECS\Core\EntityManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Graphics\Core\Camera.cpp">
+    <ClCompile Include="src\Graphics\Core\EditorCamera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ECS\Core\ECSCoordinator.cpp">
@@ -339,7 +339,31 @@
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\ResourceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\TransformClipIO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Animation\AnimatorControllerIO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+        <ClCompile Include="src\Core\SpdLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+        <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp">
+          <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp">
+          <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Core\SpdLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ECS\Systems\CameraSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

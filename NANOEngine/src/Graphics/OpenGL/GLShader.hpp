@@ -42,6 +42,7 @@ namespace NE::Graphics::OpenGL {
 		bool HasUniform(std::string_view name) const;
 
 
+		void SetUniformMat4Array(const std::string& uName, const NE::Math::Mat4* data, int count) override;
 	private:
 		const uint8_t* progBlob = nullptr;
 		size_t progSize = 0;

@@ -5,7 +5,6 @@
 
 namespace NE::Graphics {
 
-	class Camera; // Forward declaration
 
 	class DrawQueue {
 	public:
@@ -23,7 +22,7 @@ namespace NE::Graphics {
 
 		void Clear();
 		void Submit(const DrawCommand& cmd);
-		void Sort(const Camera* camera);
+		void Sort(const Vec3& camPos);
 
 		const std::vector<DrawCommand>& GetCommands() const { return m_Commands; }
 	private:

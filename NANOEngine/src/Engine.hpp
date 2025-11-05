@@ -7,10 +7,15 @@
 #include "Graphics/Core/Material.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
-#include "Audio/AudioBank.hpp"
+
 #include "Graphics/OpenGL/GLShader.hpp"
 
 namespace NE {
+
+	namespace Asset {
+		class AudioBank;
+	}
+
 	NANOENGINE_API void Initialize();
 	NANOENGINE_API void LoadStartupScene();
 	NANOENGINE_API void Run(double dt);
@@ -19,6 +24,7 @@ namespace NE {
 	NANOENGINE_API void* GetNativeWindowHandle();
 	NANOENGINE_API bool WindowShouldClose();
 	NANOENGINE_API uint32_t GetSceneFrameBuffer();
+	NANOENGINE_API uint32_t GetGameFrameBuffer();
 	NANOENGINE_API void SetEditorCamera(void* camera);
 
 	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y);

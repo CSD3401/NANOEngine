@@ -15,54 +15,65 @@ namespace {
 
 namespace NE::Graphics {
 
-    //std::shared_ptr<Model> LoadModel(const std::string& path) {
-    //    Assimp::Importer importer;
-    //    const aiScene* scene = importer.ReadFile(path,
-    //        aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs);
-    //    if (!scene || !scene->HasMeshes())
-    //        return nullptr;
+    static Mat4 AiToMat4(const aiMatrix4x4& m) {
+        return Mat4(
+            m.a1, m.a2, m.a3, m.a4,
+            m.b1, m.b2, m.b3, m.b4,
+            m.c1, m.c2, m.c3, m.c4,
+            m.d1, m.d2, m.d3, m.d4
+        );
+    }
 
-    //    auto model = std::make_shared<Model>();
+    static Vec3 AiToVec3(const aiVector3D& v) { return { v.x, v.y, v.z }; }
 
-    //    for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
-    //        const aiMesh* mesh = scene->mMeshes[m];
-    //        SubMesh sub;
+    static aiMatrix4x4 ComposeTRS(const aiVector3D& t, const aiQuaternion& r, const aiVector3D& s) {
+        aiMatrix4x4 T; aiMatrix4x4::Translation(t, T);
+        aiMatrix3x3 R3 = r.GetMatrix();
+        aiMatrix4x4 R(
+            R3.a1, R3.a2, R3.a3, 0.0f,
+            R3.b1, R3.b2, R3.b3, 0.0f,
+            R3.c1, R3.c2, R3.c3, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        );
+        aiMatrix4x4 S; aiMatrix4x4::Scaling(s, S);
+        return T * R * S;
+    }
 
-    //        sub.vertices.reserve(mesh->mNumVertices);
-    //        for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
-    //            Vertex v;
-    //            v.Position = Math::Vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-    //            v.Normal = mesh->HasNormals() ?
-    //                Math::Vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z) :
-    //                Math::Vec3(0.f, 0.f, 0.f);
-    //            if (mesh->HasTextureCoords(0))
-    //                v.TexCoord = Math::Vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
-    //            else
-    //                v.TexCoord = Math::Vec2(0.f, 0.f);
-    //            sub.vertices.push_back(v);
-    //        }
+    // Helper to add up to 4 influences per vertex
+    static void AddBoneData(Vertex& v, int boneID, float weight) {
+        for (int i = 0; i < MAX_BONE_INFLUENCE; ++i) {
+            if (v.Weights[i] == 0.0f) {
+                v.BoneIDs[i] = boneID;
+                v.Weights[i] = weight;
+                return;
+            }
+        }
+        // Replace the smallest weight if full
+        int minIndex = 0;
+        for (int i = 1; i < MAX_BONE_INFLUENCE; ++i)
+            if (v.Weights[i] < v.Weights[minIndex]) minIndex = i;
+        if (weight > v.Weights[minIndex]) {
+            v.BoneIDs[minIndex] = boneID;
+            v.Weights[minIndex] = weight;
+        }
+    }
 
-    //        sub.indices.reserve(mesh->mNumFaces * 3);
-    //        for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
-    //            const aiFace& face = mesh->mFaces[i];
-    //            for (unsigned int j = 0; j < face.mNumIndices; ++j)
-    //                sub.indices.push_back(face.mIndices[j]);
-    //        }
+    // Build node list recursively
+    static void BuildNodes(Model& M, const aiNode* node, int parent) {
+        int idx = (int)M.m_Nodes.size();
+        Model::Node N;
+        N.name = node->mName.C_Str();
+        N.parent = parent;
+        N.defaultTransform = AiToMat4(node->mTransformation);
+        M.m_NodeIndex[N.name] = idx;
+        M.m_Nodes.push_back(N);
 
-    //        auto vb = std::make_shared<OpenGL::GLVertexBuffer>(
-    //            sub.vertices.data(),
-    //            static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
-    //            sizeof(Vertex));
-    //        auto ib = std::make_shared<OpenGL::GLIndexBuffer>(
-    //            sub.indices.data(),
-    //            static_cast<uint32_t>(sub.indices.size()));
-    //        sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
-
-    //        model->meshes.push_back(std::move(sub));
-    //    }
-
-    //    return model;
-    //}
+        for (unsigned i = 0; i < node->mNumChildren; ++i) {
+            int childIndexStart = (int)M.m_Nodes.size();
+            BuildNodes(M, node->mChildren[i], idx);
+            M.m_Nodes[idx].children.push_back(childIndexStart);
+        }
+    }
 
     //bool Model::LoadFromFile(const std::string& path) {
         //Assimp::Importer importer;

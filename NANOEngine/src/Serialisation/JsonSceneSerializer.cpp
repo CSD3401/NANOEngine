@@ -11,9 +11,12 @@
 #include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/NativeScript.hpp"
+#include "ECS/Components/Camera.hpp"
 
 #include "../Graphics/Core/Model.hpp"
 #include "../ECS/Components/ComponentKey.hpp"
+
+#include "ECS/Systems/ScriptSystem.hpp"
 
 // rapidjson
 #include <rapidjson/document.h>
@@ -57,7 +60,8 @@ namespace {
         NE::ECS::Component::Light,
         NE::ECS::Component::Collider,
         NE::ECS::Component::Rigidbody,
-        NE::ECS::Component::NativeScript
+        NE::ECS::Component::NativeScript,
+        NE::ECS::Component::Camera
     >;
 
     template <class F>

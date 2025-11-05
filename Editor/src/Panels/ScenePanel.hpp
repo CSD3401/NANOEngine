@@ -3,7 +3,7 @@
 #include "IPanel.hpp"
 #include <vector>
 #include <string>
-#include "Graphics/Core/Camera.hpp"
+#include "Graphics/Core/EditorCamera.hpp"
 #include "imgui/imgui_internal.h"
 #include "SceneCameraTweener.hpp"
 
@@ -14,10 +14,10 @@ namespace Editor {
 
 		virtual void OnImGuiRender() override;
 
-		NE::Graphics::Camera* GetCamera();
+		NE::Graphics::EditorCamera* GetCamera();
 
 	private:
-		NE::Graphics::Camera m_editorCamera;
+		NE::Graphics::EditorCamera m_editorCamera;
 
 		float m_cameraYaw = -90.0f;  // looking along -Z
 		float m_cameraPitch = 0.0f;
