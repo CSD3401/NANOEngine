@@ -173,9 +173,6 @@ namespace Editor {
 		FieldKeyHash> g_activeCommands;
 
 	InspectorPanel::InspectorPanel() {
-		m_loadedMaterial = nullptr;
-		m_loadedPath = "";
-
 		componentTypeRegistry = NE::ECS::Query::GetRegisteredComponentTypes();
 	}
 
@@ -374,7 +371,7 @@ namespace Editor {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) { 
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
                             auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
-
+							NE::Renderer::Command::AssignModel(entity, uuid);
                             
                             //NE::Renderer::Command::AssignModel(entity, dropped);
                         }
@@ -632,30 +629,30 @@ namespace Editor {
 					}
 
 					//static std::string searchQuery;
-					if (ImGui::BeginPopup("AudioPicker_Model")) {
-						ImGui::Text("Select Audio");
-						ImGui::Separator();
-						auto& assets = NE::GetAllModels();
+					//if (ImGui::BeginPopup("AudioPicker_Model")) {
+					//	ImGui::Text("Select Audio");
+					//	ImGui::Separator();
+					//	auto& assets = NE::GetAllModels();
 
-						if (ImSearch::BeginSearch()) {
-							ImSearch::SearchBar();
+					//	if (ImSearch::BeginSearch()) {
+					//		ImSearch::SearchBar();
 
-							// warning entity in capture clause not used -RF
-							for (const auto& [name, asset] : assets) {
-								ImSearch::SearchableItem(name.c_str(),
-									[name/*, &entity*/](const char*) {
-										if (ImGui::Selectable(name.c_str())) {
-											//NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
-											printf("Audio Adding Works?");
-											ImGui::CloseCurrentPopup();
-										}
-									});
-							}
+					//		// warning entity in capture clause not used -RF
+					//		for (const auto& [name, asset] : assets) {
+					//			ImSearch::SearchableItem(name.c_str(),
+					//				[name/*, &entity*/](const char*) {
+					//					if (ImGui::Selectable(name.c_str())) {
+					//						//NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
+					//						printf("Audio Adding Works?");
+					//						ImGui::CloseCurrentPopup();
+					//					}
+					//				});
+					//		}
 
-							ImSearch::EndSearch();
-						}
-						ImGui::EndPopup();
-					}
+					//		ImSearch::EndSearch();
+					//	}
+					//	ImGui::EndPopup();
+					//}
 
 					// This renders all the external properties of AudioSource but cant edit atm
 					//NE::Core::ForEachFieldView<NE::ECS::Component::AudioSource>(comp,

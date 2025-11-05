@@ -8,25 +8,26 @@
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
 #include "PipelineCache.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
 #include <vector>
 namespace {
-    //static bool IsEngineUniform(std::string_view n) {
-    //    return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
-    //        n == "u_NormalMatrix" || n == "u_CameraPos" ||
-    //        n == "u_numLights" || n.rfind("u_lights", 0) == 0 ||
-    //        n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0;
-    //}
+    static bool IsEngineUniform(std::string_view n) {
+        return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
+            n == "u_NormalMatrix" || n == "u_CameraPos" ||
+            n == "u_numLights" || n.rfind("u_lights", 0) == 0 ||
+            n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0;
+    }
 
-    //static bool IsSampler(GLenum t) {
-    //    switch (t) {
-    //    case GL_SAMPLER_2D: case GL_SAMPLER_2D_ARRAY: case GL_SAMPLER_CUBE:
-    //    case GL_INT_SAMPLER_2D: case GL_UNSIGNED_INT_SAMPLER_2D:
-    //    case GL_SAMPLER_2D_SHADOW: case GL_SAMPLER_CUBE_SHADOW:
-    //        return true;
-    //    default: return false;
-    //    }
-    //}
+    static bool IsSampler(GLenum t) {
+        switch (t) {
+        case GL_SAMPLER_2D: case GL_SAMPLER_2D_ARRAY: case GL_SAMPLER_CUBE:
+        case GL_INT_SAMPLER_2D: case GL_UNSIGNED_INT_SAMPLER_2D:
+        case GL_SAMPLER_2D_SHADOW: case GL_SAMPLER_CUBE_SHADOW:
+            return true;
+        default: return false;
+        }
+    }
 }
 
 #include <iostream>
@@ -34,9 +35,9 @@ namespace {
 
 namespace NE::Graphics {
 
-    void Material::SetUniformMat4Array(const std::string& name, const std::vector<Mat4>& values) {
-        m_Mat4ArrayUniforms[name] = values;
-    }
+    //void Material::SetUniformMat4Array(const std::string& name, const std::vector<Mat4>& values) {
+    //    m_Mat4ArrayUniforms[name] = values;
+    //}
 
     Material::Material(std::shared_ptr<IPipeline> pipeline)
         : m_Pipeline(std::move(pipeline)) {}
@@ -59,7 +60,7 @@ namespace NE::Graphics {
         m_Mat4Uniforms[uName] = value;
     }
 
-    void Material::SetTexture(const std::string& uName, std::shared_ptr<OpenGL::GLTexture> texture) {
+    void Material::SetTexture(const std::string& uName, std::shared_ptr<ITexture> texture) {
         m_Textures[uName] = std::move(texture);
         m_Textures[uName]->MakeResident();
     }
@@ -85,9 +86,9 @@ namespace NE::Graphics {
         for (const auto& [uName, val] : m_IntUniforms)
             shader->SetUniformInt(uName, val);
 
-        for (const auto& [name, mats] : m_Mat4ArrayUniforms) {
-            shader->SetUniformMat4Array(name, mats.data(), static_cast<int>(mats.size()));
-        }
+        //for (const auto& [name, mats] : m_Mat4ArrayUniforms) {
+        //    shader->SetUniformMat4Array(name, mats.data(), static_cast<int>(mats.size()));
+        //}
 
         for (auto& [uName, tex] : m_Textures) {
             if (!tex) continue;
@@ -214,65 +215,65 @@ namespace NE::Graphics {
         //return false;
     //}
 
-    void Material::SetShader(const std::string& /*shaderUUID*/) {
-        //auto shader = Asset::AssetManager::GetInstance()
-        //    .Load<Graphics::OpenGL::GLShader>(shaderUUID);
-        //auto spec = m_Pipeline->GetSpecification();
-        //spec.shader = shader;
-        //spec.shaderName = shaderUUID;
-        //m_Pipeline = Graphics::GetPipelineCache().GetOrCreate(spec);
+    void Material::SetShader(const std::string& shaderUUID) {
+        auto shader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>(shaderUUID);
+        auto spec = m_Pipeline->GetSpecification();
+        spec.shader = shader;
+        spec.shaderName = shaderUUID;
+        m_Pipeline = Graphics::GetPipelineCache().GetOrCreate(spec);
 
-        //m_IntUniforms.clear();
-        //m_FloatUniforms.clear();
-        //m_Vec3Uniforms.clear();
-        //m_Mat4Uniforms.clear();
-        //m_Textures.clear();
+        m_IntUniforms.clear();
+        m_FloatUniforms.clear();
+        m_Vec3Uniforms.clear();
+        m_Mat4Uniforms.clear();
+        m_Textures.clear();
 
         //auto defaultWhite = Asset::AssetManager::GetInstance().Load<NE::Graphics::OpenGL::GLTexture>("WhiteTex");
 
-        //for (auto& u : shader->EnumerateActiveUniforms()) {
-        //    std::cout << u.name << " type=" << std::hex << u.type << "\n";
-        //    if (IsEngineUniform(u.name)) continue;
+        for (auto& u : shader->EnumerateActiveUniforms()) {
+            std::cout << u.name << " type=" << std::hex << u.type << "\n";
+            if (IsEngineUniform(u.name)) continue;
 
-        //    if (IsSampler(u.type)) {
-        //        m_Textures.emplace(u.name, defaultWhite);
+            if (IsSampler(u.type)) {
+                m_Textures.emplace(u.name, nullptr);
 
-        //        if (u.name.rfind("u_", 0) == 0) {
-        //            std::string hasName = "u_Has" + u.name.substr(2); // u_BaseMap -> u_HasBaseMap
-        //            m_IntUniforms.emplace(hasName, defaultWhite ? 1 : 0);
-        //        }
+                if (u.name.rfind("u_", 0) == 0) {
+                    std::string hasName = "u_Has" + u.name.substr(2); // u_BaseMap -> u_HasBaseMap
+                    //m_IntUniforms.emplace(hasName, defaultWhite ? 1 : 0);
+                    m_IntUniforms.emplace(hasName, 0);
+                }
 
-        //        continue;
-        //    }
+                continue;
+            }
 
-        //    switch (u.type) {
-        //    case GL_INT:
-        //    case GL_BOOL:
-        //        m_IntUniforms.emplace(u.name, 0);
-        //        break;
-        //    case GL_FLOAT:
-        //        if (u.name.find("Color") != std::string::npos ||
-        //            u.name.find("color") != std::string::npos ||
-        //            u.name.find("albedo") != std::string::npos)
-        //            m_FloatUniforms.emplace(u.name, 1.0f);
-        //        else
-        //            m_FloatUniforms.emplace(u.name, 0.0f);
-        //        break;
-        //    case GL_FLOAT_VEC3:
-        //        if (u.name.find("Color") != std::string::npos ||
-        //            u.name.find("color") != std::string::npos ||
-        //            u.name.find("albedo") != std::string::npos)
-        //            m_Vec3Uniforms.emplace(u.name, Vec3{ 1,1,1 });
-        //        else
-        //            m_Vec3Uniforms.emplace(u.name, Vec3{ 0,0,0 });
-        //        break;
-        //    case GL_FLOAT_MAT4:
-        //        m_Mat4Uniforms.emplace(u.name, Mat4{});
-        //        break;
-        //    default:
-        //        break;
-        //    }
-        //}
+            switch (u.type) {
+            case GL_INT:
+            case GL_BOOL:
+                m_IntUniforms.emplace(u.name, 0);
+                break;
+            case GL_FLOAT:
+                if (u.name.find("Color") != std::string::npos ||
+                    u.name.find("color") != std::string::npos ||
+                    u.name.find("albedo") != std::string::npos)
+                    m_FloatUniforms.emplace(u.name, 1.0f);
+                else
+                    m_FloatUniforms.emplace(u.name, 0.0f);
+                break;
+            case GL_FLOAT_VEC3:
+                if (u.name.find("Color") != std::string::npos ||
+                    u.name.find("color") != std::string::npos ||
+                    u.name.find("albedo") != std::string::npos)
+                    m_Vec3Uniforms.emplace(u.name, Vec3{ 1,1,1 });
+                else
+                    m_Vec3Uniforms.emplace(u.name, Vec3{ 0,0,0 });
+                break;
+            case GL_FLOAT_MAT4:
+                m_Mat4Uniforms.emplace(u.name, Mat4{});
+                break;
+            default:
+                break;
+            }
+        }
     }
 
     bool Material::Preload(Resource::BinaryView blob) {
@@ -326,7 +327,9 @@ namespace NE::Graphics {
 
         // Build (or fetch) a pipeline from the shader name + state
         PipelineSpecification spec{};
+
         spec.shaderName = m_stage.shaderName;  // your cache will resolve it
+        spec.shader = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>(spec.shaderName);
         spec.EnableDepthTest = m_stage.depthTest;
         spec.EnableBlending = m_stage.blend;
         spec.CullMode = m_stage.cullMode;

@@ -2,7 +2,7 @@
 #define NANOENGINE_GRAPHICS_ITEXTURE_HPP
 
 #include <cstdint>
-#include "../../Asset.hpp"
+#include <string>
 #include "ResourceManagement/IResource.hpp"
 
 namespace NE::Graphics {
@@ -12,6 +12,8 @@ namespace NE::Graphics {
         virtual ~ITexture() = default;
         virtual uint64_t GetBindlessHandle() const = 0;
         virtual void MakeResident() = 0;
+
+        std::string uuid;
     };
 
 }

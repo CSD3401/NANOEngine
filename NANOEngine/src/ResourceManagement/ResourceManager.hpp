@@ -7,6 +7,7 @@
 #include "IResource.hpp"
 
 #include "ResourcePaths.hpp"
+#include "Core/SpdLogger.hpp"
 
 namespace NE::Resource {
 
@@ -25,11 +26,17 @@ namespace NE::Resource {
 
 			const auto path = ComputeArtifactPathFromUUID(uuid);
 			std::vector<uint8_t> bytes;
-			if (!ReadBinFile(path, bytes) || bytes.empty()) return nullptr;
+			if (!ReadBinFile(path, bytes) || bytes.empty()) {
+				SPD_WARNING("Failed to read binary: " << uuid);
+				return nullptr;
+			}
 
 			auto resource = std::make_shared<T>();
 			BinaryView view{ bytes.data(), bytes.size() };
-			if (!resource->Preload(view)) return nullptr;
+			if (!resource->Preload(view)) {
+				SPD_WARNING("Failed to load: " << uuid);
+				return nullptr;
+			}
 			resource->Finalize();
 
 			{

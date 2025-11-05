@@ -16,14 +16,19 @@ namespace Editor {
 		void SaveAssetRegistry();
 
 		void GenerateMetadata(const std::string& sourcePath);
+		void ReimportAsset(const std::string& sourcePath);
 
 		std::string RetrieveUUID(const std::string& sourcePath);
 
-
+		template <AssetType T>
+		std::vector<std::pair<std::string, UUID>>& GetAssetsOfType() {
+			static std::vector<std::pair<std::string, UUID>> registry;
+			return registry;
+		}
 	private:
 		AssetManager() = default;
 		~AssetManager() = default;
-		
+
 		AssetType GetAssetTypeFromString(std::string_view extension);
 		AssetType GetAssetTypeFromExtension(std::string_view);
 
@@ -34,12 +39,6 @@ namespace Editor {
 		bool CookMesh(const std::string& sourcePath, const std::string& outPath);
 
 		std::unordered_map<UUID, AssetMetadata> m_assets;
-
-		//template <typename AssetT>
-		//std::vector<std::pair<UUID, std::string>>& GetAssetRegistry() {
-		//	static std::vector<std::pair<UUID, std::string>> assetRegistry;
-		//	return assetRegistry;
-		//}
 	};
 
 }

@@ -409,6 +409,10 @@ namespace Editor {
                 if (ImGui::MenuItem("Delete")) {
                     m_confirmDeletePopupOpen = true;
                 }
+
+                if (ImGui::MenuItem("Reimport")) {
+                    AssetManager::GetInstance().ReimportAsset(m_selectedPath.string());
+                }
             }
             else {
                 ImGui::BeginDisabled();

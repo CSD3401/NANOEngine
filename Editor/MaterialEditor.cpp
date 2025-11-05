@@ -2,6 +2,7 @@
 #include <Engine.hpp>
 #include <imgui/imgui.h>
 #include "src/EditorUI.hpp"
+#include "src/AssetManagement/AssetManager.hpp"
 #include <imgui/widgets/imsearch/imsearch.h>
 
 namespace Editor {
@@ -25,23 +26,24 @@ namespace Editor {
         DrawAssetField("Shader", mat.GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openShaderPopup);
         if (openShaderPopup) ImGui::OpenPopup("PickShader");
 
-        //if (ImGui::BeginPopup("PickShader")) {
-        //    ImGui::Text("Select Shader");
-        //    ImGui::Separator();
-        //    if (ImSearch::BeginSearch()) {
-        //        ImSearch::SearchBar();
-        //        for (const auto& shaderName : Asset::AssetManager::GetInstance().GetAllShaders()) {
-        //            ImSearch::SearchableItem(shaderName.c_str(), [&, shaderName](const char*) {
-        //                if (ImGui::Selectable(shaderName.c_str())) {
-        //                    mat.SetShader(shaderName);
-        //                    ImGui::CloseCurrentPopup();
-        //                }
-        //                });
-        //        }
-        //        ImSearch::EndSearch();
-        //    }
-        //    ImGui::EndPopup();
-        //}
+        if (ImGui::BeginPopup("PickShader")) {
+            ImGui::Text("Select Shader");
+            ImGui::Separator();
+            if (ImSearch::BeginSearch()) {
+                ImSearch::SearchBar();
+                for (const auto& [shaderName, uuid] : AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Shader>()) {
+                    ImSearch::SearchableItem(shaderName.c_str(), [&, shaderName](const char*) {
+                        if (ImGui::Selectable(shaderName.c_str())) {
+                            //mat.SetShader(shaderName);
+                            m_material->SetShader(uuid);
+                            ImGui::CloseCurrentPopup();
+                        }
+                        });
+                }
+                ImSearch::EndSearch();
+            }
+            ImGui::EndPopup();
+        }
 
         ImGui::SeparatorText("Uniforms");
 

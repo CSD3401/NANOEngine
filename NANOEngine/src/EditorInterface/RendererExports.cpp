@@ -22,8 +22,8 @@ namespace NE::Renderer {
 			//r.model = Asset::AssetManager::GetInstance().Get<Graphics::Model>(path.data());
 
 			if (r.materialPath.empty()) {
-				r.materialPath = "Assets/Basic.nanomat";
-				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
+				r.materialPath = "neunlitmat";
+				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>("neunlitmat");
 				//r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>("Assets/Basic.nanomat", false);
 			}
 		}

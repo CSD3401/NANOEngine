@@ -219,6 +219,31 @@ namespace Editor {
             if (metadata.type == AssetType::Unknown)
                 metadata.type = GetAssetTypeFromExtension(fsSourcePath.extension().string());
 
+            switch (metadata.type) {
+            case AssetType::Texture: {
+                GetAssetsOfType<AssetType::Texture>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
+                break;
+            }
+            case AssetType::Mesh: {
+                GetAssetsOfType<AssetType::Mesh>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
+                break;
+            }
+            case AssetType::Shader: {
+                GetAssetsOfType<AssetType::Shader>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
+                break;
+            }
+            case AssetType::Material: {
+                GetAssetsOfType<AssetType::Material>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
+                break;
+            }
+            case AssetType::Audio: {
+
+                break;
+            }
+            default:
+                break;
+            }
+
             m_assets[metadata.uuid] = std::move(metadata);
             return;
         }
@@ -238,7 +263,7 @@ namespace Editor {
 				<< "sourcePath: " << sourcePath << '\n';
             
             CookTexture(sourcePath, outPath);
-
+            GetAssetsOfType<AssetType::Texture>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
 			break;
 		}
 		case AssetType::Mesh: {
@@ -246,7 +271,7 @@ namespace Editor {
                 << "sourcePath: " << sourcePath << '\n';
 
             CookMesh(sourcePath, outPath);
-
+            GetAssetsOfType<AssetType::Mesh>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
 			break;
 		}
         case AssetType::Shader: {
@@ -254,7 +279,7 @@ namespace Editor {
                 << "sourcePath: " << sourcePath << '\n';
 
             CookShader(sourcePath, outPath);
-
+            GetAssetsOfType<AssetType::Shader>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
             break;
         }
         case AssetType::Material: {
@@ -262,7 +287,7 @@ namespace Editor {
                 << "sourcePath: " << sourcePath << '\n';
 
             CookMaterial(sourcePath, outPath);
-
+            GetAssetsOfType<AssetType::Material>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
             break;
         }
         case AssetType::Audio: {
@@ -282,6 +307,63 @@ namespace Editor {
 
 		m_assets[uuid] = std::move(metadata);
 	}
+
+    void AssetManager::ReimportAsset(const std::string& sourcePath) {
+        std::filesystem::path fsSourcePath = sourcePath;
+        std::filesystem::path metaPath = sourcePath + ".meta";
+
+        AssetMetadata metadata{};
+        metadata.sourcePath = sourcePath;
+
+        if (std::filesystem::exists(metaPath)) {
+            std::ifstream ifs(metaPath);
+
+            std::string line;
+            while (std::getline(ifs, line)) {
+                if (line.starts_with("uuid:")) {
+                    metadata.uuid = line.substr(line.find(':') + 1);
+                    metadata.uuid.erase(0, metadata.uuid.find_first_not_of(" \t"));
+                } else if (line.starts_with("assetType:")) {
+                    std::string typeStr = line.substr(line.find(':') + 1);
+                    typeStr.erase(0, typeStr.find_first_not_of(" \t"));
+                    metadata.type = GetAssetTypeFromString(typeStr);
+                } else if (line.starts_with("sourcePath:")) {
+                    metadata.sourcePath = line.substr(line.find(':') + 1);
+                    metadata.sourcePath.erase(0, metadata.sourcePath.find_first_not_of(" \t"));
+                }
+            }
+        }
+
+        std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(metadata.uuid);
+
+        AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
+        switch (assetType) {
+        case AssetType::Texture: {
+            CookTexture(sourcePath, outPath);
+            break;
+        }
+        case AssetType::Mesh: {
+            CookMesh(sourcePath, outPath);
+            break;
+        }
+        case AssetType::Shader: {
+            CookShader(sourcePath, outPath);
+            break;
+        }
+        case AssetType::Material: {
+            CookMaterial(sourcePath, outPath);
+            break;
+        }
+        case AssetType::Audio: {
+
+            break;
+        }
+        default:
+            break;
+        }
+
+        m_assets[metadata.uuid] = std::move(metadata);
+    }
 
     std::string AssetManager::RetrieveUUID(const std::string& sourcePath) {
         std::filesystem::path metaPath = sourcePath + ".meta";

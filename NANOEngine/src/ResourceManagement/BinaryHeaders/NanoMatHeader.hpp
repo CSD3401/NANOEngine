@@ -26,6 +26,12 @@ namespace NE::Resource {
         // Offsets from file start (so layout can evolve)
         uint32_t shaderNameOffset = 0;
         uint32_t propsOffset = 0; // array of PropRecord followed by payloads
+
+        uint8_t  hasShaderUUID = 0;     // 1 if using UUID-based lookup
+        uint8_t  reserved2[3] = { 0 };
+        uint32_t shaderUUIDOffset = 0;  // offset to 36-byte ASCII UUID string
+
+        uint32_t texTableOffset = 0;    // offset to array<MatTexRecord>
 	};
 #pragma pack(pop)
 
@@ -40,6 +46,14 @@ namespace NE::Resource {
         uint16_t reserved = 0;
         uint32_t dataOffset;  // offset into payload region
         uint32_t dataSize;    // bytes (4, 12, 64, etc.)
+    };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+    struct MatTexRecord {
+        uint32_t nameLen;     // e.g. "u_BaseColorTex"
+        uint32_t nameOffset;  // offset to name bytes
+        char     uuid[36];    // ASCII UUID (no null terminator)
     };
 #pragma pack(pop)
 
