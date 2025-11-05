@@ -30,8 +30,6 @@ namespace NE::Graphics::OpenGL {
 			return std::string_view();
 		};
 		
-		//bool LoadFromFile(const std::string& fileName) override;
-
 		//const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
 
 		bool Preload(NE::Resource::BinaryView blob) override;
