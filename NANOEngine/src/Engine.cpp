@@ -20,6 +20,7 @@
 #include "Core/SpdLogger.hpp"
 #include <glad/glad.h>
 #include "ResourceManagement/BinaryHeaders/NanoShdHeader.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 namespace {
 
@@ -210,6 +211,10 @@ namespace NE {
 	// Internal use only
 	SceneManagement::Scene& GetScene() {
 		return *gSceneManager.GetActive();
+	}
+
+	std::shared_ptr<NE::Graphics::Material> LoadMaterial(std::string uuid) {
+		return Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::Material>(uuid);
 	}
 
 	bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages) {

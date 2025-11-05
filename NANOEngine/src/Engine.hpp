@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include "NANOEngineAPI.hpp"
 #include "Graphics/Core/Material.hpp"
-#include "Graphics/Core/Model.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
 #include "Audio/AudioBank.hpp"
@@ -38,6 +37,7 @@ namespace NE {
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
+	NANOENGINE_API std::shared_ptr<NE::Graphics::Material> LoadMaterial(std::string uuid);
 	NANOENGINE_API bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages); // here for now
 
 	NANOENGINE_API void EditorPlay();

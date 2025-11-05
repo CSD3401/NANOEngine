@@ -19,6 +19,10 @@
 #include <glad/glad.h>
 #include <Core/SpdLogger.hpp>
 #include <Engine.hpp>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <Math/Vec3.hpp>
 
 
 namespace {
@@ -167,6 +171,11 @@ namespace {
         return shaderSources;
     }
 
+    struct CookVertex {
+        float px, py, pz;
+        float nx, ny, nz;
+        float u, v;
+    };
 }
 
 namespace Editor {
@@ -236,6 +245,8 @@ namespace Editor {
             ofs << "assetType: Mesh\n"
                 << "sourcePath: " << sourcePath << '\n';
 
+            CookMesh(sourcePath, outPath);
+
 			break;
 		}
         case AssetType::Shader: {
@@ -247,8 +258,10 @@ namespace Editor {
             break;
         }
         case AssetType::Material: {
+            ofs << "assetType: Material\n"
+                << "sourcePath: " << sourcePath << '\n';
 
-
+            CookMaterial(sourcePath, outPath);
 
             break;
         }
@@ -269,6 +282,29 @@ namespace Editor {
 
 		m_assets[uuid] = std::move(metadata);
 	}
+
+    std::string AssetManager::RetrieveUUID(const std::string& sourcePath) {
+        std::filesystem::path metaPath = sourcePath + ".meta";
+        std::string uuid;
+
+        if (std::filesystem::exists(metaPath)) {
+            std::ifstream ifs(metaPath);
+            if (!ifs) {
+                SPD_WARNING("Failed to read meta file: " << metaPath.string());
+                return "";
+            }
+
+            std::string line;
+            while (std::getline(ifs, line)) {
+                if (line.starts_with("uuid:")) {
+                    uuid = line.substr(line.find(':') + 1);
+                    uuid.erase(0, uuid.find_first_not_of(" \t"));
+                }
+            }
+
+        }
+        return uuid;
+    }
 
     AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {
         std::string e = ToLower(std::string(extension));
@@ -349,6 +385,10 @@ namespace Editor {
     }
 
     bool AssetManager::CookMaterial(const std::string& sourcePath, const std::string& outPath) {
+        //std::filesystem::path src = sourcePath;
+        std::filesystem::path out = outPath;
+        std::filesystem::create_directories(out.parent_path());
+
         std::ifstream in(sourcePath);
         if (!in) return false;
         std::string j((std::istreambuf_iterator<char>(in)), {});
@@ -384,20 +424,20 @@ namespace Editor {
                 size_t dataStart = payload.size();
                 if (v.IsInt()) {
                     int32_t x = v.GetInt();
-                    r.type = (uint8_t)NE::Resource::MatPropType::Int;
+                    r.type = (uint8_t)NE::Resource::MatPropType::INT;
                     payload.append(reinterpret_cast<const char*>(&x), sizeof(x));
                 } else if (v.IsNumber()) {
                     float f = (float)v.GetDouble();
-                    r.type = (uint8_t)NE::Resource::MatPropType::Float;
+                    r.type = (uint8_t)NE::Resource::MatPropType::FLOAT;
                     payload.append(reinterpret_cast<const char*>(&f), sizeof(f));
                 } else if (v.IsArray() && v.Size() == 3) {
                     float f[3] = { (float)v[0].GetDouble(), (float)v[1].GetDouble(), (float)v[2].GetDouble() };
-                    r.type = (uint8_t)NE::Resource::MatPropType::Vec3;
+                    r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
                     payload.append(reinterpret_cast<const char*>(f), sizeof(f));
                 } else if (v.IsArray() && v.Size() == 16) {
                     float m[16];
                     for (rapidjson::SizeType i = 0; i < 16; ++i) m[i] = (float)v[i].GetDouble();
-                    r.type = (uint8_t)NE::Resource::MatPropType::Mat4;
+                    r.type = (uint8_t)NE::Resource::MatPropType::MAT4;
                     payload.append(reinterpret_cast<const char*>(m), sizeof(m));
                 } else {
                     // unknown type – skip or handle texture uuid strings later
@@ -450,6 +490,146 @@ namespace Editor {
         if (!payload.empty()) ofs.write(payload.data(), (std::streamsize)payload.size());
 
         return ofs.good();
+    }
+
+    bool AssetManager::CookMesh(const std::string& sourcePath, const std::string& outPath) {
+        std::filesystem::path out = outPath;
+        std::filesystem::create_directories(out.parent_path());
+
+        Assimp::Importer importer;
+        const aiScene* scene = importer.ReadFile(sourcePath,
+            aiProcess_Triangulate |
+            aiProcess_JoinIdenticalVertices |
+            aiProcess_FlipUVs |
+            aiProcess_GenSmoothNormals |
+            aiProcess_CalcTangentSpace);
+
+        if (!scene || !scene->HasMeshes()) {
+            std::fprintf(stderr, "[CookMesh] Failed to load %s\n", sourcePath.c_str());
+            return false;
+        }
+
+        // one desc per mesh
+        std::vector<NE::Resource::NanoSubmeshDesc> subdescs(scene->mNumMeshes);
+
+        // temp storage for actual vertex/index bytes
+        struct RawBlob {
+            std::vector<uint8_t> vertices;
+            std::vector<uint8_t> indices;
+        };
+        std::vector<RawBlob> blobs(scene->mNumMeshes);
+
+        // bounds
+        bool hasBounds = false;
+        NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
+        NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+        for (unsigned m = 0; m < scene->mNumMeshes; ++m) {
+            const aiMesh* mesh = scene->mMeshes[m];
+
+            RawBlob& rb = blobs[m];
+            rb.vertices.resize(mesh->mNumVertices * sizeof(CookVertex));
+            auto* vout = reinterpret_cast<CookVertex*>(rb.vertices.data());
+
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+                CookVertex v{};
+                v.px = mesh->mVertices[i].x;
+                v.py = mesh->mVertices[i].y;
+                v.pz = mesh->mVertices[i].z;
+
+                if (mesh->HasNormals()) {
+                    v.nx = mesh->mNormals[i].x;
+                    v.ny = mesh->mNormals[i].y;
+                    v.nz = mesh->mNormals[i].z;
+                } else {
+                    v.nx = v.ny = v.nz = 0.0f;
+                }
+
+                if (mesh->HasTextureCoords(0)) {
+                    v.u = mesh->mTextureCoords[0][i].x;
+                    v.v = mesh->mTextureCoords[0][i].y;
+                } else {
+                    v.u = v.v = 0.0f;
+                }
+
+                vout[i] = v;
+
+                // expand bounds
+                minP.x = std::min(minP.x, v.px);
+                minP.y = std::min(minP.y, v.py);
+                minP.z = std::min(minP.z, v.pz);
+                maxP.x = std::max(maxP.x, v.px);
+                maxP.y = std::max(maxP.y, v.py);
+                maxP.z = std::max(maxP.z, v.pz);
+                hasBounds = true;
+            }
+
+            // indices
+            std::vector<uint32_t> idx;
+            idx.reserve(mesh->mNumFaces * 3);
+            for (unsigned f = 0; f < mesh->mNumFaces; ++f) {
+                const aiFace& face = mesh->mFaces[f];
+                for (unsigned j = 0; j < face.mNumIndices; ++j)
+                    idx.push_back(face.mIndices[j]);
+            }
+            rb.indices.resize(idx.size() * sizeof(uint32_t));
+            std::memcpy(rb.indices.data(), idx.data(), rb.indices.size());
+
+            subdescs[m].vertexCount = mesh->mNumVertices;
+            subdescs[m].indexCount = static_cast<uint32_t>(idx.size());
+            // offsets filled after we write blobs
+        }
+
+        // compute sphere from AABB (optional – depends on your NanoMeshHeader)
+        //NE::Math::Vec3 center(0, 0, 0);
+        //float radius = 0.0f;
+        //if (hasBounds) {
+        //    center = (minP + maxP) * 0.5f;
+        //    NE::Math::Vec3 ext = maxP - center;
+        //    radius = std::max(std::max(ext.x, ext.y), ext.z);
+        //}
+
+        std::ofstream ofs(outPath, std::ios::binary);
+        if (!ofs) return false;
+
+        NE::Resource::NanoMeshHeader header{};
+        header.submeshCount = static_cast<uint16_t>(scene->mNumMeshes);
+
+        // only do this if your NanoMeshHeader actually has these fields
+        //header.sphereCenter[0] = center.x;
+        //header.sphereCenter[1] = center.y;
+        //header.sphereCenter[2] = center.z;
+        //header.sphereRadius = radius;
+
+        // 1) header
+        ofs.write(reinterpret_cast<const char*>(&header), sizeof(header));
+
+        // 2) placeholder submesh table
+        const std::streamoff subTablePos = ofs.tellp();
+        ofs.write(reinterpret_cast<const char*>(subdescs.data()),
+            subdescs.size() * sizeof(NE::Resource::NanoSubmeshDesc));
+
+        // 3) actual data + capture offsets
+        for (size_t m = 0; m < blobs.size(); ++m) {
+            auto& rb = blobs[m];
+
+            uint32_t vertexOffset = static_cast<uint32_t>(ofs.tellp());
+            ofs.write(reinterpret_cast<const char*>(rb.vertices.data()), rb.vertices.size());
+
+            uint32_t indexOffset = static_cast<uint32_t>(ofs.tellp());
+            ofs.write(reinterpret_cast<const char*>(rb.indices.data()), rb.indices.size());
+
+            subdescs[m].vertexDataOffset = vertexOffset;
+            subdescs[m].indexDataOffset = indexOffset;
+        }
+
+        // 4) go back and patch submesh table
+        ofs.seekp(subTablePos, std::ios::beg);
+        ofs.write(reinterpret_cast<const char*>(subdescs.data()),
+            subdescs.size() * sizeof(NE::Resource::NanoSubmeshDesc));
+
+        std::printf("[CookMesh] wrote %s\n", outPath.c_str());
+        return true;
     }
 
 }

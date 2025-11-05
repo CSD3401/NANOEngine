@@ -5,7 +5,8 @@
 #include <string>
 #include "Vertex.hpp"
 #include "../Interfaces/IGeometryBuffer.hpp"
-#include "../../Asset.hpp"
+#include "ResourceManagement/IResource.hpp"
+#include "ResourceManagement/BinaryView.hpp"
 
 namespace NE::Graphics {
 
@@ -15,19 +16,27 @@ namespace NE::Graphics {
         std::shared_ptr<IGeometryBuffer> buffer;
     };
 
-    class Model : virtual public Asset::IAsset {
+    class Model : public Resource::IResource {
     public:
         std::vector<SubMesh> meshes;
 
-        NE::Math::Vec3 sphereCenterLS{ 0,0,0 };
-        float sphereRadiusLS = 0.0f;
-        bool hasSphereBoundsLS = false;
+        //NE::Math::Vec3 sphereCenterLS{ 0,0,0 };
+        //float sphereRadiusLS = 0.0f;
+        //bool hasSphereBoundsLS = false;
 
-        bool LoadFromFile(const std::string& path) override;
+        bool Preload(Resource::BinaryView blob) override;
+        void Finalize() override;
 
-        void ComputeModelSphereBounds();
+        //void ComputeModelSphereBounds();
+
+    private:
+        struct StagedSubmesh {
+            const uint8_t* vdata = nullptr;
+            uint32_t       vertexCount = 0;
+            const uint8_t* idata = nullptr;
+            uint32_t       indexCount = 0;
+        };
+        std::vector<StagedSubmesh> m_staged;
     };
-
-    //std::shared_ptr<Model> LoadModel(const std::string& path);
 
 }

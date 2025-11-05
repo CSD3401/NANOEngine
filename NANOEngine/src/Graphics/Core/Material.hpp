@@ -18,7 +18,7 @@
 
 namespace NE::Graphics {
 
-	class Material : public Resource::IResource {
+	class NANOENGINE_API Material : public Resource::IResource {
 	public:
         Material(std::shared_ptr<IPipeline> pipeline);
 		Material() = default;
@@ -76,19 +76,16 @@ namespace NE::Graphics {
 
         std::shared_ptr<IPipeline> m_Pipeline;
 
-        // Uniforms to be uploaded before draw
         std::unordered_map<std::string, int>  m_IntUniforms;
         std::unordered_map<std::string, float> m_FloatUniforms;
         std::unordered_map<std::string, Vec3> m_Vec3Uniforms;
         std::unordered_map<std::string, Mat4> m_Mat4Uniforms;
 
-        // Texture units (assume 1 per name for now)
         std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
 
 		// Render queue
 		RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
 		uint16_t m_OffsetRQ = 0;
-        //std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
 	};
 
 }

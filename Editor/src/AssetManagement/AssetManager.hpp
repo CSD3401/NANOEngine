@@ -17,7 +17,7 @@ namespace Editor {
 
 		void GenerateMetadata(const std::string& sourcePath);
 
-		
+		std::string RetrieveUUID(const std::string& sourcePath);
 
 
 	private:

@@ -31,6 +31,7 @@
 #include <vector>
 #include "../AssetManagement/Settings/TextureImportSettings.hpp"
 #include <Core/SpdLogger.hpp>
+#include "../AssetManagement/AssetManager.hpp"
 
 namespace {
 	template<typename Owner, typename T>
@@ -363,10 +364,7 @@ namespace Editor {
                 else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
                     auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
                     ImGui::SeparatorText("Renderer");
-                    //char buf[256]; 
-                    //strncpy_s(buf, comp.modelPath.string().c_str(), sizeof(buf));
-                    //ImGui::InputText("Model", buf, sizeof(buf));
-                    //comp.modelPath = buf;
+
                     bool openPopup = false;
                     DrawAssetField("Model", comp.modelPath.string(), "+", 0.f, &openPopup);
                     if (openPopup) {
@@ -374,10 +372,12 @@ namespace Editor {
                     }
 
                     if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) { 
+                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) { 
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
+                            auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
 
-                            NE::Renderer::Command::AssignModel(entity, dropped);
+                            
+                            //NE::Renderer::Command::AssignModel(entity, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -1012,10 +1012,22 @@ namespace Editor {
             
             std::filesystem::path assetPath = EditorScene::selectedAsset;
 
+
+
             if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
                 RenderTextureImportSettings();
             } else if (assetPath.extension() == ".nanomat") {
-                RenderMaterialSettings();
+                //RenderMaterialSettings();
+                if (!m_materialEditor || m_lastPath != assetPath.string()) {
+                    m_materialEditor = std::make_unique<MaterialEditor>();
+                    if (m_materialEditor->LoadMaterial(assetPath.string(), AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
+                        m_lastPath = assetPath.string();
+                    else
+                        m_materialEditor.reset();
+                }
+
+                if (m_materialEditor)
+                    m_materialEditor->RenderSettings();
             }
         }
 
@@ -1064,16 +1076,16 @@ namespace Editor {
     }
 
     void InspectorPanel::RenderMaterialSettings() {
-        if (m_loadedPath != EditorScene::selectedAsset) {
-            try {
-                //m_loadedMaterial = NE::GetMaterial(EditorScene::selectedAsset);
-                m_loadedPath = EditorScene::selectedAsset;
-            }
-            catch (...) {
-                m_loadedMaterial.reset();
-                m_loadedPath.clear();
-            }
-        }
+        //if (m_loadedPath != EditorScene::selectedAsset) {
+        //    try {
+        //        //m_loadedMaterial = NE::GetMaterial(EditorScene::selectedAsset);
+        //        m_loadedPath = EditorScene::selectedAsset;
+        //    }
+        //    catch (...) {
+        //        m_loadedMaterial.reset();
+        //        m_loadedPath.clear();
+        //    }
+        //}
 
         //if (m_loadedMaterial) {
         //    bool openPopup = false;

@@ -6,6 +6,8 @@
 
 namespace Editor {
 
+    //const std::string
+
     struct Node {
         uint32_t id = 0;        // editor id == linkedEntity
         uint32_t parent = 0;    // 0 => root

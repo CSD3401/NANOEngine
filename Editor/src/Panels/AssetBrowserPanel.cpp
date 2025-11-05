@@ -4,7 +4,6 @@
 #include <Engine.hpp>
 #include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
-#include <Utility/MetadataHandler.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <Core/SpdLogger.hpp>
 #include <fstream>
@@ -20,22 +19,9 @@ namespace Editor {
         for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
             std::filesystem::path filePath = entry.path();
 
-            // Skip meta files themselves
             if (filePath.extension() == ".meta") continue;
 
             AssetManager::GetInstance().GenerateMetadata(entry.path().string());
-
-            //if (!NE::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
-            //    NE::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
-            //}
-
-            //if (filePath.extension() == ".nanoshader") {
-            //    NE::LoadShader(filePath.string());
-            //}
-
-            //if (filePath.extension() == ".jpg" || filePath.extension() == ".png") {
-            //    NE::LoadTexture(filePath.string());
-            //}
         }
 	}
 
@@ -256,7 +242,7 @@ namespace Editor {
                 if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx") {
                     if (ImGui::BeginDragDropSource()) {
                         std::string assetPath = entry.path().string();
-                        ImGui::SetDragDropPayload("ASSET_PATH", assetPath.c_str(), assetPath.size() + 1);
+                        ImGui::SetDragDropPayload("ASSET_MESH_PATH", assetPath.c_str(), assetPath.size() + 1);
                         ImGui::TextUnformatted(name.c_str());
                         ImGui::EndDragDropSource();
                     }

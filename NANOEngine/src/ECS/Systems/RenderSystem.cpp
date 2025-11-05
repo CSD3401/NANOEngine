@@ -4,11 +4,6 @@
 #include "../Components/Collider.hpp"
 #include "../Components/Light.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
-
-//temp
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include "../../Graphics/Core/Vertex.hpp"
 #include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
 #include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
@@ -227,29 +222,29 @@ namespace NE::ECS::Systems {
     //}
 
     void RenderSystem::FrustumCulling() {
-        // build frustum from the active camera
-        const Frustum frustum = BuildFrustum();
+        //// build frustum from the active camera
+        //const Frustum frustum = BuildFrustum();
 
-        const auto& entities = GetEntities();
-        for (Entity e : entities)
-        {
-            const auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(e);
-            auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
+        //const auto& entities = GetEntities();
+        //for (Entity e : entities)
+        //{
+        //    const auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(e);
+        //    auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
 
-            const Mat4& modelMatrix = transform.modelMatrix;
+        //    const Mat4& modelMatrix = transform.modelMatrix;
 
-            if (renderer.model && renderer.model->hasSphereBoundsLS)
-            {
-                const Vec3 centerLS = renderer.model->sphereCenterLS;
-                const float radiusLS = renderer.model->sphereRadiusLS;
+        //    if (renderer.model && renderer.model->hasSphereBoundsLS)
+        //    {
+        //        const Vec3 centerLS = renderer.model->sphereCenterLS;
+        //        const float radiusLS = renderer.model->sphereRadiusLS;
 
-                renderer.visible = TestSphereFrustum(frustum, modelMatrix, centerLS, radiusLS);
-            }
-            else
-            {
-                renderer.visible = TestSphereFrustum(frustum, modelMatrix, Vec3(0.0f), 0.5f); // default
-            }
-        }
+        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, centerLS, radiusLS);
+        //    }
+        //    else
+        //    {
+        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, Vec3(0.0f), 0.5f); // default
+        //    }
+        //}
     }
 
 }
