@@ -312,6 +312,62 @@ void IScript::Rotate(float x, float y, float z) {
     Rotate(NE::Math::Vec3{ x, y, z });
 }
 
+// === Transform Direction Vectors ===
+
+NE::Math::Vec3 IScript::GetForward() const {
+    NE::Math::Vec3 rotation = GetRotation(); // (pitch, yaw, roll) in degrees
+
+    // Convert degrees to radians
+    float pitch = rotation.x * (3.14159265f / 180.0f);
+    float yaw = rotation.y * (3.14159265f / 180.0f);
+
+    // Calculate forward vector from Euler angles (Y-up, Z-forward, X-right)
+    NE::Math::Vec3 forward;
+    forward.x = std::cos(pitch) * std::sin(yaw);
+    forward.y = -std::sin(pitch);
+    forward.z = -std::cos(pitch) * std::cos(yaw);
+
+    // Normalize to get unit vector
+    float length = std::sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
+    if (length > 0.0001f) {
+        forward.x /= length;
+        forward.y /= length;
+        forward.z /= length;
+    }
+
+    return forward;
+}
+
+NE::Math::Vec3 IScript::GetRight() const {
+    NE::Math::Vec3 rotation = GetRotation(); // (pitch, yaw, roll) in degrees
+
+    // Convert degrees to radians
+    float yaw = rotation.y * (3.14159265f / 180.0f);
+
+    // Right vector is perpendicular to forward in XZ plane
+    NE::Math::Vec3 right;
+    right.x = std::cos(yaw);
+    right.y = 0.0f;
+    right.z = std::sin(yaw);
+
+    // Normalize
+    float length = std::sqrt(right.x * right.x + right.z * right.z);
+    if (length > 0.0001f) {
+        right.x /= length;
+        right.z /= length;
+    }
+
+    return right;
+}
+
+NE::Math::Vec3 IScript::GetUp() const {
+    // Up is always world up in this simple implementation
+    // For more complex scenarios, you might want to calculate it from forward and right
+    return NE::Math::Vec3{ 0.0f, 1.0f, 0.0f };
+}
+
+
+
 // === Rigidbody Helper Functions ===
 
 bool IScript::HasRigidbody() const {

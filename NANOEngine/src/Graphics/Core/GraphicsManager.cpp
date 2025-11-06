@@ -94,6 +94,7 @@ namespace NE::Graphics {
 
         // temp
         //InitDebugLines();
+        InitDebugPrimitives();
     }
 
     void GraphicsManager::BeginFrame() 
