@@ -23,8 +23,6 @@
 
 
 namespace NE::Graphics {
-    void InitDebugLines();
-
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
@@ -87,17 +85,9 @@ namespace NE::Graphics {
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litBlinnPhong, "Lit_BlinnPhong");
 
         //// Load Primitives
-        //Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
-        //Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");
-        //Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCylinder(), "Cylinder");
-        //Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateSphere(), "Sphere");
-        //Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
         //auto skinned = std::make_shared<OpenGL::GLShader>();
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
-
-        // temp
-        //InitDebugLines();
     }
 
     void GraphicsManager::BeginFrame() 

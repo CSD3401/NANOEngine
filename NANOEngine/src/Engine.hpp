@@ -32,13 +32,6 @@ namespace NE {
 	NANOENGINE_API void SaveCurrentScene(std::string path);
 	NANOENGINE_API void LoadTargetScene(std::string targetPath);
 
-	//NANOENGINE_API void LoadShader(std::string_view);
-	//NANOENGINE_API void LoadTexture(std::string_view filePath);
-
-	//NANOENGINE_API std::shared_ptr<Graphics::OpenGL::GLTexture> GetTexture(std::string_view filePath);
-	//NANOENGINE_API std::shared_ptr<Graphics::Material> GetMaterial(std::string_view path);
-	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::Model>>>& GetAllModels();
-	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Graphics::OpenGL::GLShader>>>& GetAllShaders();
 	NANOENGINE_API size_t GetNumEntities();
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();

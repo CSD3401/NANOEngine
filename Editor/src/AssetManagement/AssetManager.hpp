@@ -26,7 +26,7 @@ namespace Editor {
 			return registry;
 		}
 	private:
-		AssetManager() = default;
+		AssetManager();
 		~AssetManager() = default;
 
 		AssetType GetAssetTypeFromString(std::string_view extension);

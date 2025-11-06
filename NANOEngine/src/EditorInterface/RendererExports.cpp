@@ -15,7 +15,7 @@ namespace NE::Renderer {
 	}
 
 	namespace Command {
-		void AssignModel(uint32_t e, std::string& uuid) {
+		void AssignModel(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.modelPath = uuid;
 			r.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(uuid);
@@ -28,7 +28,7 @@ namespace NE::Renderer {
 			}
 		}
 
-		void AssignMaterial(uint32_t e, std::string& uuid) {
+		void AssignMaterial(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.materialPath = uuid;
 			r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);

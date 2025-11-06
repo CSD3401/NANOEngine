@@ -382,20 +382,18 @@ namespace Editor {
                     if (ImGui::BeginPopup("AssetPicker_Model")) {
                         ImGui::Text("Select a Model");
                         ImGui::Separator();
-                        //auto& assets = NE::GetAllModels();
+						auto& modelList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Mesh>();
 
                         if (ImSearch::BeginSearch()) {
                             ImSearch::SearchBar();
-
-                            //for (const auto& [name, asset] : assets) {
-                            //    ImSearch::SearchableItem(name.c_str(),
-                            //        [name, &entity](const char*) {
-                            //            if (ImGui::Selectable(name.c_str())) {
-                            //                NE::Renderer::Command::AssignModel(entity, name); // need to add undo redo
-                            //                ImGui::CloseCurrentPopup();
-                            //            }
-                            //        });
-                            //}
+                            for (const auto& [modelName, uuid] : modelList) {
+								ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
+									if (ImGui::Selectable(modelName.c_str())) {
+										NE::Renderer::Command::AssignModel(entity, uuid);
+										ImGui::CloseCurrentPopup();
+									}
+									});
+                            }
 
                             ImSearch::EndSearch();
                         }

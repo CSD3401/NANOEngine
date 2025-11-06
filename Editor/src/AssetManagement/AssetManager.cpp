@@ -179,6 +179,15 @@ namespace {
 }
 
 namespace Editor {
+    
+    AssetManager::AssetManager() {
+        // Register Builtin
+        GetAssetsOfType<AssetType::Mesh>().push_back({ "Cube", "builtin:model/cube" });
+        GetAssetsOfType<AssetType::Mesh>().push_back({ "Plane", "builtin:model/plane" });
+        GetAssetsOfType<AssetType::Mesh>().push_back({ "Cylinder", "builtin:model/cylinder" });
+        GetAssetsOfType<AssetType::Mesh>().push_back({ "Sphere", "builtin:model/sphere" });
+        GetAssetsOfType<AssetType::Mesh>().push_back({ "Capsule", "builtin:model/capsule" });
+    }
 
 	AssetManager& AssetManager::GetInstance() {
 		static AssetManager am;

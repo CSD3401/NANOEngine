@@ -27,11 +27,13 @@ namespace Editor {
         if (openShaderPopup) ImGui::OpenPopup("PickShader");
 
         if (ImGui::BeginPopup("PickShader")) {
-            ImGui::Text("Select Shader");
+            ImGui::Text("Select a Shader");
             ImGui::Separator();
+            auto& shaderList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Shader>();
+
             if (ImSearch::BeginSearch()) {
                 ImSearch::SearchBar();
-                for (const auto& [shaderName, uuid] : AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Shader>()) {
+                for (const auto& [shaderName, uuid] : shaderList) {
                     ImSearch::SearchableItem(shaderName.c_str(), [&, shaderName](const char*) {
                         if (ImGui::Selectable(shaderName.c_str())) {
                             //mat.SetShader(shaderName);

@@ -5,9 +5,9 @@
 #include <mutex>
 
 #include "IResource.hpp"
-
 #include "ResourcePaths.hpp"
 #include "Core/SpdLogger.hpp"
+#include "Graphics/Core/Primitives.hpp"
 
 namespace NE::Resource {
 
@@ -22,6 +22,12 @@ namespace NE::Resource {
 				std::scoped_lock l(mtx);
 				if (auto it = cache.find(uuid); it != cache.end())
 					return std::static_pointer_cast<T>(it->second);
+			}
+
+			if (auto builtin = TryCreateBuiltin<T>(uuid)) {
+				std::scoped_lock l(mtx);
+				cache.emplace(uuid, builtin);
+				return builtin;
 			}
 
 			const auto path = ComputeArtifactPathFromUUID(uuid);
@@ -45,6 +51,23 @@ namespace NE::Resource {
 			}
 
 			return resource;
+		}
+
+		template<typename T>
+		std::shared_ptr<T> TryCreateBuiltin(const std::string& id) {
+			if constexpr (std::is_same_v<T, NE::Graphics::Model>) {
+				if (id == "builtin:model/cube")
+					return std::static_pointer_cast<T>(NE::Graphics::CreateCube());
+				if (id == "builtin:model/plane")
+					return std::static_pointer_cast<T>(NE::Graphics::CreatePlane());
+				if (id == "builtin:model/cylinder")
+					return std::static_pointer_cast<T>(NE::Graphics::CreateCylinder());
+				if (id == "builtin:model/sphere")
+					return std::static_pointer_cast<T>(NE::Graphics::CreateSphere());
+				if (id == "builtin:model/capsule")
+					return std::static_pointer_cast<T>(NE::Graphics::CreateCapsule());
+			}
+			return nullptr;
 		}
 
 	private:
