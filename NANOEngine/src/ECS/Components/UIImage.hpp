@@ -8,8 +8,7 @@
 
 namespace NE::ECS::Component {
 
-    class UIImage {
-    public:
+    struct UIImage {
         // where to load from
         std::filesystem::path texturePath;
 

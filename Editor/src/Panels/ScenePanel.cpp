@@ -6,8 +6,11 @@
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/Transform.hpp>
+#include <ECS/Components/UIRectTransform.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
+#include "Graphics/Core/UIRenderer.hpp"
+#include <iostream>
 
 namespace Editor {
 	static uint32_t temp;
@@ -153,102 +156,280 @@ namespace Editor {
 						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
 						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
+						//uint32_t pickedUI = NE::Graphics::UIRenderer::ReadPickId(x, y);
+
 						uint32_t id = NE::GetPickedEntity(x, y);
+						//uint32_t picked3D = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
 						EditorScene::selectedMaterial = "";
+
 						for (auto& ent : EditorScene::s_entities) {
 							if (ent.linkedEntity == id) {
 								EditorScene::s_selectedEntity = &ent;
 								break;
 							}
 						}
+
+						//// Prioritize UI picking (UI is on top)
+						//if (pickedUI != 0) {
+						//	// Found UI entity!
+						//	for (auto& ent : EditorScene::s_entities) {
+						//		if (ent.linkedEntity == pickedUI) {
+						//			EditorScene::s_selectedEntity = &ent;
+						//			std::cout << "Selected UI Entity: " << pickedUI << std::endl;
+						//			break;
+						//		}
+						//	}
+						//}
+						//else if (picked3D != 0) {
+						//	// Found 3D entity
+						//	for (auto& ent : EditorScene::s_entities) {
+						//		if (ent.linkedEntity == picked3D) {
+						//			EditorScene::s_selectedEntity = &ent;
+						//			std::cout << "Selected 3D Entity: " << picked3D << std::endl;
+						//			break;
+						//		}
+						//	}
+						//}
 					}
 				}
 			}
 		}
 
 		if (EditorScene::s_selectedEntity) {
-			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
-
-			ImGuizmo::SetOrthographic(false);
-			ImGuizmo::SetDrawlist();
-			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
-
-			using Owner = NE::ECS::Component::Transform;
 			const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
-			const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
 
-			float matrix[16];
-			memcpy(matrix, tRO.modelMatrix.Data(), sizeof(float) * 16);
+			// check which type of entity this is
+			bool hasTransform = NE::ECS::Query::HasTransform(eid);
+			bool hasUIRectTransform = NE::ECS::Query::HasUIRectTransform(eid);
 
-			bool editedThisFrame = ImGuizmo::Manipulate(
-				m_editorCamera.GetViewMatrix().Data(),
-				m_editorCamera.GetProjectionMatrix().Data(),
-				currentOperation, ImGuizmo::LOCAL, matrix
-			);
-			bool isUsing = ImGuizmo::IsUsing();
+			if (hasTransform) {
+				static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
+				if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
+				if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
+				if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
 
-			static uint8_t s_gizmoMask = 0;
-			auto opToMask = [](ImGuizmo::OPERATION op) {
-				using Cmd = Editor::SetTransformCommand;
-				switch (op) {
-				case ImGuizmo::TRANSLATE: return Cmd::Pos;
-				case ImGuizmo::ROTATE:    return Cmd::Rot;
-				case ImGuizmo::SCALE:     return Cmd::Scl;
-				default:                  return Cmd::Pos;
-				}
-			};
+				ImGuizmo::SetOrthographic(false);
+				ImGuizmo::SetDrawlist();
+				ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
-			if (!s_gizmoActive && isUsing) {
-				s_gizmoActive = true;
-				s_gizmoMask = opToMask(currentOperation);
-				auto before = NE::ECS::Query::GetEntityTransform(eid);
-				s_gizmoCmd = std::make_unique<Editor::SetTransformCommand>(
-					eid, "Gizmo: Transform", before, before,
-					&NE::ECS::Command::GetEntityTransform, s_gizmoMask
+				using Owner = NE::ECS::Component::Transform;
+				//const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
+				const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
+
+				float matrix[16];
+				memcpy(matrix, tRO.modelMatrix.Data(), sizeof(float) * 16);
+
+				bool editedThisFrame = ImGuizmo::Manipulate(
+					m_editorCamera.GetViewMatrix().Data(),
+					m_editorCamera.GetProjectionMatrix().Data(),
+					currentOperation, ImGuizmo::LOCAL, matrix
 				);
+				bool isUsing = ImGuizmo::IsUsing();
+
+				static uint8_t s_gizmoMask = 0;
+				auto opToMask = [](ImGuizmo::OPERATION op) {
+					using Cmd = Editor::SetTransformCommand;
+					switch (op) {
+					case ImGuizmo::TRANSLATE: return Cmd::Pos;
+					case ImGuizmo::ROTATE:    return Cmd::Rot;
+					case ImGuizmo::SCALE:     return Cmd::Scl;
+					default:                  return Cmd::Pos;
+					}
+					};
+
+				if (!s_gizmoActive && isUsing) {
+					s_gizmoActive = true;
+					s_gizmoMask = opToMask(currentOperation);
+					auto before = NE::ECS::Query::GetEntityTransform(eid);
+					s_gizmoCmd = std::make_unique<Editor::SetTransformCommand>(
+						eid, "Gizmo: Transform", before, before,
+						&NE::ECS::Command::GetEntityTransform, s_gizmoMask
+					);
+				}
+
+				if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+					float tr[3], rotDeg[3], sc[3];
+					ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+
+					auto current = NE::ECS::Query::GetEntityTransform(eid);
+					auto after = current;
+
+					if (s_gizmoMask & Editor::SetTransformCommand::Pos)
+						after.position = { tr[0], tr[1], tr[2] };
+					if (s_gizmoMask & Editor::SetTransformCommand::Rot)
+						after.rotation = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+					if (s_gizmoMask & Editor::SetTransformCommand::Scl)
+						after.scale = { sc[0], sc[1], sc[2] };
+
+					s_gizmoCmd->SetAfter(after);
+				}
+
+				if (s_gizmoActive && !isUsing) {
+					if (s_gizmoCmd) {
+						const auto& B = s_gizmoCmd->Before();
+						const auto& A = s_gizmoCmd->After();
+						auto eq = [](auto a, auto b) {
+							return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
+							};
+						bool changed = false;
+						if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.position, A.position);
+						if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.rotation, A.rotation);
+						if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.scale, A.scale);
+
+						if (changed) {
+							Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
+						}
+						else {
+							s_gizmoCmd.reset();
+						}
+					}
+					s_gizmoActive = false;
+				}
 			}
+			else if (hasUIRectTransform)
+			{
+				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
 
-			if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
-				float tr[3], rotDeg[3], sc[3];
-				ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+				// --- Draw in pixel space ---
+				ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-				auto current = NE::ECS::Query::GetEntityTransform(eid);
-				auto after = current;
+				ImVec2 topLeft(
+					panelPos.x + rectTransform.x,
+					panelPos.y + rectTransform.y
+				);
+				ImVec2 bottomRight(
+					topLeft.x + rectTransform.width,
+					topLeft.y + rectTransform.height
+				);
+				ImVec2 center(
+					(topLeft.x + bottomRight.x) * 0.5f,
+					(topLeft.y + bottomRight.y) * 0.5f
+				);
 
-				if (s_gizmoMask & Editor::SetTransformCommand::Pos)
-					after.position = { tr[0], tr[1], tr[2] };
-				if (s_gizmoMask & Editor::SetTransformCommand::Rot)
-					after.rotation = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
-				if (s_gizmoMask & Editor::SetTransformCommand::Scl)
-					after.scale = { sc[0], sc[1], sc[2] };
+				// Outline
+				drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 0, 0, 255), 0.0f, 0, 2.0f);
 
-				s_gizmoCmd->SetAfter(after);
-			}
+				// Corner handles
+				const float handleSize = 8.0f;
+				ImVec2 corners[4] = {
+					topLeft,
+					ImVec2(bottomRight.x, topLeft.y),
+					bottomRight,
+					ImVec2(topLeft.x, bottomRight.y)
+				};
+				for (int i = 0; i < 4; i++) {
+					drawList->AddRectFilled(
+						ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
+						ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
+						IM_COL32(255, 255, 255, 255)
+					);
+				}
 
-			if (s_gizmoActive && !isUsing) {
-				if (s_gizmoCmd) {
-					const auto& B = s_gizmoCmd->Before();
-					const auto& A = s_gizmoCmd->After();
-					auto eq = [](auto a, auto b) {
-						return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
-						};
-					bool changed = false;
-					if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.position, A.position);
-					if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.rotation, A.rotation);
-					if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.scale, A.scale);
+				// Center handle
+				drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(0, 0, 0, 255));
 
-					if (changed) {
-						Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
-					} else {
-						s_gizmoCmd.reset();
+				// --- Interaction state (static so it persists across frames) ---
+				static bool isDraggingUI = false;
+				static int  draggingCorner = -1; // -1 = none, 0..3 = which corner
+				static ImVec2 dragStart;         // mouse start (pixels)
+				static NE::ECS::Component::UIRectTransform originalTransform;
+
+				// Helpers
+				auto mouseInPanel = [&](ImVec2 p) {
+					return p.x >= panelPos.x && p.x <= panelPos.x + panelSize.x &&
+						p.y >= panelPos.y && p.y <= panelPos.y + panelSize.y;
+					};
+
+				ImVec2 mousePos = ImGui::GetMousePos();
+				bool mouseInThisPanel = mouseInPanel(mousePos);
+
+				// Start move by center handle
+				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel &&
+					ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				{
+					float dx = mousePos.x - center.x;
+					float dy = mousePos.y - center.y;
+					float dist2 = dx * dx + dy * dy;
+					float radius = handleSize * 0.5f;
+					if (dist2 <= radius * radius) {
+						isDraggingUI = true;
+						dragStart = mousePos;
+						originalTransform = rectTransform;
+						// Optional: visual feedback
+						ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
 					}
 				}
-				s_gizmoActive = false;
+
+				// Start resize by corner handles
+				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel &&
+					ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				{
+					for (int i = 0; i < 4; ++i) {
+						float dx = mousePos.x - corners[i].x;
+						float dy = mousePos.y - corners[i].y;
+						if (fabsf(dx) <= handleSize && fabsf(dy) <= handleSize) {
+							draggingCorner = i;
+							dragStart = mousePos;
+							originalTransform = rectTransform;
+							ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+							break;
+						}
+					}
+				}
+
+				// Perform move (pixel deltas!)
+				if (isDraggingUI) {
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
+						rectTransform.x = originalTransform.x + deltaPixels.x;
+						rectTransform.y = originalTransform.y + deltaPixels.y;
+					}
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+						isDraggingUI = false;
+						// TODO: push command for undo/redo
+					}
+				}
+
+				// Perform resize (pixel deltas!)
+				if (draggingCorner >= 0) {
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
+
+						// Anchor logic: adjust position to keep the dragged corner under the mouse
+						switch (draggingCorner) {
+						case 0: // Top-left
+							rectTransform.x = originalTransform.x + deltaPixels.x;
+							rectTransform.y = originalTransform.y + deltaPixels.y;
+							rectTransform.width = originalTransform.width - deltaPixels.x;
+							rectTransform.height = originalTransform.height - deltaPixels.y;
+							break;
+						case 1: // Top-right
+							rectTransform.y = originalTransform.y + deltaPixels.y;
+							rectTransform.width = originalTransform.width + deltaPixels.x;
+							rectTransform.height = originalTransform.height - deltaPixels.y;
+							break;
+						case 2: // Bottom-right
+							rectTransform.width = originalTransform.width + deltaPixels.x;
+							rectTransform.height = originalTransform.height + deltaPixels.y;
+							break;
+						case 3: // Bottom-left
+							rectTransform.x = originalTransform.x + deltaPixels.x;
+							rectTransform.width = originalTransform.width - deltaPixels.x;
+							rectTransform.height = originalTransform.height + deltaPixels.y;
+							break;
+						}
+
+						// Clamp size (>= 1px)
+						rectTransform.width = std::max(1.0f, rectTransform.width);
+						rectTransform.height = std::max(1.0f, rectTransform.height);
+					}
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+						draggingCorner = -1;
+						// TODO: push command for undo/redo
+					}
+				}
 			}
 		}
 

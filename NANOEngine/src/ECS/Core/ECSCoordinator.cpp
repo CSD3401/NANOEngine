@@ -106,7 +106,7 @@ namespace NE::ECS {
 
     Entity ECSCoordinator::CreateUIEntity()
     {
-        Entity entt = m_entityManager->CreateEntity();
+        Entity entt = m_entityManager->CreateUIEntity();
         AddComponent(entt, Component::EntityMeta{"Unnamed UI Entity"});
         AddComponent(entt, Component::UIRectTransform{});
         AddComponent(entt, Component::UIImage{});

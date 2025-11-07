@@ -4,6 +4,7 @@
 namespace Editor {
 
 	struct CreateEntityEvent {};
+	struct CreateUIEntityEvent {};
 	struct DeleteEntityEvent {
 		uint32_t deletedEntity;
 	};

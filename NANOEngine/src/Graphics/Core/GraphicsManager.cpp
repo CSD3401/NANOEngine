@@ -17,6 +17,7 @@
 #include "UIRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include <GL/gl.h>
+#include "glfw/glfw3.h"
 
 namespace NE::Graphics {
     void InitDebugLines();
@@ -94,6 +95,7 @@ namespace NE::Graphics {
         drawCount = 0;
 
 		s_StateCache->InvalidateAll();
+
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
 
@@ -171,6 +173,17 @@ namespace NE::Graphics {
         s_DrawQueue->Clear();
         s_CommandBuffer->EndRenderPass();
         s_CommandBuffer->End();
+
+        // DEBUG: Check what's in FBO 0
+        static bool printed = false;
+        if (!printed)
+        {
+            GLint currentFBO;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &currentFBO);
+            std::cout << "[EndFrame] FBO after 3D render: " << currentFBO << std::endl;
+            std::cout << "[EndFrame] Drew " << drawCount << " objects" << std::endl;
+            printed = true;
+        }
     }
 
     void GraphicsManager::Shutdown() {
@@ -536,11 +549,9 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::DrawUI() {
-        static int frameCount = 0;
-        static bool shouldPrint = true;
-
-        if (shouldPrint && frameCount < 5) {
-            std::cout << "\n[GraphicsManager::DrawUI] Frame " << frameCount << std::endl;
+        static bool printed = false;
+        if (!printed) {
+            std::cout << "GraphicsManager::DrawUI] start" << std::endl;
         }
 
         UIRenderer::BeginFrame();
@@ -549,8 +560,9 @@ namespace NE::Graphics {
         UIRenderer::Composite();
         UIRenderer::ClearCommands();
 
-        if (shouldPrint && frameCount < 5) {
-            std::cout << "[GraphicsManager::DrawUI] Complete\n" << std::endl;
+        if (!printed) {
+            std::cout << "[GraphicsManager::DrawUI] Complete" << std::endl;
+            printed = true;
         }
     }
 }

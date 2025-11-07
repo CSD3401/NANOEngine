@@ -32,14 +32,18 @@ namespace NE::ECS::Systems {
             cmd.color = img.color;
             cmd.material = img.material;
             cmd.order = 0; // later: sorting
+            cmd.entityId = e;
 
             NE::Graphics::UIRenderer::Submit(cmd);
         }
 
-        std::cout << "[UIRenderSystem::Update]" << std::endl;
-
-        const auto& entitiess = GetEntities();
-        std::cout << "  System has " << entitiess.size() << " registered entities" << std::endl;
+        static bool printed = false;
+        if (!printed)
+        {
+            std::cout << "[UIRenderSystem::Update]" << std::endl;
+            std::cout << "  System has " << entities.size() << " registered entities" << std::endl;
+            printed = true;
+        }
     }
 
     void UIRenderSystem::Exit() {}

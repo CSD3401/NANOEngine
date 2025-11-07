@@ -26,6 +26,7 @@ namespace NE::Graphics {
 
         static IFrameBuffer* GetFramebuffer(); // for compositing
 
+
     private:
         static std::vector<UIDrawCommand> s_Commands;
         static std::unique_ptr<IFrameBuffer> s_FBO; // GLFrameBuffer

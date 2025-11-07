@@ -5,8 +5,7 @@
 
 namespace NE::ECS::Component {
 
-    class UIRectTransform {
-    public:
+    struct UIRectTransform {
         // top-left position in pixels
         float x = 0.0f;
         float y = 0.0f;

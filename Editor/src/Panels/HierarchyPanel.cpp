@@ -111,6 +111,10 @@ namespace Editor {
             ImGui::Separator();
 
             if (ImGui::BeginMenu("UI")) { // Creates a submenu with an arrow
+                if (ImGui::MenuItem("Create UI Entity")) {
+                    NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUIEntityEvent{});
+                    Editor::EditorScene::BuildFlatHierarchy();
+                }
                 if (ImGui::MenuItem("Create Textbox")) {
                     //CreateTextboxUIEntity();
                 }

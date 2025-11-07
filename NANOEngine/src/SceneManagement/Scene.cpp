@@ -28,11 +28,8 @@ namespace NE::SceneManagement {
 
 		// Test 1: Red Box (top-left)
 		{
-			ECS::Entity e = m_ecsCoordinator.CreateEntity();
-			std::cout << "Created entity " << e << " (Red Box)" << std::endl;
-
-			m_ecsCoordinator.AddComponent<UIRectTransform>(e, UIRectTransform{});
-			m_ecsCoordinator.AddComponent<UIImage>(e, UIImage{});
+			ECS::Entity e = m_ecsCoordinator.CreateUIEntity();
+			std::cout << "Created UI entity " << e << " (Red Box)" << std::endl;
 
 			auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
 			rect.x = 50.f;  rect.y = 50.f;
@@ -100,6 +97,9 @@ namespace NE::SceneManagement {
 			Graphics::GraphicsManager::BeginFrame();
 			Graphics::GraphicsManager::DrawFrame();
 			Graphics::GraphicsManager::EndFrame();
+
+			//Graphics::GraphicsManager::DrawUIPicking();
+
 			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
 		}
 	}

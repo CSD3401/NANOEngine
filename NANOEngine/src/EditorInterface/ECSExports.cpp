@@ -69,6 +69,14 @@ namespace NE::ECS {
 		const Component::UIImage& GetUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
 		}
+
+		bool HasTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Transform>(e);
+		}
+
+		bool HasUIRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIRectTransform>(e);
+		}
 	}
 
 	namespace Command {

@@ -13,7 +13,8 @@ namespace NE::Graphics {
         float width, height; // in pixels
         std::shared_ptr<Material> material;
         Math::Vec4 color{ 1.0f ,1.0f ,1.0f ,1.0f };
-        int order = 0;
+        int order = 0; // kiv
+        uint32_t entityId = 0;
     };
 
 } // namespace NE::Graphics

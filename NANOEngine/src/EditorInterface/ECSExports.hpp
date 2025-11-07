@@ -41,6 +41,9 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::NativeScript& GetEntityScript(uint32_t e);
 		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
+
+		NANOENGINE_API bool HasTransform(uint32_t e);
+		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 	}
 
 	namespace Command {
