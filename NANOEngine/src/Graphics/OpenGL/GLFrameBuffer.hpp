@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../Interfaces/IFrameBuffer.hpp"
-#include <memory>
 
 namespace NE::Graphics::OpenGL {
 
@@ -18,8 +17,6 @@ namespace NE::Graphics::OpenGL {
         uint32_t GetWidth() const override { return m_Width; }
         uint32_t GetHeight() const override { return m_Height; }
         uint32_t GetFramebuffer() const override { return m_FBO; }
-
-        static std::unique_ptr<IFrameBuffer> CreateUIntPickingFBO(uint32_t width, uint32_t height);
 
     private:
         void Invalidate();

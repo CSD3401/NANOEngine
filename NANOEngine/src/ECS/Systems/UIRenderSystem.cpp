@@ -19,6 +19,7 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::Update(double) {
         const auto& entities = GetEntities();
+
         for (Entity e : entities)
         {
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);

@@ -293,15 +293,20 @@ namespace Editor {
 				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
 
 				// --- Draw in pixel space ---
-				ImDrawList* drawList = ImGui::GetWindowDrawList();
+				float fbWidth = 1920.f;  // temp hardcoded
+				float fbHeight = 1080.f; // temp hardcoded
+
+				// Convert UI rect from framebuffer coords to panel coords
+				float scaleX = panelSize.x / fbWidth;
+				float scaleY = panelSize.y / fbHeight;
 
 				ImVec2 topLeft(
-					panelPos.x + rectTransform.x,
-					panelPos.y + rectTransform.y
+					panelPos.x + rectTransform.x * scaleX,
+					panelPos.y + rectTransform.y * scaleY
 				);
 				ImVec2 bottomRight(
-					topLeft.x + rectTransform.width,
-					topLeft.y + rectTransform.height
+					panelPos.x + (rectTransform.x + rectTransform.width) * scaleX,
+					panelPos.y + (rectTransform.y + rectTransform.height) * scaleY
 				);
 				ImVec2 center(
 					(topLeft.x + bottomRight.x) * 0.5f,
@@ -309,6 +314,7 @@ namespace Editor {
 				);
 
 				// Outline
+				ImDrawList* drawList = ImGui::GetWindowDrawList();
 				drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 0, 0, 255), 0.0f, 0, 2.0f);
 
 				// Corner handles
@@ -383,8 +389,9 @@ namespace Editor {
 				if (isDraggingUI) {
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
-						rectTransform.x = originalTransform.x + deltaPixels.x;
-						rectTransform.y = originalTransform.y + deltaPixels.y;
+						// Convert panel deltas back to framebuffer deltas
+						rectTransform.x = originalTransform.x + (deltaPixels.x / scaleX);
+						rectTransform.y = originalTransform.y + (deltaPixels.y / scaleY);
 					}
 					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 						isDraggingUI = false;
@@ -396,28 +403,30 @@ namespace Editor {
 				if (draggingCorner >= 0) {
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
+						float deltaFBX = deltaPixels.x / scaleX;
+						float deltaFBY = deltaPixels.y / scaleY;
 
 						// Anchor logic: adjust position to keep the dragged corner under the mouse
 						switch (draggingCorner) {
 						case 0: // Top-left
-							rectTransform.x = originalTransform.x + deltaPixels.x;
-							rectTransform.y = originalTransform.y + deltaPixels.y;
-							rectTransform.width = originalTransform.width - deltaPixels.x;
-							rectTransform.height = originalTransform.height - deltaPixels.y;
+							rectTransform.x = originalTransform.x + deltaFBX;
+							rectTransform.y = originalTransform.y + deltaFBY;
+							rectTransform.width = originalTransform.width - deltaFBX;
+							rectTransform.height = originalTransform.height - deltaFBY;
 							break;
 						case 1: // Top-right
-							rectTransform.y = originalTransform.y + deltaPixels.y;
-							rectTransform.width = originalTransform.width + deltaPixels.x;
-							rectTransform.height = originalTransform.height - deltaPixels.y;
+							rectTransform.y = originalTransform.y + deltaFBY;
+							rectTransform.width = originalTransform.width + deltaFBX;
+							rectTransform.height = originalTransform.height - deltaFBY;
 							break;
 						case 2: // Bottom-right
-							rectTransform.width = originalTransform.width + deltaPixels.x;
-							rectTransform.height = originalTransform.height + deltaPixels.y;
+							rectTransform.width = originalTransform.width + deltaFBX;
+							rectTransform.height = originalTransform.height + deltaFBY;
 							break;
 						case 3: // Bottom-left
-							rectTransform.x = originalTransform.x + deltaPixels.x;
-							rectTransform.width = originalTransform.width - deltaPixels.x;
-							rectTransform.height = originalTransform.height + deltaPixels.y;
+							rectTransform.x = originalTransform.x + deltaFBX;
+							rectTransform.width = originalTransform.width - deltaFBX;
+							rectTransform.height = originalTransform.height + deltaFBY;
 							break;
 						}
 

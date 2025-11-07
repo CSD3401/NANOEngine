@@ -20,31 +20,31 @@
 
 namespace NE::SceneManagement {
 
-	void Scene::CreateTestUI() {
-		using ECS::Component::UIRectTransform;
-		using ECS::Component::UIImage;
+	//void Scene::CreateTestUI() {
+	//	using ECS::Component::UIRectTransform;
+	//	using ECS::Component::UIImage;
 
-		std::cout << "\n=== Creating Test UI ===" << std::endl;
+	//	std::cout << "\n=== Creating Test UI ===" << std::endl;
 
-		// Test 1: Red Box (top-left)
-		{
-			ECS::Entity e = m_ecsCoordinator.CreateUIEntity();
-			std::cout << "Created UI entity " << e << " (Red Box)" << std::endl;
+	//	// Test 1: Red Box (top-left)
+	//	{
+	//		ECS::Entity e = m_ecsCoordinator.CreateUIEntity();
+	//		std::cout << "Created UI entity " << e << " (Red Box)" << std::endl;
 
-			auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
-			rect.x = 50.f;  rect.y = 50.f;
-			rect.width = 200.f;  rect.height = 100.f;
+	//		auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
+	//		rect.x = 50.f;  rect.y = 50.f;
+	//		rect.width = 200.f;  rect.height = 100.f;
 
-			auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
-			img.color = Math::Vec4{ 1.f, 0.f, 0.f, 0.8f };
-			img.material = nullptr;
+	//		auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
+	//		img.color = Math::Vec4{ 1.f, 0.f, 0.f, 0.8f };
+	//		img.material = nullptr;
 
-			std::cout << "  Position: (" << rect.x << ", " << rect.y << ")" << std::endl;
-			std::cout << "  Size: " << rect.width << "x" << rect.height << std::endl;
-		}
+	//		std::cout << "  Position: (" << rect.x << ", " << rect.y << ")" << std::endl;
+	//		std::cout << "  Size: " << rect.width << "x" << rect.height << std::endl;
+	//	}
 
-		std::cout << "Test UI creation complete!\n" << std::endl;
-	}
+	//	std::cout << "Test UI creation complete!\n" << std::endl;
+	//}
 
 	void Scene::Init() {
 		// input
@@ -58,7 +58,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_uiRenderSystem->Init();
 
 		// temp
-		CreateTestUI();
+		//CreateTestUI();
 	}
 
 	void Scene::Update(double dt)
@@ -97,8 +97,6 @@ namespace NE::SceneManagement {
 			Graphics::GraphicsManager::BeginFrame();
 			Graphics::GraphicsManager::DrawFrame();
 			Graphics::GraphicsManager::EndFrame();
-
-			//Graphics::GraphicsManager::DrawUIPicking();
 
 			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
 		}

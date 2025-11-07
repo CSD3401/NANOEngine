@@ -176,9 +176,9 @@ namespace NE::Graphics {
         in vec2 vUV;
         out vec4 FragColor;
         uniform sampler2D uUITexture;
+
         void main() {
-            vec2 flippedUV = vec2(vUV.x, 1.0 - vUV.y);
-            vec4 uiColor = texture(uUITexture, flippedUV);
+            vec4 uiColor = texture(uUITexture, vUV);
             FragColor = uiColor;
         })";
 

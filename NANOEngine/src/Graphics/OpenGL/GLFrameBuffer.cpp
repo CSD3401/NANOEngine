@@ -62,8 +62,4 @@ namespace NE::Graphics::OpenGL {
         m_Height = height;
         Invalidate();
     }
-
-    std::unique_ptr<IFrameBuffer> GLFrameBuffer::CreateUIntPickingFBO(uint32_t width, uint32_t height) {
-        return std::make_unique<GLFrameBuffer>(width, height); // true = picking buffer
-    }
 }
