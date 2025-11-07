@@ -8,13 +8,13 @@ namespace Editor {
 	using UUID = std::string;
 
 	enum class AssetType : uint16_t {
+		Unknown,
 		Texture,
 		Mesh,
 		Shader,
 		Material,
 		Audio,
-		Prefab,
-		Unknown
+		Prefab
 	};
 
 	struct AssetMetadata {

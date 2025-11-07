@@ -30,7 +30,7 @@ namespace NE::Graphics {
         void SetUniformFloat(const std::string& name, float value);
         void SetUniformVec3(const std::string& name, const Vec3& value);
         void SetUniformMat4(const std::string& name, const Mat4& value);
-        void SetTexture(const std::string& name, std::shared_ptr<ITexture> texture);
+        void SetTexture(const std::string& name, const std::string& uuid);
         void SetQueueBase(RenderQueue queue);
         void SetQueueOffset(uint16_t offset);
 
@@ -47,15 +47,26 @@ namespace NE::Graphics {
         const RenderQueue& GetQueueBase() const { return m_BaseRQ; }
 		    const uint16_t& GetQueueOffset() const { return m_OffsetRQ; }
 		    const uint16_t GetQueueOrder() const { return static_cast<uint16_t>(m_BaseRQ) + m_OffsetRQ; }
-        const std::unordered_map<std::string, std::shared_ptr<ITexture>>& GetTextures() const { return m_Textures; }
+        const std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>>& GetTextures() const { return m_Textures; }
 
-        void SaveMaterial(const std::string& path) const;
+        //void SaveMaterial(const std::string& path) const;
         void SetShader(const std::string& shaderUUID);
 
         bool Preload(Resource::BinaryView blob) override;
         void Finalize() override;
 
         void SetUniformMat4Array(const std::string& name, const std::vector<NE::Math::Mat4>& values);
+
+
+        // public member vars for now
+        std::shared_ptr<IPipeline> m_Pipeline;
+
+        std::unordered_map<std::string, int>  m_IntUniforms;
+        std::unordered_map<std::string, float> m_FloatUniforms;
+        std::unordered_map<std::string, Vec3> m_Vec3Uniforms;
+        std::unordered_map<std::string, Mat4> m_Mat4Uniforms;
+
+        std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
     private:
 
         struct MatStage {
@@ -74,14 +85,7 @@ namespace NE::Graphics {
             bool has = false; // parsed ok
         } m_stage;
 
-        std::shared_ptr<IPipeline> m_Pipeline;
 
-        std::unordered_map<std::string, int>  m_IntUniforms;
-        std::unordered_map<std::string, float> m_FloatUniforms;
-        std::unordered_map<std::string, Vec3> m_Vec3Uniforms;
-        std::unordered_map<std::string, Mat4> m_Mat4Uniforms;
-
-        std::unordered_map<std::string, std::shared_ptr<ITexture>> m_Textures;
 
         // Render queue
         RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;

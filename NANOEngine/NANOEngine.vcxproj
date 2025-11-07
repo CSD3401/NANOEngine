@@ -71,7 +71,6 @@
     <ClInclude Include="src\ECS\Components\Collider.hpp" />
     <ClInclude Include="src\ECS\Components\Rigidbody.hpp" />
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
-    <ClInclude Include="src\Asset.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="src\ECSInternals.hpp" />

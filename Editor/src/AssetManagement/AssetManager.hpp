@@ -19,6 +19,8 @@ namespace Editor {
 		void ReimportAsset(const std::string& sourcePath);
 
 		std::string RetrieveUUID(const std::string& sourcePath);
+		std::string RetrieveFileName(const std::string& uuid);
+		
 
 		template <AssetType T>
 		std::vector<std::pair<std::string, UUID>>& GetAssetsOfType() {

@@ -187,6 +187,10 @@ namespace Editor {
         GetAssetsOfType<AssetType::Mesh>().push_back({ "Cylinder", "builtin:model/cylinder" });
         GetAssetsOfType<AssetType::Mesh>().push_back({ "Sphere", "builtin:model/sphere" });
         GetAssetsOfType<AssetType::Mesh>().push_back({ "Capsule", "builtin:model/capsule" });
+
+        for (const auto& [name, uuid] : GetAssetsOfType<AssetType::Mesh>()) {
+            m_assets[uuid] = { uuid, AssetType::Mesh, name };
+        }
     }
 
 	AssetManager& AssetManager::GetInstance() {
@@ -246,7 +250,7 @@ namespace Editor {
                 break;
             }
             case AssetType::Audio: {
-
+                GetAssetsOfType<AssetType::Audio>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
                 break;
             }
             default:
@@ -390,11 +394,20 @@ namespace Editor {
                 if (line.starts_with("uuid:")) {
                     uuid = line.substr(line.find(':') + 1);
                     uuid.erase(0, uuid.find_first_not_of(" \t"));
+                    break;
                 }
             }
 
         }
         return uuid;
+    }
+
+    std::string AssetManager::RetrieveFileName(const std::string& uuid) {
+
+        if (m_assets.contains(uuid))
+            return m_assets.at(uuid).sourcePath;
+
+        return "";
     }
 
     AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {
@@ -475,8 +488,115 @@ namespace Editor {
         return NE::CookShader(sourcePath, outPath, shaderStages);
     }
 
+    //bool AssetManager::CookMaterial(const std::string& sourcePath, const std::string& outPath) {
+    //    //std::filesystem::path src = sourcePath;
+    //    std::filesystem::path out = outPath;
+    //    std::filesystem::create_directories(out.parent_path());
+
+    //    std::ifstream in(sourcePath);
+    //    if (!in) return false;
+    //    std::string j((std::istreambuf_iterator<char>(in)), {});
+    //    rapidjson::Document doc; doc.Parse(j.c_str());
+    //    if (!doc.IsObject()) return false;
+
+    //    // 2) Fill header (pipeline state)
+    //    NE::Resource::NanoMatHeader h{};
+    //    h.depthTest = doc.HasMember("DepthTest") ? (doc["DepthTest"].GetBool() ? 1 : 0) : 1;
+    //    h.blendMode = doc.HasMember("BlendMode") ? (doc["BlendMode"].GetBool() ? 1 : 0) : 0;
+    //    h.cullMode = doc.HasMember("CullMode") ? doc["CullMode"].GetUint() : 0;
+    //    h.polygonMode = doc.HasMember("PolygonMode") ? doc["PolygonMode"].GetUint() : 0;
+
+    //    const char* shaderName = doc.HasMember("Shader") ? doc["Shader"].GetString() : "Basic";
+    //    const uint32_t shaderNameLen = (uint32_t)std::strlen(shaderName);
+
+    //    // 3) Collect properties
+    //    std::vector<NE::Resource::MatPropRecord> recs;
+    //    std::string strings; // names will be appended here
+    //    std::string payload; // binary values appended here
+
+    //    if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
+    //        for (auto it = doc["Properties"].MemberBegin(); it != doc["Properties"].MemberEnd(); ++it) {
+    //            const std::string name = it->name.GetString();
+    //            const auto& v = it->value;
+
+    //            NE::Resource::MatPropRecord r{};
+    //            r.nameLen = (uint32_t)name.size();
+    //            r.nameOffset = 0; // fill later after we know base offsets
+    //            r.count = 1;
+
+    //            // Serialize the value
+    //            size_t dataStart = payload.size();
+    //            if (v.IsInt()) {
+    //                int32_t x = v.GetInt();
+    //                r.type = (uint8_t)NE::Resource::MatPropType::INT;
+    //                payload.append(reinterpret_cast<const char*>(&x), sizeof(x));
+    //            } else if (v.IsNumber()) {
+    //                float f = (float)v.GetDouble();
+    //                r.type = (uint8_t)NE::Resource::MatPropType::FLOAT;
+    //                payload.append(reinterpret_cast<const char*>(&f), sizeof(f));
+    //            } else if (v.IsArray() && v.Size() == 3) {
+    //                float f[3] = { (float)v[0].GetDouble(), (float)v[1].GetDouble(), (float)v[2].GetDouble() };
+    //                r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
+    //                payload.append(reinterpret_cast<const char*>(f), sizeof(f));
+    //            } else if (v.IsArray() && v.Size() == 16) {
+    //                float m[16];
+    //                for (rapidjson::SizeType i = 0; i < 16; ++i) m[i] = (float)v[i].GetDouble();
+    //                r.type = (uint8_t)NE::Resource::MatPropType::MAT4;
+    //                payload.append(reinterpret_cast<const char*>(m), sizeof(m));
+    //            } else {
+    //                // unknown type – skip or handle texture uuid strings later
+    //                continue;
+    //            }
+    //            r.dataOffset = 0; // fill later
+    //            r.dataSize = (uint32_t)(payload.size() - dataStart);
+
+    //            // Add name to string table
+    //            uint32_t nameOff = (uint32_t)strings.size();
+    //            strings.append(name.data(), name.size());
+
+    //            r.nameOffset = nameOff; // relative to strings base (filled after we know base)
+    //            recs.push_back(r);
+    //        }
+    //    }
+
+    //    // 4) Finalize offsets relative to file start
+    //    h.propCount = (uint16_t)recs.size();
+    //    h.shaderNameLen = shaderNameLen;
+
+    //    size_t offset = sizeof(NE::Resource::NanoMatHeader);
+    //    h.shaderNameOffset = (uint32_t)offset;
+    //    offset += shaderNameLen;
+
+    //    const uint32_t propsTableBytes = (uint32_t)(recs.size() * sizeof(NE::Resource::MatPropRecord));
+    //    h.propsOffset = (uint32_t)offset;
+    //    offset += propsTableBytes;
+
+    //    const uint32_t stringsBase = (uint32_t)offset;
+    //    offset += (uint32_t)strings.size();
+
+    //    const uint32_t payloadBase = (uint32_t)offset;
+    //    // payload bytes will follow
+
+    //    // Fix up per-record absolute offsets
+    //    for (auto& r : recs) {
+    //        r.nameOffset += stringsBase;
+    //        r.dataOffset += payloadBase;
+    //    }
+
+    //    // 5) Write file
+    //    std::ofstream ofs(outPath, std::ios::binary);
+    //    if (!ofs) return false;
+
+    //    ofs.write((char*)&h, sizeof(h));
+    //    ofs.write(shaderName, shaderNameLen);
+    //    if (!recs.empty()) ofs.write((char*)recs.data(), propsTableBytes);
+    //    if (!strings.empty()) ofs.write(strings.data(), (std::streamsize)strings.size());
+    //    if (!payload.empty()) ofs.write(payload.data(), (std::streamsize)payload.size());
+
+    //    return ofs.good();
+    //}
+
     bool AssetManager::CookMaterial(const std::string& sourcePath, const std::string& outPath) {
-        //std::filesystem::path src = sourcePath;
         std::filesystem::path out = outPath;
         std::filesystem::create_directories(out.parent_path());
 
@@ -486,7 +606,7 @@ namespace Editor {
         rapidjson::Document doc; doc.Parse(j.c_str());
         if (!doc.IsObject()) return false;
 
-        // 2) Fill header (pipeline state)
+        // 1) Header
         NE::Resource::NanoMatHeader h{};
         h.depthTest = doc.HasMember("DepthTest") ? (doc["DepthTest"].GetBool() ? 1 : 0) : 1;
         h.blendMode = doc.HasMember("BlendMode") ? (doc["BlendMode"].GetBool() ? 1 : 0) : 0;
@@ -496,89 +616,141 @@ namespace Editor {
         const char* shaderName = doc.HasMember("Shader") ? doc["Shader"].GetString() : "Basic";
         const uint32_t shaderNameLen = (uint32_t)std::strlen(shaderName);
 
-        // 3) Collect properties
-        std::vector<NE::Resource::MatPropRecord> recs;
-        std::string strings; // names will be appended here
-        std::string payload; // binary values appended here
+        // 2) Tables we will build
+        std::vector<NE::Resource::MatPropRecord> propRecs;
+        std::vector<NE::Resource::MatTexRecord>  texRecs;
 
+        std::string strings; // shared string blob (for BOTH prop names and tex names)
+        std::string payload; // only for prop data (ints/floats/matrices)
+
+        // 3) Collect properties from JSON
         if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
             for (auto it = doc["Properties"].MemberBegin(); it != doc["Properties"].MemberEnd(); ++it) {
                 const std::string name = it->name.GetString();
                 const auto& v = it->value;
 
-                NE::Resource::MatPropRecord r{};
-                r.nameLen = (uint32_t)name.size();
-                r.nameOffset = 0; // fill later after we know base offsets
-                r.count = 1;
+                // case A: numeric / array -> goes to prop table
+                if (v.IsInt() || v.IsNumber() ||
+                    (v.IsArray() && (v.Size() == 3 || v.Size() == 16))) {
 
-                // Serialize the value
-                size_t dataStart = payload.size();
-                if (v.IsInt()) {
-                    int32_t x = v.GetInt();
-                    r.type = (uint8_t)NE::Resource::MatPropType::INT;
-                    payload.append(reinterpret_cast<const char*>(&x), sizeof(x));
-                } else if (v.IsNumber()) {
-                    float f = (float)v.GetDouble();
-                    r.type = (uint8_t)NE::Resource::MatPropType::FLOAT;
-                    payload.append(reinterpret_cast<const char*>(&f), sizeof(f));
-                } else if (v.IsArray() && v.Size() == 3) {
-                    float f[3] = { (float)v[0].GetDouble(), (float)v[1].GetDouble(), (float)v[2].GetDouble() };
-                    r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
-                    payload.append(reinterpret_cast<const char*>(f), sizeof(f));
-                } else if (v.IsArray() && v.Size() == 16) {
-                    float m[16];
-                    for (rapidjson::SizeType i = 0; i < 16; ++i) m[i] = (float)v[i].GetDouble();
-                    r.type = (uint8_t)NE::Resource::MatPropType::MAT4;
-                    payload.append(reinterpret_cast<const char*>(m), sizeof(m));
-                } else {
-                    // unknown type – skip or handle texture uuid strings later
-                    continue;
+                    NE::Resource::MatPropRecord r{};
+                    r.nameLen = (uint32_t)name.size();
+                    r.count = 1;
+
+                    // serialize value
+                    size_t dataStart = payload.size();
+                    if (v.IsInt()) {
+                        int32_t x = v.GetInt();
+                        r.type = (uint8_t)NE::Resource::MatPropType::INT;
+                        payload.append(reinterpret_cast<const char*>(&x), sizeof(x));
+                    } else if (v.IsNumber()) {
+                        float f = (float)v.GetDouble();
+                        r.type = (uint8_t)NE::Resource::MatPropType::FLOAT;
+                        payload.append(reinterpret_cast<const char*>(&f), sizeof(f));
+                    } else if (v.IsArray() && v.Size() == 3) {
+                        float f[3] = {
+                            (float)v[0].GetDouble(),
+                            (float)v[1].GetDouble(),
+                            (float)v[2].GetDouble()
+                        };
+                        r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
+                        payload.append(reinterpret_cast<const char*>(f), sizeof(f));
+                    } else if (v.IsArray() && v.Size() == 16) {
+                        float m[16];
+                        for (rapidjson::SizeType i = 0; i < 16; ++i)
+                            m[i] = (float)v[i].GetDouble();
+                        r.type = (uint8_t)NE::Resource::MatPropType::MAT4;
+                        payload.append(reinterpret_cast<const char*>(m), sizeof(m));
+                    }
+
+                    r.dataOffset = 0; // fix later
+                    r.dataSize = (uint32_t)(payload.size() - dataStart);
+
+                    // add name to shared strings
+                    uint32_t nameOff = (uint32_t)strings.size();
+                    strings.append(name.data(), name.size());
+
+                    r.nameOffset = nameOff; // relative for now
+                    propRecs.push_back(r);
                 }
-                r.dataOffset = 0; // fill later
-                r.dataSize = (uint32_t)(payload.size() - dataStart);
+                // case B: string -> treat as texture uuid
+                else if (v.IsString()) {
+                    const char* uuidStr = v.GetString();
+                    // we assume editor saved actual uuid or empty string
+                    if (uuidStr[0] != '\0') {
+                        NE::Resource::MatTexRecord tr{};
+                        tr.nameLen = (uint32_t)name.size();
 
-                // Add name to string table
-                uint32_t nameOff = (uint32_t)strings.size();
-                strings.append(name.data(), name.size());
+                        // put name in shared strings
+                        uint32_t nameOff = (uint32_t)strings.size();
+                        strings.append(name.data(), name.size());
+                        tr.nameOffset = nameOff;
 
-                r.nameOffset = nameOff; // relative to strings base (filled after we know base)
-                recs.push_back(r);
+                        // copy up to 36 chars (your struct is exactly 36, no null)
+                        std::memset(tr.uuid, 0, 36);
+                        std::memcpy(tr.uuid, uuidStr, std::min<size_t>(std::strlen(uuidStr), 36));
+
+                        texRecs.push_back(tr);
+                    }
+                    // if empty string, just skip (no texture bound)
+                }
+                // else: unknown type -> ignore
             }
         }
 
-        // 4) Finalize offsets relative to file start
-        h.propCount = (uint16_t)recs.size();
+        // 4) Fill header counts
+        h.propCount = (uint16_t)propRecs.size();
+        h.texCount = (uint16_t)texRecs.size();
         h.shaderNameLen = shaderNameLen;
 
+        // 5) Lay out file
         size_t offset = sizeof(NE::Resource::NanoMatHeader);
+
+        // shader name
         h.shaderNameOffset = (uint32_t)offset;
         offset += shaderNameLen;
 
-        const uint32_t propsTableBytes = (uint32_t)(recs.size() * sizeof(NE::Resource::MatPropRecord));
+        // prop table
+        const uint32_t propTableBytes = (uint32_t)(propRecs.size() * sizeof(NE::Resource::MatPropRecord));
         h.propsOffset = (uint32_t)offset;
-        offset += propsTableBytes;
+        offset += propTableBytes;
 
+        // shared string blob (for prop names + tex names)
         const uint32_t stringsBase = (uint32_t)offset;
         offset += (uint32_t)strings.size();
 
+        // payload (for prop data)
         const uint32_t payloadBase = (uint32_t)offset;
-        // payload bytes will follow
+        offset += (uint32_t)payload.size();
 
-        // Fix up per-record absolute offsets
-        for (auto& r : recs) {
+        // texture table (if any)
+        if (!texRecs.empty()) {
+            h.texTableOffset = (uint32_t)offset;
+            offset += (uint32_t)(texRecs.size() * sizeof(NE::Resource::MatTexRecord));
+        } else {
+            h.texTableOffset = 0;
+        }
+
+        // 6) Fix up per-record absolute offsets
+        for (auto& r : propRecs) {
             r.nameOffset += stringsBase;
             r.dataOffset += payloadBase;
         }
+        for (auto& tr : texRecs) {
+            tr.nameOffset += stringsBase;
+            // tr.uuid is already inline
+        }
 
-        // 5) Write file
+        // 7) Write file
         std::ofstream ofs(outPath, std::ios::binary);
         if (!ofs) return false;
 
         ofs.write((char*)&h, sizeof(h));
         ofs.write(shaderName, shaderNameLen);
-        if (!recs.empty()) ofs.write((char*)recs.data(), propsTableBytes);
-        if (!strings.empty()) ofs.write(strings.data(), (std::streamsize)strings.size());
-        if (!payload.empty()) ofs.write(payload.data(), (std::streamsize)payload.size());
+        if (!propRecs.empty()) ofs.write((char*)propRecs.data(), propTableBytes);
+        if (!strings.empty())  ofs.write(strings.data(), (std::streamsize)strings.size());
+        if (!payload.empty())  ofs.write(payload.data(), (std::streamsize)payload.size());
+        if (!texRecs.empty())  ofs.write((char*)texRecs.data(), (std::streamsize)(texRecs.size() * sizeof(NE::Resource::MatTexRecord)));
 
         return ofs.good();
     }

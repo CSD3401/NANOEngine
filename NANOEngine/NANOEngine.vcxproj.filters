@@ -62,6 +62,10 @@
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
+    <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
+    <ClCompile Include="src\Animation\AnimatorControllerIO.cpp" />
+    <ClCompile Include="src\Animation\TransformClipIO.cpp" />
+    <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -108,7 +112,6 @@
     <ClInclude Include="src\ECS\Components\Collider.hpp" />
     <ClInclude Include="src\ECS\Components\Rigidbody.hpp" />
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
-    <ClInclude Include="src\Asset.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="src\ECSInternals.hpp" />
@@ -125,7 +128,6 @@
     <ClInclude Include="src\ECS\Components\Renderer.hpp" />
     <ClInclude Include="src\ECS\Components\Transform.hpp" />
     <ClInclude Include="src\ECS\Core\ComponentManager.hpp" />
-    <ClInclude Include="src\Graphics\Core\Camera.hpp" />
     <ClInclude Include="src\Core\Logger.hpp" />
     <ClInclude Include="src\Core\Timer.hpp" />
     <ClInclude Include="src\Engine.hpp" />
@@ -175,6 +177,15 @@
     <ClInclude Include="src\Tween\Tween.hpp" />
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
+    <ClInclude Include="src\ECS\Components\Camera.hpp" />
+    <ClInclude Include="src\ECS\Systems\CameraSystem.hpp" />
+    <ClInclude Include="src\Animation\AnimatorController.hpp" />
+    <ClInclude Include="src\Animation\AnimatorControllerIO.hpp" />
+    <ClInclude Include="src\Animation\TransformClip.hpp" />
+    <ClInclude Include="src\Animation\TransformClipIO.hpp" />
+    <ClInclude Include="src\ECS\Components\Animator.hpp" />
+    <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
+    <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -339,31 +350,16 @@
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ResourceManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Animation\TransformClipIO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Animation\AnimatorControllerIO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-        <ClCompile Include="src\Core\SpdLogger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-        <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp">
-          <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp">
-          <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Core\SpdLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ECS\Systems\CameraSystem.cpp">
+    <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorInterface\PhysicsExports.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Core\SpdLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -3,7 +3,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
 #include <fstream>
-//#include "../../AssetManager.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
@@ -59,8 +58,8 @@ namespace NE::Graphics {
         m_Mat4Uniforms[uName] = value;
     }
 
-    void Material::SetTexture(const std::string& uName, std::shared_ptr<ITexture> texture) {
-        m_Textures[uName] = std::move(texture);
+    void Material::SetTexture(const std::string& uName, const std::string& uuid) {
+        m_Textures[uName] = Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
         m_Textures[uName]->MakeResident();
     }
 
@@ -95,58 +94,58 @@ namespace NE::Graphics {
 
     }
 
-    // Fix for AddMember issue in SaveMaterial method
-    void Material::SaveMaterial(const std::string& filePath) const {
-        using namespace rapidjson;
-        Document doc;
-        doc.SetObject();
-        Document::AllocatorType& alloc = doc.GetAllocator();
+    //// Fix for AddMember issue in SaveMaterial method
+    //void Material::SaveMaterial(const std::string& filePath) const {
+    //    using namespace rapidjson;
+    //    Document doc;
+    //    doc.SetObject();
+    //    Document::AllocatorType& alloc = doc.GetAllocator();
 
-        if (m_Pipeline) {
-            doc.AddMember("Shader", Value(m_Pipeline->GetSpecification().shaderName.data(), alloc).Move(), alloc);
-            auto spec = m_Pipeline->GetSpecification();
-            doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
-            doc.AddMember("BlendMode", spec.EnableBlending, alloc);
-            doc.AddMember("CullMode", spec.CullMode, alloc);
-            doc.AddMember("PolygonMode", spec.PolygonMode, alloc);
-        }
+    //    if (m_Pipeline) {
+    //        doc.AddMember("Shader", Value(m_Pipeline->GetSpecification().shaderName.data(), alloc).Move(), alloc);
+    //        auto spec = m_Pipeline->GetSpecification();
+    //        doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
+    //        doc.AddMember("BlendMode", spec.EnableBlending, alloc);
+    //        doc.AddMember("CullMode", spec.CullMode, alloc);
+    //        doc.AddMember("PolygonMode", spec.PolygonMode, alloc);
+    //    }
 
-        Value uniforms(kObjectType);
+    //    Value uniforms(kObjectType);
 
-        for (const auto& [name, value] : m_IntUniforms) {
-            uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
-        }
-        for (const auto& [name, value] : m_FloatUniforms) {
-            uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
-        }
-        for (const auto& [name, value] : m_Vec3Uniforms) {
-            Value arr(kArrayType);
-            arr.PushBack(value.x, alloc).PushBack(value.y, alloc).PushBack(value.z, alloc);
-            uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
-        }
-        // Mat4 uniforms (if needed)
-        // for (const auto& [name, value] : m_Mat4Uniforms) {
-        //     Value arr(kArrayType);
-        //     for (int i = 0; i < 16; ++i) arr.PushBack(value.data[i], alloc); // adjust based on your Mat4 storage
-        //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
-        // }
-        // Textures (TBD SOON)
-        for (const auto& [name, tex] : m_Textures) {
-            std::string _uuid = tex ? tex->uuid : "";
-            uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(_uuid.c_str(), alloc).Move(), alloc);
-        }
+    //    for (const auto& [name, value] : m_IntUniforms) {
+    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
+    //    }
+    //    for (const auto& [name, value] : m_FloatUniforms) {
+    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
+    //    }
+    //    for (const auto& [name, value] : m_Vec3Uniforms) {
+    //        Value arr(kArrayType);
+    //        arr.PushBack(value.x, alloc).PushBack(value.y, alloc).PushBack(value.z, alloc);
+    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
+    //    }
+    //    // Mat4 uniforms (if needed)
+    //    // for (const auto& [name, value] : m_Mat4Uniforms) {
+    //    //     Value arr(kArrayType);
+    //    //     for (int i = 0; i < 16; ++i) arr.PushBack(value.data[i], alloc); // adjust based on your Mat4 storage
+    //    //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
+    //    // }
+    //    // Textures (TBD SOON)
+    //    for (const auto& [name, tex] : m_Textures) {
+    //        std::string _uuid = tex ? tex->uuid : "";
+    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(_uuid.c_str(), alloc).Move(), alloc);
+    //    }
 
-        doc.AddMember("Properties", uniforms, alloc);
+    //    doc.AddMember("Properties", uniforms, alloc);
 
-        // Write to file
-        StringBuffer buffer;
-        PrettyWriter<StringBuffer> writer(buffer);
-        doc.Accept(writer);
+    //    // Write to file
+    //    StringBuffer buffer;
+    //    PrettyWriter<StringBuffer> writer(buffer);
+    //    doc.Accept(writer);
 
-        std::ofstream out(filePath);
-        if (out.is_open())
-            out << buffer.GetString();
-    }
+    //    std::ofstream out(filePath);
+    //    if (out.is_open())
+    //        out << buffer.GetString();
+    //}
 
     void Material::SetShader(const std::string& shaderUUID) {
         auto shader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>(shaderUUID);
@@ -247,6 +246,27 @@ namespace NE::Graphics {
             m_stage.props.push_back(std::move(p));
         }
 
+        if (h->texCount > 0) {
+            const size_t texTableSize = size_t(h->texCount) * sizeof(NE::Resource::MatTexRecord);
+            if (h->texTableOffset + texTableSize > blob.size) return false;
+
+            const auto* texRecs = blob.as<NE::Resource::MatTexRecord>(h->texTableOffset);
+            // stash them into m_stage so Finalize can actually load them
+            for (uint16_t i = 0; i < h->texCount; ++i) {
+                const auto& tr = texRecs[i];
+
+                if (size_t(tr.nameOffset) + tr.nameLen > blob.size) return false;
+                const char* n0 = reinterpret_cast<const char*>(blob.data + tr.nameOffset);
+
+                MatStage::Prop p{};
+                p.name.assign(n0, n0 + tr.nameLen);
+                p.type = NE::Resource::MatPropType::HANDLE; // or make a separate vector just for textures
+                p.bytes.assign(reinterpret_cast<const uint8_t*>(tr.uuid),
+                    reinterpret_cast<const uint8_t*>(tr.uuid) + 36);
+                m_stage.props.push_back(std::move(p));
+            }
+        }
+
         m_stage.has = true;
         return true;
     }
@@ -291,6 +311,15 @@ namespace NE::Graphics {
             //        for (int i = 0; i < 16; ++i) M.data[i] = m[i];
             //        SetUniformMat4(p.name, M);
             //    }
+            } break;
+            case NE::Resource::MatPropType::HANDLE: {
+                if (p.bytes.size() == 36) {
+                    std::string uuid(reinterpret_cast<const char*>(p.bytes.data()), 36);
+                    SetTexture(p.name, uuid);
+                    // optionally set u_HasX = 1 here
+                    auto hasName = "u_Has" + p.name.substr(2); // if your naming matches
+                    m_IntUniforms[hasName] = 1;
+                }
             } break;
             default: break; // future: textures/handles
             }

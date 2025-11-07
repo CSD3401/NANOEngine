@@ -2,13 +2,13 @@
 #define NANOENGINE_GRAPHICS_GLTEXTURE_HPP
 
 #include "../Interfaces/ITexture.hpp"
+#include "ResourceManagement/IResource.hpp"
 #include <string>
 #include <vector>
-#include "ResourceManagement/BinaryView.hpp"
 
 namespace NE::Graphics::OpenGL {
 
-	class GLTexture final : public ITexture {
+	class GLTexture final : public ITexture, public Resource::IResource {
     public:
         GLTexture();
         ~GLTexture();
@@ -22,6 +22,7 @@ namespace NE::Graphics::OpenGL {
 
         unsigned int GLName() const { return m_ID; }
 
+        std::string uuid; // for material serialization
     private:
         unsigned int m_ID = 0;
         uint64_t m_Handle = 0;

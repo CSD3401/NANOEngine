@@ -180,9 +180,6 @@ namespace Editor {
 	{
 		ImGui::Begin("Inspector", nullptr);
 
-		//ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
-		//ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
-
 		if (EditorScene::s_selectedEntity) {
 			uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
@@ -282,16 +279,7 @@ namespace Editor {
 				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
 					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 					ImGui::SeparatorText("Transform");
-					//NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
-					//    [&](auto const& desc, auto const& currentValue) {
-					//        using FieldT = std::decay_t<decltype(currentValue)>;
 
-					//        FieldT edited = currentValue;
-
-					//        if (DrawField(desc, edited)) {
-					//            SubmitSetFieldCommand(entity, desc, currentValue, edited);
-					//        }
-					//    });
 					NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
 						[&](auto const& desc, auto const& currentValue) {
 							using Owner = NE::ECS::Component::Transform;
@@ -362,7 +350,7 @@ namespace Editor {
                     ImGui::SeparatorText("Renderer");
 
                     bool openPopup = false;
-                    DrawAssetField("Model", comp.modelPath.string(), "+", 0.f, &openPopup);
+                    DrawAssetField("Model", AssetManager::GetInstance().RetrieveFileName(comp.modelUUID), "+", 0.f, &openPopup);
                     if (openPopup) {
                         ImGui::OpenPopup("AssetPicker_Model");
                     }
@@ -372,8 +360,6 @@ namespace Editor {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
                             auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
 							NE::Renderer::Command::AssignModel(entity, uuid);
-                            
-                            //NE::Renderer::Command::AssignModel(entity, dropped);
                         }
                         ImGui::EndDragDropTarget();
                     }
@@ -401,15 +387,14 @@ namespace Editor {
                     }
 
                     char bufMat[256];
-                    strncpy_s(bufMat, comp.materialPath.string().c_str(), sizeof(bufMat));
+                    strncpy_s(bufMat, comp.materialUUID.c_str(), sizeof(bufMat));
                     ImGui::InputText("Material", bufMat, sizeof(bufMat));
 
-                    //comp.materialPath = bufMat;
                     if (ImGui::BeginDragDropTarget()) {
                         if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
                             std::string dropped((const char*)p->Data, p->DataSize - 1);
-                            //NE::AssignRendererMaterial(comp, dropped);
-                            NE::Renderer::Command::AssignMaterial(entity, dropped);
+							auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+                            NE::Renderer::Command::AssignMaterial(entity, uuid);
                         }
                         ImGui::EndDragDropTarget();
                     }

@@ -8,6 +8,7 @@
 #include "ResourcePaths.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Graphics/Core/Primitives.hpp"
+//#include "Graphics/OpenGL/GLShader.hpp"
 
 namespace NE::Resource {
 
@@ -45,6 +46,10 @@ namespace NE::Resource {
 			}
 			resource->Finalize();
 
+			if constexpr (requires (T t) { t.uuid; }) {
+				resource->uuid = uuid;
+			}
+
 			{
 				std::scoped_lock l(mtx);
 				cache.emplace(uuid, resource);
@@ -66,7 +71,8 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::CreateSphere());
 				if (id == "builtin:model/capsule")
 					return std::static_pointer_cast<T>(NE::Graphics::CreateCapsule());
-			}
+			} 
+			//else if constexpr (std::is_same_v<T, NE::Graphics::OpenGL::Shader>)
 			return nullptr;
 		}
 
