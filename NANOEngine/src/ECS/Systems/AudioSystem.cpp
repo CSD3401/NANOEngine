@@ -378,8 +378,7 @@ namespace NE::ECS::Systems {
 		//auto& engine = GetAudioEngine();
 
 		//for (Entity e : entities) {
-		//	if (m_componentManager->
-		// <Component::AudioSource>(e) &&
+		//	if (m_componentManager->HasComponent<Component::AudioSource>(e) &&
 		//		m_componentManager->HasComponent<Component::Transform>(e)) {
 
 		//		auto& audioSource = m_componentManager->GetComponent<Component::AudioSource>(e);

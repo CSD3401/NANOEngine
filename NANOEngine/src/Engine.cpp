@@ -127,10 +127,6 @@ namespace NE {
 		return Graphics::GraphicsManager::ReadPixel(s_pickingFrameBuffer.get(), x, y);
 	}
 
-	uint32_t GetPickedUIEntity(uint32_t x, uint32_t y) {
-		return Graphics::GraphicsManager::ReadPixel(s_pickingFrameBuffer.get(), x, y);
-	}
-
 	void SaveCurrentScene(std::string path) {
 		Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), path);
 	}

@@ -156,10 +156,7 @@ namespace Editor {
 						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
 						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
-						//uint32_t pickedUI = NE::Graphics::UIRenderer::ReadPickId(x, y);
-
 						uint32_t id = NE::GetPickedEntity(x, y);
-						//uint32_t picked3D = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
 						EditorScene::selectedMaterial = "";
@@ -170,28 +167,6 @@ namespace Editor {
 								break;
 							}
 						}
-
-						//// Prioritize UI picking (UI is on top)
-						//if (pickedUI != 0) {
-						//	// Found UI entity!
-						//	for (auto& ent : EditorScene::s_entities) {
-						//		if (ent.linkedEntity == pickedUI) {
-						//			EditorScene::s_selectedEntity = &ent;
-						//			std::cout << "Selected UI Entity: " << pickedUI << std::endl;
-						//			break;
-						//		}
-						//	}
-						//}
-						//else if (picked3D != 0) {
-						//	// Found 3D entity
-						//	for (auto& ent : EditorScene::s_entities) {
-						//		if (ent.linkedEntity == picked3D) {
-						//			EditorScene::s_selectedEntity = &ent;
-						//			std::cout << "Selected 3D Entity: " << picked3D << std::endl;
-						//			break;
-						//		}
-						//	}
-						//}
 					}
 				}
 			}
