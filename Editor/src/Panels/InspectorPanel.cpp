@@ -481,7 +481,7 @@ namespace Editor {
                         });
 
                 } 
-else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
+				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
 					auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
 					ImGui::SeparatorText("Rigidbody");
 
