@@ -4,11 +4,6 @@
 #include "../Components/Collider.hpp"
 #include "../Components/Light.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
-
-//temp
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include "../../Graphics/Core/Vertex.hpp"
 #include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
 #include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
@@ -17,8 +12,8 @@
 #include "../../Graphics/OpenGL/GLPipeline.hpp"
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Core/Profiler.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
-#include "AssetManager.hpp"
 
 #include <iostream>
 
@@ -45,20 +40,14 @@ namespace NE::ECS::Systems {
     {
     }
 
-    void RenderSystem::Init()
-    {
-        const auto& entities = GetEntities(); // maybe use sparseset next time?
+    void RenderSystem::Init() {
+        const auto& entities = GetEntities();
         for (Entity entity : entities) {
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
-            // reminder to myself to fix this assetmanager thingamajig
-            renderer.model = NE::Asset::AssetManager::GetInstance().Get<Graphics::Model>(renderer.modelPath.string());
-            renderer.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(renderer.materialPath.string(), false);
+            renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
+            renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
         }
-   //     const auto& entities = GetEntities();
-   //     for (Entity entity : entities) {
-			//auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-   //     }
 
 		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
 		//Graphics::PipelineSpecification pipelineSpec;
@@ -69,7 +58,7 @@ namespace NE::ECS::Systems {
 		//pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
 		//material = std::make_shared<Graphics::Material>(pipeline);
 
-        pickingShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Picking.glsl");
+        pickingShader = NE::Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>("nepicking");
         Graphics::PipelineSpecification pickSpec;
         pickSpec.shader = pickingShader;
         pickSpec.CullMode = GL_BACK;
@@ -79,8 +68,7 @@ namespace NE::ECS::Systems {
         pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
     }
 
-    void RenderSystem::Update(double) 
-    {
+    void RenderSystem::Update(double deltaTime) {
 		NE_PROFILE_FUNCTION();
 
         FrustumCulling();
@@ -116,7 +104,16 @@ namespace NE::ECS::Systems {
                 //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
                 //cmd.material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
                 //cmd.material->SetUniformFloat("u_Material.shininess", 32.0f);
+                //if (renderer.model && renderer.model->HasSkeleton()) {
+                //    // advance time (dt variable is available in Update)
+                //    renderer.model->UpdateAnimation(deltaTime);
 
+                //    // upload bones to the material (Material::Bind will push them to the shader)
+                //    const auto& bones = renderer.model->GetBoneMatrices();
+                //    if (!bones.empty()) {
+                //        renderer.material->SetUniformMat4Array("u_Bones", bones);
+                //    }
+                //}
 				Graphics::GraphicsManager::Submit(cmd);
 
                 // Object picking
@@ -208,31 +205,30 @@ namespace NE::ECS::Systems {
     //    return F.IntersectsAABB(minWS, maxWS);
     //}
 
-    void RenderSystem::FrustumCulling() 
-    {
-        // build frustum from the active camera
-        const Frustum frustum = BuildFrustum();
+    void RenderSystem::FrustumCulling() {
+        //// build frustum from the active camera
+        //const Frustum frustum = BuildFrustum();
 
-        const auto& entities = GetEntities();
-        for (Entity e : entities)
-        {
-            const auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(e);
-            auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
+        //const auto& entities = GetEntities();
+        //for (Entity e : entities)
+        //{
+        //    const auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(e);
+        //    auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
 
-            const Mat4& modelMatrix = transform.modelMatrix;
+        //    const Mat4& modelMatrix = transform.modelMatrix;
 
-            if (renderer.model && renderer.model->hasSphereBoundsLS)
-            {
-                const Vec3 centerLS = renderer.model->sphereCenterLS;
-                const float radiusLS = renderer.model->sphereRadiusLS;
+        //    if (renderer.model && renderer.model->hasSphereBoundsLS)
+        //    {
+        //        const Vec3 centerLS = renderer.model->sphereCenterLS;
+        //        const float radiusLS = renderer.model->sphereRadiusLS;
 
-                renderer.visible = TestSphereFrustum(frustum, modelMatrix, centerLS, radiusLS);
-            }
-            else
-            {
-                renderer.visible = TestSphereFrustum(frustum, modelMatrix, Vec3(0.0f), 0.5f); // default
-            }
-        }
+        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, centerLS, radiusLS);
+        //    }
+        //    else
+        //    {
+        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, Vec3(0.0f), 0.5f); // default
+        //    }
+        //}
     }
 
 }

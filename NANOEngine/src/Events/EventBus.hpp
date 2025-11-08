@@ -172,7 +172,7 @@ namespace NANOEngine::Events {
     NANOENGINE_API void SendScriptEvent(const char* eventName, void* data);
 
     // Register a script-side callback
-    NANOENGINE_API void RegisterScriptEventListener(const char* eventName, void(*callback)(void* data));
+    NANOENGINE_API void RegisterScriptEventListener(const char* eventName, std::function<void(void* data)> callback);
 }
 
 #pragma warning(pop)

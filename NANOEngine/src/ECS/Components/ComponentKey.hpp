@@ -6,6 +6,7 @@ namespace NE::ECS::Component {
     struct Collider;
     struct Rigidbody;
     struct NativeScript;
+    struct Camera;
 }
 
 
@@ -22,4 +23,5 @@ NE_COMPONENT_KEY(NE::ECS::Component::Light, "Light")
 NE_COMPONENT_KEY(NE::ECS::Component::Collider, "Collider")
 NE_COMPONENT_KEY(NE::ECS::Component::Rigidbody, "Rigidbody")
 NE_COMPONENT_KEY(NE::ECS::Component::NativeScript, "NativeScript")
+NE_COMPONENT_KEY(NE::ECS::Component::Camera, "Camera")
 

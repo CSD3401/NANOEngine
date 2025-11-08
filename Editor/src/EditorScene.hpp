@@ -6,6 +6,8 @@
 
 namespace Editor {
 
+    //const std::string
+
     struct Node {
         uint32_t id = 0;        // editor id == linkedEntity
         uint32_t parent = 0;    // 0 => root
@@ -16,7 +18,7 @@ namespace Editor {
     public:
         static std::vector<EditorEntity> s_entities;
         static EditorEntity* s_selectedEntity;
-        static std::string selectedMaterial;
+        static std::string selectedAsset;
         static std::string currentScenePath;
 
         // NEW: hierarchy index

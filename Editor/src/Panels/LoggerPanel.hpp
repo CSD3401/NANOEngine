@@ -44,10 +44,19 @@ namespace Editor {
         bool m_showWarning = true;      
         bool m_showError = true;        
         bool m_showCritical = true;     
-        
+
         // UI settings
         bool m_autoScroll = true;                 
         char m_searchBuffer[256] = { 0 };          
+        
+        // Selection tracking
+        std::vector<int> m_selectedIndices;
+        int m_lastClickedIndex = -1;
+        
+        // Drag selection state
+        bool m_isDragging = false;
+        int m_dragStartIndex = -1;
+        int m_dragEndIndex = -1;
         
         /*!
         \brief Determines if a log entry should be displayed based on current filters
@@ -79,5 +88,52 @@ namespace Editor {
         \brief Renders control buttons (Clear, All, None, Errors Only)
         */
         void RenderControlButtons();
+        
+        /*!
+        \brief Formats a single log entry to string
+        \param entry The log entry to format
+        \return Formatted string representation
+        */
+        std::string FormatLogEntry(const SpdLogEntry& entry) const;
+        
+        /*!
+        \brief Copies all visible/filtered logs to clipboard
+        \param filteredEntries The entries currently visible
+        */
+        void CopyAllVisibleLogs(const std::vector<const SpdLogEntry*>& filteredEntries);
+        
+        /*!
+        \brief Copies selected logs to clipboard
+        \param filteredEntries The entries currently visible
+        */
+        void CopySelectedLogs(const std::vector<const SpdLogEntry*>& filteredEntries);
+        
+        /*!
+        \brief Checks if an index is selected
+        \param index The index to check
+        \return True if selected
+        */
+        bool IsIndexSelected(int index) const;
+        
+        /*!
+        \brief Toggles selection of an index
+        \param index The index to toggle
+        \param isMultiSelect Whether this is a multi-select operation (Ctrl held)
+        */
+        void ToggleSelection(int index, bool isMultiSelect);
+        
+        /*!
+        \brief Handles drag selection logic
+        \param index The current log index being hovered
+        \param isItemHovered Whether the mouse is over this item
+        */
+        void HandleDragSelection(int index, bool isItemHovered);
+        
+        /*!
+        \brief Selects a range of indices (for drag selection)
+        \param startIndex The start of the range
+        \param endIndex The end of the range
+        */
+        void SelectRange(int startIndex, int endIndex);
     };
 }

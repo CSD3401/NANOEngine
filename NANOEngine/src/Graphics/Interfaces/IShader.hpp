@@ -2,7 +2,6 @@
 #define NANOENGINE_GRAPHICS_ISHADER_HPP
 
 #include <string>
-#include "../../Asset.hpp"
 
 namespace NE::Math {
     struct Vec3;
@@ -13,7 +12,7 @@ namespace NE::Graphics {
     using NE::Math::Vec3;
     using NE::Math::Mat4;
 
-    class IShader : public virtual Asset::IAsset {
+    class IShader {
     public:
         virtual ~IShader() = default;
 
@@ -30,6 +29,7 @@ namespace NE::Graphics {
         virtual void SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) = 0;
 
 		virtual const std::string_view GetUUID() const = 0;
+        virtual void SetUniformMat4Array(const std::string& name, const NE::Math::Mat4* data, int count) = 0;
     };
 
 }

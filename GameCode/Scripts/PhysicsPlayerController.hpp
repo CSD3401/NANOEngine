@@ -446,16 +446,16 @@ private:
 		// Get input for all 4 directions
 		NE::Math::Vec3 inputDirection{ 0, 0, 0 };
 
-		if (NE::InputManager::IsKeyDown(GLFW_KEY_UP)) {
+		if (NE::InputManager::IsKeyDown('W')) {
 			inputDirection.z -= 1.0f;
 		}
-		if (NE::InputManager::IsKeyDown(GLFW_KEY_DOWN)) {
+		if (NE::InputManager::IsKeyDown('S')) {
 			inputDirection.z += 1.0f;
 		}
-		if (NE::InputManager::IsKeyDown(GLFW_KEY_LEFT)) {
+		if (NE::InputManager::IsKeyDown('A')) {
 			inputDirection.x -= 1.0f;
 		}
-		if (NE::InputManager::IsKeyDown(GLFW_KEY_RIGHT)) {
+		if (NE::InputManager::IsKeyDown('D')) {
 			inputDirection.x += 1.0f;
 		}
 

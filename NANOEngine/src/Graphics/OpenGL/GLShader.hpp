@@ -3,15 +3,16 @@
 
 #include "../Interfaces/IShader.hpp"
 #include <unordered_map>
+#include "ResourceManagement/BinaryView.hpp"
+#include "ResourceManagement/IResource.hpp"
 
 namespace NE::Graphics::OpenGL {
 
 	struct UniformDesc { std::string name; unsigned int type; int size; };
 
-	class GLShader final : public IShader {
+	class GLShader final : public IShader, public Resource::IResource {
 	public:
 		GLShader();
-		GLShader(const std::string& filePath);
 		~GLShader();
 
 		void Bind() const override;
@@ -25,19 +26,35 @@ namespace NE::Graphics::OpenGL {
 		void SetUniformHandle(const std::string& uName, uint64_t handle) override;
 		void SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) override;
 
-		bool LoadFromFile(const std::string& fileName) override;
+		const std::string_view GetUUID() const override {
+			return std::string_view();
+		};
+		
+		//const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
 
+		bool Preload(NE::Resource::BinaryView blob) override;
+		void Finalize() override;
 		const uint32_t GetProgramID() const override { return m_programID; }
-		const std::string_view GetUUID() const override { return uuid; } // Not implemented, return empty string
 
 		std::vector<UniformDesc> EnumerateActiveUniforms() const;
 		bool HasUniform(std::string_view name) const;
+
+
+		void SetUniformMat4Array(const std::string& uName, const NE::Math::Mat4* data, int count) override;
 	private:
+		const uint8_t* progBlob = nullptr;
+		size_t progSize = 0;
+		uint32_t progFormat = 0;
+
+		bool hasFallback = false;
+		const char* vsSrc = nullptr;
+		size_t vsLen = 0;
+		const char* fsSrc = nullptr;
+		size_t fsLen = 0;
+
+
 		uint32_t m_programID;
 		std::unordered_map<std::string, int> m_uniformLocationCache;
-		std::string LoadShaderSource(const std::string& path);
-		std::unordered_map<unsigned int, std::string> Preprocess(const std::string& source);
-		bool Compile(const std::unordered_map<unsigned int, std::string>& shaderSources);
 
 		int GetUniformLocation(const std::string& name);
 	};
