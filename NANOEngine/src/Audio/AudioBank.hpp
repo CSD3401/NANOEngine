@@ -9,8 +9,8 @@
 
 #include <string>
 #include <fmod/fmod_studio.hpp>
-#include "../Asset.hpp"
 #include <unordered_map>
+#include "ResourceManagement/IResource.hpp"
 
 
 #pragma warning (push)
@@ -18,7 +18,7 @@
 
 namespace NE::Asset
 {
-	class NANOENGINE_API AudioBank : public IAsset
+	class NANOENGINE_API AudioBank : public Resource::IResource
 	{
 	public:
 
@@ -33,7 +33,9 @@ namespace NE::Asset
 		virtual ~AudioBank();
 
 		// return true if loaded succesfully
-		virtual bool LoadFromFile(const std::string& filename) override;
+		//virtual bool LoadFromFile(const std::string& filename) override;
+		bool Preload(Resource::BinaryView blob) override;
+		void Finalize() override;
 		
 		FMOD::Studio::Bank* GetFMODBank() const { return m_bank; }
 

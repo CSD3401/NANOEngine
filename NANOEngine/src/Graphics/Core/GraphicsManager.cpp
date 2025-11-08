@@ -12,7 +12,7 @@
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
-#include "../../AssetManager.hpp"
+//#include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
@@ -23,8 +23,6 @@
 
 
 namespace NE::Graphics {
-    void InitDebugLines();
-
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
@@ -66,39 +64,30 @@ namespace NE::Graphics {
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
         //Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.nanoshader", false);
 
-        auto whiteTex = std::make_shared<OpenGL::GLTexture>();
-        whiteTex->LoadFromFile("Library/Textures/white.jpg");
-        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLTexture>(whiteTex, "WhiteTex");
+        //auto whiteTex = std::make_shared<OpenGL::GLTexture>();
+        //whiteTex->LoadFromFile("Library/Textures/white.jpg");
+        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLTexture>(whiteTex, "WhiteTex");
 
-        auto basic = std::make_shared<OpenGL::GLShader>();
-        basic->LoadFromFile("Library/Shaders/Basic.nanoshader");
-        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(basic, "Basic");
+        //auto basic = std::make_shared<OpenGL::GLShader>();
+        //basic->LoadFromFile("Library/Shaders/Basic.nanoshader");
+        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(basic, "Basic");
 
-        auto unlit = std::make_shared<OpenGL::GLShader>();
-        unlit->LoadFromFile("Library/Shaders/Unlit.nanoshader");
-        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(unlit, "Unlit");
+        //auto unlit = std::make_shared<OpenGL::GLShader>();
+        //unlit->LoadFromFile("Library/Shaders/Unlit.nanoshader");
+        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(unlit, "Unlit");
 
-        auto litPBR = std::make_shared<OpenGL::GLShader>();
-        litPBR->LoadFromFile("Library/Shaders/Lit_PBR.nanoshader");
-        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litPBR, "Lit_PBR");
+        //auto litPBR = std::make_shared<OpenGL::GLShader>();
+        //litPBR->LoadFromFile("Library/Shaders/Lit_PBR.nanoshader");
+        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litPBR, "Lit_PBR");
 
-        auto litBlinnPhong = std::make_shared<OpenGL::GLShader>();
-        litBlinnPhong->LoadFromFile("Library/Shaders/Lit_BlinnPhong.nanoshader");
-        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litBlinnPhong, "Lit_BlinnPhong");
+        //auto litBlinnPhong = std::make_shared<OpenGL::GLShader>();
+        //litBlinnPhong->LoadFromFile("Library/Shaders/Lit_BlinnPhong.nanoshader");
+        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litBlinnPhong, "Lit_BlinnPhong");
 
-        auto skinned = std::make_shared<OpenGL::GLShader>();
-        skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
-        Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
-
-        // Load Primitives
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCylinder(), "Cylinder");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateSphere(), "Sphere");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
-
-        // temp
-        //InitDebugLines();
+        //// Load Primitives
+        //auto skinned = std::make_shared<OpenGL::GLShader>();
+        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
+        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
     }
 
     void GraphicsManager::BeginFrame() 

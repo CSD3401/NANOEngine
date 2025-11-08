@@ -4,7 +4,7 @@
 #include <Engine.hpp>
 #include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
-#include <Utility/MetadataHandler.hpp>
+#include "../AssetManagement/AssetManager.hpp"
 #include <Core/SpdLogger.hpp>
 #include <fstream>
 #include <rapidjson/document.h>
@@ -21,20 +21,9 @@ namespace Editor {
         for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
             std::filesystem::path filePath = entry.path();
 
-            // Skip meta files themselves
             if (filePath.extension() == ".meta") continue;
 
-            if (!NE::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
-                NE::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
-            }
-
-            if (filePath.extension() == ".nanoshader") {
-                NE::LoadShader(filePath.string());
-            }
-
-            if (filePath.extension() == ".jpg" || filePath.extension() == ".png") {
-                NE::LoadTexture(filePath.string());
-            }
+            AssetManager::GetInstance().GenerateMetadata(entry.path().string());
         }
 	}
 
@@ -255,7 +244,7 @@ namespace Editor {
                 if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx") {
                     if (ImGui::BeginDragDropSource()) {
                         std::string assetPath = entry.path().string();
-                        ImGui::SetDragDropPayload("ASSET_PATH", assetPath.c_str(), assetPath.size() + 1);
+                        ImGui::SetDragDropPayload("ASSET_MESH_PATH", assetPath.c_str(), assetPath.size() + 1);
                         ImGui::TextUnformatted(name.c_str());
                         ImGui::EndDragDropSource();
                     }
@@ -275,7 +264,7 @@ namespace Editor {
                         ImGui::EndDragDropSource();
                     } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         EditorScene::s_selectedEntity = nullptr;
-                        EditorScene::selectedMaterial = entryPath.string();
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 } else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
                     if (ImGui::BeginDragDropSource()) {
@@ -283,6 +272,9 @@ namespace Editor {
                         ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", texturePath.c_str(), texturePath.size() + 1);
                         ImGui::TextUnformatted(name.c_str());
                         ImGui::EndDragDropSource();
+                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 }
             }
@@ -337,7 +329,7 @@ namespace Editor {
             ImGui::PopID();
         }
 
-        ImGui::Columns(1);
+        ImGui::Columns();
 
         if (m_triggerRenameNextFrame) {
             m_triggerRenameNextFrame = false;
@@ -416,6 +408,10 @@ namespace Editor {
 
                 if (ImGui::MenuItem("Delete")) {
                     m_confirmDeletePopupOpen = true;
+                }
+
+                if (ImGui::MenuItem("Reimport")) {
+                    AssetManager::GetInstance().ReimportAsset(m_selectedPath.string());
                 }
             }
             else {

@@ -2,40 +2,78 @@
 #include <fstream>
 #include <sstream>
 #include <glad/glad.h>
-//#include "Core/Logger.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
 #include <iostream>
+#include "ResourceManagement/BinaryHeaders/NanoShdHeader.hpp"
 
+namespace {
+
+    static GLuint CompileStage(GLenum type, std::string_view src) {
+        GLuint sh = glCreateShader(type);
+        if (!sh) return 0;
+        const char* ptr = src.data();
+        GLint len = static_cast<GLint>(src.size());
+        glShaderSource(sh, 1, &ptr, &len);
+        glCompileShader(sh);
+        GLint ok = GL_FALSE;
+        glGetShaderiv(sh, GL_COMPILE_STATUS, &ok);
+        if (ok == GL_TRUE) return sh;
+
+        // log
+        GLint logLen = 0; glGetShaderiv(sh, GL_INFO_LOG_LENGTH, &logLen);
+        std::string log(logLen ? logLen : 1, '\0');
+        if (logLen) glGetShaderInfoLog(sh, logLen, nullptr, log.data());
+        SPD_WARNING("Shader stage compile failed: " << log);
+        glDeleteShader(sh);
+        return 0;
+    }
+
+    static GLuint LinkProgram(GLuint vs, GLuint fs) {
+        GLuint prog = glCreateProgram();
+        if (!prog) return 0;
+
+        // Ensure binary can be retrieved if you want to re-dump later
+        glProgramParameteri(prog, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+
+        glAttachShader(prog, vs);
+        glAttachShader(prog, fs);
+        glLinkProgram(prog);
+
+        GLint ok = GL_FALSE;
+        glGetProgramiv(prog, GL_LINK_STATUS, &ok);
+        if (ok == GL_TRUE) {
+            glDetachShader(prog, vs);
+            glDetachShader(prog, fs);
+            return prog;
+        }
+
+        // log
+        GLint logLen = 0; glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLen);
+        std::string log(logLen ? logLen : 1, '\0');
+        if (logLen) glGetProgramInfoLog(prog, logLen, nullptr, log.data());
+        SPD_WARNING("Program link failed: " << log);
+
+        glDetachShader(prog, vs);
+        glDetachShader(prog, fs);
+        glDeleteProgram(prog);
+        return 0;
+    }
+
+}
 
 namespace NE::Graphics::OpenGL {
-
-    static std::string Trim(const std::string& str) {
-        const char* whitespace = " \t\n\r";
-        size_t start = str.find_first_not_of(whitespace);
-        if (start == std::string::npos)
-            return "";
-        size_t end = str.find_last_not_of(whitespace);
-        return str.substr(start, end - start + 1);
-    }
-
-    static GLenum ShaderTypeFromString(std::string& type) {
-        type = Trim(type);
-        if (type == "vertex") return GL_VERTEX_SHADER;
-        if (type == "fragment") return GL_FRAGMENT_SHADER;
-        throw std::runtime_error("Unknown shader type: " + type);
-    }
 
     GLShader::GLShader() : m_programID(0) {
     }
 
-    GLShader::GLShader(const std::string& filePath)
-    {
-        std::string source = LoadShaderSource(filePath);
-        auto shaderSources = Preprocess(source);
-        Compile(shaderSources);
-    }
+    //GLShader::GLShader(const std::string& filePath)
+    //{
+    //    std::string source = LoadShaderSource(filePath);
+    //    auto shaderSources = Preprocess(source);
+    //    Compile(shaderSources);
+    //}
 
     GLShader::~GLShader() {
         glDeleteProgram(m_programID);
@@ -84,90 +122,105 @@ namespace NE::Graphics::OpenGL {
         if (loc >= 0) glUniformHandleui64vARB(loc, count, handles);
     }
 
-    bool GLShader::LoadFromFile(const std::string& fileName)
-    {
-        std::string source = LoadShaderSource(fileName);
-        auto shaderSources = Preprocess(source);
-        return Compile(shaderSources);
-    }
-
-    std::string GLShader::LoadShaderSource(const std::string& path)
-    {
-        std::ifstream file(path);
-        std::stringstream ss;
-        ss << file.rdbuf();
-        return ss.str();
-    }
-
-    std::unordered_map<GLenum, std::string> GLShader::Preprocess(const std::string& source)
-    {
-        std::unordered_map<GLenum, std::string> shaderSources;
-
-        const std::string typeToken = "#type";
-        size_t pos = source.find(typeToken);
-        while (pos != std::string::npos) {
-            size_t eol = source.find_first_of("\r\n", pos);
-            std::string type = source.substr(pos + typeToken.length(), eol - pos - typeToken.length());
-            size_t nextLinePos = source.find_first_not_of("\r\n", eol);
-            size_t nextTypePos = source.find(typeToken, nextLinePos);
-            shaderSources[ShaderTypeFromString(type)] = source.substr(nextLinePos, nextTypePos - nextLinePos);
-            pos = nextTypePos;
-        }
-
-        return shaderSources;
-    }
-
-    bool GLShader::Compile(const std::unordered_map<GLenum, std::string>& shaderSources)
-    {
-        uint32_t program = glCreateProgram();
-        std::vector<GLuint> shaderIDs;
-
-        for (auto& [type, source] : shaderSources) {
-            GLuint shader = glCreateShader(type);
-            const char* src = source.c_str();
-            glShaderSource(shader, 1, &src, nullptr);
-            glCompileShader(shader);
-
-            GLint compiled;
-            glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-            if (compiled != GL_TRUE) {
-                char log[1024];
-                glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-                SPD_WARNING("Shader compilation failed: " << log << "\nShader Source: " << source);
-                //SPD_Deb("Shader compilation failed: " << log << "\nShader Source: " << source);
-                //std::cerr << "Shader compilation failed: " << log << "\nShader Source: " << source << std::endl;
-                return false;
-            }
-
-            glAttachShader(program, shader);
-            shaderIDs.push_back(shader);
-        }
-
-        glLinkProgram(program);
-        GLint linked;
-        glGetProgramiv(program, GL_LINK_STATUS, &linked);
-        if (linked != GL_TRUE) {
-            char log[1024];
-            glGetProgramInfoLog(program, sizeof(log), nullptr, log);
-            SPD_WARNING("Program linking failed: " << log);
-            return false;
-        }
-
-        for (auto id : shaderIDs) {
-            glDetachShader(program, id);
-            glDeleteShader(id);
-        }
-
-        m_programID = program;
-        return true;
-    }
-
     int GLShader::GetUniformLocation(const std::string& uName) {
         if (m_uniformLocationCache.count(uName))
             return m_uniformLocationCache[uName];
         int location = glGetUniformLocation(m_programID, uName.c_str());
         m_uniformLocationCache[uName] = location;
         return location;
+    }
+
+    bool GLShader::Preload(NE::Resource::BinaryView blob) {
+        if (blob.size < sizeof(NE::Resource::NanoShdHeader)) return false;
+        const auto* h = blob.as<NE::Resource::NanoShdHeader>(0);
+        if (!h) return false;
+        if (h->magic != NE::Resource::NSHD_MAGIC) return false;
+        if (h->importerVersion != NE::Resource::CURRENT_NANOSHD_FORMAT_VERSION) return false;
+
+        const uint64_t progEnd = h->programOffset + h->programSize;
+        if (progEnd > blob.size) return false;
+
+        progFormat = h->programBinaryFormat;
+        progBlob = blob.data + h->programOffset;
+        progSize = static_cast<size_t>(h->programSize);
+
+        // embedded source fallback layout
+        hasFallback = (h->programFlags & 1u) != 0;
+        if (hasFallback) {
+            size_t off = static_cast<size_t>(progEnd);
+
+            if (off + 4 > blob.size) { hasFallback = false; return true; }
+            uint32_t vsLen32 = 0;
+            std::memcpy(&vsLen32, blob.data + off, 4);
+            off += 4;
+
+            if (off + vsLen32 + 4 > blob.size) { hasFallback = false; return true; }
+            vsSrc = reinterpret_cast<const char*>(blob.data + off);
+            vsLen = static_cast<size_t>(vsLen32);
+            off += vsLen32;
+
+            if (off + 4 > blob.size) { hasFallback = false; return true; }
+            uint32_t fsLen32 = 0;
+            std::memcpy(&fsLen32, blob.data + off, 4);
+            off += 4;
+
+            if (off + fsLen32 > blob.size) { hasFallback = false; return true; }
+            fsSrc = reinterpret_cast<const char*>(blob.data + off);
+            fsLen = static_cast<size_t>(fsLen32);
+        }
+
+        return true;
+    }
+
+    // Need to delete blob after finalizing TODO
+    void GLShader::Finalize() {
+        if (!progBlob || progSize == 0) { m_programID = 0; return; }
+
+        m_programID = glCreateProgram();
+        if (!m_programID) { return; }
+
+        glProgramBinary(m_programID,
+            static_cast<GLenum>(progFormat),
+            progBlob,
+            static_cast<GLsizei>(progSize));
+
+        GLint linked = GL_FALSE;
+        glGetProgramiv(m_programID, GL_LINK_STATUS, &linked);
+        if (linked == GL_TRUE) {
+            return; // success
+        } else {
+            SPD_WARNING("glProgramBinary failed; attempting embedded source fallback.");
+        }
+
+        // Failed to load binary... fall back to embedded source if available
+        glDeleteProgram(m_programID);
+        m_programID = 0;
+
+        if (!hasFallback) {
+            SPD_WARNING("glProgramBinary failed and no source fallback embedded.");
+            return;
+        }
+
+        GLuint vs = CompileStage(GL_VERTEX_SHADER, std::string_view(vsSrc, vsLen));
+        GLuint fs = CompileStage(GL_FRAGMENT_SHADER, std::string_view(fsSrc, fsLen));
+        if (!vs || !fs) {
+            if (vs) glDeleteShader(vs);
+            if (fs) glDeleteShader(fs);
+            return;
+        }
+
+        GLuint prog = LinkProgram(vs, fs);
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+
+        if (prog) {
+            m_programID = prog;
+
+            // TODO maybe redump fresh binary to disk to refresh the cache and write back into .nshbin
+            // using the embedded fallback
+        } else {
+            // leave program_ = 0 (Finalize failed)
+        }
     }
 
     std::vector<UniformDesc> GLShader::EnumerateActiveUniforms() const {

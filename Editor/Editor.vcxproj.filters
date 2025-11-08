@@ -27,37 +27,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="vendor\imgui\imgui.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_draw.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_impl_glfw.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_impl_opengl3.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_tables.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\imgui_widgets.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
     <ClCompile Include="src\ImGuiLayer.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\widgets\imguizmo\ImGuizmo.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\widgets\imsearch\imsearch.cpp">
-      <Filter>Source Files\vendor</Filter>
-    </ClCompile>
-    <ClCompile Include="vendor\imgui\widgets\imsearch\imsearch_demo.cpp">
       <Filter>Source Files\vendor</Filter>
     </ClCompile>
     <ClCompile Include="src\Application.cpp">
@@ -90,9 +60,6 @@
     <ClCompile Include="src\Panels\HierarchyPanel.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\HistoryPanel.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
     <ClCompile Include="src\Panels\InspectorPanel.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
@@ -114,6 +81,45 @@
     <ClCompile Include="src\ThumbnailManager.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
+    <ClCompile Include="src\AssetManagement\AssetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\UUID.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_impl_glfw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialEditor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Panels\AnimationPanel.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
@@ -125,37 +131,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vendor\imgui\imconfig.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imgui.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imgui_impl_glfw.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imgui_impl_opengl3.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imgui_impl_opengl3_loader.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\imgui_internal.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
     <ClInclude Include="src\ImGuiLayer.hpp">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\widgets\imguizmo\ImGuizmo.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\widgets\imsearch\imsearch.h">
-      <Filter>Header Files\vendor</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\imgui\widgets\imsearch\imsearch_internal.h">
       <Filter>Header Files\vendor</Filter>
     </ClInclude>
     <ClInclude Include="src\Application.hpp">
@@ -200,9 +176,6 @@
     <ClInclude Include="src\Panels\HierarchyPanel.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\Panels\HistoryPanel.hpp">
-      <Filter>Header Files\src</Filter>
-    </ClInclude>
     <ClInclude Include="src\Command\ICommand.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
@@ -230,14 +203,59 @@
     <ClInclude Include="src\ThumbnailManager.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
-    <ClInclude Include="vendor\imgui\imstb_rectpack.h">
-      <Filter>Header Files\vendor</Filter>
+    <ClInclude Include="src\AssetManagement\AssetManager.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vendor\imgui\imstb_textedit.h">
-      <Filter>Header Files\vendor</Filter>
+    <ClInclude Include="src\AssetManagement\AssetMetadata.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vendor\imgui\imstb_truetype.h">
-      <Filter>Header Files\vendor</Filter>
+    <ClInclude Include="src\AssetManagement\UUID.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Settings\TextureImportSettings.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imgui_impl_glfw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imgui_impl_opengl3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imgui_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imstb_rectpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imstb_textedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\widgets\imsearch\imsearch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\widgets\imsearch\imsearch_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialEditor.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Panels\AnimationPanel.hpp">
       <Filter>Header Files\src</Filter>

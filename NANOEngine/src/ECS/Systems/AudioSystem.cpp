@@ -79,22 +79,22 @@ namespace NE::ECS::Systems {
 #pragma endregion
 
 
-	const std::vector<std::pair<std::string, std::shared_ptr<NE::Asset::AudioBank>>>& AudioSystem::GetLoadedBanks() const 
-	{
-		auto& assetManager = NE::Asset::AssetManager::GetInstance();
-		return assetManager.GetAssetsOfType<NE::Asset::AudioBank>();
-	}
+	//const std::vector<std::pair<std::string, std::shared_ptr<NE::Asset::AudioBank>>>& AudioSystem::GetLoadedBanks() const 
+	//{
+	//	auto& assetManager = NE::Asset::AssetManager::GetInstance();
+	//	return assetManager.GetAssetsOfType<NE::Asset::AudioBank>();
+	//}
 
 	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const 
 	{
 		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> allEvents;
 
-		auto banks = GetLoadedBanks(); // This now returns the correct type
+		//auto banks = GetLoadedBanks(); // This now returns the correct type
 
-		for (const auto& [uuid, bank] : banks) {
-			const auto& bankEvents = bank->GetEvents();
-			allEvents.insert(bankEvents.begin(), bankEvents.end());
-		}
+		//for (const auto& [uuid, bank] : banks) {
+		//	const auto& bankEvents = bank->GetEvents();
+		//	allEvents.insert(bankEvents.begin(), bankEvents.end());
+		//}
 
 		return allEvents;
 	}
@@ -210,63 +210,63 @@ namespace NE::ECS::Systems {
 		}
 
 		// Prepare for Extraction
-		auto banks = GetLoadedBanks();
+		//auto banks = GetLoadedBanks();
 
-		SPD_INFO("Loading " << banks.size() << " banks into FMOD...");
+		//SPD_INFO("Loading " << banks.size() << " banks into FMOD...");
 
-		// First pass: Load all .bank files
-		for (const auto& [uuid, bank] : banks)
-		{
-			FMOD::Studio::Bank* fmodBank = nullptr;
-			FMOD_RESULT bankResult = studioSystem->loadBankFile(
-				bank->filePath.c_str(),
-				FMOD_STUDIO_LOAD_BANK_NORMAL,
-				&fmodBank
-			);
+		//// First pass: Load all .bank files
+		//for (const auto& [uuid, bank] : banks)
+		//{
+		//	FMOD::Studio::Bank* fmodBank = nullptr;
+		//	FMOD_RESULT bankResult = studioSystem->loadBankFile(
+		//		bank->filePath.c_str(),
+		//		FMOD_STUDIO_LOAD_BANK_NORMAL,
+		//		&fmodBank
+		//	);
 
-			if (bankResult == FMOD_OK && fmodBank != nullptr) 
-			{
-				bank->SetFMODBank(fmodBank);
-				SPD_INFO("Loaded bank: " << bank->GetDisplayName());
-			}
-		}
+		//	if (bankResult == FMOD_OK && fmodBank != nullptr) 
+		//	{
+		//		bank->SetFMODBank(fmodBank);
+		//		SPD_INFO("Loaded bank: " << bank->GetDisplayName());
+		//	}
+		//}
 
 		// SECOND PASS: Look for and load the strings bank specifically
-		SPD_INFO("Looking for strings bank...");
-		for (const auto& [uuid, bank] : banks) 
-		{
-			std::string bankName = bank->GetDisplayName();
+		//SPD_INFO("Looking for strings bank...");
+		//for (const auto& [uuid, bank] : banks) 
+		//{
+		//	std::string bankName = bank->GetDisplayName();
 
-			// Check if this is a strings bank (usually ends with .strings)
-			if (bankName.find("strings") != std::string::npos ||
-				bank->filePath.find("strings") != std::string::npos) {
+		////	// Check if this is a strings bank (usually ends with .strings)
+		////	if (bankName.find("strings") != std::string::npos ||
+		////		bank->filePath.find("strings") != std::string::npos) {
 
-				SPD_INFO("Loading strings bank: " << bankName);
+		//		SPD_INFO("Loading strings bank: " << bankName);
 
-				// The strings bank should already be loaded from first pass, but make sure
-				// it's processed for string data
-				FMOD::Studio::Bank* fmodBank = bank->GetFMODBank();
-				if (fmodBank) 
-				{
-					// Strings bank is automatically used by FMOD once loaded
-					SPD_INFO("Strings bank ready: " << bankName);
-				}
-			}
-		}
+		//		// The strings bank should already be loaded from first pass, but make sure
+		//		// it's processed for string data
+		//		FMOD::Studio::Bank* fmodBank = bank->GetFMODBank();
+		//		if (fmodBank) 
+		//		{
+		//			// Strings bank is automatically used by FMOD once loaded
+		//			SPD_INFO("Strings bank ready: " << bankName);
+		//		}
+		//	}
+		//}
 
 		// Note: This step does not work if there is invalid bank or string bank
 		// THIRD PASS: Now extract events (after strings bank is loaded)
-		SPD_INFO("Extracting events from all banks...");
-		for (const auto& [uuid, bank] : banks) 
-		{
-			// Skip strings banks for event extraction
-			if (bank->GetDisplayName().find("strings") != std::string::npos) 
-			{
-				continue;
-			}
+		//SPD_INFO("Extracting events from all banks...");
+		//for (const auto& [uuid, bank] : banks) 
+		//{
+		//	// Skip strings banks for event extraction
+		//	if (bank->GetDisplayName().find("strings") != std::string::npos) 
+		//	{
+		//		continue;
+		//	}
 
-			bank->ExtractEvents(studioSystem);
-		}
+		//	bank->ExtractEvents(studioSystem);
+		//}
 
 	}
 
@@ -300,38 +300,38 @@ namespace NE::ECS::Systems {
 	}
 
 
-	void AudioSystem::LoadBankAssets(const std::string& audioDirectory)
+	void AudioSystem::LoadBankAssets(const std::string& /*audioDirectory*/)
 	{
-		SPD_INFO("LoadBankAssets - Checking directory: " << audioDirectory);
-		
-		// Check if directory exists
-		if (!std::filesystem::exists(audioDirectory)) {
-			SPD_WARNING("Audio bank directory does not exist: " << audioDirectory);
-			return;
-		}
+		//SPD_INFO("LoadBankAssets - Checking directory: " << audioDirectory);
+		//
+		//// Check if directory exists
+		//if (!std::filesystem::exists(audioDirectory)) {
+		//	SPD_WARNING("Audio bank directory does not exist: " << audioDirectory);
+		//	return;
+		//}
 
-		auto& assetManager = Asset::AssetManager::GetInstance();
-		size_t banksLoaded = 0;
-		
-		try {
-			for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
-			{
-				if (entry.path().extension() == ".bank")
-				{
-					// Load thru AssetManager (this creates AudioBank assets)
-					std::string bankPath = entry.path().string();
-					auto bankAsset = assetManager.Load<NE::Asset::AudioBank>(bankPath, false);
-					if (bankAsset)
-					{
-						banksLoaded++;
-						SPD_INFO("Loaded bank asset: " << bankAsset->GetDisplayName());
-					}
-				}
-			}
-			SPD_INFO(banksLoaded << " banks loaded successfully");
-		} catch (const std::exception& e) {
-			SPD_ERROR("Error loading bank assets: " << e.what());
-		}
+		//auto& assetManager = Asset::AssetManager::GetInstance();
+		//size_t banksLoaded = 0;
+		//
+		//try {
+		//	for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
+		//	{
+		//		if (entry.path().extension() == ".bank")
+		//		{
+		//			// Load thru AssetManager (this creates AudioBank assets)
+		//			std::string bankPath = entry.path().string();
+		//			auto bankAsset = assetManager.Load<NE::Asset::AudioBank>(bankPath, false);
+		//			if (bankAsset)
+		//			{
+		//				banksLoaded++;
+		//				SPD_INFO("Loaded bank asset: " << bankAsset->GetDisplayName());
+		//			}
+		//		}
+		//	}
+		//	SPD_INFO(banksLoaded << " banks loaded successfully");
+		//} catch (const std::exception& e) {
+		//	SPD_ERROR("Error loading bank assets: " << e.what());
+		//}
 	}
 
 	AudioSystem::AudioSystem(ComponentManager* cm) : m_componentManager(cm)

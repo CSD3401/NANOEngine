@@ -1,0 +1,284 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 a_Normal;
+layout(location = 2) in vec2 a_TexCoord;
+
+uniform mat4 u_Model;
+uniform mat4 u_View;
+uniform mat4 u_Projection;
+uniform mat4 u_NormalMatrix;
+
+out vec3 v_Normal;
+out vec3 v_FragPos;
+out vec2 v_TexCoord;
+
+void main() {
+    vec4 world = u_Model * vec4(aPos, 1.0);
+    v_FragPos = world.xyz;
+    v_Normal  = mat3(u_NormalMatrix) * a_Normal;
+    v_TexCoord = a_TexCoord;
+    gl_Position = u_Projection * u_View * world;
+}
+
+
+#type fragment
+#version 460 core
+#extension GL_ARB_bindless_texture : require
+
+#define MAX_LIGHTS 12
+#define LIGHT_TYPE_DIRECTIONAL 0
+#define LIGHT_TYPE_POINT 1
+#define LIGHT_TYPE_SPOT 2
+
+in vec3 v_Normal;
+in vec3 v_FragPos;
+in vec2 v_TexCoord;
+
+out vec4 FragColor;
+
+// ===== Scene / Lighting =====
+uniform vec3 u_CameraPos;
+uniform vec3 u_AmbientColor; // simple ambient for now to move to scene-wide ambient/IBL tint in the future
+
+// Base (albedo)
+uniform vec3 u_BaseColor;
+uniform sampler2D u_AlbedoMap;
+uniform int u_HasAlbedoMap;
+
+// Normal
+uniform sampler2D u_NormalMap;
+uniform int u_HasNormalMap;
+
+// Roughness / Metallic
+uniform float u_Roughness;
+uniform sampler2D u_RoughnessMap;
+uniform int u_HasRoughnessMap;
+
+uniform float u_Metallic;
+uniform sampler2D u_MetallicMap;
+uniform int u_HasMetallicMap;
+
+// Ambient Occlusion
+uniform float u_AmbientOcclusion;
+uniform sampler2D u_AmbientOcclusionMap;
+uniform int u_HasAOMap;
+
+struct Light {
+    int   type; // 0 = directional, 1 = point, 2 = spot
+    vec3  color;
+    float intensity;
+
+    vec3  position;
+    vec3  direction;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    float innerCutoff;    // cos(innerAngle)
+    float outerCutoff;    // cos(outerAngle)
+};
+
+uniform int u_numLights;
+uniform Light u_lights[MAX_LIGHTS];
+
+uniform vec3  u_Emissive;
+
+const float PI = 3.14159265359;
+
+vec3 srgb_to_linear(vec3 c) {
+    bvec3 cutoff = lessThanEqual(c, vec3(0.04045));
+    vec3 low  = c / 12.92;
+    vec3 high = pow((c + 0.055) / 1.055, vec3(2.4));
+    return mix(high, low, vec3(cutoff));
+}
+
+vec3 linear_to_srgb(vec3 c) {
+    bvec3 cutoff = lessThanEqual(c, vec3(0.0031308));
+    vec3 low  = c * 12.92;
+    vec3 high = 1.055 * pow(max(c, 0.0), vec3(1.0/2.4)) - 0.055;
+    return clamp(mix(high, low, vec3(cutoff)), 0.0, 1.0);
+}
+
+float DistributionGGX(float NdotH, float roughness)
+{
+    float a      = max(roughness, 0.04);
+    float a2     = a * a;
+    float denom  = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * denom * denom, 1e-6);
+}
+
+float GeometrySchlickGGX(float NdotX, float roughness)
+{
+    float r = max(roughness, 0.04);
+    float k = (r + 1.0);
+    k = (k * k) / 8.0;
+    return NdotX / max(NdotX * (1.0 - k) + k, 1e-6);
+}
+
+float GeometrySmith(float NdotV, float NdotL, float roughness)
+{
+    float ggx1 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx2 = GeometrySchlickGGX(NdotL, roughness);
+    return ggx1 * ggx2;
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+vec3 BRDF_GGX_Smith(vec3 N, vec3 V, vec3 L, vec3 albedo, float metallic, float roughness)
+{
+    vec3  H     = normalize(V + L);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+
+    if (NdotL <= 0.0 || NdotV <= 0.0) return vec3(0.0);
+
+    // Base reflectance
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    // Your helpers are assumed to take the scalar forms (as in your code):
+    float D = DistributionGGX(NdotH, roughness);
+    float G = GeometrySmith(NdotV, NdotL, roughness);
+    vec3  F = FresnelSchlick(VdotH, F0);
+
+    vec3  numeratorSpec = D * G * F;
+    float denom         = max(4.0 * NdotV * NdotL, 1e-6);
+    vec3  specular      = numeratorSpec / denom;
+
+    vec3  Ks = F;
+    vec3  Kd = (1.0 - Ks) * (1.0 - metallic);
+    vec3  diffuse = (Kd * albedo) / PI;
+
+    return (diffuse + specular) * NdotL;
+}
+
+mat3 ComputeTBN(vec3 N, vec3 P, vec2 uv)
+{
+    vec3 dp1 = dFdx(P);
+    vec3 dp2 = dFdy(P);
+    vec2 duv1 = dFdx(uv);
+    vec2 duv2 = dFdy(uv);
+
+    vec3 T = normalize(dp1 * duv2.y - dp2 * duv1.y);
+    vec3 B = normalize(cross(N, T));
+    return mat3(T, B, N);
+}
+
+// ===== Light evaluators =====
+vec3 EvalDirectional(in Light Lgt, vec3 N, vec3 V, vec3 albedo, float metallic, float roughness)
+{
+    vec3 L = normalize(-Lgt.direction);
+    vec3 brdf = BRDF_GGX_Smith(N, V, L, albedo, metallic, roughness);
+    vec3 radiance = Lgt.color * Lgt.intensity;
+    return brdf * radiance;
+}
+
+
+vec3 EvalPoint(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float roughness)
+{
+    vec3  Ldir = Lgt.position - P;
+    float dist2 = dot(Ldir, Ldir);
+    float d     = sqrt(dist2);
+    if (d <= 0.0) return vec3(0.0);
+
+    vec3 L = Ldir / d;
+
+    float atten = 1.0 / max(Lgt.constant + Lgt.linear * d + Lgt.quadratic * dist2, 1e-6);
+
+    vec3 brdf     = BRDF_GGX_Smith(N, V, L, albedo, metallic, roughness);
+    vec3 radiance = Lgt.color * Lgt.intensity * atten;
+    return brdf * radiance;
+}
+
+vec3 EvalSpot(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float roughness)
+{
+    vec3  Ldir = Lgt.position - P;
+    float dist2 = dot(Ldir, Ldir);
+    float d     = sqrt(dist2);
+    if (d <= 0.0) return vec3(0.0);
+
+    vec3 L = Ldir / d;
+
+    float theta = dot(L, normalize(-Lgt.direction));
+    float inner = Lgt.innerCutoff;
+    float outer = Lgt.outerCutoff;
+    float eps   = max(inner - outer, 1e-4);
+    float spot  = clamp((theta - outer) / eps, 0.0, 1.0);
+
+    if (spot <= 0.0) return vec3(0.0);
+
+    float atten = 1.0 / max(Lgt.constant + Lgt.linear * d + Lgt.quadratic * dist2, 1e-6);
+
+    vec3 brdf     = BRDF_GGX_Smith(N, V, L, albedo, metallic, roughness);
+    vec3 radiance = Lgt.color * Lgt.intensity * atten * spot;
+    return brdf * radiance;
+}
+
+void main()
+{
+	const vec2 uv = v_TexCoord;
+
+    // view/normal
+    vec3 V = normalize(u_CameraPos - v_FragPos);
+    vec3 N = normalize(v_Normal);
+
+    // Albedo
+    //vec3 albedo = clamp(u_BaseColor, 0.0, 1.0);
+    //if (u_HasAlbedoMap != 0) {
+    //    albedo *= texture(u_AlbedoMap, uv).rgb;
+    //}
+	vec3 albedo = srgb_to_linear(clamp(u_BaseColor, 0.0, 1.0));
+	if (u_HasAlbedoMap != 0) {
+		vec3 albedoTex = texture(u_AlbedoMap, uv).rgb;   // sRGB texture
+		albedo *= srgb_to_linear(albedoTex);
+	}
+
+    // Normal
+    if (u_HasNormalMap != 0) {
+        vec3 n = texture(u_NormalMap, uv).xyz * 2.0 - 1.0;  // [-1,1]
+        mat3 TBN = ComputeTBN(N, v_FragPos, uv);
+        N = normalize(TBN * n);
+    }
+
+    // Roughness
+    float roughness = clamp(u_Roughness, 0.04, 1.0);
+    if (u_HasRoughnessMap != 0) {
+        roughness = clamp(texture(u_RoughnessMap, uv).r, 0.04, 1.0);
+    }
+
+    // Metallic
+    float metallic = clamp(u_Metallic, 0.0, 1.0);
+    // if (u_HasMetallicMap != 0) metallic = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
+
+    // Ambient Occlusion
+    float ao = clamp(u_AmbientOcclusion, 0.0, 1.0);
+    if (u_HasAOMap != 0) {
+        ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
+    }
+
+    // === ambient and direct lighting ===
+    vec3 ambient = u_AmbientColor * albedo * ao;
+
+    vec3 Lo = vec3(0.0);
+    for (int i = 0; i < u_numLights; ++i) {
+        if (u_lights[i].type == 0)
+            Lo += EvalDirectional(u_lights[i], N, V, albedo, metallic, roughness);
+        else if (u_lights[i].type == 1)
+            Lo += EvalPoint(u_lights[i], N, V, v_FragPos, albedo, metallic, roughness);
+        else if (u_lights[i].type == 2)
+            Lo += EvalSpot(u_lights[i], N, V, v_FragPos, albedo, metallic, roughness);
+    }
+
+    //vec3 color = ambient + Lo + u_Emissive;
+	vec3 color_linear = max(ambient + Lo + u_Emissive, 0.0);
+	vec3 color_srgb = linear_to_srgb(color_linear);
+    //FragColor = vec4(max(color, 0.0), 1.0);
+    FragColor = vec4(color_srgb, 1.0);
+}

@@ -18,7 +18,6 @@
 #include "Panels/HierarchyPanel.hpp"
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/GamePanel.hpp"
-#include "Panels/HistoryPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
 #define STB_IMAGE_IMPLEMENTATION

@@ -134,16 +134,6 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 
-# TeamCity is a build add-in
-_TeamCity*
-
-# DotCover is a Code Coverage Tool
-*.dotCover
-
-# AxoCover is a Code Coverage Tool
-.axoCover/*
-!.axoCover/settings.json
-
 # Coverlet is a free, cross platform Code Coverage Tool
 coverage*.json
 coverage*.xml
@@ -152,18 +142,6 @@ coverage*.info
 # Visual Studio code coverage results
 *.coverage
 *.coveragexml
-
-# NCrunch
-_NCrunch_*
-.*crunch*.local.xml
-nCrunchTemp_*
-
-# MightyMoose
-*.mm.*
-AutoTest.Net/
-
-# Web workbench (sass)
-.sass-cache/
 
 # Installshield output folder
 [Ee]xpress/
@@ -376,4 +354,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+
 Editor/imgui.ini
+!/NANOEngine/Editor/vendor/lib/compressonator/[dD]ebug/
+!/NANOEngine/Editor/vendor/lib/compressonator/[rR]elease/
