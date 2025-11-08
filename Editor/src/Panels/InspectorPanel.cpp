@@ -410,24 +410,6 @@ namespace Editor {
                         ImGui::EndDragDropTarget();
                     }
                 }
-				else if (typeIdx == typeid(NE::ECS::Component::Light)) {
-					auto& comp = NE::ECS::Query::GetEntityLight(entity);
-					ImGui::SeparatorText("Light");
-
-                    char bufMat[256];
-                    strncpy_s(bufMat, comp.materialPath.string().c_str(), sizeof(bufMat));
-                    ImGui::InputText("Material", bufMat, sizeof(bufMat));
-
-                    //comp.materialPath = bufMat;
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
-                            std::string dropped((const char*)p->Data, p->DataSize - 1);
-                            //NE::AssignRendererMaterial(comp, dropped);
-                            NE::Renderer::Command::AssignMaterial(entity, dropped);
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-                }
                 else if (typeIdx == typeid(NE::ECS::Component::Light)) {
                     auto& comp = NE::ECS::Query::GetEntityLight(entity);
                     ImGui::SeparatorText("Light");
