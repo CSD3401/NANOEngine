@@ -771,49 +771,49 @@ namespace Editor {
         std::vector<RawBlob> blobs(scene->mNumMeshes);
 
         // bounds
-        //bool hasBounds = false;
-        //NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
-        //NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        bool hasBounds = false;
+        NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
+        NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
         for (unsigned m = 0; m < scene->mNumMeshes; ++m) {
             const aiMesh* mesh = scene->mMeshes[m];
 
             RawBlob& rb = blobs[m];
             rb.vertices.resize(mesh->mNumVertices * sizeof(CookVertex));
-            //auto* vout = reinterpret_cast<CookVertex*>(rb.vertices.data());
+            auto* vout = reinterpret_cast<CookVertex*>(rb.vertices.data());
 
-            //for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-            //    CookVertex v{};
-            //    v.px = mesh->mVertices[i].x;
-            //    v.py = mesh->mVertices[i].y;
-            //    v.pz = mesh->mVertices[i].z;
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+                CookVertex v{};
+                v.px = mesh->mVertices[i].x;
+                v.py = mesh->mVertices[i].y;
+                v.pz = mesh->mVertices[i].z;
 
-            //    if (mesh->HasNormals()) {
-            //        v.nx = mesh->mNormals[i].x;
-            //        v.ny = mesh->mNormals[i].y;
-            //        v.nz = mesh->mNormals[i].z;
-            //    } else {
-            //        v.nx = v.ny = v.nz = 0.0f;
-            //    }
+                if (mesh->HasNormals()) {
+                    v.nx = mesh->mNormals[i].x;
+                    v.ny = mesh->mNormals[i].y;
+                    v.nz = mesh->mNormals[i].z;
+                } else {
+                    v.nx = v.ny = v.nz = 0.0f;
+                }
 
-            //    if (mesh->HasTextureCoords(0)) {
-            //        v.u = mesh->mTextureCoords[0][i].x;
-            //        v.v = mesh->mTextureCoords[0][i].y;
-            //    } else {
-            //        v.u = v.v = 0.0f;
-            //    }
+                if (mesh->HasTextureCoords(0)) {
+                    v.u = mesh->mTextureCoords[0][i].x;
+                    v.v = mesh->mTextureCoords[0][i].y;
+                } else {
+                    v.u = v.v = 0.0f;
+                }
 
-            //    vout[i] = v;
+                vout[i] = v;
 
-            //    // expand bounds
-            //    minP.x = std::min(minP.x, v.px);
-            //    minP.y = std::min(minP.y, v.py);
-            //    minP.z = std::min(minP.z, v.pz);
-            //    maxP.x = std::max(maxP.x, v.px);
-            //    maxP.y = std::max(maxP.y, v.py);
-            //    maxP.z = std::max(maxP.z, v.pz);
-            //    hasBounds = true;
-            //}
+                // expand bounds
+                minP.x = std::min(minP.x, v.px);
+                minP.y = std::min(minP.y, v.py);
+                minP.z = std::min(minP.z, v.pz);
+                maxP.x = std::max(maxP.x, v.px);
+                maxP.y = std::max(maxP.y, v.py);
+                maxP.z = std::max(maxP.z, v.pz);
+                hasBounds = true;
+            }
 
             // indices
             std::vector<uint32_t> idx;
