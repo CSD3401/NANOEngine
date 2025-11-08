@@ -1,5 +1,4 @@
 #include "RendererExports.hpp"
-//#include "../AssetManager.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "ResourceManagement/ResourceManager.hpp"

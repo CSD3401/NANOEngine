@@ -33,7 +33,6 @@ namespace {
 	}
 
     // Texture Helpers
-    // Optional: progress callback for Compressonator (return true to abort)
     static bool CMP_API Progress(float fProgress, CMP_DWORD_PTR, CMP_DWORD_PTR) {
         std::printf("\r[BC7] %3.0f%%", fProgress);
         return false;
@@ -46,7 +45,7 @@ namespace {
         return (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".tga");
     }
 
-    // Load image as RGBA8 with stb_image
+    // load image as rgba8
     static bool LoadRGBA8(const std::string& path, std::vector<uint8_t>& rgba, uint32_t& w, uint32_t& h) {
         int x = 0, y = 0, n = 0;
         stbi_uc* data = stbi_load(path.c_str(), &x, &y, &n, 4);
@@ -58,11 +57,10 @@ namespace {
         return true;
     }
 
-    // Tiny enums so your header fields are readable
     enum class TexShape : uint8_t { D2 = 0, Cube = 1, D3 = 2, D2Array = 3 };
     enum class TexFormat : uint8_t { BC7_UNORM = 0, BC7_UNORM_SRGB = 1 };
 
-    // Compress RGBA8 -> BC7 (CPU path)
+    // rgba8 to bc7
     static CMP_ERROR CompressRGBA8ToBC7(const uint8_t* rgba8, uint32_t w, uint32_t h,
         float quality, uint32_t threads,
         std::vector<uint8_t>& outBC7)
@@ -82,13 +80,13 @@ namespace {
         dst.dwHeight = h;
         dst.dwPitch = 0;
         dst.format = CMP_FORMAT_BC7;
-        dst.dwDataSize = CMP_CalculateBufferSize(&dst); // ensures correct BCn size
+        dst.dwDataSize = CMP_CalculateBufferSize(&dst);
         dst.pData = (CMP_BYTE*)std::malloc(dst.dwDataSize);
         if (!dst.pData) return CMP_ERR_MEM_ALLOC_FOR_MIPSET;
 
         CMP_CompressOptions opts{};
         opts.dwSize = sizeof(opts);
-        opts.fquality = quality;   // 0..1 (higher = slower/better)
+        opts.fquality = quality;   // 0 to 1
         opts.dwnumThreads = threads;   // 0 = auto
 
         CMP_ERROR err = CMP_ConvertTexture(&src, &dst, &opts, &Progress);
@@ -100,7 +98,6 @@ namespace {
         return err;
     }
 
-    // Write your packed NanoTex header + payload
     static bool WriteNanoTex(const std::string& outPath,
         uint32_t w, uint32_t h,
         bool isSRGB, TexShape shape, TexFormat fmt,
@@ -430,16 +427,7 @@ namespace Editor {
 		return AssetType::Unknown;
 	}
 
-	bool AssetManager::ImportTexture() {
-
-
-
-
-		return false;
-	}
-
-    bool AssetManager::CookTexture(const std::string& sourcePath, const std::string& outPath)
-    {
+    bool AssetManager::CookTexture(const std::string& sourcePath, const std::string& outPath) {
         std::filesystem::path src = sourcePath;
         std::filesystem::path out = outPath;
         std::filesystem::create_directories(out.parent_path());
@@ -783,49 +771,49 @@ namespace Editor {
         std::vector<RawBlob> blobs(scene->mNumMeshes);
 
         // bounds
-        bool hasBounds = false;
-        NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
-        NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        //bool hasBounds = false;
+        //NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
+        //NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
         for (unsigned m = 0; m < scene->mNumMeshes; ++m) {
             const aiMesh* mesh = scene->mMeshes[m];
 
             RawBlob& rb = blobs[m];
             rb.vertices.resize(mesh->mNumVertices * sizeof(CookVertex));
-            auto* vout = reinterpret_cast<CookVertex*>(rb.vertices.data());
+            //auto* vout = reinterpret_cast<CookVertex*>(rb.vertices.data());
 
-            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-                CookVertex v{};
-                v.px = mesh->mVertices[i].x;
-                v.py = mesh->mVertices[i].y;
-                v.pz = mesh->mVertices[i].z;
+            //for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+            //    CookVertex v{};
+            //    v.px = mesh->mVertices[i].x;
+            //    v.py = mesh->mVertices[i].y;
+            //    v.pz = mesh->mVertices[i].z;
 
-                if (mesh->HasNormals()) {
-                    v.nx = mesh->mNormals[i].x;
-                    v.ny = mesh->mNormals[i].y;
-                    v.nz = mesh->mNormals[i].z;
-                } else {
-                    v.nx = v.ny = v.nz = 0.0f;
-                }
+            //    if (mesh->HasNormals()) {
+            //        v.nx = mesh->mNormals[i].x;
+            //        v.ny = mesh->mNormals[i].y;
+            //        v.nz = mesh->mNormals[i].z;
+            //    } else {
+            //        v.nx = v.ny = v.nz = 0.0f;
+            //    }
 
-                if (mesh->HasTextureCoords(0)) {
-                    v.u = mesh->mTextureCoords[0][i].x;
-                    v.v = mesh->mTextureCoords[0][i].y;
-                } else {
-                    v.u = v.v = 0.0f;
-                }
+            //    if (mesh->HasTextureCoords(0)) {
+            //        v.u = mesh->mTextureCoords[0][i].x;
+            //        v.v = mesh->mTextureCoords[0][i].y;
+            //    } else {
+            //        v.u = v.v = 0.0f;
+            //    }
 
-                vout[i] = v;
+            //    vout[i] = v;
 
-                // expand bounds
-                minP.x = std::min(minP.x, v.px);
-                minP.y = std::min(minP.y, v.py);
-                minP.z = std::min(minP.z, v.pz);
-                maxP.x = std::max(maxP.x, v.px);
-                maxP.y = std::max(maxP.y, v.py);
-                maxP.z = std::max(maxP.z, v.pz);
-                hasBounds = true;
-            }
+            //    // expand bounds
+            //    minP.x = std::min(minP.x, v.px);
+            //    minP.y = std::min(minP.y, v.py);
+            //    minP.z = std::min(minP.z, v.pz);
+            //    maxP.x = std::max(maxP.x, v.px);
+            //    maxP.y = std::max(maxP.y, v.py);
+            //    maxP.z = std::max(maxP.z, v.pz);
+            //    hasBounds = true;
+            //}
 
             // indices
             std::vector<uint32_t> idx;
@@ -840,10 +828,9 @@ namespace Editor {
 
             subdescs[m].vertexCount = mesh->mNumVertices;
             subdescs[m].indexCount = static_cast<uint32_t>(idx.size());
-            // offsets filled after we write blobs
         }
 
-        // compute sphere from AABB (optional – depends on your NanoMeshHeader)
+        // compute sphere from AABB
         //NE::Math::Vec3 center(0, 0, 0);
         //float radius = 0.0f;
         //if (hasBounds) {
@@ -858,21 +845,19 @@ namespace Editor {
         NE::Resource::NanoMeshHeader header{};
         header.submeshCount = static_cast<uint16_t>(scene->mNumMeshes);
 
-        // only do this if your NanoMeshHeader actually has these fields
         //header.sphereCenter[0] = center.x;
         //header.sphereCenter[1] = center.y;
         //header.sphereCenter[2] = center.z;
         //header.sphereRadius = radius;
 
-        // 1) header
         ofs.write(reinterpret_cast<const char*>(&header), sizeof(header));
 
-        // 2) placeholder submesh table
+        // placeholder submesh table
         const std::streamoff subTablePos = ofs.tellp();
         ofs.write(reinterpret_cast<const char*>(subdescs.data()),
             subdescs.size() * sizeof(NE::Resource::NanoSubmeshDesc));
 
-        // 3) actual data + capture offsets
+        // actual data + capture offsets
         for (size_t m = 0; m < blobs.size(); ++m) {
             auto& rb = blobs[m];
 
@@ -886,7 +871,7 @@ namespace Editor {
             subdescs[m].indexDataOffset = indexOffset;
         }
 
-        // 4) go back and patch submesh table
+        // go back and patch submesh table
         ofs.seekp(subTablePos, std::ios::beg);
         ofs.write(reinterpret_cast<const char*>(subdescs.data()),
             subdescs.size() * sizeof(NE::Resource::NanoSubmeshDesc));
