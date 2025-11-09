@@ -192,7 +192,6 @@ namespace NE::Graphics {
             if (h->texTableOffset + texTableSize > blob.size) return false;
 
             const auto* texRecs = blob.as<NE::Resource::MatTexRecord>(h->texTableOffset);
-            // stash them into m_stage so Finalize can actually load them
             for (uint16_t i = 0; i < h->texCount; ++i) {
                 const auto& tr = texRecs[i];
 
@@ -201,7 +200,7 @@ namespace NE::Graphics {
 
                 MatStage::Prop p{};
                 p.name.assign(n0, n0 + tr.nameLen);
-                p.type = NE::Resource::MatPropType::HANDLE; // or make a separate vector just for textures
+                p.type = NE::Resource::MatPropType::HANDLE;
                 p.bytes.assign(reinterpret_cast<const uint8_t*>(tr.uuid),
                     reinterpret_cast<const uint8_t*>(tr.uuid) + 36);
                 m_stage.props.push_back(std::move(p));
@@ -253,18 +252,9 @@ namespace NE::Graphics {
             //        SetUniformMat4(p.name, M);
             //    }
             } break;
-            //case NE::Resource::MatPropType::HANDLE: {
-            //    if (p.bytes.size() == 36) {
-            //        std::string uuid(reinterpret_cast<const char*>(p.bytes.data()), 36);
-            //        SetTexture(p.name, uuid);
-            //        // optionally set u_HasX = 1 here
-            //        auto hasName = "u_Has" + p.name.substr(2); // if your naming matches
-            //        m_IntUniforms[hasName] = 1;
-            //    }
-            //} break;
             case NE::Resource::MatPropType::HANDLE: {
                 if (p.bytes.size() == 36) {
-                    // check if it's actually empty
+                    // check empty
                     bool allZeroOrNull = true;
                     for (uint8_t b : p.bytes) {
                         if (b != 0 && b != '\0') { allZeroOrNull = false; break; }
@@ -279,12 +269,11 @@ namespace NE::Graphics {
                             m_IntUniforms[hasName] = 1;
                         }
                     } else {
-                        // we still want the slot to exist, but no texture and no u_Has
                         m_Textures[p.name] = nullptr;
                     }
                 }
             } break;
-            default: break; // future: textures/handles
+            default: break;
             }
         }
 
