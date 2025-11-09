@@ -1,6 +1,6 @@
 #include "GLTexture.hpp"
 #include <glad/glad.h>
-#include "../../Core/Logger.hpp"
+#include "Core/SpdLogger.hpp"
 #include "ResourceManagement/BinaryHeaders/NanoTexHeader.hpp"
 
 namespace {
@@ -52,10 +52,6 @@ namespace NE::Graphics::OpenGL {
         if (m_ID)     glDeleteTextures(1, &m_ID);
     }
 
-
-    // stash between phases
-    //static thread_local ParsedTexture g_tmpParsed; // simple for now; move to a member if you prefer
-
     bool GLTexture::Preload(NE::Resource::BinaryView blob) {
         if (blob.size < sizeof(NE::Resource::NanoTexHeader)) return false;
         const auto* hdr = blob.as<NE::Resource::NanoTexHeader>(0);
@@ -81,7 +77,7 @@ namespace NE::Graphics::OpenGL {
         if (!ComputeMipLayout(m_stage.w, m_stage.h, m_stage.mips,
             m_stage.format, m_stage.payloadSize,
             m_stage.offsets, m_stage.sizes)) {
-            LOG_WARNING("GLTexture::Preload: payload size mismatch for NTEX.");
+            SPD_WARNING("GLTexture::Preload: payload size mismatch for NTEX.");
             return false;
         }
         return true;
@@ -119,40 +115,6 @@ namespace NE::Graphics::OpenGL {
         // clear TLS staging
         m_stage = ParsedTexture{};
     }
-
-    //bool GLTexture::LoadFromFile(const std::string& fileName)
-    //{
-    //    int width, height, channels;
-    //    //stbi_set_flip_vertically_on_load(true); to be changed from global state to individually flippable
-    //    unsigned char* data = stbi_load(fileName.c_str(), &width, &height, &channels, 4); // force RGBA
-
-    //    if (!data) {
-    //        LOG_WARNING("Failed to load texture: " + fileName);
-    //        return false;
-    //    }
-
-    //    glGenTextures(1, &m_ID);
-    //    glBindTexture(GL_TEXTURE_2D, m_ID);
-
-    //    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
-    //        GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    //    glGenerateMipmap(GL_TEXTURE_2D);
-    //    glBindTexture(GL_TEXTURE_2D, 0);
-
-    //    stbi_image_free(data);
-
-    //    // Bindless handle
-    //    m_Handle = glGetTextureHandleARB(m_ID);
-    //    glMakeTextureHandleResidentARB(m_Handle);
-
-    //    return true;
-    //}
 
     void GLTexture::MakeResident() {
         glMakeTextureHandleResidentARB(m_Handle);

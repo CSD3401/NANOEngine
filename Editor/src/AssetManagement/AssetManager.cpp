@@ -641,6 +641,7 @@ namespace Editor {
                             (float)v[1].GetDouble(),
                             (float)v[2].GetDouble()
                         };
+                        SPD_INFO("uniform name: " << name << " value: " << v[0].GetDouble() << ", " << v[1].GetDouble() << ", " << v[2].GetDouble());
                         r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
                         payload.append(reinterpret_cast<const char*>(f), sizeof(f));
                     } else if (v.IsArray() && v.Size() == 16) {
@@ -651,7 +652,7 @@ namespace Editor {
                         payload.append(reinterpret_cast<const char*>(m), sizeof(m));
                     }
 
-                    r.dataOffset = 0; // fix later
+                    r.dataOffset = (uint32_t)dataStart;
                     r.dataSize = (uint32_t)(payload.size() - dataStart);
 
                     // add name to shared strings
@@ -661,28 +662,47 @@ namespace Editor {
                     r.nameOffset = nameOff; // relative for now
                     propRecs.push_back(r);
                 }
-                // case B: string -> treat as texture uuid
+                //// case B: string -> treat as texture uuid
+                //else if (v.IsString()) {
+                //    const char* uuidStr = v.GetString();
+                //    // we assume editor saved actual uuid or empty string
+                //    if (uuidStr[0] != '\0') {
+                //        NE::Resource::MatTexRecord tr{};
+                //        tr.nameLen = (uint32_t)name.size();
+
+                //        // put name in shared strings
+                //        uint32_t nameOff = (uint32_t)strings.size();
+                //        strings.append(name.data(), name.size());
+                //        tr.nameOffset = nameOff;
+
+                //        // copy up to 36 chars (your struct is exactly 36, no null)
+                //        std::memset(tr.uuid, 0, 36);
+                //        std::memcpy(tr.uuid, uuidStr, std::min<size_t>(std::strlen(uuidStr), 36));
+
+                //        texRecs.push_back(tr);
+                //    }
+                //    // if empty string, just skip (no texture bound)
+                //}
+                // else: unknown type -> ignore
                 else if (v.IsString()) {
                     const char* uuidStr = v.GetString();
-                    // we assume editor saved actual uuid or empty string
-                    if (uuidStr[0] != '\0') {
-                        NE::Resource::MatTexRecord tr{};
-                        tr.nameLen = (uint32_t)name.size();
 
-                        // put name in shared strings
-                        uint32_t nameOff = (uint32_t)strings.size();
-                        strings.append(name.data(), name.size());
-                        tr.nameOffset = nameOff;
+                    NE::Resource::MatTexRecord tr{};
+                    tr.nameLen = (uint32_t)name.size();
 
-                        // copy up to 36 chars (your struct is exactly 36, no null)
-                        std::memset(tr.uuid, 0, 36);
+                    // put name in shared strings
+                    uint32_t nameOff = (uint32_t)strings.size();
+                    strings.append(name.data(), name.size());
+                    tr.nameOffset = nameOff;
+
+                    // write 36 bytes no matter what
+                    std::memset(tr.uuid, 0, 36);
+                    if (uuidStr && uuidStr[0] != '\0') {
                         std::memcpy(tr.uuid, uuidStr, std::min<size_t>(std::strlen(uuidStr), 36));
-
-                        texRecs.push_back(tr);
                     }
-                    // if empty string, just skip (no texture bound)
+
+                    texRecs.push_back(tr);
                 }
-                // else: unknown type -> ignore
             }
         }
 
@@ -771,49 +791,49 @@ namespace Editor {
         std::vector<RawBlob> blobs(scene->mNumMeshes);
 
         // bounds
-        //bool hasBounds = false;
-        //NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
-        //NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        bool hasBounds = false;
+        NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
+        NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
         for (unsigned m = 0; m < scene->mNumMeshes; ++m) {
             const aiMesh* mesh = scene->mMeshes[m];
 
             RawBlob& rb = blobs[m];
             rb.vertices.resize(mesh->mNumVertices * sizeof(CookVertex));
-            //auto* vout = reinterpret_cast<CookVertex*>(rb.vertices.data());
+            auto* vout = reinterpret_cast<CookVertex*>(rb.vertices.data());
 
-            //for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
-            //    CookVertex v{};
-            //    v.px = mesh->mVertices[i].x;
-            //    v.py = mesh->mVertices[i].y;
-            //    v.pz = mesh->mVertices[i].z;
+            for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+                CookVertex v{};
+                v.px = mesh->mVertices[i].x;
+                v.py = mesh->mVertices[i].y;
+                v.pz = mesh->mVertices[i].z;
 
-            //    if (mesh->HasNormals()) {
-            //        v.nx = mesh->mNormals[i].x;
-            //        v.ny = mesh->mNormals[i].y;
-            //        v.nz = mesh->mNormals[i].z;
-            //    } else {
-            //        v.nx = v.ny = v.nz = 0.0f;
-            //    }
+                if (mesh->HasNormals()) {
+                    v.nx = mesh->mNormals[i].x;
+                    v.ny = mesh->mNormals[i].y;
+                    v.nz = mesh->mNormals[i].z;
+                } else {
+                    v.nx = v.ny = v.nz = 0.0f;
+                }
 
-            //    if (mesh->HasTextureCoords(0)) {
-            //        v.u = mesh->mTextureCoords[0][i].x;
-            //        v.v = mesh->mTextureCoords[0][i].y;
-            //    } else {
-            //        v.u = v.v = 0.0f;
-            //    }
+                if (mesh->HasTextureCoords(0)) {
+                    v.u = mesh->mTextureCoords[0][i].x;
+                    v.v = mesh->mTextureCoords[0][i].y;
+                } else {
+                    v.u = v.v = 0.0f;
+                }
 
-            //    vout[i] = v;
+                vout[i] = v;
 
-            //    // expand bounds
-            //    minP.x = std::min(minP.x, v.px);
-            //    minP.y = std::min(minP.y, v.py);
-            //    minP.z = std::min(minP.z, v.pz);
-            //    maxP.x = std::max(maxP.x, v.px);
-            //    maxP.y = std::max(maxP.y, v.py);
-            //    maxP.z = std::max(maxP.z, v.pz);
-            //    hasBounds = true;
-            //}
+                // expand bounds
+                minP.x = std::min(minP.x, v.px);
+                minP.y = std::min(minP.y, v.py);
+                minP.z = std::min(minP.z, v.pz);
+                maxP.x = std::max(maxP.x, v.px);
+                maxP.y = std::max(maxP.y, v.py);
+                maxP.z = std::max(maxP.z, v.pz);
+                hasBounds = true;
+            }
 
             // indices
             std::vector<uint32_t> idx;
