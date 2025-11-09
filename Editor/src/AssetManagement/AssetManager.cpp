@@ -641,6 +641,7 @@ namespace Editor {
                             (float)v[1].GetDouble(),
                             (float)v[2].GetDouble()
                         };
+                        SPD_INFO("uniform name: " << name << " value: " << v[0].GetDouble() << ", " << v[1].GetDouble() << ", " << v[2].GetDouble());
                         r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
                         payload.append(reinterpret_cast<const char*>(f), sizeof(f));
                     } else if (v.IsArray() && v.Size() == 16) {
@@ -651,7 +652,7 @@ namespace Editor {
                         payload.append(reinterpret_cast<const char*>(m), sizeof(m));
                     }
 
-                    r.dataOffset = 0; // fix later
+                    r.dataOffset = (uint32_t)dataStart;
                     r.dataSize = (uint32_t)(payload.size() - dataStart);
 
                     // add name to shared strings
@@ -661,28 +662,47 @@ namespace Editor {
                     r.nameOffset = nameOff; // relative for now
                     propRecs.push_back(r);
                 }
-                // case B: string -> treat as texture uuid
+                //// case B: string -> treat as texture uuid
+                //else if (v.IsString()) {
+                //    const char* uuidStr = v.GetString();
+                //    // we assume editor saved actual uuid or empty string
+                //    if (uuidStr[0] != '\0') {
+                //        NE::Resource::MatTexRecord tr{};
+                //        tr.nameLen = (uint32_t)name.size();
+
+                //        // put name in shared strings
+                //        uint32_t nameOff = (uint32_t)strings.size();
+                //        strings.append(name.data(), name.size());
+                //        tr.nameOffset = nameOff;
+
+                //        // copy up to 36 chars (your struct is exactly 36, no null)
+                //        std::memset(tr.uuid, 0, 36);
+                //        std::memcpy(tr.uuid, uuidStr, std::min<size_t>(std::strlen(uuidStr), 36));
+
+                //        texRecs.push_back(tr);
+                //    }
+                //    // if empty string, just skip (no texture bound)
+                //}
+                // else: unknown type -> ignore
                 else if (v.IsString()) {
                     const char* uuidStr = v.GetString();
-                    // we assume editor saved actual uuid or empty string
-                    if (uuidStr[0] != '\0') {
-                        NE::Resource::MatTexRecord tr{};
-                        tr.nameLen = (uint32_t)name.size();
 
-                        // put name in shared strings
-                        uint32_t nameOff = (uint32_t)strings.size();
-                        strings.append(name.data(), name.size());
-                        tr.nameOffset = nameOff;
+                    NE::Resource::MatTexRecord tr{};
+                    tr.nameLen = (uint32_t)name.size();
 
-                        // copy up to 36 chars (your struct is exactly 36, no null)
-                        std::memset(tr.uuid, 0, 36);
+                    // put name in shared strings
+                    uint32_t nameOff = (uint32_t)strings.size();
+                    strings.append(name.data(), name.size());
+                    tr.nameOffset = nameOff;
+
+                    // write 36 bytes no matter what
+                    std::memset(tr.uuid, 0, 36);
+                    if (uuidStr && uuidStr[0] != '\0') {
                         std::memcpy(tr.uuid, uuidStr, std::min<size_t>(std::strlen(uuidStr), 36));
-
-                        texRecs.push_back(tr);
                     }
-                    // if empty string, just skip (no texture bound)
+
+                    texRecs.push_back(tr);
                 }
-                // else: unknown type -> ignore
             }
         }
 
