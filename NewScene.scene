@@ -253,6 +253,27 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cube",
                 "materialUUID": "09eb5480-47a5-472f-9258-64c6f48068cd"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 2.5,
+                    "y": 0.5,
+                    "z": 2.5
+                },
+                "radius": 0.800000011920929,
+                "height": 1.0
+            },
+            "Rigidbody": {
+                "mass": 1.0,
+                "motionType": 0,
+                "useGravity": 1,
+                "isStatic": 1,
+                "initialVelocity": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
             }
         },
         {
@@ -863,6 +884,97 @@
             "Renderer": {
                 "modelUUID": "58b34c63-9463-4f4b-b98c-68c67b38725f",
                 "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Player"
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.8086564540863037,
+                    "y": -0.5507175922393799,
+                    "z": 2.1162405014038086
+                },
+                "Scale": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": -2.547640800476074,
+                    "z": 0.0
+                }
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.25,
+                    "y": 0.25,
+                    "z": 0.25
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "Rigidbody": {
+                "mass": 70.0,
+                "motionType": 2,
+                "useGravity": 0,
+                "isStatic": 0,
+                "initialVelocity": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            },
+            "NativeScript": {
+                "ScriptName": "PhysicsPlayerController",
+                "SerializedFields": {
+                    "moveSpeed": "1.000000",
+                    "maxSlopeAngle": "45.000000",
+                    "jumpForce": "400.000000",
+                    "frictionCoefficient": "20.000000",
+                    "groundCheckDistance": "0.100000",
+                    "raycastOriginOffset": "1.000000",
+                    "ceilingCheckDistance": "0.500000",
+                    "manualGravity": "-9.810000",
+                    "groundSnapDistance": "0.100000"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Camera"
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.9375413656234741,
+                    "y": -0.6111104488372803,
+                    "z": 1.8868263959884644
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            },
+            "Camera": {
+                "FOV Y": 45.0,
+                "Aspect Ratio": 1.7777777910232544,
+                "Near Plane": 0.10000000149011612,
+                "Far Plane": 100.0,
+                "Is Main Camera": 1,
+                "Is Active Camera": 1
             }
         }
     ]
