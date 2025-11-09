@@ -121,7 +121,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NANOEngine.lib;glfw\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)-$(Platform)\CMP_Compressonator.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_SSE.lib;compressonator\$(Configuration)-$(Platform)\CMP_Framework.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX512.lib;assimp\$(Configuration)\assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>NANOEngine.lib;glfw\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)-$(Platform)\CMP_Compressonator.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_SSE.lib;compressonator\$(Configuration)-$(Platform)\CMP_Framework.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX512.lib;assimp\$(Configuration)\assimp-vc143-mtd.lib;zlib\$(Configuration)\zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
@@ -151,7 +151,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)-$(Platform)\CMP_Compressonator.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_SSE.lib;compressonator\$(Configuration)-$(Platform)\CMP_Framework.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX512.lib;assimp\$(Configuration)\assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>NANOEngine.lib;GLFW\glfw3dll.lib;opengl32.lib;fmod\fmodL_vc.lib;compressonator\$(Configuration)-$(Platform)\CMP_Compressonator.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_SSE.lib;compressonator\$(Configuration)-$(Platform)\CMP_Framework.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX.lib;compressonator\$(Configuration)-$(Platform)\CMP_Core_AVX512.lib;assimp\$(Configuration)\assimp-vc143-mt.lib;zlib\$(Configuration)\zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)NANOEngine\vendor\lib;$(SolutionDir)bin\NANOEngine\$(Configuration)-$(Platform)\;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>

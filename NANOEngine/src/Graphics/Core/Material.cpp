@@ -1,15 +1,14 @@
 #include "Material.hpp"
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/prettywriter.h>
 #include <fstream>
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
 #include "PipelineCache.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "ResourceManagement/BinaryHeaders/NanoMatHeader.hpp"
 #include <glad/glad.h>
 #include <vector>
+
 namespace {
     static bool IsEngineUniform(std::string_view n) {
         return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
@@ -28,8 +27,6 @@ namespace {
         }
     }
 }
-
-#include "ResourceManagement/BinaryHeaders/NanoMatHeader.hpp"
 
 namespace NE::Graphics {
 
@@ -94,59 +91,6 @@ namespace NE::Graphics {
 
     }
 
-    //// Fix for AddMember issue in SaveMaterial method
-    //void Material::SaveMaterial(const std::string& filePath) const {
-    //    using namespace rapidjson;
-    //    Document doc;
-    //    doc.SetObject();
-    //    Document::AllocatorType& alloc = doc.GetAllocator();
-
-    //    if (m_Pipeline) {
-    //        doc.AddMember("Shader", Value(m_Pipeline->GetSpecification().shaderName.data(), alloc).Move(), alloc);
-    //        auto spec = m_Pipeline->GetSpecification();
-    //        doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
-    //        doc.AddMember("BlendMode", spec.EnableBlending, alloc);
-    //        doc.AddMember("CullMode", spec.CullMode, alloc);
-    //        doc.AddMember("PolygonMode", spec.PolygonMode, alloc);
-    //    }
-
-    //    Value uniforms(kObjectType);
-
-    //    for (const auto& [name, value] : m_IntUniforms) {
-    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
-    //    }
-    //    for (const auto& [name, value] : m_FloatUniforms) {
-    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(value).Move(), alloc);
-    //    }
-    //    for (const auto& [name, value] : m_Vec3Uniforms) {
-    //        Value arr(kArrayType);
-    //        arr.PushBack(value.x, alloc).PushBack(value.y, alloc).PushBack(value.z, alloc);
-    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
-    //    }
-    //    // Mat4 uniforms (if needed)
-    //    // for (const auto& [name, value] : m_Mat4Uniforms) {
-    //    //     Value arr(kArrayType);
-    //    //     for (int i = 0; i < 16; ++i) arr.PushBack(value.data[i], alloc); // adjust based on your Mat4 storage
-    //    //     uniforms.AddMember(Value(name.c_str(), alloc).Move(), arr, alloc);
-    //    // }
-    //    // Textures (TBD SOON)
-    //    for (const auto& [name, tex] : m_Textures) {
-    //        std::string _uuid = tex ? tex->uuid : "";
-    //        uniforms.AddMember(Value(name.c_str(), alloc).Move(), Value(_uuid.c_str(), alloc).Move(), alloc);
-    //    }
-
-    //    doc.AddMember("Properties", uniforms, alloc);
-
-    //    // Write to file
-    //    StringBuffer buffer;
-    //    PrettyWriter<StringBuffer> writer(buffer);
-    //    doc.Accept(writer);
-
-    //    std::ofstream out(filePath);
-    //    if (out.is_open())
-    //        out << buffer.GetString();
-    //}
-
     void Material::SetShader(const std::string& shaderUUID) {
         auto shader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>(shaderUUID);
         auto spec = m_Pipeline->GetSpecification();
@@ -160,8 +104,6 @@ namespace NE::Graphics {
         m_Mat4Uniforms.clear();
         m_Textures.clear();
 
-        //auto defaultWhite = Asset::AssetManager::GetInstance().Load<NE::Graphics::OpenGL::GLTexture>("WhiteTex");
-
         for (auto& u : shader->EnumerateActiveUniforms()) {
             //std::cout << u.name << " type=" << std::hex << u.type << "\n";
             if (IsEngineUniform(u.name)) continue;
@@ -171,7 +113,6 @@ namespace NE::Graphics {
 
                 if (u.name.rfind("u_", 0) == 0) {
                     std::string hasName = "u_Has" + u.name.substr(2); // u_BaseMap -> u_HasBaseMap
-                    //m_IntUniforms.emplace(hasName, defaultWhite ? 1 : 0);
                     m_IntUniforms.emplace(hasName, 0);
                 }
 
@@ -251,7 +192,6 @@ namespace NE::Graphics {
             if (h->texTableOffset + texTableSize > blob.size) return false;
 
             const auto* texRecs = blob.as<NE::Resource::MatTexRecord>(h->texTableOffset);
-            // stash them into m_stage so Finalize can actually load them
             for (uint16_t i = 0; i < h->texCount; ++i) {
                 const auto& tr = texRecs[i];
 
@@ -260,7 +200,7 @@ namespace NE::Graphics {
 
                 MatStage::Prop p{};
                 p.name.assign(n0, n0 + tr.nameLen);
-                p.type = NE::Resource::MatPropType::HANDLE; // or make a separate vector just for textures
+                p.type = NE::Resource::MatPropType::HANDLE;
                 p.bytes.assign(reinterpret_cast<const uint8_t*>(tr.uuid),
                     reinterpret_cast<const uint8_t*>(tr.uuid) + 36);
                 m_stage.props.push_back(std::move(p));
@@ -314,14 +254,26 @@ namespace NE::Graphics {
             } break;
             case NE::Resource::MatPropType::HANDLE: {
                 if (p.bytes.size() == 36) {
-                    std::string uuid(reinterpret_cast<const char*>(p.bytes.data()), 36);
-                    SetTexture(p.name, uuid);
-                    // optionally set u_HasX = 1 here
-                    auto hasName = "u_Has" + p.name.substr(2); // if your naming matches
-                    m_IntUniforms[hasName] = 1;
+                    // check empty
+                    bool allZeroOrNull = true;
+                    for (uint8_t b : p.bytes) {
+                        if (b != 0 && b != '\0') { allZeroOrNull = false; break; }
+                    }
+
+                    if (!allZeroOrNull) {
+                        std::string uuid(reinterpret_cast<const char*>(p.bytes.data()), 36);
+                        SetTexture(p.name, uuid);
+
+                        if (p.name.rfind("u_", 0) == 0) {
+                            auto hasName = "u_Has" + p.name.substr(2);
+                            m_IntUniforms[hasName] = 1;
+                        }
+                    } else {
+                        m_Textures[p.name] = nullptr;
+                    }
                 }
             } break;
-            default: break; // future: textures/handles
+            default: break;
             }
         }
 
