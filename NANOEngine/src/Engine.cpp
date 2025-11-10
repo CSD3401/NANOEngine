@@ -244,9 +244,9 @@ namespace NE {
 
 	void EditorPlay() {
 		g_EngineState = EngineState::Play;
+		NE::Physics::PhysicsManager::ClearAllBodies();
+		gSceneManager.BeginPlay();
 		Physics::PhysicsManager::ActivateBodies();
-		//Physics::Command::ActivateBodies();
-		gSceneManager.GetActive()->ScriptStart();
 	}
 
 	void EditorPause() {
@@ -258,9 +258,9 @@ namespace NE {
 
 	void EditorEdit() {
 		g_EngineState = EngineState::Edit;
-		Physics::PhysicsManager::DeactivateBodies();
-		//Physics::Command::DeactivateBodies();
-		gSceneManager.GetActive()->ScriptStop();
+		Physics::PhysicsManager::DeactivateBodies(); 
+		NE::Physics::PhysicsManager::ClearAllBodies(); // to change to create body on play and clear on stop once
+		gSceneManager.StopPlay();
 	}
 
 	int GetDrawCallCount() {

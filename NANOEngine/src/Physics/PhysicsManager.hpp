@@ -22,25 +22,25 @@ namespace NE::Physics {
     class PhysicsManager {
     public:
         static void Init();
-      static void Update(float dt);
+        static void Update(float dt);
         static void Shutdown();
 
-      static void ActivateBodies();
+        static void ActivateBodies();
         static void DeactivateBodies();
 
         static uint32_t CreateBody(const JPH::BodyCreationSettings& settings);
-     static void DestroyBody(uint32_t index);
+        static void DestroyBody(uint32_t index);
 
 
 
         // === Velocity and Force Methods ===
         
         static Math::Vec3 GetLinearVelocity(uint32_t bodyID);
-     static void SetLinearVelocity(uint32_t bodyID, const Math::Vec3& velocity);
+        static void SetLinearVelocity(uint32_t bodyID, const Math::Vec3& velocity);
         static void AddForce(uint32_t bodyID, const Math::Vec3& force);
         static void AddImpulse(uint32_t bodyID, const Math::Vec3& impulse);
 
-     // === Rotation Locking ===
+        // === Rotation Locking ===
         
         static void LockRotation(uint32_t bodyID, bool lockX, bool lockY, bool lockZ);
 
@@ -49,9 +49,9 @@ namespace NE::Physics {
         struct RaycastHit {
             bool hasHit = false;
             Math::Vec3 point;
-   Math::Vec3 normal;
-       float distance = 0.0f;
- uint32_t bodyID = 0;
+            Math::Vec3 normal;
+            float distance = 0.0f;
+            uint32_t bodyID = 0;
             Entity entity = 0;
         };
         
@@ -73,11 +73,11 @@ namespace NE::Physics {
             float maxDistance,
             uint32_t layerMask = LAYER_ALL  // Default: hit everything
         );
-    static Entity GetBodyEntity(uint32_t bodyID);
+        static Entity GetBodyEntity(uint32_t bodyID);
 
 
         static JPH::PhysicsSystem* GetPhysicsSystem();
-    static std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> s_shapeMap;
+        static std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> s_shapeMap;
 
         static void SetTransform(uint32_t index, const Math::Vec3& position, const Math::Vec3& rotation);
         static void GetTransform(uint32_t index, Math::Vec3& position, Math::Vec3& rotation);
@@ -122,6 +122,8 @@ namespace NE::Physics {
         static bool EntityHasPhysicsBody(Entity entity);
         static void TestPhysicsSetup();  // Add this
 
+
+        static void ClearAllBodies();
 
     private:
         // swap manual tracking to jolt in built

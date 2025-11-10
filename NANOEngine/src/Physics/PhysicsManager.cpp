@@ -900,6 +900,7 @@ namespace NE::Physics {
 	{
 		return s_EntityToBodyMap.find(entity) != s_EntityToBodyMap.end();
 	}
+
 	void PhysicsManager::TestPhysicsSetup()
 	{
 		printf("=== PHYSICS TEST SETUP ===\n");
@@ -929,6 +930,23 @@ namespace NE::Physics {
 
 		printf("Physics test setup complete! Box should fall onto ground.\n");
 		printf("=== PHYSICS TEST SETUP COMPLETE ===\n");
+	}
+
+	void PhysicsManager::ClearAllBodies() {
+		if (!s_PhysicsSystem)
+			return;
+
+		JPH::BodyIDVector allBodies;
+		s_PhysicsSystem->GetBodies(allBodies);
+
+		JPH::BodyInterface& bi = s_PhysicsSystem->GetBodyInterface();
+
+		for (JPH::BodyID id : allBodies) {
+			bi.RemoveBody(id);
+			bi.DestroyBody(id);
+		}
+
+		s_EntityToBodyMap.clear();
 	}
 
 	// === Raycasting Methods with Layer Filtering ===
