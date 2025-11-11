@@ -19,7 +19,6 @@ namespace Editor {
         for (unsigned int i = 0; i < numEntt; ++i) {
             EditorScene::s_entities.push_back(EditorEntity{ i });
         }
-
 	}
 
 	void HierarchyPanel::OnImGuiRender()

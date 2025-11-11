@@ -61,7 +61,6 @@ namespace NE::Physics {
         static void AddImpulse(uint32_t bodyID, const Math::Vec3& impulse);
 
         // === Rotation Locking ===
-
         static void LockRotation(uint32_t bodyID, bool lockX, bool lockY, bool lockZ);
 
         // === Raycasting Methods ===
@@ -139,6 +138,8 @@ namespace NE::Physics {
         static void RegisterCollisionEnterCallback(PhysicsContactListener::CollisionCallback callback);
         static void RegisterCollisionStayCallback(PhysicsContactListener::CollisionCallback callback);
         static void RegisterCollisionExitCallback(PhysicsContactListener::CollisionCallback callback);
+
+        static void ClearAllBodies();
 
     private:
         // swap manual tracking to jolt in built
