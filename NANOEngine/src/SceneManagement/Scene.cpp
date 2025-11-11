@@ -11,6 +11,7 @@
 #include "../Animation/TransformClipIO.hpp"
 #include <filesystem>
 #include "../ECS/Systems/CameraSystem.hpp"
+#include "../ECS/Systems/PhysicsSystem.hpp"
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
@@ -37,12 +38,13 @@ namespace NE::SceneManagement {
 	void Scene::Init() {
 		// input
 		m_ecsCoordinator.m_rigidbodySystem->Init();
-		m_ecsCoordinator.m_colliderSystem->Init();
+		//m_ecsCoordinator.m_colliderSystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_cameraSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
+		m_ecsCoordinator.m_physicsSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_animatorSystem->Init();
 		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
@@ -52,7 +54,7 @@ namespace NE::SceneManagement {
 	void Scene::Update(double dt)
 	{
 		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
-		m_ecsCoordinator.m_colliderSystem->Update(dt);
+		//m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
@@ -63,6 +65,7 @@ namespace NE::SceneManagement {
 		//Graphics::GizmosRenderer::TestGizmosRenderer();
 #pragma endregion
 		m_ecsCoordinator.m_audioSystem->Update(dt);
+		m_ecsCoordinator.m_physicsSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
@@ -90,13 +93,14 @@ namespace NE::SceneManagement {
 
 	void Scene::Exit() {
 		m_ecsCoordinator.m_rigidbodySystem->Exit();
-		m_ecsCoordinator.m_colliderSystem->Exit();
+		//m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_cameraSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
-		m_ecsCoordinator.m_scriptSystem->Exit();
+		m_ecsCoordinator.m_physicsSystem->Exit();
+		m_ecsCoordinator.m_scriptSystem->Exit();	
 		m_ecsCoordinator.m_animatorSystem->Exit();
 	}
 

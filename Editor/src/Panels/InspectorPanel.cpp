@@ -166,185 +166,196 @@ namespace {
 }
 
 namespace Editor {
-	std::unordered_map<std::type_index, uint8_t> componentTypeRegistry;
+    std::unordered_map<std::type_index, uint8_t> componentTypeRegistry;
 
-	static std::unordered_map<FieldKey,
-		std::unique_ptr<ICommand>,
-		FieldKeyHash> g_activeCommands;
+    static std::unordered_map<FieldKey,
+        std::unique_ptr<ICommand>,
+        FieldKeyHash> g_activeCommands;
 
 	InspectorPanel::InspectorPanel() {
 		componentTypeRegistry = NE::ECS::Query::GetRegisteredComponentTypes();
 	}
 
-	void InspectorPanel::OnImGuiRender()
-	{
-		ImGui::Begin("Inspector", nullptr);
+    void InspectorPanel::OnImGuiRender()
+    {
+        ImGui::Begin("Inspector", nullptr);
 
 		if (EditorScene::s_selectedEntity) {
 			uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
-			bool isActive = true;
-			if (ImGui::Checkbox("##", &isActive)) {
-			}
-			ImGui::SameLine();
+            bool isActive = true;
+            if (ImGui::Checkbox("##", &isActive)) {
 
-			{
-				using Owner = NE::ECS::Component::EntityMeta;
-				using FieldT = std::string;
+            }
+            ImGui::SameLine();
 
-				const auto& metaRO = NE::ECS::Query::GetEntityMeta(entity);
+            {
+                using Owner = NE::ECS::Component::EntityMeta;
+                using FieldT = std::string;
 
-				FieldKey nameKey{
-					entity,
-					&typeid(Owner),
-					MemberPointerHasher<Owner, FieldT>{}(&Owner::name)
-				};
+                const auto& metaRO = NE::ECS::Query::GetEntityMeta(entity);
 
-				std::string currentText;
-				if (auto it = g_activeCommands.find(nameKey); it != g_activeCommands.end()) {
-					if (auto* live = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
-						currentText = live->After();
-					}
-				}
-				if (currentText.empty()) currentText = metaRO.name;
+                FieldKey nameKey{
+                    entity,
+                    &typeid(Owner),
+                    MemberPointerHasher<Owner, FieldT>{}(&Owner::name)
+                };
 
-				std::string edited = currentText;
+                std::string currentText;
+                if (auto it = g_activeCommands.find(nameKey); it != g_activeCommands.end()) {
+                    if (auto* live = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
+                        currentText = live->After();
+                    }
+                }
+                if (currentText.empty()) currentText = metaRO.name;
 
-				ImGui::PushID("EntityName");
-				bool changed = ImGui::InputText("##Name", edited.data(),
-					ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
-				bool activated = ImGui::IsItemActivated();
-				bool active = ImGui::IsItemActive();
-				bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
-				ImGui::PopID();
+                std::string edited = currentText;
 
-				if (activated && !g_activeCommands.contains(nameKey)) {
-					using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
-					auto cmd = std::make_unique<Cmd>(
-						entity,
-						std::string("Rename Entity"),
-						&Owner::name,
-						metaRO.name,
-						metaRO.name,
-						&NE::ECS::Command::GetEntityMeta
-					);
-					g_activeCommands[nameKey] = std::move(cmd);
-				}
+                ImGui::PushID("EntityName");
+                bool changed = ImGui::InputText("##Name", edited.data(),
+                    ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
+                bool activated = ImGui::IsItemActivated();
+                bool active = ImGui::IsItemActive();
+                bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+                ImGui::PopID();
 
-				// Safety net: if the Activated frame was missed but we're changing, create it now
-				if ((active && changed) && !g_activeCommands.contains(nameKey)) {
-					using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
-					auto cmd = std::make_unique<Cmd>(
-						entity, std::string("Rename Entity"),
-						&Owner::name, metaRO.name, metaRO.name,
-						&NE::ECS::Command::GetEntityMeta);
-					g_activeCommands[nameKey] = std::move(cmd);
-				}
+                if (activated && !g_activeCommands.contains(nameKey)) {
+                    using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                    auto cmd = std::make_unique<Cmd>(
+                        entity,
+                        std::string("Rename Entity"),
+                        &Owner::name,
+                        metaRO.name,
+                        metaRO.name,
+                        &NE::ECS::Command::GetEntityMeta
+                    );
+                    g_activeCommands[nameKey] = std::move(cmd);
+                }
 
-				// During edit: coalesce by updating After() and applying immediately
-				if (active && changed) {
-					auto it = g_activeCommands.find(nameKey);
-					if (it != g_activeCommands.end()) {
-						using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
-						Cmd tmp(
-							entity, std::string{}, &Owner::name,
-							metaRO.name,
-							edited,
-							&NE::ECS::Command::GetEntityMeta
-						);
-						it->second->CoalesceFrom(tmp);
-					}
-				}
+                // Safety net: if the Activated frame was missed but we're changing, create it now
+                if ((active && changed) && !g_activeCommands.contains(nameKey)) {
+                    using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                    auto cmd = std::make_unique<Cmd>(
+                        entity, std::string("Rename Entity"),
+                        &Owner::name, metaRO.name, metaRO.name,
+                        &NE::ECS::Command::GetEntityMeta);
+                    g_activeCommands[nameKey] = std::move(cmd);
+                }
 
-				if (deactivated) {
-					auto it = g_activeCommands.find(nameKey);
-					if (it != g_activeCommands.end()) {
-						if (auto* c = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
-							if (c->Before() == c->After()) {
-								g_activeCommands.erase(it);
-								return;
-							}
-						}
-						Editor::CommandHistory::GetInstance()
-							.ExecuteCommand(std::move(it->second));
-						g_activeCommands.erase(it);
-					}
-				}
-			}
+                // During edit: coalesce by updating After() and applying immediately
+                if (active && changed) {
+                    auto it = g_activeCommands.find(nameKey);
+                    if (it != g_activeCommands.end()) {
+                        using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                        Cmd tmp(
+                            entity, std::string{}, &Owner::name,
+                            metaRO.name,
+                            edited,
+                            &NE::ECS::Command::GetEntityMeta
+                        );
+                        it->second->CoalesceFrom(tmp);
+                    }
+                }
 
-			NE::ECS::Signature sig(NE::ECS::Query::GetEntitySignature(entity));
-			for (const auto& [typeIdx, compType] : componentTypeRegistry) {
-				if (!sig.test(compType)) continue;
+                if (deactivated) {
+                    auto it = g_activeCommands.find(nameKey);
+                    if (it != g_activeCommands.end()) {
+                        if (auto* c = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
+                            if (c->Before() == c->After()) {
+                                g_activeCommands.erase(it);
+                                return;
+                            }
+                        }
+                        Editor::CommandHistory::GetInstance()
+                            .ExecuteCommand(std::move(it->second));
+                        g_activeCommands.erase(it);
+                    }
+                }
+            }
 
-				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
-					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
-					ImGui::SeparatorText("Transform");
+            NE::ECS::Signature sig(NE::ECS::Query::GetEntitySignature(entity));
+            for (const auto& [typeIdx, compType] : componentTypeRegistry) {
+                if (!sig.test(compType)) continue;
 
-					NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using Owner = NE::ECS::Component::Transform;
-							using FieldT = std::decay_t<decltype(currentValue)>;
+                if (typeIdx == typeid(NE::ECS::Component::Transform)) {
+                    auto& comp = NE::ECS::Query::GetEntityTransform(entity);
+                    ImGui::SeparatorText("Transform");
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
+                    //    [&](auto const& desc, auto const& currentValue) {
+                    //        using FieldT = std::decay_t<decltype(currentValue)>;
 
-							FieldT edited = currentValue;
+                    //        FieldT edited = currentValue;
 
-							ImGui::PushID(desc.name.data());
-							const bool changed = DrawField(desc, edited);
-							const bool activated = ImGui::IsItemActivated();
-							const bool active = ImGui::IsItemActive();
-							const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
-							ImGui::PopID();
+                    //        if (DrawField(desc, edited)) {
+                    //            SubmitSetFieldCommand(entity, desc, currentValue, edited);
+                    //        }
+                    //    });
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using Owner = NE::ECS::Component::Transform;
+                            using FieldT = std::decay_t<decltype(currentValue)>;
 
-							FieldKey key{
-								entity,
-								&typeid(Owner),
-								MemberPointerHasher<Owner, FieldT>{}(desc.member)
-							};
+                            FieldT edited = currentValue;
 
-							if (activated) {
-								using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
-								auto cmd = std::make_unique<Cmd>(
-									entity,
-									std::string("Set Transform") + desc.name.data(),
-									desc.member,
-									currentValue,
-									currentValue,
-									&NE::ECS::Command::GetEntityTransform
-								);
-								g_activeCommands[key] = std::move(cmd);
-							}
+                            ImGui::PushID(desc.name.data());
+                            const bool changed = DrawField(desc, edited);
+                            const bool activated = ImGui::IsItemActivated();
+                            const bool active = ImGui::IsItemActive();
+                            const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+                            ImGui::PopID();
 
-							if (active && changed) {
-								auto it = g_activeCommands.find(key);
-								if (it != g_activeCommands.end()) {
-									using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
-									Cmd tmp(
-										entity,
-										std::string{},
-										desc.member,
-										currentValue,
-										edited,
-										&NE::ECS::Command::GetEntityTransform
-									);
-									it->second->CoalesceFrom(tmp);
-								}
-							}
+                            FieldKey key{
+                                entity,
+                                &typeid(Owner),
+                                MemberPointerHasher<Owner, FieldT>{}(desc.member)
+                            };
 
-							if (deactivated) {
-								auto it = g_activeCommands.find(key);
-								if (it != g_activeCommands.end()) {
-									auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
-									if (asSet && Equal(asSet->Before(), asSet->After())) {
-										g_activeCommands.erase(it);
-									}
-									else {
-										Editor::CommandHistory::GetInstance()
-											.ExecuteCommand(std::move(it->second));
-										g_activeCommands.erase(it);
-									}
-								}
-							}
-						});
-				}
+                            if (activated) {
+                                using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                                auto cmd = std::make_unique<Cmd>(
+                                    entity,
+                                    std::string("Set Transform") + desc.name.data(),
+                                    desc.member,
+                                    currentValue,
+                                    currentValue,
+                                    &NE::ECS::Command::GetEntityTransform
+                                );
+                                g_activeCommands[key] = std::move(cmd);
+                            }
+
+                            if (active && changed) {
+                                auto it = g_activeCommands.find(key);
+                                if (it != g_activeCommands.end()) {
+                                    using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+                                    Cmd tmp(
+                                        entity,
+                                        std::string{},
+                                        desc.member,
+                                        currentValue,
+                                        edited,
+                                        &NE::ECS::Command::GetEntityTransform
+                                    );
+                                    it->second->CoalesceFrom(tmp);
+                                }
+                            }
+
+                            if (deactivated) {
+                                auto it = g_activeCommands.find(key);
+                                if (it != g_activeCommands.end()) {
+                                    auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+                                    if (asSet && Equal(asSet->Before(), asSet->After())) {
+                                        g_activeCommands.erase(it);
+                                    }
+                                    else {
+                                        Editor::CommandHistory::GetInstance()
+                                            .ExecuteCommand(std::move(it->second));
+                                        g_activeCommands.erase(it);
+                                    }
+                                }
+                            }
+                        });
+
+                }
                 else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
                     auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
                     ImGui::SeparatorText("Renderer");
@@ -399,154 +410,77 @@ namespace Editor {
                         ImGui::EndDragDropTarget();
                     }
                 }
-				else if (typeIdx == typeid(NE::ECS::Component::Light)) {
-					auto& comp = NE::ECS::Query::GetEntityLight(entity);
-					ImGui::SeparatorText("Light");
+                else if (typeIdx == typeid(NE::ECS::Component::Light)) {
+                    auto& comp = NE::ECS::Query::GetEntityLight(entity);
+                    ImGui::SeparatorText("Light");
 
-					static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
-					int currentType = static_cast<int>(comp.type);
-					if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
-						//comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
-						// temp
-						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
-						tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
-					}
+                    static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
+                    int currentType = static_cast<int>(comp.type);
+                    if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
+                        //comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
+                        // temp
+                        auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+                        tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
+                    }
 
-					NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using FieldT = std::decay_t<decltype(currentValue)>;
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
 
-							FieldT edited = currentValue;
+                            FieldT edited = currentValue;
 
-							if (DrawField(desc, edited)) {
-								SubmitSetFieldCommand<NE::ECS::Component::Light, FieldT>(
-									entity, desc, currentValue, edited
-								);
-							}
-						});
-				}
-				else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
-					// START COLLIDER
+                            if (DrawField(desc, edited)) {
+                                SubmitSetFieldCommand<NE::ECS::Component::Light, FieldT>(
+                                    entity, desc, currentValue, edited
+                                );
+                            }
+                        });
+                } else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
 
-					auto& comp = NE::ECS::Command::GetEntityCollider(entity);
-					ImGui::SeparatorText("Collider");
+                    auto& comp = NE::ECS::Command::GetEntityCollider(entity);
+                    ImGui::SeparatorText("Collider");
 
-					// Dropdown shapes
-					static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "None" };
-					int currShape = static_cast<int>(comp.shapeType);
-					if (ImGui::Combo("Shape Type", &currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames)))
-					{
-						auto& tempCollider = NE::ECS::Command::GetEntityCollider(entity);
-						tempCollider.shapeType = static_cast<NE::ECS::Component::Collider::ShapeType>(currShape);
-					}
-					// Collider fields
-					NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using FieldT = std::decay_t<decltype(currentValue)>;
+                    // Dropdown shapes
+                    static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "None" };
+                    int currShape = static_cast<int>(comp.shapeType);
+                    if (ImGui::Combo("Shape Type", &currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames)))
+                    {
+                        auto newShapeType = static_cast<NE::ECS::Component::Collider::ShapeType>(currShape);
 
-							FieldT edited = currentValue;
+                        // Create a field descriptor for shapeType
+                        using ColliderType = NE::ECS::Component::Collider;
+                        NE::Core::FieldDescriptor<ColliderType, ColliderType::ShapeType> shapeDesc{
+                            "Shape Type", &ColliderType::shapeType
+                        };
 
-							if (DrawField(desc, edited))
-							{
-								SubmitSetFieldCommand<NE::ECS::Component::Collider, FieldT>(
-									entity, desc, currentValue, edited);
-							}
-						});
+                        // Submit command
+                        SubmitSetFieldCommand<ColliderType, ColliderType::ShapeType>(
+                            entity, shapeDesc, comp.shapeType, newShapeType
+                        );
 
-					// Store original values to detect changes
-					auto originalShapeType = comp.shapeType;
-					auto originalHalfExtents = comp.halfExtents;
-					auto originalRadius = comp.radius;
-					auto originalHeight = comp.height;
+                        // Also mark the collider as dirty
+                        comp.isShapeDirty = true;
+                    }
 
-					// Check if entity has physics body component
-					bool hasPhysicsBody = NE::Physics::Query::HasPhysicsBody(entity);
-					uint32_t currentBodyID = NE::Physics::Query::GetPhysicsBodyId(entity);
+                    // Collider fields - shape properties
+                    NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
+                        [&](auto const& desc, auto const& currentValue) {
+                            using FieldT = std::decay_t<decltype(currentValue)>;
+                            using ColliderType = NE::ECS::Component::Collider;
 
-					// Calculate full size from half extents
-					NE::Math::Vec3 fullsize = {
-						comp.halfExtents.x * 2.0f,
-						comp.halfExtents.y * 2.0f,
-						comp.halfExtents.z * 2.0f
-					};
+                            FieldT edited = currentValue;
 
-					if (!hasPhysicsBody)
-					{
-						if (ImGui::Button("Create Physics Body"))
-						{
-							NE::Physics::Command::CreatePhysicsBody(entity);
-						}
-						if (comp.shapeType != NE::ECS::Component::Collider::ShapeType::Box)
-						{
-							ImGui::TextDisabled("Only support box collider currently");
-						}
-					}
+                            if (DrawField(desc, edited))
+                            {
+                                SubmitSetFieldCommand<ColliderType, FieldT>(
+                                    entity, desc, currentValue, edited);
 
-					else
-					{
-						// Entity has valid physics body
-						ImGui::Text("Physics Body Exists ID: %u", currentBodyID);
+                                // Mark properties as dirty when any collider field changes
+                                comp.isPropertiesDirty = true;
+                            }
+                        });
 
-						// Check if properties changed
-						bool colliderChanged = (originalShapeType != comp.shapeType ||
-							originalHalfExtents != comp.halfExtents ||
-							originalRadius != comp.radius ||
-							originalHeight != comp.height);
-
-						if (comp.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
-						{
-							if (ImGui::Button("Update Physics Body") || colliderChanged)
-							{
-								//NE::Physics::PhysicsManager::UpdateBoxSize(currentBodyID, fullsize);
-								NE::Physics::Command::UpdatePhysicsBody(entity);
-							}
-						}
-						else
-						{
-							ImGui::TextDisabled("Physics body exists but shape type changed!\n");
-						}
-
-						ImGui::SameLine();
-						if (ImGui::Button("Remove Physics Body"))
-						{
-							NE::Physics::Command::RemovePhysicsBody(entity);
-						}
-
-						ImGui::Spacing();
-						if (ImGui::Button("Activate Body"))
-						{
-							//NE::Physics::PhysicsManager::ActivateBodies();
-							NE::Physics::Command::ActivateBodies();
-						}
-						ImGui::SameLine();
-						if (ImGui::Button("DeActivate Body"))
-						{
-							//NE::Physics::PhysicsManager::DeactivateBodies();
-							NE::Physics::Command::DeactivateBodies();
-						}
-					}
-
-					ImGui::Spacing();
-					ImGui::Separator();
-
-					if (hasPhysicsBody)
-					{
-						ImGui::TextDisabled("Physics : ACTIVE");
-
-						// Show physics transform
-						NE::Math::Vec3 physicsPos, physicsRot;
-						//NE::Physics::PhysicsManager::GetTransform(currentBodyID, physicsPos, physicsRot);
-						NE::Physics::Query::GetPhysicsTransform(currentBodyID, physicsPos, physicsRot);
-						ImGui::Text("Physics Position: (%.2f, %.2f, %.2f)",
-							physicsPos.x, physicsPos.y, physicsPos.z);
-					}
-					else
-					{
-						ImGui::TextDisabled("Physics : INACTIVE");
-					}
-
-					// END
-				}
+                } 
 				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
 					auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
 					ImGui::SeparatorText("Rigidbody");
@@ -600,16 +534,16 @@ namespace Editor {
 						});
 				}
 
-				else if (typeIdx == typeid(NE::ECS::Component::AudioSource))
-				{
-					auto& comp = NE::ECS::Query::GetEntityAudioSource(entity);
-					ImGui::SeparatorText("AudioSource");
+                else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) 
+                {
+                    auto& comp = NE::ECS::Query::GetEntityAudioSource(entity);
+                    ImGui::SeparatorText("AudioSource");
 
-					bool openPopup = false;
-					DrawAssetField("Audio", comp.modelPath.string(), "+", 0.f, &openPopup);
-					if (openPopup) {
-						ImGui::OpenPopup("AudioPicker_Model");
-					}
+                    bool openPopup = false;
+                    DrawAssetField("Audio", comp.modelPath.string(), "+", 0.f, &openPopup);
+                    if (openPopup) {
+                        ImGui::OpenPopup("AudioPicker_Model");
+                    }
 
 					//static std::string searchQuery;
 					//if (ImGui::BeginPopup("AudioPicker_Model")) {
@@ -637,21 +571,22 @@ namespace Editor {
 					//	ImGui::EndPopup();
 					//}
 
-					// This renders all the external properties of AudioSource but cant edit atm
-					//NE::Core::ForEachFieldView<NE::ECS::Component::AudioSource>(comp,
-					//    [&](auto const& desc, auto const& currentValue) {
-					//        using FieldT = std::decay_t<decltype(currentValue)>;
 
-					//        // make a local editable copy
-					//        FieldT edited = currentValue;
+                    // This renders all the external properties of AudioSource but cant edit atm
+                    //NE::Core::ForEachFieldView<NE::ECS::Component::AudioSource>(comp,
+                    //    [&](auto const& desc, auto const& currentValue) {
+                    //        using FieldT = std::decay_t<decltype(currentValue)>;
 
-					//        // render widget; returns true if user changed it
-					//        if (DrawField(desc, edited)) {
-					//            // don't write to comp.* here; push a command to the engine:
-					//            //SubmitSetFieldCommand(entity, desc, edited);
-					//        }
-					//    });
-				}
+                    //        // make a local editable copy
+                    //        FieldT edited = currentValue;
+
+                    //        // render widget; returns true if user changed it
+                    //        if (DrawField(desc, edited)) {
+                    //            // don't write to comp.* here; push a command to the engine:
+                    //            //SubmitSetFieldCommand(entity, desc, edited);
+                    //        }
+                    //    });
+                }
 				else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
 					auto& comp = NE::ECS::Query::GetEntityScript(entity);
 					ImGui::SeparatorText("Script");
