@@ -45,7 +45,7 @@ namespace Editor {
 		if (it != EditorScene::s_entities.end()) {
 			EditorScene::s_entities.erase(it);
 		}
-
+		Editor::EditorScene::BuildFlatHierarchy();
 
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
@@ -54,6 +54,7 @@ namespace Editor {
 	{
 		m_entity = NE::ECS::Command::CreateEntity();
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
+		Editor::EditorScene::BuildFlatHierarchy();
 	}
 
 }
