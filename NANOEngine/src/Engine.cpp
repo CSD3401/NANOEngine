@@ -24,6 +24,7 @@
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
 #include "Audio/AudioBank.hpp"
+#include "Scripting/ScriptingEngine.hpp"
 
 namespace {
 
@@ -94,6 +95,7 @@ namespace NE {
 
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();
+		Scripting::ScriptingEngine::GetInstance().Initialize();
 		//Physics::PhysicsManager::TestPhysicsSetup();
 	}
 
@@ -136,6 +138,7 @@ namespace NE {
 		Physics::PhysicsManager::Shutdown();
 		Graphics::GraphicsManager::Shutdown();
 		//Physics::Command::Shutdown();
+		Scripting::ScriptingEngine::GetInstance().Shutdown();
 
 		gSceneManager.ExitScene();
 
@@ -244,9 +247,9 @@ namespace NE {
 
 	void EditorPlay() {
 		g_EngineState = EngineState::Play;
+		NE::Physics::PhysicsManager::ClearAllBodies();
+		gSceneManager.BeginPlay();
 		Physics::PhysicsManager::ActivateBodies();
-		//Physics::Command::ActivateBodies();
-		gSceneManager.GetActive()->ScriptStart();
 	}
 
 	void EditorPause() {
@@ -258,9 +261,9 @@ namespace NE {
 
 	void EditorEdit() {
 		g_EngineState = EngineState::Edit;
-		Physics::PhysicsManager::DeactivateBodies();
-		//Physics::Command::DeactivateBodies();
-		gSceneManager.GetActive()->ScriptStop();
+		Physics::PhysicsManager::DeactivateBodies(); 
+		NE::Physics::PhysicsManager::ClearAllBodies(); // to change to create body on play and clear on stop once
+		gSceneManager.StopPlay();
 	}
 
 	int GetDrawCallCount() {

@@ -12,6 +12,8 @@ namespace NE {
 	SceneManagement::Scene& GetScene();
 	//extern SceneManagement::Scene scene;
 
+	
+
 	std::vector<uint32_t>& GetEntities()
 	{
 		return GetScene().GetECSCoordinator().GetUsedEntities();
