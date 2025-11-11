@@ -12,6 +12,7 @@
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
+#include "Scripting/ScriptingEngine.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -158,8 +159,8 @@ namespace NE::ECS {
 		
 		std::vector<std::string> GetRegisteredScriptNames() {
 			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
-			if (scriptSystem && scriptSystem->GetScriptingEngine()) {
-				return scriptSystem->GetScriptingEngine()->GetRegisteredScriptNames();
+			if (scriptSystem) {
+				return Scripting::ScriptingEngine::GetInstance().GetRegisteredScriptNames();
 			}
 			return {};
 		}
@@ -172,8 +173,8 @@ namespace NE::ECS {
 			auto& script = GetEntityScript(e);
 			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
 			
-			if (scriptSystem && scriptSystem->GetScriptingEngine()) {
-				auto factory = scriptSystem->GetScriptingEngine()->GetScriptFactory(scriptName);
+			if (scriptSystem) {
+				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(scriptName);
 				if (factory) {
 					// Clean up existing script if any
 					if (script.Instance && script.DestroyScript) {
@@ -217,8 +218,8 @@ namespace NE::ECS {
 
 		bool IsScriptRegistered(const std::string& scriptName) {
 			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
-			if (scriptSystem && scriptSystem->GetScriptingEngine()) {
-				return scriptSystem->GetScriptingEngine()->IsScriptRegistered(scriptName);
+			if (scriptSystem) {
+				return Scripting::ScriptingEngine::GetInstance().IsScriptRegistered(scriptName);
 			}
 			return false;
 		}

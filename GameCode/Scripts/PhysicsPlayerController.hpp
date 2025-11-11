@@ -1,7 +1,7 @@
 #pragma once
 #include "Scripting/IScript.hpp"
 #include "Input/InputManager.hpp"
-#include "ExposedFieldRegistry.hpp"
+#include "../ExposedFieldRegistry.hpp"
 #include "Math/Vec3.hpp"
 #include <cmath>
 #include <Core/SpdLogger.hpp>

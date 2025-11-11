@@ -47,12 +47,15 @@ namespace NE::SceneManagement {
 		if (!m_isPlaying) return;
 
 		// stop scripts first
-		if (m_runtime)
+		if (m_runtime) {
 			m_runtime->ScriptStop();
+			m_runtime->Exit();
+		}
 
 		// destroy runtime scene
 		m_runtime.reset();
 
+		m_isPlaying = false;
 		// restore editor scene from backup
 		if (m_editor && !m_editorBackup.empty()) {
 			m_editor->Exit();
@@ -61,7 +64,6 @@ namespace NE::SceneManagement {
 			m_editor->Init();
 		}
 
-		m_isPlaying = false;
 	}
 
 	bool SceneManager::IsPlaying() const {

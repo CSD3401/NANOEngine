@@ -24,6 +24,7 @@
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
 #include "Audio/AudioBank.hpp"
+#include "Scripting/ScriptingEngine.hpp"
 
 namespace {
 
@@ -94,6 +95,7 @@ namespace NE {
 
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();
+		Scripting::ScriptingEngine::GetInstance().Initialize();
 		//Physics::PhysicsManager::TestPhysicsSetup();
 	}
 
@@ -136,6 +138,7 @@ namespace NE {
 		Physics::PhysicsManager::Shutdown();
 		Graphics::GraphicsManager::Shutdown();
 		//Physics::Command::Shutdown();
+		Scripting::ScriptingEngine::GetInstance().Shutdown();
 
 		gSceneManager.ExitScene();
 

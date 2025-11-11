@@ -5,14 +5,53 @@
 #include <Windows.h>
 #include "Core/SpdLogger.hpp"
 
+#include "Engine.hpp"
+#include "SceneManagement/Scene.hpp"
+
+namespace {
+    struct ScriptState {
+        std::string scriptName;
+        bool isEnabled;
+        std::unordered_map<std::string, std::string> fields;
+    };
+
+    std::string GetHotReloadPath(const std::string& originalPath, int version) {
+        std::filesystem::path path(originalPath);
+        std::string stem = path.stem().string();
+        std::string ext = path.extension().string();
+        std::string newFilename = stem + "_hot_" + std::to_string(version) + ext;
+        return path.replace_filename(newFilename).string();
+    }
+
+    std::string GetMSBuildPath() {
+        std::string vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+        std::string cmd = "\"" + vswhere + "\" -latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\MSBuild.exe";
+
+        FILE* pipe = _popen(cmd.c_str(), "r");
+        if (!pipe) return {};
+
+        char buffer[512];
+        std::string result;
+        while (fgets(buffer, sizeof(buffer), pipe))
+            result += buffer;
+        _pclose(pipe);
+
+        // Trim newline
+        if (!result.empty() && (result.back() == '\n' || result.back() == '\r'))
+            result.pop_back();
+
+        return result;
+    }
+}
+
+namespace NE {
+    SceneManagement::Scene& GetScene();
+}
+
 namespace NE::Scripting {
 
     ScriptingEngine::ScriptingEngine()
         : m_initialized(false) {
-    }
-
-    ScriptingEngine::~ScriptingEngine() {
-        Shutdown();
     }
 
     std::function<IScript* ()> ScriptingEngine::GetScriptFactory(const std::string& name) const {
@@ -187,10 +226,8 @@ namespace NE::Scripting {
         for (auto& dll : m_loadedDLLs) {
             UnloadSingleDLL(dll);
         }
-
         m_loadedDLLs.clear();
 
-        ClearRegisteredScripts();
 
         SPD_INFO("All DLLs unloaded and scripts cleared.");
     }
@@ -211,12 +248,109 @@ namespace NE::Scripting {
             return;
         }
 
+        // DLL Path
+        m_scriptDLLPath = "GameCode.dll";
+        m_scriptDLLPath = std::filesystem::absolute(m_scriptDLLPath).string();
+        SPD_INFO("Loading script DLL: " << m_scriptDLLPath);
+
+        // Source Directory
+        m_scriptSourceDirectory = "../../../GameCode/Scripts/";
+        m_scriptSourceDirectory = std::filesystem::absolute(m_scriptSourceDirectory).string();
+
+        // Build Command
+        /*const char* vsPath = std::getenv("VSINSTALLDIR");
+        if (vsPath)
+        {*/
+        std::string msbuildPath = GetMSBuildPath();
+        if (msbuildPath.empty())
+            msbuildPath = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"; // fallback to PATH
+
+        //std::string msbuildPath = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe";
+        //m_scriptBuildCommand = "cmd /C \""
+        //    + msbuildPath
+        //    + "\" \"../../../NANOEngine.sln\" "
+        //    "/t:GameCode "
+        //    "/p:Configuration=Release "
+        //    "/p:Platform=x64 "
+        //    "/p:LanguageStandard=stdcpp20";
+
+        //m_scriptBuildCommand =
+        //    "cmd /C \"\"" + msbuildPath + "\" "       // <-- double quotes "" after /C
+        //    "\"../../../NANOEngine.sln\" " // <-- full .sln path in quotes
+        //    "/t:GameCode "
+        //    "/p:Configuration=Release "
+        //    "/p:Platform=x64 "
+        //    "/p:LanguageStandard=stdcpp20\"";        // <-- final closing quote
+        m_scriptBuildCommand =
+            "\"\"" + msbuildPath + "\" "
+            "\"../../../GameCode/GameCode.vcxproj\" "
+            "/p:Configuration=Release "
+            "/p:Platform=x64 "
+            "/p:BuildProjectReferences=false"
+            "/p:LanguageStandard=stdcpp20\"";
+
+
+        std::cout << "Command: " << m_scriptBuildCommand << std::endl;
+        //}
+
+           // + "\" \"D:/Users/Irwen Yap/Documents/My Projects/Github/NANOEngine\" "
+        // Instead of loading the original, we load a *copy*
+        m_currentLoadedDLLPath = GetHotReloadPath(m_scriptDLLPath, m_hotReloadCounter);
+        m_hotReloadCounter++;
+
+
+        try {
+            std::filesystem::path originalDLL(m_scriptDLLPath);
+            //std::filesystem::path originalPDB = originalDLL.replace_extension(".pdb");
+
+            std::filesystem::path targetDLL(m_currentLoadedDLLPath);
+            //std::filesystem::path targetPDB = targetDLL.replace_extension(".pdb");
+
+            // Copy the DLL and PDB to our new temp path
+            std::filesystem::copy_file(originalDLL, targetDLL, std::filesystem::copy_options::overwrite_existing);
+            /*if (std::filesystem::exists(originalPDB)) {
+                std::filesystem::copy_file(originalPDB, targetPDB, std::filesystem::copy_options::overwrite_existing);
+            }*/
+
+            SPD_INFO("Loading copy: " << m_currentLoadedDLLPath);
+            if (LoadGameDLL(m_currentLoadedDLLPath)) {
+                SPD_ERROR("Failed to load script DLL copy: " << m_currentLoadedDLLPath);
+                SPD_ERROR("Last Error: " << GetLastError());
+            } else {
+                SPD_INFO("Successfully loaded DLL.");
+                PrintSummary();
+            }
+
+        } catch (const std::filesystem::filesystem_error& e) {
+            SPD_ERROR("Failed to copy initial DLL for loading: " << e.what());
+            SPD_WARNING("Continuing without game scripts. Hot-compile may still function.");
+        }
+
+        // --- Setup File Watcher ---
+        try {
+            auto fileWatchCallback = [this](const std::string& path, const filewatch::Event eventType) {
+                this->HandleFileWatchEvent(path, eventType);
+                };
+
+            // Watch the SOURCE directory
+            m_sourceWatcher = std::make_unique<filewatch::FileWatch<std::string>>(
+                m_scriptSourceDirectory,
+                std::regex(".*\\.(cpp|hpp|h)$"), // Watch for .cpp, .hpp, or .h files
+                fileWatchCallback
+            );
+            SPD_INFO("File watcher started for: " << m_scriptSourceDirectory);
+        } catch (const std::exception& e) {
+            SPD_ERROR("Failed to create file watcher for " << m_scriptSourceDirectory << ": " << e.what());
+            SPD_WARNING("Hot-compile will be disabled.");
+            m_sourceWatcher.reset();
+        }
+
         SPD_INFO("Initializing ScriptingEngine...");
         SPD_INFO("  - " << m_loadedDLLs.size() << " DLLs loaded");
         SPD_INFO("  - " << m_scriptFactories.size() << " scripts registered");
 
         PrintSummary();
-
+        
         m_initialized = true;
         SPD_INFO("ScriptingEngine initialization complete.");
     }
@@ -226,8 +360,16 @@ namespace NE::Scripting {
             return;
         }
 
-        SPD_INFO("Shutting down ScriptingEngine...");
+        m_sourceWatcher.reset();
+        for (NE::ECS::Entity entity : GetScene().GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>()) {
+            Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
+            auto& ns = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+            ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it’s a function ptr
+            ns.DestroyScript = {};
+        }
 
+        SPD_INFO("Shutting down ScriptingEngine...");
+        ClearRegisteredScripts();
         UnloadAllDLLs();
 
         m_initialized = false;
@@ -442,6 +584,229 @@ namespace NE::Scripting {
         else {
             SetLastError("Failed to unload DLL: " + dll.name + " - " + GetSystemError());
             return false;
+        }
+    }
+
+    void ScriptingEngine::HandleFileWatchEvent(const std::string& path, const filewatch::Event eventType) {
+        // This runs on the file watcher's thread
+        if (eventType == filewatch::Event::modified || eventType == filewatch::Event::renamed_new || eventType == filewatch::Event::added) {
+
+            SPD_INFO("FileWatch: Detected change in: " << path);
+
+            // Just set the flag. The main thread will handle the rest.
+            m_compileQueued.store(true);
+        }
+    }
+
+    // --- Hot Compile & Reload Implementation ---
+
+
+    void ScriptingEngine::HotCompileAndReload() {
+        // This runs on the main thread
+        SPD_INFO("--- BEGIN HOT COMPILE ---");
+        SPD_INFO("Executing build command: " << m_scriptBuildCommand);
+
+        // Run the build command and block until it's done
+        int result = std::system(m_scriptBuildCommand.c_str());
+
+        if (result != 0) {
+            SPD_ERROR("Build command failed with code " << result << ". Aborting hot-reload.");
+            return;
+        }
+
+        SPD_INFO("Compile successful. Proceeding with hot-reload...");
+
+        // hard path for now
+        std::filesystem::path builtDLL =
+            "../../bin/GameCode/Release-x64/GameCode.dll";
+
+        // Copy Files to New Temp Path 
+        std::string newDLLPath = GetHotReloadPath(m_scriptDLLPath, m_hotReloadCounter);
+        std::string oldDLLPath = m_currentLoadedDLLPath;
+
+        m_hotReloadCounter++; // Increment *after* getting new path
+        m_currentLoadedDLLPath = newDLLPath;
+
+        try {
+            std::filesystem::path originalDLL(m_scriptDLLPath);
+            //std::filesystem::path originalPDB = originalDLL.replace_extension(".pdb");
+            SPD_INFO("OG DLL: " << originalDLL);
+            std::filesystem::path targetDLL(newDLLPath);
+            SPD_INFO("NEW DLL: " << targetDLL);
+            //std::filesystem::path targetPDB = targetDLL.replace_extension(".pdb");
+
+            // Copy the newly-built files to our new temp path
+            std::filesystem::copy_file(originalDLL, targetDLL, std::filesystem::copy_options::overwrite_existing);
+            SPD_INFO("DLL COPIED");
+            /*if (std::filesystem::exists(originalPDB)) {
+                std::filesystem::copy_file(originalPDB, targetPDB, std::filesystem::copy_options::overwrite_existing);
+            }*/
+            SPD_INFO("Copied new DLL to: " << newDLLPath);
+
+        } catch (const std::filesystem::filesystem_error& e) {
+            SPD_ERROR("Failed to copy new DLL for reload: " << e.what());
+            m_currentLoadedDLLPath = oldDLLPath; // Revert path
+            m_hotReloadCounter--; // Revert counter
+            return;
+        }
+
+        // 3. Run Hot Reload on the *New* File 
+        HotReloadDLL(oldDLLPath, newDLLPath); // This reloads using the new copy
+
+        // 4. Clean Up Old File (Optional)
+        // The old DLL (e.g., GameCode_hot_0.dll) is now unloaded and can be deleted.
+        try {
+            if (!oldDLLPath.empty() && std::filesystem::exists(oldDLLPath)) {
+                std::filesystem::path dllPath(oldDLLPath);
+                //std::filesystem::path pdbPath = dllPath.replace_extension(".pdb");
+
+                std::filesystem::remove(dllPath);
+                /*if (std::filesystem::exists(pdbPath)) {
+                    std::filesystem::remove(pdbPath);
+                }*/
+                SPD_INFO("Cleaned up old DLL: " << oldDLLPath);
+            }
+        } catch (const std::exception& e) {
+            SPD_WARNING("Could not clean up old DLL: " << oldDLLPath << " - " << e.what());
+        }
+    }
+
+    void ScriptingEngine::HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath) {
+        // It handles state serialization, DLL swapping, and state restoration.
+
+        std::string newDllName = std::filesystem::path(newDllPath).filename().string();
+        std::string oldDllName = std::filesystem::path(oldDllPath).filename().string();
+        SPD_INFO("--- BEGIN HOT RELOAD: " << oldDllName << " -> " << newDllName << " ---");
+
+        // 1. --- Store State ---
+        std::unordered_map<NE::ECS::Entity, ScriptState> stateToRestore;
+
+        auto entities = GetScene().GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
+        for (NE::ECS::Entity entity : entities) {
+            auto& nsc = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+            if (!nsc.Instance) continue;
+
+            SPD_INFO("Serializing state for entity " << (int)entity << " (Script: " << nsc.ScriptName << ")");
+
+            ScriptState state;
+            state.scriptName = nsc.ScriptName;
+            state.isEnabled = nsc.Instance->IsEnabled();
+
+
+            SaveSerializedFields(nsc);
+            state.fields = nsc.SerializedFields;
+
+            stateToRestore[entity] = state;
+
+            OnScriptComponentDestroyed(entity);
+
+            nsc.CreateScript = nullptr;
+
+        }
+
+        // 2. --- Reload the DLL ---
+
+        if (!oldDllName.empty() && IsDLLLoaded(oldDllName)) {
+            if (!UnloadDLL(oldDllName)) {
+                SPD_ERROR("--- HOT RELOAD FAILED (Unload): Failed to unload old DLL: " << oldDllName << " ---");
+                // This is bad, but we might as well try to load the new one anyway
+                // so the user can at least try to recover without restarting.
+            } else {
+                SPD_INFO("Unloaded old DLL: " << oldDllName);
+            }
+        }
+
+        bool loadSuccess = LoadGameDLL(newDllPath);
+        if (!loadSuccess) {
+            SPD_ERROR("--- HOT RELOAD FAILED (Load): " << GetLastError() << " ---");
+            return; // Can't restore state if load failed
+        }
+
+        SPD_INFO("DLL reloaded. Restoring script states...");
+        PrintSummary();
+
+        // 3. --- Restore State ---
+        for (auto const& [entity, state] : stateToRestore) {
+            if (!GetScene().GetECSCoordinator().GetComponentManager().HasComponent<ECS::Component::NativeScript>(entity)) {
+                SPD_WARNING("Entity " << (int)entity << " no longer exists. Cannot restore script.");
+                continue;
+            }
+
+            auto& nsc = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+            nsc.CreateScript = GetScriptFactory(state.scriptName);
+            nsc.DestroyScript = [](IScript* script) { delete script; };
+
+            if (!nsc.CreateScript) {
+                SPD_ERROR("Failed to find new script factory for '" << state.scriptName << "'. Cannot restore state.");
+                continue;
+            }
+
+            nsc.Instance = nsc.CreateScript();
+            nsc.Instance->LinkToEngine(&GetScene().GetECSCoordinator().GetComponentManager());
+            nsc.Instance->SetEntity(entity);
+            nsc.Instance->Awake();
+            nsc.Instance->Initialize(entity);
+
+            nsc.SerializedFields = state.fields; // Give the component its old data
+            RestoreSerializedFields(nsc);
+
+            nsc.Instance->SetEnabled(false);
+        }
+
+        // Only enable when all scripts are fully initialized
+        for (auto const& [entity, state] : stateToRestore) {
+            auto& nsc = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+            nsc.Instance->SetEnabled(state.isEnabled);
+        }
+
+
+
+        SPD_INFO("--- END HOT RELOAD ---");
+    }
+
+    void ScriptingEngine::SaveSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+        if (!nsc.Instance) return;
+
+        // Clear existing serialized fields
+        nsc.SerializedFields.clear();
+
+        // Get all exposed field names from the script
+        auto fieldNames = nsc.Instance->GetExposedFieldNames();
+
+        // Save each field's current value as a string
+        for (const auto& fieldName : fieldNames) {
+            std::string value = nsc.Instance->GetFieldValueAsString(fieldName);
+            nsc.SerializedFields[fieldName] = value;
+        }
+
+        SPD_DEBUG("Saved " << nsc.SerializedFields.size() << " fields for script '" << nsc.ScriptName << "'");
+    }
+
+    void ScriptingEngine::RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+        if (!nsc.Instance || nsc.SerializedFields.empty()) return;
+
+        // Restore each serialized field value
+        for (const auto& [fieldName, value] : nsc.SerializedFields) {
+            bool success = nsc.Instance->SetFieldValueFromString(fieldName, value);
+            if (!success) {
+                SPD_WARNING("Failed to restore field '" << fieldName << "' for script '" << nsc.ScriptName << "'");
+            }
+        }
+
+        SPD_DEBUG("Restored " << nsc.SerializedFields.size() << " fields for script '" << nsc.ScriptName << "'");
+    }
+    
+    void ScriptingEngine::OnScriptComponentDestroyed(NE::ECS::Entity entity) {
+        auto& nsc = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+        if (nsc.Instance) {
+            nsc.Instance->OnDestroy();
+            if (nsc.DestroyScript) {
+                nsc.DestroyScript(nsc.Instance);
+            } else {
+                delete nsc.Instance; // Fallback
+            }
+            nsc.Instance = nullptr;
+            SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
         }
     }
 
