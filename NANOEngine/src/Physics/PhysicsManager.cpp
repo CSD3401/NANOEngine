@@ -797,6 +797,23 @@ namespace NE::Physics {
 		}
 	}
 
+	void PhysicsManager::ClearAllBodies() {
+		if (!s_PhysicsSystem)
+			return;
+
+		JPH::BodyIDVector allBodies;
+		s_PhysicsSystem->GetBodies(allBodies);
+
+		JPH::BodyInterface& bi = s_PhysicsSystem->GetBodyInterface();
+
+		for (JPH::BodyID id : allBodies) {
+			bi.RemoveBody(id);
+			bi.DestroyBody(id);
+		}
+
+		s_EntityToBodyMap.clear();
+	}
+
 	// === Raycasting Methods with Layer Filtering ===
 
 	PhysicsManager::RaycastHit PhysicsManager::Raycast(
