@@ -239,7 +239,7 @@ namespace Editor {
         height; title;
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImVec2 winPos = ImGui::GetWindowPos();
-        float barHeight = 60.f; // your desired height
+        float barHeight = 20.f;
         ImVec2 menuBarSize = ImVec2(ImGui::GetWindowWidth(), barHeight);
 
         HWND hwnd = static_cast<HWND>(ImGui::GetMainViewport()->PlatformHandleRaw);
@@ -252,29 +252,70 @@ namespace Editor {
         ImGui::BeginChild("##CustomMenuBar", menuBarSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         // --- Logo (Left) ---
-        ImGui::SetCursorPos(ImVec2(10.f, 10.f));
-        ImGui::Image(icon, ImVec2(40.f,40.f));
+        ImGui::SetCursorPos(ImVec2(0.f, 2.f));
+        ImGui::Image(icon, ImVec2(18.f,18.f));
         ImGui::SameLine();
 
         // --- Menus (Next to logo) ---
-        float logoSpace = 50 + 12.0f; // logo width + padding
-        ImGui::SetCursorPos(ImVec2(logoSpace, 10.f));
+        float logoSpace = 20.f; // logo width + padding
+        ImGui::SetCursorPosX(logoSpace);
 
-        if (ImGui::Button("File")) {
-            if (ImGui::MenuItem("New Scene","", false, false)) {}
+        //if (ImGui::Button("File")) {
+        //    //if (ImGui::MenuItem("New Scene","", false, false)) {}
 
-            if (ImGui::MenuItem("Open Scene", "", false, false)) {}
+        //    //if (ImGui::MenuItem("Open Scene", "", false, false)) {}
 
-            ImGui::Separator();
+        //    //ImGui::Separator();
 
-            if (ImGui::MenuItem("Save", "Ctrl + S", false, false)) {
-                //SceneManager::GetInstance().SaveScene();
-            }
+        //    //if (ImGui::MenuItem("Save", "Ctrl + S", false, false)) {
+        //    //    //SceneManager::GetInstance().SaveScene();
+        //    //}
 
-            ImGui::Separator();
+        //    //ImGui::Separator();
 
-            if (ImGui::MenuItem("Exit", "", false, false)) {}
+        //    //if (ImGui::MenuItem("Exit", "", false, false)) {}
+        //    ImGui::OpenPopup("FileMenu");
+        //}
+        ////ImGui::OpenPopup("FileMenu");
+        //if (ImGui::BeginPopup("FileMenu")) {
+        //    if (ImGui::MenuItem("New Scene")) {}
+        //    if (ImGui::MenuItem("Open Scene")) {}
+        //    ImGui::Separator();
+        //    if (ImGui::MenuItem("Save", "Ctrl+S")) {}
+        //    ImGui::Separator();
+        //    if (ImGui::MenuItem("Exit")) {}
+        //    ImGui::EndPopup();
+        //}
+
+        // draw the button
+        bool openFile = ImGui::Button("File");
+        ImVec2 fileBtnMin = ImGui::GetItemRectMin();
+        ImVec2 fileBtnMax = ImGui::GetItemRectMax();
+
+        if (openFile) {
+            // open right under the button
+            ImGui::SetNextWindowPos(ImVec2(fileBtnMin.x, fileBtnMax.y));
+            ImGui::OpenPopup("FileMenu");
         }
+
+        // style to make it flush
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+
+        if (ImGui::BeginPopup("FileMenu")) {
+            if (ImGui::MenuItem("New Scene")) {}
+            if (ImGui::MenuItem("Open Scene")) {}
+            ImGui::Separator();
+            if (ImGui::MenuItem("Save", "Ctrl+S")) {}
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit")) {}
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopStyleVar(3);
+
         ImGui::SameLine();
         if (ImGui::Button("Edit")) {
             if (ImGui::MenuItem("Undo", "Ctrl + Z", false, false)) CommandHistory::GetInstance().Undo();
@@ -300,11 +341,11 @@ namespace Editor {
 
         // --- History button (top-right), before the window controls ---
         // Reserve width for the three window buttons you already place on the far right
-        float buttonSize = 32.0f;
+        float buttonSize = 20.0f;
         float spacing = 0.0f;
         float totalButtonsWidth = 3 * (buttonSize + spacing);
 
-        ImVec2 historySize = ImVec2(140.0f, 32.0f);
+        ImVec2 historySize = ImVec2(140.0f, 20.0f);
 
         float rightEdge = menuBarSize.x - totalButtonsWidth - 8.0f; // 8px padding
         ImVec2 pos = ImVec2(rightEdge - historySize.x, (menuBarSize.y - historySize.y) * 0.5f);
@@ -368,9 +409,9 @@ namespace Editor {
 
         if (ImGui::IsItemHovered()) {
             drawList->AddRectFilled(btnPos, ImVec2(btnPos.x + buttonSize, btnPos.y + buttonSize), IM_COL32(200, 50, 50, 255), 2.0f);
-            drawList->AddText(ImVec2(btnPos.x + 12.5f, btnPos.y + 7.5f), IM_COL32(200, 200, 200, 255), "-");
+            drawList->AddText(ImVec2(btnPos.x + 6.5f, btnPos.y + 3.5f), IM_COL32(200, 200, 200, 255), "-");
         } else {
-            drawList->AddText(ImVec2(btnPos.x + 12.5f, btnPos.y + 7.5f), IM_COL32(200, 200, 200, 255), "-");
+            drawList->AddText(ImVec2(btnPos.x + 6.5f, btnPos.y + 3.5f), IM_COL32(200, 200, 200, 255), "-");
         }
 
         ImGui::SameLine(0, spacing);
@@ -386,9 +427,9 @@ namespace Editor {
 
         if (ImGui::IsItemHovered()) {
             drawList->AddRectFilled(btnPos, ImVec2(btnPos.x + buttonSize, btnPos.y + buttonSize), IM_COL32(200, 50, 50, 255), 2.0f);
-            drawList->AddText(ImVec2(btnPos.x + 12.5f, btnPos.y + 7.5f), IM_COL32(200, 200, 200, 255), "O");
+            drawList->AddText(ImVec2(btnPos.x + 6.5f, btnPos.y + 3.5f), IM_COL32(200, 200, 200, 255), "O");
         } else {
-            drawList->AddText(ImVec2(btnPos.x + 12.5f, btnPos.y + 7.5f), IM_COL32(200, 200, 200, 255), "O");
+            drawList->AddText(ImVec2(btnPos.x + 6.5f, btnPos.y + 3.5f), IM_COL32(200, 200, 200, 255), "O");
         }
 
         ImGui::SameLine(0, spacing);
@@ -400,9 +441,9 @@ namespace Editor {
 
         if (ImGui::IsItemHovered()) {
             drawList->AddRectFilled(btnPos, ImVec2(btnPos.x + buttonSize, btnPos.y + buttonSize), IM_COL32(200, 50, 50, 255), 2.0f);
-            drawList->AddText(ImVec2(btnPos.x + 12.5f, btnPos.y + 7.5f), IM_COL32(200, 200, 200, 255), "X");
+            drawList->AddText(ImVec2(btnPos.x + 6.5f, btnPos.y + 3.5f), IM_COL32(200, 200, 200, 255), "X");
         } else {
-            drawList->AddText(ImVec2(btnPos.x + 12.5f, btnPos.y + 7.5f), IM_COL32(200, 60, 60, 255), "X");
+            drawList->AddText(ImVec2(btnPos.x + 6.5f, btnPos.y + 3.5f), IM_COL32(200, 60, 60, 255), "X");
         }
 
 		// For dragging of OS window
