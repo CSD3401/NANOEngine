@@ -139,6 +139,7 @@
     <ClInclude Include="src\Tween\Tween.hpp" />
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
+    <ClInclude Include="src\Utility\LUIDGenerator.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
@@ -208,6 +209,7 @@
     <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
     <ClCompile Include="src\Tween\TweenManager.cpp" />
+    <ClCompile Include="src\Utility\LUIDGenerator.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
