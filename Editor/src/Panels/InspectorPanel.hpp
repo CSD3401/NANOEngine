@@ -16,8 +16,7 @@ namespace Editor {
 
 	private:
 
-		void RenderTextureImportSettings();
-		void RenderMaterialSettings();
+		void RenderTextureImportSettings(std::string metaPath);
 
 		// temp implementation
 		//std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;

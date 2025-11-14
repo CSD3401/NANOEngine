@@ -17,14 +17,14 @@ public:
     }
 
     void Initialize(NE::ECS::Entity entity) override {
-
+        SetRotation(0.f, 180.f, 0.f);
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        auto playerPos = NE::ECS::Query::GetEntityTransform(19).position;
-        NE::Math::Vec3 camPos = playerPos + NE::Math::Vec3(0.f, 0.4f, 0.f);
+        auto playerPos = NE::ECS::Query::GetEntityTransform(6).position;
+        NE::Math::Vec3 camPos = playerPos + NE::Math::Vec3(0.f, 0.6f, 0.f);
         SetPosition(camPos);
 
         // --- mouse look ---
@@ -55,15 +55,15 @@ public:
         SetRotation(NE::Math::Vec3(m_pitch, m_yaw, 0.0f));
 
         if (NE::InputManager::IsKeyDown('Q')) {
-            auto selectedEntt = NE::GetPickedEntity(960, 540);
-            SPD_WARNING("Selected Entity: " << selectedEntt);
-            if (pickedEntity == NE::ECS::NO_ENTITY) {
-                if (selectedEntt == 5 || selectedEntt == 6) {
-                    pickedEntity = selectedEntt;
-                }
-            } else {
-                pickedEntity = NE::ECS::NO_ENTITY;
-            }
+            //auto selectedEntt = NE::GetPickedEntity(960, 540);
+            //SPD_WARNING("Selected Entity: " << selectedEntt);
+            //if (pickedEntity == NE::ECS::NO_ENTITY) {
+            //    if (selectedEntt == 5 || selectedEntt == 6) {
+            //        pickedEntity = selectedEntt;
+            //    }
+            //} else {
+            //    pickedEntity = NE::ECS::NO_ENTITY;
+            //}
         }
 
         if (pickedEntity != NE::ECS::NO_ENTITY) {

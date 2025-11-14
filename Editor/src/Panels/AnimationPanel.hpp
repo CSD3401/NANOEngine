@@ -8,7 +8,10 @@
 #include <cstdint>
 
 // Make NE::Animation visible here
-#include <Animation/TransformClip.hpp> 
+
+namespace NE::Animation {
+    struct TransformClip;
+}
 
 namespace NE { namespace ECS {
     namespace Component { struct Transform; struct Animator; }

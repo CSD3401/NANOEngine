@@ -7,26 +7,10 @@
 #include "Core/Couroutine.hpp"
 #include <Math/Vec3.hpp>
 
-void TextureSwitchActivate(int entity) {    
-    
-    CoroutineHandle h = Engine_CreateCoroutine();
 
-    //NE::Renderer::Command::AssignMaterial(entity, "Assets/Unlit.nanomat");
-
-    // Wait defined seconds
-    Engine_AddWaitForSeconds(h, 5.f);
-
-    //Engine_AddAction(h, [entity]() {NE::Renderer::Command::AssignMaterial(entity, "Assets/Basic.nanomat"); });
-
-    Engine_StartCoroutine(h);
-
-
-    
-}
-
-class TextureSwitch : public IScript {
+class k2bswitch : public IScript {
 public:
-    TextureSwitch() {
+    k2bswitch() {
         // Register all our fields using the simple macros
         SCRIPT_FIELD(isActive, Bool);
         SCRIPT_FIELD(objectName, String);
@@ -42,17 +26,17 @@ public:
 
     void Update(double deltaTime) override {
         if (!isActive) return;
-        
+
         if (NE::InputManager::WasKeyPressed('E')) {
             if (!switched) {
-                NE::Renderer::Command::AssignMaterial(GetEntity(), "41e072ab-c276-4cf3-8b95-6c92401fcdec");
+                NE::Renderer::Command::AssignMaterial(GetEntity(), "36e41bfb-b41e-445a-922b-a634450d6f02");
             } else {
-                NE::Renderer::Command::AssignMaterial(GetEntity(), "ad9dd997-3747-4fe2-8abe-723a6d7fc27f");
+                NE::Renderer::Command::AssignMaterial(GetEntity(), "d1d2a6cb-e531-4452-a75c-122ec80a39dd");
             }
 
             switched = !switched;
         }
-        
+
     }
 
     void OnDestroy() override {
@@ -60,7 +44,7 @@ public:
     }
 
     const char* GetTypeName() const override {
-        return "TextureSwitch";
+        return "k2bswitch";
     }
 
     // Event handlers (required by interface)
