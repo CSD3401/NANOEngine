@@ -13,12 +13,12 @@
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
-        EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
+		EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
 
-        auto numEntt = NE::GetNumEntities();
-        for (unsigned int i = 0; i < numEntt; ++i) {
-            EditorScene::s_entities.push_back(EditorEntity{ i });
-        }
+		auto numEntt = NE::GetNumEntities();
+		for (unsigned int i = 0; i < numEntt; ++i) {
+			EditorScene::s_entities.push_back(EditorEntity{ i });
+		}
 	}
 
 	void HierarchyPanel::OnImGuiRender()
@@ -34,262 +34,279 @@ namespace Editor {
 			ImGui::OpenPopup("HierarchyContextMenu");
 		}
 
-        if (ImGui::BeginPopupContextWindow("HierarchyContextMenu")) {
-            if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
+		if (ImGui::BeginPopupContextWindow("HierarchyContextMenu")) {
+			if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
+			}
+			if (ImGui::MenuItem("Copy", "Ctrl+C", false, false)) {
+			}
+			if (ImGui::MenuItem("Paste", "Ctrl+V", false, false)) {
+			}
+			if (ImGui::MenuItem("Paste Special", "", false, false)) {
+			}
+			if (ImGui::MenuItem("Rename", "", false, false)) {
+			}
+			if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, false)) {
+			}
+			if (ImGui::MenuItem("Delete", "Del", false, EditorScene::s_selectedEntity)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Select All", "", false, false)) {
+			}
+			if (ImGui::MenuItem("Deselect All", "", false, false)) {
+			}
+			if (ImGui::MenuItem("Invert Selection", "", false, false)) {
+			}
+			if (ImGui::MenuItem("Select Children", "", false, false)) {
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Find References in Scene", "", false, false)) {
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Set as Default Parent", "", false, false)) {
+			}
+			ImGui::Separator();
 
-            }
-            if (ImGui::MenuItem("Copy", "Ctrl+C", false, false)) {
+			if (ImGui::MenuItem("Create Entity")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
+				//NE::
+				//Editor::EditorScene::BuildFlatHierarchy();
+				// need to add into display list also currently creates but not shown in hierarchy
+			}
+			if (ImGui::BeginMenu("3D Object")) { // Creates a submenu with an arrow
+				if (ImGui::MenuItem("Cube")) {
+				}
+				if (ImGui::MenuItem("Sphere")) {
+				}
+				if (ImGui::MenuItem("Capsule")) {
+				}
+				if (ImGui::MenuItem("Cylinder")) {
+				}
+				if (ImGui::MenuItem("Plane")) {
+				}
+				if (ImGui::MenuItem("Quad")) {
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::MenuItem("Camera")) {
+				//CreateCameraEntity();
+			}
 
-            }
-            if (ImGui::MenuItem("Paste", "Ctrl+V", false, false)) {
+			ImGui::Separator();
 
-            }
-            if (ImGui::MenuItem("Paste Special", "", false, false)) {
+			if (ImGui::BeginMenu("UI")) { // Creates a submenu with an arrow
+				if (ImGui::MenuItem("Create Textbox")) {
+					//CreateTextboxUIEntity();
+				}
+				if (ImGui::MenuItem("Create Image")) {
+					//CreateQuadUIEntity();
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndPopup();
+		}
 
-            }
-            if (ImGui::MenuItem("Rename", "", false, false)) {
+		// === Entity Tree ===
+		static bool s_built = false;
+		if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
 
-            }
-            if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, false)) {
+		// ---- Drag state ----
+		static uint32_t draggingId = NE::ECS::NO_ENTITY;
+		//static bool     hadDragThisFrame = false; // warning unused var - RF
 
-            }
-            if (ImGui::MenuItem("Delete", "Del", false, EditorScene::s_selectedEntity)) {
-                NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Select All", "", false, false)) {
+		static bool     previewAsChild = false;  // highlight a row to adopt as parent
+		static uint32_t previewParent = NE::ECS::NO_ENTITY;
 
-            }
-            if (ImGui::MenuItem("Deselect All", "", false, false)) {
+		static uint32_t previewParentForInsert = NE::ECS::NO_ENTITY; // parent whose sibling list will get the line
+		static int      previewInsert = -1;         // index within that parent’s children
+		static float    previewLineY = -1.0f;       // cached Y for the line
+		static float    previewLineX1 = 0.f, previewLineX2 = 0.f;
 
-            }
-            if (ImGui::MenuItem("Invert Selection", "", false, false)) {
+		// Selection state - delay selection until we know user isn't dragging
+		static uint32_t clickedEntityId = NE::ECS::NO_ENTITY;
+		static Editor::EditorEntity* clickedEntity = nullptr;
+		static bool clickedThisFrame = false;
 
-            }
-            if (ImGui::MenuItem("Select Children", "", false, false)) {
+		auto& childrenOf0 = Editor::EditorScene::ChildrenOf(NE::ECS::NO_ENTITY);
 
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Find References in Scene", "", false, false)) {
+		ImDrawList* dl = ImGui::GetWindowDrawList();
 
-            }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Set as Default Parent", "", false, false)) {
+		std::function<void(uint32_t /*parent*/, const std::vector<uint32_t>& /*siblings*/, int /*depth*/)> DrawLevel;
+		DrawLevel = [&](uint32_t parent, const std::vector<uint32_t>& siblings, int depth) {
+			for (int i = 0; i < (int)siblings.size(); ++i) {
+				uint32_t id = siblings[i];
 
-            }
-            ImGui::Separator();
+				// -------- label & selection ----------
+				Editor::EditorEntity* ent = nullptr;
+				for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } }
+				//std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
 
-            if (ImGui::MenuItem("Create Entity")) {
-                NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
-                //NE::
-                //Editor::EditorScene::BuildFlatHierarchy();
-                // need to add into display list also currently creates but not shown in hierarchy
-            }
-            if (ImGui::BeginMenu("3D Object")) { // Creates a submenu with an arrow
-                if (ImGui::MenuItem("Cube")) {
+				std::string entityName;
+				const auto& meta = NE::ECS::Query::GetEntityMeta(id);
+				entityName = !meta.name.empty() ? meta.name : "Entity";
 
-                }
-                if (ImGui::MenuItem("Sphere")) {
+				std::string label = entityName + "##" + std::to_string(id);
 
-                }
-                if (ImGui::MenuItem("Capsule")) {
+				const auto& kids = Editor::EditorScene::ChildrenOf(id);
+				bool isLeaf = kids.empty();
 
-                }
-                if (ImGui::MenuItem("Cylinder")) {
+				ImGuiTreeNodeFlags flags =
+					ImGuiTreeNodeFlags_SpanAvailWidth |
+					(isLeaf ? ImGuiTreeNodeFlags_Leaf : 0);
 
-                }
-                if (ImGui::MenuItem("Plane")) {
+				if (Editor::EditorScene::s_selectedEntity && ent == Editor::EditorScene::s_selectedEntity)
+					flags |= ImGuiTreeNodeFlags_Selected;
 
-                }
-                if (ImGui::MenuItem("Quad")) {
-                }
-                ImGui::EndMenu();
-            }
-            if (ImGui::MenuItem("Camera")) {
-                //CreateCameraEntity();
-            }
+				// Optional: auto-open non-leaf by default
+				// if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
-            ImGui::Separator();
+				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
 
-            if (ImGui::BeginMenu("UI")) { // Creates a submenu with an arrow
-                if (ImGui::MenuItem("Create Textbox")) {
-                    //CreateTextboxUIEntity();
-                }
-                if (ImGui::MenuItem("Create Image")) {
-                    //CreateQuadUIEntity();
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndPopup();
-        }
+				// Delay selection logic - only select if not starting a drag
+				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+					clickedEntityId = id;
+					clickedEntity = ent;
+					clickedThisFrame = true;
+				}
 
-        // === Entity Tree ===
-        static bool s_built = false;
-        if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
+				// row rect
+				ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
-        // ---- Drag state ----
-        static uint32_t draggingId = NE::ECS::NO_ENTITY;
-        //static bool     hadDragThisFrame = false; // warning unused var - RF 
+				// DO NOT REMOVE - Needed for tween to work
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				{
+					// Broadcast message
+					NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
+				}
 
-        static bool     previewAsChild = false;  // highlight a row to adopt as parent
-        static uint32_t previewParent = NE::ECS::NO_ENTITY;
+				// -------- begin drag from this row ----------
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+					draggingId = id;
 
-        static uint32_t previewParentForInsert = NE::ECS::NO_ENTITY; // parent whose sibling list will get the line
-        static int      previewInsert = -1;         // index within that parent’s children
-        static float    previewLineY = -1.0f;       // cached Y for the line
-        static float    previewLineX1 = 0.f, previewLineX2 = 0.f;
+					// Use HIER_DRAG_ID for hierarchy rearrangement
+					   // Inspector will peek at this payload to get the entity ID
+					ImGui::SetDragDropPayload("HIER_DRAG_ID", &draggingId, sizeof(uint32_t));
+					ImGui::TextUnformatted(label.c_str());
+					ImGui::EndDragDropSource();
 
-        auto& childrenOf0 = Editor::EditorScene::ChildrenOf(NE::ECS::NO_ENTITY);
+					// Cancel selection since we're dragging
+					clickedThisFrame = false;
+				}
 
-        ImDrawList* dl = ImGui::GetWindowDrawList();
+				// -------- hover bands while dragging ----------
+				if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+					//hadDragThisFrame = true; // warning unused var - RF
 
-        std::function<void(uint32_t /*parent*/, const std::vector<uint32_t>& /*siblings*/, int /*depth*/)> DrawLevel;
-        DrawLevel = [&](uint32_t parent, const std::vector<uint32_t>& siblings, int depth) {
-            for (int i = 0; i < (int)siblings.size(); ++i) {
-                uint32_t id = siblings[i];
+					if (ImGui::IsMouseHoveringRect(r.Min, r.Max, true)) {
+						const float h = r.Max.y - r.Min.y;
+						const float y = ImGui::GetIO().MousePos.y;
+						const float topBandEnd = r.Min.y + 0.25f * h;
+						const float bottomBandBeg = r.Max.y - 0.25f * h;
 
-                // -------- label & selection ----------
-                Editor::EditorEntity* ent = nullptr;
-                for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } }
-                //std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
+						if (y < topBandEnd) {
+							// insert above this row (same parent)
+							previewAsChild = false;
+							previewParent = NE::ECS::NO_ENTITY;
+							previewParentForInsert = parent;
+							previewInsert = i;       // before i
+							previewLineY = r.Min.y;
+							previewLineX1 = r.Min.x; previewLineX2 = r.Max.x;
+						}
+						else if (y > bottomBandBeg) {
+							// insert below this row (same parent)
+							previewAsChild = false;
+							previewParent = NE::ECS::NO_ENTITY;
+							previewParentForInsert = parent;
+							previewInsert = i + 1;   // after i
+							previewLineY = r.Max.y;
+							previewLineX1 = r.Min.x; previewLineX2 = r.Max.x;
+						}
+						else {
+							// adopt as child of this row
+							previewAsChild = true;
+							previewParent = id;
 
-                std::string entityName;
-                const auto& meta = NE::ECS::Query::GetEntityMeta(id);
-                entityName = !meta.name.empty() ? meta.name : "Entity";
+							// clear sibling-line preview
+							previewParentForInsert = NE::ECS::NO_ENTITY;
+							previewInsert = -1;
+							previewLineY = -1.f;
 
-                std::string label = entityName + "##" + std::to_string(id);
+							// highlight this row
+							dl->AddRectFilled(r.Min, r.Max, IM_COL32(255, 255, 0, 32), 4.0f);
+							dl->AddRect(r.Min, r.Max, IM_COL32(255, 255, 0, 160), 4.0f, 0, 2.0f);
+						}
+					}
+				}
 
-                const auto& kids = Editor::EditorScene::ChildrenOf(id);
-                bool isLeaf = kids.empty();
+				// -------- recurse if open ----------
+				if (open) {
+					if (!isLeaf) {
+						DrawLevel(id, kids, depth + 1);
+					}
+					ImGui::TreePop();
+				}
+			}
+			};
 
-                ImGuiTreeNodeFlags flags =
-                    ImGuiTreeNodeFlags_SpanAvailWidth |
-                    (isLeaf ? ImGuiTreeNodeFlags_Leaf : 0);
+		DrawLevel(NE::ECS::NO_ENTITY, childrenOf0, 0);
 
-                if (Editor::EditorScene::s_selectedEntity && ent == Editor::EditorScene::s_selectedEntity)
-                    flags |= ImGuiTreeNodeFlags_Selected;
+		if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && previewLineY >= 0.f) {
+			dl->AddLine(ImVec2(previewLineX1, previewLineY), ImVec2(previewLineX2, previewLineY), IM_COL32(255, 255, 0, 200), 2.0f);
+			dl->AddLine(ImVec2(previewLineX1, previewLineY - 3), ImVec2(previewLineX1, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
+			dl->AddLine(ImVec2(previewLineX2, previewLineY - 3), ImVec2(previewLineX2, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
+		}
 
-                // Optional: auto-open non-leaf by default
-                // if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		{
+			ImGuiWindow* win = ImGui::GetCurrentWindow();
+			const float innerTop = win->InnerRect.Min.y;
+			const float innerBot = win->InnerRect.Max.y;
+			const float mouseY = ImGui::GetIO().MousePos.y;
+			const float margin = 18.0f;
+			const float speed = 12.0f;
+			if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+				if (mouseY < innerTop + margin) ImGui::SetScrollY(ImGui::GetScrollY() - speed);
+				else if (mouseY > innerBot - margin) ImGui::SetScrollY(ImGui::GetScrollY() + speed);
+			}
+		}
 
-                bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
-                if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
-                    Editor::EditorScene::s_selectedEntity = ent;
-                    EditorScene::selectedAsset = "";
-                }
+		// --- commit on mouse release ---
+		if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			if (previewAsChild && previewParent != NE::ECS::NO_ENTITY) {
+				// adopt as child of hovered row
+				Editor::EditorScene::AttachAsChild(previewParent, draggingId, /*insertIndex*/ -1);
+			}
+			else if (previewInsert >= 0) {
+				// if target parent is roots (or any different parent), use AttachAsChild
+				Editor::EditorScene::AttachAsChild(previewParentForInsert, draggingId, previewInsert);
+				// (If you prefer the micro-optimization: detect when previewParentForInsert
+					// equals the dragged node's current parent, then call ReorderWithinSiblings)
+			}
 
-                // row rect
-                ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+			// reset
+			draggingId = NE::ECS::NO_ENTITY;
+			previewAsChild = false;
+			previewParent = NE::ECS::NO_ENTITY;
+			previewParentForInsert = NE::ECS::NO_ENTITY;
+			previewInsert = -1;
+			previewLineY = -1.f;
+		}
 
-                // DO NOT REMOVE - Needed for tween to work
-                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                {
-                    // Broadcast message
-                    NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
-                }
+		// Apply delayed selection only if user clicked without dragging
+		if (clickedThisFrame && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+				// Mouse was clicked and released without dragging - select the entity
+				Editor::EditorScene::s_selectedEntity = clickedEntity;
+				EditorScene::selectedAsset = "";
 
-                // -------- begin drag from this row ----------
-                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-                    draggingId = id;
-                    ImGui::SetDragDropPayload("HIER_DRAG_ID", &draggingId, sizeof(uint32_t));
-                    ImGui::TextUnformatted(label.c_str());
-                    ImGui::EndDragDropSource();
-                }
-
-                // -------- hover bands while dragging ----------
-                if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                    //hadDragThisFrame = true; // warning unused var - RF
-
-                    if (ImGui::IsMouseHoveringRect(r.Min, r.Max, true)) {
-                        const float h = r.Max.y - r.Min.y;
-                        const float y = ImGui::GetIO().MousePos.y;
-                        const float topBandEnd = r.Min.y + 0.25f * h;
-                        const float bottomBandBeg = r.Max.y - 0.25f * h;
-
-                        if (y < topBandEnd) {
-                            // insert above this row (same parent)
-                            previewAsChild = false;
-                            previewParent = NE::ECS::NO_ENTITY;
-                            previewParentForInsert = parent;
-                            previewInsert = i;       // before i
-                            previewLineY = r.Min.y;
-                            previewLineX1 = r.Min.x; previewLineX2 = r.Max.x;
-                        } else if (y > bottomBandBeg) {
-                            // insert below this row (same parent)
-                            previewAsChild = false;
-                            previewParent = NE::ECS::NO_ENTITY;
-                            previewParentForInsert = parent;
-                            previewInsert = i + 1;   // after i
-                            previewLineY = r.Max.y;
-                            previewLineX1 = r.Min.x; previewLineX2 = r.Max.x;
-                        } else {
-                            // adopt as child of this row
-                            previewAsChild = true;
-                            previewParent = id;
-
-                            // clear sibling-line preview
-                            previewParentForInsert = NE::ECS::NO_ENTITY;
-                            previewInsert = -1;
-                            previewLineY = -1.f;
-
-                            // highlight this row
-                            dl->AddRectFilled(r.Min, r.Max, IM_COL32(255, 255, 0, 32), 4.0f);
-                            dl->AddRect(r.Min, r.Max, IM_COL32(255, 255, 0, 160), 4.0f, 0, 2.0f);
-                        }
-                    }
-                }
-
-                // -------- recurse if open ----------
-                if (open) {
-                    if (!isLeaf) {
-                        DrawLevel(id, kids, depth + 1);
-                    }
-                    ImGui::TreePop();
-                }
-            }
-        };
-
-        DrawLevel(NE::ECS::NO_ENTITY, childrenOf0, 0);
-
-        if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && previewLineY >= 0.f) {
-            dl->AddLine(ImVec2(previewLineX1, previewLineY), ImVec2(previewLineX2, previewLineY), IM_COL32(255, 255, 0, 200), 2.0f);
-            dl->AddLine(ImVec2(previewLineX1, previewLineY - 3), ImVec2(previewLineX1, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
-            dl->AddLine(ImVec2(previewLineX2, previewLineY - 3), ImVec2(previewLineX2, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
-        }
-
-        {
-            ImGuiWindow* win = ImGui::GetCurrentWindow();
-            const float innerTop = win->InnerRect.Min.y;
-            const float innerBot = win->InnerRect.Max.y;
-            const float mouseY = ImGui::GetIO().MousePos.y;
-            const float margin = 18.0f;
-            const float speed = 12.0f;
-            if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                if (mouseY < innerTop + margin) ImGui::SetScrollY(ImGui::GetScrollY() - speed);
-                else if (mouseY > innerBot - margin) ImGui::SetScrollY(ImGui::GetScrollY() + speed);
-            }
-        }
-
-        // --- commit on mouse release ---
-        if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-            if (previewAsChild && previewParent != NE::ECS::NO_ENTITY) {
-                // adopt as child of hovered row
-                Editor::EditorScene::AttachAsChild(previewParent, draggingId, /*insertIndex*/ -1);
-            } else if (previewInsert >= 0) {
-                // if target parent is roots (or any different parent), use AttachAsChild
-                Editor::EditorScene::AttachAsChild(previewParentForInsert, draggingId, previewInsert);
-                // (If you prefer the micro-optimization: detect when previewParentForInsert
-                // equals the dragged node's current parent, then call ReorderWithinSiblings.)
-            }
-
-            // reset
-            draggingId = NE::ECS::NO_ENTITY;
-            previewAsChild = false;
-            previewParent = NE::ECS::NO_ENTITY;
-            previewParentForInsert = NE::ECS::NO_ENTITY;
-            previewInsert = -1;
-            previewLineY = -1.f;
-        }
+				clickedEntityId = NE::ECS::NO_ENTITY;
+				clickedEntity = nullptr;
+				clickedThisFrame = false;
+			}
+		}
+		else if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+			// User is dragging - cancel the pending selection
+			clickedThisFrame = false;
+		}
 
 		ImGui::End();
 	}
