@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <Graphics/Core/Material.hpp>
+#include "../../MaterialEditor.hpp"
 
 namespace Editor {
 	class InspectorPanel : public IPanel {
@@ -14,7 +15,14 @@ namespace Editor {
 		void OnImGuiRender() override;
 
 	private:
-		std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
-		std::string m_loadedPath;
+
+		void RenderTextureImportSettings();
+		void RenderMaterialSettings();
+
+		// temp implementation
+		//std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
+		//std::string m_loadedPath;
+		std::unique_ptr<MaterialEditor> m_materialEditor;
+		std::string m_lastPath;
 	};
 }

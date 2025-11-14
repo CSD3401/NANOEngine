@@ -37,10 +37,10 @@ public:
      */
     struct RaycastHit {
     bool hasHit = false;           // Did the ray hit anything?
- NE::Math::Vec3 point;          // World position where ray hit
-   NE::Math::Vec3 normal;         // Surface normal at hit point
-        float distance = 0.0f;         // Distance from ray origin to hit point
- NE::ECS::Entity entity = 0;    // Entity that was hit
+    NE::Math::Vec3 point;          // World position where ray hit
+    NE::Math::Vec3 normal;         // Surface normal at hit point
+    float distance = 0.0f;         // Distance from ray origin to hit point
+    NE::ECS::Entity entity = 0;    // Entity that was hit
     };
 
     virtual ~IScript();
@@ -75,7 +75,7 @@ public:
      * Called when script values are changed in the editor (editor-only).
   * Use this to validate or respond to inspector changes.
      */
- virtual void OnValidate() {}
+    virtual void OnValidate() {}
 
     /**
      * Called when the script is being destroyed.
@@ -281,18 +281,44 @@ public:
      */
     void Rotate(float x, float y, float z);
 
+    // === Unity-Style Transform Direction Vectors ===
+
+    /**
+     * Get the forward vector (blue axis) of the entity in world space.
+     * This vector points in the direction the entity is facing.
+     * Rotating the entity will change this direction.
+     * @return Normalized forward direction vector
+     */
+    NE::Math::Vec3 GetForward() const;
+
+    /**
+     * Get the right vector (red axis) of the entity in world space.
+     * This vector points to the right of the entity.
+     * @return Normalized right direction vector
+     */
+    NE::Math::Vec3 GetRight() const;
+
+    /**
+     * Get the up vector (green axis) of the entity in world space.
+     * This vector points upward from the entity.
+     * @return Normalized up direction vector
+     */
+    NE::Math::Vec3 GetUp() const;
+
+
+
     // === Unity-Style Rigidbody Helper Functions ===
 
     /**
- * Check if the entity has a Rigidbody component.
+    * Check if the entity has a Rigidbody component.
      * @return true if Rigidbody exists, false otherwise
      */
     bool HasRigidbody() const;
 
-  /**
-     * Get the mass of the rigidbody.
-  * @return Mass value, or 0 if no Rigidbody component
-  */
+    /**
+        * Get the mass of the rigidbody.
+    * @return Mass value, or 0 if no Rigidbody component
+    */
     float GetMass() const;
 
     /**
@@ -307,11 +333,11 @@ public:
      */
     bool GetUseGravity() const;
 
- /**
-     * Enable or disable gravity for the rigidbody.
-  * @param use Whether to use gravity
-     */
-void SetUseGravity(bool use);
+     /**
+         * Enable or disable gravity for the rigidbody.
+      * @param use Whether to use gravity
+         */
+    void SetUseGravity(bool use);
 
     /**
      * Check if the rigidbody is static.

@@ -32,7 +32,7 @@ IScript::~IScript() {
 
 void IScript::LinkToEngine(NE::ECS::ComponentManager* componentManager) {
     m_componentManager = componentManager;
-    
+
     // Initialize field registry if not already done
     if (!m_fieldRegistry) {
         m_fieldRegistry = new FieldRegistry();
@@ -45,7 +45,7 @@ std::vector<std::string> IScript::GetExposedFieldNames() const {
     if (!m_fieldRegistry) {
         return {};
     }
-    
+
     std::vector<std::string> names;
     names.reserve(m_fieldRegistry->fields.size());
     for (const auto& [name, entry] : m_fieldRegistry->fields) {
@@ -58,7 +58,7 @@ std::string IScript::GetFieldType(const std::string& name) const {
     if (!m_fieldRegistry) {
         return {};
     }
-    
+
     auto it = m_fieldRegistry->fields.find(name);
     if (it != m_fieldRegistry->fields.end()) {
         return it->second.typeToken;
@@ -70,7 +70,7 @@ std::string IScript::GetFieldValueAsString(const std::string& name) const {
     if (!m_fieldRegistry) {
         return {};
     }
-    
+
     auto it = m_fieldRegistry->fields.find(name);
     if (it != m_fieldRegistry->fields.end()) {
         return it->second.getValue();
@@ -82,7 +82,7 @@ bool IScript::SetFieldValueFromString(const std::string& name, const std::string
     if (!m_fieldRegistry) {
         return false;
     }
-    
+
     auto it = m_fieldRegistry->fields.find(name);
     if (it != m_fieldRegistry->fields.end()) {
         return it->second.setValue(value);
@@ -95,13 +95,13 @@ void IScript::RegisterFloatField(const std::string& name, float* memberPtr) {
     if (!m_fieldRegistry) {
         m_fieldRegistry = new FieldRegistry();
     }
-    
+
     FieldRegistry::FieldEntry entry;
     entry.typeToken = "float";
     entry.memberPtr = memberPtr;
     entry.getValue = [memberPtr]() -> std::string {
         return std::to_string(*memberPtr);
-    };
+        };
     entry.setValue = [memberPtr](const std::string& value) -> bool {
         try {
             *memberPtr = std::stof(value);
@@ -110,7 +110,7 @@ void IScript::RegisterFloatField(const std::string& name, float* memberPtr) {
         catch (...) {
             return false;
         }
-    };
+        };
     m_fieldRegistry->fields[name] = std::move(entry);
 }
 
@@ -119,13 +119,13 @@ void IScript::RegisterIntField(const std::string& name, int* memberPtr) {
     if (!m_fieldRegistry) {
         m_fieldRegistry = new FieldRegistry();
     }
-    
+
     FieldRegistry::FieldEntry entry;
     entry.typeToken = "int";
     entry.memberPtr = memberPtr;
     entry.getValue = [memberPtr]() -> std::string {
         return std::to_string(*memberPtr);
-    };
+        };
     entry.setValue = [memberPtr](const std::string& value) -> bool {
         try {
             *memberPtr = std::stoi(value);
@@ -134,7 +134,7 @@ void IScript::RegisterIntField(const std::string& name, int* memberPtr) {
         catch (...) {
             return false;
         }
-    };
+        };
     m_fieldRegistry->fields[name] = std::move(entry);
 }
 
@@ -143,13 +143,13 @@ void IScript::RegisterBoolField(const std::string& name, bool* memberPtr) {
     if (!m_fieldRegistry) {
         m_fieldRegistry = new FieldRegistry();
     }
-    
+
     FieldRegistry::FieldEntry entry;
     entry.typeToken = "bool";
     entry.memberPtr = memberPtr;
     entry.getValue = [memberPtr]() -> std::string {
         return *memberPtr ? "1" : "0";
-    };
+        };
     entry.setValue = [memberPtr](const std::string& value) -> bool {
         if (value == "1" || value == "true") {
             *memberPtr = true;
@@ -160,7 +160,7 @@ void IScript::RegisterBoolField(const std::string& name, bool* memberPtr) {
             return true;
         }
         return false;
-    };
+        };
     m_fieldRegistry->fields[name] = std::move(entry);
 }
 
@@ -169,13 +169,13 @@ void IScript::RegisterStringField(const std::string& name, std::string* memberPt
     if (!m_fieldRegistry) {
         m_fieldRegistry = new FieldRegistry();
     }
-    
+
     FieldRegistry::FieldEntry entry;
     entry.typeToken = "string";
     entry.memberPtr = memberPtr;
     entry.getValue = [memberPtr]() -> std::string {
         return *memberPtr;
-    };
+        };
     entry.setValue = [memberPtr](const std::string& value) -> bool {
         try {
             *memberPtr = value;
@@ -184,7 +184,7 @@ void IScript::RegisterStringField(const std::string& name, std::string* memberPt
         catch (...) {
             return false;
         }
-    };
+        };
     m_fieldRegistry->fields[name] = std::move(entry);
 }
 
@@ -193,7 +193,7 @@ void IScript::RegisterVec3Field(const std::string& name, NE::Math::Vec3* memberP
     if (!m_fieldRegistry) {
         m_fieldRegistry = new FieldRegistry();
     }
-    
+
     FieldRegistry::FieldEntry entry;
     entry.typeToken = "vec3";
     entry.memberPtr = memberPtr;
@@ -201,7 +201,7 @@ void IScript::RegisterVec3Field(const std::string& name, NE::Math::Vec3* memberP
         std::ostringstream oss;
         oss << memberPtr->x << ' ' << memberPtr->y << ' ' << memberPtr->z;
         return oss.str();
-    };
+        };
     entry.setValue = [memberPtr](const std::string& value) -> bool {
         try {
             std::istringstream iss(value);
@@ -217,83 +217,83 @@ void IScript::RegisterVec3Field(const std::string& name, NE::Math::Vec3* memberP
         catch (...) {
             return false;
         }
-    };
+        };
     m_fieldRegistry->fields[name] = std::move(entry);
 }
 
 // === Transform Helper Functions ===
 
 NE::Math::Vec3 IScript::GetPosition() const {
-    if (!m_componentManager) return NE::Math::Vec3{0, 0, 0};
-    
-  if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
-        return NE::Math::Vec3{0, 0, 0};
-    
+    if (!m_componentManager) return NE::Math::Vec3{ 0, 0, 0 };
+
+    if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
+        return NE::Math::Vec3{ 0, 0, 0 };
+
     return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).position;
 }
 
 void IScript::SetPosition(const NE::Math::Vec3& pos) {
     if (!m_componentManager) return;
-    
-  if (m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
-     auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
+
+    if (m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
+        auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
         transform.position = pos;
-      transform.isDirty = true;
+        transform.isDirty = true;
     }
 }
 
 void IScript::SetPosition(float x, float y, float z) {
-    SetPosition(NE::Math::Vec3{x, y, z});
+    SetPosition(NE::Math::Vec3{ x, y, z });
 }
 
 NE::Math::Vec3 IScript::GetRotation() const {
-    if (!m_componentManager) return NE::Math::Vec3{0, 0, 0};
-    
+    if (!m_componentManager) return NE::Math::Vec3{ 0, 0, 0 };
+
     if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
-        return NE::Math::Vec3{0, 0, 0};
-    
+        return NE::Math::Vec3{ 0, 0, 0 };
+
     return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).rotation;
 }
 
 void IScript::SetRotation(const NE::Math::Vec3& rot) {
- if (!m_componentManager) return;
-    
+    if (!m_componentManager) return;
+
     if (m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
         auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
-   transform.rotation = rot;
- transform.isDirty = true;
+        transform.rotation = rot;
+        transform.isDirty = true;
     }
 }
 
 void IScript::SetRotation(float x, float y, float z) {
-    SetRotation(NE::Math::Vec3{x, y, z});
+    SetRotation(NE::Math::Vec3{ x, y, z });
 }
 
 NE::Math::Vec3 IScript::GetScale() const {
-    if (!m_componentManager) return NE::Math::Vec3{1, 1, 1};
-    
-  if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
-      return NE::Math::Vec3{1, 1, 1};
-    
+    if (!m_componentManager) return NE::Math::Vec3{ 1, 1, 1 };
+
+    if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
+        return NE::Math::Vec3{ 1, 1, 1 };
+
     return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).scale;
 }
 
 void IScript::SetScale(const NE::Math::Vec3& scale) {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
-  auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
-     transform.scale = scale;
+        auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
+        transform.scale = scale;
         transform.isDirty = true;
     }
 }
 
 void IScript::SetScale(float x, float y, float z) {
-    SetScale(NE::Math::Vec3{x, y, z});
+    SetScale(NE::Math::Vec3{ x, y, z });
 }
 
 void IScript::SetScale(float uniformScale) {
-    SetScale(NE::Math::Vec3{uniformScale, uniformScale, uniformScale});
+    SetScale(NE::Math::Vec3{ uniformScale, uniformScale, uniformScale });
 }
 
 void IScript::Translate(const NE::Math::Vec3& translation) {
@@ -301,7 +301,7 @@ void IScript::Translate(const NE::Math::Vec3& translation) {
 }
 
 void IScript::Translate(float x, float y, float z) {
-    Translate(NE::Math::Vec3{x, y, z});
+    Translate(NE::Math::Vec3{ x, y, z });
 }
 
 void IScript::Rotate(const NE::Math::Vec3& rotation) {
@@ -309,130 +309,179 @@ void IScript::Rotate(const NE::Math::Vec3& rotation) {
 }
 
 void IScript::Rotate(float x, float y, float z) {
-    Rotate(NE::Math::Vec3{x, y, z});
+    Rotate(NE::Math::Vec3{ x, y, z });
 }
+
+// === Transform Direction Vectors ===
+
+NE::Math::Vec3 IScript::GetForward() const {
+    NE::Math::Vec3 rotation = GetRotation(); // (pitch, yaw, roll) in degrees
+
+    // Convert degrees to radians
+    float pitch = rotation.x * (3.14159265f / 180.0f);
+    float yaw = rotation.y * (3.14159265f / 180.0f);
+
+    // Calculate forward vector from Euler angles (Y-up, Z-forward, X-right)
+    NE::Math::Vec3 forward;
+    forward.x = std::cos(pitch) * std::sin(yaw);
+    forward.y = -std::sin(pitch);
+    forward.z = -std::cos(pitch) * std::cos(yaw);
+
+    // Normalize to get unit vector
+    float length = std::sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
+    if (length > 0.0001f) {
+        forward.x /= length;
+        forward.y /= length;
+        forward.z /= length;
+    }
+
+    return forward;
+}
+
+NE::Math::Vec3 IScript::GetRight() const {
+    NE::Math::Vec3 rotation = GetRotation(); // (pitch, yaw, roll) in degrees
+
+    // Convert degrees to radians
+    float yaw = rotation.y * (3.14159265f / 180.0f);
+
+    // Right vector is perpendicular to forward in XZ plane
+    NE::Math::Vec3 right;
+    right.x = std::cos(yaw);
+    right.y = 0.0f;
+    right.z = std::sin(yaw);
+
+    // Normalize
+    float length = std::sqrt(right.x * right.x + right.z * right.z);
+    if (length > 0.0001f) {
+        right.x /= length;
+        right.z /= length;
+    }
+
+    return right;
+}
+
+NE::Math::Vec3 IScript::GetUp() const {
+    // Up is always world up in this simple implementation
+    // For more complex scenarios, you might want to calculate it from forward and right
+    return NE::Math::Vec3{ 0.0f, 1.0f, 0.0f };
+}
+
+
 
 // === Rigidbody Helper Functions ===
 
 bool IScript::HasRigidbody() const {
-    if (!m_componentManager) return false;
-    return m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity);
+    // Check if entity has a physics body registered with PhysicsManager
+    return NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity);
 }
 
 float IScript::GetMass() const {
     if (!m_componentManager) return 0.0f;
-    
+
     if (!m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity))
         return 0.0f;
-    
- return m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity).mass;
+
+    return m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity).mass;
 }
 
 void IScript::SetMass(float mass) {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
- auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+        auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
         rigidbody.mass = mass;
     }
 }
 
 bool IScript::GetUseGravity() const {
     if (!m_componentManager) return false;
-    
+
     if (!m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity))
         return false;
-    
+
     return m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity).useGravity;
 }
 
 void IScript::SetUseGravity(bool use) {
-    if (!m_componentManager) return;
-    
-    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-     auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-    rigidbody.useGravity = use;
-    NE::Physics::PhysicsManager::SetGravityEnabled(rigidbody.bodyID, use);
+    if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
 
+    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+    NE::Physics::PhysicsManager::SetGravityEnabled(bodyID, use);
+
+    // Also update Rigidbody component if it exists
+    if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+        auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+        rigidbody.useGravity = use;
     }
 }
 
 bool IScript::IsStatic() const {
     if (!m_componentManager) return false;
-    
+
     if (!m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity))
         return false;
-    
+
     return m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity).isStatic;
 }
 
 void IScript::SetStatic(bool isStatic) {
     if (!m_componentManager) return;
-  
-  if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-  auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
+
+    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
+        auto& rigidbody = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
         rigidbody.isStatic = isStatic;
-  }
+    }
 }
 
 void IScript::LockRotation(bool lockX, bool lockY, bool lockZ) {
-    if (!m_componentManager) return;
-    
-    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-        auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-        NE::Physics::PhysicsManager::LockRotation(rb.bodyID, lockX, lockY, lockZ);
-    }
+    if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+
+    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+    NE::Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);
 }
 
 // === Velocity and Force Methods ===
 
 NE::Math::Vec3 IScript::GetVelocity() const {
-    if (!m_componentManager) return NE::Math::Vec3{0, 0, 0};
-    
-    if (!m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity))
-        return NE::Math::Vec3{0, 0, 0};
-    
-    const auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-    return NE::Physics::PhysicsManager::GetLinearVelocity(rb.bodyID);
+    if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
+        return NE::Math::Vec3{ 0, 0, 0 };
+    }
+
+    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+    return NE::Physics::PhysicsManager::GetLinearVelocity(bodyID);
 }
 
 void IScript::SetVelocity(const NE::Math::Vec3& velocity) {
-    if (!m_componentManager) return;
-    
-    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-       auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-      NE::Physics::PhysicsManager::SetLinearVelocity(rb.bodyID, velocity);
-    }
+    if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+
+    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+    NE::Physics::PhysicsManager::SetLinearVelocity(bodyID, velocity);
 }
 
 void IScript::SetVelocity(float x, float y, float z) {
-    SetVelocity(NE::Math::Vec3{x, y, z});
+    SetVelocity(NE::Math::Vec3{ x, y, z });
 }
 
 void IScript::AddForce(const NE::Math::Vec3& force) {
-    if (!m_componentManager) return;
- 
-    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-        auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-       NE::Physics::PhysicsManager::AddForce(rb.bodyID, force);
-    }
+    if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+
+    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+    NE::Physics::PhysicsManager::AddForce(bodyID, force);
 }
 
 void IScript::AddForce(float x, float y, float z) {
-    AddForce(NE::Math::Vec3{x, y, z});
+    AddForce(NE::Math::Vec3{ x, y, z });
 }
 
 void IScript::AddImpulse(const NE::Math::Vec3& impulse) {
-    if (!m_componentManager) return;
-    
-    if (m_componentManager->HasComponent<NE::ECS::Component::Rigidbody>(m_entity)) {
-    auto& rb = m_componentManager->GetComponent<NE::ECS::Component::Rigidbody>(m_entity);
-   NE::Physics::PhysicsManager::AddImpulse(rb.bodyID, impulse);
-    }
+    if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+
+    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+    NE::Physics::PhysicsManager::AddImpulse(bodyID, impulse);
 }
 
 void IScript::AddImpulse(float x, float y, float z) {
-    AddImpulse(NE::Math::Vec3{x, y, z});
+    AddImpulse(NE::Math::Vec3{ x, y, z });
 }
 
 // === Physics Raycasting Methods ===
@@ -501,15 +550,15 @@ bool IScript::HasAudioSource() const {
 
 void IScript::PlayAudio() {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity)) {
-auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
-        
+        auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
+
         // If already playing and not paused, stop first
-  if (audioSource.m_channel && audioSource.isPlaying && !audioSource.isPaused) {
-     audioSource.m_channel->stop();
-     }
-        
+        if (audioSource.m_channel && audioSource.isPlaying && !audioSource.isPaused) {
+            audioSource.m_channel->stop();
+        }
+
         // Reset state - AudioSystem will handle actual playback
         audioSource.isPlaying = true;
         audioSource.isPaused = false;
@@ -519,40 +568,40 @@ auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSo
 
 void IScript::StopAudio() {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity)) {
         auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
-        
+
         if (audioSource.m_channel) {
-       audioSource.m_channel->stop();
- }
-        
+            audioSource.m_channel->stop();
+        }
+
         audioSource.isPlaying = false;
-   audioSource.isPaused = false;
+        audioSource.isPaused = false;
     }
 }
 
 void IScript::PauseAudio() {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity)) {
         auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
-        
+
         if (audioSource.m_channel && audioSource.isPlaying) {
-      audioSource.m_channel->setPaused(true);
+            audioSource.m_channel->setPaused(true);
             audioSource.isPaused = true;
         }
     }
 }
 
 void IScript::ResumeAudio() {
- if (!m_componentManager) return;
-    
+    if (!m_componentManager) return;
+
     if (m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity)) {
         auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
-   
+
         if (audioSource.m_channel && audioSource.isPaused) {
-      audioSource.m_channel->setPaused(false);
+            audioSource.m_channel->setPaused(false);
             audioSource.isPaused = false;
         }
     }
@@ -560,65 +609,65 @@ void IScript::ResumeAudio() {
 
 bool IScript::IsAudioPlaying() const {
     if (!m_componentManager) return false;
-    
-  if (!m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity))
-  return false;
-    
+
+    if (!m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity))
+        return false;
+
     const auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
     return audioSource.isPlaying && !audioSource.isPaused;
 }
 
 float IScript::GetVolume() const {
     if (!m_componentManager) return 0.0f;
-  
+
     if (!m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity))
         return 0.0f;
-    
+
     return m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity).volume;
 }
 
 void IScript::SetVolume(float volume) {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity)) {
         auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
-      audioSource.volume = volume;
-        
-     // Apply immediately if playing
+        audioSource.volume = volume;
+
+        // Apply immediately if playing
         if (audioSource.m_channel) {
-     audioSource.m_channel->setVolume(volume);
-}
+            audioSource.m_channel->setVolume(volume);
+        }
     }
 }
 
 float IScript::GetPitch() const {
     if (!m_componentManager) return 1.0f;
-  
+
     if (!m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity))
-    return 1.0f;
-    
+        return 1.0f;
+
     return m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity).pitch;
 }
 
 void IScript::SetPitch(float pitch) {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity)) {
         auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
-     audioSource.pitch = pitch;
-        
+        audioSource.pitch = pitch;
+
         // Apply immediately if playing
-     if (audioSource.m_channel) {
-        audioSource.m_channel->setPitch(pitch);
-  }
+        if (audioSource.m_channel) {
+            audioSource.m_channel->setPitch(pitch);
+        }
     }
 }
 
 void IScript::SetAudioLoop(bool loop) {
     if (!m_componentManager) return;
-    
+
     if (m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity)) {
-     auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
-     audioSource.loop = loop;
+        auto& audioSource = m_componentManager->GetComponent<NE::ECS::Component::AudioSource>(m_entity);
+        audioSource.loop = loop;
     }
 }

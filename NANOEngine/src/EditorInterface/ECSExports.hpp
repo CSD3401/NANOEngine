@@ -18,6 +18,7 @@ namespace NE::ECS {
 		struct EntityMeta;
 		struct AudioSource;
 		struct NativeScript;
+		struct Animator;
 		struct Camera;
 		struct PhysicsBody;
 	}
@@ -38,6 +39,9 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::Collider& GetEntityCollider(uint32_t e);
 		NANOENGINE_API const Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API const Component::NativeScript& GetEntityScript(uint32_t e);
+
+		NANOENGINE_API bool HasAnimator(uint32_t e);                       // <-- ADD
+		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
 	}
 
@@ -69,6 +73,9 @@ namespace NE::ECS {
 		NANOENGINE_API bool SetEntityScript(uint32_t e, const std::string& scriptName);
 		NANOENGINE_API void RemoveEntityScript(uint32_t e);
 		NANOENGINE_API bool IsScriptRegistered(const std::string& scriptName);
+
+		NANOENGINE_API void AddAnimatorComponent(uint32_t e);              // <-- ADD
+		NANOENGINE_API Component::Animator& GetEntityAnimator(uint32_t e);
 	}
 
 }

@@ -26,7 +26,7 @@ void CoroutineManager::AddWait(CoroutineHandle handle, float seconds)
     m_coroutines[handle].steps.push_back(step);
 }
 
-void CoroutineManager::Start(CoroutineHandle handle)
+void CoroutineManager::Start(CoroutineHandle /*handle*/)
 {
     // No-op for now, coroutines begin automatically during update
 }

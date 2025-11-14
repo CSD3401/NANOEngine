@@ -6,6 +6,8 @@
 #include <vector>
 #include <Windows.h>
 #include <mutex>
+#include <FileWatch.hpp>
+#include "ECS/Components/NativeScript.hpp"
 
 // Forward declarations
 class IScript;
@@ -39,8 +41,12 @@ namespace NE::Scripting {
         };
 
     public:
-        ScriptingEngine();
-        ~ScriptingEngine();
+
+
+        static ScriptingEngine& GetInstance() {
+            static ScriptingEngine se;
+            return se;
+        }
 
         // === IScriptRegistrar interface implementation ===
         void RegisterScript(const std::string& name, std::function<IScript* ()> factory) override;
@@ -152,7 +158,21 @@ namespace NE::Scripting {
      */
         std::function<IScript* ()> GetScriptFactory(const std::string& name) const;
 
+
+        // Thread-safe flag to request a compile
+        std::atomic<bool> m_compileQueued = false;
+
+        void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
+
+        void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
+        void HandleFileWatchEvent(const std::string& path, const filewatch::Event eventType);
+        void HotCompileAndReload();
+        void HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath);
+        void OnScriptComponentDestroyed(NE::ECS::Entity entity);
     private:
+        ScriptingEngine();
+        ~ScriptingEngine() = default;
+
         // Script registration storage
         std::unordered_map<std::string, std::function<IScript* ()>> m_scriptFactories;
 
@@ -176,7 +196,6 @@ namespace NE::Scripting {
         bool ValidateDLLPath(const std::string& path) const;
         LoadedDLL* FindLoadedDLL(const std::string& dllName);
         const LoadedDLL* FindLoadedDLL(const std::string& dllName) const;
-
         // Error handling
         void SetLastError(const std::string& error);
         std::string GetSystemError() const;
@@ -184,6 +203,18 @@ namespace NE::Scripting {
         // Internal DLL operations
         bool LoadSingleDLL(const std::string& dllPath);
         bool UnloadSingleDLL(LoadedDLL& dll);
+
+        // Hot Reloading
+        std::unique_ptr<filewatch::FileWatch<std::string>> m_sourceWatcher;
+        std::string m_scriptDLLPath;           // Path to the final DLL (e.g., "GameCode.dll")
+        std::string m_scriptSourceDirectory;   // Path to watch for .cpp/hpp (e.g., "../GameCode/src")
+        std::string m_scriptBuildCommand;      // The command to run (e.g., "build_scripts.bat")
+
+        // Counter to create unique filenames for hot-reloading
+        int m_hotReloadCounter = 0;
+        std::string m_currentLoadedDLLPath; // The path to the DLL *actually* loaded
+
+
     };
 
 } // namespace NE::Scripting

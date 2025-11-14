@@ -11,7 +11,9 @@ namespace NE::ECS::Systems {
     class ColliderSystem; 
     class AudioSystem;
 	class ScriptSystem;
+    class AnimatorSystem;
 	class CameraSystem;
+    class PhysicsSystem;
 }
 
 namespace NE::ECS {
@@ -103,7 +105,9 @@ namespace NE::ECS {
         std::shared_ptr<Systems::RigidbodySystem> m_rigidbodySystem;
         std::shared_ptr<Systems::ColliderSystem> m_colliderSystem;
         std::shared_ptr<Systems::AudioSystem> m_audioSystem;
+        std::shared_ptr<Systems::PhysicsSystem> m_physicsSystem;
 		std::shared_ptr<Systems::ScriptSystem> m_scriptSystem;
+        std::shared_ptr<Systems::AnimatorSystem> m_animatorSystem;
         std::shared_ptr<Systems::CameraSystem> m_cameraSystem;
 
     private:

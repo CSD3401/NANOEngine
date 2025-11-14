@@ -8,6 +8,8 @@
 #include <ECS/Core/Entity.hpp>
 #include <Engine.hpp>
 #include <imgui/imgui_internal.h>
+#include <EditorInterface/ECSExports.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
@@ -17,7 +19,6 @@ namespace Editor {
         for (unsigned int i = 0; i < numEntt; ++i) {
             EditorScene::s_entities.push_back(EditorEntity{ i });
         }
-
 	}
 
 	void HierarchyPanel::OnImGuiRender()
@@ -53,7 +54,7 @@ namespace Editor {
 
             }
             if (ImGui::MenuItem("Delete", "Del", false, EditorScene::s_selectedEntity)) {
-
+                NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Select All", "", false, false)) {
@@ -81,7 +82,7 @@ namespace Editor {
             if (ImGui::MenuItem("Create Entity")) {
                 NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
                 //NE::
-                Editor::EditorScene::BuildFlatHierarchy();
+                //Editor::EditorScene::BuildFlatHierarchy();
                 // need to add into display list also currently creates but not shown in hierarchy
             }
             if (ImGui::BeginMenu("3D Object")) { // Creates a submenu with an arrow
@@ -150,7 +151,13 @@ namespace Editor {
                 // -------- label & selection ----------
                 Editor::EditorEntity* ent = nullptr;
                 for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } }
-                std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
+                //std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
+
+                std::string entityName;
+                const auto& meta = NE::ECS::Query::GetEntityMeta(id);
+                entityName = !meta.name.empty() ? meta.name : "Entity";
+
+                std::string label = entityName + "##" + std::to_string(id);
 
                 const auto& kids = Editor::EditorScene::ChildrenOf(id);
                 bool isLeaf = kids.empty();
@@ -168,7 +175,7 @@ namespace Editor {
                 bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
                     Editor::EditorScene::s_selectedEntity = ent;
-                    EditorScene::selectedMaterial = "";
+                    EditorScene::selectedAsset = "";
                 }
 
                 // row rect

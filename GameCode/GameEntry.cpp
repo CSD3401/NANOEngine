@@ -14,6 +14,9 @@
 #include "Scripts/TestScript.hpp"
 #include "Scripts/PhysicsPlayerController.hpp"
 #include "Scripts/TextureSwitch.hpp"
+#include "Scripts/LightSwitch.hpp"
+#include "Scripts/PlayerCamera.hpp"
+#include "Scripts/Gears.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -43,6 +46,18 @@ extern "C" {
 
         registrar->RegisterScript("TextureSwitch", []() -> IScript* {
             return new TextureSwitch();
+            });
+
+        registrar->RegisterScript("LightSwitch", []() -> IScript* {
+            return new LightSwitch();
+            });
+
+        registrar->RegisterScript("PlayerCamera", []() -> IScript* {
+            return new PlayerCamera();
+            });
+
+        registrar->RegisterScript("Gears", []() -> IScript* {
+            return new Gears();
             });
        
     }

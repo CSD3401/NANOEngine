@@ -34,6 +34,14 @@ namespace NE::Graphics::OpenGL {
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, TexCoord));
 
+        // Bone IDs (location = 3) - integer attribute
+        glEnableVertexAttribArray(3);
+        glVertexAttribIPointer(3, 4, GL_INT, stride, (void*)offsetof(Vertex, BoneIDs));
+
+        // Bone Weights (location = 4)
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, Weights));
+
         glBindVertexArray(0);
     }
 

@@ -16,18 +16,26 @@ namespace NE::Asset
 		Unload();
 	}
 
+	bool AudioBank::Preload(Resource::BinaryView blob) {
+		return false;
+	}
+
+	void AudioBank::Finalize()
+	{
+	}
+
 	/*
 	Actual FMOD bank loading happens in AudioSystem
 	This class jus tracks AudioBank asset metadata
 	FMOD bank pointer will be set by AudioSystem after loading
 	*/
-	bool AudioBank::LoadFromFile(const std::string& filename)
-	{
-		filePath = filename;
-		displayName = std::filesystem::path(filename).stem().string();
-		m_loaded = true;
-		return true;
-	}
+	//bool AudioBank::LoadFromFile(const std::string& filename)
+	//{
+	//	filePath = filename;
+	//	displayName = std::filesystem::path(filename).stem().string();
+	//	m_loaded = true;
+	//	return true;
+	//}
 
 
 	/*
@@ -45,10 +53,14 @@ namespace NE::Asset
 		m_events.clear();
 	}
 
+
+
 	std::string AudioBank::GetDisplayName() const
 	{
-		return displayName.empty() ? std::filesystem::path(filePath).stem().string() : displayName;
+		//return displayName.empty() ? std::filesystem::path(filePath).stem().string() : displayName;
+		return std::string();
 	}
+
 	void AudioBank::ExtractEvents(FMOD::Studio::System* /*studioSystem*/)
 	{
 		m_events.clear();

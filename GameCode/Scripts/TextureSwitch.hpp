@@ -11,12 +11,12 @@ void TextureSwitchActivate(int entity) {
     
     CoroutineHandle h = Engine_CreateCoroutine();
 
-    NE::Renderer::Command::AssignMaterial(entity, "Assets/Unlit.nanomat");
+    //NE::Renderer::Command::AssignMaterial(entity, "Assets/Unlit.nanomat");
 
     // Wait defined seconds
     Engine_AddWaitForSeconds(h, 5.f);
 
-    Engine_AddAction(h, [entity]() {NE::Renderer::Command::AssignMaterial(entity, "Assets/Basic.nanomat"); });
+    //Engine_AddAction(h, [entity]() {NE::Renderer::Command::AssignMaterial(entity, "Assets/Basic.nanomat"); });
 
     Engine_StartCoroutine(h);
 
@@ -37,13 +37,21 @@ public:
     void Initialize(NE::ECS::Entity entity) override {
 
 
-        NANOEngine::Events::RegisterScriptEventListener("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
+        //NANOEngine::Events::RegisterScriptEventListener("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
+        
+        if (NE::InputManager::WasKeyPressed('E')) {
+            if (!switched) {
+                //NE::Renderer::Command::AssignMaterial(GetEntity(), "Assets/Floor.nanomat");
+            } else {
+//NE::Renderer::Command::AssignMaterial(GetEntity(), "Assets/FloorPast.nanomat");
+            }
 
-
+            switched = !switched;
+        }
         
     }
 
@@ -66,4 +74,6 @@ private:
     // These will automatically appear in the editor inspector
     bool isActive = true;
     std::string objectName = "TestObject";
+
+    bool switched = false;
 };
