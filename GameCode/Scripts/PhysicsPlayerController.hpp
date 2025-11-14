@@ -442,22 +442,44 @@ private:
 
 	void HandleMovementAndGravity(NE::Math::Vec3& velocity, double deltaTime,
 		bool attemptingJump, bool isGrounded) {
+		
+		auto camTransform = GetTransform(7);
+		//NE::Math::Vec3 camForward = camTransform.GetForward();  // or Normalize manually
+		//NE::Math::Vec3 camRight = camTransform.GetRight();
+		float yaw = camTransform.rotation.y * 0.017453292519943295f; // deg→rad
+
+		NE::Math::Vec3 camForward{
+			sinf(yaw),
+			0.0f,
+			-cosf(yaw)
+		};
+		camForward = camForward.Normalized();
+
+		NE::Math::Vec3 camRight{
+			camForward.z,
+			0.0f,
+			-camForward.x
+		};
 
 		// Get input for all 4 directions
 		NE::Math::Vec3 inputDirection{ 0, 0, 0 };
 
-		if (NE::InputManager::IsKeyDown('W')) {
-			inputDirection.z -= 1.0f;
-		}
-		if (NE::InputManager::IsKeyDown('S')) {
-			inputDirection.z += 1.0f;
-		}
-		if (NE::InputManager::IsKeyDown('A')) {
-			inputDirection.x -= 1.0f;
-		}
-		if (NE::InputManager::IsKeyDown('D')) {
-			inputDirection.x += 1.0f;
-		}
+		//if (NE::InputManager::IsKeyDown('W')) {
+		//	inputDirection.z -= 1.0f;
+		//}
+		//if (NE::InputManager::IsKeyDown('S')) {
+		//	inputDirection.z += 1.0f;
+		//}
+		//if (NE::InputManager::IsKeyDown('A')) {
+		//	inputDirection.x -= 1.0f;
+		//}
+		//if (NE::InputManager::IsKeyDown('D')) {
+		//	inputDirection.x += 1.0f;
+		//}
+		if (NE::InputManager::IsKeyDown('W')) inputDirection += camForward;
+		if (NE::InputManager::IsKeyDown('S')) inputDirection -= camForward;
+		if (NE::InputManager::IsKeyDown('A')) inputDirection += camRight;
+		if (NE::InputManager::IsKeyDown('D')) inputDirection -= camRight;
 
 		// Normalize diagonal movement
 		float inputMagnitude = std::sqrt(
@@ -557,7 +579,7 @@ private:
 	// Movement parameters
 	float moveSpeed = 5.0f;
 	float jumpForce = 400.0f;
-	float manualGravity = -9.81f;
+	float manualGravity = -18.81f;
 	float frictionCoefficient = 20.0f;
 	float maxSlopeAngle = 45.0f;
 

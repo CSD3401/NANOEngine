@@ -104,11 +104,11 @@ namespace Editor {
 		editorLayer.AddPanel<GamePanel>(NE::GetGameFrameBuffer());
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
-		editorLayer.AddPanel<ProfilerPanel>();
+		//editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
-		editorLayer.AddPanel<AnimationPanel>();		
-		editorLayer.AddPanel<AnimatorRuntimePanel>();
-		editorLayer.AddPanel<AnimatorGraphPanel>();
+		//editorLayer.AddPanel<AnimationPanel>();
+		//editorLayer.AddPanel<AnimatorRuntimePanel>();
+		//editorLayer.AddPanel<AnimatorGraphPanel>();
 
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
@@ -128,12 +128,7 @@ namespace Editor {
 			glfwPollEvents();
 
 			NE::Run(timer.GetDeltaTime());
-			//LOG_INFO(timer.GetFPS());
-			
-			//SPD_INFO(timer.GetFPS());
-			if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-				SPD_INFO(timer.GetFPS());
-			}
+
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();

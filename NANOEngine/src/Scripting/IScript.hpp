@@ -17,6 +17,10 @@ namespace NE::ECS {
     using Entity = unsigned int;
 }
 
+namespace NE::ECS::Component {
+    struct Transform;
+}
+
 //namespace NE::Math {
 //    struct Vec3;
 //}
@@ -280,6 +284,8 @@ public:
      * @param z Z rotation
      */
     void Rotate(float x, float y, float z);
+
+    NE::ECS::Component::Transform& GetTransform(NE::ECS::Entity entt);
 
     // === Unity-Style Transform Direction Vectors ===
 

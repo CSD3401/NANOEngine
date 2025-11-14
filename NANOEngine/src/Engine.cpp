@@ -25,6 +25,7 @@
 #include "Graphics/OpenGL/GLTexture.hpp"
 #include "Audio/AudioBank.hpp"
 #include "Scripting/ScriptingEngine.hpp"
+#include <glfw/glfw3.h>
 
 namespace {
 
@@ -128,6 +129,10 @@ namespace NE {
 		Graphics::GraphicsManager::BeginFrame();
 		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE_PICKING);
 		Graphics::GraphicsManager::EndFrame();
+
+		if (InputManager::WasKeyPressed('L')) {
+			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		}
 
 		//s_renderContext->SwapBuffers();
 	}
@@ -250,6 +255,7 @@ namespace NE {
 		NE::Physics::PhysicsManager::ClearAllBodies();
 		gSceneManager.BeginPlay();
 		Physics::PhysicsManager::ActivateBodies();
+		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 
 	void EditorPause() {

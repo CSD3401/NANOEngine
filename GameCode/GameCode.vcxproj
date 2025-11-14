@@ -175,6 +175,8 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Scripts\Gears.hpp" />
+    <ClInclude Include="Scripts\k1bswitch.hpp" />
+    <ClInclude Include="Scripts\k2bswitch.hpp" />
     <ClInclude Include="Scripts\LightSwitch.hpp" />
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerCamera.hpp" />

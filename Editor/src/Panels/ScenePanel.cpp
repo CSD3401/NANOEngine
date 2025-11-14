@@ -30,7 +30,7 @@ namespace Editor {
 		float fovYRadians = 45.0f * (NE::Math::PI / 180.0f); // 45 degrees fov
 		float aspectRatio = 1920.f / 1080.f;
 		float nearPlane = 0.1f;
-		float farPlane = 100.0f;
+		float farPlane = 1000.0f;
 
 		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
 		m_editorCamera.SetPosition(position);
