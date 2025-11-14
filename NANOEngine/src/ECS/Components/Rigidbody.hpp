@@ -14,6 +14,8 @@ namespace NE::ECS::Component {
 
 		// temp
 		bool isStatic = false;
+		bool constrainX = false;
+		bool constrainY = false;
 
 		Math::Vec3 initialVelocity{ 0.f, 0.f, 0.f };
 
@@ -22,6 +24,8 @@ namespace NE::ECS::Component {
 			NE_REFLECT_FIELD(motionType),
 			NE_REFLECT_FIELD(useGravity),
 			NE_REFLECT_FIELD(isStatic),
+			NE_REFLECT_FIELD(constrainX),
+			NE_REFLECT_FIELD(constrainY),
 			NE_REFLECT_FIELD(initialVelocity)
 		NE_REFLECT_END()
 	};
