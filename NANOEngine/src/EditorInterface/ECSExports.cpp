@@ -13,7 +13,7 @@
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
-#include "Utility/LUIDGenerator.hpp"
+#include "Core/LUIDGenerator.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -82,11 +82,11 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
-				Component::EntityMeta{ "Unnamed Entity", Utility::LUIDGenerator::Generate("en")});
+				Component::EntityMeta{ "Unnamed Entity", Core::LUIDGenerator::Generate("en")});
 
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
-				Component::Transform{ .luid = Utility::LUIDGenerator::Generate("tr") });
+				Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
 
 			return newEntity;
 		}
@@ -96,15 +96,15 @@ namespace NE::ECS {
 		}
 
 		void AddLightComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{ .luid = Utility::LUIDGenerator::Generate("tr") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{ .luid = Core::LUIDGenerator::Generate("tr") });
 		}
 
 		void AddRendererComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{ .luid = Utility::LUIDGenerator::Generate("re") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{ .luid = Core::LUIDGenerator::Generate("re") });
 		}
 
 		void AddRigidbodyComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{ .luid = Utility::LUIDGenerator::Generate("ri") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{ .luid = Core::LUIDGenerator::Generate("ri") });
 		}
 
 		void AddColliderComponent(uint32_t e) {
@@ -116,11 +116,11 @@ namespace NE::ECS {
 		}
 
 		void AddScriptComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{ .luid = Utility::LUIDGenerator::Generate("sc") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{ .luid = Core::LUIDGenerator::Generate("sc") });
 		}
 
 		void AddCameraComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Utility::LUIDGenerator::Generate("ca") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Core::LUIDGenerator::Generate("ca") });
 		}
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {

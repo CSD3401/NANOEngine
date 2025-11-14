@@ -1,6 +1,6 @@
 #include "LUIDGenerator.hpp"
 
-namespace NE::Utility {
+namespace NE::Core {
 
 	std::atomic<uint64_t> LUIDGenerator::counter = 0;
 

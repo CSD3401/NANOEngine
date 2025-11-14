@@ -5,7 +5,7 @@
 #include <chrono>
 #include <atomic>
 
-namespace NE::Utility {
+namespace NE::Core {
 
 	class LUIDGenerator {
 	public:
