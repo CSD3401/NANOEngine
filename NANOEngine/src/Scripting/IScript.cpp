@@ -312,6 +312,10 @@ void IScript::Rotate(float x, float y, float z) {
     Rotate(NE::Math::Vec3{ x, y, z });
 }
 
+Component::Transform& IScript::GetTransform(Entity entt) {
+    return m_componentManager->GetComponent<NE::ECS::Component::Transform>(entt);
+}
+
 // === Transform Direction Vectors ===
 
 NE::Math::Vec3 IScript::GetForward() const {

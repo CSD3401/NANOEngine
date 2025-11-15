@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include "AssetMetadata.hpp"
+#include "Settings/TextureImportSettings.hpp"
 
 namespace Editor {
 
@@ -35,7 +36,7 @@ namespace Editor {
 		AssetType GetAssetTypeFromExtension(std::string_view);
 
 		bool ImportTexture();
-		bool CookTexture(const std::string& sourcePath, const std::string& outPath);
+		bool CookTexture(const std::string& sourcePath, const std::string& outPath, const TextureImportSettings& settings);
 		bool CookShader(const std::string& sourcePath, const std::string& outPath);
 		bool CookMaterial(const std::string& sourcePath, const std::string& outPath);
 		bool CookMesh(const std::string& sourcePath, const std::string& outPath);

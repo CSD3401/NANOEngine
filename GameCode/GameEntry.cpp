@@ -17,6 +17,8 @@
 #include "Scripts/LightSwitch.hpp"
 #include "Scripts/PlayerCamera.hpp"
 #include "Scripts/Gears.hpp"
+#include "Scripts/k1bswitch.hpp"
+#include "Scripts/k2bswitch.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -58,6 +60,14 @@ extern "C" {
 
         registrar->RegisterScript("Gears", []() -> IScript* {
             return new Gears();
+            });
+
+        registrar->RegisterScript("k1bswitch", []() -> IScript* {
+            return new k1bswitch();
+            });
+
+        registrar->RegisterScript("k2bswitch", []() -> IScript* {
+            return new k2bswitch();
             });
        
     }

@@ -302,10 +302,36 @@ namespace Editor {
 
                 if (ImGui::InputText("##RenameInput", m_renameBuffer, sizeof(m_renameBuffer),
                     ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
-                    
-                    std::filesystem::path newPath = entry.path().parent_path() / m_renameBuffer;
                     std::error_code ec;
-                    std::filesystem::rename(entry.path(), newPath, ec);
+
+                    // Old/new asset paths
+                    std::filesystem::path oldAssetPath = entry.path();
+                    std::filesystem::path newAssetPath = oldAssetPath.parent_path() / m_renameBuffer;
+
+                    // 1) Rename the main asset
+                    std::filesystem::rename(oldAssetPath, newAssetPath, ec);
+                    if (ec) {
+                        // TODO: log error somewhere if you have logging
+                        m_isRenaming = false;
+                        return;
+                    }
+
+                    // 2) Rename the .meta sidecar if it exists
+                    std::filesystem::path oldMetaPath = oldAssetPath;
+                    oldMetaPath += ".meta";               // e.g. "MyTex.png" -> "MyTex.png.meta"
+
+                    if (std::filesystem::exists(oldMetaPath)) {
+                        std::filesystem::path newMetaPath = newAssetPath;
+                        newMetaPath += ".meta";           // e.g. "NewName.png" -> "NewName.png.meta"
+
+                        std::filesystem::rename(oldMetaPath, newMetaPath, ec);
+                        // Optional: handle ec here if you care
+                    }
+
+                    // Keep selection pointing at the new asset path (optional but nice)
+                    m_selectedPath = newAssetPath;
+                    m_renamingPath = newAssetPath;
+
                     m_isRenaming = false;
                 }
 
@@ -352,7 +378,7 @@ namespace Editor {
                     CreateNewFolder();
                 }
                 if (ImGui::MenuItem("Material")) {
-                    //CreateNewFolder();
+                    CreateNewMaterial();
                 }
                 if (ImGui::MenuItem("Script", "", false, false)) {
                     //CreateNewFolder();
@@ -492,6 +518,7 @@ namespace Editor {
             out.close();
         }
 
+        AssetManager::GetInstance().GenerateMetadata(matPath.string());
     }
     
 }

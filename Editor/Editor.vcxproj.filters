@@ -266,6 +266,9 @@
     <ClInclude Include="src\Panels\AnimationGraphPanel.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\IAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Editor.rc">

@@ -57,8 +57,8 @@ namespace {
         return true;
     }
 
-    enum class TexShape : uint8_t { D2 = 0, Cube = 1, D3 = 2, D2Array = 3 };
-    enum class TexFormat : uint8_t { BC7_UNORM = 0, BC7_UNORM_SRGB = 1 };
+    //enum class TexShape : uint8_t { D2 = 0, Cube = 1, D3 = 2, D2Array = 3 };
+    enum class TexFormat : uint8_t { BC7_UNORM = 0, BC7_UNORM_SRGB = 1, BC5_UNORM = 2 };
 
     // rgba8 to bc7
     static CMP_ERROR CompressRGBA8ToBC7(const uint8_t* rgba8, uint32_t w, uint32_t h,
@@ -98,9 +98,46 @@ namespace {
         return err;
     }
 
+    static CMP_ERROR CompressRGBA8ToBC5(const uint8_t* rgba8, uint32_t w, uint32_t h,
+        float quality, uint32_t threads,
+        std::vector<uint8_t>& outBC5)
+    {
+        CMP_Texture src{};
+        src.dwSize = sizeof(src);
+        src.dwWidth = w;
+        src.dwHeight = h;
+        src.dwPitch = 0;
+        src.format = CMP_FORMAT_RGBA_8888;
+        src.dwDataSize = w * h * 4;
+        src.pData = (CMP_BYTE*)rgba8;
+
+        CMP_Texture dst{};
+        dst.dwSize = sizeof(dst);
+        dst.dwWidth = w;
+        dst.dwHeight = h;
+        dst.dwPitch = 0;
+        dst.format = CMP_FORMAT_BC5;
+        dst.dwDataSize = CMP_CalculateBufferSize(&dst);
+        dst.pData = (CMP_BYTE*)std::malloc(dst.dwDataSize);
+        if (!dst.pData) return CMP_ERR_MEM_ALLOC_FOR_MIPSET;
+
+        CMP_CompressOptions opts{};
+        opts.dwSize = sizeof(opts);
+        opts.fquality = quality;
+        opts.dwnumThreads = threads;
+
+        CMP_ERROR err = CMP_ConvertTexture(&src, &dst, &opts, &Progress);
+        if (err == CMP_OK) {
+            outBC5.assign(dst.pData, dst.pData + dst.dwDataSize);
+        }
+
+        std::free(dst.pData);
+        return err;
+    }
+
     static bool WriteNanoTex(const std::string& outPath,
         uint32_t w, uint32_t h,
-        bool isSRGB, TexShape shape, TexFormat fmt,
+        bool isSRGB, Editor::TexShape shape, TexFormat fmt,
         uint16_t mipCount, uint16_t layers,
         const std::vector<uint8_t>& payload)
     {
@@ -272,8 +309,11 @@ namespace Editor {
 			ofs << "assetType: Texture\n"
 				<< "sourcePath: " << sourcePath << '\n';
             
-            CookTexture(sourcePath, outPath);
+            CookTexture(sourcePath, outPath, TextureImportSettings{});
             GetAssetsOfType<AssetType::Texture>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
+
+            ofs << "TextureImporterVersion: 1\n"; // hardcoded for now
+
 			break;
 		}
 		case AssetType::Mesh: {
@@ -325,6 +365,7 @@ namespace Editor {
         AssetMetadata metadata{};
         metadata.sourcePath = sourcePath;
 
+        TextureImportSettings texSettings{};
         if (std::filesystem::exists(metaPath)) {
             std::ifstream ifs(metaPath);
 
@@ -340,6 +381,14 @@ namespace Editor {
                 } else if (line.starts_with("sourcePath:")) {
                     metadata.sourcePath = line.substr(line.find(':') + 1);
                     metadata.sourcePath.erase(0, metadata.sourcePath.find_first_not_of(" \t"));
+                } else if (line.rfind("textureType:", 0) == 0) {
+                    std::string texStr = line.substr(line.find(':') + 1);
+                    texStr.erase(0, texStr.find_first_not_of(" \t"));
+                    if (!texStr.empty()) {
+                        int t = std::stoi(texStr); // 0 = Default, 1 = Normal, ...
+                        texSettings.type =
+                            static_cast<Editor::TexType>(t);
+                    }
                 }
             }
         }
@@ -349,7 +398,9 @@ namespace Editor {
         AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
         switch (assetType) {
         case AssetType::Texture: {
-            CookTexture(sourcePath, outPath);
+
+
+            CookTexture(sourcePath, outPath, texSettings);
             break;
         }
         case AssetType::Mesh: {
@@ -427,14 +478,64 @@ namespace Editor {
 		return AssetType::Unknown;
 	}
 
-    bool AssetManager::CookTexture(const std::string& sourcePath, const std::string& outPath) {
+    //bool AssetManager::CookTexture(const std::string& sourcePath, const std::string& outPath, const TextureImportSettings& /*settings*/) {
+    //    std::filesystem::path src = sourcePath;
+    //    std::filesystem::path out = outPath;
+    //    std::filesystem::create_directories(out.parent_path());
+
+    //    const bool srgb = GuessSRGBFromExt(src);
+
+    //    // 1) Load
+    //    std::vector<uint8_t> rgba8;
+    //    uint32_t w = 0, h = 0;
+    //    if (!LoadRGBA8(src.string(), rgba8, w, h)) {
+    //        std::fprintf(stderr, "[CookTexture] Failed to load: %s\n", src.string().c_str());
+    //        return false;
+    //    }
+
+    //    // 2) Compress to BC7
+    //    std::vector<uint8_t> bc7;
+    //    const float    quality = 0.6f;  // tune per build config
+    //    const uint32_t threads = 0;     // 0 = auto
+    //    if (CMP_ERROR err = CompressRGBA8ToBC7(rgba8.data(), w, h, quality, threads, bc7); err != CMP_OK) {
+    //        std::fprintf(stderr, "[CookTexture] Compressonator error %d on: %s\n", (int)err, src.string().c_str());
+    //        return false;
+    //    }
+
+    //    // 3) Write .nanotex
+    //    const uint16_t mipCount = 1;          // (future: generate mip chain)
+    //    const uint16_t layers = 1;          // (future: array/cubemap)
+    //    const TexShape shape = TexShape::TwoD;
+    //    const TexFormat fmt = srgb ? TexFormat::BC7_UNORM_SRGB : TexFormat::BC7_UNORM;
+
+    //    if (!WriteNanoTex(out.string(), w, h, srgb, shape, fmt, mipCount, layers, bc7)) {
+    //        std::fprintf(stderr, "[CookTexture] Failed to write: %s\n", out.string().c_str());
+    //        return false;
+    //    }
+
+    //    std::printf("\n[CookTexture] OK: %s -> %s (%ux%u, %zu bytes)\n",
+    //        src.string().c_str(), out.string().c_str(), w, h, bc7.size());
+    //    return true;
+    //}
+
+    bool AssetManager::CookTexture(const std::string& sourcePath,
+        const std::string& outPath,
+        const TextureImportSettings& settings)
+    {
         std::filesystem::path src = sourcePath;
         std::filesystem::path out = outPath;
         std::filesystem::create_directories(out.parent_path());
 
-        const bool srgb = GuessSRGBFromExt(src);
+        // Decide sRGB based on type:
+        //  - Color textures -> heuristic
+        //  - Normal maps    -> ALWAYS linear (no sRGB)
+        bool srgb = GuessSRGBFromExt(src);
+        const bool isNormalMap = (settings.type == TexType::NormalMap);
+        if (isNormalMap) {
+            srgb = false;
+        }
 
-        // 1) Load
+        // 1) Load RGBA8
         std::vector<uint8_t> rgba8;
         uint32_t w = 0, h = 0;
         if (!LoadRGBA8(src.string(), rgba8, w, h)) {
@@ -442,30 +543,48 @@ namespace Editor {
             return false;
         }
 
-        // 2) Compress to BC7
-        std::vector<uint8_t> bc7;
-        const float    quality = 0.6f;  // tune per build config
-        const uint32_t threads = 0;     // 0 = auto
-        if (CMP_ERROR err = CompressRGBA8ToBC7(rgba8.data(), w, h, quality, threads, bc7); err != CMP_OK) {
-            std::fprintf(stderr, "[CookTexture] Compressonator error %d on: %s\n", (int)err, src.string().c_str());
-            return false;
+        std::vector<uint8_t> compressed;
+        TexFormat fmt = TexFormat::BC7_UNORM;
+
+        const float    quality = 0.6f;
+        const uint32_t threads = 0;
+
+        // 2) Compress: BC5 for normals, BC7 otherwise
+        if (isNormalMap) {
+            if (CMP_ERROR err = CompressRGBA8ToBC5(rgba8.data(), w, h, quality, threads, compressed);
+                err != CMP_OK) {
+                std::fprintf(stderr, "[CookTexture] BC5 compress error %d on: %s\n",
+                    (int)err, src.string().c_str());
+                return false;
+            }
+            fmt = TexFormat::BC5_UNORM;
+            std::printf("[CookTexture] Using BC5 for normal map: %s\n", src.string().c_str());
+        } else {
+            if (CMP_ERROR err = CompressRGBA8ToBC7(rgba8.data(), w, h, quality, threads, compressed);
+                err != CMP_OK) {
+                std::fprintf(stderr, "[CookTexture] BC7 compress error %d on: %s\n",
+                    (int)err, src.string().c_str());
+                return false;
+            }
+            fmt = srgb ? TexFormat::BC7_UNORM_SRGB : TexFormat::BC7_UNORM;
         }
 
         // 3) Write .nanotex
-        const uint16_t mipCount = 1;          // (future: generate mip chain)
-        const uint16_t layers = 1;          // (future: array/cubemap)
-        const TexShape shape = TexShape::D2;
-        const TexFormat fmt = srgb ? TexFormat::BC7_UNORM_SRGB : TexFormat::BC7_UNORM;
+        const uint16_t mipCount = 1;
+        const uint16_t layers = 1;
+        const TexShape shape = TexShape::TwoD; // your Editor::TexShape enum
 
-        if (!WriteNanoTex(out.string(), w, h, srgb, shape, fmt, mipCount, layers, bc7)) {
+        if (!WriteNanoTex(out.string(), w, h, srgb, shape, fmt, mipCount, layers, compressed)) {
             std::fprintf(stderr, "[CookTexture] Failed to write: %s\n", out.string().c_str());
             return false;
         }
 
-        std::printf("\n[CookTexture] OK: %s -> %s (%ux%u, %zu bytes)\n",
-            src.string().c_str(), out.string().c_str(), w, h, bc7.size());
+        std::printf("\n[CookTexture] OK: %s -> %s (%ux%u, %zu bytes, %s)\n",
+            src.string().c_str(), out.string().c_str(), w, h, compressed.size(),
+            isNormalMap ? "BC5" : (srgb ? "BC7 sRGB" : "BC7 UNORM"));
         return true;
     }
+
 
     bool AssetManager::CookShader(const std::string& sourcePath, const std::string& outPath) {
         std::filesystem::create_directories(std::filesystem::path(outPath).parent_path());
@@ -857,7 +976,7 @@ namespace Editor {
         //    center = (minP + maxP) * 0.5f;
         //    NE::Math::Vec3 ext = maxP - center;
         //    radius = std::max(std::max(ext.x, ext.y), ext.z);
-        //}
+        //}s
 
         std::ofstream ofs(outPath, std::ios::binary);
         if (!ofs) return false;

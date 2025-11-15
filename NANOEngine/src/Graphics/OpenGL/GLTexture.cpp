@@ -34,12 +34,28 @@ namespace {
         return off == payloadSize;
     }
 
-    // Map your runtime header format to GL internal format (BC7 example)
-    static GLenum MapFormatToGL(uint8_t /*fmt*/, bool srgb) {
-        // Assuming fmt encodes BC7; expand as you add more formats.
-        // Requires GL_ARB_texture_compression_bptc
-        return srgb ? GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM :
-            GL_COMPRESSED_RGBA_BPTC_UNORM;
+    static GLenum MapFormatToGL(uint8_t fmt, bool srgb)
+    {
+        switch (fmt) {
+            // 0: BC7_UNORM
+        case 0:
+            return srgb ? GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM
+                : GL_COMPRESSED_RGBA_BPTC_UNORM;
+
+            // 1: BC7_UNORM_SRGB
+        case 1:
+            return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+
+            // 2: BC5_UNORM (two channels: RG)
+        case 2:
+            // BC5 = GL_RGTC2
+            return GL_COMPRESSED_RG_RGTC2;
+
+        default:
+            // fall back or assert
+            SPD_WARNING("Unknown NanoTex format {}, defaulting to BC7 UNORM", (int)fmt);
+            return GL_COMPRESSED_RGBA_BPTC_UNORM;
+        }
     }
 
 }
