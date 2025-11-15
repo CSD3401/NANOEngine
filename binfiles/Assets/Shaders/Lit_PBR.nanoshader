@@ -259,7 +259,7 @@ void main()
 
     // Metallic
     float metallic = clamp(u_Metallic, 0.0, 1.0);
-    // if (u_HasMetallicMap != 0) metallic = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
+    if (u_HasMetallicMap != 0) metallic = clamp(texture(u_MetallicMap, uv).r, 0.0, 1.0);
 
     // Ambient Occlusion
     float ao = clamp(u_AmbientOcclusion, 0.0, 1.0);
