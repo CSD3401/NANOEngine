@@ -112,7 +112,6 @@ namespace Editor {
 
 		// ---- Drag state ----
 		static uint32_t draggingId = NE::ECS::NO_ENTITY;
-		//static bool     hadDragThisFrame = false; // warning unused var - RF
 
 		static bool     previewAsChild = false;  // highlight a row to adopt as parent
 		static uint32_t previewParent = NE::ECS::NO_ENTITY;
@@ -250,39 +249,40 @@ namespace Editor {
 
 		DrawLevel(NE::ECS::NO_ENTITY, childrenOf0, 0);
 
-		if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && previewLineY >= 0.f) {
-			dl->AddLine(ImVec2(previewLineX1, previewLineY), ImVec2(previewLineX2, previewLineY), IM_COL32(255, 255, 0, 200), 2.0f);
-			dl->AddLine(ImVec2(previewLineX1, previewLineY - 3), ImVec2(previewLineX1, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
-			dl->AddLine(ImVec2(previewLineX2, previewLineY - 3), ImVec2(previewLineX2, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
-		}
+		bool hierHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
-		{
-			ImGuiWindow* win = ImGui::GetCurrentWindow();
-			const float innerTop = win->InnerRect.Min.y;
-			const float innerBot = win->InnerRect.Max.y;
-			const float mouseY = ImGui::GetIO().MousePos.y;
-			const float margin = 18.0f;
-			const float speed = 12.0f;
-			if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-				if (mouseY < innerTop + margin) ImGui::SetScrollY(ImGui::GetScrollY() - speed);
-				else if (mouseY > innerBot - margin) ImGui::SetScrollY(ImGui::GetScrollY() + speed);
+		// --- preview line & auto-scroll only when hovered ---
+		if (hierHovered) {
+			if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && previewLineY >= 0.f) {
+				dl->AddLine(ImVec2(previewLineX1, previewLineY), ImVec2(previewLineX2, previewLineY), IM_COL32(255, 255, 0, 200), 2.0f);
+				dl->AddLine(ImVec2(previewLineX1, previewLineY - 3), ImVec2(previewLineX1, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
+				dl->AddLine(ImVec2(previewLineX2, previewLineY - 3), ImVec2(previewLineX2, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
+			}
+
+			{
+				ImGuiWindow* win = ImGui::GetCurrentWindow();
+				const float innerTop = win->InnerRect.Min.y;
+				const float innerBot = win->InnerRect.Max.y;
+				const float mouseY = ImGui::GetIO().MousePos.y;
+				const float margin = 18.0f;
+				const float speed = 12.0f;
+				if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+					if (mouseY < innerTop + margin) ImGui::SetScrollY(ImGui::GetScrollY() - speed);
+					else if (mouseY > innerBot - margin) ImGui::SetScrollY(ImGui::GetScrollY() + speed);
+				}
 			}
 		}
 
-		// --- commit on mouse release ---
+		// --- commit drag on mouse release ---
 		if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-			if (previewAsChild && previewParent != NE::ECS::NO_ENTITY) {
-				// adopt as child of hovered row
-				Editor::EditorScene::AttachAsChild(previewParent, draggingId, /*insertIndex*/ -1);
-			}
-			else if (previewInsert >= 0) {
-				// if target parent is roots (or any different parent), use AttachAsChild
-				Editor::EditorScene::AttachAsChild(previewParentForInsert, draggingId, previewInsert);
-				// (If you prefer the micro-optimization: detect when previewParentForInsert
-					// equals the dragged node's current parent, then call ReorderWithinSiblings)
+			if (hierHovered) {
+				if (previewAsChild && previewParent != NE::ECS::NO_ENTITY) {
+					Editor::EditorScene::AttachAsChild(previewParent, draggingId, /*insertIndex*/ -1);
+				} else if (previewInsert >= 0) {
+					Editor::EditorScene::AttachAsChild(previewParentForInsert, draggingId, previewInsert);
+				}
 			}
 
-			// reset
 			draggingId = NE::ECS::NO_ENTITY;
 			previewAsChild = false;
 			previewParent = NE::ECS::NO_ENTITY;
@@ -291,20 +291,17 @@ namespace Editor {
 			previewLineY = -1.f;
 		}
 
-		// Apply delayed selection only if user clicked without dragging
-		if (clickedThisFrame && !ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-				// Mouse was clicked and released without dragging - select the entity
+		if (clickedThisFrame && !ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
+			ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			if (hierHovered) {
 				Editor::EditorScene::s_selectedEntity = clickedEntity;
 				EditorScene::selectedAsset = "";
-
-				clickedEntityId = NE::ECS::NO_ENTITY;
-				clickedEntity = nullptr;
-				clickedThisFrame = false;
 			}
-		}
-		else if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-			// User is dragging - cancel the pending selection
+
+			clickedEntityId = NE::ECS::NO_ENTITY;
+			clickedEntity = nullptr;
+			clickedThisFrame = false;
+		} else if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 			clickedThisFrame = false;
 		}
 
