@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -21,7 +21,22 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ExposedFieldRegistry.hpp">
+    <ClInclude Include="Scripts\Gears.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\k1bswitch.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\k2bswitch.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\LightSwitch.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\PhysicsPlayerController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\PlayerCamera.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scripts\PlayerScript.hpp">
@@ -30,25 +45,10 @@
     <ClInclude Include="Scripts\TestScript.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scripts\PhysicsPlayerController.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Scripts\TextureSwitch.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scripts\LightSwitch.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\PlayerCamera.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\Gears.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\k1bswitch.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\k2bswitch.hpp">
+    <ClInclude Include="ExposedFieldRegistry.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

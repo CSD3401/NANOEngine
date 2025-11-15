@@ -164,7 +164,7 @@ public:
 		if (NE::InputManager::WasKeyPressed('K')) {
 			int dmg = 20;
 			NANOEngine::Events::SendScriptEvent("OnPlayerHit", &dmg);
-			SPD_DEBUG("Santaclaus is coming to town");
+			SPD_DEBUG("Santaclaus is coming to town for my second big mac");
 		}
 		else if (NE::InputManager::WasKeyPressed('C'))
 		{
@@ -182,7 +182,7 @@ public:
 			//// Start the coroutine
 			//Engine_StartCoroutine(h);
 
-			SPD_DEBUG("Timer started!");
+			SPD_DEBUG("Timer started no way josed!");
 		}
 
 		//Courutine Test

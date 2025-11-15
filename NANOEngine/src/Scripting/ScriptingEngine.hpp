@@ -206,9 +206,9 @@ namespace NE::Scripting {
 
         // Hot Reloading
         std::unique_ptr<filewatch::FileWatch<std::string>> m_sourceWatcher;
-        std::string m_scriptDLLPath;           // Path to the final DLL (e.g., "GameCode.dll")
-        std::string m_scriptSourceDirectory;   // Path to watch for .cpp/hpp (e.g., "../GameCode/src")
-        std::string m_scriptBuildCommand;      // The command to run (e.g., "build_scripts.bat")
+        std::string m_scriptDLLPath;           // Path to the final DLL 
+        std::string m_scriptSourceDirectory;   // Path to watch for .cpp/hpp
+        std::string m_scriptBuildCommand;      // The command to run
 
         // Counter to create unique filenames for hot-reloading
         int m_hotReloadCounter = 0;
