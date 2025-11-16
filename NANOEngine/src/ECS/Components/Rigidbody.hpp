@@ -17,6 +17,9 @@ namespace NE::ECS::Component {
 
 		Math::Vec3 initialVelocity{ 0.f, 0.f, 0.f };
 
+		// Dirty flag for editor changes
+		bool isDirty = false;
+
 		NE_REFLECT_BEGIN(Rigidbody)
 			NE_REFLECT_FIELD(mass),
 			NE_REFLECT_FIELD(motionType),

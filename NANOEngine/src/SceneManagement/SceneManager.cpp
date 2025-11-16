@@ -3,6 +3,7 @@
 #include "Scripting/ScriptingEngine.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
+#include <Core/SpdLogger.hpp>  // For SPD_INFO logging
 
 namespace NE::SceneManagement {
 
@@ -26,6 +27,21 @@ namespace NE::SceneManagement {
 	void SceneManager::SaveScene() {
 		//if (!m_active) return;
 		//Serialization::JsonSceneSerializer::Serialize(*m_active, path);
+	}
+
+	void SceneManager::SaveSceneIfDirty(const std::string& path) {
+		// Only save in Edit mode
+		if (m_isPlaying) return;
+		
+		if (!m_editor || !m_editor->IsDirty()) return;
+
+		std::string savePath = path.empty() ? m_loadedPath : path;
+		if (savePath.empty()) return;
+
+		SPD_INFO("[DirtyFlag] Saving scene to: {}", savePath);
+		Serialization::JsonSceneSerializer::Serialize(*m_editor, savePath);
+		m_editor->ClearDirty();
+		SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
 	}
 
 	void SceneManager::BeginPlay() {

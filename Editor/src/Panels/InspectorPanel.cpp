@@ -327,6 +327,7 @@ namespace Editor {
 					//            SubmitSetFieldCommand(entity, desc, currentValue, edited);
 					//        }
 					//    });
+
 					NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
 						[&](auto const& desc, auto const& currentValue) {
 							using Owner = NE::ECS::Component::Transform;
@@ -395,7 +396,7 @@ namespace Editor {
 				else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
 					auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
 					ImGui::SeparatorText("Renderer");
-
+					// Model field
 					bool openPopup = false;
 					DrawAssetField("Model", AssetManager::GetInstance().RetrieveFileName(comp.modelUUID), "+", 0.f, &openPopup);
 					if (openPopup) {
@@ -415,7 +416,8 @@ namespace Editor {
 					if (ImGui::BeginPopup("AssetPicker_Model")) {
 						ImGui::Text("Select a Model");
 						ImGui::Separator();
-						auto& modelList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Mesh>();
+						//auto& modelList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Mesh>();
+						auto& modelList = AssetManager::GetInstance().GetAssetsOfType<AssetType::Mesh>();
 
 						if (ImSearch::BeginSearch()) {
 							ImSearch::SearchBar();
@@ -433,6 +435,7 @@ namespace Editor {
 						ImGui::EndPopup();
 					}
 
+					// Material field
 					char bufMat[256];
 					strncpy_s(bufMat, comp.materialUUID.c_str(), sizeof(bufMat));
 					ImGui::InputText("Material", bufMat, sizeof(bufMat));
@@ -453,10 +456,12 @@ namespace Editor {
 					static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
 					int currentType = static_cast<int>(comp.type);
 					if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
-						//comp.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
-						// temp
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
+						
+						// Mark scene dirty when light type changes
+						NE::MarkSceneDirty();
+						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
 					}
 
 					NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
@@ -496,6 +501,8 @@ namespace Editor {
 
 						// Also mark the collider as dirty
 						comp.isShapeDirty = true;
+						
+						// NOTE: SubmitSetFieldCommand already marks scene dirty via SetFieldCommand
 					}
 
 					// Collider fields - shape properties
@@ -541,6 +548,10 @@ namespace Editor {
 						SPD_DEBUG("  Updated: motionType={}, isStatic={}",
 							static_cast<int>(tempRb.motionType),
 							tempRb.isStatic);
+						
+						// Mark scene dirty when motion type changes
+						NE::MarkSceneDirty();
+						SPD_DEBUG("[DirtyFlag] Rigidbody motion type changed - Scene marked DIRTY");
 					}
 
 					// Help text
@@ -636,6 +647,8 @@ namespace Editor {
 						// "None" option to remove script
 						if (ImGui::Selectable("None", comp.ScriptName.empty())) {
 							NE::ECS::Command::RemoveEntityScript(entity);
+							NE::MarkSceneDirty();
+							SPD_DEBUG("[DirtyFlag] Script removed - Scene marked DIRTY");
 						}
 
 						// List all registered scripts
@@ -644,6 +657,8 @@ namespace Editor {
 							bool isSelected = (comp.ScriptName == scriptName);
 							if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
 								NE::ECS::Command::SetEntityScript(entity, scriptName);
+								NE::MarkSceneDirty();
+								SPD_DEBUG("[DirtyFlag] Script changed - Scene marked DIRTY");
 							}
 							if (isSelected) {
 								ImGui::SetItemDefaultFocus();
@@ -661,309 +676,371 @@ namespace Editor {
 							bool enabled = comp.Instance->IsEnabled();
 							if (ImGui::Checkbox("Enabled", &enabled)) {
 								comp.Instance->SetEnabled(enabled);
+								NE::MarkSceneDirty();
+								SPD_DEBUG("[DirtyFlag] Script enabled/disabled - Scene marked DIRTY");
+							}
+						}
+
+						ImGui::Text("Status: Active");
+						ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+
+						// --- Scripting Fields UI ---
+						auto fieldNames = comp.Instance->GetExposedFieldNames();
+						if (!fieldNames.empty()) {
+							ImGui::SeparatorText("Script Fields");
+
+							// ? NEW: Group struct fields under collapsible headers
+							std::unordered_map<std::string, std::vector<std::string>> structGroups;
+							std::vector<std::string> normalFields;
+
+							// Separate struct fields (contain '.') from normal fields
+							for (const auto& fname : fieldNames) {
+								if (fname.find('.') != std::string::npos) {
+									// Extract struct name (e.g., "stats" from "stats.health")
+									size_t dotPos = fname.find('.');
+									std::string structName = fname.substr(0, dotPos);
+									structGroups[structName].push_back(fname);
+								}
+								else {
+									normalFields.push_back(fname);
+								}
 							}
 
-							ImGui::Text("Status: Active");
-							ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+							// Render normal fields first
+							for (const auto& fname : normalFields) {
+								std::string ftype = comp.Instance->GetFieldType(fname);
+								std::string fval = comp.Instance->GetFieldValueAsString(fname);
 
-							// --- Scripting Fields UI ---
-							auto fieldNames = comp.Instance->GetExposedFieldNames();
-							if (!fieldNames.empty()) {
-								ImGui::SeparatorText("Script Fields");
+								ImGui::PushID(fname.c_str());
 
-								// ? NEW: Group struct fields under collapsible headers
-								std::unordered_map<std::string, std::vector<std::string>> structGroups;
-								std::vector<std::string> normalFields;
+								bool fieldChanged = false;
 
-								// Separate struct fields (contain '.') from normal fields
-								for (const auto& fname : fieldNames) {
-									if (fname.find('.') != std::string::npos) {
-										// Extract struct name (e.g., "stats" from "stats.health")
-										size_t dotPos = fname.find('.');
-										std::string structName = fname.substr(0, dotPos);
-										structGroups[structName].push_back(fname);
-									}
-									else {
-										normalFields.push_back(fname);
+								if (ftype == "bool") {
+									bool v = (fval == "1" || fval == "true");
+									if (ImGui::Checkbox(fname.c_str(), &v)) {
+										comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+										fieldChanged = true;
 									}
 								}
+								else if (ftype == "int") {
+									int v = 0; if (!fval.empty()) v = std::stoi(fval);
+									if (ImGui::DragInt(fname.c_str(), &v)) {
+										comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+										fieldChanged = true;
+									}
+								}
+								else if (ftype == "float") {
+									float v = 0.f; if (!fval.empty()) v = std::stof(fval);
+									if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
+										comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+										fieldChanged = true;
+									}
+								}
+								else if (ftype == "vec3") {
+									NE::Math::Vec3 vv = Vec3FromString(fval);
+									if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
+										comp.Instance->SetFieldValueFromString(fname, Vec3ToString(vv));
+										fieldChanged = true;
+									}
+								}
+								else if (ftype == "enum") {
+									// Enum dropdown support
+									auto enumOptions = comp.Instance->GetEnumOptions(fname);
+									if (!enumOptions.empty()) {
+										int currentValue = 0;
+										if (!fval.empty()) {
+											try {
+												currentValue = std::stoi(fval);
+											}
+											catch (...) {
+												currentValue = 0;
+											}
+										}
 
-								// Render normal fields first
-								for (const auto& fname : normalFields) {
-									std::string ftype = comp.Instance->GetFieldType(fname);
-									std::string fval = comp.Instance->GetFieldValueAsString(fname);
+										// Clamp to valid range
+										if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
+											currentValue = 0;
+										}
 
-									ImGui::PushID(fname.c_str());
-
-									bool fieldChanged = false;
-
-									if (ftype == "bool") {
-										bool v = (fval == "1" || fval == "true");
-										if (ImGui::Checkbox(fname.c_str(), &v)) {
-											comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
-											fieldChanged = true;
+										if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
+											for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
+												bool isSelected = (currentValue == i);
+												if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
+													comp.Instance->SetFieldValueFromString(fname, std::to_string(i));
+													fieldChanged = true;
+												}
+												if (isSelected) {
+													ImGui::SetItemDefaultFocus();
+												}
+											}
+											ImGui::EndCombo();
 										}
 									}
-									else if (ftype == "int") {
-										int v = 0; if (!fval.empty()) v = std::stoi(fval);
+									else {
+										// Fallback if no enum options provided
+										ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
+									}
+								}
+								else if (ftype.starts_with("componentref:")) {
+									// Component reference field
+									// Extract component type (e.g., "Transform" from "componentref:Transform")
+									std::string componentType = ftype.substr(13); // Skip "componentref:"
+
+									// Get current pointer value and try to find the entity name
+									std::string displayName = "None";
+									uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+									std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);								
+									if (!fval.empty() && fval != noEntityStr) {
+										try {
+											// Now fval is entity ID, not a pointer!
+											assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
+
+											// Verify entity still exists and has the component
+											NE::ECS::Signature entitySig(NE::ECS::Query::GetEntitySignature(assignedEntityId));
+											bool isValid = false;
+
+											if (componentType == "Transform") {
+												isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Transform)]);
+											}
+											else if (componentType == "Rigidbody") {
+												isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Rigidbody)]);
+											}
+											else if (componentType == "AudioSource") {
+												isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::AudioSource)]);
+											}
+
+											if (isValid) {
+												const auto& meta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+												displayName = meta.name.empty() ? "Entity" : meta.name;
+											}
+											else {
+												displayName = "[Invalid Reference]";
+												assignedEntityId = NE::ECS::NO_ENTITY;
+											}
+										}
+										catch (...) {
+											displayName = "[Error]";
+										}
+									}
+
+									// Display the component reference field
+									ImGui::Text("%s (%s)", fname.c_str(), componentType.c_str());
+
+									ImGui::PushID((fname + "_compref").c_str());
+
+									// Button shows entity name or status
+									if (ImGui::Button(displayName.c_str(), ImVec2(200, 0))) {
+										// Future: could select the referenced entity in hierarchy
+										if (assignedEntityId != NE::ECS::NO_ENTITY) {
+											SPD_DEBUG("Referenced entity: {} (ID: {})", displayName, assignedEntityId);
+										}
+									}
+
+									// Drag-drop support - accept entity drops
+									if (ImGui::BeginDragDropTarget()) {
+										// Try to accept HIER_DRAG_ID (from Hierarchy panel)
+										const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
+										if (payload && payload->DataSize == sizeof(uint32_t)) {
+											uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+											// Verify entity has the required component
+											bool hasComponent = false;
+											NE::ECS::Signature entitySig(NE::ECS::Query::GetEntitySignature(droppedEntity));
+
+											if (componentType == "Transform") {
+												hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Transform)]);
+											}
+											else if (componentType == "Rigidbody") {
+												hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Rigidbody)]);
+											}
+											else if (componentType == "AudioSource") {
+												hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::AudioSource)]);
+											}
+
+											if (hasComponent) {
+												const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+												std::string entityName = meta.name.empty() ? "Entity" : meta.name;
+
+												// Store entity ID (not pointer!)
+												bool success = comp.Instance->SetFieldValueFromString(fname, std::to_string(droppedEntity));
+
+												if (success) {
+													comp.Instance->RefreshComponentReferences();
+													(fieldChanged = true);
+												}
+											}
+										}
+										ImGui::EndDragDropTarget();
+									}
+
+									// Clear button
+									ImGui::SameLine();
+									if (ImGui::Button("X")) {
+										comp.Instance->SetFieldValueFromString(fname, noEntityStr);
+										comp.Instance->RefreshComponentReferences(); // Clear the pointer too
+										fieldChanged = true;
+									}
+
+									ImGui::PopID();
+								}
+								else if (ftype.starts_with("vector<")) {
+									// Array/Vector support (int, float, bool, string)
+									// NOTE: Nested struct vectors not yet supported - will be added in future commit
+									size_t arraySize = comp.Instance->GetArraySize(fname);
+
+									if (ImGui::TreeNode(fname.c_str(), "%s [%zu]", fname.c_str(), arraySize)) {
+										// Add element button
+										if (ImGui::Button("+##add")) {
+											comp.Instance->AddArrayElement(fname);
+											fieldChanged = true;
+										}
+										ImGui::SameLine();
+										ImGui::Text("Add Element");
+
+										// Display each element
+										for (size_t i = 0; i < arraySize; ++i) {
+											ImGui::PushID(static_cast<int>(i));
+
+											std::string elemValue = comp.Instance->GetArrayElement(fname, i);
+
+											// Determine element type from vector<T>
+											std::string elementType = ftype.substr(7, ftype.length() - 8); // Extract T from "vector<T>"
+
+											ImGui::Text("[%zu]", i);
+											ImGui::SameLine();
+
+											bool elemChanged = false;
+											if (elementType == "int") {
+												int val = elemValue.empty() ? 0 : std::stoi(elemValue);
+												if (ImGui::DragInt("##elem", &val)) {
+													comp.Instance->SetArrayElement(fname, i, std::to_string(val));
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "float") {
+												float val = elemValue.empty() ? 0.0f : std::stof(elemValue);
+												if (ImGui::DragFloat("##elem", &val, 0.01f)) {
+													comp.Instance->SetArrayElement(fname, i, std::to_string(val));
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "bool") {
+												bool val = (elemValue == "1" || elemValue == "true");
+												if (ImGui::Checkbox("##elem", &val)) {
+													comp.Instance->SetArrayElement(fname, i, val ? "1" : "0");
+													elemChanged = true;
+
+													// Verification removed for release
+													//std::string verifyValue = comp.Instance->GetArrayElement(fname, i);
+													//SPD_DEBUG(" Verification: flags[" << i << "] is now '" << verifyValue << "'");
+												}
+											}
+											else if (elementType == "string") {
+												// String support for vector<string>
+												char buf[256];
+												strncpy_s(buf, elemValue.c_str(), sizeof(buf));
+												buf[sizeof(buf) - 1] = '\0';
+												if (ImGui::InputText("##elem", buf, sizeof(buf))) {
+													comp.Instance->SetArrayElement(fname, i, std::string(buf));
+													elemChanged = true;
+												}
+											}
+											else {
+												// Unknown type fallback - treat as string
+												char buf[256];
+												strncpy_s(buf, elemValue.c_str(), sizeof(buf));
+												buf[sizeof(buf) - 1] = '\0';
+												if (ImGui::InputText("##elem", buf, sizeof(buf))) {
+													comp.Instance->SetArrayElement(fname, i, std::string(buf));
+													elemChanged = true;
+												}
+											}
+
+											ImGui::SameLine();
+											if (ImGui::Button("-##remove")) {
+												comp.Instance->RemoveArrayElement(fname, i);
+												fieldChanged = true;
+											}
+
+											if (elemChanged) {
+												fieldChanged = true;
+											}
+
+											ImGui::PopID();
+										}
+
+										ImGui::TreePop();
+									}
+								}
+								else if (fname.find('.') != std::string::npos) {
+									// Struct field (contains dot notation)
+									// NOTE: Nested struct serialization not fully supported yet - will be added in future commit
+									   // Display as normal field, but with indentation
+									ImGui::Indent();
+
+									if (ftype == "int") {
+										int v = 0;
+										if (!fval.empty()) v = std::stoi(fval);
 										if (ImGui::DragInt(fname.c_str(), &v)) {
 											comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
 											fieldChanged = true;
 										}
 									}
 									else if (ftype == "float") {
-										float v = 0.f; if (!fval.empty()) v = std::stof(fval);
+										float v = 0.0f;
+										if (!fval.empty()) v = std::stof(fval);
 										if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
 											comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
 											fieldChanged = true;
 										}
 									}
-									else if (ftype == "vec3") {
-										NE::Math::Vec3 vv = Vec3FromString(fval);
-										if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
-											comp.Instance->SetFieldValueFromString(fname, Vec3ToString(vv));
+									else if (ftype == "bool") {
+										bool v = (fval == "1" || fval == "true");
+										if (ImGui::Checkbox(fname.c_str(), &v)) {
+											comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
 											fieldChanged = true;
 										}
 									}
-									else if (ftype == "enum") {
-										// Enum dropdown support
-										auto enumOptions = comp.Instance->GetEnumOptions(fname);
-										if (!enumOptions.empty()) {
-											int currentValue = 0;
-											if (!fval.empty()) {
-												try {
-													currentValue = std::stoi(fval);
-												}
-												catch (...) {
-													currentValue = 0;
-												}
-											}
 
-											// Clamp to valid range
-											if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
-												currentValue = 0;
-											}
-
-											if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
-												for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
-													bool isSelected = (currentValue == i);
-													if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
-														comp.Instance->SetFieldValueFromString(fname, std::to_string(i));
-														fieldChanged = true;
-													}
-													if (isSelected) {
-														ImGui::SetItemDefaultFocus();
-													}
-												}
-												ImGui::EndCombo();
-											}
-										}
-										else {
-											// Fallback if no enum options provided
-											ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
-										}
+									ImGui::Unindent();
+								}
+								else { // treat as string
+									char buf[256];
+									strncpy_s(buf, fval.c_str(), sizeof(buf));
+									if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
+										comp.Instance->SetFieldValueFromString(fname, std::string(buf));
+										fieldChanged = true;
 									}
-									else if (ftype.starts_with("componentref:")) {
-										// Component reference field
-										// Extract component type (e.g., "Transform" from "componentref:Transform")
-										std::string componentType = ftype.substr(13); // Skip "componentref:"
+								}
 
-										// Get current pointer value and try to find the entity name
-										std::string displayName = "None";
-										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+								// Call OnValidate() when a field changes (editor-only)
+								if (fieldChanged) {
+									comp.Instance->OnValidate();
+									NE::MarkSceneDirty();
+									// printf("[DirtyFlag] Script field changed - Scene marked DIRTY\n"); // Too spammy
+								}
 
-										if (!fval.empty() && fval != "0") {
-											try {
-												// Now fval is entity ID, not a pointer!
-												assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
+								ImGui::PopID();
+							}
 
-												// Verify entity still exists and has the component
-												NE::ECS::Signature entitySig(NE::ECS::Query::GetEntitySignature(assignedEntityId));
-												bool isValid = false;
+							//  NOW RENDER STRUCT GROUPS
+							for (const auto& [structName, fields] : structGroups) {
+								if (ImGui::TreeNode(structName.c_str())) {
+									for (const auto& fname : fields) {
+										std::string ftype = comp.Instance->GetFieldType(fname);
+										std::string fval = comp.Instance->GetFieldValueAsString(fname);
 
-												if (componentType == "Transform") {
-													isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Transform)]);
-												}
-												else if (componentType == "Rigidbody") {
-													isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Rigidbody)]);
-												}
-												else if (componentType == "AudioSource") {
-													isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::AudioSource)]);
-												}
+										// Extract field name after dot (e.g., "health" from "stats.health")
+										size_t dotPos = fname.find('.');
+										std::string fieldName = fname.substr(dotPos + 1);
 
-												if (isValid) {
-													const auto& meta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-													displayName = meta.name.empty() ? "Entity" : meta.name;
-												}
-												else {
-													displayName = "[Invalid Reference]";
-													assignedEntityId = NE::ECS::NO_ENTITY;
-												}
-											}
-											catch (...) {
-												displayName = "[Error]";
-											}
-										}
-
-										// Display the component reference field
-										ImGui::Text("%s (%s)", fname.c_str(), componentType.c_str());
-
-										ImGui::PushID((fname + "_compref").c_str());
-
-										// Button shows entity name or status
-										if (ImGui::Button(displayName.c_str(), ImVec2(200, 0))) {
-											// Future: could select the referenced entity in hierarchy
-											if (assignedEntityId != NE::ECS::NO_ENTITY) {
-												SPD_DEBUG("Referenced entity: {} (ID: {})", displayName, assignedEntityId);
-											}
-										}
-
-										// Drag-drop support - accept entity drops
-										if (ImGui::BeginDragDropTarget()) {
-											// Try to accept HIER_DRAG_ID (from Hierarchy panel)
-											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
-											if (payload && payload->DataSize == sizeof(uint32_t)) {
-												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
-
-												// Verify entity has the required component
-												bool hasComponent = false;
-												NE::ECS::Signature entitySig(NE::ECS::Query::GetEntitySignature(droppedEntity));
-
-												if (componentType == "Transform") {
-													hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Transform)]);
-												}
-												else if (componentType == "Rigidbody") {
-													hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Rigidbody)]);
-												}
-												else if (componentType == "AudioSource") {
-													hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::AudioSource)]);
-												}
-
-												if (hasComponent) {
-													const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
-													std::string entityName = meta.name.empty() ? "Entity" : meta.name;
-
-													// Store entity ID (not pointer!)
-													bool success = comp.Instance->SetFieldValueFromString(fname, std::to_string(droppedEntity));
-
-													if (success) {
-														comp.Instance->RefreshComponentReferences();
-														fieldChanged = true;
-													}
-												}
-											}
-											ImGui::EndDragDropTarget();
-										}
-
-										// Clear button
-										ImGui::SameLine();
-										if (ImGui::Button("X")) {
-											comp.Instance->SetFieldValueFromString(fname, "0");
-											comp.Instance->RefreshComponentReferences(); // Clear the pointer too
-											fieldChanged = true;
-										}
-
-										ImGui::PopID();
-									}
-									else if (ftype.starts_with("vector<")) {
-										// Array/Vector support (int, float, bool, string)
-										// NOTE: Nested struct vectors not yet supported - will be added in future commit
-										size_t arraySize = comp.Instance->GetArraySize(fname);
-
-										if (ImGui::TreeNode(fname.c_str(), "%s [%zu]", fname.c_str(), arraySize)) {
-											// Add element button
-											if (ImGui::Button("+##add")) {
-												comp.Instance->AddArrayElement(fname);
-												fieldChanged = true;
-											}
-											ImGui::SameLine();
-											ImGui::Text("Add Element");
-
-											// Display each element
-											for (size_t i = 0; i < arraySize; ++i) {
-												ImGui::PushID(static_cast<int>(i));
-
-												std::string elemValue = comp.Instance->GetArrayElement(fname, i);
-
-												// Determine element type from vector<T>
-												std::string elementType = ftype.substr(7, ftype.length() - 8); // Extract T from "vector<T>"
-
-												ImGui::Text("[%zu]", i);
-												ImGui::SameLine();
-
-												bool elemChanged = false;
-												if (elementType == "int") {
-													int val = elemValue.empty() ? 0 : std::stoi(elemValue);
-													if (ImGui::DragInt("##elem", &val)) {
-														comp.Instance->SetArrayElement(fname, i, std::to_string(val));
-														elemChanged = true;
-													}
-												}
-												else if (elementType == "float") {
-													float val = elemValue.empty() ? 0.0f : std::stof(elemValue);
-													if (ImGui::DragFloat("##elem", &val, 0.01f)) {
-														comp.Instance->SetArrayElement(fname, i, std::to_string(val));
-														elemChanged = true;
-													}
-												}
-												else if (elementType == "bool") {
-													bool val = (elemValue == "1" || elemValue == "true");
-													if (ImGui::Checkbox("##elem", &val)) {
-														comp.Instance->SetArrayElement(fname, i, val ? "1" : "0");
-														elemChanged = true;
-
-														// Verification removed for release
-														//std::string verifyValue = comp.Instance->GetArrayElement(fname, i);
-														//SPD_DEBUG(" Verification: flags[" << i << "] is now '" << verifyValue << "'");
-													}
-												}
-												else if (elementType == "string") {
-													// String support for vector<string>
-													char buf[256];
-													strncpy_s(buf, elemValue.c_str(), sizeof(buf));
-													buf[sizeof(buf) - 1] = '\0';
-													if (ImGui::InputText("##elem", buf, sizeof(buf))) {
-														comp.Instance->SetArrayElement(fname, i, std::string(buf));
-														elemChanged = true;
-													}
-												}
-												else {
-													// Unknown type fallback - treat as string
-													char buf[256];
-													strncpy_s(buf, elemValue.c_str(), sizeof(buf));
-													buf[sizeof(buf) - 1] = '\0';
-													if (ImGui::InputText("##elem", buf, sizeof(buf))) {
-														comp.Instance->SetArrayElement(fname, i, std::string(buf));
-														elemChanged = true;
-													}
-												}
-
-												ImGui::SameLine();
-												if (ImGui::Button("-##remove")) {
-													comp.Instance->RemoveArrayElement(fname, i);
-													fieldChanged = true;
-												}
-
-												if (elemChanged) {
-													fieldChanged = true;
-												}
-
-												ImGui::PopID();
-											}
-
-											ImGui::TreePop();
-										}
-									}
-									else if (fname.find('.') != std::string::npos) {
-										// Struct field (contains dot notation)
-										// NOTE: Nested struct serialization not fully supported yet - will be added in future commit
-									   // Display as normal field, but with indentation
-										ImGui::Indent();
+										ImGui::PushID(fname.c_str());
+										bool fieldChanged = false;
 
 										if (ftype == "int") {
 											int v = 0;
 											if (!fval.empty()) v = std::stoi(fval);
-											if (ImGui::DragInt(fname.c_str(), &v)) {
+											if (ImGui::DragInt(fieldName.c_str(), &v)) {
 												comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
 												fieldChanged = true;
 											}
@@ -971,84 +1048,26 @@ namespace Editor {
 										else if (ftype == "float") {
 											float v = 0.0f;
 											if (!fval.empty()) v = std::stof(fval);
-											if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
+											if (ImGui::DragFloat(fieldName.c_str(), &v, 0.01f)) {
 												comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
 												fieldChanged = true;
 											}
 										}
 										else if (ftype == "bool") {
 											bool v = (fval == "1" || fval == "true");
-											if (ImGui::Checkbox(fname.c_str(), &v)) {
+											if (ImGui::Checkbox(fieldName.c_str(), &v)) {
 												comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
 												fieldChanged = true;
 											}
 										}
 
-										ImGui::Unindent();
-									}
-									else { // treat as string
-										char buf[256];
-										strncpy_s(buf, fval.c_str(), sizeof(buf));
-										if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
-											comp.Instance->SetFieldValueFromString(fname, std::string(buf));
-											fieldChanged = true;
+										if (fieldChanged) {
+											comp.Instance->OnValidate();
 										}
+
+										ImGui::PopID();
 									}
-
-									// Call OnValidate() when a field changes (editor-only)
-									if (fieldChanged) {
-										comp.Instance->OnValidate();
-									}
-
-									ImGui::PopID();
-								}
-
-								//  NOW RENDER STRUCT GROUPS
-								for (const auto& [structName, fields] : structGroups) {
-									if (ImGui::TreeNode(structName.c_str())) {
-										for (const auto& fname : fields) {
-											std::string ftype = comp.Instance->GetFieldType(fname);
-											std::string fval = comp.Instance->GetFieldValueAsString(fname);
-
-											// Extract field name after dot (e.g., "health" from "stats.health")
-											size_t dotPos = fname.find('.');
-											std::string fieldName = fname.substr(dotPos + 1);
-
-											ImGui::PushID(fname.c_str());
-											bool fieldChanged = false;
-
-											if (ftype == "int") {
-												int v = 0;
-												if (!fval.empty()) v = std::stoi(fval);
-												if (ImGui::DragInt(fieldName.c_str(), &v)) {
-													comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
-													fieldChanged = true;
-												}
-											}
-											else if (ftype == "float") {
-												float v = 0.0f;
-												if (!fval.empty()) v = std::stof(fval);
-												if (ImGui::DragFloat(fieldName.c_str(), &v, 0.01f)) {
-													comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
-													fieldChanged = true;
-												}
-											}
-											else if (ftype == "bool") {
-												bool v = (fval == "1" || fval == "true");
-												if (ImGui::Checkbox(fieldName.c_str(), &v)) {
-													comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
-													fieldChanged = true;
-												}
-											}
-
-											if (fieldChanged) {
-												comp.Instance->OnValidate();
-											}
-
-											ImGui::PopID();
-										}
-										ImGui::TreePop();
-									}
+									ImGui::TreePop();
 								}
 							}
 						}
@@ -1067,6 +1086,7 @@ namespace Editor {
 					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					ImGui::SeparatorText("Camera");
 
+					//auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
 						[&](auto const& desc, auto const& currentValue) {
 							using Owner = NE::ECS::Component::Camera;
@@ -1219,29 +1239,46 @@ namespace Editor {
 			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
 				if (ImGui::MenuItem("Renderer")) {
 					NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Renderer component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Rigidbody")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
 					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Rigidbody/Collider components - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Collider")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Collider component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Light")) {
 					NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Light component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("AudioSource")) {
 					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added AudioSource component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Script")) {
 					NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Script component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Camera")) {
 					NE::ECS::Command::AddCameraComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Camera component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Animator")) {
 					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Animator component - Scene marked DIRTY");
 				}
+
 				ImGui::EndPopup();
 			}
 		}
