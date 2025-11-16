@@ -1,5 +1,8 @@
 #include "SceneManager.hpp"
 #include "Serialisation/JsonSceneSerializer.hpp"
+#include "Scripting/ScriptingEngine.hpp"
+#include "ECS/Components/NativeScript.hpp"
+#include "ECS/Core/Entity.hpp"
 
 namespace NE::SceneManagement {
 
@@ -27,6 +30,15 @@ namespace NE::SceneManagement {
 
 	void SceneManager::BeginPlay() {
 		if (!m_editor || m_isPlaying) return;
+
+		// This ensures component references and other script fields are preserved
+		auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
+		for (NE::ECS::Entity entity : entities) {
+			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+			if (nsc.Instance) {
+				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
+			}
+		}
 
 		// 1) serialize editor scene to memory
 		m_editorBackup.clear();

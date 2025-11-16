@@ -124,8 +124,10 @@ namespace NE::ECS::Systems {
         for (Entity entity : entities) {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-			if (nsc.Instance)
-				nsc.Instance->SetEnabled(true);
+            if (nsc.Instance) {
+                nsc.Instance->RefreshComponentReferences();
+                nsc.Instance->SetEnabled(true);
+            }
         }
     }
 
@@ -213,7 +215,3 @@ namespace NE::ECS::Systems {
         }
     }
 }
-
-
-
-
