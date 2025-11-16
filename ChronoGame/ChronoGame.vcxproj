@@ -160,6 +160,7 @@
     <ClInclude Include="ExposedFieldRegistry.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Scripts\FollowerScript.hpp" />
     <ClInclude Include="Scripts\Gears.hpp" />
     <ClInclude Include="Scripts\k1bswitch.hpp" />
     <ClInclude Include="Scripts\k2bswitch.hpp" />
