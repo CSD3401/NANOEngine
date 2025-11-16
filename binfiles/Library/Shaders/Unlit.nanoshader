@@ -25,13 +25,18 @@ uniform sampler2D u_BaseMap;
 uniform int u_HasBaseMap;
 uniform vec3 u_BaseColor = vec3(1.0);
 
+uniform vec3 u_Tiling = vec3(1.0, 1.0, 0.0);
+uniform vec3 u_Offset = vec3(0.0, 0.0, 0.0);
+
 in vec2 v_TexCoord;
 out vec4 FragColor;
 
 void main() {
 	vec3 base = u_BaseColor;
+	vec2 uv = v_TexCoord * u_Tiling.xy + u_Offset.xy;
+
 	if (u_HasBaseMap != 0) {
-		base *= texture(u_BaseMap, v_TexCoord).rgb;
+		base *= texture(u_BaseMap, uv).rgb;
 	}
     FragColor = vec4(base, 1.0);
 }

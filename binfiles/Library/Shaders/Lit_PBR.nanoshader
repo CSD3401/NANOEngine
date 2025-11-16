@@ -82,6 +82,10 @@ uniform int       u_ParallaxMaxLayers; // e.g. 48
 uniform int   u_ParallaxClipBorders;  // 0=off, 1=hard clip, 2=smart clip
 uniform float u_ParallaxEdgeFade;     // smart-clip ring width in UV units (e.g. 0.04)
 
+// UV Transform
+uniform vec3 u_Tiling;
+uniform vec3 u_Offset;
+
 struct Light {
     int   type; // 0 = directional, 1 = point, 2 = spot
     vec3  color;
@@ -351,7 +355,7 @@ vec3 EvalSpot(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic,
 
 void main()
 {
-	vec2 uv = v_TexCoord;
+	vec2 uv = v_TexCoord * u_Tiling + u_Offset;
 
     // view/normal
     vec3 V = normalize(u_CameraPos - v_FragPos);
