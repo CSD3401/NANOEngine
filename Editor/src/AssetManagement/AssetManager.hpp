@@ -35,7 +35,6 @@ namespace Editor {
 		AssetType GetAssetTypeFromString(std::string_view extension);
 		AssetType GetAssetTypeFromExtension(std::string_view);
 
-		bool ImportTexture();
 		bool CookTexture(const std::string& sourcePath, const std::string& outPath, const TextureImportSettings& settings);
 		bool CookShader(const std::string& sourcePath, const std::string& outPath);
 		bool CookMaterial(const std::string& sourcePath, const std::string& outPath);

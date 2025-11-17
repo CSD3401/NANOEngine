@@ -5,8 +5,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-
-//#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
 #include "compressonator/cmp_compressonatorlib/compressonator.h"
 #include "UUID.hpp"
@@ -23,6 +21,11 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <Math/Vec3.hpp>
+#include "Settings/ModelImportSettings.hpp"
+#include <Serialisation/ReflectionJson.hpp>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/prettywriter.h>
 
 
 namespace {
@@ -210,6 +213,61 @@ namespace {
         float nx, ny, nz;
         float u, v;
     };
+
+    std::string AssetTypeToString(Editor::AssetType type) {
+        switch (type) {
+        case Editor::AssetType::Texture:    return "Texture";
+        case Editor::AssetType::Mesh:       return "Mesh";
+        case Editor::AssetType::Shader:     return "Shader";
+        case Editor::AssetType::Material:   return "Material";
+        case Editor::AssetType::Audio:      return "Audio";
+        default:                            return "Unknown";
+        }
+    }
+
+    bool SaveModelImportSettings(const std::string& metaPath, const Editor::ModelImportSettings& settings) {
+        using namespace rapidjson;
+        using namespace NE::Serialization;
+
+        Document doc;
+        doc.SetObject();
+
+        // Try to load existing meta to preserve other unrelated fields (uuid, assetType, etc.)
+        if (std::filesystem::exists(metaPath)) {
+            std::ifstream ifs(metaPath);
+            if (ifs) {
+                IStreamWrapper isw(ifs);
+                doc.ParseStream(isw);
+                if (doc.HasParseError() || !doc.IsObject()) {
+                    doc.SetObject(); // Reset on failure
+                }
+            }
+        }
+
+        auto& alloc = doc.GetAllocator();
+
+        // Serialize settings via reflection
+        RJson jSettings = to_json(settings, alloc); // object with { scene, mesh, rig, animation, material }
+
+        // Attach / replace "modelImport" in the root doc
+        if (doc.HasMember("modelImport"))
+            doc["modelImport"].CopyFrom(jSettings, alloc);
+        else
+            doc.AddMember("modelImport", jSettings, alloc);
+
+        std::ofstream ofs(metaPath);
+        if (!ofs) {
+            SPD_WARNING("Failed to write meta file: " << metaPath);
+            return false;
+        }
+
+        OStreamWrapper osw(ofs);
+        PrettyWriter<OStreamWrapper> writer(osw);
+        writer.SetIndent(' ', 4);
+        doc.Accept(writer);
+
+        return true;
+    }
 }
 
 namespace Editor {
@@ -232,61 +290,61 @@ namespace Editor {
 		return am;
 	}
 
-	void AssetManager::GenerateMetadata(const std::string& sourcePath) {
-		std::filesystem::path fsSourcePath = sourcePath;
-		std::filesystem::path metaPath = sourcePath + ".meta";
+    void AssetManager::GenerateMetadata(const std::string& sourcePath) {
+        namespace fs = std::filesystem;
+        using namespace rapidjson;
+        using namespace NE::Serialization;
+
+        fs::path fsSourcePath = sourcePath;
+        fs::path metaPath = sourcePath + ".meta";
 
         AssetMetadata metadata{};
         metadata.sourcePath = sourcePath;
 
-        if (std::filesystem::exists(metaPath)) {
+        if (fs::exists(metaPath)) {
             std::ifstream ifs(metaPath);
             if (!ifs) {
                 SPD_WARNING("Failed to read meta file: " << metaPath.string());
                 return;
             }
 
-            std::string line;
-            while (std::getline(ifs, line)) {
-                if (line.starts_with("uuid:")) {
-                    metadata.uuid = line.substr(line.find(':') + 1);
-                    metadata.uuid.erase(0, metadata.uuid.find_first_not_of(" \t"));
-                } else if (line.starts_with("assetType:")) {
-                    std::string typeStr = line.substr(line.find(':') + 1);
-                    typeStr.erase(0, typeStr.find_first_not_of(" \t"));
-                    metadata.type = GetAssetTypeFromString(typeStr);
-                } else if (line.starts_with("sourcePath:")) {
-                    metadata.sourcePath = line.substr(line.find(':') + 1);
-                    metadata.sourcePath.erase(0, metadata.sourcePath.find_first_not_of(" \t"));
-                }
+            IStreamWrapper isw(ifs);
+            Document doc;
+            doc.ParseStream(isw);
+
+            if (doc.HasParseError() || !doc.IsObject()) {
+                SPD_WARNING("Failed to parse meta JSON: " << metaPath.string());
+                return;
             }
 
+            if (doc.HasMember("uuid") && doc["uuid"].IsString())
+                metadata.uuid = doc["uuid"].GetString();
+            if (doc.HasMember("assetType") && doc["assetType"].IsString())
+                metadata.type = GetAssetTypeFromString(doc["assetType"].GetString());
+            if (doc.HasMember("sourcePath") && doc["sourcePath"].IsString())
+                metadata.sourcePath = doc["sourcePath"].GetString();
+
             if (metadata.uuid.empty())
-                metadata.uuid = GenerateUUID(); // fallback, should rarely happen
+                metadata.uuid = GenerateUUID();
             if (metadata.type == AssetType::Unknown)
                 metadata.type = GetAssetTypeFromExtension(fsSourcePath.extension().string());
 
             switch (metadata.type) {
-            case AssetType::Texture: {
+            case AssetType::Texture:
                 GetAssetsOfType<AssetType::Texture>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
                 break;
-            }
-            case AssetType::Mesh: {
+            case AssetType::Mesh:
                 GetAssetsOfType<AssetType::Mesh>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
                 break;
-            }
-            case AssetType::Shader: {
+            case AssetType::Shader:
                 GetAssetsOfType<AssetType::Shader>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
                 break;
-            }
-            case AssetType::Material: {
+            case AssetType::Material:
                 GetAssetsOfType<AssetType::Material>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
                 break;
-            }
-            case AssetType::Audio: {
+            case AssetType::Audio:
                 GetAssetsOfType<AssetType::Audio>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
                 break;
-            }
             default:
                 break;
             }
@@ -295,68 +353,80 @@ namespace Editor {
             return;
         }
 
-		std::string uuid = GenerateUUID();
+        std::string uuid = GenerateUUID();
         std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
 
-		std::ofstream ofs(metaPath);
-		ofs << "importerVersion: " << CURRENT_META_SCHEMA_VERSION << '\n'
-			<< "uuid: " << uuid << '\n';
+        AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
+        metadata.uuid = uuid;
+        metadata.type = assetType;
 
-		AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
+        Document doc;
+        doc.SetObject();
+        auto& alloc = doc.GetAllocator();
 
-		switch (assetType) {
-		case AssetType::Texture: {
-			ofs << "assetType: Texture\n"
-				<< "sourcePath: " << sourcePath << '\n';
-            
-            CookTexture(sourcePath, outPath, TextureImportSettings{});
+        doc.AddMember("fileFormatVersion", CURRENT_META_SCHEMA_VERSION, alloc);
+        doc.AddMember("uuid", Value(uuid.c_str(), (rapidjson::SizeType)uuid.size(), alloc), alloc);
+        std::string assetTypeStr = AssetTypeToString(assetType);
+        doc.AddMember("assetType", Value(assetTypeStr.c_str(), (rapidjson::SizeType)assetTypeStr.size(), alloc), alloc);
+        doc.AddMember("sourcePath", Value(sourcePath.c_str(), (rapidjson::SizeType)sourcePath.size(), alloc), alloc);
+
+        switch (assetType) {
+        case AssetType::Texture: {
+            TextureImportSettings defaultSettings{};
+            CookTexture(sourcePath, outPath, defaultSettings);
+
             GetAssetsOfType<AssetType::Texture>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
 
-            ofs << "TextureImporterVersion: 1\n"; // hardcoded for now
+            doc.AddMember("textureImporterVersion", TEXTURE_IMPORTER_VERSION, alloc);
 
-			break;
-		}
-		case AssetType::Mesh: {
-            ofs << "assetType: Mesh\n"
-                << "sourcePath: " << sourcePath << '\n';
-
+            RJson texImportJson = to_json(defaultSettings, alloc);
+            doc.AddMember("textureImport", texImportJson, alloc);
+            break;
+        }
+        case AssetType::Mesh: {
+            ModelImportSettings defaultSettings{};
             CookMesh(sourcePath, outPath);
-            GetAssetsOfType<AssetType::Mesh>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
-			break;
-		}
-        case AssetType::Shader: {
-            ofs << "assetType: Shader\n"
-                << "sourcePath: " << sourcePath << '\n';
 
+            GetAssetsOfType<AssetType::Mesh>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
+
+            doc.AddMember("modelImporterVersion", MODEL_IMPORTER_VERSION, alloc);
+            RJson modelImportJson = to_json(defaultSettings, alloc);
+            doc.AddMember("modelImport", modelImportJson, alloc);
+            break;
+        }
+        case AssetType::Shader: {
             CookShader(sourcePath, outPath);
             GetAssetsOfType<AssetType::Shader>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
             break;
         }
         case AssetType::Material: {
-            ofs << "assetType: Material\n"
-                << "sourcePath: " << sourcePath << '\n';
-
             CookMaterial(sourcePath, outPath);
             GetAssetsOfType<AssetType::Material>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
             break;
         }
         case AssetType::Audio: {
-
+            // TODO: audio import settings later
             break;
         }
-		default:
-			break;
-		}
-
-		ofs.close();
+        default:
+            break;
+        }
 
 
-		metadata.uuid = uuid;
-		metadata.type = assetType;
+        {
+            std::ofstream ofs(metaPath);
+            if (!ofs) {
+                SPD_WARNING("Failed to write meta file: " << metaPath.string());
+            } else {
+                OStreamWrapper osw(ofs);
+                PrettyWriter<OStreamWrapper> writer(osw);
+                writer.SetIndent(' ', 4);
+                doc.Accept(writer);
+            }
+        }
 
-
-		m_assets[uuid] = std::move(metadata);
-	}
+        m_assets[uuid] = std::move(metadata);
+    }
 
     void AssetManager::ReimportAsset(const std::string& sourcePath) {
         std::filesystem::path fsSourcePath = sourcePath;
@@ -401,6 +471,8 @@ namespace Editor {
 
 
             CookTexture(sourcePath, outPath, texSettings);
+
+
             break;
         }
         case AssetType::Mesh: {
@@ -478,46 +550,6 @@ namespace Editor {
 		return AssetType::Unknown;
 	}
 
-    //bool AssetManager::CookTexture(const std::string& sourcePath, const std::string& outPath, const TextureImportSettings& /*settings*/) {
-    //    std::filesystem::path src = sourcePath;
-    //    std::filesystem::path out = outPath;
-    //    std::filesystem::create_directories(out.parent_path());
-
-    //    const bool srgb = GuessSRGBFromExt(src);
-
-    //    // 1) Load
-    //    std::vector<uint8_t> rgba8;
-    //    uint32_t w = 0, h = 0;
-    //    if (!LoadRGBA8(src.string(), rgba8, w, h)) {
-    //        std::fprintf(stderr, "[CookTexture] Failed to load: %s\n", src.string().c_str());
-    //        return false;
-    //    }
-
-    //    // 2) Compress to BC7
-    //    std::vector<uint8_t> bc7;
-    //    const float    quality = 0.6f;  // tune per build config
-    //    const uint32_t threads = 0;     // 0 = auto
-    //    if (CMP_ERROR err = CompressRGBA8ToBC7(rgba8.data(), w, h, quality, threads, bc7); err != CMP_OK) {
-    //        std::fprintf(stderr, "[CookTexture] Compressonator error %d on: %s\n", (int)err, src.string().c_str());
-    //        return false;
-    //    }
-
-    //    // 3) Write .nanotex
-    //    const uint16_t mipCount = 1;          // (future: generate mip chain)
-    //    const uint16_t layers = 1;          // (future: array/cubemap)
-    //    const TexShape shape = TexShape::TwoD;
-    //    const TexFormat fmt = srgb ? TexFormat::BC7_UNORM_SRGB : TexFormat::BC7_UNORM;
-
-    //    if (!WriteNanoTex(out.string(), w, h, srgb, shape, fmt, mipCount, layers, bc7)) {
-    //        std::fprintf(stderr, "[CookTexture] Failed to write: %s\n", out.string().c_str());
-    //        return false;
-    //    }
-
-    //    std::printf("\n[CookTexture] OK: %s -> %s (%ux%u, %zu bytes)\n",
-    //        src.string().c_str(), out.string().c_str(), w, h, bc7.size());
-    //    return true;
-    //}
-
     bool AssetManager::CookTexture(const std::string& sourcePath,
         const std::string& outPath,
         const TextureImportSettings& settings)
@@ -535,7 +567,6 @@ namespace Editor {
             srgb = false;
         }
 
-        // 1) Load RGBA8
         std::vector<uint8_t> rgba8;
         uint32_t w = 0, h = 0;
         if (!LoadRGBA8(src.string(), rgba8, w, h)) {
@@ -549,7 +580,6 @@ namespace Editor {
         const float    quality = 0.6f;
         const uint32_t threads = 0;
 
-        // 2) Compress: BC5 for normals, BC7 otherwise
         if (isNormalMap) {
             if (CMP_ERROR err = CompressRGBA8ToBC5(rgba8.data(), w, h, quality, threads, compressed);
                 err != CMP_OK) {
@@ -569,10 +599,9 @@ namespace Editor {
             fmt = srgb ? TexFormat::BC7_UNORM_SRGB : TexFormat::BC7_UNORM;
         }
 
-        // 3) Write .nanotex
         const uint16_t mipCount = 1;
         const uint16_t layers = 1;
-        const TexShape shape = TexShape::TwoD; // your Editor::TexShape enum
+        const TexShape shape = TexShape::TwoD;
 
         if (!WriteNanoTex(out.string(), w, h, srgb, shape, fmt, mipCount, layers, compressed)) {
             std::fprintf(stderr, "[CookTexture] Failed to write: %s\n", out.string().c_str());
@@ -595,114 +624,6 @@ namespace Editor {
         return NE::CookShader(sourcePath, outPath, shaderStages);
     }
 
-    //bool AssetManager::CookMaterial(const std::string& sourcePath, const std::string& outPath) {
-    //    //std::filesystem::path src = sourcePath;
-    //    std::filesystem::path out = outPath;
-    //    std::filesystem::create_directories(out.parent_path());
-
-    //    std::ifstream in(sourcePath);
-    //    if (!in) return false;
-    //    std::string j((std::istreambuf_iterator<char>(in)), {});
-    //    rapidjson::Document doc; doc.Parse(j.c_str());
-    //    if (!doc.IsObject()) return false;
-
-    //    // 2) Fill header (pipeline state)
-    //    NE::Resource::NanoMatHeader h{};
-    //    h.depthTest = doc.HasMember("DepthTest") ? (doc["DepthTest"].GetBool() ? 1 : 0) : 1;
-    //    h.blendMode = doc.HasMember("BlendMode") ? (doc["BlendMode"].GetBool() ? 1 : 0) : 0;
-    //    h.cullMode = doc.HasMember("CullMode") ? doc["CullMode"].GetUint() : 0;
-    //    h.polygonMode = doc.HasMember("PolygonMode") ? doc["PolygonMode"].GetUint() : 0;
-
-    //    const char* shaderName = doc.HasMember("Shader") ? doc["Shader"].GetString() : "Basic";
-    //    const uint32_t shaderNameLen = (uint32_t)std::strlen(shaderName);
-
-    //    // 3) Collect properties
-    //    std::vector<NE::Resource::MatPropRecord> recs;
-    //    std::string strings; // names will be appended here
-    //    std::string payload; // binary values appended here
-
-    //    if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
-    //        for (auto it = doc["Properties"].MemberBegin(); it != doc["Properties"].MemberEnd(); ++it) {
-    //            const std::string name = it->name.GetString();
-    //            const auto& v = it->value;
-
-    //            NE::Resource::MatPropRecord r{};
-    //            r.nameLen = (uint32_t)name.size();
-    //            r.nameOffset = 0; // fill later after we know base offsets
-    //            r.count = 1;
-
-    //            // Serialize the value
-    //            size_t dataStart = payload.size();
-    //            if (v.IsInt()) {
-    //                int32_t x = v.GetInt();
-    //                r.type = (uint8_t)NE::Resource::MatPropType::INT;
-    //                payload.append(reinterpret_cast<const char*>(&x), sizeof(x));
-    //            } else if (v.IsNumber()) {
-    //                float f = (float)v.GetDouble();
-    //                r.type = (uint8_t)NE::Resource::MatPropType::FLOAT;
-    //                payload.append(reinterpret_cast<const char*>(&f), sizeof(f));
-    //            } else if (v.IsArray() && v.Size() == 3) {
-    //                float f[3] = { (float)v[0].GetDouble(), (float)v[1].GetDouble(), (float)v[2].GetDouble() };
-    //                r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
-    //                payload.append(reinterpret_cast<const char*>(f), sizeof(f));
-    //            } else if (v.IsArray() && v.Size() == 16) {
-    //                float m[16];
-    //                for (rapidjson::SizeType i = 0; i < 16; ++i) m[i] = (float)v[i].GetDouble();
-    //                r.type = (uint8_t)NE::Resource::MatPropType::MAT4;
-    //                payload.append(reinterpret_cast<const char*>(m), sizeof(m));
-    //            } else {
-    //                // unknown type – skip or handle texture uuid strings later
-    //                continue;
-    //            }
-    //            r.dataOffset = 0; // fill later
-    //            r.dataSize = (uint32_t)(payload.size() - dataStart);
-
-    //            // Add name to string table
-    //            uint32_t nameOff = (uint32_t)strings.size();
-    //            strings.append(name.data(), name.size());
-
-    //            r.nameOffset = nameOff; // relative to strings base (filled after we know base)
-    //            recs.push_back(r);
-    //        }
-    //    }
-
-    //    // 4) Finalize offsets relative to file start
-    //    h.propCount = (uint16_t)recs.size();
-    //    h.shaderNameLen = shaderNameLen;
-
-    //    size_t offset = sizeof(NE::Resource::NanoMatHeader);
-    //    h.shaderNameOffset = (uint32_t)offset;
-    //    offset += shaderNameLen;
-
-    //    const uint32_t propsTableBytes = (uint32_t)(recs.size() * sizeof(NE::Resource::MatPropRecord));
-    //    h.propsOffset = (uint32_t)offset;
-    //    offset += propsTableBytes;
-
-    //    const uint32_t stringsBase = (uint32_t)offset;
-    //    offset += (uint32_t)strings.size();
-
-    //    const uint32_t payloadBase = (uint32_t)offset;
-    //    // payload bytes will follow
-
-    //    // Fix up per-record absolute offsets
-    //    for (auto& r : recs) {
-    //        r.nameOffset += stringsBase;
-    //        r.dataOffset += payloadBase;
-    //    }
-
-    //    // 5) Write file
-    //    std::ofstream ofs(outPath, std::ios::binary);
-    //    if (!ofs) return false;
-
-    //    ofs.write((char*)&h, sizeof(h));
-    //    ofs.write(shaderName, shaderNameLen);
-    //    if (!recs.empty()) ofs.write((char*)recs.data(), propsTableBytes);
-    //    if (!strings.empty()) ofs.write(strings.data(), (std::streamsize)strings.size());
-    //    if (!payload.empty()) ofs.write(payload.data(), (std::streamsize)payload.size());
-
-    //    return ofs.good();
-    //}
-
     bool AssetManager::CookMaterial(const std::string& sourcePath, const std::string& outPath) {
         std::filesystem::path out = outPath;
         std::filesystem::create_directories(out.parent_path());
@@ -713,7 +634,6 @@ namespace Editor {
         rapidjson::Document doc; doc.Parse(j.c_str());
         if (!doc.IsObject()) return false;
 
-        // 1) Header
         NE::Resource::NanoMatHeader h{};
         h.depthTest = doc.HasMember("DepthTest") ? (doc["DepthTest"].GetBool() ? 1 : 0) : 1;
         h.blendMode = doc.HasMember("BlendMode") ? (doc["BlendMode"].GetBool() ? 1 : 0) : 0;
@@ -723,14 +643,13 @@ namespace Editor {
         const char* shaderName = doc.HasMember("Shader") ? doc["Shader"].GetString() : "Basic";
         const uint32_t shaderNameLen = (uint32_t)std::strlen(shaderName);
 
-        // 2) Tables we will build
+        // Tables to build
         std::vector<NE::Resource::MatPropRecord> propRecs;
         std::vector<NE::Resource::MatTexRecord>  texRecs;
 
         std::string strings; // shared string blob (for BOTH prop names and tex names)
         std::string payload; // only for prop data (ints/floats/matrices)
 
-        // 3) Collect properties from JSON
         if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
             for (auto it = doc["Properties"].MemberBegin(); it != doc["Properties"].MemberEnd(); ++it) {
                 const std::string name = it->name.GetString();
@@ -744,7 +663,6 @@ namespace Editor {
                     r.nameLen = (uint32_t)name.size();
                     r.count = 1;
 
-                    // serialize value
                     size_t dataStart = payload.size();
                     if (v.IsInt()) {
                         int32_t x = v.GetInt();
@@ -825,12 +743,11 @@ namespace Editor {
             }
         }
 
-        // 4) Fill header counts
+        // Fill header counts
         h.propCount = (uint16_t)propRecs.size();
         h.texCount = (uint16_t)texRecs.size();
         h.shaderNameLen = shaderNameLen;
 
-        // 5) Lay out file
         size_t offset = sizeof(NE::Resource::NanoMatHeader);
 
         // shader name
@@ -858,7 +775,7 @@ namespace Editor {
             h.texTableOffset = 0;
         }
 
-        // 6) Fix up per-record absolute offsets
+        // Fix up per-record absolute offsets
         for (auto& r : propRecs) {
             r.nameOffset += stringsBase;
             r.dataOffset += payloadBase;
