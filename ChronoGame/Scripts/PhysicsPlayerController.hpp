@@ -1,12 +1,8 @@
 ﻿#pragma once
-#include "Scripting/IScript.hpp"
-#include "Input/InputManager.hpp"
-#include "../ExposedFieldRegistry.hpp"
-#include "Math/Vec3.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "ECS/Components/Collider.hpp"
+#include "EngineAPI.hpp"
+#include "../../NANOEngine/src/ECS/Components/Transform.hpp"
+#include "../../NANOEngine/src/ECS/Components/Collider.hpp"
 #include <cmath>
-#include <Core/SpdLogger.hpp>
 #include <bitset>
 #include <unordered_set>
 
@@ -38,7 +34,7 @@
  * - Collision callbacks (during physics step): Just queue entity IDs, NO component access
  * - Update() (after physics step): Process queued collisions, safe to access components
  */
-class PhysicsPlayerController : public IScript {
+class PhysicsPlayerController : public NE::Scripting::IScript {
 public:
 	PhysicsPlayerController() {
 		// Register editable fields
@@ -65,8 +61,8 @@ public:
 
 	void Awake() override {}
 
-	void Initialize(NE::ECS::Entity entity) override {
-		SetEntity(entity);
+	void Initialize(NE::Scripting::Entity entity) override {
+		// Entity is automatically set by the base class
 	}
 
 	void Start() override {
@@ -90,11 +86,11 @@ public:
 
 			// Register our ground detection callbacks
 			// IMPORTANT: Don't access components in these callbacks - just queue the events
-			collider.onCollisionEnter = [this](NE::ECS::Entity other) {
+			collider.onCollisionEnter = [this](NE::Scripting::Entity other) {
 				m_pendingCollisionEnters.push_back(other);
 				};
 
-			collider.onCollisionExit = [this](NE::ECS::Entity other) {
+			collider.onCollisionExit = [this](NE::Scripting::Entity other) {
 				m_pendingCollisionExits.push_back(other);
 				};
 
@@ -133,7 +129,7 @@ public:
 		}
 
 		// 2. Get current velocity
-		NE::Math::Vec3 velocity = GetVelocity();
+		NE::Scripting::Vec3 velocity = GetVelocity();
 
 		// 3. JUMPING - Check if we should jump
 		bool attemptingJump = HandleJump(velocity, isGrounded);
@@ -166,16 +162,16 @@ public:
 	// COLLISION-BASED GROUND DETECTION
 	// ========================================
 
-	void OnCollisionEnter(NE::ECS::Entity other) override {
+	void OnCollisionEnter(NE::Scripting::Entity other) override {
 		// Not used - we hook into collider callbacks directly
 	}
 
-	void OnCollisionExit(NE::ECS::Entity other) override {
+	void OnCollisionExit(NE::Scripting::Entity other) override {
 		// Not used - we hook into collider callbacks directly
 	}
 
-	void OnTriggerEnter(NE::ECS::Entity other) override {}
-	void OnTriggerExit(NE::ECS::Entity other) override {}
+	void OnTriggerEnter(NE::Scripting::Entity other) override {}
+	void OnTriggerExit(NE::Scripting::Entity other) override {}
 
 	// Exposed fields
 	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
@@ -194,13 +190,13 @@ private:
 	 */
 	void ProcessPendingCollisions() {
 		// Process collision enters
-		for (NE::ECS::Entity other : m_pendingCollisionEnters) {
+		for (NE::Scripting::Entity other : m_pendingCollisionEnters) {
 			HandleCollisionEnter(other);
 		}
 		m_pendingCollisionEnters.clear();
 
 		// Process collision exits
-		for (NE::ECS::Entity other : m_pendingCollisionExits) {
+		for (NE::Scripting::Entity other : m_pendingCollisionExits) {
 			HandleCollisionExit(other);
 		}
 		m_pendingCollisionExits.clear();
@@ -209,7 +205,7 @@ private:
 	/**
 	 * Handle collision enter - called from collider callback
 	 */
-	void HandleCollisionEnter(NE::ECS::Entity other) {
+	void HandleCollisionEnter(NE::Scripting::Entity other) {
 		// Don't collide with ourselves
 		if (other == GetEntity()) {
 			return;
@@ -228,7 +224,7 @@ private:
 	/**
 	 * Handle collision exit - called from collider callback
 	 */
-	void HandleCollisionExit(NE::ECS::Entity other) {
+	void HandleCollisionExit(NE::Scripting::Entity other) {
 		// Remove from ground contacts
 		if (m_groundContacts.erase(other) > 0) {
 			SPD_INFO("Ground contact removed with entity " << other << " (remaining: " << m_groundContacts.size() << ")");
@@ -239,7 +235,7 @@ private:
 	 * Check if an entity is below the player (potential ground contact)
 	 * NOTE: This accesses components, so must only be called OUTSIDE physics callbacks
 	 */
-	bool IsEntityBelowPlayer(NE::ECS::Entity other) const {
+	bool IsEntityBelowPlayer(NE::Scripting::Entity other) const {
 		if (!m_componentManager) return false;
 
 		// Safety: Validate entity IDs
@@ -248,7 +244,7 @@ private:
 		}
 
 		// Get our position (safe because we're in Update, not in callback)
-		NE::Math::Vec3 ourPos = GetPosition();
+		NE::Scripting::Vec3 ourPos = GetPosition();
 		float ourBottom = ourPos.y - m_colliderHalfHeight;
 
 		// Get other entity's position and collider
@@ -294,21 +290,21 @@ private:
 	bool CheckIfGrounded() const {
 		// If moving upward significantly, we're not grounded (even if touching ground)
 		// This handles the brief moment after jumping where collision exit hasn't fired yet
-		NE::Math::Vec3 velocity = GetVelocity();
+		NE::Scripting::Vec3 velocity = GetVelocity();
 		if (velocity.y > 1.0f) {  // Moving upward faster than 1 unit/sec = definitely airborne
 			return false;
 		}
 
 		if (useRaycastGroundCheck) {
 			// Optional raycast mode (for compatibility)
-			NE::Math::Vec3 origin = GetPosition();
+			NE::Scripting::Vec3 origin = GetPosition();
 			origin.y -= m_colliderHalfHeight; // Start at feet
 
-			NE::Math::Vec3 downDirection{ 0, -1, 0 };
+			NE::Scripting::Vec3 downDirection{ 0, -1, 0 };
 			uint32_t layerMask = 0xFFFFFFFF;
 
 			// Very short raycast - just checking if ground is directly below
-			IScript::RaycastHit hit = Raycast(origin, downDirection, 0.1f, layerMask);
+			NE::Scripting::RaycastHit hit = Raycast(origin, downDirection, 0.1f, layerMask);
 			return hit.hasHit && hit.distance <= 0.1f;
 		}
 		else {
@@ -342,11 +338,11 @@ private:
 	 * Cast forward rays to detect entities in front of player
 	 */
 	void PerformForwardRaycast(bool verbose) {
-		NE::Math::Vec3 forward = GetForward();
-		NE::Math::Vec3 playerPos = GetPosition();
+		NE::Scripting::Vec3 forward = GetForward();
+		NE::Scripting::Vec3 playerPos = GetPosition();
 
 		// Start raycast slightly in front and at custom height
-		NE::Math::Vec3 origin = playerPos;
+		NE::Scripting::Vec3 origin = playerPos;
 		origin.x += forward.x * forwardRaycastStartOffset;
 		origin.y += targetHeightOffset;
 		origin.z += forward.z * forwardRaycastStartOffset;
@@ -356,15 +352,15 @@ private:
 		uint32_t layerMask = 0xFFFFFFFF;
 
 		bool foundHit = false;
-		IScript::RaycastHit bestHit;
+		NE::Scripting::RaycastHit bestHit;
 		float closestDistance = forwardRaycastDistance + 1.0f;
 
 		// Try each height offset
 		for (float heightOffset : heightOffsets) {
-			NE::Math::Vec3 adjustedOrigin = origin;
+			NE::Scripting::Vec3 adjustedOrigin = origin;
 			adjustedOrigin.y += heightOffset;
 
-			IScript::RaycastHit hit = Raycast(adjustedOrigin, forward, forwardRaycastDistance, layerMask);
+			NE::Scripting::RaycastHit hit = Raycast(adjustedOrigin, forward, forwardRaycastDistance, layerMask);
 
 			// Skip self-hits
 			if (hit.hasHit && hit.entity != GetEntity() && hit.distance < closestDistance) {
@@ -375,7 +371,7 @@ private:
 		}
 
 		// Update what we're looking at
-		NE::ECS::Entity previousEntity = m_lookingAtEntity;
+		NE::Scripting::Entity previousEntity = m_lookingAtEntity;
 		m_lookingAtEntity = foundHit ? bestHit.entity : 0;
 
 		// Entity changed - trigger callbacks
@@ -407,7 +403,7 @@ private:
 		}
 	}
 
-	void OnStartLookingAt(NE::ECS::Entity entity) {
+	void OnStartLookingAt(NE::Scripting::Entity entity) {
 		if (debugRaycastInfo) {
 			SPD_INFO("Started looking at entity " << entity);
 		}
@@ -421,7 +417,7 @@ private:
 		}
 	}
 
-	void OnStopLookingAt(NE::ECS::Entity entity) {
+	void OnStopLookingAt(NE::Scripting::Entity entity) {
 		if (debugRaycastInfo) {
 			SPD_INFO("Stopped looking at entity " << entity);
 		}
@@ -434,35 +430,35 @@ private:
 		}
 	}
 
-	void OnInteractWithEntity(NE::ECS::Entity entity) {
+	void OnInteractWithEntity(NE::Scripting::Entity entity) {
 		SPD_INFO("========================================");
 		SPD_INFO("    INTERACTING WITH ENTITY " << entity);
 		SPD_INFO("========================================");
 	}
 
-	void HandleMovementAndGravity(NE::Math::Vec3& velocity, double deltaTime,
+	void HandleMovementAndGravity(NE::Scripting::Vec3& velocity, double deltaTime,
 		bool attemptingJump, bool isGrounded) {
 		
 		auto camTransform = GetTransform(7);
-		//NE::Math::Vec3 camForward = camTransform.GetForward();  // or Normalize manually
-		//NE::Math::Vec3 camRight = camTransform.GetRight();
+		//NE::Scripting::Vec3 camForward = camTransform.GetForward();  // or Normalize manually
+		//NE::Scripting::Vec3 camRight = camTransform.GetRight();
 		float yaw = camTransform.rotation.y * 0.017453292519943295f; // deg→rad
 
-		NE::Math::Vec3 camForward{
+		NE::Scripting::Vec3 camForward{
 			sinf(yaw),
 			0.0f,
 			-cosf(yaw)
 		};
 		camForward = camForward.Normalized();
 
-		NE::Math::Vec3 camRight{
+		NE::Scripting::Vec3 camRight{
 			camForward.z,
 			0.0f,
 			-camForward.x
 		};
 
 		// Get input for all 4 directions
-		NE::Math::Vec3 inputDirection{ 0, 0, 0 };
+		NE::Scripting::Vec3 inputDirection{ 0, 0, 0 };
 
 		//if (NE::InputManager::IsKeyDown('W')) {
 		//	inputDirection.z -= 1.0f;
@@ -495,7 +491,7 @@ private:
 		bool isMoving = inputMagnitude > 0.01f;
 
 		// Get current velocity
-		NE::Math::Vec3 newVelocity = GetVelocity();
+		NE::Scripting::Vec3 newVelocity = GetVelocity();
 
 		// === HORIZONTAL MOVEMENT ===
 		if (isMoving) {
@@ -552,7 +548,7 @@ private:
 		SetVelocity(newVelocity);
 	}
 
-	bool HandleJump(NE::Math::Vec3& velocity, bool isGrounded) {
+	bool HandleJump(NE::Scripting::Vec3& velocity, bool isGrounded) {
 		if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
 			if (isGrounded && !m_hasJumpedThisFrame) {
 				SPD_INFO("Jump input registered!");
@@ -599,16 +595,16 @@ private:
 
 	// Internal state
 	bool m_hasJumpedThisFrame = false;
-	NE::ECS::Entity m_lookingAtEntity = 0;
-	NE::Math::Vec3 m_originalScale = { 1.0f, 1.0f, 1.0f };
+	NE::Scripting::Entity m_lookingAtEntity = 0;
+	NE::Scripting::Vec3 m_originalScale = { 1.0f, 1.0f, 1.0f };
 	float m_colliderHalfHeight = 0.5f;
 
 	// Collision-based ground detection
-	std::unordered_set<NE::ECS::Entity> m_groundContacts;
+	std::unordered_set<NE::Scripting::Entity> m_groundContacts;
 
 	// Pending collisions (queued during physics callbacks, processed in Update)
-	std::vector<NE::ECS::Entity> m_pendingCollisionEnters;
-	std::vector<NE::ECS::Entity> m_pendingCollisionExits;
+	std::vector<NE::Scripting::Entity> m_pendingCollisionEnters;
+	std::vector<NE::Scripting::Entity> m_pendingCollisionExits;
 
 	// Field registry for editor
 	ExposedFieldRegistry m_fields;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IScriptRegistrar.hpp"
+#include "IScript.hpp"
 #include <unordered_map>
 #include <memory>
 #include <vector>
@@ -8,9 +9,6 @@
 #include <mutex>
 #include <FileWatch.hpp>
 #include "ECS/Components/NativeScript.hpp"
-
-// Forward declarations
-class IScript;
 
 // Export macros for when Engine is built as DLL
 //#ifdef ENGINE_EXPORTS

@@ -1,18 +1,16 @@
 #pragma once
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include <Math/Vec3.hpp>
+#include "EngineAPI.hpp"
 
 /**
  * Example: Follower Script
  * This entity will follow another entity's Transform component.
- * 
+ *
  * Usage:
  * 1. Add this script to an entity (e.g., "Enemy")
  * 2. In the inspector, drag the "Player" entity onto the "targetTransform" field
  * 3. The enemy will now follow the player!
  */
-class FollowerScript : public IScript {
+class FollowerScript : public NE::Scripting::IScript {
 public:
     FollowerScript() {
 // Register component reference - this will show up in the inspector
@@ -23,49 +21,49 @@ public:
         SCRIPT_FIELD(stopDistance, Float);
     }
 
-    void Initialize(NE::ECS::Entity entity) override {
+    void Initialize(NE::Scripting::Entity entity) override {
         // Nothing to do here
     }
 
     void Update(double deltaTime) override {
         // Check if we have a valid target
-        if (!targetTransform) {
-         return; // No target assigned
+        if (!targetTransform.IsValid()) {
+            return; // No target assigned
         }
 
-      // Get target position
-        NE::Math::Vec3 targetPos = targetTransform->position;
-        NE::Math::Vec3 myPos = GetPosition();
-        
+        // Get target position using SDK method
+        NE::Scripting::Vec3 targetPos = GetPosition(targetTransform);
+        NE::Scripting::Vec3 myPos = GetPosition();
+
         // Calculate direction to target
-        NE::Math::Vec3 direction = {
-    targetPos.x - myPos.x,
-         targetPos.y - myPos.y,
-         targetPos.z - myPos.z
+        NE::Scripting::Vec3 direction = {
+            targetPos.x - myPos.x,
+            targetPos.y - myPos.y,
+            targetPos.z - myPos.z
         };
-        
+
         // Calculate distance
         float distance = std::sqrt(
-      direction.x * direction.x +
+            direction.x * direction.x +
             direction.y * direction.y +
-         direction.z * direction.z
+            direction.z * direction.z
         );
-        
-// Only move if we're far enough away
+
+        // Only move if we're far enough away
         if (distance > stopDistance) {
-    // Normalize direction
-        direction.x /= distance;
+            // Normalize direction
+            direction.x /= distance;
             direction.y /= distance;
-         direction.z /= distance;
-      
-    // Move towards target
-   float moveAmount = followSpeed * static_cast<float>(deltaTime);
+            direction.z /= distance;
+
+            // Move towards target
+            float moveAmount = followSpeed * static_cast<float>(deltaTime);
             Translate(
-     direction.x * moveAmount,
-             direction.y * moveAmount,
-     direction.z * moveAmount
-      );
-    }
+                direction.x * moveAmount,
+                direction.y * moveAmount,
+                direction.z * moveAmount
+            );
+        }
     }
 
  const char* GetTypeName() const override {
@@ -73,15 +71,15 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::ECS::Entity other) override {}
-    void OnCollisionExit(NE::ECS::Entity other) override {}
-    void OnTriggerEnter(NE::ECS::Entity other) override {}
-    void OnTriggerExit(NE::ECS::Entity other) override {}
+    void OnCollisionEnter(NE::Scripting::Entity other) override {}
+    void OnCollisionExit(NE::Scripting::Entity other) override {}
+    void OnTriggerEnter(NE::Scripting::Entity other) override {}
+    void OnTriggerExit(NE::Scripting::Entity other) override {}
 
 private:
-    // ? Component reference - will hold pointer to target's Transform
-    ComponentRef<NE::ECS::Component::Transform> targetTransform;
-    
+    // Component reference - will hold reference to target's Transform
+    NE::Scripting::TransformRef targetTransform;
+
     // Regular fields
     float followSpeed = 5.0f;
     float stopDistance = 2.0f;

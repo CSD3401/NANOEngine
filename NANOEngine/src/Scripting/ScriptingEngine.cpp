@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <Windows.h>
 #include "Core/SpdLogger.hpp"
+#include "ScriptContextFactory.hpp"
 
 #include "Engine.hpp"
 #include "SceneManagement/Scene.hpp"
@@ -364,7 +365,7 @@ namespace NE::Scripting {
         for (NE::ECS::Entity entity : GetScene().GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>()) {
             Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
             auto& ns = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-            ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it’s a function ptr
+            ns.CreateScript = {};   // or ns.CreateScript = nullptr; if itï¿½s a function ptr
             ns.DestroyScript = {};
         }
 
@@ -742,8 +743,8 @@ namespace NE::Scripting {
             }
 
             nsc.Instance = nsc.CreateScript();
-            nsc.Instance->LinkToEngine(&GetScene().GetECSCoordinator().GetComponentManager());
-            nsc.Instance->SetEntity(entity);
+            Scripting::LinkScriptToEngine(nsc.Instance, &GetScene().GetECSCoordinator().GetComponentManager());
+            nsc.Instance->_SetEntity(entity);
             nsc.Instance->Awake();
             nsc.Instance->Initialize(entity);
 

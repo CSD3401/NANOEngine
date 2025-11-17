@@ -1,22 +1,18 @@
 #pragma once
 #include <iostream>
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "Events/EventBus.hpp"
-#include "Core/Couroutine.hpp"
-#include <Math/Vec3.hpp>
-#include <Input/InputManager.hpp>
-#include <ECS/Components/Light.hpp>
-#include <EditorInterface/ECSExports.hpp>
-#include <Engine.hpp>
+#include "EngineAPI.hpp"
+#include "../../NANOEngine/src/ECS/Components/Transform.hpp"
+#include "../../NANOEngine/src/ECS/Components/Light.hpp"
+#include "../../NANOEngine/src/EditorInterface/ECSExports.hpp"
+#include "../../NANOEngine/src/Engine.hpp"
 
 
-class PlayerCamera : public IScript {
+class PlayerCamera : public NE::Scripting::IScript {
 public:
     PlayerCamera() {
     }
 
-    void Initialize(NE::ECS::Entity entity) override {
+    void Initialize(NE::Scripting::Entity entity) override {
         SetRotation(0.f, 180.f, 0.f);
     }
 
@@ -52,7 +48,7 @@ public:
         if (m_pitch > 89.0f)  m_pitch = 89.0f;
         if (m_pitch < -89.0f) m_pitch = -89.0f;
 
-        SetRotation(NE::Math::Vec3(m_pitch, m_yaw, 0.0f));
+        SetRotation(m_pitch, m_yaw, 0.0f);
 
         if (NE::InputManager::IsKeyDown('Q')) {
             //auto selectedEntt = NE::GetPickedEntity(960, 540);
@@ -98,10 +94,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::ECS::Entity other) override {}
-    void OnCollisionExit(NE::ECS::Entity other) override {}
-    void OnTriggerEnter(NE::ECS::Entity other) override {}
-    void OnTriggerExit(NE::ECS::Entity other) override {}
+    void OnCollisionEnter(NE::Scripting::Entity other) override {}
+    void OnCollisionExit(NE::Scripting::Entity other) override {}
+    void OnTriggerEnter(NE::Scripting::Entity other) override {}
+    void OnTriggerExit(NE::Scripting::Entity other) override {}
 
 private:
     // === Exposed Fields ===
@@ -117,5 +113,5 @@ private:
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
 
-    NE::ECS::Entity pickedEntity = NE::ECS::NO_ENTITY;
+    NE::Scripting::Entity pickedEntity = NE::ECS::NO_ENTITY;
 };
