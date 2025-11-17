@@ -4,6 +4,8 @@
 #include "../Components/NativeScript.hpp"
 #include "../../Scripting/IScript.hpp"  // Explicitly include IScript definition
 #include "Core/SpdLogger.hpp"
+#include "Core/Couroutine.hpp"
+#include "Events/EventBus.hpp"
 #include "../../Scripting/ScriptingEngine.hpp"
 #include "../../Scripting/ScriptContextFactory.hpp"
 
@@ -78,13 +80,26 @@ namespace NE::ECS::Systems {
     }
 
     void ScriptSystem::Exit() {
+        // CRITICAL: Clear these FIRST before ANY cleanup
+        NANOEngine::Events::ClearScriptEventListeners();
+        Engine_ClearAllCoroutines();
+
         auto& entities = GetEntities();
 
         for (NE::ECS::Entity entity : entities) {
+            if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
+                continue;
+            }
+
+            // Destroy the script instance
             Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-            auto& ns = m_componentManager->GetComponent<Component::NativeScript>(entity);
-            ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it�s a function ptr
-            ns.DestroyScript = {};
+
+            // Clear function pointers using swap
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+            std::function<IScript* ()> emptyCreate;
+            std::function<void(IScript*)> emptyDestroy;
+            nsc.CreateScript.swap(emptyCreate);
+            nsc.DestroyScript.swap(emptyDestroy);
         }
     }
 

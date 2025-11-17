@@ -8,7 +8,6 @@
 
 #include "Engine.hpp"
 #include "SceneManagement/Scene.hpp"
-#include "Events/EventBus.hpp"
 
 namespace {
     struct ScriptState {
@@ -362,17 +361,15 @@ namespace NE::Scripting {
             return;
         }
 
-        m_sourceWatcher.reset();
-        for (NE::ECS::Entity entity : GetScene().GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>()) {
-            Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-            auto& ns = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-            ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it�s a function ptr
-            ns.DestroyScript = {};
-        }
-
         SPD_INFO("Shutting down ScriptingEngine...");
-        NANOEngine::Events::ClearScriptEventListeners();
+
+        // Stop watching files
+        m_sourceWatcher.reset();
+
+        // Clear registered script factories
         ClearRegisteredScripts();
+
+        // Unload all DLLs - the components have already been cleaned up by ScriptSystem::Exit()
         UnloadAllDLLs();
 
         m_initialized = false;
