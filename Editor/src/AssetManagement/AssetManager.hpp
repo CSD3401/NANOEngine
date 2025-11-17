@@ -22,6 +22,7 @@ namespace Editor {
 		std::string RetrieveUUID(const std::string& sourcePath);
 		std::string RetrieveFileName(const std::string& uuid);
 		
+		bool SaveTextureImportSettings(const std::string& metaPath, const TextureImportSettings& settings);
 
 		template <AssetType T>
 		std::vector<std::pair<std::string, UUID>>& GetAssetsOfType() {
