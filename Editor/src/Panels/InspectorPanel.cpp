@@ -520,7 +520,7 @@ namespace Editor {
 
                 } 
 				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
-					auto& comp = NE::ECS::Query::GetEntityRigidbody(entity);
+					auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
 					ImGui::SeparatorText("Rigidbody");
 
 					// Motion Type dropdown (primary control)
@@ -570,10 +570,25 @@ namespace Editor {
 								);
 							}
 						});
-				}
 
-                else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) 
-                {
+					if (ImGui::TreeNode("Constraints")) {
+						bool changedX = Editor::DrawCheckbox("X", comp.constrainX);
+						bool changedY = Editor::DrawCheckbox("Y", comp.constrainY);
+						bool changedZ = Editor::DrawCheckbox("Z", comp.constrainZ);
+
+						if (changedX || changedY || changedZ) {
+							NE::Physics::Command::LockConstraints(
+								entity,
+								comp.constrainX,
+								comp.constrainY,
+								comp.constrainZ
+							);
+						}
+
+						ImGui::TreePop();
+					}
+
+				} else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) {
                     auto& comp = NE::ECS::Query::GetEntityAudioSource(entity);
                     ImGui::SeparatorText("AudioSource");
 

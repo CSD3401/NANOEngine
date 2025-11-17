@@ -19,7 +19,7 @@
 // debug
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
-#include <iostream>
+#include "Core/SpdLogger.hpp"
 
 namespace NE::Physics {
 	// Self notes:
@@ -748,53 +748,169 @@ namespace NE::Physics {
 	}
 	// === Rotation Locking ===
 
-	void PhysicsManager::LockRotation(uint32_t bodyID, bool lockX, bool lockY, bool lockZ) 
-	{
-		if (!s_PhysicsSystem) return;
+	void PhysicsManager::LockRotation(uint32_t _bodyID, bool lockX, bool lockY, bool lockZ) {
+        //if (!s_PhysicsSystem)
+        //    return;
 
-		JPH::BodyID id(bodyID);
-		JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        //JPH::BodyID bodyID(_bodyID);
 
-		// Stop any existing rotation first
-		bodyInterface.SetAngularVelocity(id, JPH::Vec3::sZero());
+        //JPH::BodyLockWrite lock(s_PhysicsSystem->GetBodyLockInterface(), bodyID);
+        //if (!lock.Succeeded())
+        //    return; // body destroyed / invalid
 
-		// Lock rotation by modifying the body's allowed degrees of freedom
-		JPH::BodyLockWrite lock(s_PhysicsSystem->GetBodyLockInterface(), id);
-		if (lock.Succeeded()) {
-			JPH::Body& body = lock.GetBody();
+        //JPH::Body& body = lock.GetBody();
 
-			if (body.IsDynamic()) {
-				JPH::MotionProperties* motionProps = body.GetMotionProperties();
+        //// Don’t mess with static/kinematic bodies here
+        //if (body.IsStatic() || body.IsKinematic())
+        //    return;
 
-				// Build the allowed DOFs bitmask
-			 // Bits: 0=TransX, 1=TransY, 2=TransZ, 3=RotX, 4=RotY, 5=RotZ
-				uint32_t dofBits = 0;
+        //JPH::MotionProperties* motion = body.GetMotionProperties();
+        //if (!motion)
+        //    return;
 
-				// Always allow all translation
-				dofBits |= (1 << 0);  // TranslationX
-				dofBits |= (1 << 1);  // TranslationY
-				dofBits |= (1 << 2);  // TranslationZ
+        //const JPH::Shape* shape = body.GetShape();
+        //if (!shape)
+        //    return;
 
-				// Add rotation DOFs only if NOT locked
-				if (!lockX) dofBits |= (1 << 3);  // RotationX
-				if (!lockY) dofBits |= (1 << 4);  // RotationY
-				if (!lockZ) dofBits |= (1 << 5);  // RotationZ
+        //// Get current mass properties (so inertia tensor can be re-computed with new DOFs)
+        //JPH::MassProperties massProps = shape->GetMassProperties();
 
-				JPH::EAllowedDOFs allowedDOFs = static_cast<JPH::EAllowedDOFs>(dofBits);
+        //// Preserve the current mass
+        //float invMass = motion->GetInverseMass();
+        //if (invMass > 0.0f)
+        //    massProps.ScaleToMass(1.0f / invMass);
 
-				// Get the current mass from the body
-				float mass = motionProps->GetInverseMass() > 0.0f
-					? 1.0f / motionProps->GetInverseMass()
-					: 70.0f;
+        //// Start with all DOFs allowed, then remove rotation axes that are locked.
+        //JPH::EAllowedDOFs allowed = JPH::EAllowedDOFs::All;
 
-				// Get mass properties from the shape
-				JPH::MassProperties massProps = body.GetShape()->GetMassProperties();
-				massProps.mMass = mass;
+        //if (lockX) allowed &= ~JPH::EAllowedDOFs::RotationX;
+        //if (lockY) allowed &= ~JPH::EAllowedDOFs::RotationY;
+        //if (lockZ) allowed &= ~JPH::EAllowedDOFs::RotationZ;
 
-				// Apply the new mass properties with restricted DOFs
-				motionProps->SetMassProperties(allowedDOFs, massProps);
-			}
-		}
+        //// We’re not touching translations, so this will never become EAllowedDOFs::None
+
+        //motion->SetMassProperties(allowed, massProps);
+
+        //// Optional but usually desired: zero out angular velocity along locked axes
+        //JPH::Vec3 angVel = motion->GetAngularVelocity();
+
+        //if (lockX) angVel.SetX(0.0f);
+        //if (lockY) angVel.SetY(0.0f);
+        //if (lockZ) angVel.SetZ(0.0f);
+
+        //motion->SetAngularVelocity(angVel);
+        if (!s_PhysicsSystem) {
+            SPD_WARNING("LockRotation: PhysicsSystem is null");
+            return;
+        }
+
+        JPH::BodyID bodyID(_bodyID);
+
+        // Basic ID sanity
+        if (bodyID.IsInvalid()) {
+            SPD_WARNING("LockRotation: BodyID is invalid (raw id = {})", _bodyID);
+            return;
+        }
+
+        SPD_INFO("LockRotation: bodyID = {} (raw = {}), lockX = {}, lockY = {}, lockZ = {}",
+            bodyID.GetIndexAndSequenceNumber(),
+            _bodyID,
+            lockX, lockY, lockZ);
+
+        // (Optional) Check if body was actually added to the world
+        {
+            auto& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+            if (!bodyInterface.IsAdded(bodyID)) {
+                SPD_WARNING("LockRotation: BodyID {} not added to PhysicsSystem", _bodyID);
+                return;
+            }
+        }
+
+        JPH::BodyLockWrite lock(s_PhysicsSystem->GetBodyLockInterface(), bodyID);
+        if (!lock.Succeeded()) {
+            SPD_WARNING("LockRotation: Failed to lock body {}", _bodyID);
+            return; // body destroyed / invalid
+        }
+
+        JPH::Body& body = lock.GetBody();
+
+        SPD_INFO("LockRotation: Body MotionType = {}, IsStatic = {}, IsKinematic = {}",
+            (int)body.GetMotionType(), body.IsStatic(), body.IsKinematic());
+
+        // Don’t mess with static/kinematic bodies here
+        if (body.IsStatic() || body.IsKinematic()) {
+            SPD_WARNING("LockRotation: Body {} is static/kinematic, skipping", _bodyID);
+            return;
+        }
+
+        JPH::MotionProperties* motion = body.GetMotionProperties();
+        if (!motion) {
+            SPD_WARNING("LockRotation: Body {} has no MotionProperties", _bodyID);
+            return;
+        }
+
+        const JPH::Shape* shape = body.GetShape();
+        if (!shape) {
+            SPD_WARNING("LockRotation: Body {} has no Shape", _bodyID);
+            return;
+        }
+
+        // --- Before values ---
+        float invMassBefore = motion->GetInverseMass();
+        JPH::Vec3 linVelBefore = motion->GetLinearVelocity();
+        JPH::Vec3 angVelBefore = motion->GetAngularVelocity();
+
+        SPD_INFO("LockRotation: BEFORE - invMass = {}, linVel = ({}, {}, {}), angVel = ({}, {}, {})",
+            invMassBefore,
+            linVelBefore.GetX(), linVelBefore.GetY(), linVelBefore.GetZ(),
+            angVelBefore.GetX(), angVelBefore.GetY(), angVelBefore.GetZ());
+
+        // Get current mass properties (so inertia tensor can be re-computed with new DOFs)
+        JPH::MassProperties massProps = shape->GetMassProperties();
+
+        // Preserve the current mass
+        if (invMassBefore > 0.0f) {
+            float mass = 1.0f / invMassBefore;
+            massProps.ScaleToMass(mass);
+            SPD_INFO("LockRotation: Preserving mass ~ {}", mass);
+        } else {
+            SPD_WARNING("LockRotation: invMass is 0 for body {}, treating as infinite mass", _bodyID);
+        }
+
+        // Start with all DOFs allowed, then remove rotation axes that are locked.
+        JPH::EAllowedDOFs allowed = JPH::EAllowedDOFs::All;
+
+        if (lockX) allowed &= ~JPH::EAllowedDOFs::RotationX;
+        if (lockY) allowed &= ~JPH::EAllowedDOFs::RotationY;
+        if (lockZ) allowed &= ~JPH::EAllowedDOFs::RotationZ;
+
+        SPD_INFO("LockRotation: EAllowedDOFs mask after locking = {}", (int)allowed);
+
+        // We’re not touching translations, so this will never become EAllowedDOFs::None
+
+        motion->SetMassProperties(allowed, massProps);
+
+        // Optional but usually desired: zero out angular velocity along locked axes
+        JPH::Vec3 angVel = motion->GetAngularVelocity(); // re-read in case SetMassProperties touched it
+
+        if (lockX) angVel.SetX(0.0f);
+        if (lockY) angVel.SetY(0.0f);
+        if (lockZ) angVel.SetZ(0.0f);
+
+        motion->SetAngularVelocity(angVel);
+
+        // Wake body so changes take effect immediately
+        //body.SetIsSleeping(false);
+
+        // --- After values ---
+        float invMassAfter = motion->GetInverseMass();
+        JPH::Vec3 linVelAfter = motion->GetLinearVelocity();
+        JPH::Vec3 angVelAfter = motion->GetAngularVelocity();
+
+        SPD_INFO("LockRotation: AFTER  - invMass = {}, linVel = ({}, {}, {}), angVel = ({}, {}, {})",
+            invMassAfter,
+            linVelAfter.GetX(), linVelAfter.GetY(), linVelAfter.GetZ(),
+            angVelAfter.GetX(), angVelAfter.GetY(), angVelAfter.GetZ());
 	}
 
 	void PhysicsManager::ClearAllBodies() {
