@@ -8,6 +8,7 @@
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/AudioSource.hpp"
 #include "../Physics/PhysicsManager.hpp"
+#include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 
 // PIMPL implementation to hide std containers from DLL interface
 class IScript::FieldRegistry {
@@ -239,6 +240,11 @@ void IScript::SetPosition(const NE::Math::Vec3& pos) {
 		auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
 		transform.position = pos;
 		transform.isDirty = true;
+		
+		// Only mark dirty for serialization if in Edit mode
+		if (NE::GetEngineState() == NE::EngineState::Edit) {
+			transform.isDirty = true;  // This will trigger scene save
+		}
 	}
 }
 
@@ -262,6 +268,11 @@ void IScript::SetRotation(const NE::Math::Vec3& rot) {
 		auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
 		transform.rotation = rot;
 		transform.isDirty = true;
+		
+		// Only mark dirty for serialization if in Edit mode
+		if (NE::GetEngineState() == NE::EngineState::Edit) {
+			transform.isDirty = true;  // This will trigger scene save
+		}
 	}
 }
 
@@ -285,6 +296,11 @@ void IScript::SetScale(const NE::Math::Vec3& scale) {
 		auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
 		transform.scale = scale;
 		transform.isDirty = true;
+		
+		// Only mark dirty for serialization if in Edit mode
+		if (NE::GetEngineState() == NE::EngineState::Edit) {
+			transform.isDirty = true;  // This will trigger scene save
+		}
 	}
 }
 
@@ -752,19 +768,20 @@ void IScript::RegisterComponentRefField<NE::ECS::Component::Transform>(const std
 	entry.typeToken = "componentref:Transform";
 	entry.memberPtr = memberPtr;
 
-	// Store the entity ID as a string (safer than raw pointers)
+	// Store the entity ID as a string
 	entry.getValue = [memberPtr]() -> std::string {
-		if (memberPtr->GetOwnerEntity() == 0) {
-			return "0";
+		if (memberPtr->GetOwnerEntity() == NE::ECS::NO_ENTITY) {
+			return std::to_string(NE::ECS::NO_ENTITY);
 		}
 		return std::to_string(memberPtr->GetOwnerEntity());
 	};
 
-	// Set the entity ID - don't try to resolve pointer yet!
+	// Set the entity ID 
 	entry.setValue = [memberPtr](const std::string& value) -> bool {
 		try {
-			if (value == "0" || value.empty()) {
-				memberPtr->Set(nullptr, 0);
+			std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+			if (value == noEntityStr || value.empty()) {
+				memberPtr->Set(nullptr, NE::ECS::NO_ENTITY);
 				return true;
 			}
 			
@@ -779,7 +796,7 @@ void IScript::RegisterComponentRefField<NE::ECS::Component::Transform>(const std
 			return true;
 		}
 		catch (...) {
-			memberPtr->Set(nullptr, 0);
+			memberPtr->Set(nullptr, NE::ECS::NO_ENTITY);
 			return false;
 		}
 	};
@@ -799,16 +816,17 @@ void IScript::RegisterComponentRefField<NE::ECS::Component::Rigidbody>(const std
 	entry.memberPtr = memberPtr;
 
 	entry.getValue = [memberPtr]() -> std::string {
-		if (memberPtr->GetOwnerEntity() == 0) {
-			return "0";
+		if (memberPtr->GetOwnerEntity() == NE::ECS::NO_ENTITY) {
+			return std::to_string(NE::ECS::NO_ENTITY);
 		}
 		return std::to_string(memberPtr->GetOwnerEntity());
 	};
 
 	entry.setValue = [memberPtr](const std::string& value) -> bool {
 		try {
-			if (value == "0" || value.empty()) {
-				memberPtr->Set(nullptr, 0);
+			std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+			if (value == noEntityStr || value.empty()) {
+				memberPtr->Set(nullptr, NE::ECS::NO_ENTITY);
 				return true;
 			}
 			
@@ -821,7 +839,7 @@ void IScript::RegisterComponentRefField<NE::ECS::Component::Rigidbody>(const std
 			return true;
 		}
 		catch (...) {
-			memberPtr->Set(nullptr, 0);
+			memberPtr->Set(nullptr, NE::ECS::NO_ENTITY);
 			return false;
 		}
 	};
@@ -841,16 +859,17 @@ void IScript::RegisterComponentRefField<NE::ECS::Component::AudioSource>(const s
 	entry.memberPtr = memberPtr;
 
 	entry.getValue = [memberPtr]() -> std::string {
-		if (memberPtr->GetOwnerEntity() == 0) {
-			return "0";
+		if (memberPtr->GetOwnerEntity() == NE::ECS::NO_ENTITY) {
+			return std::to_string(NE::ECS::NO_ENTITY);
 		}
 		return std::to_string(memberPtr->GetOwnerEntity());
 	};
 
 	entry.setValue = [memberPtr](const std::string& value) -> bool {
 		try {
-			if (value == "0" || value.empty()) {
-				memberPtr->Set(nullptr, 0);
+			std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+			if (value == noEntityStr || value.empty()) {
+				memberPtr->Set(nullptr, NE::ECS::NO_ENTITY);
 				return true;
 			}
 			
@@ -863,7 +882,7 @@ void IScript::RegisterComponentRefField<NE::ECS::Component::AudioSource>(const s
 			return true;
 		}
 		catch (...) {
-			memberPtr->Set(nullptr, 0);
+			memberPtr->Set(nullptr, NE::ECS::NO_ENTITY);
 			return false;
 		}
 	};

@@ -5,6 +5,7 @@
 #include <sstream>
 #include "../ECS/Core/ComponentManager.hpp"
 #include "../Math/Vec3.hpp"
+#include "../EngineState.hpp"  // For checking Edit vs Play mode
 
 // Export macros for when Engine is built as DLL
 #ifdef NANOENGINE_EXPORTS
@@ -154,6 +155,14 @@ public:
 	 * Called when the script is disabled.
 	 */
 	virtual void OnDisable() {}
+
+	/**
+	 * Mark a component as dirty for serialization (Editor Mode only).
+	 * This is automatically called by helper functions, but can be called manually
+	 * when directly modifying component fields in Editor Mode scripts.
+	 */
+	template<typename T>
+	void MarkComponentDirty();
 
 	/**
 	 * Get the entity this script is attached to.
@@ -773,4 +782,23 @@ bool IScript::HasComponent() const {
 		return false;
 	}
 	return m_componentManager->HasComponent<T>(m_entity);
+}
+
+template<typename T>
+void IScript::MarkComponentDirty() {
+	// Only mark dirty in Edit mode - runtime changes should not be serialized
+	if (NE::GetEngineState() != NE::EngineState::Edit) {
+		return;
+	}
+
+	if (!m_componentManager || !m_componentManager->HasComponent<T>(m_entity)) {
+		return;
+	}
+
+	auto& component = m_componentManager->GetComponent<T>(m_entity);
+	
+	// Use C++20 requires to check if the component has an isDirty field
+	if constexpr (requires { component.isDirty; }) {
+		component.isDirty = true;
+	}
 }
