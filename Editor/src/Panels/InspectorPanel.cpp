@@ -191,7 +191,6 @@ namespace {
 			return false;
 		}
 
-		// If there's no modelImport block yet, just keep default settings
 		if (!doc.HasMember("modelImport") || !doc["modelImport"].IsObject())
 			return true;
 
@@ -223,7 +222,6 @@ namespace {
 			return false;
 		}
 
-		// If there's no modelImport block yet, just keep default settings
 		if (!doc.HasMember("textureImport") || !doc["textureImport"].IsObject())
 			return true;
 
