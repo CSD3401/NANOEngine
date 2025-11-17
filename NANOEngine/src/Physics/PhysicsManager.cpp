@@ -341,7 +341,7 @@ namespace NE::Physics {
         }
 
         // Render debug shapes
-        RenderAllBodyShapes();
+        //RenderAllBodyShapes();
     }
 
     void PhysicsManager::RenderAllBodyShapes()
@@ -669,8 +669,10 @@ namespace NE::Physics {
             Layers::NON_MOVING
         );
 
+        
+
         // Allow marking as kinematic later if you ever need that
-        bodySettings.mAllowDynamicOrKinematic = true;
+        // bodySettings.mAllowDynamicOrKinematic = true;
 
         uint32_t bodyID = CreateBody(bodySettings);
 

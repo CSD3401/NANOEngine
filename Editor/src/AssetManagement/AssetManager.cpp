@@ -429,73 +429,82 @@ namespace Editor {
     }
 
     void AssetManager::ReimportAsset(const std::string& sourcePath) {
+        using namespace rapidjson;
+
         std::filesystem::path fsSourcePath = sourcePath;
         std::filesystem::path metaPath = sourcePath + ".meta";
 
         AssetMetadata metadata{};
         metadata.sourcePath = sourcePath;
 
-        TextureImportSettings texSettings{};
+        
         if (std::filesystem::exists(metaPath)) {
             std::ifstream ifs(metaPath);
 
-            std::string line;
-            while (std::getline(ifs, line)) {
-                if (line.starts_with("uuid:")) {
-                    metadata.uuid = line.substr(line.find(':') + 1);
-                    metadata.uuid.erase(0, metadata.uuid.find_first_not_of(" \t"));
-                } else if (line.starts_with("assetType:")) {
-                    std::string typeStr = line.substr(line.find(':') + 1);
-                    typeStr.erase(0, typeStr.find_first_not_of(" \t"));
-                    metadata.type = GetAssetTypeFromString(typeStr);
-                } else if (line.starts_with("sourcePath:")) {
-                    metadata.sourcePath = line.substr(line.find(':') + 1);
-                    metadata.sourcePath.erase(0, metadata.sourcePath.find_first_not_of(" \t"));
-                } else if (line.rfind("textureType:", 0) == 0) {
-                    std::string texStr = line.substr(line.find(':') + 1);
-                    texStr.erase(0, texStr.find_first_not_of(" \t"));
-                    if (!texStr.empty()) {
-                        int t = std::stoi(texStr); // 0 = Default, 1 = Normal, ...
-                        texSettings.type =
-                            static_cast<Editor::TexType>(t);
+            IStreamWrapper isw(ifs);
+            Document doc;
+            doc.ParseStream(isw);
+
+            if (doc.HasParseError() || !doc.IsObject()) {
+                SPD_WARNING("Failed to parse meta JSON: " << metaPath.string());
+                return;
+            }
+
+            if (doc.HasMember("uuid") && doc["uuid"].IsString())
+                metadata.uuid = doc["uuid"].GetString();
+            if (doc.HasMember("assetType") && doc["assetType"].IsString())
+                metadata.type = GetAssetTypeFromString(doc["assetType"].GetString());
+            if (doc.HasMember("sourcePath") && doc["sourcePath"].IsString())
+                metadata.sourcePath = doc["sourcePath"].GetString();
+
+
+            std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(metadata.uuid);
+
+            AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
+            switch (assetType) {
+            case AssetType::Texture: {
+
+
+                TextureImportSettings texSettings{};
+                if (doc.HasMember("textureImport") && doc["textureImport"].IsObject()) {
+                    auto& importSettings = doc["textureImport"];
+
+                    if (importSettings.HasMember("type") && importSettings["type"].IsInt()) {
+                        int v = importSettings["type"].GetInt();
+                        texSettings.type = static_cast<TexType>(v);
+                        SPD_WARNING("TEXTURE TYPE: " << static_cast<int>(texSettings.type));
                     }
                 }
+
+
+                CookTexture(sourcePath, outPath, texSettings);
+
+
+                break;
             }
+            case AssetType::Mesh: {
+                CookMesh(sourcePath, outPath);
+                break;
+            }
+            case AssetType::Shader: {
+                CookShader(sourcePath, outPath);
+                break;
+            }
+            case AssetType::Material: {
+                CookMaterial(sourcePath, outPath);
+                break;
+            }
+            case AssetType::Audio: {
+
+                break;
+            }
+            default:
+                break;
+            }
+
+            m_assets[metadata.uuid] = std::move(metadata);
         }
-
-        std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(metadata.uuid);
-
-        AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
-        switch (assetType) {
-        case AssetType::Texture: {
-
-
-            CookTexture(sourcePath, outPath, texSettings);
-
-
-            break;
-        }
-        case AssetType::Mesh: {
-            CookMesh(sourcePath, outPath);
-            break;
-        }
-        case AssetType::Shader: {
-            CookShader(sourcePath, outPath);
-            break;
-        }
-        case AssetType::Material: {
-            CookMaterial(sourcePath, outPath);
-            break;
-        }
-        case AssetType::Audio: {
-
-            break;
-        }
-        default:
-            break;
-        }
-
-        m_assets[metadata.uuid] = std::move(metadata);
+        // else run generatemeta again
     }
 
     std::string AssetManager::RetrieveUUID(const std::string& sourcePath) {

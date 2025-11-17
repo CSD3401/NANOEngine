@@ -275,6 +275,7 @@ namespace NE::ECS::Systems
 
         if (m_componentManager->HasComponent<Component::Collider>(entity)) {
             auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+            //auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
 
             switch (collider.shapeType) {
             case Component::Collider::ShapeType::Box:
@@ -306,6 +307,9 @@ namespace NE::ECS::Systems
                 std::vector<Math::Vec3> outVerts;
                 std::vector<uint32_t> outIndices;
                 renderer.model->GetPhysicsMesh(outVerts, outIndices);
+                //rb.isStatic = true;
+                //rb.motionType = 0U;
+                //rb.mass = 1.f;
                 bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices);
             }
             break;
