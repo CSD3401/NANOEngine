@@ -394,8 +394,89 @@ namespace Scripting {
         virtual size_t GetRegisteredScriptCount() const = 0;
     };
 
+    //=========================================================================
+    // LOGGING API (SDK-level logging functions)
+    //=========================================================================
+
+    /// Log level enumeration for SDK logging
+    enum class LogLevel {
+        Debug = 0,
+        Info = 1,
+        Warning = 2,
+        Error = 3,
+        Critical = 4
+    };
+
+    /**
+     * @brief Log a message from a script
+     * @param level The severity level of the message
+     * @param message The message to log
+     * @param file Optional source file (use __FILE__ macro)
+     * @param line Optional source line (use __LINE__ macro)
+     */
+    SCRIPT_API void Log(LogLevel level, const std::string& message, const std::string& file = "", int line = -1);
+
+    //=========================================================================
+    // COROUTINE API (SDK-level coroutine functions)
+    //=========================================================================
+
+    /// Opaque handle to a coroutine
+    using CoroutineHandle = unsigned int;
+
+    /**
+     * @brief Create a new coroutine
+     * @return Handle to the created coroutine
+     */
+    SCRIPT_API CoroutineHandle CreateCoroutine();
+
+    /**
+     * @brief Add an action (function) to the coroutine sequence
+     * @param handle The coroutine handle
+     * @param action The function to execute
+     */
+    SCRIPT_API void AddCoroutineAction(CoroutineHandle handle, std::function<void()> action);
+
+    /**
+     * @brief Add a wait/delay to the coroutine sequence
+     * @param handle The coroutine handle
+     * @param seconds Number of seconds to wait
+     */
+    SCRIPT_API void AddCoroutineWait(CoroutineHandle handle, float seconds);
+
+    /**
+     * @brief Start executing a coroutine
+     * @param handle The coroutine handle to start
+     */
+    SCRIPT_API void StartCoroutine(CoroutineHandle handle);
+
 } // namespace Scripting
 } // namespace NE
+
+//=============================================================================
+// LOGGING MACROS (Convenience macros for scripts)
+//=============================================================================
+
+#include <sstream>
+
+/// Log a debug message
+#define SCRIPT_LOG_DEBUG(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    NE::Scripting::Log(NE::Scripting::LogLevel::Debug, oss.str(), __FILE__, __LINE__); } while(0)
+
+/// Log an info message
+#define SCRIPT_LOG_INFO(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    NE::Scripting::Log(NE::Scripting::LogLevel::Info, oss.str(), __FILE__, __LINE__); } while(0)
+
+/// Log a warning message
+#define SCRIPT_LOG_WARNING(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    NE::Scripting::Log(NE::Scripting::LogLevel::Warning, oss.str(), __FILE__, __LINE__); } while(0)
+
+/// Log an error message
+#define SCRIPT_LOG_ERROR(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    NE::Scripting::Log(NE::Scripting::LogLevel::Error, oss.str(), __FILE__, __LINE__); } while(0)
+
+/// Log a critical message
+#define SCRIPT_LOG_CRITICAL(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    NE::Scripting::Log(NE::Scripting::LogLevel::Critical, oss.str(), __FILE__, __LINE__); } while(0)
 
 //=============================================================================
 // DLL ENTRY POINT SIGNATURE

@@ -4,6 +4,9 @@
 #include "../NANOEngineAPI.hpp"
 #include <ostream>
 
+// Forward declaration of Scripting::Vec3 for implicit conversion
+namespace NE { namespace Scripting { struct Vec3; } }
+
 namespace NE::Math {
 	struct Vec2;
 	struct Vec4;
@@ -16,6 +19,15 @@ namespace NE::Math {
 		Vec3(Vec3&&) = default;
 		Vec3& operator=(Vec3&&) = default;
 		~Vec3() = default;
+
+		// Implicit conversion from Scripting::Vec3
+		Vec3(const NE::Scripting::Vec3& other) noexcept;
+
+		// Implicit conversion to Scripting::Vec3
+		operator NE::Scripting::Vec3() const noexcept;
+
+		// Assignment operator for Scripting::Vec3
+		Vec3& operator=(const NE::Scripting::Vec3& other) noexcept;
 
 #pragma region Arithmetic Operators
 		Vec3 operator+(const Vec3& rhs) const noexcept;

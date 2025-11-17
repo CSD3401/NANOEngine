@@ -16,6 +16,8 @@
 #include "../ECS/Components/AudioSource.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include <Math/Vec3.hpp>
+#include "../Core/SpdLogger.hpp"
+#include "../Core/Couroutine.hpp"
 
 #include <sstream>
 #include <unordered_map>
@@ -922,6 +924,46 @@ namespace Scripting {
     void IScript::RemoveArrayElement(const std::string& fieldName, size_t index) {
         (void)fieldName;
         (void)index;
+    }
+
+    //=========================================================================
+    // LOGGING API IMPLEMENTATION (SDK → Engine bridge)
+    //=========================================================================
+
+    void Log(LogLevel level, const std::string& message, const std::string& file, int line) {
+        // Convert SDK LogLevel to engine SpdLogLevel
+        SpdLogLevel engineLevel;
+        switch (level) {
+            case LogLevel::Debug:    engineLevel = SpdLogLevel::Debug; break;
+            case LogLevel::Info:     engineLevel = SpdLogLevel::Info; break;
+            case LogLevel::Warning:  engineLevel = SpdLogLevel::Warning; break;
+            case LogLevel::Error:    engineLevel = SpdLogLevel::Error; break;
+            case LogLevel::Critical: engineLevel = SpdLogLevel::Critical; break;
+            default:                 engineLevel = SpdLogLevel::Info; break;
+        }
+
+        // Forward to engine logger
+        SpdLogger::GetInstance().Log(engineLevel, message, file, line);
+    }
+
+    //=========================================================================
+    // COROUTINE API IMPLEMENTATION (SDK → Engine bridge)
+    //=========================================================================
+
+    CoroutineHandle CreateCoroutine() {
+        return Engine_CreateCoroutine();
+    }
+
+    void AddCoroutineAction(CoroutineHandle handle, std::function<void()> action) {
+        Engine_AddActionCpp(handle, action);
+    }
+
+    void AddCoroutineWait(CoroutineHandle handle, float seconds) {
+        Engine_AddWaitForSeconds(handle, seconds);
+    }
+
+    void StartCoroutine(CoroutineHandle handle) {
+        Engine_StartCoroutine(handle);
     }
 
 } // namespace Scripting

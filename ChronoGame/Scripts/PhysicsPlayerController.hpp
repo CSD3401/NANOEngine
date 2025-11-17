@@ -1,7 +1,5 @@
 ﻿#pragma once
 #include "EngineAPI.hpp"
-#include "../../NANOEngine/src/ECS/Components/Transform.hpp"
-#include "../../NANOEngine/src/ECS/Components/Collider.hpp"
 #include <cmath>
 #include <bitset>
 #include <unordered_set>
@@ -80,8 +78,8 @@ public:
 		LockRotation(true, false, true); // Lock X and Z, allow Y for turning
 
 		// Hook into collider callbacks for ground detection
-		if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Collider>(GetEntity())) {
-			auto& collider = m_componentManager->GetComponent<NE::ECS::Component::Collider>(GetEntity());
+		if (NE::ECS::Command::HasComponent<NE::ECS::Component::Collider>(GetEntity())) {
+			auto& collider = NE::ECS::Command::GetComponent<NE::ECS::Component::Collider>(GetEntity());
 			m_colliderHalfHeight = collider.halfExtents.y;
 
 			// Register our ground detection callbacks
@@ -236,8 +234,6 @@ private:
 	 * NOTE: This accesses components, so must only be called OUTSIDE physics callbacks
 	 */
 	bool IsEntityBelowPlayer(NE::Scripting::Entity other) const {
-		if (!m_componentManager) return false;
-
 		// Safety: Validate entity IDs
 		if (other == GetEntity()) {
 			return false; // Can't be our own ground
@@ -248,18 +244,18 @@ private:
 		float ourBottom = ourPos.y - m_colliderHalfHeight;
 
 		// Get other entity's position and collider
-		if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(other)) {
+		if (!NE::ECS::Command::HasComponent<NE::ECS::Component::Transform>(other)) {
 			SPD_WARNING("Entity " << other << " has no Transform component!");
 			return false;
 		}
 
-		auto& otherTransform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(other);
+		auto& otherTransform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(other);
 		float otherY = otherTransform.position.y;
 
 		// Get the other entity's collider height if it exists
 		float otherHalfHeight = 0.5f; // default
-		if (m_componentManager->HasComponent<NE::ECS::Component::Collider>(other)) {
-			auto& otherCollider = m_componentManager->GetComponent<NE::ECS::Component::Collider>(other);
+		if (NE::ECS::Command::HasComponent<NE::ECS::Component::Collider>(other)) {
+			auto& otherCollider = NE::ECS::Command::GetComponent<NE::ECS::Component::Collider>(other);
 			otherHalfHeight = otherCollider.halfExtents.y;
 		}
 
@@ -409,8 +405,8 @@ private:
 		}
 
 		// Store and apply highlight scale
-		if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Transform>(entity)) {
-			auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(entity);
+		if (NE::ECS::Command::HasComponent<NE::ECS::Component::Transform>(entity)) {
+			auto& transform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(entity);
 			m_originalScale = transform.scale;
 			transform.scale = m_originalScale * highlightScaleMultiplier;
 			transform.isDirty = true;
@@ -423,8 +419,8 @@ private:
 		}
 
 		// Restore original scale
-		if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Transform>(entity)) {
-			auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(entity);
+		if (NE::ECS::Command::HasComponent<NE::ECS::Component::Transform>(entity)) {
+			auto& transform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(entity);
 			transform.scale = m_originalScale;
 			transform.isDirty = true;
 		}
@@ -439,7 +435,7 @@ private:
 	void HandleMovementAndGravity(NE::Scripting::Vec3& velocity, double deltaTime,
 		bool attemptingJump, bool isGrounded) {
 		
-		auto camTransform = GetTransform(7);
+		auto camTransform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(7);
 		//NE::Scripting::Vec3 camForward = camTransform.GetForward();  // or Normalize manually
 		//NE::Scripting::Vec3 camRight = camTransform.GetRight();
 		float yaw = camTransform.rotation.y * 0.017453292519943295f; // deg→rad

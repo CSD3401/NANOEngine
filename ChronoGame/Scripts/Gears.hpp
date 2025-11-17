@@ -1,10 +1,6 @@
 #pragma once
 #include <iostream>
 #include "EngineAPI.hpp"
-#include "../../NANOEngine/src/ECS/Components/Transform.hpp"
-#include "../../NANOEngine/src/ECS/Components/Light.hpp"
-#include "../../NANOEngine/src/EditorInterface/ECSExports.hpp"
-
 
 class Gears : public NE::Scripting::IScript {
 public:

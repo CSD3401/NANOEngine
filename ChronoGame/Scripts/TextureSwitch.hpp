@@ -1,12 +1,10 @@
 #pragma once
 #include <iostream>
 #include "EngineAPI.hpp"
-#include "../../NANOEngine/src/ECS/Components/Transform.hpp"
-#include "../../NANOEngine/src/EditorInterface/RendererExports.hpp"
 
 void TextureSwitchActivate(int entity) {    
     
-    CoroutineHandle h = Engine_CreateCoroutine();
+    NE::Scripting::CoroutineHandle h = Engine_CreateCoroutine();
 
     //NE::Renderer::Command::AssignMaterial(entity, "Assets/Unlit.nanomat");
 

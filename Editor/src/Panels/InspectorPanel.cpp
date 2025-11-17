@@ -883,7 +883,7 @@ namespace Editor {
 													bool success = comp.Instance->SetFieldValueFromString(fname, std::to_string(droppedEntity));
 
 													if (success) {
-														comp.Instance->RefreshComponentReferences();
+														comp.Instance->_RefreshComponentReferences();
 														fieldChanged = true;
 													}
 												}
@@ -895,7 +895,7 @@ namespace Editor {
 										ImGui::SameLine();
 										if (ImGui::Button("X")) {
 											comp.Instance->SetFieldValueFromString(fname, "0");
-											comp.Instance->RefreshComponentReferences(); // Clear the pointer too
+											comp.Instance->_RefreshComponentReferences(); // Clear the pointer too
 											fieldChanged = true;
 										}
 

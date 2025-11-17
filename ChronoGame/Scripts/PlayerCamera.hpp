@@ -1,11 +1,6 @@
 #pragma once
 #include <iostream>
 #include "EngineAPI.hpp"
-#include "../../NANOEngine/src/ECS/Components/Transform.hpp"
-#include "../../NANOEngine/src/ECS/Components/Light.hpp"
-#include "../../NANOEngine/src/EditorInterface/ECSExports.hpp"
-#include "../../NANOEngine/src/Engine.hpp"
-
 
 class PlayerCamera : public NE::Scripting::IScript {
 public:
@@ -20,7 +15,9 @@ public:
         if (!isActive) return;
 
         auto playerPos = NE::ECS::Query::GetEntityTransform(6).position;
-        NE::Math::Vec3 camPos = playerPos + NE::Math::Vec3(0.f, 0.6f, 0.f);
+        // Implicit conversion from Math::Vec3 to Scripting::Vec3
+        NE::Scripting::Vec3 camPos(playerPos.x,playerPos.y,playerPos.z);
+        camPos.y += 0.6f;  // Add camera height offset
         SetPosition(camPos);
 
         // --- mouse look ---
@@ -68,7 +65,7 @@ public:
             float pitchRad = m_pitch * 0.017453292519943295f;
             float yawRad = m_yaw * 0.017453292519943295f;
 
-            NE::Math::Vec3 forward;
+            NE::Scripting::Vec3 forward;
             forward.x = cosf(pitchRad) * sinf(yawRad);
             forward.y = sinf(pitchRad);
             forward.z = -cosf(pitchRad) * cosf(yawRad);
@@ -78,10 +75,11 @@ public:
 
             const float distance = 0.8f;
 
-            //enttTransform.position = camPos + forward * distance;
+            // Calculate new position with implicit Vec3 conversion
             float keepY = enttTransform.position.y;
-            enttTransform.position = camPos + forward * distance;
-            enttTransform.position.y = keepY;
+            auto newPos = camPos + forward * distance;
+            newPos.y = keepY;
+            enttTransform.position = newPos;  // Implicit conversion from Scripting::Vec3 to Math::Vec3
         }
     }
 

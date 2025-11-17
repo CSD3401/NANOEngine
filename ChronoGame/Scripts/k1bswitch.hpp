@@ -1,9 +1,6 @@
 #pragma once
 #include <iostream>
 #include "EngineAPI.hpp"
-#include "../../NANOEngine/src/ECS/Components/Transform.hpp"
-#include "../../NANOEngine/src/EditorInterface/RendererExports.hpp"
-
 
 class k1bswitch : public NE::Scripting::IScript {
 public:

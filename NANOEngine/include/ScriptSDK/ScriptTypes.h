@@ -21,6 +21,9 @@
 #include <vector>
 #include <cstdint>
 
+// Forward declaration of engine Math::Vec3 for implicit conversion
+namespace NE { namespace Math { struct Vec3; } }
+
 namespace NE {
 namespace Scripting {
 
@@ -39,12 +42,21 @@ namespace Scripting {
     //=========================================================================
 
     /// 3D vector for positions, rotations, scales, directions
-    struct Vec3 {
+    struct SCRIPT_API Vec3 {
         float x, y, z;
 
         Vec3() : x(0), y(0), z(0) {}
         Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
         Vec3(float scalar) : x(scalar), y(scalar), z(scalar) {}
+
+        // Implicit conversion from engine Math::Vec3
+        Vec3(const NE::Math::Vec3& other);
+
+        // Implicit conversion to engine Math::Vec3
+        operator NE::Math::Vec3() const;
+
+        // Assignment operator for engine Math::Vec3
+        Vec3& operator=(const NE::Math::Vec3& other);
 
         // Basic operators
         Vec3 operator+(const Vec3& other) const { return Vec3(x + other.x, y + other.y, z + other.z); }
@@ -59,7 +71,15 @@ namespace Scripting {
         // Utility methods
         float Length() const;
         float LengthSquared() const { return x * x + y * y + z * z; }
-        Vec3 Normalized() const;
+
+        Vec3 Normalized() const {
+            float len = Length();
+            if (len < 0.0001f) {
+                return Vec3(0, 0, 0);
+            }
+            return Vec3(x / len, y / len, z / len);
+        }
+
         void Normalize();
 
         float Dot(const Vec3& other) const { return x * other.x + y * other.y + z * other.z; }
@@ -81,7 +101,7 @@ namespace Scripting {
     //=========================================================================
 
     /// Raycast hit information returned by physics queries
-    struct RaycastHit {
+    struct SCRIPT_API RaycastHit {
         bool hasHit = false;        ///< Did the ray hit anything?
         Vec3 point;                 ///< World position where ray hit
         Vec3 normal;                ///< Surface normal at hit point

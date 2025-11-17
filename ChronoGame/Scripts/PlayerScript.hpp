@@ -90,7 +90,7 @@ public:
 	void Awake() override {
 		//SPD_DEBUG("PlayerScript::Awake() called for entity {}", GetEntity());
 
-		chandle = Engine_CreateCoroutine();
+		Engine_CreateCoroutine();
 	}
 
 	void Initialize(NE::Scripting::Entity entity) override {
@@ -162,18 +162,18 @@ public:
 		else if (NE::InputManager::WasKeyPressed('C'))
 		{
 			// Create a new coroutine
-			/*CoroutineHandle h = Engine_CreateCoroutine();*/
+			NE::Scripting::CoroutineHandle h = Engine_CreateCoroutine();
 
 			NANOEngine::Events::SendScriptEvent("TimeSwapNow",nullptr);
 
 			//// Wait 3 seconds
-			//Engine_AddWaitForSeconds(h, 3.0f);
+			Engine_AddWaitForSeconds(h, 3.0f);
 
 			//// Action after wait
-			//Engine_AddAction(h, DelayedPrintUpdate);
+			Engine_AddAction(h, DelayedPrintUpdate);
 
 			//// Start the coroutine
-			//Engine_StartCoroutine(h);
+			Engine_StartCoroutine(h);
 
 			SPD_DEBUG("Timer started no way josed!");
 		}
@@ -298,7 +298,7 @@ private:
 	PlayerFlags playerFlags;  //  4 bool struct
 
 	// Coroutine
-	CoroutineHandle chandle;
+	NE::Scripting::CoroutineHandle chandle;
 
 	// Field registry
 	ExposedFieldRegistry m_fields;
