@@ -2,7 +2,7 @@
 #include <imgui/imgui.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
-#include <EditorInterface/PhysicsExports.hpp>
+//#include <EditorInterface/PhysicsExports.hpp>
 #include "ECS/Core/Signature.hpp"
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
@@ -17,7 +17,7 @@
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "../EditorScene.hpp"
-#include <Engine.hpp>
+//#include <Engine.hpp>
 #include <imgui/widgets/imsearch/imsearch.h>
 #include "../EditorUI.hpp"
 #include "../Command/EditorSetFieldCommand.hpp"
@@ -31,10 +31,14 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "../AssetManagement/Settings/TextureImportSettings.hpp"
-#include <Core/SpdLogger.hpp>
 #include "../AssetManagement/AssetManager.hpp"
+#include "../AssetManagement/Settings/TextureImportSettings.hpp"
+#include "../AssetManagement/Settings/ModelImportSettings.hpp"
+#include <Core/SpdLogger.hpp>
 #include <fstream>
+#include <rapidjson/document.h>
+#include <Serialisation/ReflectionJson.hpp>
+#include <rapidjson/istreamwrapper.h>
 
 namespace {
 	template<typename Owner, typename T>
@@ -200,6 +204,38 @@ namespace {
 				ofs << l << "\n";
 			}
 		}
+	}
+
+	bool LoadModelImportSettings(std::string metaPath, Editor::ModelImportSettings& settings) {
+		using namespace rapidjson;
+		using namespace NE::Serialization;
+
+		if (!std::filesystem::exists(metaPath))
+			return false;
+
+		std::ifstream ifs(metaPath);
+		if (!ifs) {
+			SPD_WARNING("Failed to read meta file: " << metaPath);
+			return false;
+		}
+
+		IStreamWrapper isw(ifs);
+		Document doc;
+		doc.ParseStream(isw);
+
+		if (doc.HasParseError() || !doc.IsObject()) {
+			SPD_WARNING("Failed to parse JSON in meta file: " << metaPath);
+			return false;
+		}
+
+		// If there's no modelImport block yet, just keep default settings
+		if (!doc.HasMember("modelImport") || !doc["modelImport"].IsObject())
+			return true;
+
+		const auto& jSettings = doc["modelImport"];
+		from_json(jSettings, settings);
+
+		return true;
 	}
 }
 
@@ -1251,8 +1287,9 @@ namespace Editor {
 
 			if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
 				RenderTextureImportSettings(assetPath.string() + ".meta");
-			}
-			else if (assetPath.extension() == ".nanomat") {
+			} else if (assetPath.extension() == ".obj" || assetPath.extension() == ".fbx") {
+				RenderModelImportSettings(assetPath.string() + ".meta");
+			} else if (assetPath.extension() == ".nanomat") {
 				//RenderMaterialSettings();
 				if (!m_materialEditor || m_lastPath != assetPath.string()) {
 					m_materialEditor = std::make_unique<MaterialEditor>();
@@ -1315,6 +1352,163 @@ namespace Editor {
 
 		if (ImGui::Button("Apply")) {
 			WriteTextureTypeToMeta(metaPath, currentType);
+		}
+	}
+
+	void InspectorPanel::RenderModelImportSettings(const std::string& metaPath)
+	{
+		using namespace Editor;
+
+		ModelImportSettings settings{};
+		if (!LoadModelImportSettings(metaPath, settings)) {
+			ImGui::TextUnformatted("Failed to load model import settings.");
+			return;
+		}
+
+		static int s_CurrentImportTab = 0;
+
+		const char* tabNames[] = { "Model", "Rig", "Animation", "Materials" };
+		constexpr int tabCount = IM_ARRAYSIZE(tabNames);
+
+		ImGuiStyle& style = ImGui::GetStyle();
+		float fullWidth = ImGui::GetContentRegionAvail().x;
+
+		float totalButtonsWidth = 0.0f;
+		for (int i = 0; i < tabCount; ++i) {
+			ImVec2 textSize = ImGui::CalcTextSize(tabNames[i]);
+			float btnWidth = textSize.x + style.FramePadding.x * 2.0f;
+			totalButtonsWidth += btnWidth;
+			if (i + 1 < tabCount)
+				totalButtonsWidth += style.ItemInnerSpacing.x;
+		}
+
+		float cursorX = (fullWidth - totalButtonsWidth) * 0.5f;
+		if (cursorX < 0.0f) cursorX = 0.0f;
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + cursorX);
+
+		for (int i = 0; i < tabCount; ++i) {
+			bool isActive = (s_CurrentImportTab == i);
+
+			if (isActive)
+				ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_ButtonActive]);
+			else
+				ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_Button]);
+
+			if (ImGui::Button(tabNames[i]))
+				s_CurrentImportTab = i;
+
+			ImGui::PopStyleColor();
+
+			if (i + 1 < tabCount)
+				ImGui::SameLine();
+		}
+
+		ImGui::Separator();
+
+		auto DrawComboEnum = [](const char* label, int& currentIndex, const char* const* names, int count) {
+			ImGui::Combo(label, &currentIndex, names, count);
+			};
+
+		switch (s_CurrentImportTab) {
+		case 0:
+		{
+			if (ImGui::CollapsingHeader("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {
+				// SceneImportSettings
+				ImGui::DragFloat("Scale Factor", &settings.scene.scaleFactor, 0.01f, 0.0001f, 100.0f);
+				Editor::DrawCheckbox("Convert Units", settings.scene.convertUnits);
+				Editor::DrawCheckbox("Import Blend Shapes", settings.scene.importBlendShapes);
+				Editor::DrawCheckbox("Import Cameras", settings.scene.importCameras);
+				Editor::DrawCheckbox("Import Lights", settings.scene.importLights);
+				Editor::DrawCheckbox("Preserve Hierarchy", settings.scene.preserveHierarchy);
+			}
+
+			if (ImGui::CollapsingHeader("Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
+				// MeshImportSettings
+				const char* MeshOptNames[] = { "None", "Everything", "Polygon Order", "Vertex Order" };
+				int meshOptIndex = static_cast<int>(settings.mesh.meshOptimizationMode);
+				DrawComboEnum("Mesh Optimization", meshOptIndex, MeshOptNames, IM_ARRAYSIZE(MeshOptNames));
+				settings.mesh.meshOptimizationMode =
+					static_cast<MeshImportSettings::MeshOptimizationMode>(meshOptIndex);
+
+				Editor::DrawCheckbox("Generate Colliders", settings.mesh.generateColliders);
+				Editor::DrawCheckbox("Generate Mesh LODs", settings.mesh.generateMeshLODs);
+
+				Editor::DrawCheckbox("Keep Quads", settings.mesh.keepQuads);
+				Editor::DrawCheckbox("Weld Vertices", settings.mesh.weldVertices);
+
+				const char* IndexFormatNames[] = { "Auto", "UInt16", "UInt32" };
+				int indexFmtIndex = static_cast<int>(settings.mesh.indexFormat);
+				DrawComboEnum("Index Format", indexFmtIndex, IndexFormatNames, IM_ARRAYSIZE(IndexFormatNames));
+				settings.mesh.indexFormat = static_cast<MeshImportSettings::IndexFormat>(indexFmtIndex);
+
+				const char* NormalModeNames[] = { "Import", "Calculate", "None" };
+				int normalIndex = static_cast<int>(settings.mesh.normalMode);
+				DrawComboEnum("Normals", normalIndex, NormalModeNames, IM_ARRAYSIZE(NormalModeNames));
+				settings.mesh.normalMode = static_cast<MeshImportSettings::NormalMode>(normalIndex);
+
+				ImGui::DragFloat("Smoothing Angle", &settings.mesh.smoothingAngle, 1.0f, 0.0f, 180.0f);
+
+				const char* TangentModeNames[] = { "Import", "Calculate (MikkTSpace)", "None" };
+				int tangentIndex = static_cast<int>(settings.mesh.tangentMode);
+				DrawComboEnum("Tangents", tangentIndex, TangentModeNames, IM_ARRAYSIZE(TangentModeNames));
+				settings.mesh.tangentMode = static_cast<MeshImportSettings::TangentMode>(tangentIndex);
+
+				Editor::DrawCheckbox("Swap UVs", settings.mesh.swapUVs);
+			}
+			break;
+		}
+
+		case 1: // ----- RIG -----
+		{
+			if (ImGui::CollapsingHeader("Rig", ImGuiTreeNodeFlags_DefaultOpen)) {
+				const char* AnimTypeNames[] = { "None", "Generic", "Humanoid" };
+				int animTypeIndex = static_cast<int>(settings.rig.animationType);
+				DrawComboEnum("Animation Type", animTypeIndex, AnimTypeNames, IM_ARRAYSIZE(AnimTypeNames));
+				settings.rig.animationType = static_cast<RigImportSettings::AnimationType>(animTypeIndex);
+
+				Editor::DrawCheckbox("Strip Unused Bones", settings.rig.stripBones);
+			}
+			break;
+		}
+
+		case 2: // ----- ANIMATION -----
+		{
+			if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
+				Editor::DrawCheckbox("Import Animations", settings.animation.importAnimations);
+				Editor::DrawCheckbox("Import Constraints", settings.animation.importConstraints);
+				Editor::DrawCheckbox("Import Animated Custom Properties", settings.animation.importAnimatedCustomProperties);
+				Editor::DrawCheckbox("Auto Split Clips", settings.animation.autoSplitClips);
+
+				ImGui::DragFloat("Sample Rate", &settings.animation.sampleRate, 1.0f, 0.0f, 480.0f, "%.1f");
+
+				Editor::DrawCheckbox("Import Root Motion", settings.animation.importRootMotion);
+				Editor::DrawCheckbox("Lock Root Position XZ", settings.animation.lockRootPositionXZ);
+				Editor::DrawCheckbox("Lock Root Rotation Y", settings.animation.lockRootRotationY);
+			}
+			break;
+		}
+
+		case 3: // ----- MATERIALS -----
+		{
+			if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
+				Editor::DrawCheckbox("Import Materials", settings.material.importMaterials);
+				Editor::DrawCheckbox("Try Reuse Existing Materials", settings.material.tryReuseExistingMaterials);
+
+				const char* MaterialModeNames[] = { "Per Submesh", "Per Mesh", "Per File" };
+				int matModeIndex = static_cast<int>(settings.material.creationMode);
+				DrawComboEnum("Material Creation", matModeIndex, MaterialModeNames, IM_ARRAYSIZE(MaterialModeNames));
+				settings.material.creationMode =
+					static_cast<MaterialImportSettings::MaterialCreationMode>(matModeIndex);
+			}
+			break;
+		}
+		}
+
+		ImGui::Spacing();
+		ImGui::Separator();
+
+		if (ImGui::Button("Apply")) {
+			//SaveModelImportSettings(metaPath, settings);
 		}
 	}
 }

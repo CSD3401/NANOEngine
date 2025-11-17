@@ -2,8 +2,11 @@
 #define TEXTURE_IMPORT_SETTINGS_HPP
 
 #include <cstdint>
+#include <Core/Reflection.hpp>
 
 namespace Editor {
+
+	inline constexpr int TEXTURE_IMPORTER_VERSION = 1;
 
 	enum class TexType : uint8_t {
 		Default,
@@ -40,11 +43,21 @@ namespace Editor {
 	struct NormalMapOptions {
 		bool flipGreenChannel = false;
 		bool createFromGrayscale = false;
+
+		NE_REFLECT_BEGIN(NormalMapOptions)
+			NE_REFLECT_FIELD(flipGreenChannel),
+			NE_REFLECT_FIELD(createFromGrayscale)
+		NE_REFLECT_END()
 	};
 
 	struct MipPolicy {
 		bool generateMipmap = true;
 		bool preserveCoverage = false;
+
+		NE_REFLECT_BEGIN(MipPolicy)
+			NE_REFLECT_FIELD(generateMipmap),
+			NE_REFLECT_FIELD(preserveCoverage)
+		NE_REFLECT_END()
 	};
 
 	struct TextureImportSettings {
@@ -55,10 +68,23 @@ namespace Editor {
 		bool alphaIsTransparency = false;
 
 		TexWrapMode wrap = TexWrapMode::Clamp;
-		TexFilterMode filer = TexFilterMode::Bilinear;
+		TexFilterMode filter = TexFilterMode::Bilinear;
 
 		MipPolicy mips{};
 		NormalMapOptions normal{};
+
+
+		NE_REFLECT_BEGIN(TextureImportSettings)
+			NE_REFLECT_FIELD(type),
+			NE_REFLECT_FIELD(shape),
+			NE_REFLECT_FIELD(sRGB),
+			NE_REFLECT_FIELD(alpha),
+			NE_REFLECT_FIELD(alphaIsTransparency),
+			NE_REFLECT_FIELD(wrap),
+			NE_REFLECT_FIELD(filter),
+			NE_REFLECT_FIELD(mips),
+			NE_REFLECT_FIELD(normal)
+		NE_REFLECT_END()
 	};
 
 }
