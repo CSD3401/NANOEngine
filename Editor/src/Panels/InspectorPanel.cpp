@@ -257,8 +257,13 @@ namespace Editor {
 		if (EditorScene::s_selectedEntity) {
 			uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
-			bool isActive = true;
-			if (ImGui::Checkbox("##", &isActive)) {
+			// Entity active state checkbox
+			auto& meta = NE::ECS::Command::GetEntityMeta(entity);
+			bool isActive = meta.isActive;
+			if (ImGui::Checkbox("##ActiveCheckbox", &isActive)) {
+				meta.isActive = isActive;
+				NE::MarkSceneDirty();
+				SPD_DEBUG("[DirtyFlag] Entity active state changed - Scene marked DIRTY");
 			}
 			ImGui::SameLine();
 
@@ -846,8 +851,8 @@ namespace Editor {
 											}
 
 											if (isValid) {
-												const auto& meta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-												displayName = meta.name.empty() ? "Entity" : meta.name;
+												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+												displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
 											}
 											else {
 												displayName = "[Invalid Reference]";
@@ -894,15 +899,15 @@ namespace Editor {
 											}
 
 											if (hasComponent) {
-												const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
-												std::string entityName = meta.name.empty() ? "Entity" : meta.name;
+												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+												std::string entityName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
 
 												// Store entity ID (not pointer!)
 												bool success = comp.Instance->SetFieldValueFromString(fname, std::to_string(droppedEntity));
 
 												if (success) {
 													comp.Instance->RefreshComponentReferences();
-													(fieldChanged = true);
+													fieldChanged = true;
 												}
 											}
 										}

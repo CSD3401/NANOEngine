@@ -7,8 +7,10 @@
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/AudioSource.hpp"
+#include "../ECS/Components/EntityMeta.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
+#include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
 
 // PIMPL implementation to hide std containers from DLL interface
 class IScript::FieldRegistry {
@@ -564,6 +566,35 @@ std::vector<IScript::RaycastHit> IScript::RaycastAll(const NE::Math::Vec3& origi
 bool IScript::HasAudioSource() const {
 	if (!m_componentManager) return false;
 	return m_componentManager->HasComponent<NE::ECS::Component::AudioSource>(m_entity);
+}
+
+// === Entity Active State Functions ===
+
+bool IScript::IsActive() const {
+	if (!m_componentManager) return false;
+
+	if (!m_componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity))
+		return true; // Default to active if no EntityMeta
+
+	return m_componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity).isActive;
+}
+
+void IScript::SetActive(bool active) {
+	if (!m_componentManager) return;
+
+	if (m_componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+		auto& meta = m_componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
+		
+		// Only update if changed
+		if (meta.isActive != active) {
+			meta.isActive = active;
+			
+			// Mark scene dirty when active state changes
+			if (NE::GetEngineState() == NE::EngineState::Edit) {
+				NE::MarkSceneDirty();
+			}
+		}
+	}
 }
 
 void IScript::PlayAudio() {
