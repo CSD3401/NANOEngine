@@ -169,43 +169,6 @@ namespace {
 		}
 	}
 
-	static void WriteTextureTypeToMeta(const std::string& metaPath, int textureType)
-	{
-		std::vector<std::string> lines;
-
-		// --- Read entire .meta ---
-		{
-			std::ifstream ifs(metaPath);
-			std::string line;
-			while (std::getline(ifs, line)) {
-				lines.push_back(line);
-			}
-		}
-
-		// --- Check if textureType already exists ---
-		bool found = false;
-		for (auto& line : lines) {
-			if (line.rfind("textureType:", 0) == 0) {
-				line = "textureType: " + std::to_string(textureType);
-				found = true;
-				break;
-			}
-		}
-
-		// --- If missing, append to end ---
-		if (!found) {
-			lines.push_back("textureType: " + std::to_string(textureType));
-		}
-
-		// --- Write back ---
-		{
-			std::ofstream ofs(metaPath, std::ios::trunc);
-			for (auto& l : lines) {
-				ofs << l << "\n";
-			}
-		}
-	}
-
 	bool LoadModelImportSettings(std::string metaPath, Editor::ModelImportSettings& settings) {
 		using namespace rapidjson;
 		using namespace NE::Serialization;
@@ -233,6 +196,38 @@ namespace {
 			return true;
 
 		const auto& jSettings = doc["modelImport"];
+		from_json(jSettings, settings);
+
+		return true;
+	}
+
+	bool LoadTextureImportSettings(std::string metaPath, Editor::TextureImportSettings& settings) {
+		using namespace rapidjson;
+		using namespace NE::Serialization;
+
+		if (!std::filesystem::exists(metaPath))
+			return false;
+
+		std::ifstream ifs(metaPath);
+		if (!ifs) {
+			SPD_WARNING("Failed to read meta file: " << metaPath);
+			return false;
+		}
+
+		IStreamWrapper isw(ifs);
+		Document doc;
+		doc.ParseStream(isw);
+
+		if (doc.HasParseError() || !doc.IsObject()) {
+			SPD_WARNING("Failed to parse JSON in meta file: " << metaPath);
+			return false;
+		}
+
+		// If there's no modelImport block yet, just keep default settings
+		if (!doc.HasMember("textureImport") || !doc["textureImport"].IsObject())
+			return true;
+
+		const auto& jSettings = doc["textureImport"];
 		from_json(jSettings, settings);
 
 		return true;
@@ -1308,56 +1303,104 @@ namespace Editor {
 	}
 
 	void InspectorPanel::RenderTextureImportSettings(std::string metaPath) {
+		static std::string s_LastMetaPath;
+		static TextureImportSettings s_Settings{};
+		static bool s_Loaded = false;
+		static bool s_dirty = false;
+
+		if (!s_Loaded || metaPath != s_LastMetaPath) {
+			if (!LoadTextureImportSettings(metaPath, s_Settings)) {
+				ImGui::TextUnformatted("Failed to load texture import settings.");
+				return;
+			}
+
+			s_LastMetaPath = metaPath;
+			s_Loaded = true;
+		}
+
 		static const char* TextureTypeNames[] = { "Default", "Normal Map", "Sprite" };
 		static const char* TextureShapeNames[] = { "2D", "Cube", "2D Array" };
 		static const char* TextureWrapMode[] = { "Repeat", "Clamp", "Mirror", "MirrorOnce", "PerAxis" };
 		static const char* TextureFilterMode[] = { "Point", "Bilinear", "Trilinear" };
 		static const char* AlphaSourceNames[] = { "InputTextureAlpha", "GrayscaleSource", "None" };
 
-		//std::filesystem::path mPath(metaPath);
-
-		int currentType = 0;
+		// ----- Texture Type -----
+		int currentType = static_cast<int>(s_Settings.type); // assuming enum starts at 0
 		if (ImGui::Combo("Texture Type", &currentType, TextureTypeNames, IM_ARRAYSIZE(TextureTypeNames))) {
-			WriteTextureTypeToMeta(metaPath, currentType);
+			s_Settings.type = static_cast<TexType>(currentType);
+			s_dirty = true;
 		}
 
-		int currentShape = 0;
+		// ----- Shape -----
+		int currentShape = static_cast<int>(s_Settings.shape); // TextureShape enum
 		if (ImGui::Combo("Texture Shape", &currentShape, TextureShapeNames, IM_ARRAYSIZE(TextureShapeNames))) {
+			s_Settings.shape = static_cast<TexShape>(currentShape);
+			s_dirty = true;
 		}
 
-		bool isSRGB = true;
+		// ----- sRGB -----
+		bool isSRGB = s_Settings.sRGB;
 		if (Editor::DrawCheckbox("sRGB (Color Texture)", isSRGB)) {
+			s_Settings.sRGB = isSRGB;
+			s_dirty = true;
 		}
 
-		int currentAlpha = 0;
+		// ----- Alpha Source -----
+		int currentAlpha = static_cast<int>(s_Settings.alphaSource); // AlphaSource enum
 		if (ImGui::Combo("Alpha Source", &currentAlpha, AlphaSourceNames, IM_ARRAYSIZE(AlphaSourceNames))) {
+			s_Settings.alphaSource = static_cast<TexAlphaSource>(currentAlpha);
+			s_dirty = true;
 		}
 
+		// ----- Advanced -----
 		if (ImGui::TreeNode("Advanced")) {
-			bool generateMips = true;
+			bool generateMips = s_Settings.mips.generateMipmap;
+			bool preserveCoverage = s_Settings.mips.preserveCoverage;
+
 			if (Editor::DrawCheckbox("Generate Mipmaps", generateMips)) {
+				s_Settings.mips.generateMipmap = generateMips;
+				s_dirty = true;
 			}
-			bool preserveCoverage = false;
+
 			if (Editor::DrawCheckbox("Preserve Coverage", preserveCoverage)) {
+				s_Settings.mips.preserveCoverage = preserveCoverage;
+				s_dirty = true;
 			}
+
 			ImGui::TreePop();
 		}
 
-		int currentFilter = 0;
+		// ----- Filter -----
+		int currentFilter = static_cast<int>(s_Settings.filterMode); // FilterMode enum
 		if (ImGui::Combo("Filter Mode", &currentFilter, TextureFilterMode, IM_ARRAYSIZE(TextureFilterMode))) {
-		}
-		int currentWrap = 0;
-		if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
+			s_Settings.filterMode = static_cast<TexFilterMode>(currentFilter);
+			s_dirty = true;
 		}
 
-		if (ImGui::Button("Apply")) {
-			WriteTextureTypeToMeta(metaPath, currentType);
+		// ----- Wrap -----
+		int currentWrap = static_cast<int>(s_Settings.wrapMode); // WrapMode enum
+		if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
+			s_Settings.wrapMode = static_cast<TexWrapMode>(currentWrap);
+			s_dirty = true;
 		}
+
+		ImGui::BeginDisabled(!s_dirty);
+		if (ImGui::Button("Apply")) {
+			if (!AssetManager::GetInstance().SaveTextureImportSettings(metaPath, s_Settings)) {
+				SPD_WARNING("Failed to save texture import settings for: " << metaPath);
+			} else {
+				AssetManager::GetInstance().ReimportAsset(metaPath);
+			}
+
+			s_dirty = false;
+		}
+		ImGui::EndDisabled();
 	}
 
-	void InspectorPanel::RenderModelImportSettings(const std::string& metaPath)
-	{
-		using namespace Editor;
+	void InspectorPanel::RenderModelImportSettings(const std::string& metaPath) {
+		//static std::string s_LastMetaPath;
+		//static ModelImportSettings s_Settings{};
+		//static bool s_Loaded = false;
 
 		ModelImportSettings settings{};
 		if (!LoadModelImportSettings(metaPath, settings)) {
