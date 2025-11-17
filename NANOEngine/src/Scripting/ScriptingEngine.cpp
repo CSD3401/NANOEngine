@@ -8,6 +8,7 @@
 
 #include "Engine.hpp"
 #include "SceneManagement/Scene.hpp"
+#include "Events/EventBus.hpp"
 
 namespace {
     struct ScriptState {
@@ -370,6 +371,7 @@ namespace NE::Scripting {
         }
 
         SPD_INFO("Shutting down ScriptingEngine...");
+        NANOEngine::Events::ClearScriptEventListeners();
         ClearRegisteredScripts();
         UnloadAllDLLs();
 
