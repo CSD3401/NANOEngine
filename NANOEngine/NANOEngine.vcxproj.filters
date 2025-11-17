@@ -5,7 +5,6 @@
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
     <ClCompile Include="src\Core\SpdLogger.cpp" />
-    <ClCompile Include="src\ResourceManager.cpp" />
     <ClCompile Include="src\Audio\AudioBank.cpp" />
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
@@ -69,6 +68,8 @@
     <ClCompile Include="src\Animation\AnimatorControllerIO.cpp" />
     <ClCompile Include="src\Animation\TransformClipIO.cpp" />
     <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\PhysicsSystem.cpp" />
+    <ClCompile Include="src\Physics\PhysicsContactListener.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -189,6 +190,8 @@
     <ClInclude Include="src\ECS\Components\Animator.hpp" />
     <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
+    <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
+    <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
