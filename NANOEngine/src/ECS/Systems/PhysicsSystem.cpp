@@ -2,6 +2,7 @@
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Transform.hpp"
 #include "../../ECS/Components/Rigidbody.hpp"
+#include "../../ECS/Components/EntityMeta.hpp"
 #include "EngineState.hpp"
 
 namespace NE::ECS::Systems
@@ -159,6 +160,19 @@ namespace NE::ECS::Systems
         entities.insert(rigidbodyEntities.begin(), rigidbodyEntities.end());
 
         for (auto entity : entities) {
+            // Skip inactive entities
+            if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
+                const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+                if (!meta.isActive) {
+                    // Deactivate physics body if it exists
+                    if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
+                        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
+                        NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+                    }
+                    continue; // Skip physics sync for inactive entities
+                }
+            }
+
             if (m_componentManager->HasComponent<Component::Transform>(entity)) {
                 if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
                     CreatePhysicsBody(entity);

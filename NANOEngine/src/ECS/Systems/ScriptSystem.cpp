@@ -5,6 +5,7 @@
 #include "../Components/EntityMeta.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Scripting/ScriptingEngine.hpp"
+#include "Events/EventBus.hpp"
 
 // Entire scripting requires a major refactor ~ irwen
 
@@ -77,14 +78,23 @@ namespace NE::ECS::Systems {
 	}
 
 	void ScriptSystem::Exit() {
+		SPD_INFO("ScriptSystem::Exit() - Starting cleanup");
+		
+		// CRITICAL: Clear all script event listeners BEFORE destroying scripts
+		// This prevents dangling function pointers when the DLL unloads
+		NANOEngine::Events::EventBus::Get().ClearDomain(NANOEngine::Events::EventDomain::Script);
+		SPD_INFO("Cleared all Script domain event listeners");
+		
 		auto& entities = GetEntities();
 
 		for (NE::ECS::Entity entity : entities) {
 			Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
 			auto& ns = m_componentManager->GetComponent<Component::NativeScript>(entity);
-			ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it’s a function ptr
+			ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it's a function ptr
 			ns.DestroyScript = {};
 		}
+		
+		SPD_INFO("ScriptSystem::Exit() - Completed");
 	}
 
 	// WOI WENGKONG IDK IF THIS IS HOW ITS SUPPOSED TO BE DONE HELP ME CHECK BUT IT WORKS FOR NOW
@@ -150,6 +160,11 @@ namespace NE::ECS::Systems {
 	void ScriptSystem::StopScripts()
 	{
 		SPD_INFO("ScriptSystem: Exiting Play Mode...");
+		
+		// CRITICAL: Clear all script event listeners FIRST to prevent dangling function pointers
+		NANOEngine::Events::EventBus::Get().ClearDomain(NANOEngine::Events::EventDomain::Script);
+		SPD_INFO("Cleared all Script domain event listeners");
+		
 		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
 		for (Entity entity : entities) {

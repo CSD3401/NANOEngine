@@ -257,16 +257,7 @@ namespace Editor {
 		if (EditorScene::s_selectedEntity) {
 			uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
-			// Entity active state checkbox
-			auto& meta = NE::ECS::Command::GetEntityMeta(entity);
-			bool isActive = meta.isActive;
-			if (ImGui::Checkbox("##ActiveCheckbox", &isActive)) {
-				meta.isActive = isActive;
-				NE::MarkSceneDirty();
-				SPD_DEBUG("[DirtyFlag] Entity active state changed - Scene marked DIRTY");
-			}
-			ImGui::SameLine();
-
+			// Entity name field only (isActive is now handled by EntityMeta component)
 			{
 				using Owner = NE::ECS::Component::EntityMeta;
 				using FieldT = std::string;
@@ -355,7 +346,46 @@ namespace Editor {
 			for (const auto& [typeIdx, compType] : componentTypeRegistry) {
 				if (!sig.test(compType)) continue;
 
-				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
+				if (typeIdx == typeid(NE::ECS::Component::EntityMeta)) {
+					// EntityMeta component - show isActive with proper handling
+					auto& comp = NE::ECS::Command::GetEntityMeta(entity);
+					ImGui::SeparatorText("Entity Properties");
+
+					// Manually render isActive field with immediate updates
+					{
+						bool isActiveValue = comp.isActive;
+						if (ImGui::Checkbox("isActive", &isActiveValue)) {
+							comp.isActive = isActiveValue;
+							NE::MarkSceneDirty();
+							SPD_DEBUG("[DirtyFlag] Entity isActive changed to {} - Scene marked DIRTY", isActiveValue);
+						}
+					}
+
+					// Render other EntityMeta fields (skip name and isActive)
+					NE::Core::ForEachFieldView<NE::ECS::Component::EntityMeta>(comp,
+						[&](auto const& desc, auto const& currentValue) {
+							using Owner = NE::ECS::Component::EntityMeta;
+							using FieldT = std::decay_t<decltype(currentValue)>;
+
+							// Skip name and isActive (already handled above)
+							if (std::string(desc.name) == "name" || std::string(desc.name) == "isActive") {
+								return;
+							}
+
+							FieldT edited = currentValue;
+
+							ImGui::PushID(desc.name.data());
+							const bool changed = DrawField(desc, edited);
+							ImGui::PopID();
+
+							// Handle other EntityMeta fields if any are added in the future
+							if (changed) {
+								// Apply change immediately  
+								NE::MarkSceneDirty();
+							}
+						});
+				}
+				else if (typeIdx == typeid(NE::ECS::Component::Transform)) {
 					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 					ImGui::SeparatorText("Transform");
 					//NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
@@ -1467,7 +1497,7 @@ namespace Editor {
 			if (ImGui::CollapsingHeader("Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
 				// MeshImportSettings
 				const char* MeshOptNames[] = { "None", "Everything", "Polygon Order", "Vertex Order" };
-				int meshOptIndex = static_cast<int>(settings.mesh.meshOptimizationMode);
+			 int meshOptIndex = static_cast<int>(settings.mesh.meshOptimizationMode);
 				DrawComboEnum("Mesh Optimization", meshOptIndex, MeshOptNames, IM_ARRAYSIZE(MeshOptNames));
 				settings.mesh.meshOptimizationMode =
 					static_cast<MeshImportSettings::MeshOptimizationMode>(meshOptIndex);
@@ -1479,19 +1509,19 @@ namespace Editor {
 				Editor::DrawCheckbox("Weld Vertices", settings.mesh.weldVertices);
 
 				const char* IndexFormatNames[] = { "Auto", "UInt16", "UInt32" };
-				int indexFmtIndex = static_cast<int>(settings.mesh.indexFormat);
+			 int indexFmtIndex = static_cast<int>(settings.mesh.indexFormat);
 				DrawComboEnum("Index Format", indexFmtIndex, IndexFormatNames, IM_ARRAYSIZE(IndexFormatNames));
 				settings.mesh.indexFormat = static_cast<MeshImportSettings::IndexFormat>(indexFmtIndex);
 
 				const char* NormalModeNames[] = { "Import", "Calculate", "None" };
-				int normalIndex = static_cast<int>(settings.mesh.normalMode);
+			 int normalIndex = static_cast<int>(settings.mesh.normalMode);
 				DrawComboEnum("Normals", normalIndex, NormalModeNames, IM_ARRAYSIZE(NormalModeNames));
 				settings.mesh.normalMode = static_cast<MeshImportSettings::NormalMode>(normalIndex);
 
 				ImGui::DragFloat("Smoothing Angle", &settings.mesh.smoothingAngle, 1.0f, 0.0f, 180.0f);
 
 				const char* TangentModeNames[] = { "Import", "Calculate (MikkTSpace)", "None" };
-				int tangentIndex = static_cast<int>(settings.mesh.tangentMode);
+			 int tangentIndex = static_cast<int>(settings.mesh.tangentMode);
 				DrawComboEnum("Tangents", tangentIndex, TangentModeNames, IM_ARRAYSIZE(TangentModeNames));
 				settings.mesh.tangentMode = static_cast<MeshImportSettings::TangentMode>(tangentIndex);
 

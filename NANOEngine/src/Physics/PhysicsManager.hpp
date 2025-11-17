@@ -48,7 +48,9 @@ namespace NE::Physics {
         static void Shutdown();
 
         static void ActivateBodies();
+        static void ActivateBody(uint32_t bodyID);
         static void DeactivateBodies();
+        static void DeactivateBody(uint32_t bodyID);
 
         static uint32_t CreateBody(const JPH::BodyCreationSettings& settings);
         static void DestroyBody(uint32_t index);

@@ -5,9 +5,10 @@
 #include <functional>
 
 #include "../ECS/Components/Transform.hpp"
-#include "../ECS/Components/Rigidbody.hpp"
+#include "../ECS/Components/RigidBody.hpp"
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/EntityMeta.hpp"
+#include "../ECS/Components/Renderer.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 #include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
@@ -589,7 +590,29 @@ void IScript::SetActive(bool active) {
 		if (meta.isActive != active) {
 			meta.isActive = active;
 			
-			// Mark scene dirty when active state changes
+			// 1. Disable rendering if entity has Renderer component
+			if (m_componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
+				auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
+				renderer.visible = active;
+			}
+			
+			// 2. Disable physics interaction if entity has physics body
+			if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
+				uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+				
+				if (active) {
+					// Reactivate physics body
+					NE::Physics::PhysicsManager::ActivateBody(bodyID);
+				} else {
+					// Deactivate physics body (stops collision and physics simulation)
+					NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+				}
+			}
+			
+			// TODO: 3. Recursively propagate to children when hierarchy system is implemented
+			// For now, this affects only the current entity
+			
+			// Mark scene dirty when active state changes (Edit mode only)
 			if (NE::GetEngineState() == NE::EngineState::Edit) {
 				NE::MarkSceneDirty();
 			}

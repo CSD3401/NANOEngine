@@ -3,6 +3,7 @@
 #include "../Components/Transform.hpp"
 #include "../Components/Collider.hpp"
 #include "../Components/Light.hpp"
+#include "../Components/EntityMeta.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/Vertex.hpp"
 #include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
@@ -75,9 +76,17 @@ namespace NE::ECS::Systems {
 
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
+     // Skip inactive entities
+    if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
+const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+      if (!meta.isActive) {
+         continue; // Skip rendering for inactive entities
+    }
+            }
+
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
             if (!renderer.visible || !renderer.model) continue;
-            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+    auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
             //if (!renderer.visible)
             //{

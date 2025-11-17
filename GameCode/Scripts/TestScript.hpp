@@ -1,8 +1,6 @@
-#pragma once
 #include <iostream>
 #include "Scripting/IScript.hpp"
 #include "ECS/Components/Transform.hpp"
-#include "Events/EventBus.hpp"
 #include <Math/Vec3.hpp>
 
 /**
@@ -15,18 +13,10 @@
  * - Use MarkComponentDirty<T>() manually if needed when writing Editor Scripts
  *
  * ENTITY ACTIVATION DEMO:
- * - Press 'T' to toggle this entity's active state
- * - Press 'R' to respawn (re-activate) after a delay
- * - isActive field controls update behavior
- * - The entity's active state can be toggled via SetActive()
+ * - Press 'R' to trigger respawn (deactivate then reactivate after delay)
+ * - Use Inspector "isActive" checkbox to toggle entity active state manually
+ * - Use Inspector script "Enabled" checkbox to enable/disable this script
  */
-
-void PlayerTestEvent(void* data) {
-	int tmp = *reinterpret_cast<int*>(data);
-	// SPD_CRITICAL("HIIII Player {}", tmp);
-	std::cout << tmp << std::endl;
-}
-
 
 class TestScript : public IScript {
 public:
@@ -36,7 +26,6 @@ public:
 		SCRIPT_FIELD(bounceHeight, Float);
 		SCRIPT_FIELD(color, Vec3);
 		SCRIPT_FIELD(particleCount, Int);
-		SCRIPT_FIELD(isActive, Bool);
 		SCRIPT_FIELD(objectName, String);
 		SCRIPT_FIELD(respawnDelay, Float);
 		SCRIPT_FIELD(enableAutoRespawn, Bool);
@@ -47,24 +36,12 @@ public:
 	void Initialize(NE::ECS::Entity entity) override {
 		std::cout << "[TestScript] Initialized for entity " << entity << std::endl;
 		std::cout << "  Controls:" << std::endl;
-		std::cout << "  - Press 'T' to toggle entity active state" << std::endl;
 		std::cout << "  - Press 'R' to trigger respawn (deactivate then reactivate)" << std::endl;
-		std::cout << "  - isActive field: " << (isActive ? "enabled" : "disabled") << std::endl;
-
-		NANOEngine::Events::RegisterScriptEventListener("OnPlayerHit", PlayerTestEvent);
+		std::cout << "  - Use Inspector 'isActive' checkbox to toggle entity on/off" << std::endl;
+		std::cout << "  - Use Inspector 'Enabled' checkbox to enable/disable this script" << std::endl;
 	}
 
 	void Update(double deltaTime) override {
-		// Respect the isActive field (script-level active state)
-		if (!isActive) return;
-
-		// Check entity-level active state
-		if (!IsActive()) {
-			// This won't print because inactive entities don't call Update()
-			// But it's here for demonstration purposes
-			return;
-		}
-
 		// Handle respawn countdown
 		if (m_isRespawning) {
 			m_respawnTimer -= static_cast<float>(deltaTime);
@@ -74,20 +51,15 @@ public:
 				SetActive(true);
 				m_isRespawning = false;
 				std::cout << "[TestScript] Entity '" << objectName << "' respawned!" << std::endl;
+				std::cout << "  - Scripts: ENABLED" << std::endl;
+				std::cout << "  - Rendering: ENABLED" << std::endl;
+				std::cout << "  - Physics: ENABLED" << std::endl;
 			}
 			return; // Don't do normal update logic while respawning
 		}
 
 		// === Input Controls ===
 		
-		// Toggle entity active state with 'T' key
-		if (NE::InputManager::WasKeyPressed('T')) {
-			bool currentState = IsActive();
-			SetActive(!currentState);
-			std::cout << "[TestScript] Entity '" << objectName << "' " 
-			          << (currentState ? "DEACTIVATED" : "ACTIVATED") << std::endl;
-		}
-
 		// Trigger respawn sequence with 'R' key
 		if (NE::InputManager::WasKeyPressed('R')) {
 			TriggerRespawn();
@@ -122,10 +94,12 @@ public:
 
 	void OnEnable() override {
 		std::cout << "[TestScript] Entity '" << objectName << "' ENABLED (OnEnable called)" << std::endl;
+		std::cout << "  - This entity is now fully active!" << std::endl;
 	}
 
 	void OnDisable() override {
 		std::cout << "[TestScript] Entity '" << objectName << "' DISABLED (OnDisable called)" << std::endl;
+		std::cout << "  - Scripts stopped, rendering disabled, physics disabled" << std::endl;
 	}
 
 	void OnDestroy() override {
@@ -169,7 +143,6 @@ private:
 	float bounceHeight = 1.0f;    // units
 	NE::Math::Vec3 color{1.0f, 0.0f, 0.0f};  // red by default
 	int particleCount = 50;
-	bool isActive = true;
 	std::string objectName = "TestObject";
 	float respawnDelay = 2.0f;    // seconds before respawn
 	bool enableAutoRespawn = false; // Auto-respawn every 5 seconds
