@@ -19,7 +19,7 @@
 #include "Scripts/Gears.hpp"
 #include "Scripts/k1bswitch.hpp"
 #include "Scripts/k2bswitch.hpp"
-
+#include "Scripts/PlayerController.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
 // extern "C" ensures C linkage so the Engine DLL can find this function
@@ -76,6 +76,10 @@ extern "C" {
           registrar->RegisterScript("FollowerScript", []() -> IScript* {
           return new FollowerScript();
      });
+
+          registrar->RegisterScript("PlayerController", []() -> IScript* {
+              return new PlayerController();
+              });
 
     }
 }
