@@ -435,12 +435,12 @@ private:
 	void HandleMovementAndGravity(NE::Scripting::Vec3& velocity, double deltaTime,
 		bool attemptingJump, bool isGrounded) {
 		
-		auto camTransform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(7);
+		//auto camTransform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(7);
 		//NE::Scripting::Vec3 camForward = camTransform.GetForward();  // or Normalize manually
 		//NE::Scripting::Vec3 camRight = camTransform.GetRight();
-		float yaw = camTransform.rotation.y * 0.017453292519943295f; // deg→rad
+		//float yaw = camTransform.rotation.y * 0.017453292519943295f; // deg→rad
 
-		NE::Scripting::Vec3 camForward{
+		/*NE::Scripting::Vec3 camForward{
 			sinf(yaw),
 			0.0f,
 			-cosf(yaw)
@@ -451,7 +451,7 @@ private:
 			camForward.z,
 			0.0f,
 			-camForward.x
-		};
+		};*/
 
 		// Get input for all 4 directions
 		NE::Scripting::Vec3 inputDirection{ 0, 0, 0 };
