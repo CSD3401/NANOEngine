@@ -6,12 +6,13 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
 
 // Raycasting includes
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
-
+#include <Jolt/Geometry/IndexedTriangle.h>
 // Constraint includes for rotation locking
 #include <Jolt/Physics/Constraints/SixDOFConstraint.h>
 #include <Jolt/Physics/Constraints/FixedConstraint.h>
@@ -340,7 +341,7 @@ namespace NE::Physics {
         }
 
         // Render debug shapes
-        RenderAllBodyShapes();
+        //RenderAllBodyShapes();
     }
 
     void PhysicsManager::RenderAllBodyShapes()
@@ -598,6 +599,88 @@ namespace NE::Physics {
         printf("CreateSphereBody successful\n");
         return CreateBody(bodySettings);
     }
+
+	uint32_t PhysicsManager::CreateMeshShape(std::string meshID, const std::vector<Math::Vec3>& vertices, const std::vector<uint32_t>& indices) {
+        if (!s_PhysicsSystem)
+            return 0;
+
+        if (vertices.empty() || indices.size() < 3 || indices.size() % 3 != 0) {
+            printf("PhysicsManager::CreateMeshShape - invalid mesh data (verts = %zu, indices = %zu)\n",
+                vertices.size(), indices.size());
+            return 0;
+        }
+
+        uint32_t key = std::hash<std::string>{}(meshID);
+        JPH::RefConst<JPH::Shape> meshShape;
+
+        if (auto it = s_shapeMap.find(key); it != s_shapeMap.end()) {
+            meshShape = it->second;
+        } else {
+            JPH::VertexList joltVerts;
+            joltVerts.reserve(vertices.size());
+            for (const auto& v : vertices) {
+                // Jolt VertexList = Array<Vec3>
+                joltVerts.emplace_back(v.x, v.y, v.z);
+            }
+
+            JPH::IndexedTriangleList tris;
+            tris.reserve(indices.size() / 3);
+
+            // Each IndexedTriangle is (i0, i1, i2, materialIndex)
+            for (size_t i = 0; i < indices.size(); i += 3) {
+                uint32_t i0 = indices[i + 0];
+                uint32_t i1 = indices[i + 1];
+                uint32_t i2 = indices[i + 2];
+
+                tris.emplace_back(
+                    i0,
+                    i1,
+                    i2,
+                    0u               // material index: all triangles use material 0 for now
+                );
+            }
+
+            JPH::MeshShapeSettings meshSettings(std::move(joltVerts), std::move(tris));
+
+            // Optional tuning:
+            meshSettings.mBuildQuality = JPH::MeshShapeSettings::EBuildQuality::FavorRuntimePerformance;
+            meshSettings.mPerTriangleUserData = false; // set true per-tri user data is needed
+
+            // Build the MeshShape (BVH etc.)
+            JPH::ShapeSettings::ShapeResult shapeResult = meshSettings.Create();
+            if (shapeResult.HasError()) {
+                printf("PhysicsManager::CreateMeshShape - error: %s\n", shapeResult.GetError().c_str());
+                return 0;
+            }
+
+            meshShape = shapeResult.Get();
+
+            // Cache the shape for reuse (same meshID = same shape)
+            s_shapeMap[key] = meshShape;
+        }
+
+        // ----- 5) Create the body using the mesh shape -----
+        // MeshShape::MustBeStatic() returns true this body must be STATIC.
+        JPH::BodyCreationSettings bodySettings(
+            meshShape,
+            JPH::RVec3::sZero(),      // position - you can update later with SetTransform
+            JPH::Quat::sIdentity(),   // rotation
+            JPH::EMotionType::Static, // must be Static for non-convex mesh
+            Layers::NON_MOVING
+        );
+
+        
+
+        // Allow marking as kinematic later if you ever need that
+        // bodySettings.mAllowDynamicOrKinematic = true;
+
+        uint32_t bodyID = CreateBody(bodySettings);
+
+        printf("PhysicsManager::CreateMeshShape - created mesh body %u (%zu verts, %zu tris)\n",
+            bodyID, vertices.size(), indices.size() / 3);
+
+        return bodyID;
+	}
 
     uint32_t PhysicsManager::CreateCapsuleBody(const Math::Vec3& pos, const Math::Vec3& rot,
         float halfHeight, float radius, JPH::EMotionType motionType)

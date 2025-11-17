@@ -28,6 +28,9 @@ namespace NE::Graphics {
         bool Preload(Resource::BinaryView blob) override;
         void Finalize() override;
 
+        bool GetPhysicsMesh(std::vector<Math::Vec3>& outVerts,
+            std::vector<uint32_t>& outIndices) const;
+
         //void ComputeModelSphereBounds();
 
     private:
