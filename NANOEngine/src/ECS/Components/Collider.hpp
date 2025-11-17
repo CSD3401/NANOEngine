@@ -13,6 +13,7 @@ namespace NE::ECS::Component {
             Box,
             Sphere,
             Capsule,
+            Mesh,
             None 
         };
 
@@ -42,7 +43,7 @@ namespace NE::ECS::Component {
 
 
         NE_REFLECT_BEGIN(Collider)
-            NE_REFLECT_FIELD(shapeType),
+            //NE_REFLECT_FIELD(shapeType),
             NE_REFLECT_FIELD(halfExtents),
             NE_REFLECT_FIELD(radius),
             NE_REFLECT_FIELD(height)
