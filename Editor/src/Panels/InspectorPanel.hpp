@@ -18,6 +18,8 @@ namespace Editor {
 
 		void RenderTextureImportSettings(std::string metaPath);
 
+		void RenderModelImportSettings(const std::string& metaPath);
+
 		// temp implementation
 		//std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
 		//std::string m_loadedPath;
