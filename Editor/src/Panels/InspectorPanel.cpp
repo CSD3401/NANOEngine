@@ -513,7 +513,7 @@ namespace Editor {
 					ImGui::SeparatorText("Collider");
 
 					// Dropdown shapes
-					static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "None" };
+					static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "Mesh", "None" };
 					int currShape = static_cast<int>(comp.shapeType);
 					if (ImGui::Combo("Shape Type", &currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames)))
 					{

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "EngineAPI.hpp"
 #include <cmath>
 #include <bitset>
@@ -456,22 +456,22 @@ private:
 		// Get input for all 4 directions
 		NE::Scripting::Vec3 inputDirection{ 0, 0, 0 };
 
-		//if (NE::InputManager::IsKeyDown('W')) {
-		//	inputDirection.z -= 1.0f;
-		//}
-		//if (NE::InputManager::IsKeyDown('S')) {
-		//	inputDirection.z += 1.0f;
-		//}
-		//if (NE::InputManager::IsKeyDown('A')) {
-		//	inputDirection.x -= 1.0f;
-		//}
-		//if (NE::InputManager::IsKeyDown('D')) {
-		//	inputDirection.x += 1.0f;
-		//}
-		if (NE::InputManager::IsKeyDown('W')) inputDirection += camForward;
-		if (NE::InputManager::IsKeyDown('S')) inputDirection -= camForward;
-		if (NE::InputManager::IsKeyDown('A')) inputDirection += camRight;
-		if (NE::InputManager::IsKeyDown('D')) inputDirection -= camRight;
+		if (NE::InputManager::IsKeyDown('W')) {
+			inputDirection.z -= 1.0f;
+		}
+		if (NE::InputManager::IsKeyDown('S')) {
+			inputDirection.z += 1.0f;
+		}
+		if (NE::InputManager::IsKeyDown('A')) {
+			inputDirection.x -= 1.0f;
+		}
+		if (NE::InputManager::IsKeyDown('D')) {
+			inputDirection.x += 1.0f;
+		}
+		//if (NE::InputManager::IsKeyDown('W')) inputDirection += camForward;
+		//if (NE::InputManager::IsKeyDown('S')) inputDirection -= camForward;
+		//if (NE::InputManager::IsKeyDown('A')) inputDirection += camRight;
+		//if (NE::InputManager::IsKeyDown('D')) inputDirection -= camRight;
 
 		// Normalize diagonal movement
 		float inputMagnitude = std::sqrt(
