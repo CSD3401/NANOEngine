@@ -14,7 +14,7 @@ public:
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        if (NE::InputManager::WasKeyPressed('E')) {
+        if (Input::WasKeyPressed('E')) {
             auto& transform = NE::ECS::Command::GetEntityTransform(GetEntity());
 
             if (transform.scale == NE::Math::Vec3(0.f, 0.f, 0.f)) {

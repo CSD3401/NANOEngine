@@ -11,34 +11,34 @@
 // Core SDK - Always include this first
 #include <ScriptSDK/ScriptAPI.h>
 
-// ============ LOGGING AND COROUTINES (SDK COMPATIBILITY LAYER) ============
-// Provide backward-compatible macros that use the SDK logging functions
-// The SDK functions (SCRIPT_LOG_*) are available from ScriptAPI.h
+// ============ BACKWARD COMPATIBILITY LAYER ============
+// Provide legacy function names and macros for existing scripts
+// New scripts should use the clean SDK namespaces: Input::, Events::, Coroutine::, Log::
 
-// Backward-compatible aliases for logging macros
-#define SPD_DEBUG(...)    SCRIPT_LOG_DEBUG(__VA_ARGS__)
-#define SPD_INFO(...)     SCRIPT_LOG_INFO(__VA_ARGS__)
-#define SPD_WARNING(...)  SCRIPT_LOG_WARNING(__VA_ARGS__)
-#define SPD_ERROR(...)    SCRIPT_LOG_ERROR(__VA_ARGS__)
-#define SPD_CRITICAL(...) SCRIPT_LOG_CRITICAL(__VA_ARGS__)
+// Legacy logging macros (old SPD_* style)
+#define SPD_DEBUG(...)    LOG_DEBUG(__VA_ARGS__)
+#define SPD_INFO(...)     LOG_INFO(__VA_ARGS__)
+#define SPD_WARNING(...)  LOG_WARNING(__VA_ARGS__)
+#define SPD_ERROR(...)    LOG_ERROR(__VA_ARGS__)
+#define SPD_CRITICAL(...) LOG_CRITICAL(__VA_ARGS__)
 
-// Backward-compatible coroutine function names
+// Legacy coroutine function names (old Engine_* style)
 namespace {
-    inline NE::Scripting::CoroutineHandle Engine_CreateCoroutine() {
-        return NE::Scripting::CreateCoroutine();
+    inline Coroutines::Handle Engine_CreateCoroutine() {
+        return Coroutines::Create();
     }
 
     template<typename Func>
-    inline void Engine_AddAction(NE::Scripting::CoroutineHandle handle, Func&& func) {
-        NE::Scripting::AddCoroutineAction(handle, std::function<void()>(std::forward<Func>(func)));
+    inline void Engine_AddAction(Coroutines::Handle handle, Func&& func) {
+        Coroutines::AddAction(handle, std::function<void()>(std::forward<Func>(func)));
     }
 
-    inline void Engine_AddWaitForSeconds(NE::Scripting::CoroutineHandle handle, float seconds) {
-        NE::Scripting::AddCoroutineWait(handle, seconds);
+    inline void Engine_AddWaitForSeconds(Coroutines::Handle handle, float seconds) {
+        Coroutines::AddWait(handle, seconds);
     }
 
-    inline void Engine_StartCoroutine(NE::Scripting::CoroutineHandle handle) {
-        NE::Scripting::StartCoroutine(handle);
+    inline void Engine_StartCoroutine(Coroutines::Handle handle) {
+        Coroutines::Start(handle);
     }
 }
 
@@ -122,15 +122,42 @@ namespace NE {
     }
 }
 
-// ============ ENGINE FEATURES ============
-// Input handling
-#include "../../NANOEngine/src/Input/InputManager.hpp"
+// ============ ENGINE FEATURES (SDK COMPATIBILITY LAYER) ============
 
-// Event system
-#include "../../NANOEngine/src/Events/EventBus.hpp"
+// Reflection system (header-only, now in SDK)
+#include <ScriptSDK/Reflection.h>
 
-// Reflection system (for custom structs)
-#include "../../NANOEngine/src/Core/Reflection.hpp"
+// Legacy input namespace alias (old NE::InputManager:: style)
+//namespace NE {
+//    namespace InputManager {
+//        inline bool IsKeyDown(int key) { return Input::IsKeyDown(key); }
+//        inline bool WasKeyPressed(int key) { return Input::WasKeyPressed(key); }
+//        inline bool WasKeyReleased(int key) { return Input::WasKeyReleased(key); }
+//        inline bool IsMouseDown(int button) { return Input::IsMouseDown(button); }
+//        inline bool WasMousePressed(int button) { return Input::WasMousePressed(button); }
+//        inline bool WasMouseReleased(int button) { return Input::WasMouseReleased(button); }
+//        inline std::pair<double, double> MousePos() { return Input::GetMousePosition(); }
+//        inline std::pair<double, double> MouseDelta() { return Input::GetMouseDelta(); }
+//        inline std::pair<double, double> ScrollDelta() { return Input::GetScrollDelta(); }
+//        inline void SetMouseLocked(bool locked) { Input::SetMouseLocked(locked); }
+//        inline bool IsMouseLocked() { return Input::IsMouseLocked(); }
+//    }
+//}
+
+// Legacy event namespace alias (old NANOEngine::Events:: style)
+//namespace NANOEngine {
+//    namespace Events {
+//        inline void SendScriptEvent(const char* eventName, void* data) {
+//            ::Events::Send(eventName, data);
+//        }
+//        inline void RegisterScriptEventListener(const char* eventName, std::function<void(void*)> callback) {
+//            ::Events::Listen(eventName, callback);
+//        }
+//        inline void ClearScriptEventListeners() {
+//            ::Events::ClearAllListeners();
+//        }
+//    }
+//}
 
 // Exposed field registry (for advanced editor integration)
 #include "../ExposedFieldRegistry.hpp"

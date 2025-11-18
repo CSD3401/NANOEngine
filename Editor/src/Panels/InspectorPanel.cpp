@@ -2,7 +2,7 @@
 #include <imgui/imgui.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
-//#include <EditorInterface/PhysicsExports.hpp>
+#include <EditorInterface/PhysicsExports.hpp>
 #include "ECS/Core/Signature.hpp"
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>

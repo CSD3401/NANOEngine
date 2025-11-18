@@ -21,7 +21,7 @@ public:
         SetPosition(camPos);
 
         // --- mouse look ---
-        auto [mouseX, mouseY] = NE::InputManager::MousePos();
+        auto [mouseX, mouseY] = Input::GetMousePosition();
 
         if (m_firstMouse) {
             m_lastX = (float)mouseX;
@@ -47,9 +47,9 @@ public:
 
         SetRotation(m_pitch, m_yaw, 0.0f);
 
-        if (NE::InputManager::IsKeyDown('Q')) {
+        if (Input::IsKeyDown('Q')) {
             //auto selectedEntt = NE::GetPickedEntity(960, 540);
-            //SPD_WARNING("Selected Entity: " << selectedEntt);
+            //LOG_WARNING("Selected Entity: " << selectedEntt);
             //if (pickedEntity == NE::ECS::NO_ENTITY) {
             //    if (selectedEntt == 5 || selectedEntt == 6) {
             //        pickedEntity = selectedEntt;

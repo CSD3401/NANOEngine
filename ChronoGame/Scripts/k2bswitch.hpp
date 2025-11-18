@@ -15,13 +15,13 @@ public:
     void Initialize(NE::Scripting::Entity entity) override {
 
 
-        //NANOEngine::Events::RegisterScriptEventListener("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
+        //Events::Listen("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        if (NE::InputManager::WasKeyPressed('E')) {
+        if (Input::WasKeyPressed('E')) {
             if (!switched) {
                 NE::Renderer::Command::AssignMaterial(GetEntity(), "36e41bfb-b41e-445a-922b-a634450d6f02");
             } else {

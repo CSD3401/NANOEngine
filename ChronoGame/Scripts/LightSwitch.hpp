@@ -14,7 +14,7 @@ public:
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        if (NE::InputManager::WasKeyPressed('E')) {
+        if (Input::WasKeyPressed('E')) {
             auto& light = NE::ECS::Command::GetEntityLight(GetEntity());
             if (!switched) {
                 light.color = NE::Math::Vec3(0.7f, 0.4f, 0.f);

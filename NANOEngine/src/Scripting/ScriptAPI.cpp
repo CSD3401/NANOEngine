@@ -18,6 +18,8 @@
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
 #include "../Core/Couroutine.hpp"
+#include "../Input/InputManager.hpp"
+#include "../Events/EventBus.hpp"
 
 #include <sstream>
 #include <unordered_map>
@@ -964,6 +966,70 @@ namespace Scripting {
 
     void StartCoroutine(CoroutineHandle handle) {
         Engine_StartCoroutine(handle);
+    }
+
+    //=========================================================================
+    // INPUT API IMPLEMENTATION (SDK → Engine bridge)
+    //=========================================================================
+
+    bool IsKeyDown(int key) {
+        return NE::InputManager::IsKeyDown(key);
+    }
+
+    bool WasKeyPressed(int key) {
+        return NE::InputManager::WasKeyPressed(key);
+    }
+
+    bool WasKeyReleased(int key) {
+        return NE::InputManager::WasKeyReleased(key);
+    }
+
+    bool IsMouseDown(int button) {
+        return NE::InputManager::IsMouseDown(button);
+    }
+
+    bool WasMousePressed(int button) {
+        return NE::InputManager::WasMousePressed(button);
+    }
+
+    bool WasMouseReleased(int button) {
+        return NE::InputManager::WasMouseReleased(button);
+    }
+
+    std::pair<double, double> MousePos() {
+        return NE::InputManager::MousePos();
+    }
+
+    std::pair<double, double> MouseDelta() {
+        return NE::InputManager::MouseDelta();
+    }
+
+    std::pair<double, double> ScrollDelta() {
+        return NE::InputManager::ScrollDelta();
+    }
+
+    void SetMouseLocked(bool locked) {
+        NE::InputManager::SetMouseLocked(locked);
+    }
+
+    bool IsMouseLocked() {
+        return NE::InputManager::IsMouseLocked();
+    }
+
+    //=========================================================================
+    // EVENT API IMPLEMENTATION (SDK → Engine bridge)
+    //=========================================================================
+
+    void SendScriptEvent(const char* eventName, void* data) {
+        NANOEngine::Events::SendScriptEvent(eventName, data);
+    }
+
+    void RegisterScriptEventListener(const char* eventName, std::function<void(void*)> callback) {
+        NANOEngine::Events::RegisterScriptEventListener(eventName, callback);
+    }
+
+    void ClearScriptEventListeners() {
+        NANOEngine::Events::ClearScriptEventListeners();
     }
 
 } // namespace Scripting

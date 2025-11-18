@@ -449,34 +449,223 @@ namespace Scripting {
      */
     SCRIPT_API void StartCoroutine(CoroutineHandle handle);
 
+    //=========================================================================
+    // INPUT API (SDK-level input functions)
+    //=========================================================================
+
+    /**
+     * @brief Check if a key is currently held down
+     * @param key The key code (ASCII for letters, or GLFW key codes for special keys)
+     * @return true if the key is currently down
+     */
+    SCRIPT_API bool IsKeyDown(int key);
+
+    /**
+     * @brief Check if a key was pressed this frame (state transition from up to down)
+     * @param key The key code
+     * @return true if the key was pressed this frame
+     */
+    SCRIPT_API bool WasKeyPressed(int key);
+
+    /**
+     * @brief Check if a key was released this frame (state transition from down to up)
+     * @param key The key code
+     * @return true if the key was released this frame
+     */
+    SCRIPT_API bool WasKeyReleased(int key);
+
+    /**
+     * @brief Check if a mouse button is currently held down
+     * @param button The mouse button code (0 = left, 1 = right, 2 = middle)
+     * @return true if the button is currently down
+     */
+    SCRIPT_API bool IsMouseDown(int button);
+
+    /**
+     * @brief Check if a mouse button was pressed this frame
+     * @param button The mouse button code
+     * @return true if the button was pressed this frame
+     */
+    SCRIPT_API bool WasMousePressed(int button);
+
+    /**
+     * @brief Check if a mouse button was released this frame
+     * @param button The mouse button code
+     * @return true if the button was released this frame
+     */
+    SCRIPT_API bool WasMouseReleased(int button);
+
+    /**
+     * @brief Get the current mouse cursor position
+     * @return Pair of (x, y) screen coordinates
+     */
+    SCRIPT_API std::pair<double, double> MousePos();
+
+    /**
+     * @brief Get the mouse movement delta since last frame
+     * @return Pair of (deltaX, deltaY)
+     */
+    SCRIPT_API std::pair<double, double> MouseDelta();
+
+    /**
+     * @brief Get the scroll wheel delta
+     * @return Pair of (scrollX, scrollY)
+     */
+    SCRIPT_API std::pair<double, double> ScrollDelta();
+
+    /**
+     * @brief Lock/unlock the mouse cursor
+     * @param locked true to lock cursor to window, false to unlock
+     */
+    SCRIPT_API void SetMouseLocked(bool locked);
+
+    /**
+     * @brief Check if mouse cursor is currently locked
+     * @return true if mouse is locked
+     */
+    SCRIPT_API bool IsMouseLocked();
+
+    //=========================================================================
+    // EVENT API (SDK-level event system for script communication)
+    //=========================================================================
+
+    /**
+     * @brief Send a generic event to the engine and other scripts
+     * @param eventName The name/identifier of the event
+     * @param data Optional pointer to event data (can be nullptr)
+     *
+     * Example:
+     * @code
+     * int damage = 20;
+     * SendScriptEvent("OnPlayerHit", &damage);
+     * @endcode
+     */
+    SCRIPT_API void SendScriptEvent(const char* eventName, void* data);
+
+    /**
+     * @brief Register a callback to listen for script events
+     * @param eventName The name of the event to listen for
+     * @param callback The function to call when the event is triggered
+     *
+     * Example:
+     * @code
+     * RegisterScriptEventListener("OnPlayerHit", [](void* data) {
+     *     int* damage = static_cast<int*>(data);
+     *     SCRIPT_LOG_INFO("Player took ", *damage, " damage!");
+     * });
+     * @endcode
+     */
+    SCRIPT_API void RegisterScriptEventListener(const char* eventName, std::function<void(void*)> callback);
+
+    /**
+     * @brief Clear all registered script event listeners
+     * Useful for cleanup when scripts are unloaded
+     */
+    SCRIPT_API void ClearScriptEventListeners();
+
 } // namespace Scripting
 } // namespace NE
 
 //=============================================================================
-// LOGGING MACROS (Convenience macros for scripts)
+// CLEAN SDK NAMESPACE ORGANIZATION
 //=============================================================================
+// Standardized namespaces for script API: Category::Function()
 
 #include <sstream>
 
+/// Input management namespace - keyboard, mouse, and cursor control
+namespace Input {
+    inline bool IsKeyDown(int key) { return NE::Scripting::IsKeyDown(key); }
+    inline bool WasKeyPressed(int key) { return NE::Scripting::WasKeyPressed(key); }
+    inline bool WasKeyReleased(int key) { return NE::Scripting::WasKeyReleased(key); }
+    inline bool IsMouseDown(int button) { return NE::Scripting::IsMouseDown(button); }
+    inline bool WasMousePressed(int button) { return NE::Scripting::WasMousePressed(button); }
+    inline bool WasMouseReleased(int button) { return NE::Scripting::WasMouseReleased(button); }
+    inline std::pair<double, double> GetMousePosition() { return NE::Scripting::MousePos(); }
+    inline std::pair<double, double> GetMouseDelta() { return NE::Scripting::MouseDelta(); }
+    inline std::pair<double, double> GetScrollDelta() { return NE::Scripting::ScrollDelta(); }
+    inline void SetMouseLocked(bool locked) { NE::Scripting::SetMouseLocked(locked); }
+    inline bool IsMouseLocked() { return NE::Scripting::IsMouseLocked(); }
+}
+
+/// Event system namespace - send and listen for game events
+namespace Events {
+    inline void Send(const char* eventName, void* data = nullptr) {
+        NE::Scripting::SendScriptEvent(eventName, data);
+    }
+    inline void Listen(const char* eventName, std::function<void(void*)> callback) {
+        NE::Scripting::RegisterScriptEventListener(eventName, callback);
+    }
+    inline void ClearAllListeners() {
+        NE::Scripting::ClearScriptEventListeners();
+    }
+}
+
+/// Coroutine system namespace - delayed and sequenced actions
+namespace Coroutines {
+    using Handle = NE::Scripting::CoroutineHandle;
+
+    inline Handle Create() { return NE::Scripting::CreateCoroutine(); }
+    inline void AddAction(Handle handle, std::function<void()> action) {
+        NE::Scripting::AddCoroutineAction(handle, action);
+    }
+    inline void AddWait(Handle handle, float seconds) {
+        NE::Scripting::AddCoroutineWait(handle, seconds);
+    }
+    inline void Start(Handle handle) {
+        NE::Scripting::StartCoroutine(handle);
+    }
+}
+
+/// Logging namespace - debug output and diagnostics
+namespace Log {
+    inline void Debug(const std::string& message, const std::string& file = "", int line = -1) {
+        NE::Scripting::Log(NE::Scripting::LogLevel::Debug, message, file, line);
+    }
+    inline void Info(const std::string& message, const std::string& file = "", int line = -1) {
+        NE::Scripting::Log(NE::Scripting::LogLevel::Info, message, file, line);
+    }
+    inline void Warning(const std::string& message, const std::string& file = "", int line = -1) {
+        NE::Scripting::Log(NE::Scripting::LogLevel::Warning, message, file, line);
+    }
+    inline void Error(const std::string& message, const std::string& file = "", int line = -1) {
+        NE::Scripting::Log(NE::Scripting::LogLevel::Error, message, file, line);
+    }
+    inline void Critical(const std::string& message, const std::string& file = "", int line = -1) {
+        NE::Scripting::Log(NE::Scripting::LogLevel::Critical, message, file, line);
+    }
+}
+
+//=============================================================================
+// LOGGING MACROS (Convenience macros for stream-style logging)
+//=============================================================================
+
 /// Log a debug message
-#define SCRIPT_LOG_DEBUG(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
-    NE::Scripting::Log(NE::Scripting::LogLevel::Debug, oss.str(), __FILE__, __LINE__); } while(0)
+#define LOG_DEBUG(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    Log::Debug(oss.str(), __FILE__, __LINE__); } while(0)
 
 /// Log an info message
-#define SCRIPT_LOG_INFO(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
-    NE::Scripting::Log(NE::Scripting::LogLevel::Info, oss.str(), __FILE__, __LINE__); } while(0)
+#define LOG_INFO(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    Log::Info(oss.str(), __FILE__, __LINE__); } while(0)
 
 /// Log a warning message
-#define SCRIPT_LOG_WARNING(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
-    NE::Scripting::Log(NE::Scripting::LogLevel::Warning, oss.str(), __FILE__, __LINE__); } while(0)
+#define LOG_WARNING(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    Log::Warning(oss.str(), __FILE__, __LINE__); } while(0)
 
 /// Log an error message
-#define SCRIPT_LOG_ERROR(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
-    NE::Scripting::Log(NE::Scripting::LogLevel::Error, oss.str(), __FILE__, __LINE__); } while(0)
+#define LOG_ERROR(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    Log::Error(oss.str(), __FILE__, __LINE__); } while(0)
 
 /// Log a critical message
-#define SCRIPT_LOG_CRITICAL(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
-    NE::Scripting::Log(NE::Scripting::LogLevel::Critical, oss.str(), __FILE__, __LINE__); } while(0)
+#define LOG_CRITICAL(...) do { std::ostringstream oss; oss << __VA_ARGS__; \
+    Log::Critical(oss.str(), __FILE__, __LINE__); } while(0)
+
+// Legacy macro aliases for backward compatibility
+#define SCRIPT_LOG_DEBUG LOG_DEBUG
+#define SCRIPT_LOG_INFO LOG_INFO
+#define SCRIPT_LOG_WARNING LOG_WARNING
+#define SCRIPT_LOG_ERROR LOG_ERROR
+#define SCRIPT_LOG_CRITICAL LOG_CRITICAL
 
 //=============================================================================
 // DLL ENTRY POINT SIGNATURE

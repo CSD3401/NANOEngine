@@ -2,21 +2,21 @@
 #include <iostream>
 #include "EngineAPI.hpp"
 
-void TextureSwitchActivate(int entity) {    
-    
-    NE::Scripting::CoroutineHandle h = Engine_CreateCoroutine();
+void TextureSwitchActivate(int entity) {
+
+    Coroutines::Handle h = Coroutines::Create();
 
     //NE::Renderer::Command::AssignMaterial(entity, "Assets/Unlit.nanomat");
 
     // Wait defined seconds
-    Engine_AddWaitForSeconds(h, 5.f);
+    Coroutines::AddWait(h, 5.f);
 
-    //Engine_AddAction(h, [entity]() {NE::Renderer::Command::AssignMaterial(entity, "Assets/Basic.nanomat"); });
+    //Coroutine::AddAction(h, [entity]() {NE::Renderer::Command::AssignMaterial(entity, "Assets/Basic.nanomat"); });
 
-    Engine_StartCoroutine(h);
+    Coroutines::Start(h);
 
 
-    
+
 }
 
 class TextureSwitch : public NE::Scripting::IScript {
@@ -32,13 +32,13 @@ public:
     void Initialize(NE::Scripting::Entity entity) override {
 
 
-        //NANOEngine::Events::RegisterScriptEventListener("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
+        //Events::Listen("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
-        
-        if (NE::InputManager::WasKeyPressed('E')) {
+
+        if (Input::WasKeyPressed('E')) {
             if (!switched) {
                 NE::Renderer::Command::AssignMaterial(GetEntity(), "41e072ab-c276-4cf3-8b95-6c92401fcdec");
             } else {

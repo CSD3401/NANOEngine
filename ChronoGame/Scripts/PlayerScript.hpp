@@ -6,8 +6,8 @@
 #include "EngineAPI.hpp"
 
 void DelayedPrintUpdate() {
-	SPD_DEBUG("hi 3 seconds over player");
-        
+	LOG_DEBUG("hi 3 seconds over player");
+
 }
 
 /**
@@ -79,36 +79,36 @@ public:
 		waypoints = { 10.5f, 25.0f, 42.3f, 58.7f };  // 4 waypoint positions
 		flags = { true, false, true, false, true };// 5 quest flags
 
-		//SPD_DEBUG("PlayerScript created");
+		//LOG_DEBUG("PlayerScript created");
 	}
 
 	~PlayerScript() override {
-		//SPD_DEBUG("PlayerScript destroyed");
+		//LOG_DEBUG("PlayerScript destroyed");
 	}
 
 	// === IScript Interface ===
 	void Awake() override {
-		//SPD_DEBUG("PlayerScript::Awake() called for entity {}", GetEntity());
+		//LOG_DEBUG("PlayerScript::Awake() called for entity {}", GetEntity());
 
-		Engine_CreateCoroutine();
+		Coroutines::Create();
 	}
 
 	void Initialize(NE::Scripting::Entity entity) override {
-		//SPD_DEBUG("PlayerScript initialized for entity {}", entity);
+		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
 	}
 
 	void Start() override {
-		//SPD_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
+		//LOG_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
 	}
 
 	void OnValidate() override {
-		//SPD_DEBUG(" PlayerScript::OnValidate() called!");
-		//SPD_DEBUG("  speed={}, lives={}, state={}", speed, lives, static_cast<int>(state));
-		//SPD_DEBUG("  flags vector size: {}", flags.size());
+		//LOG_DEBUG(" PlayerScript::OnValidate() called!");
+		//LOG_DEBUG("  speed={}, lives={}, state={}", speed, lives, static_cast<int>(state));
+		//LOG_DEBUG("  flags vector size: {}", flags.size());
 		//for (size_t i = 0; i < flags.size(); ++i) {
-		//	SPD_DEBUG("    flags[{}] = {}", i, flags[i] ? "true" : "false");
+		//	LOG_DEBUG("    flags[{}] = {}", i, flags[i] ? "true" : "false");
 		//}
-		//SPD_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}",
+		//LOG_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}",
 		//	playerFlags.canJump ? "true" : "false",
 		//	playerFlags.canDoubleJump ? "true" : "false",
 		//	playerFlags.hasKey ? "true" : "false",
@@ -123,10 +123,10 @@ public:
 		m_timeSinceLastLog += deltaTime;
 
 		if (m_timeSinceLastLog >= LOG_INTERVAL) {
-			//SPD_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
-			//SPD_DEBUG("  State: {}", static_cast<int>(state));
-			//SPD_DEBUG("  Health: {}/{}, Stamina: {}", stats.health, stats.maxHealth, stats.stamina);
-			//SPD_DEBUG("  Tracking {} enemies, {} waypoints", enemyIDs.size(), waypoints.size());
+			//LOG_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
+			//LOG_DEBUG("  State: {}", static_cast<int>(state));
+			//LOG_DEBUG("  Health: {}/{}, Stamina: {}", stats.health, stats.maxHealth, stats.stamina);
+			//LOG_DEBUG("  Tracking {} enemies, {} waypoints", enemyIDs.size(), waypoints.size());
 			m_timeSinceLastLog = 0.0;
 		}
 
@@ -134,19 +134,19 @@ public:
 		float moveSpeed = speed * (float)deltaTime;
 
 		// Update state based on input
-		if (NE::InputManager::IsKeyDown('D')) {
+		if (Input::IsKeyDown('D')) {
 			Translate(moveSpeed, 0, 0);
 			state = PlayerState::Walking;
 		}
-		else if (NE::InputManager::IsKeyDown('A')) {
+		else if (Input::IsKeyDown('A')) {
 			Translate(-moveSpeed, 0, 0);
 			state = PlayerState::Walking;
 		}
-		else if (NE::InputManager::IsKeyDown('W')) {
+		else if (Input::IsKeyDown('W')) {
 			Translate(0, moveSpeed, 0);
 			state = PlayerState::Running;
 		}
-		else if (NE::InputManager::IsKeyDown('S')) {
+		else if (Input::IsKeyDown('S')) {
 			Translate(0, -moveSpeed, 0);
 			state = PlayerState::Walking;
 		}
@@ -154,40 +154,40 @@ public:
 			state = PlayerState::Idle;
 		}
 
-		if (NE::InputManager::WasKeyPressed('K')) {
+		if (Input::WasKeyPressed('K')) {
 			int dmg = 20;
-			NANOEngine::Events::SendScriptEvent("OnPlayerHit", &dmg);
-			SPD_DEBUG("Santaclaus is coming to town for my second big mac");
+			Events::Send("OnPlayerHit", &dmg);
+			LOG_DEBUG("Santaclaus is coming to town for my second big mac");
 		}
-		else if (NE::InputManager::WasKeyPressed('C'))
+		else if (Input::WasKeyPressed('C'))
 		{
 			// Create a new coroutine
-			NE::Scripting::CoroutineHandle h = Engine_CreateCoroutine();
+			Coroutines::Handle h = Coroutines::Create();
 
-			NANOEngine::Events::SendScriptEvent("TimeSwapNow",nullptr);
+			Events::Send("TimeSwapNow", nullptr);
 
-			//// Wait 3 seconds
-			Engine_AddWaitForSeconds(h, 3.0f);
+			// Wait 3 seconds
+			Coroutines::AddWait(h, 3.0f);
 
-			//// Action after wait
-			Engine_AddAction(h, DelayedPrintUpdate);
+			// Action after wait
+			Coroutines::AddAction(h, DelayedPrintUpdate);
 
-			//// Start the coroutine
-			Engine_StartCoroutine(h);
+			// Start the coroutine
+			Coroutines::Start(h);
 
-			SPD_DEBUG("Timer started no way josed!");
+			LOG_DEBUG("Timer started no way josed!");
 		}
 
 		//Courutine Test
 		// if (ctimer != 0 && !Engine_IsCoroutineRunning(ctimer)) {
-        // SPD_DEBUG("hi 3 seconds over player");
+        // LOG_DEBUG("hi 3 seconds over player");
         // std::cout << "santa clause" << std::endl;
         // ctimer = 0;  // Reset so we don't print every frame
     	// }
 
 		//  EXAMPLE: Use the bool flags
-		if (NE::InputManager::IsKeyDown(VK_SPACE) && playerFlags.canJump) {
-			//SPD_DEBUG("Player jumped!");
+		if (Input::IsKeyDown(VK_SPACE) && playerFlags.canJump) {
+			//LOG_DEBUG("Player jumped!");
 			// Jump logic here
 		}
 
@@ -198,7 +198,7 @@ public:
 
 			if (abs(GetPosition().x - targetX) < 0.5f) {
 				currentWaypoint++;
-				//SPD_DEBUG("Reached waypoint {}, moving to next", currentWaypoint - 1);
+				//LOG_DEBUG("Reached waypoint {}, moving to next", currentWaypoint - 1);
 			}
 		}
 
@@ -212,15 +212,15 @@ public:
 	}
 
 	void OnDestroy() override {
-		//SPD_DEBUG("PlayerScript cleanup for entity {}", GetEntity());
+		//LOG_DEBUG("PlayerScript cleanup for entity {}", GetEntity());
 	}
 
 	void OnEnable() override {
-		//SPD_DEBUG("PlayerScript enabled for entity {}", GetEntity());
+		//LOG_DEBUG("PlayerScript enabled for entity {}", GetEntity());
 	}
 
 	void OnDisable() override {
-		//SPD_DEBUG("PlayerScript disabled for entity {}", GetEntity());
+		//LOG_DEBUG("PlayerScript disabled for entity {}", GetEntity());
 	}
 
 	const char* GetTypeName() const override {
@@ -229,19 +229,19 @@ public:
 
 	// === Event Handlers ===
 	void OnCollisionEnter(NE::Scripting::Entity other) override {
-		//SPD_DEBUG("PlayerScript collision enter with entity {}", other);
+		//LOG_DEBUG("PlayerScript collision enter with entity {}", other);
 	}
 
 	void OnCollisionExit(NE::Scripting::Entity other) override {
-		//SPD_DEBUG("PlayerScript collision exit with entity {}", other);
+		//LOG_DEBUG("PlayerScript collision exit with entity {}", other);
 	}
 
 	void OnTriggerEnter(NE::Scripting::Entity other) override {
-		//SPD_DEBUG("PlayerScript trigger enter with entity {}", other);
+		//LOG_DEBUG("PlayerScript trigger enter with entity {}", other);
 	}
 
 	void OnTriggerExit(NE::Scripting::Entity other) override {
-		//SPD_DEBUG("PlayerScript trigger exit with entity {}", other);
+		//LOG_DEBUG("PlayerScript trigger exit with entity {}", other);
 	}
 
 	// === Exposed editable fields via registry ===

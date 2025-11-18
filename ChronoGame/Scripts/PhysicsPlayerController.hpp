@@ -66,7 +66,7 @@ public:
 	void Start() override {
 		// Ensure rigidbody exists
 		if (!HasRigidbody()) {
-			SPD_ERROR("PhysicsPlayerController requires a Rigidbody component!");
+			LOG_ERROR("PhysicsPlayerController requires a Rigidbody component!");
 			return;
 		}
 
@@ -92,16 +92,16 @@ public:
 				m_pendingCollisionExits.push_back(other);
 				};
 
-			SPD_INFO("Player collider half height: " << m_colliderHalfHeight);
-			SPD_INFO("Ground detection callbacks registered");
+			LOG_INFO("Player collider half height: " << m_colliderHalfHeight);
+			LOG_INFO("Ground detection callbacks registered");
 		}
 
-		SPD_INFO("PhysicsPlayerController started for entity " << GetEntity());
-		SPD_INFO("Ground detection mode: " << (useRaycastGroundCheck ? "RAYCAST" : "COLLISION-BASED"));
-		SPD_INFO("Physics gravity disabled - using manual gravity");
+		LOG_INFO("PhysicsPlayerController started for entity " << GetEntity());
+		LOG_INFO("Ground detection mode: " << (useRaycastGroundCheck ? "RAYCAST" : "COLLISION-BASED"));
+		LOG_INFO("Physics gravity disabled - using manual gravity");
 
 		if (enableForwardRaycast) {
-			SPD_INFO("Forward raycast detection enabled - Press Z to interact");
+			LOG_INFO("Forward raycast detection enabled - Press Z to interact");
 		}
 	}
 
@@ -121,7 +121,7 @@ public:
 		// Debug: Log grounded state changes
 		static bool wasGrounded = false;
 		if (isGrounded != wasGrounded) {
-			SPD_INFO("Grounded state changed: " << (isGrounded ? "TRUE" : "FALSE")
+			LOG_INFO("Grounded state changed: " << (isGrounded ? "TRUE" : "FALSE")
 				<< " (contacts: " << m_groundContacts.size() << ")");
 			wasGrounded = isGrounded;
 		}
@@ -136,10 +136,10 @@ public:
 		HandleMovementAndGravity(velocity, deltaTime, attemptingJump, isGrounded);
 
 		// 5. TOGGLE FORWARD RAYCAST DETECTION
-		if (NE::InputManager::WasKeyPressed(GLFW_KEY_X))
+		if (Input::WasKeyPressed(GLFW_KEY_X))
 		{
 			enableForwardRaycast = !enableForwardRaycast;
-			SPD_INFO("enableForwardRaycast :" << enableForwardRaycast);
+			LOG_INFO("enableForwardRaycast :" << enableForwardRaycast);
 		}
 
 		// 6. FORWARD RAYCAST DETECTION
@@ -212,10 +212,10 @@ private:
 		// Check if this collision is with something below us (ground)
 		if (IsEntityBelowPlayer(other)) {
 			m_groundContacts.insert(other);
-			SPD_INFO("Ground contact added with entity " << other << " (total: " << m_groundContacts.size() << ")");
+			LOG_INFO("Ground contact added with entity " << other << " (total: " << m_groundContacts.size() << ")");
 		}
 		else {
-			SPD_INFO("Collision with entity " << other << " but not below player (not ground)");
+			LOG_INFO("Collision with entity " << other << " but not below player (not ground)");
 		}
 	}
 
@@ -225,7 +225,7 @@ private:
 	void HandleCollisionExit(NE::Scripting::Entity other) {
 		// Remove from ground contacts
 		if (m_groundContacts.erase(other) > 0) {
-			SPD_INFO("Ground contact removed with entity " << other << " (remaining: " << m_groundContacts.size() << ")");
+			LOG_INFO("Ground contact removed with entity " << other << " (remaining: " << m_groundContacts.size() << ")");
 		}
 	}
 
@@ -245,7 +245,7 @@ private:
 
 		// Get other entity's position and collider
 		if (!NE::ECS::Command::HasComponent<NE::ECS::Component::Transform>(other)) {
-			SPD_WARNING("Entity " << other << " has no Transform component!");
+			LOG_WARNING("Entity " << other << " has no Transform component!");
 			return false;
 		}
 
@@ -270,10 +270,10 @@ private:
 		// Only log on first few checks or when debug is enabled
 		static int logCount = 0;
 		if (debugRaycastInfo && logCount < 5) {
-			SPD_INFO("IsEntityBelowPlayer check for entity " << other << ":");
-			SPD_INFO("  Our bottom: " << ourBottom << ", Other top: " << otherTop);
-			SPD_INFO("  Height diff: " << heightDiff << ", Threshold: " << groundCheckThreshold);
-			SPD_INFO("  Result: " << (isBelow ? "YES (ground)" : "NO (not ground)"));
+			LOG_INFO("IsEntityBelowPlayer check for entity " << other << ":");
+			LOG_INFO("  Our bottom: " << ourBottom << ", Other top: " << otherTop);
+			LOG_INFO("  Height diff: " << heightDiff << ", Threshold: " << groundCheckThreshold);
+			LOG_INFO("  Result: " << (isBelow ? "YES (ground)" : "NO (not ground)"));
 			logCount++;
 		}
 
@@ -319,8 +319,8 @@ private:
 		}
 
 		// Manual check when pressing Z
-		if (NE::InputManager::WasKeyPressed(GLFW_KEY_Z)) {
-			SPD_INFO("Z pressed - Performing forward raycast...");
+		if (Input::WasKeyPressed(GLFW_KEY_Z)) {
+			LOG_INFO("Z pressed - Performing forward raycast...");
 			PerformForwardRaycast(true); // Verbose output
 
 			// If looking at something, interact with it
@@ -383,25 +383,25 @@ private:
 		// Verbose output when requested
 		if (verbose) {
 			if (foundHit) {
-				SPD_INFO("----------------------------------------");
-				SPD_INFO("     FORWARD RAYCAST HIT!            ");
-				SPD_INFO("----------------------------------------");
-				SPD_INFO("Hit Entity: " << bestHit.entity);
-				SPD_INFO("Distance: " << bestHit.distance << " units");
-				//SPD_INFO("Hit Point: (" << bestHit.point.x << ", " << bestHit.point.y << ", " << bestHit.point.z << ")");
-				SPD_INFO("----------------------------------------");
+				LOG_INFO("----------------------------------------");
+				LOG_INFO("     FORWARD RAYCAST HIT!            ");
+				LOG_INFO("----------------------------------------");
+				LOG_INFO("Hit Entity: " << bestHit.entity);
+				LOG_INFO("Distance: " << bestHit.distance << " units");
+				//LOG_INFO("Hit Point: (" << bestHit.point.x << ", " << bestHit.point.y << ", " << bestHit.point.z << ")");
+				LOG_INFO("----------------------------------------");
 			}
 			else {
-				SPD_INFO("----------------------------------------");
-				SPD_INFO("Forward raycast: NO HIT");
-				SPD_INFO("----------------------------------------");
+				LOG_INFO("----------------------------------------");
+				LOG_INFO("Forward raycast: NO HIT");
+				LOG_INFO("----------------------------------------");
 			}
 		}
 	}
 
 	void OnStartLookingAt(NE::Scripting::Entity entity) {
 		if (debugRaycastInfo) {
-			SPD_INFO("Started looking at entity " << entity);
+			LOG_INFO("Started looking at entity " << entity);
 		}
 
 		// Store and apply highlight scale
@@ -415,7 +415,7 @@ private:
 
 	void OnStopLookingAt(NE::Scripting::Entity entity) {
 		if (debugRaycastInfo) {
-			SPD_INFO("Stopped looking at entity " << entity);
+			LOG_INFO("Stopped looking at entity " << entity);
 		}
 
 		// Restore original scale
@@ -427,9 +427,9 @@ private:
 	}
 
 	void OnInteractWithEntity(NE::Scripting::Entity entity) {
-		SPD_INFO("========================================");
-		SPD_INFO("    INTERACTING WITH ENTITY " << entity);
-		SPD_INFO("========================================");
+		LOG_INFO("========================================");
+		LOG_INFO("    INTERACTING WITH ENTITY " << entity);
+		LOG_INFO("========================================");
 	}
 
 	void HandleMovementAndGravity(NE::Scripting::Vec3& velocity, double deltaTime,
@@ -456,22 +456,22 @@ private:
 		// Get input for all 4 directions
 		NE::Scripting::Vec3 inputDirection{ 0, 0, 0 };
 
-		if (NE::InputManager::IsKeyDown('W')) {
+		if (Input::IsKeyDown('W')) {
 			inputDirection.z -= 1.0f;
 		}
-		if (NE::InputManager::IsKeyDown('S')) {
+		if (Input::IsKeyDown('S')) {
 			inputDirection.z += 1.0f;
 		}
-		if (NE::InputManager::IsKeyDown('A')) {
+		if (Input::IsKeyDown('A')) {
 			inputDirection.x -= 1.0f;
 		}
-		if (NE::InputManager::IsKeyDown('D')) {
+		if (Input::IsKeyDown('D')) {
 			inputDirection.x += 1.0f;
 		}
-		//if (NE::InputManager::IsKeyDown('W')) inputDirection += camForward;
-		//if (NE::InputManager::IsKeyDown('S')) inputDirection -= camForward;
-		//if (NE::InputManager::IsKeyDown('A')) inputDirection += camRight;
-		//if (NE::InputManager::IsKeyDown('D')) inputDirection -= camRight;
+		//if (Input::IsKeyDown('W')) inputDirection += camForward;
+		//if (Input::IsKeyDown('S')) inputDirection -= camForward;
+		//if (Input::IsKeyDown('A')) inputDirection += camRight;
+		//if (Input::IsKeyDown('D')) inputDirection -= camRight;
 
 		// Normalize diagonal movement
 		float inputMagnitude = std::sqrt(
@@ -521,7 +521,7 @@ private:
 			if (attemptingJump) {
 				// Apply jump impulse
 				newVelocity.y = jumpForce / 70.0f;
-				SPD_INFO("JUMP! velocity.y = " << newVelocity.y);
+				LOG_INFO("JUMP! velocity.y = " << newVelocity.y);
 			}
 			else {
 				// Stop downward velocity when grounded
@@ -537,7 +537,7 @@ private:
 			// Debug: Log velocity during fall
 			static int fallLogCounter = 0;
 			if (fallLogCounter++ % 30 == 0) {  // Log every 30 frames
-				SPD_INFO("Airborne: velocity.y = " << newVelocity.y << ", deltaTime = " << deltaTime);
+				LOG_INFO("Airborne: velocity.y = " << newVelocity.y << ", deltaTime = " << deltaTime);
 			}
 		}
 
@@ -545,21 +545,21 @@ private:
 	}
 
 	bool HandleJump(NE::Scripting::Vec3& velocity, bool isGrounded) {
-		if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
+		if (Input::WasKeyPressed(GLFW_KEY_SPACE)) {
 			if (isGrounded && !m_hasJumpedThisFrame) {
-				SPD_INFO("Jump input registered!");
+				LOG_INFO("Jump input registered!");
 				m_hasJumpedThisFrame = true;
 
 				// CRITICAL: Clear ground contacts immediately when jumping
 				// This ensures isGrounded becomes false right away
 				m_groundContacts.clear();
-				SPD_INFO("Ground contacts cleared for jump");
+				LOG_INFO("Ground contacts cleared for jump");
 
 				return true;
 			}
 		}
 
-		if (!NE::InputManager::IsKeyDown(GLFW_KEY_SPACE)) {
+		if (!Input::IsKeyDown(GLFW_KEY_SPACE)) {
 			m_hasJumpedThisFrame = false;
 		}
 
