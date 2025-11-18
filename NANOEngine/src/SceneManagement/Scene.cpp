@@ -75,7 +75,7 @@ namespace NE::SceneManagement {
 		switch (pass) {
 		case RenderPass::SCENE:
 			Graphics::GraphicsManager::DrawFrame();
-			Graphics::GraphicsManager::DrawDebugLines();
+			//Graphics::GraphicsManager::DrawDebugLines();
 			break;
 		case RenderPass::GAME:
 			Graphics::GraphicsManager::DrawFrame();

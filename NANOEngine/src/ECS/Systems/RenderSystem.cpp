@@ -32,8 +32,11 @@ namespace NE::ECS::Systems {
     {
     }
 
-    void RenderSystem::OnEntityAdded(Entity)
-    {
+    void RenderSystem::OnEntityAdded(Entity entity) {
+        auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+
+        renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
+        renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
     }
 
     void RenderSystem::OnEntityRemoved(Entity)
@@ -41,13 +44,13 @@ namespace NE::ECS::Systems {
     }
 
     void RenderSystem::Init() {
-        const auto& entities = GetEntities();
-        for (Entity entity : entities) {
-            auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+        //const auto& entities = GetEntities();
+        //for (Entity entity : entities) {
+        //    auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
-            renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
-            renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
-        }
+        //    renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
+        //    renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
+        //}
 
 		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
 		//Graphics::PipelineSpecification pipelineSpec;

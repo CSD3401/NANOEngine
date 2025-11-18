@@ -13,6 +13,7 @@ namespace NE::ECS::Component {
             Box,
             Sphere,
             Capsule,
+            Mesh,
             None 
         };
 

@@ -143,11 +143,12 @@ namespace NE {
 		Physics::PhysicsManager::Shutdown();
 		Graphics::GraphicsManager::Shutdown();
 		//Physics::Command::Shutdown();
-		Scripting::ScriptingEngine::GetInstance().Shutdown();
+		
 
 		gSceneManager.ExitScene();
 
 		s_renderContext->Shutdown();
+		Scripting::ScriptingEngine::GetInstance().Shutdown(); // needs to run after scriptsystem exit()
 		s_renderContext.reset();
 		s_window.reset();
 	}

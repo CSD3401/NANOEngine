@@ -9,7 +9,6 @@
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
-    <ClCompile Include="src\Scripting\IScript.cpp" />
     <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
     <ClCompile Include="src\Scripting\ScriptingEngine.cpp" />
@@ -72,6 +71,9 @@
     <ClCompile Include="src\Physics\PhysicsContactListener.cpp" />
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
+    <ClCompile Include="src\Scripting\ScriptTypes.cpp" />
+    <ClCompile Include="src\Scripting\ScriptContextFactory.cpp" />
+    <ClCompile Include="src\Scripting\ScriptAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -195,6 +197,17 @@
     <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
+    <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
+    <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
+    <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
+    <ClInclude Include="src\Scripting\ScriptContextFactory.hpp" />
+    <ClInclude Include="src\Scripting\ScriptContext.hpp" />
+    <ClInclude Include="src\Scripting\IScript_Compat.hpp" />
+    <ClInclude Include="include\ScriptSDK\Renderer.h" />
+    <ClInclude Include="include\ScriptSDK\Reflection.h" />
+    <ClInclude Include="include\ScriptSDK\Math.h" />
+    <ClInclude Include="include\ScriptSDK\ECS.h" />
+    <ClInclude Include="include\ScriptSDK\Components.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -348,9 +361,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Tween\TweenManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scripting\IScript.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Input\InputManager.cpp">

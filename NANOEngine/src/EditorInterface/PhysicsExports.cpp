@@ -225,6 +225,11 @@ namespace NE::Physics
 				Physics::PhysicsManager::SetMotionType(bodyId, static_cast<JPH::EMotionType>(motionType));
 			}
 		}
+
+		void LockConstraints(uint32_t entity, bool lockX, bool lockY, bool lockZ) {
+			uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
+			NE::Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);
+		}
 	}
 
 
