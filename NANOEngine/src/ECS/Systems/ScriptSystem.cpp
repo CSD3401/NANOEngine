@@ -81,6 +81,7 @@ namespace NE::ECS::Systems {
 
     void ScriptSystem::Exit() {
         // CRITICAL: Clear these FIRST before ANY cleanup
+        // Prevents dangling function pointers to script code
         NANOEngine::Events::ClearScriptEventListeners();
         Engine_ClearAllCoroutines();
 
@@ -91,15 +92,17 @@ namespace NE::ECS::Systems {
                 continue;
             }
 
-            // Destroy the script instance
-            Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-
-            // Clear function pointers using swap
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-            std::function<IScript* ()> emptyCreate;
-            std::function<void(IScript*)> emptyDestroy;
-            nsc.CreateScript.swap(emptyCreate);
-            nsc.DestroyScript.swap(emptyDestroy);
+
+            // Destroy script instances
+            if (nsc.Instance) {
+                // Call OnDestroy and properly clean up
+                Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
+            }
+
+            // Clear function pointers to prevent stale DLL references
+            nsc.CreateScript = nullptr;
+            nsc.DestroyScript = nullptr;
         }
     }
 
@@ -172,38 +175,19 @@ namespace NE::ECS::Systems {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
             if (nsc.Instance) {
-                // Save field values before destroying
+                // Disable the script
+                nsc.Instance->SetEnabled(false);
+
+                // Save field values for potential restoration
                 Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-  
-                nsc.Instance->OnDestroy();
-                if (nsc.DestroyScript) {
-                    nsc.DestroyScript(nsc.Instance);
-                }
-                else {
-                    delete nsc.Instance; // Fallback
-                }
-                // CRITICAL: Reset the instance pointer to null
-                nsc.Instance = nullptr;
-                SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
-            }
 
-            // Recreate the script instance for the next play session
-            if (nsc.CreateScript && !nsc.Instance) {
-                nsc.Instance = nsc.CreateScript();
-                Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager); // Link to engine systems via new API
-                nsc.Instance->_SetEntity(entity);
-
-                // Call Awake() and Initialize()
-                nsc.Instance->Awake();
-                nsc.Instance->Initialize(entity);
-  
-                // Restore the saved field values
-                Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
-            
-	            nsc.Instance->SetEnabled(false); // Start disabled
-                SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+                SPD_INFO("Stopped script '" << nsc.ScriptName << "' for entity " << (int)entity);
             }
         }
+
+        // Note: Instances are NOT destroyed here.
+        // The runtime scene will be destroyed via Exit(), which properly cleans up instances.
+        // For editor scene, scripts were never started, so just disabling is fine.
     }
     
 
