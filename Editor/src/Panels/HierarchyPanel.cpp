@@ -59,6 +59,7 @@ namespace Editor {
 			}
 			if (ImGui::MenuItem("Select Children", "", false, false)) {
 			}
+
 			ImGui::Separator();
 			if (ImGui::MenuItem("Find References in Scene", "", false, false)) {
 			}
@@ -160,7 +161,16 @@ namespace Editor {
 				// if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
 				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
+				if (ImGui::BeginPopupContextItem()) { // binds to the last item (this row)
+					const bool isChild = (NE::ECS::Command::GetParent(id) != NE::ECS::NO_ENTITY);
 
+					if (ImGui::MenuItem("Unparent", nullptr, false, isChild)) {
+						Editor::EditorScene::UnparentToRoot(id, -1);
+					}
+
+
+					ImGui::EndPopup();
+				}
 				// Delay selection logic - only select if not starting a drag
 				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
 					clickedEntityId = id;

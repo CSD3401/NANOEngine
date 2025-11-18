@@ -119,7 +119,7 @@ namespace Editor {
         } else {
             itChild->second.orderKey = newK;
         }
-        NE::ECS::Command::SetParent(child, newParent);
+        NE::ECS::Command::SetParent(child, newParent, /*worldPositionStays=*/true);
         return true;
     }
 
