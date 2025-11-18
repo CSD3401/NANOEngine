@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\ScriptSDK\Components.h" />
+    <ClInclude Include="include\ScriptSDK\ECS.h" />
+    <ClInclude Include="include\ScriptSDK\Math.h" />
+    <ClInclude Include="include\ScriptSDK\Reflection.h" />
+    <ClInclude Include="include\ScriptSDK\Renderer.h" />
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
     <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />

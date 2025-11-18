@@ -157,7 +157,7 @@ public:
 		if (Input::WasKeyPressed('K')) {
 			int dmg = 20;
 			Events::Send("OnPlayerHit", &dmg);
-			LOG_DEBUG("Santaclaus is coming to town for my second big mac");
+			LOG_DEBUG("Santaclaus is coming to town for my damn choice");
 		}
 		else if (Input::WasKeyPressed('C'))
 		{

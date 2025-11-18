@@ -200,6 +200,11 @@
     <ClInclude Include="src\Scripting\ScriptContextFactory.hpp" />
     <ClInclude Include="src\Scripting\ScriptContext.hpp" />
     <ClInclude Include="src\Scripting\IScript_Compat.hpp" />
+    <ClInclude Include="include\ScriptSDK\Renderer.h" />
+    <ClInclude Include="include\ScriptSDK\Reflection.h" />
+    <ClInclude Include="include\ScriptSDK\Math.h" />
+    <ClInclude Include="include\ScriptSDK\ECS.h" />
+    <ClInclude Include="include\ScriptSDK\Components.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -353,9 +358,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Tween\TweenManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Scripting\IScript.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Input\InputManager.cpp">
