@@ -12,8 +12,12 @@
 #include <ECS/Components/AudioSource.hpp>
 #include <ECS/Components/NativeScript.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include <ECS/Components/UIRectTransform.hpp>
+#include <ECS/Components/UICanvas.hpp>
+#include <ECS/Components/UIImage.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
+#include "Math/Vec4.hpp"
 #include "../EditorScene.hpp"
 #include <Engine.hpp>
 #include <imgui/widgets/imsearch/imsearch.h>
@@ -977,6 +981,91 @@ namespace Editor {
 						}
 					}
 				}
+                else if (typeIdx == typeid(NE::ECS::Component::UIRectTransform)) 
+                {
+                    auto& comp = NE::ECS::Command::GetUIRectTransform(entity);
+                    ImGui::SeparatorText("UI Rect Transform");
+
+                    // Parent (read-only display)
+                    if (comp.parent == NE::ECS::NO_ENTITY) 
+                    {
+                        ImGui::Text("Parent: Root (Canvas)");
+                    }
+                    else 
+                    {
+                        ImGui::Text("Parent: Entity %u", comp.parent);
+                    }
+
+                    ImGui::Spacing();
+
+                    // Position - now comp.x and comp.y are mutable
+                    ImGui::DragFloat("X", &comp.x, 1.0f);
+                    ImGui::DragFloat("Y", &comp.y, 1.0f);
+
+                    // Size
+                    ImGui::DragFloat("Width", &comp.width, 1.0f, 1.0f, 10000.0f);
+                    ImGui::DragFloat("Height", &comp.height, 1.0f, 1.0f, 10000.0f);
+                }
+                else if (typeIdx == typeid(NE::ECS::Component::UIImage))
+                {
+                    auto& comp = NE::ECS::Command::GetUIImage(entity);
+                    ImGui::SeparatorText("UI Image");
+
+                    // Texture Path
+                    bool openPopup = false;
+                    DrawAssetField("Texture", comp.texturePath.string(), "+", 0.f, &openPopup);
+                    if (openPopup) {
+                        ImGui::OpenPopup("AssetPicker_Texture");
+                    }
+
+                    // Drag and drop support
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+                            std::string dropped((const char*)p->Data, p->DataSize - 1);
+                            // TODO: Assign texture to UI Image
+                            // NE::ECS::Command::SetUIImageTexture(entity, dropped);
+                            auto& img = NE::ECS::Command::GetUIImage(entity);
+                            img.texturePath = dropped;
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
+                    //// Texture picker popup
+                    //if (ImGui::BeginPopup("AssetPicker_Texture")) {
+                    //    ImGui::Text("Select a Texture");
+                    //    ImGui::Separator();
+                    //    auto& assets = NE::GetAllTextures(); // You'll need this function
+
+                    //    if (ImSearch::BeginSearch()) {
+                    //        ImSearch::SearchBar();
+
+                    //        for (const auto& [name, asset] : assets) {
+                    //            ImSearch::SearchableItem(name.c_str(),
+                    //                [name, entity](const char*) {
+                    //                    if (ImGui::Selectable(name.c_str())) {
+                    //                        // TODO: Assign texture
+                    //                        auto& img = NE::ECS::Command::GetUIImage(entity);
+                    //                        img.texturePath = name;
+                    //                        ImGui::CloseCurrentPopup();
+                    //                    }
+                    //                });
+                    //        }
+
+                    //        ImSearch::EndSearch();
+                    //    }
+                    //    ImGui::EndPopup();
+                    //}
+
+                    // Color tint
+                    float color[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
+                    if (ImGui::ColorEdit4("Color", color)) {
+                        auto& img = NE::ECS::Command::GetUIImage(entity);
+                        img.color.x = color[0];
+                        img.color.y = color[1];
+                        img.color.z = color[2];
+                        img.color.w = color[3];
+                    }
+                }
             }
 
             if (ImGui::Button("Add Component")) {

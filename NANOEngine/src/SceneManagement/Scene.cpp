@@ -14,37 +14,60 @@
 #include "ECS/Systems/UIRenderSystem.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
+#include "../ECS/Components/UICanvas.hpp"
 #include "Core/Couroutine.hpp"
 #include <iostream>
 
 
 namespace NE::SceneManagement {
 
-	//void Scene::CreateTestUI() {
-	//	using ECS::Component::UIRectTransform;
-	//	using ECS::Component::UIImage;
+	void Scene::CreateTestUI() {
+		using ECS::Component::UIRectTransform;
+		using ECS::Component::UIImage;
 
-	//	std::cout << "\n=== Creating Test UI ===" << std::endl;
+		//std::cout << "\n=== Creating Test UI ===" << std::endl;
 
-	//	// Test 1: Red Box (top-left)
-	//	{
-	//		ECS::Entity e = m_ecsCoordinator.CreateUIEntity();
-	//		std::cout << "Created UI entity " << e << " (Red Box)" << std::endl;
+		//// Test 1: Red Box (top-left)
+		//{
+		//	ECS::Entity e = m_ecsCoordinator.CreateUIEntity();
+		//	std::cout << "Created UI entity " << e << " (Red Box)" << std::endl;
 
-	//		auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
-	//		rect.x = 50.f;  rect.y = 50.f;
-	//		rect.width = 200.f;  rect.height = 100.f;
+		//	auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
+		//	rect.x = 50.f;  rect.y = 50.f;
+		//	rect.width = 200.f;  rect.height = 100.f;
 
-	//		auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
-	//		img.color = Math::Vec4{ 1.f, 0.f, 0.f, 0.8f };
-	//		img.material = nullptr;
+		//	auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
+		//	img.color = Math::Vec4{ 1.f, 0.f, 0.f, 0.8f };
+		//	img.material = nullptr;
 
-	//		std::cout << "  Position: (" << rect.x << ", " << rect.y << ")" << std::endl;
-	//		std::cout << "  Size: " << rect.width << "x" << rect.height << std::endl;
-	//	}
+		//	std::cout << "  Position: (" << rect.x << ", " << rect.y << ")" << std::endl;
+		//	std::cout << "  Size: " << rect.width << "x" << rect.height << std::endl;
+		//
+		//  std::cout << "Test UI creation complete!\n" << std::endl;
 
-	//	std::cout << "Test UI creation complete!\n" << std::endl;
-	//}
+		//}
+
+		// Create a green box on a different canvas (higher sort order)
+		{
+			ECS::Entity canvas2 = m_ecsCoordinator.CreateUICanvasEntity();
+			auto& canvas2Comp = m_ecsCoordinator.GetComponent<NE::ECS::Component::UICanvas>(canvas2);
+			canvas2Comp.sortingOrder = 10; // Renders on top
+
+			ECS::Entity e = m_ecsCoordinator.CreateUIEntity();
+			auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
+			rect.x = 100.f;
+			rect.y = 100.f;
+			rect.width = 150.f;
+			rect.height = 150.f;
+
+			auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
+			img.color = Math::Vec4{ 0.f, 1.f, 0.f, 0.8f };
+
+			// TODO: Set parent to canvas2
+
+			std::cout << "Test Canvas UI creation complete!\n" << std::endl;
+		}
+	}
 
 	void Scene::Init() {
 		// input

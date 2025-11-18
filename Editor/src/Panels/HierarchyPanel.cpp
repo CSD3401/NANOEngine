@@ -2,12 +2,14 @@
 #include <imgui/imgui.h>
 #include "../Command/CommandHistory.hpp"
 #include "../Command/EditorCommands.hpp"
+#include "EditorInterface/ECSExports.hpp"
 #include "../EditorScene.hpp"
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
 #include <ECS/Core/Entity.hpp>
 #include <Engine.hpp>
 #include <imgui/imgui_internal.h>
+#include <iostream>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
@@ -111,15 +113,9 @@ namespace Editor {
             ImGui::Separator();
 
             if (ImGui::BeginMenu("UI")) { // Creates a submenu with an arrow
-                if (ImGui::MenuItem("Create UI Entity")) {
-                    NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUIEntityEvent{});
-                    Editor::EditorScene::BuildFlatHierarchy();
-                }
-                if (ImGui::MenuItem("Create Textbox")) {
-                    //CreateTextboxUIEntity();
-                }
-                if (ImGui::MenuItem("Create Image")) {
-                    //CreateQuadUIEntity();
+                if (ImGui::MenuItem("Canvas")) {
+                    NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUICanvasEntityEvent{});
+                    //Editor::EditorScene::BuildFlatHierarchy();
                 }
                 ImGui::EndMenu();
             }
@@ -183,6 +179,34 @@ namespace Editor {
                 {
                     // Broadcast message
                     NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
+                }
+
+                if (ImGui::BeginPopupContextItem()) {
+                    // Check if this entity is a Canvas
+                    bool isCanvas = NE::ECS::Query::HasUICanvas(id);
+
+                    // ADD THIS CANVAS-SPECIFIC SECTION
+                    if (isCanvas) {
+                        if (ImGui::MenuItem("Image")) {
+                            NANOEngine::Events::EventBus::Get().Dispatch(
+                                NANOEngine::Events::EventDomain::Editor,
+                                CreateUIImageEntityEvent{ id }  // id is the canvas entity
+                            );
+                            //Editor::EditorScene::BuildFlatHierarchy();
+                        }
+
+                        if (ImGui::MenuItem("Button")) {
+                            // TODO: Future
+                        }
+
+                        if (ImGui::MenuItem("Text")) {
+                            // TODO: Future
+                        }
+
+                        ImGui::Separator();
+                    }
+
+                    ImGui::EndPopup();
                 }
 
                 // -------- begin drag from this row ----------

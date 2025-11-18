@@ -3,6 +3,7 @@
 
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
+#include "../Components/UICanvas.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -19,6 +20,19 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_cm = nullptr;
+
+        struct WorldTransform {
+            float x, y, width, height;
+        };
+
+        // calculates final screen positions for UI elements
+        WorldTransform CalculateWorldTransform(Entity entity, const NE::ECS::Component::UICanvas& canvas);
+
+        // handles the different scaling mode
+        float CalculateScaleFactor(const NE::ECS::Component::UICanvas& canvas);
+
+        // Renders all chlildren of a canvas
+        void RenderCanvasChildren(Entity canvasEntity, const NE::ECS::Component::UICanvas& canvas);
     };
 
 } // namespace NE::ECS::Systems

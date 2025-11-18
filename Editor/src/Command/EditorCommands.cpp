@@ -59,6 +59,63 @@ namespace Editor {
 		Editor::EditorScene::BuildFlatHierarchy();
 	}
 
+	CreateUICanvasEntityCommand::CreateUICanvasEntityCommand() : m_entity(0) {}
+
+	void CreateUICanvasEntityCommand::Execute()
+	{
+		m_entity = NE::ECS::Command::CreateUICanvasEntity();
+
+		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
+		Editor::EditorScene::BuildFlatHierarchy();
+		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
+	}
+
+	void CreateUICanvasEntityCommand::Undo()
+	{
+		// Find and remove from editor entities list
+		auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
+			[id = m_entity](const EditorEntity& entt) {
+				return entt.linkedEntity == id;
+			});
+
+		if (it != EditorScene::s_entities.end()) {
+			EditorScene::s_entities.erase(it);
+		}
+
+		Editor::EditorScene::s_selectedEntity = nullptr;
+		NE::ECS::Command::DestroyEntity(m_entity);
+		Editor::EditorScene::BuildFlatHierarchy();
+	}
+
+	CreateUIImageEntityCommand::CreateUIImageEntityCommand(uint32_t parentCanvas)
+		: m_entity(0), m_parentCanvas(parentCanvas) {
+	}
+
+	void CreateUIImageEntityCommand::Execute()
+	{
+		m_entity = NE::ECS::Command::CreateUIImageEntity(m_parentCanvas);
+
+		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
+		Editor::EditorScene::BuildFlatHierarchy();
+		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
+	}
+
+	void CreateUIImageEntityCommand::Undo()
+	{
+		auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
+			[id = m_entity](const EditorEntity& entt) {
+				return entt.linkedEntity == id;
+			});
+
+		if (it != EditorScene::s_entities.end()) {
+			EditorScene::s_entities.erase(it);
+		}
+
+		Editor::EditorScene::s_selectedEntity = nullptr;
+		NE::ECS::Command::DestroyEntity(m_entity);
+		Editor::EditorScene::BuildFlatHierarchy();
+	}
+
 	DeleteEntityCommand::DeleteEntityCommand(uint32_t deletedEntity) : m_entity(deletedEntity) {}
 
 	void DeleteEntityCommand::Execute()

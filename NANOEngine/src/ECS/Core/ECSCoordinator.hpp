@@ -27,6 +27,8 @@ namespace NE::ECS {
 
         // --- UI API ---
         Entity CreateUIEntity();
+        Entity CreateUICanvasEntity();
+        Entity CreateUIImageEntity(Entity parentCanvas);
 
         // --- Component API ---
         template<typename T>

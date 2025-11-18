@@ -20,8 +20,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
+    <ClInclude Include="src\ECS\Components\UIButton.hpp" />
+    <ClInclude Include="src\ECS\Components\UICanvas.hpp" />
     <ClInclude Include="src\ECS\Components\UIImage.hpp" />
     <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
+    <ClInclude Include="src\ECS\Components\UIText.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />

@@ -267,7 +267,7 @@ namespace Editor {
 			{
 				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
 
-				// --- Draw in pixel space ---
+				// draw in pixel space
 				float fbWidth = 1920.f;  // temp hardcoded
 				float fbHeight = 1080.f; // temp hardcoded
 
@@ -288,11 +288,11 @@ namespace Editor {
 					(topLeft.y + bottomRight.y) * 0.5f
 				);
 
-				// Outline
+				// outline (white)
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
-				drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 0, 0, 255), 0.0f, 0, 2.0f);
+				drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 255, 255, 255), 0.0f, 0, 2.0f);
 
-				// Corner handles
+				// corner handles (blue)
 				const float handleSize = 8.0f;
 				ImVec2 corners[4] = {
 					topLeft,
@@ -304,12 +304,12 @@ namespace Editor {
 					drawList->AddRectFilled(
 						ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
 						ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
-						IM_COL32(255, 255, 255, 255)
+						IM_COL32(0, 0, 255, 255)
 					);
 				}
 
-				// Center handle
-				drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(0, 0, 0, 255));
+				// center handle (blue)
+				drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(0, 0, 255, 255));
 
 				// --- Interaction state (static so it persists across frames) ---
 				static bool isDraggingUI = false;
@@ -317,7 +317,7 @@ namespace Editor {
 				static ImVec2 dragStart;         // mouse start (pixels)
 				static NE::ECS::Component::UIRectTransform originalTransform;
 
-				// Helpers
+				// helper
 				auto mouseInPanel = [&](ImVec2 p) {
 					return p.x >= panelPos.x && p.x <= panelPos.x + panelSize.x &&
 						p.y >= panelPos.y && p.y <= panelPos.y + panelSize.y;
@@ -326,9 +326,8 @@ namespace Editor {
 				ImVec2 mousePos = ImGui::GetMousePos();
 				bool mouseInThisPanel = mouseInPanel(mousePos);
 
-				// Start move by center handle
-				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel &&
-					ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				// handle move by center handle
+				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 				{
 					float dx = mousePos.x - center.x;
 					float dy = mousePos.y - center.y;
@@ -343,9 +342,8 @@ namespace Editor {
 					}
 				}
 
-				// Start resize by corner handles
-				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel &&
-					ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				// handle by corner handles
+				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 				{
 					for (int i = 0; i < 4; ++i) {
 						float dx = mousePos.x - corners[i].x;

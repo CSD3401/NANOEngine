@@ -18,7 +18,6 @@ namespace NE::ECS {
 		EntityManager& operator=(const EntityManager&) = delete;
 
 		Entity CreateEntity();
-		Entity CreateUIEntity();
 		void DestroyEntity(Entity entity);
 
 		Signature GetSignature(Entity entity);

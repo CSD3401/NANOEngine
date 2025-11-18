@@ -32,22 +32,6 @@ namespace NE::ECS {
 		return entity;
 	}
 
-	Entity EntityManager::CreateUIEntity()
-	{
-		if (m_availableEntities.empty()) {
-			assert(false && "No more entities can be created.");
-			return NO_ENTITY;
-		}
-
-		Entity entity = m_availableEntities.back();
-		m_availableEntities.pop_back();
-		m_usedEntities.push_back(entity);
-
-		LOG_INFO("UI Entity Created: " << entity);
-
-		return entity;
-	}
-
 	void EntityManager::DestroyEntity(Entity entity)
 	{
 		// temp

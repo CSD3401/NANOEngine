@@ -14,8 +14,8 @@ namespace NE::ECS::Component {
         float width = 100.0f;
         float height = 40.0f;
 
-        // later can add anchor, pivot, rotation
+        uint32_t parent = 0;
     };
 
 } // namespace NE::ECS::Component
-#endif // END GIZMO_RENDERER_HPP
+#endif // END UI_RECT_TRANSFORM_HPP

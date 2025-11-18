@@ -1,6 +1,8 @@
 #include "EditorScene.hpp"
 #include <algorithm>
 #include <ECS/Core/Entity.hpp>
+#include <EditorInterface/ECSExports.hpp>
+#include "../src/ECS/Components/UIRectTransform.hpp"
 
 namespace {
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
@@ -31,9 +33,33 @@ namespace Editor {
         float k = 0.f;
         for (const auto& e : s_entities) {                    // s_entities exists already
             uint32_t id = e.linkedEntity;                    // (see your struct) 
-            s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
-            s_roots.push_back(id);
+            //s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
+            //s_roots.push_back(id);
+
+            uint32_t parentId = NE::ECS::NO_ENTITY;
+            if (NE::ECS::Query::HasUIRectTransform(id)) 
+            {
+                auto& rect = NE::ECS::Query::GetUIRectTransform(id);
+                parentId = rect.parent; 
+            } 
+            // 3D entities: parentId stays NO_ENTITY 
+
+            // Create node with correct parent
+            s_nodes[id] = Node{ id, parentId, k };
+
             k += 1.f;
+        }
+
+        //SECOND PASS: Build s_roots and s_children
+        for (const auto& [id, node] : s_nodes) {
+            if (node.parent == NE::ECS::NO_ENTITY) {
+                // This is a root entity (Canvas, 3D objects with no parent)
+                s_roots.push_back(id);
+            }
+            else {
+                // This is a child - add to parent's children list
+                s_children[node.parent].push_back(id);
+            }
         }
     }
 
@@ -93,7 +119,13 @@ namespace Editor {
         auto& oldVec = (oldParent == NE::ECS::NO_ENTITY) ? s_roots : s_children[oldParent];
         RemoveFromVec(oldVec, child);
 
-        // Update parent
+        if (NE::ECS::Query::HasUIRectTransform(child)) 
+        {
+            auto& rect = NE::ECS::Command::GetUIRectTransform(child);
+            rect.parent = newParent;  // Update the parent in the component
+        }
+
+        // Update parent in node
         itChild->second.parent = newParent;
 
         // Insert into new parent's vector

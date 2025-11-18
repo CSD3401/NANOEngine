@@ -8,6 +8,7 @@
 #include "../Components/EntityMeta.hpp"
 #include "../Components/AudioSource.hpp"
 #include "../Components/NativeScript.hpp"
+#include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
 
@@ -37,6 +38,7 @@ namespace NE::ECS {
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
         RegisterComponent<Component::NativeScript>();
+        RegisterComponent<Component::UICanvas>();
         RegisterComponent<Component::UIRectTransform>();
         RegisterComponent<Component::UIImage>();
 
@@ -91,6 +93,7 @@ namespace NE::ECS {
         m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());
         {
             Signature sig;
+            //sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UICanvas>());
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIImage>());
             SetSystemSignature<Systems::UIRenderSystem>(sig);
@@ -106,12 +109,70 @@ namespace NE::ECS {
 
     Entity ECSCoordinator::CreateUIEntity()
     {
-        Entity entt = m_entityManager->CreateUIEntity();
-        AddComponent(entt, Component::EntityMeta{"Unnamed UI Entity"});
+        Entity entt = m_entityManager->CreateEntity();
+        AddComponent(entt, Component::EntityMeta{ "Unnamed UI Entity" });
         AddComponent(entt, Component::UIRectTransform{});
         AddComponent(entt, Component::UIImage{});
         return entt;
     }
+
+    Entity ECSCoordinator::CreateUICanvasEntity()
+    {
+        Entity entt = m_entityManager->CreateEntity();
+        AddComponent(entt, Component::EntityMeta{ "Canvas" });
+        AddComponent(entt, Component::UICanvas{});
+        Component::UIRectTransform rectTransform;
+        rectTransform.x = 0.0f;
+        rectTransform.y = 0.0f;
+        rectTransform.width = 1920.0f;
+        rectTransform.height = 1080.0f;
+        rectTransform.parent = NO_ENTITY;  // Canvas has no parent - it's the root
+
+        AddComponent(entt, rectTransform);
+
+        return entt;
+    }
+
+    Entity ECSCoordinator::CreateUIImageEntity(Entity parentCanvas)
+    {
+        Entity entt = m_entityManager->CreateEntity();
+        AddComponent(entt, Component::EntityMeta{ "UI Image" });
+
+        // Set up rect transform with parent
+        Component::UIRectTransform rect;
+        rect.x = 100.0f;
+        rect.y = 100.0f;
+        rect.width = 100.0f;
+        rect.height = 100.0f;
+        rect.parent = parentCanvas;  // Link to parent canvas
+        AddComponent(entt, rect);
+
+        // Set up image with default color (white = show texture as-is)
+        Component::UIImage img;
+        img.color = Math::Vec4{ 1.f, 1.f, 1.f, 1.f };
+        img.material = nullptr;  // Start with solid color
+        AddComponent(entt, img);
+
+        return entt;
+    }
+
+    //Entity ECSCoordinator::CreateUIImageEntity(Entity parentCanvas) {
+    //    Entity e = CreateEntity();
+
+    //    AddComponent(e, Component::EntityMeta{ "Image" });
+    //    AddComponent(e, Component::UIRectTransform{
+    //        100.0f, 100.0f, 200.0f, 100.0f // x, y, w, h
+    //        });
+    //    AddComponent(e, Component::UIImage{
+    //        .textureId = LoadSomeTextureSomewhere(),
+    //        .color = {1, 1, 1, 1}
+    //        });
+
+    //    // Parent it under canvas in your scene graph
+    //    m_sceneHierarchy->SetParent(e, parentCanvas);
+
+    //    return e;
+    //}
 
     void ECSCoordinator::DestroyEntity(Entity e) {
         m_entityManager->DestroyEntity(e);

@@ -179,6 +179,9 @@
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\UIDrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\UIRenderer.hpp" />
+    <ClInclude Include="src\ECS\Components\UICanvas.hpp" />
+    <ClInclude Include="src\ECS\Components\UIText.hpp" />
+    <ClInclude Include="src\ECS\Components\UIButton.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

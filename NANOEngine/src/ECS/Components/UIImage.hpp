@@ -16,8 +16,8 @@ namespace NE::ECS::Component {
         std::shared_ptr<NE::Graphics::Material> material;
 
         // tint
-        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 1.f };
+        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 0.f };
     };
 
 } // namespace NE::ECS::Component
-#endif // END GIZMO_RENDERER_HPP
+#endif // END UI_IMAGE_HPP

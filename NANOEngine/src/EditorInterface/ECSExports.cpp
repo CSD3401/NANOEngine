@@ -70,12 +70,24 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
 		}
 
+		const Component::UICanvas& GetUICanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
+		}
+
 		bool HasTransform(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Transform>(e);
 		}
 
 		bool HasUIRectTransform(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIRectTransform>(e);
+		}
+
+		bool HasUICanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UICanvas>(e);
+		}
+
+		bool HasUIImage(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
 		}
 	}
 
@@ -87,6 +99,14 @@ namespace NE::ECS {
 
 		uint32_t CreateUIEntity() {
 			return GetScene().GetECSCoordinator().CreateUIEntity();
+		}
+
+		uint32_t CreateUICanvasEntity() {
+			return GetScene().GetECSCoordinator().CreateUICanvasEntity();
+		}
+
+		uint32_t CreateUIImageEntity(uint32_t parentCanvas) {
+			return GetScene().GetECSCoordinator().CreateUIImageEntity(parentCanvas);
 		}
 
 		void DestroyEntity(uint32_t e) {
@@ -121,13 +141,17 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{});
 		}
 
-		void AddUIRectTransformComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIRectTransform{});
-		}
+		//void AddUIRectTransformComponent(uint32_t e) {
+		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIRectTransform{});
+		//}
 
-		void AddUIImageComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIImage{});
-		}
+		//void AddUIImageComponent(uint32_t e) {
+		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIImage{});
+		//}
+
+		//void AddUICanvasComponent(uint32_t e) {
+		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UICanvas{});
+		//}
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
@@ -167,6 +191,10 @@ namespace NE::ECS {
 
 		Component::UIImage& GetUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		Component::UICanvas& GetUICanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
 		// === Script Management Implementation ===
