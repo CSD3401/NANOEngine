@@ -61,14 +61,14 @@ namespace Editor {
 	};
 
 	struct TextureImportSettings {
-		TexType type = TexType::Sprite;
+		TexType type = TexType::Default;
 		TexShape shape = TexShape::TwoD;
 		bool sRGB = true;
-		TexAlphaSource alpha = TexAlphaSource::InputTextureAlpha;
+		TexAlphaSource alphaSource = TexAlphaSource::InputTextureAlpha;
 		bool alphaIsTransparency = false;
 
-		TexWrapMode wrap = TexWrapMode::Clamp;
-		TexFilterMode filter = TexFilterMode::Bilinear;
+		TexWrapMode wrapMode = TexWrapMode::Repeat;
+		TexFilterMode filterMode = TexFilterMode::Bilinear;
 
 		MipPolicy mips{};
 		NormalMapOptions normal{};
@@ -78,10 +78,10 @@ namespace Editor {
 			NE_REFLECT_FIELD(type),
 			NE_REFLECT_FIELD(shape),
 			NE_REFLECT_FIELD(sRGB),
-			NE_REFLECT_FIELD(alpha),
+			NE_REFLECT_FIELD(alphaSource),
 			NE_REFLECT_FIELD(alphaIsTransparency),
-			NE_REFLECT_FIELD(wrap),
-			NE_REFLECT_FIELD(filter),
+			NE_REFLECT_FIELD(wrapMode),
+			NE_REFLECT_FIELD(filterMode),
 			NE_REFLECT_FIELD(mips),
 			NE_REFLECT_FIELD(normal)
 		NE_REFLECT_END()

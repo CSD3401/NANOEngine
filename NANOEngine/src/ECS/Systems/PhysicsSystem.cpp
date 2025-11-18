@@ -2,6 +2,7 @@
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Transform.hpp"
 #include "../../ECS/Components/Rigidbody.hpp"
+#include "../../ECS/Components/Renderer.hpp"
 #include "../../ECS/Components/EntityMeta.hpp"
 #include "EngineState.hpp"
 
@@ -288,6 +289,7 @@ namespace NE::ECS::Systems
 
         if (m_componentManager->HasComponent<Component::Collider>(entity)) {
             auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+            //auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
 
             switch (collider.shapeType) {
             case Component::Collider::ShapeType::Box:
@@ -314,7 +316,17 @@ namespace NE::ECS::Systems
                     motionType
                 );
                 break;
-
+            case Component::Collider::ShapeType::Mesh: {
+                auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+                std::vector<Math::Vec3> outVerts;
+                std::vector<uint32_t> outIndices;
+                renderer.model->GetPhysicsMesh(outVerts, outIndices);
+                //rb.isStatic = true;
+                //rb.motionType = 0U;
+                //rb.mass = 1.f;
+                bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices);
+            }
+            break;
             case Component::Collider::ShapeType::None:
                 break;
             }

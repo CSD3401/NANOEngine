@@ -33,7 +33,7 @@ namespace Editor {
         if (ImGui::BeginPopup("AssetPicker_Shader")) {
             ImGui::Text("Select a Shader");
             ImGui::Separator();
-            auto& shaderList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Shader>();
+            auto& shaderList = AssetManager::GetInstance().GetAssetsOfType<AssetType::Shader>();
 
             if (ImSearch::BeginSearch()) {
                 ImSearch::SearchBar();

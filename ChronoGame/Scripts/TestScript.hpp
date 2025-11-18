@@ -1,7 +1,5 @@
 #include <iostream>
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include <Math/Vec3.hpp>
+#include "EngineAPI.hpp"
 
 /**
  * Test script to demonstrate the new built-in field system and entity activation.
@@ -18,7 +16,7 @@
  * - Use Inspector script "Enabled" checkbox to enable/disable this script
  */
 
-class TestScript : public IScript {
+class TestScript : public NE::Scripting::IScript {
 public:
 	TestScript() {
 		// Register all our fields using the simple macros

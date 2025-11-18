@@ -125,24 +125,7 @@ namespace NANOEngine::Events {
             dispatching = false;
         }
 
-        /**
-         * Clear all event listeners for a specific domain.
-         * CRITICAL: This must be called when stopping play mode to prevent dangling function pointers.
-         * @param domain The event domain to clear (e.g., EventDomain::Script)
-         */
-        void ClearDomain(EventDomain domain) {
-            std::scoped_lock lock(mutex_);
-            
-            // Remove all callbacks that match the domain
-            auto it = callbacks_.begin();
-            while (it != callbacks_.end()) {
-                if (it->first.first == domain) {
-                    it = callbacks_.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-        }
+        void ClearDomain(EventDomain domain);
 
     private:
         EventBus() = default;
@@ -190,6 +173,8 @@ namespace NANOEngine::Events {
 
     // Register a script-side callback
     NANOENGINE_API void RegisterScriptEventListener(const char* eventName, std::function<void(void* data)> callback);
+
+    NANOENGINE_API void ClearScriptEventListeners();
 }
 
 #pragma warning(pop)

@@ -120,6 +120,12 @@ namespace NE::Physics {
             float radius,
             JPH::EMotionType motionType);
 
+        static uint32_t CreateMeshShape(
+            std::string meshID,
+            const std::vector<Math::Vec3>& vertices,
+            const std::vector<uint32_t>& indices);
+
+
         static void UpdateSphereRadius(uint32_t bodyID, float newRadius);
 
         static uint32_t CreateCapsuleBody(const Math::Vec3& pos, const Math::Vec3& rot,

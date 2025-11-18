@@ -4,7 +4,6 @@
 
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
-//#include "../src/Scripting/ScriptingEngine.hpp"
 #include "FileWatch.hpp"
 #include <queue>
 #include <mutex>
