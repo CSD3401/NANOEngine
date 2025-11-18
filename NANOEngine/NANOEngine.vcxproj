@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Components\Parent.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />

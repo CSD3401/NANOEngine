@@ -192,6 +192,7 @@
     <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
     <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
     <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
+    <ClInclude Include="src\ECS\Components\Parent.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

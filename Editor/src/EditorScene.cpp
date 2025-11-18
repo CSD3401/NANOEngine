@@ -1,6 +1,7 @@
 #include "EditorScene.hpp"
 #include <algorithm>
 #include <ECS/Core/Entity.hpp>
+#include <EditorInterface/ECSExports.hpp>
 
 namespace {
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
@@ -118,10 +119,12 @@ namespace Editor {
         } else {
             itChild->second.orderKey = newK;
         }
+        NE::ECS::Command::SetParent(child, newParent);
         return true;
     }
 
     bool EditorScene::UnparentToRoot(uint32_t child, int insertIndex) {
+        NE::ECS::Command::SetParent(child, NE::ECS::NO_ENTITY);
         return AttachAsChild(NE::ECS::NO_ENTITY, child, insertIndex);
     }
 }

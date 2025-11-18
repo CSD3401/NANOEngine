@@ -9,6 +9,7 @@
 #include "../Components/AudioSource.hpp"
 #include "../Components/NativeScript.hpp"
 #include "../Components/Camera.hpp"
+#include "../Components/Parent.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -34,6 +35,7 @@ namespace NE::ECS {
 
         RegisterComponent<Component::EntityMeta>();
         RegisterComponent<Component::Transform>();
+        RegisterComponent<Component::Parent>();
         RegisterComponent<Component::Renderer>();
         RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Collider>();

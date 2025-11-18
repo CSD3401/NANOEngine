@@ -48,6 +48,8 @@ namespace NE::ECS {
 	namespace Command {
 		NANOENGINE_API uint32_t CreateEntity();
 		NANOENGINE_API void DestroyEntity(uint32_t e);
+		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent);
+		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
 		NANOENGINE_API void AddLightComponent(uint32_t e);
 		NANOENGINE_API void AddRendererComponent(uint32_t e);

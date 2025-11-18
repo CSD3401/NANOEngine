@@ -13,6 +13,7 @@
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
+#include "../ECS/Components/Parent.hpp" 
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -154,6 +155,31 @@ namespace NE::ECS {
 		Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
+
+		void SetParent(uint32_t child, uint32_t parent) {
+			using NE::ECS::Component::Parent;
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<Parent>(child)) {
+				ecs.AddComponent(child, Parent{ parent });
+			}
+			else {
+				ecs.GetComponent<Parent>(child).parent = parent;
+			}
+
+			// force recompute next frame
+			if (ecs.HasComponent<NE::ECS::Component::Transform>(child)) {
+				ecs.GetComponent<NE::ECS::Component::Transform>(child).isDirty = true;
+			}
+		}
+
+		uint32_t GetParent(uint32_t child) {
+			using NE::ECS::Component::Parent;
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (!ecs.HasComponent<Parent>(child)) return NE::ECS::NO_ENTITY;
+			return ecs.GetComponent<Parent>(child).parent;
+		}
+	
 
 		// === Script Management Implementation ===
 		
