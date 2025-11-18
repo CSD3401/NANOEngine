@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <Windows.h>
 #include "Core/SpdLogger.hpp"
+#include "ScriptContextFactory.hpp"
 
 #include "Engine.hpp"
 #include "SceneManagement/Scene.hpp"
@@ -249,12 +250,12 @@ namespace NE::Scripting {
         }
 
         // DLL Path
-        m_scriptDLLPath = "GameCode.dll";
+        m_scriptDLLPath = "ChronoGame.dll";
         m_scriptDLLPath = std::filesystem::absolute(m_scriptDLLPath).string();
         SPD_INFO("Loading script DLL: " << m_scriptDLLPath);
 
         // Source Directory
-        m_scriptSourceDirectory = "../../../GameCode/Scripts/";
+        m_scriptSourceDirectory = "../../../ChronoGame/Scripts/";
         m_scriptSourceDirectory = std::filesystem::absolute(m_scriptSourceDirectory).string();
 
         // Build Command
@@ -283,7 +284,7 @@ namespace NE::Scripting {
         //    "/p:LanguageStandard=stdcpp20\"";        // <-- final closing quote
         m_scriptBuildCommand =
             "\"\"" + msbuildPath + "\" "
-            "\"../../../GameCode/GameCode.vcxproj\" "
+            "\"../../../ChronoGame/ChronoGame.vcxproj\" "
             "/p:Configuration=Release "
             "/p:Platform=x64 "
             "/p:BuildProjectReferences=false"
@@ -360,16 +361,15 @@ namespace NE::Scripting {
             return;
         }
 
-        m_sourceWatcher.reset();
-        for (NE::ECS::Entity entity : GetScene().GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>()) {
-            Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-            auto& ns = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-            ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it’s a function ptr
-            ns.DestroyScript = {};
-        }
-
         SPD_INFO("Shutting down ScriptingEngine...");
+
+        // Stop watching files
+        m_sourceWatcher.reset();
+
+        // Clear registered script factories
         ClearRegisteredScripts();
+
+        // Unload all DLLs - the components have already been cleaned up by ScriptSystem::Exit()
         UnloadAllDLLs();
 
         m_initialized = false;
@@ -618,7 +618,7 @@ namespace NE::Scripting {
 
         // hard path for now
         std::filesystem::path builtDLL =
-            "../../bin/GameCode/Release-x64/GameCode.dll";
+            "../../bin/ChronoGame/Release-x64/ChronoGame.dll";
 
         // Copy Files to New Temp Path 
         std::string newDLLPath = GetHotReloadPath(m_scriptDLLPath, m_hotReloadCounter);
@@ -742,8 +742,8 @@ namespace NE::Scripting {
             }
 
             nsc.Instance = nsc.CreateScript();
-            nsc.Instance->LinkToEngine(&GetScene().GetECSCoordinator().GetComponentManager());
-            nsc.Instance->SetEntity(entity);
+            Scripting::LinkScriptToEngine(nsc.Instance, &GetScene().GetECSCoordinator().GetComponentManager());
+            nsc.Instance->_SetEntity(entity);
             nsc.Instance->Awake();
             nsc.Instance->Initialize(entity);
 

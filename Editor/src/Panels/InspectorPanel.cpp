@@ -2,7 +2,7 @@
 #include <imgui/imgui.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
-//#include <EditorInterface/PhysicsExports.hpp>
+#include <EditorInterface/PhysicsExports.hpp>
 #include "ECS/Core/Signature.hpp"
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
@@ -891,7 +891,7 @@ namespace Editor {
 													bool success = comp.Instance->SetFieldValueFromString(fname, std::to_string(droppedEntity));
 
 													if (success) {
-														comp.Instance->RefreshComponentReferences();
+														comp.Instance->_RefreshComponentReferences();
 														fieldChanged = true;
 													}
 												}
@@ -903,7 +903,7 @@ namespace Editor {
 										ImGui::SameLine();
 										if (ImGui::Button("X")) {
 											comp.Instance->SetFieldValueFromString(fname, "0");
-											comp.Instance->RefreshComponentReferences(); // Clear the pointer too
+											comp.Instance->_RefreshComponentReferences(); // Clear the pointer too
 											fieldChanged = true;
 										}
 

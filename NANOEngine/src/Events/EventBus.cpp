@@ -7,6 +7,34 @@ namespace NANOEngine::Events {
         return instance;
     }
 
+    void EventBus::ClearDomain(EventDomain domain)
+    {
+        std::scoped_lock lock(mutex_);
+
+        auto it = callbacks_.begin();
+        while (it != callbacks_.end()) {
+            if (it->first.first == domain) {
+                it = callbacks_.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
+
+        // Also clear queued events from this domain
+        std::queue<std::shared_ptr<IQueuedEvent>> filteredQueue;
+        while (!queuedEvents_.empty()) {
+            auto event = queuedEvents_.front();
+            queuedEvents_.pop();
+            // need to add domain tracking to IQueuedEvent to filter properly
+            // For now, just clear all queued events when clearing script domain
+        }
+        if (domain == EventDomain::Script) {
+            // Clear all queued events when clearing script domain
+            queuedEvents_ = std::queue<std::shared_ptr<IQueuedEvent>>();
+        }
+    }
+
     struct ScriptEvent {
         std::string name;
         void* data;
@@ -27,6 +55,10 @@ namespace NANOEngine::Events {
             if (e.name == eventName)
                 callback(e.data);
             });
+    }
+
+    NANOENGINE_API void ClearScriptEventListeners() {
+        EventBus::Get().ClearDomain(EventDomain::Script);
     }
 
 }

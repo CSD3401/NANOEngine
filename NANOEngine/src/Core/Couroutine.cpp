@@ -67,6 +67,42 @@ void CoroutineManager::Update(float dt)
     }
 }
 
+void CoroutineManager::Clear()
+{
+    m_coroutines.clear();
+}
+
+void CoroutineManager::StopCoroutine(CoroutineHandle handle)
+{
+    if (handle < m_coroutines.size())
+    {
+        m_coroutines[handle].finished = true;
+        m_coroutines[handle].steps.clear();  // Clear the steps to release any captured lambdas
+    }
+}
+
+bool CoroutineManager::IsRunning(CoroutineHandle handle) const
+{
+    if (handle >= m_coroutines.size())
+        return false;
+    return !m_coroutines[handle].finished;
+}
+
+NANOENGINE_API void Engine_ClearAllCoroutines()
+{
+    g_CoroutineManager.Clear();
+}
+
+NANOENGINE_API void Engine_StopCoroutine(CoroutineHandle handle)
+{
+    g_CoroutineManager.StopCoroutine(handle);
+}
+
+NANOENGINE_API bool Engine_IsCoroutineRunning(CoroutineHandle handle)
+{
+    return g_CoroutineManager.IsRunning(handle);
+}
+
 NANOENGINE_API CoroutineHandle Engine_CreateCoroutine()
 {
     return g_CoroutineManager.CreateCoroutine();

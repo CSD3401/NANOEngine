@@ -62,8 +62,41 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
 
+		// Component existence checks
+		bool HasTransform(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Transform>(e);
+		}
+
+		bool HasRenderer(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e);
+		}
+
+		bool HasLight(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Light>(e);
+		}
+
+		bool HasRigidbody(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Rigidbody>(e);
+		}
+
+		bool HasCollider(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Collider>(e);
+		}
+
+		bool HasAudioSource(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::AudioSource>(e);
+		}
+
+		bool HasScript(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e);
+		}
+
 		bool HasAnimator(uint32_t e) {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Animator>(e);
+		}
+
+		bool HasCamera(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Camera>(e);
 		}
 
 		const Component::Animator& GetEntityAnimator(uint32_t e) {

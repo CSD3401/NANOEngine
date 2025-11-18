@@ -125,6 +125,7 @@ namespace NANOEngine::Events {
             dispatching = false;
         }
 
+        void ClearDomain(EventDomain domain);
 
         
     private:
@@ -173,6 +174,8 @@ namespace NANOEngine::Events {
 
     // Register a script-side callback
     NANOENGINE_API void RegisterScriptEventListener(const char* eventName, std::function<void(void* data)> callback);
+
+    NANOENGINE_API void ClearScriptEventListeners();
 }
 
 #pragma warning(pop)
