@@ -5,10 +5,10 @@
 #include <unordered_map>
 #include <functional>
 #include <sstream>
-#include "../NANOEngine/src/Math/Vec3.hpp"
 #include <type_traits>
-#include "../NANOEngine/src/Core/Reflection.hpp"
+#include <ScriptSDK/Math.h>
 #include <ScriptSDK/ScriptTypes.h>
+#include <ScriptSDK/Reflection.h>
 
 // Lightweight helper to register exposed fields in game scripts and
 // provide string-based get/set that the Editor uses.
