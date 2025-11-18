@@ -1,5 +1,6 @@
 #pragma once
 
+#include "NANOEngineAPI.hpp"
 #include "IScriptRegistrar.hpp"
 #include "IScript.hpp"
 #include <unordered_map>
@@ -7,7 +8,10 @@
 #include <vector>
 #include <Windows.h>
 #include <mutex>
+#pragma warning(push)
+#pragma warning(disable: 4068) // unknown pragma 'mark' - Xcode/Clang pragma not recognized by MSVC
 #include <FileWatch.hpp>
+#pragma warning(pop)
 #include "ECS/Components/NativeScript.hpp"
 
 namespace NE::Scripting {
@@ -33,10 +37,7 @@ namespace NE::Scripting {
      */
     class ScriptingEngine : public IScriptRegistrar {
     public:
-        static ScriptingEngine& GetInstance() {
-            static ScriptingEngine se;
-            return se;
-        }
+        static NANOENGINE_API ScriptingEngine& GetInstance();
 
         // === IScriptRegistrar interface implementation ===
         void RegisterScript(const std::string& name, std::function<IScript* ()> factory) override;
@@ -106,7 +107,7 @@ namespace NE::Scripting {
          * Get the last error message from operations.
          * @return Error message string
          */
-        const std::string& GetLastError() const;
+        NANOENGINE_API const std::string& GetLastError() const;
 
         // === Utility ===
         /**

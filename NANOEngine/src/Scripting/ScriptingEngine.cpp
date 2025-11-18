@@ -44,6 +44,11 @@ namespace NE::Scripting {
         : m_initialized(false) {
     }
 
+    ScriptingEngine& ScriptingEngine::GetInstance() {
+        static ScriptingEngine instance;
+        return instance;
+    }
+
     std::function<IScript* ()> ScriptingEngine::GetScriptFactory(const std::string& name) const {
         std::lock_guard<std::mutex> lock(m_mutex);
         auto it = m_scriptFactories.find(name);
@@ -426,22 +431,29 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::HandleFileWatchEvent(const std::string& path, const filewatch::Event eventType) {
-        if (eventType == filewatch::Event::modified ||
-            eventType == filewatch::Event::renamed_new ||
-            eventType == filewatch::Event::added) {
+        // Only trigger on modifications to existing files, not new file creation
+        // This prevents hot reload when creating new scripts that haven't been compiled yet
+        if (eventType == filewatch::Event::modified) {
             SPD_INFO("File change detected: " << path);
             m_compileQueued.store(true);
         }
+        // Ignore 'added' and 'renamed_new' events to prevent premature hot reload
     }
 
     void ScriptingEngine::HotCompileAndReload() {
         SPD_INFO("=== HOT COMPILE & RELOAD BEGIN ===");
         SPD_INFO("Executing: " << m_scriptBuildCommand);
 
+        // Clear previous error
+        SetLastError("");
+
         int result = std::system(m_scriptBuildCommand.c_str());
 
         if (result != 0) {
-            SPD_ERROR("Build failed with code " << result << ". Aborting hot-reload.");
+            std::string errorMsg = "Build failed with exit code " + std::to_string(result) +
+                                   ". Check build output for errors. Command: " + m_scriptBuildCommand;
+            SPD_ERROR(errorMsg);
+            SetLastError(errorMsg);
             return;
         }
 
@@ -463,7 +475,9 @@ namespace NE::Scripting {
             SPD_INFO("Created new DLL copy: " << newDLLPath);
 
         } catch (const std::filesystem::filesystem_error& e) {
-            SPD_ERROR("Failed to copy new DLL: " << e.what());
+            std::string errorMsg = std::string("Failed to copy new DLL: ") + e.what();
+            SPD_ERROR(errorMsg);
+            SetLastError(errorMsg);
             m_currentLoadedDLLPath = oldDLLPath;
             m_hotReloadCounter--;
             return;

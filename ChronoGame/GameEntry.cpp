@@ -5,10 +5,6 @@
 #include <ScriptSDK/ScriptAPI.h>
 
 
-// Include the base script interface
-// Note: If IScript is defined in Engine DLL, include it from there
-// #include "Core/IScript.hpp"
-
 // Include headers for all scripts you want to register
 #include "Scripts/PlayerScript.hpp"
 #include "Scripts/TestScript.hpp"
