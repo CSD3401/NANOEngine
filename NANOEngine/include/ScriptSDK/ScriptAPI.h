@@ -350,6 +350,14 @@ namespace Scripting {
         // Forward declaration of field registry (PIMPL pattern)
         class FieldRegistry;
 
+        // Helper function to reduce code duplication in field registration
+        void RegisterFieldInternal(
+            const std::string& name,
+            const std::string& typeToken,
+            void* memberPtr,
+            std::function<std::string()> getValue,
+            std::function<bool(const std::string&)> setValue);
+
         Entity m_entity = INVALID_ENTITY;
         bool m_enabled = true;
         bool m_hasStarted = false;

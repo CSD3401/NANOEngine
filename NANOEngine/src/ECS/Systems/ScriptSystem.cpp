@@ -9,37 +9,11 @@
 #include "../../Scripting/ScriptingEngine.hpp"
 #include "../../Scripting/ScriptContextFactory.hpp"
 
-// Entire scripting requires a major refactor ~ irwen
-
 namespace NE::ECS::Systems {
 
-    // --- Helper function to get the temporary DLL path ---
     ScriptSystem::ScriptSystem(ComponentManager* cm)
         : m_componentManager(cm) {
     }
-
-    //ScriptSystem::~ScriptSystem() {
-    //    m_sourceWatcher.reset();
-
-    //    // --- Clean up the last loaded DLL ---
-    //    // Ensure we don't leave temp files.
-    //    try {
-    //        if (!m_currentLoadedDLLPath.empty() && std::filesystem::exists(m_currentLoadedDLLPath)) {
-    //            std::filesystem::path dllPath(m_currentLoadedDLLPath);
-    //            std::filesystem::path pdbPath = dllPath.replace_extension(".pdb");
-
-    //            std::filesystem::remove(dllPath);
-    //            if (std::filesystem::exists(pdbPath)) {
-    //                std::filesystem::remove(pdbPath);
-    //            }
-    //        }
-
-    //        SPD_INFO("Constructor deletes.");
-    //    }
-    //    catch (const std::exception& e) {
-    //        SPD_WARNING("Could not clean up temp DLL: " << e.what());
-    //    }
-    //}
 
     void ScriptSystem::OnEntityAdded(Entity entity) {
         // Logic for when an entity relevant to the script system is added
@@ -106,7 +80,6 @@ namespace NE::ECS::Systems {
         }
     }
 
-    // WOI WENGKONG IDK IF THIS IS HOW ITS SUPPOSED TO BE DONE HELP ME CHECK BUT IT WORKS FOR NOW
     void ScriptSystem::InitializeExistingScripts() {
         const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 

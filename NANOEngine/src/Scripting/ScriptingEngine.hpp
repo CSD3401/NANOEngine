@@ -16,6 +16,18 @@ namespace NE::Scripting {
     typedef void (*RegisterScriptsFunction)(IScriptRegistrar* registrar);
 
     /**
+     * @struct ScriptEngineConfig
+     * @brief Configuration for ScriptingEngine initialization
+     */
+    struct ScriptEngineConfig {
+        std::string scriptDLLName = "ChronoGame.dll";
+        std::string scriptSourceDirectory = "../../../ChronoGame/Scripts/";
+        std::string scriptProjectPath = "../../../ChronoGame/ChronoGame.vcxproj";
+        std::string buildConfiguration = "Release";
+        std::string buildPlatform = "x64";
+    };
+
+    /**
      * Scripting engine that handles script registration and single game DLL loading.
      * Manages hot-reloading and state preservation for ChronoGame.dll.
      */
@@ -75,8 +87,9 @@ namespace NE::Scripting {
         // === Engine Lifecycle ===
         /**
          * Initialize the scripting engine and set up hot-reloading.
+         * @param config Configuration settings (uses defaults if not provided)
          */
-        void Initialize();
+        void Initialize(const ScriptEngineConfig& config = ScriptEngineConfig());
 
         /**
          * Shutdown the scripting engine and clean up all resources.
@@ -162,6 +175,19 @@ namespace NE::Scripting {
         void HandleFileWatchEvent(const std::string& path, const filewatch::Event eventType);
         void HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath);
         std::string CreateHotReloadCopyPath(int version) const;
+
+        // Hot reload helper methods
+        struct ScriptState {
+            std::string scriptName;
+            bool isEnabled;
+            std::unordered_map<std::string, std::string> fields;
+        };
+
+        std::unordered_map<NE::ECS::Entity, ScriptState> SaveAllScriptStates();
+        void DestroyAllScriptInstances();
+        bool SwapDLLs(const std::string& oldDllPath, const std::string& newDllPath);
+        void RestoreAllScriptStates(const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore);
+        void EnableScripts(const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore);
     };
 
 } // namespace NE::Scripting

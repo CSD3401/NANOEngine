@@ -11,11 +11,7 @@
 #include "Core/Couroutine.hpp"
 
 namespace {
-    struct ScriptState {
-        std::string scriptName;
-        bool isEnabled;
-        std::unordered_map<std::string, std::string> fields;
-    };
+    // ScriptState moved to ScriptingEngine class definition
 
     std::string GetMSBuildPath() {
         std::string vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
@@ -210,7 +206,7 @@ namespace NE::Scripting {
 
     // === Engine Lifecycle ===
 
-    void ScriptingEngine::Initialize() {
+    void ScriptingEngine::Initialize(const ScriptEngineConfig& config) {
         if (m_initialized) {
             SPD_INFO("ScriptingEngine already initialized.");
             return;
@@ -218,16 +214,16 @@ namespace NE::Scripting {
 
         SPD_INFO("Initializing ScriptingEngine...");
 
-        // Set up paths
-        m_scriptDLLPath = "ChronoGame.dll";
+        // Set up paths from config
+        m_scriptDLLPath = config.scriptDLLName;
         m_scriptDLLPath = std::filesystem::absolute(m_scriptDLLPath).string();
         SPD_INFO("Script DLL path: " << m_scriptDLLPath);
 
-        m_scriptSourceDirectory = "../../../ChronoGame/Scripts/";
+        m_scriptSourceDirectory = config.scriptSourceDirectory;
         m_scriptSourceDirectory = std::filesystem::absolute(m_scriptSourceDirectory).string();
         SPD_INFO("Script source directory: " << m_scriptSourceDirectory);
 
-        // Configure build command
+        // Configure build command from config
         std::string msbuildPath = GetMSBuildPath();
         if (msbuildPath.empty()) {
             msbuildPath = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe";
@@ -236,9 +232,9 @@ namespace NE::Scripting {
 
         m_scriptBuildCommand =
             "\"\"" + msbuildPath + "\" "
-            "\"../../../ChronoGame/ChronoGame.vcxproj\" "
-            "/p:Configuration=Release "
-            "/p:Platform=x64 "
+            "\"" + config.scriptProjectPath + "\" "
+            "/p:Configuration=" + config.buildConfiguration + " "
+            "/p:Platform=" + config.buildPlatform + " "
             "/p:BuildProjectReferences=false "
             "/p:LanguageStandard=stdcpp20\"";
 
@@ -486,12 +482,8 @@ namespace NE::Scripting {
         }
     }
 
-    void ScriptingEngine::HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath) {
-        SPD_INFO("=== HOT RELOAD: Swapping DLLs ===");
-        SPD_INFO("  Old: " << std::filesystem::path(oldDllPath).filename().string());
-        SPD_INFO("  New: " << std::filesystem::path(newDllPath).filename().string());
-
-        // Step 1: Save all script states
+    std::unordered_map<NE::ECS::Entity, ScriptingEngine::ScriptState>
+    ScriptingEngine::SaveAllScriptStates() {
         std::unordered_map<NE::ECS::Entity, ScriptState> stateToRestore;
 
         auto entities = GetScene().GetECSCoordinator().GetComponentManager()
@@ -517,14 +509,20 @@ namespace NE::Scripting {
             nsc.Instance->SetEnabled(false);
         }
 
-        // Step 1.5: CRITICAL - Clear all event listeners and coroutines BEFORE destroying scripts
-        // This prevents dangling function pointers when the old DLL is unloaded.
-        // Without this, event callbacks and coroutine continuations will point to freed memory -> CRASH
+        return stateToRestore;
+    }
+
+    void ScriptingEngine::DestroyAllScriptInstances() {
+        // CRITICAL: Clear all event listeners and coroutines BEFORE destroying scripts
+        // This prevents dangling function pointers when the old DLL is unloaded
         SPD_INFO("Clearing event listeners and coroutines...");
         NANOEngine::Events::ClearScriptEventListeners();
         Engine_ClearAllCoroutines();
 
-        // Step 1.6: Now safe to destroy script instances
+        // Now safe to destroy script instances
+        auto entities = GetScene().GetECSCoordinator().GetComponentManager()
+            .GetEntitiesWithComponent<ECS::Component::NativeScript>();
+
         for (NE::ECS::Entity entity : entities) {
             auto& nsc = GetScene().GetECSCoordinator().GetComponentManager()
                 .GetComponent<ECS::Component::NativeScript>(entity);
@@ -533,9 +531,11 @@ namespace NE::Scripting {
 
             OnScriptComponentDestroyed(entity);
             nsc.CreateScript = nullptr;
+            nsc.DestroyScript = nullptr;
         }
+    }
 
-        // Step 2: Unload old DLL and load new one
+    bool ScriptingEngine::SwapDLLs(const std::string& oldDllPath, const std::string& newDllPath) {
         if (IsScriptDLLLoaded()) {
             if (!UnloadScriptDLL()) {
                 SPD_ERROR("Failed to unload old DLL. Attempting to load new one anyway...");
@@ -547,13 +547,17 @@ namespace NE::Scripting {
         if (!LoadScriptDLL(newDllPath)) {
             SPD_ERROR("HOT RELOAD FAILED: Could not load new DLL");
             SPD_ERROR("Error: " << GetLastError());
-            return;
+            return false;
         }
 
         SPD_INFO("New DLL loaded. Restoring script states...");
         PrintSummary();
+        return true;
+    }
 
-        // Step 3: Restore all script states
+    void ScriptingEngine::RestoreAllScriptStates(
+        const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore) {
+
         for (auto const& [entity, state] : stateToRestore) {
             auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
 
@@ -568,7 +572,7 @@ namespace NE::Scripting {
 
             if (!nsc.CreateScript) {
                 SPD_ERROR("Script factory not found for '" << state.scriptName << "', skipping");
-                nsc.Instance = nullptr;  // Ensure instance is null
+                nsc.Instance = nullptr;
                 continue;
             }
 
@@ -595,8 +599,11 @@ namespace NE::Scripting {
                 nsc.Instance = nullptr;
             }
         }
+    }
 
-        // Enable all scripts after full initialization (with null checks)
+    void ScriptingEngine::EnableScripts(
+        const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore) {
+
         for (auto const& [entity, state] : stateToRestore) {
             auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
 
@@ -606,10 +613,33 @@ namespace NE::Scripting {
 
             auto& nsc = componentMgr.GetComponent<ECS::Component::NativeScript>(entity);
 
-            if (nsc.Instance) {  // ✅ Only enable if instance exists
+            if (nsc.Instance) {
                 nsc.Instance->SetEnabled(state.isEnabled);
             }
         }
+    }
+
+    void ScriptingEngine::HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath) {
+        SPD_INFO("=== HOT RELOAD: Swapping DLLs ===");
+        SPD_INFO("  Old: " << std::filesystem::path(oldDllPath).filename().string());
+        SPD_INFO("  New: " << std::filesystem::path(newDllPath).filename().string());
+
+        // Step 1: Save all script states
+        auto stateToRestore = SaveAllScriptStates();
+
+        // Step 2: Destroy all script instances and clear event listeners
+        DestroyAllScriptInstances();
+
+        // Step 3: Unload old DLL and load new one
+        if (!SwapDLLs(oldDllPath, newDllPath)) {
+            return;
+        }
+
+        // Step 4: Restore all script states
+        RestoreAllScriptStates(stateToRestore);
+
+        // Step 5: Enable scripts after full initialization
+        EnableScripts(stateToRestore);
 
         SPD_INFO("=== HOT RELOAD COMPLETE ===");
     }
