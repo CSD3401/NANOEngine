@@ -20,6 +20,8 @@ namespace NE::ECS::Component {
 
 		Math::Vec3 initialVelocity{ 0.f, 0.f, 0.f };
 
+		uint64_t luid;
+
 		NE_REFLECT_BEGIN(Rigidbody)
 			NE_REFLECT_FIELD(mass),
 			NE_REFLECT_FIELD(motionType),

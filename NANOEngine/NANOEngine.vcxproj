@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ECS\Components\Parent.hpp" />
+    <ClInclude Include="src\Core\LUIDRegistry.hpp" />
     <ClInclude Include="include\ScriptSDK\Components.h" />
     <ClInclude Include="include\ScriptSDK\ECS.h" />
     <ClInclude Include="include\ScriptSDK\Math.h" />
@@ -89,7 +90,6 @@
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="src\ECSInternals.hpp" />
     <ClInclude Include="src\ECS\Components\Light.hpp" />
-    <ClInclude Include="src\ECS\Components\Name.hpp" />
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
@@ -151,8 +151,10 @@
     <ClInclude Include="src\Tween\Tween.hpp" />
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
+    <ClInclude Include="src\Core\LUIDGenerator.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Core\LUIDRegistry.cpp" />
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\Core\Couroutine.cpp" />
@@ -222,6 +224,7 @@
     <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
     <ClCompile Include="src\Tween\TweenManager.cpp" />
+    <ClCompile Include="src\Core\LUIDGenerator.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

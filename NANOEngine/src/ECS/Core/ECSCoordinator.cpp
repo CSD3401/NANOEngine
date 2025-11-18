@@ -25,6 +25,7 @@
 #include "../Systems/AnimatorSystem.hpp"  
 
 
+
 namespace NE::ECS {
 
     ECSCoordinator::ECSCoordinator()
@@ -120,8 +121,7 @@ namespace NE::ECS {
 
     Entity ECSCoordinator::CreateEntity() {
         Entity entt = m_entityManager->CreateEntity();
-        AddComponent(entt, Component::EntityMeta{"Unnamed Entity"});
-        AddComponent(entt, Component::Transform{});
+
         return entt;
     }
 

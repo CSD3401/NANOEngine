@@ -18,6 +18,8 @@ namespace NE::ECS::Component {
 		Math::Mat4 localMatrix{};
 		Math::Mat4 worldMatrix{};
 
+		uint64_t luid;
+
 		NE_REFLECT_BEGIN(Transform)
 			NE_REFLECT_FIELD_NAMED(localPosition,		"Position"),
 			NE_REFLECT_FIELD_NAMED(localScale,			"Scale"),

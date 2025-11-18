@@ -19,6 +19,8 @@ namespace NE::ECS::Component {
 
 		bool visible = true;
 
+		uint64_t luid;
+
 		NE_REFLECT_BEGIN(Renderer)
 			NE_REFLECT_FIELD(modelUUID),
 			NE_REFLECT_FIELD(materialUUID)
