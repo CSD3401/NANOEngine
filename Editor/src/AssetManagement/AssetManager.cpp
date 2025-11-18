@@ -432,7 +432,12 @@ namespace Editor {
         using namespace rapidjson;
 
         std::filesystem::path fsSourcePath = sourcePath;
-        std::filesystem::path metaPath = sourcePath + ".meta";
+        std::filesystem::path metaPath = sourcePath;
+        if (metaPath.extension() != ".meta") {
+            metaPath += ".meta";
+        } else {
+            fsSourcePath.replace_extension();
+        }
 
         AssetMetadata metadata{};
         metadata.sourcePath = sourcePath;
@@ -463,35 +468,26 @@ namespace Editor {
             AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
             switch (assetType) {
             case AssetType::Texture: {
-
-
+                
                 TextureImportSettings texSettings{};
                 if (doc.HasMember("textureImport") && doc["textureImport"].IsObject()) {
-                    auto& importSettings = doc["textureImport"];
-
-                    if (importSettings.HasMember("type") && importSettings["type"].IsInt()) {
-                        int v = importSettings["type"].GetInt();
-                        texSettings.type = static_cast<TexType>(v);
-                        SPD_WARNING("TEXTURE TYPE: " << static_cast<int>(texSettings.type));
-                    }
+                    const auto& jSettings = doc["textureImport"];
+                    NE::Serialization::from_json(jSettings, texSettings);
                 }
 
-
-                CookTexture(sourcePath, outPath, texSettings);
-
-
+                CookTexture(fsSourcePath.string(), outPath, texSettings);
                 break;
             }
             case AssetType::Mesh: {
-                CookMesh(sourcePath, outPath);
+                CookMesh(fsSourcePath.string(), outPath);
                 break;
             }
             case AssetType::Shader: {
-                CookShader(sourcePath, outPath);
+                CookShader(fsSourcePath.string(), outPath);
                 break;
             }
             case AssetType::Material: {
-                CookMaterial(sourcePath, outPath);
+                CookMaterial(fsSourcePath.string(), outPath);
                 break;
             }
             case AssetType::Audio: {
@@ -537,6 +533,46 @@ namespace Editor {
             return m_assets.at(uuid).sourcePath;
 
         return "";
+    }
+
+    bool AssetManager::SaveTextureImportSettings(const std::string& metaPath, const TextureImportSettings& settings) {
+        namespace fs = std::filesystem;
+        using namespace rapidjson;
+        using namespace NE::Serialization;
+
+        if (!fs::exists(metaPath))
+            return false;
+
+        std::ifstream ifs(metaPath);
+        if (!ifs)
+            return false;
+
+        IStreamWrapper isw(ifs);
+        Document doc;
+        doc.ParseStream(isw);
+        if (doc.HasParseError() || !doc.IsObject())
+            return false;
+
+        auto& alloc = doc.GetAllocator();
+
+        RJson texImportJson = to_json(settings, alloc);
+
+        if (doc.HasMember("textureImport") && doc["textureImport"].IsObject()) {
+            doc["textureImport"].CopyFrom(texImportJson, alloc);
+        } else {
+            doc.AddMember("textureImport", texImportJson, alloc);
+        }
+
+        std::ofstream ofs(metaPath, std::ios::trunc);
+        if (!ofs)
+            return false;
+
+        OStreamWrapper osw(ofs);
+        PrettyWriter<OStreamWrapper> writer(osw);
+        writer.SetIndent(' ', 4);
+        doc.Accept(writer);
+
+        return true;
     }
 
     AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {

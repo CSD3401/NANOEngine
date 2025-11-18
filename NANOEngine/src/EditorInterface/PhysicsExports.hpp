@@ -45,6 +45,8 @@ namespace NE::Physics
 		NANOENGINE_API void UpdatePhysicsBody(uint32_t entity);
 		NANOENGINE_API void RemovePhysicsBody(uint32_t entity);
 		NANOENGINE_API void SetPhysicsMotionType(uint32_t entity, int motionType);
+
+		NANOENGINE_API void LockConstraints(uint32_t entity, bool lockX, bool lockY, bool lockZ);
 	}
 
 
