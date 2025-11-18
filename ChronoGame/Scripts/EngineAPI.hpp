@@ -16,31 +16,31 @@
 // New scripts should use the clean SDK namespaces: Input::, Events::, Coroutine::, Log::
 
 // Legacy logging macros (old SPD_* style)
-#define SPD_DEBUG(...)    LOG_DEBUG(__VA_ARGS__)
-#define SPD_INFO(...)     LOG_INFO(__VA_ARGS__)
-#define SPD_WARNING(...)  LOG_WARNING(__VA_ARGS__)
-#define SPD_ERROR(...)    LOG_ERROR(__VA_ARGS__)
-#define SPD_CRITICAL(...) LOG_CRITICAL(__VA_ARGS__)
+//#define SPD_DEBUG(...)    LOG_DEBUG(__VA_ARGS__)
+//#define SPD_INFO(...)     LOG_INFO(__VA_ARGS__)
+//#define SPD_WARNING(...)  LOG_WARNING(__VA_ARGS__)
+//#define SPD_ERROR(...)    LOG_ERROR(__VA_ARGS__)
+//#define SPD_CRITICAL(...) LOG_CRITICAL(__VA_ARGS__)
 
 // Legacy coroutine function names (old Engine_* style)
-namespace {
-    inline Coroutines::Handle Engine_CreateCoroutine() {
-        return Coroutines::Create();
-    }
-
-    template<typename Func>
-    inline void Engine_AddAction(Coroutines::Handle handle, Func&& func) {
-        Coroutines::AddAction(handle, std::function<void()>(std::forward<Func>(func)));
-    }
-
-    inline void Engine_AddWaitForSeconds(Coroutines::Handle handle, float seconds) {
-        Coroutines::AddWait(handle, seconds);
-    }
-
-    inline void Engine_StartCoroutine(Coroutines::Handle handle) {
-        Coroutines::Start(handle);
-    }
-}
+//namespace {
+//    inline Coroutines::Handle Engine_CreateCoroutine() {
+//        return Coroutines::Create();
+//    }
+//
+//    template<typename Func>
+//    inline void Engine_AddAction(Coroutines::Handle handle, Func&& func) {
+//        Coroutines::AddAction(handle, std::function<void()>(std::forward<Func>(func)));
+//    }
+//
+//    inline void Engine_AddWaitForSeconds(Coroutines::Handle handle, float seconds) {
+//        Coroutines::AddWait(handle, seconds);
+//    }
+//
+//    inline void Engine_StartCoroutine(Coroutines::Handle handle) {
+//        Coroutines::Start(handle);
+//    }
+//}
 
 // ============ ENGINE INTERFACE ============
 // Include necessary engine headers for component definitions and DLL exports
