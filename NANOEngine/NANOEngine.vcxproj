@@ -20,6 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ECS\Components\Parent.hpp" />
+    <ClInclude Include="include\ScriptSDK\Components.h" />
+    <ClInclude Include="include\ScriptSDK\ECS.h" />
+    <ClInclude Include="include\ScriptSDK\Math.h" />
+    <ClInclude Include="include\ScriptSDK\Reflection.h" />
+    <ClInclude Include="include\ScriptSDK\Renderer.h" />
+    <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
+    <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
+    <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
@@ -54,6 +62,9 @@
     <ClInclude Include="src\Input\InputManager.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourcePaths.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
+    <ClInclude Include="src\Scripting\IScript_Compat.hpp" />
+    <ClInclude Include="src\Scripting\ScriptContext.hpp" />
+    <ClInclude Include="src\Scripting\ScriptContextFactory.hpp" />
     <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
     <ClInclude Include="src\Scripting\IScript.hpp" />
@@ -159,7 +170,9 @@
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
-    <ClCompile Include="src\Scripting\IScript.cpp" />
+    <ClCompile Include="src\Scripting\ScriptAPI.cpp" />
+    <ClCompile Include="src\Scripting\ScriptContextFactory.cpp" />
+    <ClCompile Include="src\Scripting\ScriptTypes.cpp" />
     <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
     <ClCompile Include="src\Scripting\ScriptingEngine.cpp" />

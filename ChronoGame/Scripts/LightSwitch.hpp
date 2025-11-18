@@ -1,28 +1,20 @@
 #pragma once
 #include <iostream>
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "Events/EventBus.hpp"
-#include "Core/Couroutine.hpp"
-#include <Math/Vec3.hpp>
-#include <Input/InputManager.hpp>
-#include <ECS/Components/Light.hpp>
-#include <EditorInterface/ECSExports.hpp>
+#include "EngineAPI.hpp"
 
-
-class LightSwitch : public IScript {
+class LightSwitch : public NE::Scripting::IScript {
 public:
     LightSwitch() {
     }
 
-    void Initialize(NE::ECS::Entity entity) override {
+    void Initialize(NE::Scripting::Entity entity) override {
 
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        if (NE::InputManager::WasKeyPressed('E')) {
+        if (Input::WasKeyPressed('E')) {
             auto& light = NE::ECS::Command::GetEntityLight(GetEntity());
             if (!switched) {
                 light.color = NE::Math::Vec3(0.7f, 0.4f, 0.f);
@@ -44,10 +36,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::ECS::Entity other) override {}
-    void OnCollisionExit(NE::ECS::Entity other) override {}
-    void OnTriggerEnter(NE::ECS::Entity other) override {}
-    void OnTriggerExit(NE::ECS::Entity other) override {}
+    void OnCollisionEnter(NE::Scripting::Entity other) override {}
+    void OnCollisionExit(NE::Scripting::Entity other) override {}
+    void OnTriggerEnter(NE::Scripting::Entity other) override {}
+    void OnTriggerExit(NE::Scripting::Entity other) override {}
 
 private:
     // === Exposed Fields ===
