@@ -14,33 +14,33 @@
 
 namespace NE::ECS::Systems {
 
-	// --- Helper function to get the temporary DLL path ---
-	ScriptSystem::ScriptSystem(ComponentManager* cm)
-		: m_componentManager(cm) {
-	}
+    // --- Helper function to get the temporary DLL path ---
+    ScriptSystem::ScriptSystem(ComponentManager* cm)
+        : m_componentManager(cm) {
+    }
 
-	//ScriptSystem::~ScriptSystem() {
-	//    m_sourceWatcher.reset();
+    //ScriptSystem::~ScriptSystem() {
+    //    m_sourceWatcher.reset();
 
-	//    // --- Clean up the last loaded DLL ---
-	//    // Ensure we don't leave temp files.
-	//    try {
-	//        if (!m_currentLoadedDLLPath.empty() && std::filesystem::exists(m_currentLoadedDLLPath)) {
-	//            std::filesystem::path dllPath(m_currentLoadedDLLPath);
-	//            std::filesystem::path pdbPath = dllPath.replace_extension(".pdb");
+    //    // --- Clean up the last loaded DLL ---
+    //    // Ensure we don't leave temp files.
+    //    try {
+    //        if (!m_currentLoadedDLLPath.empty() && std::filesystem::exists(m_currentLoadedDLLPath)) {
+    //            std::filesystem::path dllPath(m_currentLoadedDLLPath);
+    //            std::filesystem::path pdbPath = dllPath.replace_extension(".pdb");
 
-	//            std::filesystem::remove(dllPath);
-	//            if (std::filesystem::exists(pdbPath)) {
-	//                std::filesystem::remove(pdbPath);
-	//            }
-	//        }
+    //            std::filesystem::remove(dllPath);
+    //            if (std::filesystem::exists(pdbPath)) {
+    //                std::filesystem::remove(pdbPath);
+    //            }
+    //        }
 
-	//        SPD_INFO("Constructor deletes.");
-	//    }
-	//    catch (const std::exception& e) {
-	//        SPD_WARNING("Could not clean up temp DLL: " << e.what());
-	//    }
-	//}
+    //        SPD_INFO("Constructor deletes.");
+    //    }
+    //    catch (const std::exception& e) {
+    //        SPD_WARNING("Could not clean up temp DLL: " << e.what());
+    //    }
+    //}
 
     void ScriptSystem::OnEntityAdded(Entity entity) {
         // Logic for when an entity relevant to the script system is added
@@ -50,42 +50,43 @@ namespace NE::ECS::Systems {
             Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager); // Link to engine systems via new API
             nsc.Instance->_SetEntity(entity);
 
-			// Call Awake() first (even if disabled)
-			nsc.Instance->Awake();
+            // Call Awake() first (even if disabled)
+            nsc.Instance->Awake();
 
-			// Then Initialize()
-			nsc.Instance->Initialize(entity);
+            // Then Initialize()
+            nsc.Instance->Initialize(entity);
 
-			// Restore serialized field values if they exist
-			Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
+            // Restore serialized field values if they exist
+            Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
 
-			nsc.Instance->SetEnabled(false); // Start disabled
-			SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
-		}
-	}
+            nsc.Instance->SetEnabled(false); // Start disabled
+            SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+        }
+    }
 
-	void ScriptSystem::OnEntityRemoved(Entity entity) {
-		// should probably call OnScriptComponentDestroyed here if the entity
-		// has a script component, to ensure proper cleanup.
-		(void)entity;
-	}
+    void ScriptSystem::OnEntityRemoved(Entity entity) {
+        // should probably call OnScriptComponentDestroyed here if the entity
+        // has a script component, to ensure proper cleanup.
+        (void)entity;
+    }
 
-	void ScriptSystem::Init() {
-		SPD_INFO("ScriptSystem::Init() - Starting initialization");
-        
-		// Logic to initialize the system when a scene loads
-        
-		InitializeExistingScripts();
+    void ScriptSystem::Init() {
+        SPD_INFO("ScriptSystem::Init() - Starting initialization");
 
-		SPD_INFO("ScriptSystem::Init() - Completed");
-	}
-    
+        // Logic to initialize the system when a scene loads
+
+        InitializeExistingScripts();
+
+        SPD_INFO("ScriptSystem::Init() - Completed");
+    }
+
     void ScriptSystem::Exit() {
         // CRITICAL: Clear these FIRST before ANY cleanup
         NANOEngine::Events::ClearScriptEventListeners();
         Engine_ClearAllCoroutines();
 
         auto& entities = GetEntities();
+
         for (NE::ECS::Entity entity : entities) {
             if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
                 continue;
@@ -102,44 +103,44 @@ namespace NE::ECS::Systems {
             nsc.DestroyScript.swap(emptyDestroy);
         }
     }
-      
-	// WOI WENGKONG IDK IF THIS IS HOW ITS SUPPOSED TO BE DONE HELP ME CHECK BUT IT WORKS FOR NOW
-	void ScriptSystem::InitializeExistingScripts() {
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+    // WOI WENGKONG IDK IF THIS IS HOW ITS SUPPOSED TO BE DONE HELP ME CHECK BUT IT WORKS FOR NOW
+    void ScriptSystem::InitializeExistingScripts() {
+        const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-			if (!nsc.ScriptName.empty()) {
-				nsc.CreateScript = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
-				nsc.DestroyScript = [](IScript* s) { delete s; };
-			}
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-			if (nsc.CreateScript && !nsc.Instance) {
+            if (!nsc.ScriptName.empty()) {
+                nsc.CreateScript = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
+                nsc.DestroyScript = [](IScript* s) { delete s; };
+            }
+
+            if (nsc.CreateScript && !nsc.Instance) {
                 nsc.Instance = nsc.CreateScript();
                 Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager);
                 nsc.Instance->_SetEntity(entity);
 
-				nsc.Instance->Awake();
-				nsc.Instance->Initialize(entity);
+                nsc.Instance->Awake();
+                nsc.Instance->Initialize(entity);
 
-				Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
+                Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
 
-				nsc.Instance->SetEnabled(false);
+                nsc.Instance->SetEnabled(false);
 
-				SPD_INFO("Initialized existing script '" << nsc.ScriptName
-					<< "' for entity " << (int)entity << " during ScriptSystem::Init()");
-			}
-		}
-	}
+                SPD_INFO("Initialized existing script '" << nsc.ScriptName
+                    << "' for entity " << (int)entity << " during ScriptSystem::Init()");
+            }
+        }
+    }
 
-	void ScriptSystem::StartScripts()
-	{
-		SPD_INFO("ScriptSystem: Entering Play Mode...");
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
+    void ScriptSystem::StartScripts()
+    {
+        SPD_INFO("ScriptSystem: Entering Play Mode...");
+        const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
             if (nsc.Instance) {
                 nsc.Instance->_RefreshComponentReferences();
@@ -148,22 +149,22 @@ namespace NE::ECS::Systems {
         }
     }
 
-	void ScriptSystem::PauseScripts()
-	{
-		SPD_INFO("ScriptSystem: Pausing Play Mode...");
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
+    void ScriptSystem::PauseScripts()
+    {
+        SPD_INFO("ScriptSystem: Pausing Play Mode...");
+        const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-			if (nsc.Instance) {
-				nsc.Instance->SetEnabled(false);
-				SPD_INFO("Paused script '" << nsc.ScriptName << "' for entity " << (int)entity);
-			}
-		}
-	}
+            if (nsc.Instance) {
+                nsc.Instance->SetEnabled(false);
+                SPD_INFO("Paused script '" << nsc.ScriptName << "' for entity " << (int)entity);
+            }
+        }
+    }
 
-	void ScriptSystem::StopScripts()
+    void ScriptSystem::StopScripts()
     {
         SPD_INFO("ScriptSystem: Exiting Play Mode...");
         const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
@@ -174,7 +175,7 @@ namespace NE::ECS::Systems {
             if (nsc.Instance) {
                 // Save field values before destroying
                 Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-  
+
                 nsc.Instance->OnDestroy();
                 if (nsc.DestroyScript) {
                     nsc.DestroyScript(nsc.Instance);
@@ -186,29 +187,28 @@ namespace NE::ECS::Systems {
                 nsc.Instance = nullptr;
                 SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
             }
-    
 
-			// Recreate the script instance for the next play session
-			if (nsc.CreateScript && !nsc.Instance) {
-				nsc.Instance = nsc.CreateScript();
-				nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
-				nsc.Instance->SetEntity(entity);
+            // Recreate the script instance for the next play session
+            if (nsc.CreateScript && !nsc.Instance) {
+                nsc.Instance = nsc.CreateScript();
+                Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager); // Link to engine systems via new API
+                nsc.Instance->_SetEntity(entity);
 
-				// Call Awake() and Initialize()
-				nsc.Instance->Awake();
-				nsc.Instance->Initialize(entity);
+                // Call Awake() and Initialize()
+                nsc.Instance->Awake();
+                nsc.Instance->Initialize(entity);
 
-				// Restore the saved field values
-				Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
+                // Restore the saved field values
+                Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
 
-				nsc.Instance->SetEnabled(false); // Start disabled
-				SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
-			}
-		}
-	}
+                nsc.Instance->SetEnabled(false); // Start disabled
+                SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+            }
+        }
+    }
 
 
-	void ScriptSystem::Update(double deltaTime) {
+    void ScriptSystem::Update(double deltaTime) {
 
         // --- Check for compile request ---
         if (Scripting::ScriptingEngine::GetInstance().m_compileQueued.load()) {
@@ -218,16 +218,18 @@ namespace NE::ECS::Systems {
 
         const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		// Second loop: Update all active scripts
-        auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-        if (nsc.Instance && nsc.Instance->IsEnabled()) {
-            // Call Start() before first Update() if not yet called
-            if (!nsc.Instance->_HasStarted()) {
-                nsc.Instance->Start();
-                nsc.Instance->_MarkStartCalled();
-            }
+        // Second loop: Update all active scripts
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+            if (nsc.Instance && nsc.Instance->IsEnabled()) {
+                // Call Start() before first Update() if not yet called
+                if (!nsc.Instance->_HasStarted()) {
+                    nsc.Instance->Start();
+                    nsc.Instance->_MarkStartCalled();
+                }
 
-            nsc.Instance->Update(deltaTime);
+                nsc.Instance->Update(deltaTime);
+            }
         }
     }
-}               
+}

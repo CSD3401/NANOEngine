@@ -99,6 +99,17 @@ namespace Scripting {
         virtual void OnDisable() {}
 
         //=====================================================================
+        // Dirty Scripts Stuff - Anson Pls Check
+        //=====================================================================
+        /**
+        * Mark a component as dirty for serialization (Editor Mode only).
+        * This is automatically called by helper functions, but can be called manually
+        * when directly modifying component fields in Editor Mode scripts.
+        */
+        template<typename T>
+        void MarkComponentDirty();
+
+        //=====================================================================
         // COLLISION/TRIGGER EVENTS
         //=====================================================================
 

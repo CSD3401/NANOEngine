@@ -20,6 +20,7 @@
 #include "../Core/Couroutine.hpp"
 #include "../Input/InputManager.hpp"
 #include "../Events/EventBus.hpp"
+#include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 
 #include <sstream>
 #include <unordered_map>
@@ -926,6 +927,25 @@ namespace Scripting {
     void IScript::RemoveArrayElement(const std::string& fieldName, size_t index) {
         (void)fieldName;
         (void)index;
+    }
+
+    template<typename T>
+    void IScript::MarkComponentDirty() {
+        // Only mark dirty in Edit mode - runtime changes should not be serialized
+        if (NE::GetEngineState() != NE::EngineState::Edit) {
+            return;
+        }
+
+        if (!m_componentManager || !m_componentManager->HasComponent<T>(m_entity)) {
+            return;
+        }
+
+        auto& component = m_componentManager->GetComponent<T>(m_entity);
+
+        // Use C++20 requires to check if the component has an isDirty field
+        if constexpr (requires { component.isDirty; }) {
+            component.isDirty = true;
+        }
     }
 
     //=========================================================================
