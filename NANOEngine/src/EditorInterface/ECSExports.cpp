@@ -194,7 +194,7 @@ namespace NE::ECS {
 			// Cache child's current WORLD before we change anything
 			Mat4 childWorldBefore = Mat4{}; childWorldBefore.SetToIdentity();
 			if (ecs.HasComponent<Component::Transform>(child)) {
-				childWorldBefore = ecs.GetComponent<Component::Transform>(child).modelMatrix;
+				childWorldBefore = ecs.GetComponent<Component::Transform>(child).worldMatrix;
 			}
 
 			// Apply/Update Parent component
@@ -211,7 +211,7 @@ namespace NE::ECS {
 
 				Mat4 localM;
 				if (parent != NO_ENTITY && ecs.HasComponent<Component::Transform>(parent)) {
-					const Mat4 parentWorld = ecs.GetComponent<Component::Transform>(parent).modelMatrix;
+					const Mat4 parentWorld = ecs.GetComponent<Component::Transform>(parent).worldMatrix;
 					NE::Math::Mat4 invParent = InverseTRS(parentWorld); // drop 'const'
 					localM = invParent * childWorldBefore;
 				}
@@ -221,7 +221,7 @@ namespace NE::ECS {
 				}
 
 				// Write back local TRS
-				DecomposeToTRS(localM, childT.position, childT.rotation, childT.scale);
+				DecomposeToTRS(localM, childT.localPosition, childT.localRotationEuler, childT.localScale);
 				childT.isDirty = true;   // ensure system recomputes subtree next frame
 			}
 		}

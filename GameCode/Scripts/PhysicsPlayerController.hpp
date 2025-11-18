@@ -258,7 +258,7 @@ private:
 		}
 
 		auto& otherTransform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(other);
-		float otherY = otherTransform.position.y;
+		float otherY = otherTransform.localPosition.y;
 
 		// Get the other entity's collider height if it exists
 		float otherHalfHeight = 0.5f; // default
@@ -415,8 +415,8 @@ private:
 		// Store and apply highlight scale
 		if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Transform>(entity)) {
 			auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(entity);
-			m_originalScale = transform.scale;
-			transform.scale = m_originalScale * highlightScaleMultiplier;
+			m_originalScale = transform.localScale;
+			transform.localScale = m_originalScale * highlightScaleMultiplier;
 			transform.isDirty = true;
 		}
 	}
@@ -429,7 +429,7 @@ private:
 		// Restore original scale
 		if (m_componentManager && m_componentManager->HasComponent<NE::ECS::Component::Transform>(entity)) {
 			auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(entity);
-			transform.scale = m_originalScale;
+			transform.localScale = m_originalScale;
 			transform.isDirty = true;
 		}
 	}

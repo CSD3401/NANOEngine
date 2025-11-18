@@ -23,7 +23,7 @@ public:
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        auto playerPos = NE::ECS::Query::GetEntityTransform(6).position;
+        auto playerPos = NE::ECS::Query::GetEntityTransform(6).localPosition;
         NE::Math::Vec3 camPos = playerPos + NE::Math::Vec3(0.f, 0.6f, 0.f);
         SetPosition(camPos);
 
@@ -83,9 +83,9 @@ public:
             const float distance = 0.8f;
 
             //enttTransform.position = camPos + forward * distance;
-            float keepY = enttTransform.position.y;
-            enttTransform.position = camPos + forward * distance;
-            enttTransform.position.y = keepY;
+            float keepY = enttTransform.localPosition.y;
+            enttTransform.localPosition = camPos + forward * distance;
+            enttTransform.localPosition.y = keepY;
         }
     }
 

@@ -21,17 +21,17 @@ namespace NE::ECS::Systems {
             if (!C || ch.empty()) return fallback;
             return TransformClip::Sample(ch, C == A ? tA : tB, loop);
             };
-        NE::Math::Vec3 pA = sample(A, A ? A->pos : std::vector<NE::Animation::KeyframeVec3>{}, tr.position);
-        NE::Math::Vec3 rA = sample(A, A ? A->rot : std::vector<NE::Animation::KeyframeVec3>{}, tr.rotation);
-        NE::Math::Vec3 sA = sample(A, A ? A->scl : std::vector<NE::Animation::KeyframeVec3>{}, tr.scale);
+        NE::Math::Vec3 pA = sample(A, A ? A->pos : std::vector<NE::Animation::KeyframeVec3>{}, tr.localPosition);
+        NE::Math::Vec3 rA = sample(A, A ? A->rot : std::vector<NE::Animation::KeyframeVec3>{}, tr.localRotationEuler);
+        NE::Math::Vec3 sA = sample(A, A ? A->scl : std::vector<NE::Animation::KeyframeVec3>{}, tr.localScale);
 
         NE::Math::Vec3 pB = sample(B, B ? B->pos : std::vector<NE::Animation::KeyframeVec3>{}, pA);
         NE::Math::Vec3 rB = sample(B, B ? B->rot : std::vector<NE::Animation::KeyframeVec3>{}, rA);
         NE::Math::Vec3 sB = sample(B, B ? B->scl : std::vector<NE::Animation::KeyframeVec3>{}, sA);
 
-        tr.position = Lerp(pA, pB, alpha);
-        tr.rotation = Lerp(rA, rB, alpha); // Euler lerp (simple). Replace with quat slerp if you add quats later.
-        tr.scale = Lerp(sA, sB, alpha);
+        tr.localPosition = Lerp(pA, pB, alpha);
+        tr.localRotationEuler = Lerp(rA, rB, alpha); // Euler lerp (simple). Replace with quat slerp if you add quats later.
+        tr.localScale = Lerp(sA, sB, alpha);
     }
 
     // inside namespace NE::ECS::Systems

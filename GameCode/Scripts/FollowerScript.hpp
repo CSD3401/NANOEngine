@@ -34,7 +34,7 @@ public:
         }
 
       // Get target position
-        NE::Math::Vec3 targetPos = targetTransform->position;
+        NE::Math::Vec3 targetPos = targetTransform->localPosition;
         NE::Math::Vec3 myPos = GetPosition();
         
         // Calculate direction to target

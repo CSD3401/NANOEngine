@@ -189,7 +189,7 @@ namespace Editor {
 			const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
 
 			float matrix[16];
-			memcpy(matrix, tRO.modelMatrix.Data(), sizeof(float) * 16);
+			memcpy(matrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
 
 			bool editedThisFrame = ImGuizmo::Manipulate(
 				m_editorCamera.GetViewMatrix().Data(),
@@ -227,11 +227,11 @@ namespace Editor {
 				auto after = current;
 
 				if (s_gizmoMask & Editor::SetTransformCommand::Pos)
-					after.position = { tr[0], tr[1], tr[2] };
+					after.localPosition = { tr[0], tr[1], tr[2] };
 				if (s_gizmoMask & Editor::SetTransformCommand::Rot)
-					after.rotation = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+					after.localRotationEuler = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
 				if (s_gizmoMask & Editor::SetTransformCommand::Scl)
-					after.scale = { sc[0], sc[1], sc[2] };
+					after.localScale = { sc[0], sc[1], sc[2] };
 
 				s_gizmoCmd->SetAfter(after);
 			}
@@ -244,9 +244,9 @@ namespace Editor {
 						return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
 						};
 					bool changed = false;
-					if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.position, A.position);
-					if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.rotation, A.rotation);
-					if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.scale, A.scale);
+					if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.localPosition, A.localPosition);
+					if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.localRotationEuler, A.localRotationEuler);
+					if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.localScale, A.localScale);
 
 					if (changed) {
 						Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));

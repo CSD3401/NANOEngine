@@ -7,20 +7,21 @@
 namespace NE::ECS::Component {
 
 	struct Transform {
-		// Exposed
-		Math::Vec3 position{ 0.f, 0.f, 0.f };
-		Math::Vec3 scale{ 1.f, 1.f, 1.f };
-		Math::Vec3 rotation{ 0.f, 0.f, 0.f };
+		Math::Vec3 localPosition{ 0.f, 0.f, 0.f };
+		Math::Vec3 localScale{ 1.f, 1.f, 1.f };
+		Math::Vec3 localRotationEuler{ 0.f, 0.f,0.f };
 
-		// Internal
-		bool isDirty = true;
-		Math::Mat4 modelMatrix{};
-		Math::Mat4 parent{};
+		uint32_t parent;
+		uint64_t parentLUID;
+
+		bool isDirty = false;
+		Math::Mat4 localMatrix{};
+		Math::Mat4 worldMatrix{};
 
 		NE_REFLECT_BEGIN(Transform)
-			NE_REFLECT_FIELD_NAMED(position, "Position"),
-			NE_REFLECT_FIELD_NAMED(scale, "Scale"),
-			NE_REFLECT_FIELD_NAMED(rotation, "Rotation")
+			NE_REFLECT_FIELD_NAMED(localPosition,		"Position"),
+			NE_REFLECT_FIELD_NAMED(localScale,			"Scale"),
+			NE_REFLECT_FIELD_NAMED(localRotationEuler,	"Rotation")
 		NE_REFLECT_END()
 	};
 

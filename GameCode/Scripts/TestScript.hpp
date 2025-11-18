@@ -55,7 +55,7 @@ public:
             totalTime += static_cast<float>(deltaTime);
             
             // Simple bobbing motion using bounce height
-            transform->position.y = std::sin(totalTime * 2.0f) * bounceHeight;
+            transform->localPosition.y = std::sin(totalTime * 2.0f) * bounceHeight;
             
             // You could also use the color field to set renderer color
             // You could use particleCount to control particle systems

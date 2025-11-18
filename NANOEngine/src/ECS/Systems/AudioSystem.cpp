@@ -171,7 +171,7 @@ namespace NE::ECS::Systems {
 
 		// Update 3D position for spatial audio
 		if (audioSource.spatialBlend != 0.0f) {
-			FMOD_VECTOR pos = { transform.position.x, transform.position.y, transform.position.z };
+			FMOD_VECTOR pos = { transform.localPosition.x, transform.localPosition.y, transform.localPosition.z };
 			FMOD_VECTOR vel = { 0, 0, 0 };
 			audioSource.m_channel->set3DAttributes(&pos, &vel);
 		}

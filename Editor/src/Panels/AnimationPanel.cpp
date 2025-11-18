@@ -208,9 +208,9 @@ namespace Editor {
 
     void AnimationPanel::AddKey(NEAnim::TransformClip& clip, float t, const Transform& tr, bool pos, bool rot, bool scl)
     {
-        if (pos) { clip.pos.push_back({t, tr.position}); SortAndUnique(clip.pos); }
-        if (rot) { clip.rot.push_back({t, tr.rotation}); SortAndUnique(clip.rot); }
-        if (scl) { clip.scl.push_back({t, tr.scale});    SortAndUnique(clip.scl); }
+        if (pos) { clip.pos.push_back({t, tr.localPosition}); SortAndUnique(clip.pos); }
+        if (rot) { clip.rot.push_back({t, tr.localRotationEuler}); SortAndUnique(clip.rot); }
+        if (scl) { clip.scl.push_back({t, tr.localScale});    SortAndUnique(clip.scl); }
         clip.length = std::max(clip.length, t);
     }
 
