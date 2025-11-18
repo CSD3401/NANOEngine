@@ -7,304 +7,331 @@
 #include "ECS/Components/Collider.hpp"
 #include <cmath>
 #include <Core/SpdLogger.hpp>
-#include <bitset>
-#include <unordered_set>
 
-// GLFW key codes for arrow keys
-#define GLFW_KEY_UP 265
-#define GLFW_KEY_DOWN 264
-#define GLFW_KEY_LEFT 263
-#define GLFW_KEY_RIGHT 262
+// GLFW key codes
 #define GLFW_KEY_SPACE 32
-#define GLFW_KEY_X 88  // Toggle forward raycast detection
-#define GLFW_KEY_Z 90  // Interaction key
-
 
 /**
- * Physics-based 3D player controller with:
- * 1. Lateral movement with manual gravity
- * 2. COLLISION-BASED ground detection (hooks into Collider callbacks)
- * 3. Jumping with physics
- * 4. Slope stability - stays still on slopes when not moving
+ * KINEMATIC 3D player controller.
  *
- * IMPORTANT SETUP NOTES:
- * - This script registers callbacks on the Collider component in Start()
- * - Ground detection works by tracking collision contacts with entities below the player
- * - Collision events are QUEUED during physics callbacks and processed in Update()
- *   to avoid accessing components during the physics step (which causes crashes)
- * - Set groundCheckThreshold to control how close entities need to be to count as ground
+ * - Does NOT require a Rigidbody.
+ * - Requires: Transform + Collider (for getting size and doing raycasts vs world).
+ * - Maintains its own velocity (m_velocity) and moves by directly setting Transform.
+ * - Uses raycast-based ground detection & simple raycast-based wall blocking.
  *
- * ARCHITECTURE:
- * - Collision callbacks (during physics step): Just queue entity IDs, NO component access
- * - Update() (after physics step): Process queued collisions, safe to access components
+ * NOTE:
+ * - jumpForce is now effectively "jumpSpeed" (initial upward velocity).
+ * - manualGravity should be NEGATIVE (e.g. -18.81f).
  */
 class PlayerController : public IScript {
 public:
-	PlayerController() {
-		REGISTER_FIELD(moveSpeed);
-		REGISTER_FIELD(jumpForce);
-		REGISTER_FIELD(manualGravity);
-		REGISTER_FIELD(frictionCoefficient);
-		REGISTER_FIELD(maxSlopeAngle);
-		REGISTER_FIELD(groundRaycastDistance);
-	}
+    PlayerController() {
+        REGISTER_FIELD(moveSpeed);
+        REGISTER_FIELD(jumpForce);          // interpreted as jump speed now
+        REGISTER_FIELD(manualGravity);      // should be negative
+        REGISTER_FIELD(frictionCoefficient);
+        REGISTER_FIELD(maxSlopeAngle);
+        REGISTER_FIELD(groundRaycastDistance);
+    }
 
-	~PlayerController() override = default;
+    ~PlayerController() override = default;
 
-	void Awake() override {}
+    void Awake() override {}
 
-	void Initialize(NE::ECS::Entity entity) override {
-		SetEntity(entity);
-	}
+    void Initialize(NE::ECS::Entity entity) override {
+        SetEntity(entity);
+    }
 
-	void Start() override {
-		// Configure rigidbody for character
-		//SetUseGravity(false);  // CRITICAL: Disable physics engine gravity
-		SetMass(70.0f);        // 70kg player mass
+    void Start() override {
+        // Try to get collider half-height so we know where the "feet" are
+        if (m_componentManager &&
+            m_componentManager->HasComponent<NE::ECS::Component::Collider>(GetEntity())) {
 
-		// Lock rotations to prevent tipping
-		LockRotation(true, false, true); // Lock X and Z, allow Y for turning
+            auto& col = m_componentManager->GetComponent<NE::ECS::Component::Collider>(GetEntity());
+            m_colliderHalfHeight = col.halfExtents.y;
+            SPD_INFO("Kinematic PlayerController: collider half-height = " << m_colliderHalfHeight);
+        } else {
+            SPD_WARNING("Kinematic PlayerController: no Collider found on entity "
+                << GetEntity() << " – ground checks may be inaccurate.");
+        }
 
-	}
+        m_velocity = { 0.0f, 0.0f, 0.0f };
+        m_isGrounded = false;
+    }
 
-	void Update(double deltaTime) override {
-		// Ensure rotation lock stays active
-		LockRotation(true, false, true);
+    void Update(double deltaTime) override {
+        const float dt = static_cast<float>(deltaTime);
 
-		// 1. GROUND CHECK - Using collision detection or optional raycast
-		bool isGrounded = CheckIfGrounded();
+        // 1. Update grounded state via raycast (from current position)
+        UpdateGroundedState();
 
-		// Debug: Log grounded state changes
-		static bool wasGrounded = false;
-		if (isGrounded != wasGrounded) {
-			wasGrounded = isGrounded;
-		}
+        // 2. Handle horizontal movement input (world-space XZ)
+        UpdateHorizontalVelocity(dt);
 
-		// 2. Get current velocity
-		NE::Math::Vec3 velocity = GetVelocity();
+        // 3. Handle jump input
+        HandleJump(dt);
 
-		// 3. JUMPING - Check if we should jump
-		bool attemptingJump = HandleJump(velocity, isGrounded);
+        // 4. Apply gravity (when not grounded)
+        ApplyGravity(dt);
 
-		// 4. MOVEMENT & GRAVITY
-		HandleMovementAndGravity(velocity, deltaTime, attemptingJump, isGrounded);
-	}
+        // 5. Move character kinematically, with simple wall collision using raycast
+        MoveKinematic(dt);
+    }
 
-	void OnDestroy() override {}
-	void OnEnable() override {}
-	void OnDisable() override {}
+    void OnDestroy() override {}
+    void OnEnable() override {}
+    void OnDisable() override {}
 
-	const char* GetTypeName() const override {
-		return "PhysicsPlayerController";
-	}
+    const char* GetTypeName() const override {
+        return "KinematicPlayerController";
+    }
 
-	// ========================================
-	// COLLISION-BASED GROUND DETECTION
-	// ========================================
+    // Collision callbacks not used in kinematic mode
+    void OnCollisionEnter(NE::ECS::Entity) override {}
+    void OnCollisionExit(NE::ECS::Entity) override {}
+    void OnTriggerEnter(NE::ECS::Entity) override {}
+    void OnTriggerExit(NE::ECS::Entity) override {}
 
-	void OnCollisionEnter(NE::ECS::Entity other) override {
-		// Not used - we hook into collider callbacks directly
-	}
-
-	void OnCollisionExit(NE::ECS::Entity other) override {
-		// Not used - we hook into collider callbacks directly
-	}
-
-	void OnTriggerEnter(NE::ECS::Entity other) override {}
-	void OnTriggerExit(NE::ECS::Entity other) override {}
-
-	// Exposed fields
-	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
-	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
-	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
-		return m_fields.SetValue(name, value);
-	}
+    // Exposed fields
+    std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
+    std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
+    std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
+    bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
+        return m_fields.SetValue(name, value);
+    }
 
 private:
+    // =========================
+    // GROUND CHECK
+    // =========================
+    void UpdateGroundedState() {
+        // If we're moving upwards noticeably, don't try to snap to ground
+        if (m_velocity.y > 0.1f) {
+            m_isGrounded = false;
+            return;
+        }
 
-	/**
-	 * Determine if player is grounded using collision-based or raycast method
-	 */
-	bool CheckIfGrounded() const {
-		NE::Math::Vec3 velocity = GetVelocity();
-		if (velocity.y > 1.0f) {
-			return false; // going up
-		}
+        NE::Math::Vec3 pos = GetPosition();
 
-		NE::Math::Vec3 origin = GetPosition();
-		origin.y -= m_colliderHalfHeight;
+        // Current feet position (center - halfHeight)
+        float feetY = pos.y - m_colliderHalfHeight;
 
-		NE::Math::Vec3 downDirection{ 0, -1, 0 };
-		uint32_t layerMask = 0xFFFFFFFF;
+        // Start the ray a bit ABOVE the feet so we aren't starting inside the floor
+        NE::Math::Vec3 origin = pos;
+        origin.y = feetY + m_groundProbeStartOffset; // e.g. small positive offset
 
-		IScript::RaycastHit hit = Raycast(origin, downDirection, groundRaycastDistance, layerMask);
+        NE::Math::Vec3 downDir{ 0.0f, -1.0f, 0.0f };
+        uint32_t layerMask = 0xFFFFFFFF;
 
-		// Debug
-		//SPD_DEBUG("Ground ray: hasHit=" << hit.hasHit
-		//	<< " dist=" << hit.distance
-		//	<< " entity=" << hit.entity
-		//	<< " self=" << GetEntity());
+        float rayLen = groundRaycastDistance + m_groundProbeStartOffset + m_skinWidth;
 
-		// 1) No hit at all
-		if (!hit.hasHit) {
-			return false;
-		}
+        IScript::RaycastHit hit = Raycast(origin, downDir, rayLen, layerMask);
 
-		// 2) Hit self? ignore it.
-		if (hit.entity == GetEntity()) {
-			SPD_DEBUG("Ground ray hit self -> treating as not grounded");
-			return false;
-		}
+        if (hit.hasHit && hit.entity != GetEntity()) {
+            m_isGrounded = true;
 
-		// 3) Actual ground hit
-		return hit.distance <= groundRaycastDistance;
-	}
+            // Hit point Y = origin.y - distance
+            float hitY = origin.y - hit.distance;
 
-	void HandleMovementAndGravity(NE::Math::Vec3& velocity, double deltaTime,
-		bool attemptingJump, bool isGrounded) {
+            // Where we want the FEET to end up:
+            float targetFeetY = hitY + m_groundSnapOffset;
 
-		//auto camTransform = GetTransform(7);
-		////NE::Math::Vec3 camForward = camTransform.GetForward();  // or Normalize manually
-		////NE::Math::Vec3 camRight = camTransform.GetRight();
-		//float yaw = camTransform.rotation.y * 0.017453292519943295f; // deg?rad
+            // Center = feet + halfHeight
+            float targetCenterY = targetFeetY + m_colliderHalfHeight;
 
-		//NE::Math::Vec3 camForward{
-		//	sinf(yaw),
-		//	0.0f,
-		//	-cosf(yaw)
-		//};
-		//camForward = camForward.Normalized();
+            NE::Math::Vec3 newPos = pos;
+            newPos.y = targetCenterY;
+            SetPosition(newPos);
 
-		//NE::Math::Vec3 camRight{
-		//	camForward.z,
-		//	0.0f,
-		//	-camForward.x
-		//};
+            if (m_velocity.y < 0.0f) {
+                m_velocity.y = 0.0f;
+            }
+        } else {
+            m_isGrounded = false;
+        }
 
-		// Get input for all 4 directions
-		NE::Math::Vec3 inputDirection{ 0, 0, 0 };
+        // Optional debug
+        //SPD_DEBUG("Grounded: " << m_isGrounded
+        //    << " centerY=" << GetPosition().y
+        //    << " feetY=" << (GetPosition().y - m_colliderHalfHeight)
+        //    << " velY=" << m_velocity.y);
+    }
 
-		if (NE::InputManager::IsKeyDown('W')) {
-			inputDirection.z -= 1.0f;
-		}
-		if (NE::InputManager::IsKeyDown('S')) {
-			inputDirection.z += 1.0f;
-		}
-		if (NE::InputManager::IsKeyDown('A')) {
-			inputDirection.x -= 1.0f;
-		}
-		if (NE::InputManager::IsKeyDown('D')) {
-			inputDirection.x += 1.0f;
-		}
-		//if (NE::InputManager::IsKeyDown('W')) inputDirection += camForward;
-		//if (NE::InputManager::IsKeyDown('S')) inputDirection -= camForward;
-		//if (NE::InputManager::IsKeyDown('A')) inputDirection += camRight;
-		//if (NE::InputManager::IsKeyDown('D')) inputDirection -= camRight;
+    // =========================
+    // HORIZONTAL MOVEMENT
+    // =========================
+    void UpdateHorizontalVelocity(float dt) {
+        NE::Math::Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
 
-		// Normalize diagonal movement
-		float inputMagnitude = std::sqrt(
-			inputDirection.x * inputDirection.x +
-			inputDirection.z * inputDirection.z
-		);
+        if (NE::InputManager::IsKeyDown('W')) {
+            inputDir.z -= 1.0f;
+        }
+        if (NE::InputManager::IsKeyDown('S')) {
+            inputDir.z += 1.0f;
+        }
+        if (NE::InputManager::IsKeyDown('A')) {
+            inputDir.x -= 1.0f;
+        }
+        if (NE::InputManager::IsKeyDown('D')) {
+            inputDir.x += 1.0f;
+        }
 
-		if (inputMagnitude > 0.01f) {
-			inputDirection.x /= inputMagnitude;
-			inputDirection.z /= inputMagnitude;
-		}
+        float mag = std::sqrt(inputDir.x * inputDir.x + inputDir.z * inputDir.z);
+        if (mag > 0.01f) {
+            inputDir.x /= mag;
+            inputDir.z /= mag;
+        } else {
+            inputDir.x = 0.0f;
+            inputDir.z = 0.0f;
+        }
 
-		bool isMoving = inputMagnitude > 0.01f;
+        // Current horizontal velocity
+        NE::Math::Vec3 horizVel = m_velocity;
+        horizVel.y = 0.0f;
 
-		// Get current velocity
-		NE::Math::Vec3 newVelocity = GetVelocity();
+        if (mag > 0.0f) {
+            // Target horizontal velocity
+            NE::Math::Vec3 targetVel{
+                inputDir.x * moveSpeed,
+                0.0f,
+                inputDir.z * moveSpeed
+            };
 
-		// === HORIZONTAL MOVEMENT ===
-		if (isMoving) {
-			newVelocity.x = inputDirection.x * moveSpeed;
-			newVelocity.z = inputDirection.z * moveSpeed;
-		} else if (isGrounded) {
-			// Apply friction
-			float horizontalSpeed = std::sqrt(
-				newVelocity.x * newVelocity.x +
-				newVelocity.z * newVelocity.z
-			);
+            // If grounded, snap quickly; if in air, lerp slowly (air control)
+            float accel = m_isGrounded ? 1.0f : m_airControl;
+            horizVel.x = Lerp(horizVel.x, targetVel.x, accel * dt);
+            horizVel.z = Lerp(horizVel.z, targetVel.z, accel * dt);
+        } else if (m_isGrounded) {
+            // Apply friction when grounded and no input
+            float speed = std::sqrt(horizVel.x * horizVel.x + horizVel.z * horizVel.z);
+            if (speed > 0.01f) {
+                float friction = frictionCoefficient * dt;
+                float newSpeed = std::max(0.0f, speed - friction);
+                float factor = (speed > 0.0f) ? (newSpeed / speed) : 0.0f;
 
-			if (horizontalSpeed > 0.01f) {
-				float frictionForce = frictionCoefficient * static_cast<float>(deltaTime) * 100.0f;
-				float speedReduction = std::min(frictionForce, horizontalSpeed);
+                horizVel.x *= factor;
+                horizVel.z *= factor;
+            } else {
+                horizVel.x = 0.0f;
+                horizVel.z = 0.0f;
+            }
+        }
 
-				float factor = (horizontalSpeed - speedReduction) / horizontalSpeed;
-				if (factor < 0.0f) factor = 0.0f;
+        m_velocity.x = horizVel.x;
+        m_velocity.z = horizVel.z;
+    }
 
-				newVelocity.x *= factor;
-				newVelocity.z *= factor;
+    // =========================
+    // JUMP
+    // =========================
+    void HandleJump(float /*dt*/) {
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
+            if (m_isGrounded && !m_hasJumpedThisFrame) {
+                SPD_INFO("Kinematic jump!");
+                m_hasJumpedThisFrame = true;
+                m_isGrounded = false;
+                m_velocity.y = jumpForce; // treat as initial upward velocity
+            }
+        }
 
-				if (std::abs(newVelocity.x) < 0.01f) newVelocity.x = 0.0f;
-				if (std::abs(newVelocity.z) < 0.01f) newVelocity.z = 0.0f;
-			}
-		}
+        if (!NE::InputManager::IsKeyDown(GLFW_KEY_SPACE)) {
+            m_hasJumpedThisFrame = false;
+        }
+    }
 
-		// === VERTICAL MOVEMENT ===
-		if (isGrounded) {
-			if (attemptingJump) {
-				// Apply jump impulse
-				newVelocity.y = jumpForce / 70.0f;
-				SPD_INFO("JUMP! velocity.y = " << newVelocity.y);
-			} else {
-				// Stop downward velocity when grounded
-				if (newVelocity.y < 0.0f) {
-					newVelocity.y = 0.0f;
-				}
-			}
-		} else {
-			// Apply gravity when airborne
-			newVelocity.y += manualGravity * static_cast<float>(deltaTime);
+    // =========================
+    // GRAVITY
+    // =========================
+    void ApplyGravity(float dt) {
+        if (!m_isGrounded) {
+            m_velocity.y += manualGravity * dt;
 
-			// Debug: Log velocity during fall
-			static int fallLogCounter = 0;
-			if (fallLogCounter++ % 30 == 0) {  // Log every 30 frames
-				SPD_INFO("Airborne: velocity.y = " << newVelocity.y << ", deltaTime = " << deltaTime);
-			}
-		}
+            if (m_velocity.y < m_maxFallSpeed) {
+                m_velocity.y = m_maxFallSpeed;
+            }
+        } else {
+            if (m_velocity.y < 0.0f) {
+                m_velocity.y = 0.0f;
+            }
+        }
+    }
 
-		SetVelocity(newVelocity);
-	}
+    // =========================
+    // KINEMATIC MOVEMENT
+    // =========================
+    void MoveKinematic(float dt) {
+        NE::Math::Vec3 pos = GetPosition();
+        NE::Math::Vec3 displacement = m_velocity * dt;
 
-	bool HandleJump(NE::Math::Vec3& velocity, bool isGrounded) {
-		if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
-			if (isGrounded && !m_hasJumpedThisFrame) {
-				SPD_INFO("Jump input registered!");
-				m_hasJumpedThisFrame = true;
+        // Separate horizontal and vertical
+        NE::Math::Vec3 horizMove{ displacement.x, 0.0f, displacement.z };
+        float horizLen = std::sqrt(horizMove.x * horizMove.x + horizMove.z * horizMove.z);
 
-				return true;
-			}
-		}
+        if (horizLen > 0.0001f) {
+            NE::Math::Vec3 dir{
+                horizMove.x / horizLen,
+                0.0f,
+                horizMove.z / horizLen
+            };
 
-		if (!NE::InputManager::IsKeyDown(GLFW_KEY_SPACE)) {
-			m_hasJumpedThisFrame = false;
-		}
+            // Simple wall blocking via raycast
+            uint32_t layerMask = 0xFFFFFFFF;
+            float rayLen = horizLen + m_skinWidth;
 
-		return false;
-	}
+            IScript::RaycastHit hit = Raycast(pos, dir, rayLen, layerMask);
 
-	// === EDITABLE PARAMETERS ===
+            if (hit.hasHit && hit.entity != GetEntity()) {
+                float allowed = std::max(0.0f, hit.distance - m_skinWidth);
+                if (allowed < horizLen) {
+                    horizMove = dir * allowed;
+                }
+            }
+        }
 
-	// Movement parameters
-	float moveSpeed = 5.0f;
-	float jumpForce = 400.0f;
-	float manualGravity = -18.81f;
-	float frictionCoefficient = 20.0f;
-	float maxSlopeAngle = 45.0f;
+        NE::Math::Vec3 finalMove{
+            horizMove.x,
+            displacement.y,
+            horizMove.z
+        };
 
-	// Ground detection
-	float groundRaycastDistance = 0.2f;  // Distance tolerance for ground detection (in units)
+        pos = pos + finalMove;
+        SetPosition(pos);
+    }
 
-	// Internal state
-	bool m_hasJumpedThisFrame = false;
-	NE::ECS::Entity m_lookingAtEntity = 0;
-	NE::Math::Vec3 m_originalScale = { 1.0f, 1.0f, 1.0f };
-	float m_colliderHalfHeight = 0.501f;
+    // Simple helper
+    static float Lerp(float a, float b, float t) {
+        if (t < 0.0f) t = 0.0f;
+        if (t > 1.0f) t = 1.0f;
+        return a + (b - a) * t;
+    }
 
-	// Field registry for editor
-	ExposedFieldRegistry m_fields;
+    // === EDITABLE PARAMETERS ===
+
+    // Movement parameters
+    float moveSpeed = 5.0f;
+    float jumpForce = 8.0f;        // now used as jump speed (units/sec)
+    float manualGravity = -18.81f; // should be negative
+    float frictionCoefficient = 20.0f;
+    float maxSlopeAngle = 45.0f;   // (not used yet, placeholder for slope handling)
+
+    // Ground detection
+    float groundRaycastDistance = 0.3f; // ray length below player
+    float m_groundProbeStartOffset = 0.1f;  // start slightly above feet
+    float m_groundSnapOffset = 0.02f;       // snap distance into ground
+    float m_skinWidth = 0.05f;              // used for wall/gap tolerance
+
+    // Air control
+    float m_airControl = 0.3f;              // 0 = no air control, 1 = full
+
+    // Fall limit
+    float m_maxFallSpeed = -50.0f;
+
+    // Internal state
+    bool m_hasJumpedThisFrame = false;
+    bool m_isGrounded = false;
+    NE::Math::Vec3 m_velocity{ 0.0f, 0.0f, 0.0f };
+    float m_colliderHalfHeight = 0.5f;
+
+    // Field registry for editor
+    ExposedFieldRegistry m_fields;
 };
