@@ -1,4 +1,4 @@
-﻿#ifndef VEC_3_HPP
+#ifndef VEC_3_HPP
 #define VEC_3_HPP
 
 #include "../NANOEngineAPI.hpp"
