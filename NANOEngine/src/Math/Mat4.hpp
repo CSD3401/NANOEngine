@@ -59,6 +59,7 @@ namespace NE::Math {
 		\return
 			*this * rhs.
 		*************************************************************************/
+		Mat4 operator*(const Mat4& rhs) const;
 		Mat4 operator*(const Mat4& rhs);
 
 		/*!***********************************************************************
@@ -465,6 +466,7 @@ namespace NE::Math {
 		Vec3 GetRotation() const;
 
 		const float* Data() const { return a; }
+		float* Data() { return a; }
 
 		friend std::ostream& operator<<(std::ostream& os, const Mat4& mat) {
 			os << "Mat4:\n";

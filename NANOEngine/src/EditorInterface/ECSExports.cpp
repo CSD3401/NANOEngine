@@ -13,37 +13,10 @@
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
-#include "../ECS/Components/Parent.hpp" 
 #include "Core/LUIDGenerator.hpp"
+#include "ECS/Systems/TransformSystem.hpp"
 
-namespace {
 
-
-	static NE::Math::Mat4 InverseTRS(const NE::Math::Mat4& world)
-	{
-		using namespace NE::Math;
-		const Vec3 p = world.GetTranslation();
-		const Vec3 r = world.GetRotation(); // Euler (same order you use to build)
-		const Vec3 s = world.GetScale();
-
-		// (T*R*S)^-1 = S^-1 * R^-1 * T^-1
-		Mat4 invT = Mat4::BuildTranslation(Vec3{ -p.x, -p.y, -p.z });
-		Mat4 invR = Mat4::BuildZRotation(-r.z) * Mat4::BuildYRotation(-r.y) * Mat4::BuildXRotation(-r.x);
-		Mat4 invS = Mat4::BuildScaling(1.0f / s.x, 1.0f / s.y, 1.0f / s.z);
-		return invS * invR * invT;
-	}
-
-	static void DecomposeToTRS(const NE::Math::Mat4& m,
-		NE::Math::Vec3& outPos,
-		NE::Math::Vec3& outRot,
-		NE::Math::Vec3& outScale)
-	{
-		outPos = m.GetTranslation();
-		outRot = m.GetRotation();
-		outScale = m.GetScale();
-	}
-
-}
 
 
 namespace NE {
@@ -223,54 +196,13 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
-		void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays)
-		{
-			using namespace NE::ECS;
-			using NE::Math::Mat4;
-			auto& ecs = GetScene().GetECSCoordinator();
+		void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
+			NE::GetScene().GetECSCoordinator().m_transformSystem->SetParent(child, parent);
+		}	
 
-			// Cache child's current WORLD before we change anything
-			Mat4 childWorldBefore = Mat4{}; childWorldBefore.SetToIdentity();
-			if (ecs.HasComponent<Component::Transform>(child)) {
-				childWorldBefore = ecs.GetComponent<Component::Transform>(child).worldMatrix;
-			}
-
-			// Apply/Update Parent component
-			if (!ecs.HasComponent<Component::Parent>(child)) {
-				ecs.AddComponent(child, Component::Parent{ parent });
-			}
-			else {
-				ecs.GetComponent<Component::Parent>(child).parent = parent;
-			}
-
-			// Unity-like: keep world pose on reparent
-			if (worldPositionStays && ecs.HasComponent<Component::Transform>(child)) {
-				auto& childT = ecs.GetComponent<Component::Transform>(child);
-
-				Mat4 localM;
-				if (parent != NO_ENTITY && ecs.HasComponent<Component::Transform>(parent)) {
-					const Mat4 parentWorld = ecs.GetComponent<Component::Transform>(parent).worldMatrix;
-					NE::Math::Mat4 invParent = InverseTRS(parentWorld); // drop 'const'
-					localM = invParent * childWorldBefore;
-				}
-				else {
-					// No parent => local == world
-					localM = childWorldBefore;
-				}
-
-				// Write back local TRS
-				DecomposeToTRS(localM, childT.localPosition, childT.localRotationEuler, childT.localScale);
-				childT.isDirty = true;   // ensure system recomputes subtree next frame
-			}
+		uint32_t GetParent(uint32_t child) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Transform>(child).parent;
 		}
-
-		uint32_t GetParent(uint32_t child)
-		{
-			auto& ecs = GetScene().GetECSCoordinator();
-			if (!ecs.HasComponent<Component::Parent>(child)) return NE::ECS::NO_ENTITY;
-			return ecs.GetComponent<Component::Parent>(child).parent;
-		}
-	
 
 		// === Script Management Implementation ===
 		

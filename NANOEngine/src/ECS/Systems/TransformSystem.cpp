@@ -2,149 +2,208 @@
 #include "../Components/Transform.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../src/EngineState.hpp"
-#include "../Components/Parent.hpp"
-#include <iostream>
-#include <unordered_map>               
 #include <vector>                      
-#include <functional>
+
+namespace {
 
 
-namespace NE::ECS::Systems {
-
-	TransformSystem::TransformSystem(ComponentManager* cm) : m_componentManager(cm)
+	static NE::Math::Mat4 InverseTRS(const NE::Math::Mat4& world)
 	{
+		using namespace NE::Math;
+		const Vec3 p = world.GetTranslation();
+		const Vec3 r = world.GetRotation(); // Euler (same order you use to build)
+		const Vec3 s = world.GetScale();
+
+		// (T*R*S)^-1 = S^-1 * R^-1 * T^-1
+		Mat4 invT = Mat4::BuildTranslation(Vec3{ -p.x, -p.y, -p.z });
+		Mat4 invR = Mat4::BuildZRotation(-r.z) * Mat4::BuildYRotation(-r.y) * Mat4::BuildXRotation(-r.x);
+		Mat4 invS = Mat4::BuildScaling(1.0f / s.x, 1.0f / s.y, 1.0f / s.z);
+		return invS * invR * invT;
 	}
 
-	void TransformSystem::OnEntityAdded(Entity)
+	static void DecomposeToTRS(const NE::Math::Mat4& m,
+		NE::Math::Vec3& outPos,
+		NE::Math::Vec3& outRot,
+		NE::Math::Vec3& outScale)
 	{
-	}
-
-	void TransformSystem::OnEntityRemoved(Entity)
-	{
-		// TODO: remove parenting and stuff
-	}
-
-	void TransformSystem::Init()
-	{
-		//test++;
-		//std::cout << "test " << test << std::endl;
-	}
-
-	void TransformSystem::Update(double)
-	{
-		//NE_PROFILE_FUNCTION();
-		//const auto& entities = GetEntities();
-		//for (Entity e : entities) {
-		//	auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
-		//	if (transform.isDirty) {
-		//		Math::Mat4 translation = Math::Mat4::BuildTranslation(transform.position);
-		//		Math::Mat4 rotation = Math::Mat4::BuildXRotation(transform.rotation.x) *
-		//			Math::Mat4::BuildYRotation(transform.rotation.y) *
-		//			Math::Mat4::BuildZRotation(transform.rotation.z);
-		//		Math::Mat4 scale = Math::Mat4::BuildScaling(transform.scale.x, transform.scale.y, transform.scale.z);
-
-		//		transform.modelMatrix = translation * rotation * scale;
-		//		transform.isDirty = false;
-		//	}
-		//}
-
-
-		//NE_PROFILE_FUNCTION();
-
-		//const auto& entities = GetEntities();
-
-		//for (Entity e : entities) {
-		//	auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
-
-		//	// --- Ownership Control ---
-		//	if (NANOEngine::GetEngineState() == EngineState::Play) {
-		//		// In play mode, RigidbodySystem is authoritative
-		//		// Do NOT rebuild modelMatrix here (physics will sync it).
-		//		continue;
-		//	}
-
-		//	// In Edit or Paused mode, editor / gizmos are authoritative
-		//	if (transform.isDirty) {
-		//		Math::Mat4 translation = Math::Mat4::BuildTranslation(transform.position);
-
-		//		Math::Mat4 rotation =
-		//			Math::Mat4::BuildXRotation(transform.rotation.x) *
-		//			Math::Mat4::BuildYRotation(transform.rotation.y) *
-		//			Math::Mat4::BuildZRotation(transform.rotation.z);
-
-		//		Math::Mat4 scale =
-		//			Math::Mat4::BuildScaling(transform.scale.x, transform.scale.y, transform.scale.z);
-
-		//		transform.modelMatrix = translation * rotation * scale;
-		//		transform.isDirty = false;
-		//	}
-		//}
-
-		NE_PROFILE_FUNCTION();
-
-		const bool alwaysRebuild = (NE::GetEngineState() == EngineState::Play);
-
-		using NE::Math::Mat4;
-
-		const auto& entities = GetEntities();
-
-		// Build adjacency: parent -> [children...]
-		std::unordered_map<Entity, std::vector<Entity>> children;
-		children.reserve(entities.size());
-
-		for (Entity e : entities) {
-			if (m_componentManager->HasComponent<Component::Parent>(e)) {
-				Entity p = m_componentManager->GetComponent<Component::Parent>(e).parent;
-				if (p != NO_ENTITY) children[p].push_back(e);
-			}
-		}
-
-		// Identity for roots
-		Mat4 I; I.SetToIdentity();
-
-		std::function<void(Entity, Mat4, bool)> compute;
-
-		compute = [&](Entity e, Mat4 parentWorld, bool parentNeedsUpdate)
-			{
-				auto& tr = m_componentManager->GetComponent<Component::Transform>(e);
-
-				const bool needs = alwaysRebuild || tr.isDirty || parentNeedsUpdate;
-
-				if (needs) {
-					Mat4 T = Mat4::BuildTranslation(tr.position);
-					Mat4 R = Mat4::BuildXRotation(tr.rotation.x)
-						* Mat4::BuildYRotation(tr.rotation.y)
-						* Mat4::BuildZRotation(tr.rotation.z);
-					Mat4 S = Mat4::BuildScaling(tr.scale.x, tr.scale.y, tr.scale.z);
-
-					Mat4 TRS = T * R * S;
-					tr.modelMatrix = parentWorld * TRS;   // LHS is non-const Mat4
-					tr.parent = parentWorld;
-					tr.isDirty = false;
-				}
-
-				Mat4 world = tr.modelMatrix;              // make a (cheap) copy for recursion
-
-				if (auto it = children.find(e); it != children.end()) {
-					for (Entity c : it->second) {
-						compute(c, world, needs);         // pass by value
-					}
-				}
-			};
-
-		// Start from roots (no Parent component OR Parent == NO_ENTITY)
-		for (Entity e : entities) {
-			bool hasParent = m_componentManager->HasComponent<Component::Parent>(e);
-			Entity p = hasParent ? m_componentManager->GetComponent<Component::Parent>(e).parent : NO_ENTITY;
-			if (p == NO_ENTITY) {
-				compute(e, I, false);
-			}
-		}
-	}
-
-	void TransformSystem::Exit()
-	{
+		outPos = m.GetTranslation();
+		outRot = m.GetRotation();
+		outScale = m.GetScale();
 	}
 
 }
 
+namespace NE::ECS::Systems {
+
+	TransformSystem::TransformSystem(ComponentManager* cm) : m_componentManager(cm) {
+	}
+
+	void TransformSystem::OnEntityAdded(Entity e) {
+		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
+
+		if (t.luid != 0) {
+			m_luidToEntity[t.luid] = e;
+		}
+
+		if (t.parentLuid != 0) {
+			m_pendingParents.push_back({ e, t.parentLuid });
+		}
+	}
+
+	void TransformSystem::OnEntityRemoved(Entity) {
+
+	}
+
+	void TransformSystem::Init() {
+		ResolvePendingParentsForAll(/*keepWorldForNewParents=*/false);
+
+		const auto& entities = GetEntities();
+
+		BuildLocalMatrices();
+
+		Math::Mat4 I;
+		I.SetToIdentity();
+
+		for (Entity e : entities) {
+			auto& tr = m_componentManager->GetComponent<Component::Transform>(e);
+
+			if (tr.parent == Component::INVALID_PARENT) {
+				UpdateWorldRecursive(e, I);
+			}
+		}
+	}
+
+	void TransformSystem::Update(double) {
+		NE_PROFILE_FUNCTION();
+
+		const auto& entities = GetEntities();
+
+		BuildLocalMatrices();
+
+		Math::Mat4 I;
+		I.SetToIdentity();
+
+		for (Entity e : entities) {
+			auto& tr = m_componentManager->GetComponent<Component::Transform>(e);
+
+			if (tr.parent == Component::INVALID_PARENT) {
+				UpdateWorldRecursive(e, I);
+			}
+		}
+	}
+
+	void TransformSystem::Exit() {
+	}
+	
+	void TransformSystem::SetParent(Entity child, Entity newParent, bool keepWorld) {
+		auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
+
+		NE::Math::Mat4 childWorldBefore;
+		if (keepWorld) {
+			childWorldBefore = childT.worldMatrix;
+		}
+
+		if (childT.parent != Component::INVALID_PARENT) {
+			auto& oldParentT = m_componentManager->GetComponent<Component::Transform>(childT.parent);
+			auto& vec = oldParentT.children;
+			vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
+		}
+
+		childT.parent = newParent;
+
+		if (newParent != Component::INVALID_PARENT) {
+			auto& parentT = m_componentManager->GetComponent<Component::Transform>(newParent);
+			parentT.children.push_back(child);
+			childT.parentLuid = parentT.luid;
+		} else {
+			childT.parentLuid = 0;
+		}
+
+		if (!keepWorld) {
+			MarkDirtyRecursive(child);
+			return;
+		}
+
+		NE::Math::Mat4 localM;
+		if (newParent != Component::INVALID_PARENT) {
+			auto& parentT = m_componentManager->GetComponent<Component::Transform>(newParent);
+			NE::Math::Mat4 invParent = InverseTRS(parentT.worldMatrix);
+			localM = invParent * childWorldBefore;
+		} else {
+			localM = childWorldBefore;
+		}
+
+		DecomposeToTRS(localM, childT.localPosition, childT.localRotationEuler, childT.localScale);
+		MarkDirtyRecursive(child);
+	}
+
+	void TransformSystem::MarkDirtyRecursive(Entity e) {
+		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
+		if (t.isDirty) return;
+		t.isDirty = true;
+		for (Entity child : t.children) {
+			MarkDirtyRecursive(child);
+		}
+	}
+
+	void TransformSystem::BuildLocalMatrices() {
+		const auto& entities = GetEntities();
+
+		for (Entity e : entities) {
+			auto& transform = m_componentManager->GetComponent<Component::Transform>(e);
+
+			if (!transform.isDirty)
+				continue;
+
+			Math::Mat4 translation = Math::Mat4::BuildTranslation(transform.localPosition);
+
+			Math::Mat4 rotation =
+				Math::Mat4::BuildXRotation(transform.localRotationEuler.x) *
+				Math::Mat4::BuildYRotation(transform.localRotationEuler.y) *
+				Math::Mat4::BuildZRotation(transform.localRotationEuler.z);
+
+			Math::Mat4 scale =
+				Math::Mat4::BuildScaling(transform.localScale.x,
+					transform.localScale.y,
+					transform.localScale.z);
+
+			transform.localMatrix = translation * rotation * scale;
+		}
+	}
+
+	void TransformSystem::UpdateWorldRecursive(Entity e, const Math::Mat4& parentWorld) {
+		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
+
+		t.worldMatrix = parentWorld * t.localMatrix;
+		t.isDirty = false;
+
+		for (Entity child : t.children) {
+			UpdateWorldRecursive(child, t.worldMatrix);
+		}
+	}
+
+	void TransformSystem::ResolvePendingParentsForAll(bool keepWorldForNewParents) {
+		std::vector<PendingParent> stillPending;
+		stillPending.reserve(m_pendingParents.size());
+
+		for (const PendingParent& pp : m_pendingParents) {
+			if (!m_componentManager->HasComponent<Component::Transform>(pp.child))
+				continue;
+
+			auto& childT = m_componentManager->GetComponent<Component::Transform>(pp.child);
+
+			auto it = m_luidToEntity.find(pp.parentLuid);
+			if (it != m_luidToEntity.end()) {
+				Entity parentEnt = it->second;
+
+				// For prefab in the future
+				SetParent(pp.child, parentEnt, keepWorldForNewParents);
+			} else {
+				stillPending.push_back(pp);
+			}
+		}
+
+		m_pendingParents.swap(stillPending);
+	}
+
+}

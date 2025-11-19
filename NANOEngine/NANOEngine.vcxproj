@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ECS\Components\Parent.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
     <ClInclude Include="include\ScriptSDK\Components.h" />
     <ClInclude Include="include\ScriptSDK\ECS.h" />

@@ -27,7 +27,7 @@ namespace Editor {
         static std::vector<uint32_t> s_roots;
 
         // Build a flat tree (everyone root) from s_entities; stable keys 0..N-1
-        static void BuildFlatHierarchy();
+        // static void BuildFlatHierarchy();
 
         // Sibling-order ops -------------------------------------------------------
         // Moves 'child' to appear at 'insertIndex' among children of 'parent'.
@@ -35,6 +35,7 @@ namespace Editor {
         static bool ReorderWithinSiblings(uint32_t parent, uint32_t child, int insertIndex);
         static bool AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex);
         static bool UnparentToRoot(uint32_t child, int insertIndex = -1);
+        static void BuildHierarchyFromECS();
         // Helpers
         static const std::vector<uint32_t>& ChildrenOf(uint32_t parent);
     };

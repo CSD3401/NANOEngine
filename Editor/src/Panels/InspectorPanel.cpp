@@ -44,6 +44,9 @@
 namespace {
 	template<typename Owner, typename T>
 	bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, T& value) {
+		if (NE::Core::HasFlag(desc.flags, NE::Core::FieldFlags::HiddenInEditor))
+			return false;
+
 		if constexpr (std::is_same_v<T, bool>) {
 			return ImGui::Checkbox(desc.name.data(), &value);
 		}

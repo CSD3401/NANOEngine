@@ -195,7 +195,6 @@
     <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
     <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
     <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
-    <ClInclude Include="src\ECS\Components\Parent.hpp" />
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />

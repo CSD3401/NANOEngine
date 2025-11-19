@@ -69,12 +69,6 @@ namespace NE::Serialization {
     template <NE::Core::Reflectable T>
     RJson to_json(const T& obj, Alloc& a) {
         RJson o(rapidjson::kObjectType);
-
-        if constexpr (requires (const T & t) { t.luid; }) {
-            RJson key("luid", a);
-            o.AddMember(key, to_json(obj.luid, a), a);
-        }
-
         NE::Core::ForEachFieldView(obj, [&](auto&& desc, auto&& field) {
             // field name is a std::string_view per FieldDescriptor
             RJson key(desc.name.data(), a);
@@ -85,16 +79,6 @@ namespace NE::Serialization {
 
     template <NE::Core::Reflectable T>
     void from_json(const RJson& v, T& out) {
-
-        if constexpr (requires (T & t) { t.luid; }) {
-            auto it = v.FindMember("luid");
-            if (it != v.MemberEnd()) {
-                from_json(it->value, out.luid); // calls uint64_t overload
-                // or: out.luid = it->value.GetUint64();
-            }
-            // else: leave out.luid as-is (maybe you generated a new one before)
-        }
-
         NE::Core::ForEachField(out, [&](auto&& desc, auto& field) {
             const auto key = desc.name; // std::string_view
             if (v.HasMember(rapidjson::StringRef(key.data(), static_cast<rapidjson::SizeType>(key.size())))) {

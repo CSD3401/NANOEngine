@@ -108,8 +108,13 @@ namespace Editor {
 		}
 
 		// === Entity Tree ===
+		//static bool s_built = false;
+		//if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
 		static bool s_built = false;
-		if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
+		if (!s_built) {
+			Editor::EditorScene::BuildHierarchyFromECS();
+			s_built = true;
+		}
 
 		// ---- Drag state ----
 		static uint32_t draggingId = NE::ECS::NO_ENTITY;
@@ -161,16 +166,7 @@ namespace Editor {
 				// if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
 				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
-				if (ImGui::BeginPopupContextItem()) { // binds to the last item (this row)
-					const bool isChild = (NE::ECS::Command::GetParent(id) != NE::ECS::NO_ENTITY);
 
-					if (ImGui::MenuItem("Unparent", nullptr, false, isChild)) {
-						Editor::EditorScene::UnparentToRoot(id, -1);
-					}
-
-
-					ImGui::EndPopup();
-				}
 				// Delay selection logic - only select if not starting a drag
 				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
 					clickedEntityId = id;
@@ -182,7 +178,7 @@ namespace Editor {
 				ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
 				// DO NOT REMOVE - Needed for tween to work
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && EditorScene::s_selectedEntity != nullptr)
 				{
 					// Broadcast message
 					NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
