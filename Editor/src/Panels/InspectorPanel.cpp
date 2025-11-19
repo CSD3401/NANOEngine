@@ -44,6 +44,9 @@
 namespace {
 	template<typename Owner, typename T>
 	bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, T& value) {
+		if (NE::Core::HasFlag(desc.flags, NE::Core::FieldFlags::HiddenInEditor))
+			return false;
+
 		if constexpr (std::is_same_v<T, bool>) {
 			return ImGui::Checkbox(desc.name.data(), &value);
 		}
@@ -256,7 +259,15 @@ namespace Editor {
 				using Owner = NE::ECS::Component::EntityMeta;
 				using FieldT = std::string;
 
-				const auto& metaRO = NE::ECS::Query::GetEntityMeta(entity);
+				auto& metaRO = NE::ECS::Command::GetEntityMeta(entity);
+
+				bool isActiveValue = metaRO.isActive;
+				if (ImGui::Checkbox("isActive", &isActiveValue)) {
+					metaRO.isActive = isActiveValue;
+					NE::MarkSceneDirty();
+				}
+
+				ImGui::SameLine();
 
 				FieldKey nameKey{
 					entity,
@@ -340,46 +351,47 @@ namespace Editor {
 			for (const auto& [typeIdx, compType] : componentTypeRegistry) {
 				if (!sig.test(compType)) continue;
 
-				if (typeIdx == typeid(NE::ECS::Component::EntityMeta)) {
-					// EntityMeta component - show isActive with proper handling
-					auto& comp = NE::ECS::Command::GetEntityMeta(entity);
-					ImGui::SeparatorText("Entity Properties");
+				//if (typeIdx == typeid(NE::ECS::Component::EntityMeta)) {
+				//	// EntityMeta component - show isActive with proper handling
+				//	auto& comp = NE::ECS::Command::GetEntityMeta(entity);
+				//	ImGui::SeparatorText("Entity Properties");
 
-					// Manually render isActive field with immediate updates
-					{
-						bool isActiveValue = comp.isActive;
-						if (ImGui::Checkbox("isActive", &isActiveValue)) {
-							comp.isActive = isActiveValue;
-							NE::MarkSceneDirty();
-							SPD_DEBUG("[DirtyFlag] Entity isActive changed to {} - Scene marked DIRTY", isActiveValue);
-						}
-					}
+				//	// Manually render isActive field with immediate updates
+				//	{
+				//		bool isActiveValue = comp.isActive;
+				//		if (ImGui::Checkbox("isActive", &isActiveValue)) {
+				//			comp.isActive = isActiveValue;
+				//			NE::MarkSceneDirty();
+				//			SPD_DEBUG("[DirtyFlag] Entity isActive changed to {} - Scene marked DIRTY", isActiveValue);
+				//		}
+				//	}
 
-					// Render other EntityMeta fields (skip name and isActive)
-					NE::Core::ForEachFieldView<NE::ECS::Component::EntityMeta>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using Owner = NE::ECS::Component::EntityMeta;
-							using FieldT = std::decay_t<decltype(currentValue)>;
+				//	// Render other EntityMeta fields (skip name and isActive)
+				//	NE::Core::ForEachFieldView<NE::ECS::Component::EntityMeta>(comp,
+				//		[&](auto const& desc, auto const& currentValue) {
+				//			using Owner = NE::ECS::Component::EntityMeta;
+				//			using FieldT = std::decay_t<decltype(currentValue)>;
 
-							// Skip name and isActive (already handled above)
-							if (std::string(desc.name) == "name" || std::string(desc.name) == "isActive") {
-								return;
-							}
+				//			// Skip name and isActive (already handled above)
+				//			if (std::string(desc.name) == "name" || std::string(desc.name) == "isActive") {
+				//				return;
+				//			}
 
-							FieldT edited = currentValue;
+				//			FieldT edited = currentValue;
 
-							ImGui::PushID(desc.name.data());
-							const bool changed = DrawField(desc, edited);
-							ImGui::PopID();
+				//			ImGui::PushID(desc.name.data());
+				//			const bool changed = DrawField(desc, edited);
+				//			ImGui::PopID();
 
-							// Handle other EntityMeta fields if any are added in the future
-							if (changed) {
-								// Apply change immediately  
-								NE::MarkSceneDirty();
-							}
-						});
-				}
-				else if (typeIdx == typeid(NE::ECS::Component::Transform)) {
+				//			// Handle other EntityMeta fields if any are added in the future
+				//			if (changed) {
+				//				// Apply change immediately  
+				//				NE::MarkSceneDirty();
+				//			}
+				//		});
+				//}
+				//else 
+				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
 					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 					ImGui::SeparatorText("Transform");
 					//NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,

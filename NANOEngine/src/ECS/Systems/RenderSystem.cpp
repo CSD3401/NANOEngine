@@ -110,7 +110,7 @@ const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entit
 				Graphics::DrawCommand cmd;
 				cmd.mesh = sub.buffer;
 				cmd.material = renderer.material;
-				cmd.transform = transform.modelMatrix;
+				cmd.transform = transform.worldMatrix;
 
                 //cmd.material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
                 //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
@@ -132,7 +132,7 @@ const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entit
                 Graphics::DrawCommand cmdPicking;
                 cmdPicking.mesh = sub.buffer;
                 cmdPicking.material = pickingMaterial;
-                cmdPicking.transform = transform.modelMatrix;
+                cmdPicking.transform = transform.worldMatrix;
                 cmdPicking.entity = entity;
                 Graphics::GraphicsManager::SubmitPicking(cmdPicking);
 			}

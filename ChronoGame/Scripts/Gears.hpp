@@ -17,11 +17,10 @@ public:
         if (Input::WasKeyPressed('E')) {
             auto& transform = Command::GetEntityTransform(GetEntity());
 
-            // Explicitly convert Math::Vec3 to Scripting::Vec3 for comparison
-            if (transform.scale == NE::Math::Vec3(0.f, 0.f, 0.f)) {
-                transform.scale = Vec3(0.2f, 0.2f, 0.2f);
+            if (transform.localScale == NE::Math::Vec3(0.f, 0.f, 0.f)) {
+                transform.localScale = NE::Math::Vec3(0.2f, 0.2f, 0.2f);
             } else {
-                transform.scale = Vec3(0.f, 0.f, 0.f);
+                transform.localScale = NE::Math::Vec3(0.f, 0.f, 0.f);
             }
             //if (!switched) {
             //    light.color = Vec3(0.7f, 0.4f, 0.f);

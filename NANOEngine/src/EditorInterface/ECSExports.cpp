@@ -14,6 +14,10 @@
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
+#include "ECS/Systems/TransformSystem.hpp"
+
+
+
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -190,6 +194,14 @@ namespace NE::ECS {
 
 		Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
+		}
+
+		void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
+			NE::GetScene().GetECSCoordinator().m_transformSystem->SetParent(child, parent);
+		}	
+
+		uint32_t GetParent(uint32_t child) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Transform>(child).parent;
 		}
 
 		// === Script Management Implementation ===

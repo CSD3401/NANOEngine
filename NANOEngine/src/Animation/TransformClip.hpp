@@ -42,11 +42,11 @@ namespace NE::Animation {
             return k0.v * (1.0f - a) + k1.v * a;
         }
 
-        void ApplyTo(NE::ECS::Component::Transform& tr, float t, bool loop) const
+        void ApplyTo(NE::ECS::Component::Transform& /*tr*/, float /*t*/, bool /*loop*/) const
         {
-            if (!pos.empty()) tr.position = Sample(pos, t, loop);
-            if (!rot.empty()) tr.rotation = Sample(rot, t, loop);
-            if (!scl.empty()) tr.scale    = Sample(scl, t, loop);
+            //if (!pos.empty()) tr.position = Sample(pos, t, loop);
+            //if (!rot.empty()) tr.rotation = Sample(rot, t, loop);
+            //if (!scl.empty()) tr.scale    = Sample(scl, t, loop);
         }
 
         static float lengthSafe(const std::vector<KeyframeVec3>& keys) {

@@ -184,17 +184,45 @@ namespace Editor {
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
+			//using Owner = NE::ECS::Component::Transform;
+			//const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
+			//const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
+
+			//float matrix[16];
+			//memcpy(matrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
+
+			//bool editedThisFrame = ImGuizmo::Manipulate(
+			//	m_editorCamera.GetViewMatrix().Data(),
+			//	m_editorCamera.GetProjectionMatrix().Data(),
+			//	currentOperation, ImGuizmo::LOCAL, matrix
+			//);
+			//bool isUsing = ImGuizmo::IsUsing();
+
 			using Owner = NE::ECS::Component::Transform;
 			const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
 			const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
 
-			float matrix[16];
-			memcpy(matrix, tRO.modelMatrix.Data(), sizeof(float) * 16);
+			// Get parent world matrix
+			NE::Math::Mat4 parentWorld;
+			parentWorld.SetToIdentity();
+
+			{
+				// However you get parent; adjust to your API
+				// Example: if Transform has a 'parent' entity id:
+				auto& t = NE::ECS::Query::GetEntityTransform(eid); // or Command::GetEntityTransform
+				if (t.parent != NE::ECS::Component::INVALID_PARENT) {
+					const auto& parentT = NE::ECS::Query::GetEntityTransform(t.parent);
+					parentWorld = parentT.worldMatrix;
+				}
+			}
+
+			float worldMatrix[16];
+			memcpy(worldMatrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
 
 			bool editedThisFrame = ImGuizmo::Manipulate(
 				m_editorCamera.GetViewMatrix().Data(),
 				m_editorCamera.GetProjectionMatrix().Data(),
-				currentOperation, ImGuizmo::LOCAL, matrix
+				currentOperation, ImGuizmo::LOCAL, worldMatrix
 			);
 			bool isUsing = ImGuizmo::IsUsing();
 
@@ -219,22 +247,53 @@ namespace Editor {
 				);
 			}
 
+			//if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+			//	float tr[3], rotDeg[3], sc[3];
+			//	ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+
+			//	auto current = NE::ECS::Query::GetEntityTransform(eid);
+			//	auto after = current;
+
+			//	if (s_gizmoMask & Editor::SetTransformCommand::Pos)
+			//		after.localPosition = { tr[0], tr[1], tr[2] };
+			//	if (s_gizmoMask & Editor::SetTransformCommand::Rot)
+			//		after.localRotationEuler = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+			//	if (s_gizmoMask & Editor::SetTransformCommand::Scl)
+			//		after.localScale = { sc[0], sc[1], sc[2] };
+
+			//	s_gizmoCmd->SetAfter(after);
+			//}
 			if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+				// Convert worldMatrix[16] back to Mat4
+				NE::Math::Mat4 newWorld;
+				memcpy(newWorld.Data(), worldMatrix, sizeof(float) * 16);
+
+				// local = parent^-1 * world
+				NE::Math::Mat4 invParent = parentWorld.Inverse(); // or your InverseTRS(parentWorld)
+				NE::Math::Mat4 newLocal = invParent * newWorld;
+
+				// Now decompose *local* matrix, not world
 				float tr[3], rotDeg[3], sc[3];
-				ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+				float localMatrix[16];
+				memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
+
+				ImGuizmo::DecomposeMatrixToComponents(localMatrix, tr, rotDeg, sc);
 
 				auto current = NE::ECS::Query::GetEntityTransform(eid);
 				auto after = current;
 
 				if (s_gizmoMask & Editor::SetTransformCommand::Pos)
-					after.position = { tr[0], tr[1], tr[2] };
+					after.localPosition = { tr[0], tr[1], tr[2] };
 				if (s_gizmoMask & Editor::SetTransformCommand::Rot)
-					after.rotation = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+					after.localRotationEuler = {
+						Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2])
+				};
 				if (s_gizmoMask & Editor::SetTransformCommand::Scl)
-					after.scale = { sc[0], sc[1], sc[2] };
+					after.localScale = { sc[0], sc[1], sc[2] };
 
 				s_gizmoCmd->SetAfter(after);
 			}
+
 
 			if (s_gizmoActive && !isUsing) {
 				if (s_gizmoCmd) {
@@ -244,9 +303,9 @@ namespace Editor {
 						return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
 						};
 					bool changed = false;
-					if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.position, A.position);
-					if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.rotation, A.rotation);
-					if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.scale, A.scale);
+					if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.localPosition, A.localPosition);
+					if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.localRotationEuler, A.localRotationEuler);
+					if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.localScale, A.localScale);
 
 					if (changed) {
 						Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
