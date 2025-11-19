@@ -18,6 +18,7 @@
 #include "ECS/Components/NativeScript.hpp"
 #include "Core/Couroutine.hpp"
 #include <iostream>
+#include "Core/SpdLogger.hpp"  // For console logging
 
 static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
 	namespace fs = std::filesystem;
@@ -114,6 +115,21 @@ namespace NE::SceneManagement {
 
 	void Scene::ScriptStop() {
 		m_ecsCoordinator.m_scriptSystem->StopScripts();
+	}
+
+	void Scene::MarkDirty() {
+		if (!m_isDirty) {
+			m_isDirty = true;
+			SPD_INFO("[DirtyFlag] Scene marked as DIRTY - has unsaved changes");
+		}
+	}
+
+	void Scene::MarkComponentsDirty() {
+		// Check all components and if any are dirty, mark the scene as dirty
+		// This should be called periodically in Edit mode
+		// For now, we'll mark scene dirty whenever called - 
+		// a more optimized version would scan component pools
+		m_isDirty = true;
 	}
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator() {

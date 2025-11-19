@@ -30,6 +30,9 @@ namespace NE {
 	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y);
 	
 	NANOENGINE_API void SaveCurrentScene(std::string path);
+	NANOENGINE_API void SaveSceneIfDirty(std::string path = "");
+	NANOENGINE_API bool IsSceneDirty();
+	NANOENGINE_API void MarkSceneDirty();
 	NANOENGINE_API void LoadTargetScene(std::string targetPath);
 
 	NANOENGINE_API size_t GetNumEntities();

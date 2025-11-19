@@ -14,12 +14,16 @@
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/AudioSource.hpp"
+#include "../ECS/Components/EntityMeta.hpp"
+#include "../ECS/Components/Renderer.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
 #include "../Core/Couroutine.hpp"
 #include "../Input/InputManager.hpp"
 #include "../Events/EventBus.hpp"
+#include "../EngineState.hpp"  // Include EngineState for dirty flag logic
+#include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
 
 #include <sstream>
 #include <unordered_map>
@@ -40,6 +44,19 @@ namespace Scripting {
     inline Vec3 ToSDKVec3(const Math::Vec3& v) {
         return Vec3(v.x, v.y, v.z);
     }
+
+    // Vector normalization helper
+    inline Vec3 Normalize(const Vec3& v) {
+        float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        if (length > 0.0001f) {
+            return Vec3(v.x / length, v.y / length, v.z / length);
+        }
+        return v;
+    }
+
+    // Context validation macro for consistent null-checking
+    #define CHECK_CONTEXT_OR_RETURN(returnValue) \
+        if (!m_context || !m_context->componentManager) return returnValue
 
     //=========================================================================
     // FIELD REGISTRY (PIMPL - Hide STL containers from DLL interface)
@@ -96,7 +113,7 @@ namespace Scripting {
     //=========================================================================
 
     Vec3 IScript::GetPosition() const {
-        if (!m_context || !m_context->componentManager) return Vec3::Zero();
+        CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
         if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
             return Vec3::Zero();
@@ -106,7 +123,7 @@ namespace Scripting {
     }
 
     void IScript::SetPosition(const Vec3& pos) {
-        if (!m_context || !m_context->componentManager) return;
+        CHECK_CONTEXT_OR_RETURN();
 
         if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
             auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
@@ -120,7 +137,7 @@ namespace Scripting {
     }
 
     Vec3 IScript::GetRotation() const {
-        if (!m_context || !m_context->componentManager) return Vec3::Zero();
+        CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
         if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
             return Vec3::Zero();
@@ -130,7 +147,7 @@ namespace Scripting {
     }
 
     void IScript::SetRotation(const Vec3& rot) {
-        if (!m_context || !m_context->componentManager) return;
+        CHECK_CONTEXT_OR_RETURN();
 
         if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
             auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
@@ -144,7 +161,7 @@ namespace Scripting {
     }
 
     Vec3 IScript::GetScale() const {
-        if (!m_context || !m_context->componentManager) return Vec3::One();
+        CHECK_CONTEXT_OR_RETURN(Vec3::One());
 
         if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
             return Vec3::One();
@@ -154,7 +171,7 @@ namespace Scripting {
     }
 
     void IScript::SetScale(const Vec3& scale) {
-        if (!m_context || !m_context->componentManager) return;
+        CHECK_CONTEXT_OR_RETURN();
 
         if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
             auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
@@ -200,15 +217,7 @@ namespace Scripting {
         forward.y = -std::sin(pitch);
         forward.z = -std::cos(pitch) * std::cos(yaw);
 
-        // Normalize to get unit vector
-        float length = std::sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
-        if (length > 0.0001f) {
-            forward.x /= length;
-            forward.y /= length;
-            forward.z /= length;
-        }
-
-        return forward;
+        return Normalize(forward);
     }
 
     Vec3 IScript::GetRight() const {
@@ -223,14 +232,7 @@ namespace Scripting {
         right.y = 0.0f;
         right.z = std::sin(yaw);
 
-        // Normalize
-        float length = std::sqrt(right.x * right.x + right.z * right.z);
-        if (length > 0.0001f) {
-            right.x /= length;
-            right.z /= length;
-        }
-
-        return right;
+        return Normalize(right);
     }
 
     Vec3 IScript::GetUp() const {
@@ -249,7 +251,7 @@ namespace Scripting {
     }
 
     float IScript::GetMass() const {
-        if (!m_context || !m_context->componentManager) return 0.0f;
+        CHECK_CONTEXT_OR_RETURN(0.0f);
 
         if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity))
             return 0.0f;
@@ -258,7 +260,7 @@ namespace Scripting {
     }
 
     void IScript::SetMass(float mass) {
-        if (!m_context || !m_context->componentManager) return;
+        CHECK_CONTEXT_OR_RETURN();
 
         if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity)) {
             auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(m_entity);
@@ -267,7 +269,7 @@ namespace Scripting {
     }
 
     bool IScript::GetUseGravity() const {
-        if (!m_context || !m_context->componentManager) return false;
+        CHECK_CONTEXT_OR_RETURN(false);
 
         if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity))
             return false;
@@ -641,195 +643,177 @@ namespace Scripting {
     // Field Registration
     //=========================================================================
 
-    void IScript::RegisterFloatField(const std::string& name, float* memberPtr) {
+    // Helper function to reduce code duplication in field registration
+    void IScript::RegisterFieldInternal(
+        const std::string& name,
+        const std::string& typeToken,
+        void* memberPtr,
+        std::function<std::string()> getValue,
+        std::function<bool(const std::string&)> setValue)
+    {
         if (!m_fieldRegistry) {
             m_fieldRegistry = new FieldRegistry();
         }
 
         FieldRegistry::FieldEntry entry;
-        entry.typeToken = "float";
+        entry.typeToken = typeToken;
         entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            return std::to_string(*memberPtr);
-        };
-        entry.setValue = [memberPtr](const std::string& value) -> bool {
-            try {
-                *memberPtr = std::stof(value);
-                return true;
-            } catch (...) {
-                return false;
-            }
-        };
+        entry.getValue = std::move(getValue);
+        entry.setValue = std::move(setValue);
         m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterFloatField(const std::string& name, float* memberPtr) {
+        RegisterFieldInternal(
+            name,
+            "float",
+            memberPtr,
+            [memberPtr]() -> std::string { return std::to_string(*memberPtr); },
+            [memberPtr](const std::string& value) -> bool {
+                try {
+                    *memberPtr = std::stof(value);
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            }
+        );
     }
 
     void IScript::RegisterIntField(const std::string& name, int* memberPtr) {
-        if (!m_fieldRegistry) {
-            m_fieldRegistry = new FieldRegistry();
-        }
-
-        FieldRegistry::FieldEntry entry;
-        entry.typeToken = "int";
-        entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            return std::to_string(*memberPtr);
-        };
-        entry.setValue = [memberPtr](const std::string& value) -> bool {
-            try {
-                *memberPtr = std::stoi(value);
-                return true;
-            } catch (...) {
-                return false;
+        RegisterFieldInternal(
+            name,
+            "int",
+            memberPtr,
+            [memberPtr]() -> std::string { return std::to_string(*memberPtr); },
+            [memberPtr](const std::string& value) -> bool {
+                try {
+                    *memberPtr = std::stoi(value);
+                    return true;
+                } catch (...) {
+                    return false;
+                }
             }
-        };
-        m_fieldRegistry->fields[name] = std::move(entry);
+        );
     }
 
     void IScript::RegisterBoolField(const std::string& name, bool* memberPtr) {
-        if (!m_fieldRegistry) {
-            m_fieldRegistry = new FieldRegistry();
-        }
-
-        FieldRegistry::FieldEntry entry;
-        entry.typeToken = "bool";
-        entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            return *memberPtr ? "1" : "0";
-        };
-        entry.setValue = [memberPtr](const std::string& value) -> bool {
-            if (value == "1" || value == "true") {
-                *memberPtr = true;
-                return true;
+        RegisterFieldInternal(
+            name,
+            "bool",
+            memberPtr,
+            [memberPtr]() -> std::string { return *memberPtr ? "1" : "0"; },
+            [memberPtr](const std::string& value) -> bool {
+                if (value == "1" || value == "true") {
+                    *memberPtr = true;
+                    return true;
+                }
+                if (value == "0" || value == "false") {
+                    *memberPtr = false;
+                    return true;
+                }
+                return false;
             }
-            if (value == "0" || value == "false") {
-                *memberPtr = false;
-                return true;
-            }
-            return false;
-        };
-        m_fieldRegistry->fields[name] = std::move(entry);
+        );
     }
 
     void IScript::RegisterStringField(const std::string& name, std::string* memberPtr) {
-        if (!m_fieldRegistry) {
-            m_fieldRegistry = new FieldRegistry();
-        }
-
-        FieldRegistry::FieldEntry entry;
-        entry.typeToken = "string";
-        entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            return *memberPtr;
-        };
-        entry.setValue = [memberPtr](const std::string& value) -> bool {
-            try {
-                *memberPtr = value;
-                return true;
-            } catch (...) {
-                return false;
+        RegisterFieldInternal(
+            name,
+            "string",
+            memberPtr,
+            [memberPtr]() -> std::string { return *memberPtr; },
+            [memberPtr](const std::string& value) -> bool {
+                try {
+                    *memberPtr = value;
+                    return true;
+                } catch (...) {
+                    return false;
+                }
             }
-        };
-        m_fieldRegistry->fields[name] = std::move(entry);
+        );
     }
 
     void IScript::RegisterVec3Field(const std::string& name, Vec3* memberPtr) {
-        if (!m_fieldRegistry) {
-            m_fieldRegistry = new FieldRegistry();
-        }
-
-        FieldRegistry::FieldEntry entry;
-        entry.typeToken = "vec3";
-        entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            std::ostringstream oss;
-            oss << memberPtr->x << ' ' << memberPtr->y << ' ' << memberPtr->z;
-            return oss.str();
-        };
-        entry.setValue = [memberPtr](const std::string& value) -> bool {
-            try {
-                std::istringstream iss(value);
-                float x, y, z;
-                if (!(iss >> x >> y >> z)) {
+        RegisterFieldInternal(
+            name,
+            "vec3",
+            memberPtr,
+            [memberPtr]() -> std::string {
+                std::ostringstream oss;
+                oss << memberPtr->x << ' ' << memberPtr->y << ' ' << memberPtr->z;
+                return oss.str();
+            },
+            [memberPtr](const std::string& value) -> bool {
+                try {
+                    std::istringstream iss(value);
+                    float x, y, z;
+                    if (!(iss >> x >> y >> z)) {
+                        return false;
+                    }
+                    memberPtr->x = x;
+                    memberPtr->y = y;
+                    memberPtr->z = z;
+                    return true;
+                } catch (...) {
                     return false;
                 }
-                memberPtr->x = x;
-                memberPtr->y = y;
-                memberPtr->z = z;
-                return true;
-            } catch (...) {
-                return false;
             }
-        };
-        m_fieldRegistry->fields[name] = std::move(entry);
+        );
     }
 
     void IScript::RegisterTransformRefField(const std::string& name, TransformRef* memberPtr) {
-        if (!m_fieldRegistry) {
-            m_fieldRegistry = new FieldRegistry();
-        }
-
-        FieldRegistry::FieldEntry entry;
-        entry.typeToken = "transformref";
-        entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            return std::to_string(memberPtr->GetEntity());
-        };
-        entry.setValue = [this, memberPtr](const std::string& value) -> bool {
-            try {
-                Entity entity = static_cast<Entity>(std::stoul(value));
-                *memberPtr = GetTransformRef(entity);
-                return true;
-            } catch (...) {
-                return false;
+        RegisterFieldInternal(
+            name,
+            "transformref",
+            memberPtr,
+            [memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
+            [this, memberPtr](const std::string& value) -> bool {
+                try {
+                    Entity entity = static_cast<Entity>(std::stoul(value));
+                    *memberPtr = GetTransformRef(entity);
+                    return true;
+                } catch (...) {
+                    return false;
+                }
             }
-        };
-        m_fieldRegistry->fields[name] = std::move(entry);
+        );
     }
 
     void IScript::RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr) {
-        if (!m_fieldRegistry) {
-            m_fieldRegistry = new FieldRegistry();
-        }
-
-        FieldRegistry::FieldEntry entry;
-        entry.typeToken = "rigidbodyref";
-        entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            return std::to_string(memberPtr->GetEntity());
-        };
-        entry.setValue = [this, memberPtr](const std::string& value) -> bool {
-            try {
-                Entity entity = static_cast<Entity>(std::stoul(value));
-                *memberPtr = GetRigidbodyRef(entity);
-                return true;
-            } catch (...) {
-                return false;
+        RegisterFieldInternal(
+            name,
+            "rigidbodyref",
+            memberPtr,
+            [memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
+            [this, memberPtr](const std::string& value) -> bool {
+                try {
+                    Entity entity = static_cast<Entity>(std::stoul(value));
+                    *memberPtr = GetRigidbodyRef(entity);
+                    return true;
+                } catch (...) {
+                    return false;
+                }
             }
-        };
-        m_fieldRegistry->fields[name] = std::move(entry);
+        );
     }
 
     void IScript::RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr) {
-        if (!m_fieldRegistry) {
-            m_fieldRegistry = new FieldRegistry();
-        }
-
-        FieldRegistry::FieldEntry entry;
-        entry.typeToken = "audiosourceref";
-        entry.memberPtr = memberPtr;
-        entry.getValue = [memberPtr]() -> std::string {
-            return std::to_string(memberPtr->GetEntity());
-        };
-        entry.setValue = [this, memberPtr](const std::string& value) -> bool {
-            try {
-                Entity entity = static_cast<Entity>(std::stoul(value));
-                *memberPtr = GetAudioSourceRef(entity);
-                return true;
-            } catch (...) {
-                return false;
+        RegisterFieldInternal(
+            name,
+            "audiosourceref",
+            memberPtr,
+            [memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
+            [this, memberPtr](const std::string& value) -> bool {
+                try {
+                    Entity entity = static_cast<Entity>(std::stoul(value));
+                    *memberPtr = GetAudioSourceRef(entity);
+                    return true;
+                } catch (...) {
+                    return false;
+                }
             }
-        };
-        m_fieldRegistry->fields[name] = std::move(entry);
+        );
     }
 
     //=========================================================================
@@ -926,6 +910,77 @@ namespace Scripting {
     void IScript::RemoveArrayElement(const std::string& fieldName, size_t index) {
         (void)fieldName;
         (void)index;
+    }
+
+    template<typename T>
+    void IScript::MarkComponentDirty() {
+        // Only mark dirty in Edit mode - runtime changes should not be serialized
+        if (NE::GetEngineState() != NE::EngineState::Edit) {
+            return;
+        }
+
+        if (!m_context->componentManager || !m_context->componentManager->HasComponent<T>(m_entity)) {
+            return;
+        }
+
+        auto& component = m_context->componentManager->GetComponent<T>(m_entity);
+
+        // Use C++20 requires to check if the component has an isDirty field
+        if constexpr (requires { component.isDirty; }) {
+            component.isDirty = true;
+        }
+    }
+
+    // === Entity Active State Functions ===
+
+    bool IScript::IsActive() const {
+        if (!m_context->componentManager) return false;
+
+        if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity))
+            return true; // Default to active if no EntityMeta
+
+        return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity).isActive;
+    }
+
+    void IScript::SetActive(bool active) {
+        if (!m_context->componentManager) return;
+
+        if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+            auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
+
+            // Only update if changed
+            if (meta.isActive != active) {
+                meta.isActive = active;
+
+                // 1. Disable rendering if entity has Renderer component
+                if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
+                    auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
+                    renderer.visible = active;
+                }
+
+                // 2. Disable physics interaction if entity has physics body
+                if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
+                    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+
+                    if (active) {
+                        // Reactivate physics body
+                        NE::Physics::PhysicsManager::ActivateBody(bodyID);
+                    }
+                    else {
+                        // Deactivate physics body (stops collision and physics simulation)
+                        NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+                    }
+                }
+
+                // TODO: 3. Recursively propagate to children when hierarchy system is implemented
+                // For now, this affects only the current entity
+
+                // Mark scene dirty when active state changes (Edit mode only)
+                if (NE::GetEngineState() == NE::EngineState::Edit) {
+                    NE::MarkSceneDirty();
+                }
+            }
+        }
     }
 
     //=========================================================================

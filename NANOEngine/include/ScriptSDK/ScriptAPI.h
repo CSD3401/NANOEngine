@@ -99,6 +99,32 @@ namespace Scripting {
         virtual void OnDisable() {}
 
         //=====================================================================
+        // Dirty Scripts Stuff - Anson Pls Check
+        //=====================================================================
+        /**
+        * Mark a component as dirty for serialization (Editor Mode only).
+        * This is automatically called by helper functions, but can be called manually
+        * when directly modifying component fields in Editor Mode scripts.
+        */
+        template<typename T>
+        void MarkComponentDirty();
+
+        /**
+        * Check if the entity is currently active.
+        * Inactive entities don't update scripts or render.
+        * @return true if active, false otherwise
+        */
+        bool IsActive() const;
+
+        /**
+         * Set the active state of the entity.
+         * Inactive entities stop updating scripts and rendering.
+         * Useful for hiding/disabling game objects.
+         * @param active New active state
+         */
+        void SetActive(bool active);
+
+        //=====================================================================
         // COLLISION/TRIGGER EVENTS
         //=====================================================================
 
@@ -349,6 +375,14 @@ namespace Scripting {
     private:
         // Forward declaration of field registry (PIMPL pattern)
         class FieldRegistry;
+
+        // Helper function to reduce code duplication in field registration
+        void RegisterFieldInternal(
+            const std::string& name,
+            const std::string& typeToken,
+            void* memberPtr,
+            std::function<std::string()> getValue,
+            std::function<bool(const std::string&)> setValue);
 
         Entity m_entity = INVALID_ENTITY;
         bool m_enabled = true;

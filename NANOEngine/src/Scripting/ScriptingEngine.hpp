@@ -1,5 +1,6 @@
 #pragma once
 
+#include "NANOEngineAPI.hpp"
 #include "IScriptRegistrar.hpp"
 #include "IScript.hpp"
 #include <unordered_map>
@@ -7,15 +8,11 @@
 #include <vector>
 #include <Windows.h>
 #include <mutex>
+#pragma warning(push)
+#pragma warning(disable: 4068) // unknown pragma 'mark' - Xcode/Clang pragma not recognized by MSVC
 #include <FileWatch.hpp>
+#pragma warning(pop)
 #include "ECS/Components/NativeScript.hpp"
-
-// Export macros for when Engine is built as DLL
-//#ifdef ENGINE_EXPORTS
-//#define ENGINE_API __declspec(dllexport)
-//#else
-//#define ENGINE_API __declspec(dllimport)
-//#endif
 
 namespace NE::Scripting {
 
@@ -23,28 +20,24 @@ namespace NE::Scripting {
     typedef void (*RegisterScriptsFunction)(IScriptRegistrar* registrar);
 
     /**
-     * Combined scripting engine that handles both script registration and DLL loading.
-     * Can be used as a DLL itself to be loaded by editor applications.
+     * @struct ScriptEngineConfig
+     * @brief Configuration for ScriptingEngine initialization
+     */
+    struct ScriptEngineConfig {
+        std::string scriptDLLName = "ChronoGame.dll";
+        std::string scriptSourceDirectory = "../../../ChronoGame/Scripts/";
+        std::string scriptProjectPath = "../../../ChronoGame/ChronoGame.vcxproj";
+        std::string buildConfiguration = "Release";
+        std::string buildPlatform = "x64";
+    };
+
+    /**
+     * Scripting engine that handles script registration and single game DLL loading.
+     * Manages hot-reloading and state preservation for ChronoGame.dll.
      */
     class ScriptingEngine : public IScriptRegistrar {
     public:
-        struct LoadedDLL {
-            HMODULE handle;
-            std::string filepath;
-            std::string name;
-            RegisterScriptsFunction registerFunction;
-
-            LoadedDLL(HMODULE h, const std::string& path, const std::string& n, RegisterScriptsFunction func)
-                : handle(h), filepath(path), name(n), registerFunction(func) {}
-        };
-
-    public:
-
-
-        static ScriptingEngine& GetInstance() {
-            static ScriptingEngine se;
-            return se;
-        }
+        static NANOENGINE_API ScriptingEngine& GetInstance();
 
         // === IScriptRegistrar interface implementation ===
         void RegisterScript(const std::string& name, std::function<IScript* ()> factory) override;
@@ -65,52 +58,39 @@ namespace NE::Scripting {
          */
         std::vector<std::string> GetRegisteredScriptNames() const;
 
+        /**
+         * Get the factory function for a registered script.
+         * @param name The name of the script
+         * @return The function to create the script, or nullptr if not found
+         */
+        std::function<IScript* ()> GetScriptFactory(const std::string& name) const;
+
         // === DLL Loading Management ===
         /**
-         * Load a game DLL and register its scripts.
+         * Load the game script DLL and register its scripts.
          * @param dllPath Path to the DLL file
          * @return true if successfully loaded and registered, false otherwise
          */
-        bool LoadGameDLL(const std::string& dllPath);
+        bool LoadScriptDLL(const std::string& dllPath);
 
         /**
-         * Load all DLLs in a specified directory.
-         * @param directory Directory to scan for DLL files
-         * @return Number of successfully loaded DLLs
+         * Unload the currently loaded script DLL.
+         * @return true if successfully unloaded, false if no DLL was loaded
          */
-        int LoadAllDLLsInDirectory(const std::string& directory);
+        bool UnloadScriptDLL();
 
         /**
-         * Unload a specific DLL by name.
-         * @param dllName Name of the DLL to unload (including .dll extension)
-         * @return true if successfully unloaded, false if not found
-         */
-        bool UnloadDLL(const std::string& dllName);
-
-        /**
-         * Unload all loaded DLLs and clear registered scripts.
-         */
-        void UnloadAllDLLs();
-
-        /**
-         * Get information about all loaded DLLs.
-         * @return Vector of loaded DLL information
-         */
-        const std::vector<LoadedDLL>& GetLoadedDLLs() const;
-
-        /**
-         * Check if a DLL is currently loaded.
-         * @param dllName Name of the DLL to check (including .dll extension)
+         * Check if the script DLL is currently loaded.
          * @return true if loaded, false otherwise
          */
-        bool IsDLLLoaded(const std::string& dllName) const;
+        bool IsScriptDLLLoaded() const;
 
         // === Engine Lifecycle ===
         /**
-         * Initialize the scripting engine.
-         * Call this after loading all desired DLLs.
+         * Initialize the scripting engine and set up hot-reloading.
+         * @param config Configuration settings (uses defaults if not provided)
          */
-        void Initialize();
+        void Initialize(const ScriptEngineConfig& config = ScriptEngineConfig());
 
         /**
          * Shutdown the scripting engine and clean up all resources.
@@ -127,92 +107,88 @@ namespace NE::Scripting {
          * Get the last error message from operations.
          * @return Error message string
          */
-        const std::string& GetLastError() const;
+        NANOENGINE_API const std::string& GetLastError() const;
 
         // === Utility ===
         /**
-         * Print a summary of loaded DLLs and registered scripts.
+         * Print a summary of loaded DLL and registered scripts.
          */
         void PrintSummary() const;
 
+        // === Hot Reload ===
         /**
-         * Reload a specific DLL (unload then load again).
-         * Useful for development and hot-reloading.
-         * @param dllPath Path to the DLL file
-         * @return true if successfully reloaded
+         * Thread-safe flag to request a compile (set by file watcher).
          */
-        bool ReloadDLL(const std::string& dllPath);
-
-        /**
-         * Clear all registered scripts without unloading DLLs.
-         * Useful for reloading script registrations.
-         */
-        void ClearRegisteredScripts();
-
-        /**
-     * Get the factory function for a registered script.
-     * @param name The name of the script
-     * @return The function to create the script, or an empty function if not found
-     */
-        std::function<IScript* ()> GetScriptFactory(const std::string& name) const;
-
-
-        // Thread-safe flag to request a compile
         std::atomic<bool> m_compileQueued = false;
 
+        /**
+         * Compile and hot-reload the script DLL (called from main thread).
+         */
+        void HotCompileAndReload();
+
+        /**
+         * Save script field values to component for hot-reload preservation.
+         */
         void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
 
+        /**
+         * Restore script field values from component after hot-reload.
+         */
         void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
-        void HandleFileWatchEvent(const std::string& path, const filewatch::Event eventType);
-        void HotCompileAndReload();
-        void HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath);
+
+        /**
+         * Destroy script instance and call cleanup (used before hot-reload).
+         */
         void OnScriptComponentDestroyed(NE::ECS::Entity entity);
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;
 
-        // Script registration storage
+        // === Script Registration ===
         std::unordered_map<std::string, std::function<IScript* ()>> m_scriptFactories;
-
-        // DLL management storage
-        std::vector<LoadedDLL> m_loadedDLLs;
-
         mutable std::mutex m_mutex;
 
-        // State tracking
+        // === Single DLL Management ===
+        struct {
+            HMODULE handle = nullptr;
+            std::string filepath;
+            RegisterScriptsFunction registerFunction = nullptr;
+        } m_loadedDLL;
+
+        // === State Tracking ===
         bool m_initialized;
         std::string m_lastError;
-        HMODULE m_currentLoadingDLLHandle = nullptr; // Temp state during LoadSingleDLL
+
+        // === Hot Reload System ===
+        std::unique_ptr<filewatch::FileWatch<std::string>> m_sourceWatcher;
+        std::string m_scriptDLLPath;              // Original DLL path (e.g., "ChronoGame.dll")
+        std::string m_scriptSourceDirectory;      // Source directory to watch for changes
+        std::string m_scriptBuildCommand;         // MSBuild command to compile scripts
+        int m_hotReloadCounter = 0;               // Counter for versioned hot-reload copies
+        std::string m_currentLoadedDLLPath;       // Currently loaded DLL copy path
 
         // === Private Helper Methods ===
-
-        // Script validation
         void ValidateScriptName(const std::string& name) const;
-
-        // DLL helpers
-        std::string GetDLLName(const std::string& filepath) const;
         bool ValidateDLLPath(const std::string& path) const;
-        LoadedDLL* FindLoadedDLL(const std::string& dllName);
-        const LoadedDLL* FindLoadedDLL(const std::string& dllName) const;
-        // Error handling
         void SetLastError(const std::string& error);
         std::string GetSystemError() const;
+        void ClearRegisteredScripts();
+        void HandleFileWatchEvent(const std::string& path, const filewatch::Event eventType);
+        void HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath);
+        std::string CreateHotReloadCopyPath(int version) const;
 
-        // Internal DLL operations
-        bool LoadSingleDLL(const std::string& dllPath);
-        bool UnloadSingleDLL(LoadedDLL& dll);
+        // Hot reload helper methods
+        struct ScriptState {
+            std::string scriptName;
+            bool isEnabled;
+            std::unordered_map<std::string, std::string> fields;
+        };
 
-        // Hot Reloading
-        std::unique_ptr<filewatch::FileWatch<std::string>> m_sourceWatcher;
-        std::string m_scriptDLLPath;           // Path to the final DLL 
-        std::string m_scriptSourceDirectory;   // Path to watch for .cpp/hpp
-        std::string m_scriptBuildCommand;      // The command to run
-
-        // Counter to create unique filenames for hot-reloading
-        int m_hotReloadCounter = 0;
-        std::string m_currentLoadedDLLPath; // The path to the DLL *actually* loaded
-
-
+        std::unordered_map<NE::ECS::Entity, ScriptState> SaveAllScriptStates();
+        void DestroyAllScriptInstances();
+        bool SwapDLLs(const std::string& oldDllPath, const std::string& newDllPath);
+        void RestoreAllScriptStates(const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore);
+        void EnableScripts(const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore);
     };
 
 } // namespace NE::Scripting

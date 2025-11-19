@@ -179,7 +179,29 @@ namespace NE {
 	}
 
 	void SaveCurrentScene(std::string path) {
-		Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), path);
+		auto* editorScene = gSceneManager.GetEditorScene();
+		if (!editorScene) return;
+		
+		SPD_INFO("[DirtyFlag] SaveCurrentScene called - Saving to: {}", path);
+		Serialization::JsonSceneSerializer::Serialize(*editorScene, path);
+		editorScene->ClearDirty();
+		SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
+	}
+
+	void SaveSceneIfDirty(std::string path) {
+		gSceneManager.SaveSceneIfDirty(path);
+	}
+
+	bool IsSceneDirty() {
+		auto* editorScene = gSceneManager.GetEditorScene();
+		return editorScene ? editorScene->IsDirty() : false;
+	}
+
+	void MarkSceneDirty() {
+		auto* editorScene = gSceneManager.GetEditorScene();
+		if (editorScene) {
+			editorScene->MarkDirty();
+		}
 	}
 
 	void LoadTargetScene(std::string targetPath) {

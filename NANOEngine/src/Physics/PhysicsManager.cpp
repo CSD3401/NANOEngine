@@ -427,6 +427,15 @@ namespace NE::Physics {
         bodyInterface.ActivateBodies(allBodies.data(), static_cast<int>(allBodies.size()));
     }
 
+    void PhysicsManager::ActivateBody(uint32_t bodyID)
+    {
+        if (!s_PhysicsSystem) return;
+        
+        JPH::BodyID id(bodyID);
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        bodyInterface.ActivateBody(id);
+    }
+
     void PhysicsManager::DeactivateBodies()
     {
         JPH::BodyIDVector allBodies;
@@ -434,6 +443,15 @@ namespace NE::Physics {
 
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         bodyInterface.DeactivateBodies(allBodies.data(), static_cast<int>(allBodies.size()));
+    }
+
+    void PhysicsManager::DeactivateBody(uint32_t bodyID)
+    {
+        if (!s_PhysicsSystem) return;
+   
+        JPH::BodyID id(bodyID);
+        JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
+        bodyInterface.DeactivateBody(id);
     }
 
     uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {

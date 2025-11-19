@@ -511,18 +511,20 @@ namespace Editor {
             std::ifstream ifs(metaPath);
             if (!ifs) {
                 SPD_WARNING("Failed to read meta file: " << metaPath.string());
-                return "";
+                return std::string();
             }
 
-            std::string line;
-            while (std::getline(ifs, line)) {
-                if (line.starts_with("uuid:")) {
-                    uuid = line.substr(line.find(':') + 1);
-                    uuid.erase(0, uuid.find_first_not_of(" \t"));
-                    break;
-                }
+            rapidjson::IStreamWrapper isw(ifs);
+            rapidjson::Document doc;
+            doc.ParseStream(isw);
+
+            if (doc.HasParseError() || !doc.IsObject()) {
+                SPD_WARNING("Failed to parse meta JSON: " << metaPath.string());
+                return std::string();
             }
 
+            if (doc.HasMember("uuid") && doc["uuid"].IsString())
+                uuid = doc["uuid"].GetString();
         }
         return uuid;
     }
