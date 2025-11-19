@@ -20,11 +20,19 @@ namespace NE::SceneManagement {
 		ECS::ECSCoordinator& GetECSCoordinator();
 		Core::LUIDRegistry& GetLuidRegistry();
 
+		// Dirty flag system for editor changes
+		void MarkDirty();  // Changed to non-inline so we can add logging
+		bool IsDirty() const { return m_isDirty; }
+		void ClearDirty() { m_isDirty = false; }
+		void MarkComponentsDirty();
+
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
+		bool m_isDirty = false;
 		Core::LUIDRegistry m_luidRegistry;
 	};
 
 }
+
 
 

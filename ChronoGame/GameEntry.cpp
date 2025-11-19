@@ -15,9 +15,10 @@
 #include "Scripts/Gears.hpp"
 #include "Scripts/k1bswitch.hpp"
 #include "Scripts/k2bswitch.hpp"
-
+#include "Scripts/PlayerController.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
+
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
     // Export this function so it can be called from the Engine DLL
@@ -66,12 +67,16 @@ extern "C" {
 
         registrar->RegisterScript("k2bswitch", []() -> NE::Scripting::IScript* {
             return new k2bswitch();
-     });
+            });
 
         // Component Reference Example Scripts
           registrar->RegisterScript("FollowerScript", []() -> NE::Scripting::IScript* {
           return new FollowerScript();
      });
+
+          registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
+             return new PlayerController();
+           });
 
     }
 }

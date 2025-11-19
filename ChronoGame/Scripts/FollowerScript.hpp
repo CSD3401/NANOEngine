@@ -63,6 +63,7 @@ public:
                 direction.y * moveAmount,
                 direction.z * moveAmount
             );
+
         }
     }
 

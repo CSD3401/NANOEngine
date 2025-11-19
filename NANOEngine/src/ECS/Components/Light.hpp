@@ -33,6 +33,9 @@ namespace NE::ECS::Component {
 
         uint64_t luid;
 
+        // Dirty flag for editor changes
+        bool isDirty = false;
+
         NE_REFLECT_BEGIN(Light)
             //NE_REFLECT_FIELD(type),
             NE_REFLECT_FIELD(direction),
