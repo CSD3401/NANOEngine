@@ -947,7 +947,7 @@ namespace Editor {
 														comp.Instance->_RefreshComponentReferences();
 														fieldChanged = true;
 													}
-												}
+												
 											}
 										}
 										ImGui::EndDragDropTarget();

@@ -220,6 +220,15 @@ namespace NE::ECS::Systems {
 
         // Second loop: Update all active scripts
         for (Entity entity : entities) {
+
+            // Skip inactive entities
+            if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
+                const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+                if (!meta.isActive) {
+                    continue; // Skip this entity entirely
+                }
+            }
+
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
             if (nsc.Instance && nsc.Instance->IsEnabled()) {
                 // Call Start() before first Update() if not yet called

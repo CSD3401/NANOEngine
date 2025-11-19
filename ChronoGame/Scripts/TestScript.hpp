@@ -40,6 +40,7 @@ public:
 	}
 
 	void Update(double deltaTime) override {
+
 		// Handle respawn countdown
 		if (m_isRespawning) {
 			m_respawnTimer -= static_cast<float>(deltaTime);
@@ -59,25 +60,23 @@ public:
 		// === Input Controls ===
 		
 		// Trigger respawn sequence with 'R' key
-		if (NE::InputManager::WasKeyPressed('R')) {
+		if (Input::WasKeyPressed('R')) {
 			TriggerRespawn();
 		}
 
-		// === Visual Demo (Bobbing Motion) ===
-		auto transform = GetComponent<NE::ECS::Component::Transform>();
-		if (transform) {
-			// Rotate using the rotation speed field
-			m_totalTime += static_cast<float>(deltaTime);
-
-			// Simple bobbing motion using bounce height
-			transform->position.y = std::sin(m_totalTime * 2.0f) * bounceHeight;
-
-			// Rotate the object for visual feedback that it's active
-			transform->rotation.y += rotationSpeed * static_cast<float>(deltaTime);
-
-			// You could also use the color field to set renderer color
-			// You could use particleCount to control particle systems
+		if (Input::WasKeyPressed('I')) {
+			SetActive(!IsActive());
 		}
+
+		// === Visual Demo (Bobbing Motion) ===
+		// 
+		static float totalTime = 0.0f;
+		totalTime += static_cast<float>(deltaTime);
+
+		// Simple bobbing motion using bounce height using SDK methods
+		NE::Scripting::Vec3 currentPos = GetPosition();
+		currentPos.y = std::sin(totalTime * 2.0f) * bounceHeight;
+		SetPosition(currentPos);
 
 		// === Auto-Respawn Demo ===
 		if (enableAutoRespawn) {

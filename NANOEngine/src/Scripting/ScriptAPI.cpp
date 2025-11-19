@@ -14,6 +14,8 @@
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/AudioSource.hpp"
+#include "../ECS/Components/EntityMeta.hpp"
+#include "../ECS/Components/Renderer.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
@@ -21,6 +23,7 @@
 #include "../Input/InputManager.hpp"
 #include "../Events/EventBus.hpp"
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
+#include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
 
 #include <sstream>
 #include <unordered_map>
@@ -936,15 +939,67 @@ namespace Scripting {
             return;
         }
 
-        if (!m_componentManager || !m_componentManager->HasComponent<T>(m_entity)) {
+        if (!m_context->componentManager || !m_context->componentManager->HasComponent<T>(m_entity)) {
             return;
         }
 
-        auto& component = m_componentManager->GetComponent<T>(m_entity);
+        auto& component = m_context->componentManager->GetComponent<T>(m_entity);
 
         // Use C++20 requires to check if the component has an isDirty field
         if constexpr (requires { component.isDirty; }) {
             component.isDirty = true;
+        }
+    }
+
+    // === Entity Active State Functions ===
+
+    bool IScript::IsActive() const {
+        if (!m_context->componentManager) return false;
+
+        if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity))
+            return true; // Default to active if no EntityMeta
+
+        return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity).isActive;
+    }
+
+    void IScript::SetActive(bool active) {
+        if (!m_context->componentManager) return;
+
+        if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+            auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
+
+            // Only update if changed
+            if (meta.isActive != active) {
+                meta.isActive = active;
+
+                // 1. Disable rendering if entity has Renderer component
+                if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
+                    auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
+                    renderer.visible = active;
+                }
+
+                // 2. Disable physics interaction if entity has physics body
+                if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
+                    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+
+                    if (active) {
+                        // Reactivate physics body
+                        NE::Physics::PhysicsManager::ActivateBody(bodyID);
+                    }
+                    else {
+                        // Deactivate physics body (stops collision and physics simulation)
+                        NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+                    }
+                }
+
+                // TODO: 3. Recursively propagate to children when hierarchy system is implemented
+                // For now, this affects only the current entity
+
+                // Mark scene dirty when active state changes (Edit mode only)
+                if (NE::GetEngineState() == NE::EngineState::Edit) {
+                    NE::MarkSceneDirty();
+                }
+            }
         }
     }
 

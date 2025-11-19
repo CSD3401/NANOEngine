@@ -109,6 +109,21 @@ namespace Scripting {
         template<typename T>
         void MarkComponentDirty();
 
+        /**
+        * Check if the entity is currently active.
+        * Inactive entities don't update scripts or render.
+        * @return true if active, false otherwise
+        */
+        bool IsActive() const;
+
+        /**
+         * Set the active state of the entity.
+         * Inactive entities stop updating scripts and rendering.
+         * Useful for hiding/disabling game objects.
+         * @param active New active state
+         */
+        void SetActive(bool active);
+
         //=====================================================================
         // COLLISION/TRIGGER EVENTS
         //=====================================================================
