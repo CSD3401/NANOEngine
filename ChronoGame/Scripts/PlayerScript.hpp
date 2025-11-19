@@ -175,7 +175,7 @@ public:
 			// Start the coroutine
 			Coroutines::Start(h);
 
-			LOG_DEBUG("Timer start!");
+			LOG_DEBUG("Timer start macdonaldo!");
 		}
 
 		//Courutine Test

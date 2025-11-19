@@ -9,6 +9,7 @@
 #include "../../include/ScriptSDK/ScriptAPI.h"
 #include "../../include/ScriptSDK/ScriptMacros.h"
 #include "ScriptContext.hpp"
+#include "ScriptContextFactory.hpp"
 
 // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
@@ -80,7 +81,11 @@ namespace Scripting {
 
     IScript::~IScript() {
         delete m_fieldRegistry;
-        // Note: ScriptContext is owned by the engine, don't delete it
+        // Properly clean up ScriptContext to avoid memory leak
+        if (m_context) {
+            DestroyScriptContext(m_context);
+            m_context = nullptr;
+        }
     }
 
     void IScript::_LinkToEngine(ScriptContext* context) {
