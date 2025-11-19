@@ -1,12 +1,6 @@
 #pragma once
-#include "Scripting/IScript.hpp"
-#include "Input/InputManager.hpp"
-#include "../ExposedFieldRegistry.hpp"
-#include "Math/Vec3.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "ECS/Components/Collider.hpp"
+#include "EngineAPI.hpp"
 #include <cmath>
-#include <Core/SpdLogger.hpp>
 
 // GLFW key codes
 #define GLFW_KEY_SPACE 32
@@ -23,7 +17,7 @@
  * - jumpForce is now effectively "jumpSpeed" (initial upward velocity).
  * - manualGravity should be NEGATIVE (e.g. -18.81f).
  */
-class PlayerController : public IScript {
+class PlayerController : public NE::Scripting::IScript {
 public:
     PlayerController() {
         REGISTER_FIELD(moveSpeed);
@@ -39,19 +33,18 @@ public:
     void Awake() override {}
 
     void Initialize(NE::ECS::Entity entity) override {
-        SetEntity(entity);
+        _SetEntity(entity);
     }
 
     void Start() override {
         // Try to get collider half-height so we know where the "feet" are
-        if (m_componentManager &&
-            m_componentManager->HasComponent<NE::ECS::Component::Collider>(GetEntity())) {
+        if (NE::ECS::Command::HasComponent<NE::ECS::Component::Collider>(GetEntity())) {
 
-            auto& col = m_componentManager->GetComponent<NE::ECS::Component::Collider>(GetEntity());
+            auto& col = NE::ECS::Command::GetComponent<NE::ECS::Component::Collider>(GetEntity());
             m_colliderHalfHeight = col.halfExtents.y;
-            SPD_INFO("Kinematic PlayerController: collider half-height = " << m_colliderHalfHeight);
+            LOG_INFO("Kinematic PlayerController: collider half-height = " << m_colliderHalfHeight);
         } else {
-            SPD_WARNING("Kinematic PlayerController: no Collider found on entity "
+            LOG_WARNING("Kinematic PlayerController: no Collider found on entity "
                 << GetEntity() << " – ground checks may be inaccurate.");
         }
 
@@ -111,21 +104,21 @@ private:
             return;
         }
 
-        NE::Math::Vec3 pos = GetPosition();
+        NE::Scripting::Vec3 pos = GetPosition();
 
         // Current feet position (center - halfHeight)
         float feetY = pos.y - m_colliderHalfHeight;
 
         // Start the ray a bit ABOVE the feet so we aren't starting inside the floor
-        NE::Math::Vec3 origin = pos;
+        NE::Scripting::Vec3 origin = pos;
         origin.y = feetY + m_groundProbeStartOffset; // e.g. small positive offset
 
-        NE::Math::Vec3 downDir{ 0.0f, -1.0f, 0.0f };
+        NE::Scripting::Vec3 downDir{ 0.0f, -1.0f, 0.0f };
         uint32_t layerMask = 0xFFFFFFFF;
 
         float rayLen = groundRaycastDistance + m_groundProbeStartOffset + m_skinWidth;
 
-        IScript::RaycastHit hit = Raycast(origin, downDir, rayLen, layerMask);
+        NE::Scripting::RaycastHit hit = Raycast(origin, downDir, rayLen, layerMask);
 
         if (hit.hasHit && hit.entity != GetEntity()) {
             m_isGrounded = true;
@@ -139,7 +132,7 @@ private:
             // Center = feet + halfHeight
             float targetCenterY = targetFeetY + m_colliderHalfHeight;
 
-            NE::Math::Vec3 newPos = pos;
+            NE::Scripting::Vec3 newPos = pos;
             newPos.y = targetCenterY;
             SetPosition(newPos);
 
@@ -163,16 +156,16 @@ private:
     void UpdateHorizontalVelocity(float dt) {
         NE::Math::Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
 
-        if (NE::InputManager::IsKeyDown('W')) {
+        if (Input::IsKeyDown('W')) {
             inputDir.z -= 1.0f;
         }
-        if (NE::InputManager::IsKeyDown('S')) {
+        if (Input::IsKeyDown('S')) {
             inputDir.z += 1.0f;
         }
-        if (NE::InputManager::IsKeyDown('A')) {
+        if (Input::IsKeyDown('A')) {
             inputDir.x -= 1.0f;
         }
-        if (NE::InputManager::IsKeyDown('D')) {
+        if (Input::IsKeyDown('D')) {
             inputDir.x += 1.0f;
         }
 
@@ -186,7 +179,7 @@ private:
         }
 
         // Current horizontal velocity
-        NE::Math::Vec3 horizVel = m_velocity;
+        NE::Scripting::Vec3 horizVel = m_velocity;
         horizVel.y = 0.0f;
 
         if (mag > 0.0f) {
@@ -225,16 +218,16 @@ private:
     // JUMP
     // =========================
     void HandleJump(float /*dt*/) {
-        if (NE::InputManager::WasKeyPressed(GLFW_KEY_SPACE)) {
+        if (Input::WasKeyPressed(GLFW_KEY_SPACE)) {
             if (m_isGrounded && !m_hasJumpedThisFrame) {
-                SPD_INFO("Kinematic jump!");
+                LOG_INFO("Kinematic jump!");
                 m_hasJumpedThisFrame = true;
                 m_isGrounded = false;
                 m_velocity.y = jumpForce; // treat as initial upward velocity
             }
         }
 
-        if (!NE::InputManager::IsKeyDown(GLFW_KEY_SPACE)) {
+        if (!Input::IsKeyDown(GLFW_KEY_SPACE)) {
             m_hasJumpedThisFrame = false;
         }
     }
@@ -260,15 +253,15 @@ private:
     // KINEMATIC MOVEMENT
     // =========================
     void MoveKinematic(float dt) {
-        NE::Math::Vec3 pos = GetPosition();
-        NE::Math::Vec3 displacement = m_velocity * dt;
+        NE::Scripting::Vec3 pos = GetPosition();
+        NE::Scripting::Vec3 displacement = m_velocity * dt;
 
         // Separate horizontal and vertical
-        NE::Math::Vec3 horizMove{ displacement.x, 0.0f, displacement.z };
+        NE::Scripting::Vec3 horizMove{ displacement.x, 0.0f, displacement.z };
         float horizLen = std::sqrt(horizMove.x * horizMove.x + horizMove.z * horizMove.z);
 
         if (horizLen > 0.0001f) {
-            NE::Math::Vec3 dir{
+            NE::Scripting::Vec3 dir{
                 horizMove.x / horizLen,
                 0.0f,
                 horizMove.z / horizLen
@@ -278,7 +271,7 @@ private:
             uint32_t layerMask = 0xFFFFFFFF;
             float rayLen = horizLen + m_skinWidth;
 
-            IScript::RaycastHit hit = Raycast(pos, dir, rayLen, layerMask);
+            NE::Scripting::RaycastHit hit = Raycast(pos, dir, rayLen, layerMask);
 
             if (hit.hasHit && hit.entity != GetEntity()) {
                 float allowed = std::max(0.0f, hit.distance - m_skinWidth);
@@ -288,7 +281,7 @@ private:
             }
         }
 
-        NE::Math::Vec3 finalMove{
+        NE::Scripting::Vec3 finalMove{
             horizMove.x,
             displacement.y,
             horizMove.z
@@ -329,7 +322,7 @@ private:
     // Internal state
     bool m_hasJumpedThisFrame = false;
     bool m_isGrounded = false;
-    NE::Math::Vec3 m_velocity{ 0.0f, 0.0f, 0.0f };
+    NE::Scripting::Vec3 m_velocity{ 0.0f, 0.0f, 0.0f };
     float m_colliderHalfHeight = 0.5f;
 
     // Field registry for editor

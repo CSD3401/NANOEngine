@@ -127,7 +127,6 @@ namespace NANOEngine::Events {
 
         void ClearDomain(EventDomain domain);
 
-        
     private:
         EventBus() = default;
         EventBus(const EventBus&) = delete;

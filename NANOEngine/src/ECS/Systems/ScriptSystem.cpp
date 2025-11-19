@@ -3,6 +3,7 @@
 #include <filesystem>
 #include "../Components/NativeScript.hpp"
 #include "../../Scripting/IScript.hpp"  // Explicitly include IScript definition
+#include "../Components/EntityMeta.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Core/Couroutine.hpp"
 #include "Events/EventBus.hpp"
@@ -22,13 +23,13 @@ namespace NE::ECS::Systems {
             nsc.Instance = nsc.CreateScript();
             Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager); // Link to engine systems via new API
             nsc.Instance->_SetEntity(entity);
-      
+
             // Call Awake() first (even if disabled)
             nsc.Instance->Awake();
-    
+
             // Then Initialize()
             nsc.Instance->Initialize(entity);
-            
+
             // Restore serialized field values if they exist
             Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
 
@@ -45,7 +46,7 @@ namespace NE::ECS::Systems {
 
     void ScriptSystem::Init() {
         SPD_INFO("ScriptSystem::Init() - Starting initialization");
-        
+
         // Logic to initialize the system when a scene loads
 
         InitializeExistingScripts();
@@ -126,17 +127,17 @@ namespace NE::ECS::Systems {
 
     void ScriptSystem::PauseScripts()
     {
-		SPD_INFO("ScriptSystem: Pausing Play Mode...");
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
+        SPD_INFO("ScriptSystem: Pausing Play Mode...");
+        const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+        for (Entity entity : entities) {
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-			if (nsc.Instance) {
-				nsc.Instance->SetEnabled(false);
-				SPD_INFO("Paused script '" << nsc.ScriptName << "' for entity " << (int)entity);
-			}
-		}
+            if (nsc.Instance) {
+                nsc.Instance->SetEnabled(false);
+                SPD_INFO("Paused script '" << nsc.ScriptName << "' for entity " << (int)entity);
+            }
+        }
     }
 
     void ScriptSystem::StopScripts()
@@ -162,7 +163,7 @@ namespace NE::ECS::Systems {
         // The runtime scene will be destroyed via Exit(), which properly cleans up instances.
         // For editor scene, scripts were never started, so just disabling is fine.
     }
-    
+
 
     void ScriptSystem::Update(double deltaTime) {
 
@@ -176,6 +177,15 @@ namespace NE::ECS::Systems {
 
         // Second loop: Update all active scripts
         for (Entity entity : entities) {
+
+            // Skip inactive entities
+            if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
+                const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+                if (!meta.isActive) {
+                    continue; // Skip this entity entirely
+                }
+            }
+
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
             if (nsc.Instance && nsc.Instance->IsEnabled()) {
                 // Call Start() before first Update() if not yet called
@@ -183,7 +193,7 @@ namespace NE::ECS::Systems {
                     nsc.Instance->Start();
                     nsc.Instance->_MarkStartCalled();
                 }
-        
+
                 nsc.Instance->Update(deltaTime);
             }
         }

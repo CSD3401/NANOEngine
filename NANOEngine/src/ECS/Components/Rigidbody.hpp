@@ -22,6 +22,9 @@ namespace NE::ECS::Component {
 
 		uint64_t luid;
 
+		// Dirty flag for editor changes
+		bool isDirty = false;
+
 		NE_REFLECT_BEGIN(Rigidbody)
 			NE_REFLECT_FIELD(mass),
 			NE_REFLECT_FIELD(motionType),
