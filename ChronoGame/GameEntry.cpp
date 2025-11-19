@@ -74,9 +74,9 @@ extern "C" {
           return new FollowerScript();
      });
 
-          registrar->RegisterScript("PlayerController", []() -> IScript* {
-              return new PlayerController();
-              });
+          registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
+             return new PlayerController();
+           });
 
     }
 }
