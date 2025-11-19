@@ -2,21 +2,21 @@
 #include <iostream>
 #include "EngineAPI.hpp"
 
-class PlayerCamera : public NE::Scripting::IScript {
+class PlayerCamera : public IScript {
 public:
     PlayerCamera() {
     }
 
-    void Initialize(NE::Scripting::Entity entity) override {
+    void Initialize(Entity entity) override {
         SetRotation(0.f, 180.f, 0.f);
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        auto playerPos = NE::ECS::Query::GetEntityTransform(6).position;
+        auto playerPos = Query::GetEntityTransform(6).position;
         // Implicit conversion from Math::Vec3 to Scripting::Vec3
-        NE::Scripting::Vec3 camPos(playerPos.x,playerPos.y,playerPos.z);
+        Vec3 camPos(playerPos.x,playerPos.y,playerPos.z);
         camPos.y += 0.6f;  // Add camera height offset
         SetPosition(camPos);
 
@@ -60,12 +60,12 @@ public:
         }
 
         if (pickedEntity != NE::ECS::NO_ENTITY) {
-            auto& enttTransform = NE::ECS::Command::GetEntityTransform(pickedEntity);
+            auto& enttTransform = Command::GetEntityTransform(pickedEntity);
 
             float pitchRad = m_pitch * 0.017453292519943295f;
             float yawRad = m_yaw * 0.017453292519943295f;
 
-            NE::Scripting::Vec3 forward;
+            Vec3 forward;
             forward.x = cosf(pitchRad) * sinf(yawRad);
             forward.y = sinf(pitchRad);
             forward.z = -cosf(pitchRad) * cosf(yawRad);
@@ -92,10 +92,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::Scripting::Entity other) override {}
-    void OnCollisionExit(NE::Scripting::Entity other) override {}
-    void OnTriggerEnter(NE::Scripting::Entity other) override {}
-    void OnTriggerExit(NE::Scripting::Entity other) override {}
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     // === Exposed Fields ===
@@ -111,5 +111,5 @@ private:
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
 
-    NE::Scripting::Entity pickedEntity = NE::ECS::NO_ENTITY;
+    Entity pickedEntity = NE::ECS::NO_ENTITY;
 };

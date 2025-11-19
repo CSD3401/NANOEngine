@@ -14,7 +14,7 @@ void DelayedPrintUpdate() {
  * Example player script demonstrating how to implement IScript.
  * Now uses the built-in field system from IScript base class.
  */
-class PlayerScript : public NE::Scripting::IScript {
+class PlayerScript : public IScript {
 public:
 	// Example enum for testing
 	enum class PlayerState {
@@ -93,7 +93,7 @@ public:
 		Coroutines::Create();
 	}
 
-	void Initialize(NE::Scripting::Entity entity) override {
+	void Initialize(Entity entity) override {
 		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
 	}
 
@@ -228,19 +228,19 @@ public:
 	}
 
 	// === Event Handlers ===
-	void OnCollisionEnter(NE::Scripting::Entity other) override {
+	void OnCollisionEnter(Entity other) override {
 		//LOG_DEBUG("PlayerScript collision enter with entity {}", other);
 	}
 
-	void OnCollisionExit(NE::Scripting::Entity other) override {
+	void OnCollisionExit(Entity other) override {
 		//LOG_DEBUG("PlayerScript collision exit with entity {}", other);
 	}
 
-	void OnTriggerEnter(NE::Scripting::Entity other) override {
+	void OnTriggerEnter(Entity other) override {
 		//LOG_DEBUG("PlayerScript trigger enter with entity {}", other);
 	}
 
-	void OnTriggerExit(NE::Scripting::Entity other) override {
+	void OnTriggerExit(Entity other) override {
 		//LOG_DEBUG("PlayerScript trigger exit with entity {}", other);
 	}
 
@@ -282,7 +282,7 @@ private:
 
 	// Editable fields
 	float speed = 5.0f;
-	NE::Scripting::Vec3 color{ 1.0f, 0.5f, 0.25f };
+	Vec3 color{ 1.0f, 0.5f, 0.25f };
 	int lives = 3;
 	bool godMode = false;
 	std::string label = "Player";
@@ -298,7 +298,7 @@ private:
 	PlayerFlags playerFlags;  //  4 bool struct
 
 	// Coroutine
-	NE::Scripting::CoroutineHandle chandle;
+	CoroutineHandle chandle;
 
 	// Field registry
 	ExposedFieldRegistry m_fields;

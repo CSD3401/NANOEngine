@@ -136,6 +136,150 @@ using String = ScriptFieldType::String;
 #define SCRIPT_COMPONENT_REF(refName, componentType) \
     ((void)0)  // No-op: component references are managed automatically
 
+// ============ CONVENIENCE NAMESPACES (GLOBAL SCOPE) ============
+// Similar pattern to Input, Events, Coroutines namespaces in ScriptAPI.h
+
+/// ECS Query namespace - Read-only component queries
+namespace Query {
+    // Template-based component checks (type-safe and concise)
+    template<typename T>
+    inline bool HasComponent(uint32_t entity) {
+        return NE::ECS::Query::HasComponent<T>(entity);
+    }
+
+    // Direct component existence checks
+    inline bool HasTransform(uint32_t e) { return NE::ECS::Query::HasTransform(e); }
+    inline bool HasRenderer(uint32_t e) { return NE::ECS::Query::HasRenderer(e); }
+    inline bool HasLight(uint32_t e) { return NE::ECS::Query::HasLight(e); }
+    inline bool HasRigidbody(uint32_t e) { return NE::ECS::Query::HasRigidbody(e); }
+    inline bool HasCollider(uint32_t e) { return NE::ECS::Query::HasCollider(e); }
+    inline bool HasAudioSource(uint32_t e) { return NE::ECS::Query::HasAudioSource(e); }
+    inline bool HasScript(uint32_t e) { return NE::ECS::Query::HasScript(e); }
+    inline bool HasAnimator(uint32_t e) { return NE::ECS::Query::HasAnimator(e); }
+    inline bool HasCamera(uint32_t e) { return NE::ECS::Query::HasCamera(e); }
+
+    // Read-only component getters
+    inline const NE::ECS::Component::EntityMeta& GetEntityMeta(uint32_t e) {
+        return NE::ECS::Query::GetEntityMeta(e);
+    }
+    inline const NE::ECS::Component::Transform& GetEntityTransform(uint32_t e) {
+        return NE::ECS::Query::GetEntityTransform(e);
+    }
+    inline const NE::ECS::Component::Renderer& GetEntityRenderer(uint32_t e) {
+        return NE::ECS::Query::GetEntityRenderer(e);
+    }
+    inline const NE::ECS::Component::Light& GetEntityLight(uint32_t e) {
+        return NE::ECS::Query::GetEntityLight(e);
+    }
+    inline const NE::ECS::Component::Rigidbody& GetEntityRigidbody(uint32_t e) {
+        return NE::ECS::Query::GetEntityRigidbody(e);
+    }
+    inline const NE::ECS::Component::Collider& GetEntityCollider(uint32_t e) {
+        return NE::ECS::Query::GetEntityCollider(e);
+    }
+    inline const NE::ECS::Component::AudioSource& GetEntityAudioSource(uint32_t e) {
+        return NE::ECS::Query::GetEntityAudioSource(e);
+    }
+    inline const NE::ECS::Component::Animator& GetEntityAnimator(uint32_t e) {
+        return NE::ECS::Query::GetEntityAnimator(e);
+    }
+    inline const NE::ECS::Component::Camera& GetEntityCamera(uint32_t e) {
+        return NE::ECS::Query::GetEntityCamera(e);
+    }
+}
+
+/// ECS Command namespace - Mutable entity and component operations
+namespace Command {
+    // Entity lifecycle
+    inline uint32_t CreateEntity() { return NE::ECS::Command::CreateEntity(); }
+    inline void DestroyEntity(uint32_t e) { NE::ECS::Command::DestroyEntity(e); }
+
+    // Component addition
+    inline void AddLight(uint32_t e) { NE::ECS::Command::AddLightComponent(e); }
+    inline void AddRenderer(uint32_t e) { NE::ECS::Command::AddRendererComponent(e); }
+    inline void AddRigidbody(uint32_t e) { NE::ECS::Command::AddRigidbodyComponent(e); }
+    inline void AddCollider(uint32_t e) { NE::ECS::Command::AddColliderComponent(e); }
+    inline void AddAudioSource(uint32_t e) { NE::ECS::Command::AddAudioSourceComponent(e); }
+    inline void AddScript(uint32_t e) { NE::ECS::Command::AddScriptComponent(e); }
+    inline void AddCamera(uint32_t e) { NE::ECS::Command::AddCameraComponent(e); }
+    inline void AddAnimator(uint32_t e) { NE::ECS::Command::AddAnimatorComponent(e); }
+
+    // Template-based component checks and access (type-safe and concise)
+    template<typename T>
+    inline bool HasComponent(uint32_t entity) {
+        return NE::ECS::Command::HasComponent<T>(entity);
+    }
+
+    template<typename T>
+    inline T& GetComponent(uint32_t entity) {
+        return NE::ECS::Command::GetComponent<T>(entity);
+    }
+
+    // Mutable component getters
+    inline NE::ECS::Component::EntityMeta& GetEntityMeta(uint32_t e) {
+        return NE::ECS::Command::GetEntityMeta(e);
+    }
+    inline NE::ECS::Component::Transform& GetEntityTransform(uint32_t e) {
+        return NE::ECS::Command::GetEntityTransform(e);
+    }
+    inline NE::ECS::Component::Renderer& GetEntityRenderer(uint32_t e) {
+        return NE::ECS::Command::GetEntityRenderer(e);
+    }
+    inline NE::ECS::Component::Light& GetEntityLight(uint32_t e) {
+        return NE::ECS::Command::GetEntityLight(e);
+    }
+    inline NE::ECS::Component::Rigidbody& GetEntityRigidbody(uint32_t e) {
+        return NE::ECS::Command::GetEntityRigidbody(e);
+    }
+    inline NE::ECS::Component::Collider& GetEntityCollider(uint32_t e) {
+        return NE::ECS::Command::GetEntityCollider(e);
+    }
+    inline NE::ECS::Component::AudioSource& GetEntityAudioSource(uint32_t e) {
+        return NE::ECS::Command::GetEntityAudioSource(e);
+    }
+    inline NE::ECS::Component::Animator& GetEntityAnimator(uint32_t e) {
+        return NE::ECS::Command::GetEntityAnimator(e);
+    }
+    inline NE::ECS::Component::Camera& GetEntityCamera(uint32_t e) {
+        return NE::ECS::Command::GetEntityCamera(e);
+    }
+
+    // Script management
+    inline std::vector<std::string> GetRegisteredScriptNames() {
+        return NE::ECS::Command::GetRegisteredScriptNames();
+    }
+    inline bool SetEntityScript(uint32_t e, const std::string& scriptName) {
+        return NE::ECS::Command::SetEntityScript(e, scriptName);
+    }
+    inline void RemoveEntityScript(uint32_t e) {
+        NE::ECS::Command::RemoveEntityScript(e);
+    }
+    inline bool IsScriptRegistered(const std::string& scriptName) {
+        return NE::ECS::Command::IsScriptRegistered(scriptName);
+    }
+}
+
+// ============ GLOBAL TYPE ALIASES FOR CONVENIENCE ============
+// Makes common types available without namespace qualification
+
+// Core scripting types
+using Vec3 = NE::Scripting::Vec3;
+using Entity = NE::Scripting::Entity;
+using IScript = NE::Scripting::IScript;
+using RaycastHit = NE::Scripting::RaycastHit;
+
+// Component reference types
+using TransformRef = NE::Scripting::TransformRef;
+using RigidbodyRef = NE::Scripting::RigidbodyRef;
+using AudioSourceRef = NE::Scripting::AudioSourceRef;
+
+// Coroutine handle type
+using CoroutineHandle = NE::Scripting::CoroutineHandle;
+
+// Component namespace shortcut (for type-safe template usage)
+namespace Component = NE::ECS::Component;
+
+// ============ LEGACY NAMESPACE (FOR BACKWARD COMPATIBILITY) ============
 // Type aliases for convenience
 namespace ChronoGame {
     // Alias the SDK types into ChronoGame namespace for easier use
