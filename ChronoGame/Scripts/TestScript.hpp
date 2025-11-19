@@ -64,18 +64,13 @@ public:
 			TriggerRespawn();
 		}
 
-        // Simple bobbing motion using bounce height using SDK methods
-        NE::Scripting::Vec3 currentPos = GetPosition();
-        currentPos.y = std::sin(totalTime * 2.0f) * bounceHeight;
-        SetPosition(currentPos);
-
 		// === Visual Demo (Bobbing Motion) ===
 		// 
 		static float totalTime = 0.0f;
 		totalTime += static_cast<float>(deltaTime);
 
 		// Simple bobbing motion using bounce height using SDK methods
-		NE::Scripting::Vec3 currentPos = GetPosition();
+		Vec3 currentPos = GetPosition();
 		currentPos.y = std::sin(totalTime * 2.0f) * bounceHeight;
 		SetPosition(currentPos);
 
@@ -109,13 +104,13 @@ public:
 	}
 
 	// Event handlers (required by interface)
-	void OnCollisionEnter(NE::ECS::Entity other) override {
+	void OnCollisionEnter(Entity other) override {
 		std::cout << "[TestScript] Collision with entity " << other << std::endl;
 	}
-	
-	void OnCollisionExit(NE::ECS::Entity other) override {}
-	void OnTriggerEnter(NE::ECS::Entity other) override {}
-	void OnTriggerExit(NE::ECS::Entity other) override {}
+
+	void OnCollisionExit(Entity other) override {}
+	void OnTriggerEnter(Entity other) override {}
+	void OnTriggerExit(Entity other) override {}
 
 private:
 	void TriggerRespawn() {
@@ -139,7 +134,7 @@ private:
 	// These will automatically appear in the editor inspector
 	float rotationSpeed = 90.0f;  // degrees per second
 	float bounceHeight = 1.0f;    // units
-	NE::Math::Vec3 color{1.0f, 0.0f, 0.0f};  // red by default
+	Vec3 color{1.0f, 0.0f, 0.0f};  // red by default
 	int particleCount = 50;
 	std::string objectName = "TestObject";
 	float respawnDelay = 2.0f;    // seconds before respawn

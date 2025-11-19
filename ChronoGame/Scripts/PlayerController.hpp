@@ -17,7 +17,7 @@
  * - jumpForce is now effectively "jumpSpeed" (initial upward velocity).
  * - manualGravity should be NEGATIVE (e.g. -18.81f).
  */
-class PlayerController : public NE::Scripting::IScript {
+class PlayerController : public IScript {
 public:
     PlayerController() {
         REGISTER_FIELD(moveSpeed);
@@ -32,20 +32,20 @@ public:
 
     void Awake() override {}
 
-    void Initialize(NE::ECS::Entity entity) override {
-        _SetEntity(entity);
+    void Initialize(Entity entity) override {
+        // Entity is automatically set by base class
     }
 
     void Start() override {
         // Try to get collider half-height so we know where the "feet" are
-        if (NE::ECS::Command::HasComponent<NE::ECS::Component::Collider>(GetEntity())) {
+        if (Command::HasComponent<Component::Collider>(GetEntity())) {
 
-            auto& col = NE::ECS::Command::GetComponent<NE::ECS::Component::Collider>(GetEntity());
+            auto& col = Command::GetComponent<Component::Collider>(GetEntity());
             m_colliderHalfHeight = col.halfExtents.y;
             LOG_INFO("Kinematic PlayerController: collider half-height = " << m_colliderHalfHeight);
         } else {
             LOG_WARNING("Kinematic PlayerController: no Collider found on entity "
-                << GetEntity() << " – ground checks may be inaccurate.");
+                << GetEntity() << " ï¿½ ground checks may be inaccurate.");
         }
 
         m_velocity = { 0.0f, 0.0f, 0.0f };
@@ -79,11 +79,11 @@ public:
         return "KinematicPlayerController";
     }
 
-    // Collision callbacks not used in kinematic mode
-    void OnCollisionEnter(NE::ECS::Entity) override {}
-    void OnCollisionExit(NE::ECS::Entity) override {}
-    void OnTriggerEnter(NE::ECS::Entity) override {}
-    void OnTriggerExit(NE::ECS::Entity) override {}
+    // === Event Handlers (Required by IScript) ===
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
     // Exposed fields
     std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
@@ -104,21 +104,21 @@ private:
             return;
         }
 
-        NE::Scripting::Vec3 pos = GetPosition();
+        Vec3 pos = GetPosition();
 
         // Current feet position (center - halfHeight)
         float feetY = pos.y - m_colliderHalfHeight;
 
         // Start the ray a bit ABOVE the feet so we aren't starting inside the floor
-        NE::Scripting::Vec3 origin = pos;
+        Vec3 origin = pos;
         origin.y = feetY + m_groundProbeStartOffset; // e.g. small positive offset
 
-        NE::Scripting::Vec3 downDir{ 0.0f, -1.0f, 0.0f };
+        Vec3 downDir{ 0.0f, -1.0f, 0.0f };
         uint32_t layerMask = 0xFFFFFFFF;
 
         float rayLen = groundRaycastDistance + m_groundProbeStartOffset + m_skinWidth;
 
-        NE::Scripting::RaycastHit hit = Raycast(origin, downDir, rayLen, layerMask);
+        RaycastHit hit = Raycast(origin, downDir, rayLen, layerMask);
 
         if (hit.hasHit && hit.entity != GetEntity()) {
             m_isGrounded = true;
@@ -132,7 +132,7 @@ private:
             // Center = feet + halfHeight
             float targetCenterY = targetFeetY + m_colliderHalfHeight;
 
-            NE::Scripting::Vec3 newPos = pos;
+            Vec3 newPos = pos;
             newPos.y = targetCenterY;
             SetPosition(newPos);
 
@@ -154,7 +154,7 @@ private:
     // HORIZONTAL MOVEMENT
     // =========================
     void UpdateHorizontalVelocity(float dt) {
-        NE::Math::Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
+        Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
 
         if (Input::IsKeyDown('W')) {
             inputDir.z -= 1.0f;
@@ -179,12 +179,12 @@ private:
         }
 
         // Current horizontal velocity
-        NE::Scripting::Vec3 horizVel = m_velocity;
+        Vec3 horizVel = m_velocity;
         horizVel.y = 0.0f;
 
         if (mag > 0.0f) {
             // Target horizontal velocity
-            NE::Math::Vec3 targetVel{
+            Vec3 targetVel{
                 inputDir.x * moveSpeed,
                 0.0f,
                 inputDir.z * moveSpeed
@@ -253,15 +253,15 @@ private:
     // KINEMATIC MOVEMENT
     // =========================
     void MoveKinematic(float dt) {
-        NE::Scripting::Vec3 pos = GetPosition();
-        NE::Scripting::Vec3 displacement = m_velocity * dt;
+        Vec3 pos = GetPosition();
+        Vec3 displacement = m_velocity * dt;
 
         // Separate horizontal and vertical
-        NE::Scripting::Vec3 horizMove{ displacement.x, 0.0f, displacement.z };
+        Vec3 horizMove{ displacement.x, 0.0f, displacement.z };
         float horizLen = std::sqrt(horizMove.x * horizMove.x + horizMove.z * horizMove.z);
 
         if (horizLen > 0.0001f) {
-            NE::Scripting::Vec3 dir{
+            Vec3 dir{
                 horizMove.x / horizLen,
                 0.0f,
                 horizMove.z / horizLen
@@ -271,7 +271,7 @@ private:
             uint32_t layerMask = 0xFFFFFFFF;
             float rayLen = horizLen + m_skinWidth;
 
-            NE::Scripting::RaycastHit hit = Raycast(pos, dir, rayLen, layerMask);
+            RaycastHit hit = Raycast(pos, dir, rayLen, layerMask);
 
             if (hit.hasHit && hit.entity != GetEntity()) {
                 float allowed = std::max(0.0f, hit.distance - m_skinWidth);
@@ -281,7 +281,7 @@ private:
             }
         }
 
-        NE::Scripting::Vec3 finalMove{
+        Vec3 finalMove{
             horizMove.x,
             displacement.y,
             horizMove.z
@@ -322,7 +322,7 @@ private:
     // Internal state
     bool m_hasJumpedThisFrame = false;
     bool m_isGrounded = false;
-    NE::Scripting::Vec3 m_velocity{ 0.0f, 0.0f, 0.0f };
+    Vec3 m_velocity{ 0.0f, 0.0f, 0.0f };
     float m_colliderHalfHeight = 0.5f;
 
     // Field registry for editor
