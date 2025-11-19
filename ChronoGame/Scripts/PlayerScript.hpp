@@ -175,7 +175,7 @@ public:
 			// Start the coroutine
 			Coroutines::Start(h);
 
-			LOG_DEBUG("Timer started no way josed!");
+			LOG_DEBUG("Timer start macdonaldo!");
 		}
 
 		//Courutine Test
@@ -191,7 +191,7 @@ public:
 			// Jump logic here
 		}
 
-		//  EXAMPLE: Patrol through waypoints
+		//  EXAMPLE: Patrol through waypointsc
 		if (!waypoints.empty()) {
 			static size_t currentWaypoint = 0;
 			float targetX = waypoints[currentWaypoint % waypoints.size()];
