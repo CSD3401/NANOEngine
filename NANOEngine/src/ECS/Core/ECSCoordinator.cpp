@@ -11,6 +11,7 @@
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/Camera.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -20,6 +21,12 @@
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
 #include "../Systems/UIRenderSystem.hpp"
+#include "../Systems/CameraSystem.hpp"
+#include "../Systems/PhysicsSystem.hpp"
+
+#include "../Components/Animator.hpp"
+#include "../Systems/AnimatorSystem.hpp"  
+
 
 
 namespace NE::ECS {
@@ -41,6 +48,9 @@ namespace NE::ECS {
         RegisterComponent<Component::UIRectTransform>();
         RegisterComponent<Component::UICanvas>();
         RegisterComponent<Component::UIImage>();
+        RegisterComponent<Component::Animator>();
+		RegisterComponent<Component::Camera>();
+        
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -69,12 +79,13 @@ namespace NE::ECS {
             SetSystemSignature<Systems::RigidbodySystem>(sig);
         }
 
-        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get());
-        {
-            Signature sig;
-            sig.set(GetComponentType<Component::Collider>());
-            SetSystemSignature<Systems::ColliderSystem>(sig);
-        }
+        // I realised only after making PhysicsSystem that this collider system was what is suppose to do - RF
+        //m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get());
+        //{
+        //    Signature sig;
+        //    sig.set(GetComponentType<Component::Collider>());
+        //    SetSystemSignature<Systems::ColliderSystem>(sig);
+        //}
 
         m_audioSystem = m_systemManager->RegisterSystem<Systems::AudioSystem>(m_componentManager.get());
         {
@@ -98,12 +109,34 @@ namespace NE::ECS {
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIImage>());
             SetSystemSignature<Systems::UIRenderSystem>(sig);
         }
+
+        m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Transform>());  // Animator works on Transform
+            sig.set(GetComponentType<Component::Animator>());   // and requires Animator
+            SetSystemSignature<Systems::AnimatorSystem>(sig);
+        }
+        
+        m_cameraSystem = m_systemManager->RegisterSystem<Systems::CameraSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Camera>());
+            sig.set(GetComponentType<Component::Transform>());
+            SetSystemSignature<Systems::CameraSystem>(sig);
+		}
+        
+        m_physicsSystem = m_systemManager->RegisterSystem<Systems::PhysicsSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Collider>());
+            SetSystemSignature<Systems::PhysicsSystem>(sig);
+        }
     }
 
     Entity ECSCoordinator::CreateEntity() {
         Entity entt = m_entityManager->CreateEntity();
-        AddComponent(entt, Component::EntityMeta{"Unnamed Entity"});
-        AddComponent(entt, Component::Transform{});
+
         return entt;
     }
 

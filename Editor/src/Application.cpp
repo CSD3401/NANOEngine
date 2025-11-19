@@ -1,4 +1,4 @@
-#include "Application.hpp"
+	#include "Application.hpp"
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
@@ -14,16 +14,19 @@
 #include <Core/Profiler.hpp>
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include "Panels/AssetBrowserPanel.hpp"
+#include "Panels/ScriptsPanel.hpp"
 #include "Panels/ScenePanel.hpp"
 #include "Panels/HierarchyPanel.hpp"
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/GamePanel.hpp"
-#include "Panels/HistoryPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image\stb_image.h>
 #include <Input/InputManager.hpp>
+#include "Panels/AnimationPanel.hpp"
+#include "Panels/AnimationRuntimePanel.hpp"
+#include "Panels/AnimationGraphPanel.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -97,13 +100,18 @@ namespace Editor {
 			});
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
+		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
 		NE::LoadStartupScene();
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
-		editorLayer.AddPanel<GamePanel>();
+		editorLayer.AddPanel<GamePanel>(NE::GetGameFrameBuffer());
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
-		editorLayer.AddPanel<ProfilerPanel>();
+		//editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
+		//editorLayer.AddPanel<AnimationPanel>();
+		//editorLayer.AddPanel<AnimatorRuntimePanel>();
+		//editorLayer.AddPanel<AnimatorGraphPanel>();
+
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
 
@@ -122,12 +130,7 @@ namespace Editor {
 			glfwPollEvents();
 
 			NE::Run(timer.GetDeltaTime());
-			//LOG_INFO(timer.GetFPS());
-			
-			//SPD_INFO(timer.GetFPS());
-			if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-				SPD_INFO(timer.GetFPS());
-			}
+
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();

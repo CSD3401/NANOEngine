@@ -4,6 +4,39 @@
 #include <filesystem>
 #include <Windows.h>
 #include "Core/SpdLogger.hpp"
+#include "ScriptContextFactory.hpp"
+#include "Engine.hpp"
+#include "SceneManagement/Scene.hpp"
+#include "Events/EventBus.hpp"
+#include "Core/Couroutine.hpp"
+
+namespace {
+    // ScriptState moved to ScriptingEngine class definition
+
+    std::string GetMSBuildPath() {
+        std::string vswhere = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+        std::string cmd = "\"" + vswhere + "\" -latest -requires Microsoft.Component.MSBuild -find MSBuild\\**\\Bin\\MSBuild.exe";
+
+        FILE* pipe = _popen(cmd.c_str(), "r");
+        if (!pipe) return {};
+
+        char buffer[512];
+        std::string result;
+        while (fgets(buffer, sizeof(buffer), pipe))
+            result += buffer;
+        _pclose(pipe);
+
+        // Trim newline
+        if (!result.empty() && (result.back() == '\n' || result.back() == '\r'))
+            result.pop_back();
+
+        return result;
+    }
+}
+
+namespace NE {
+    SceneManagement::Scene& GetScene();
+}
 
 namespace NE::Scripting {
 
@@ -11,8 +44,9 @@ namespace NE::Scripting {
         : m_initialized(false) {
     }
 
-    ScriptingEngine::~ScriptingEngine() {
-        Shutdown();
+    ScriptingEngine& ScriptingEngine::GetInstance() {
+        static ScriptingEngine instance;
+        return instance;
     }
 
     std::function<IScript* ()> ScriptingEngine::GetScriptFactory(const std::string& name) const {
@@ -96,21 +130,53 @@ namespace NE::Scripting {
 
     // === DLL Loading Management ===
 
-    bool ScriptingEngine::LoadGameDLL(const std::string& dllPath) {
+    bool ScriptingEngine::LoadScriptDLL(const std::string& dllPath) {
         try {
             if (!ValidateDLLPath(dllPath)) {
                 SetLastError("Invalid DLL path: " + dllPath);
                 return false;
             }
 
-            std::string dllName = GetDLLName(dllPath);
-            if (IsDLLLoaded(dllName)) {
-                SetLastError("DLL already loaded: " + dllName);
+            if (IsScriptDLLLoaded()) {
+                SetLastError("Script DLL already loaded: " + m_loadedDLL.filepath);
                 return false;
             }
 
-            return LoadSingleDLL(dllPath);
+            // Load the DLL
+            HMODULE dllHandle = LoadLibraryA(dllPath.c_str());
+            if (!dllHandle) {
+                SetLastError("Failed to load DLL: " + dllPath + " - " + GetSystemError());
+                return false;
+            }
 
+            // Get the registration function
+            RegisterScriptsFunction registerFunc =
+                (RegisterScriptsFunction)GetProcAddress(dllHandle, "RegisterEngineScripts");
+            if (!registerFunc) {
+                SetLastError("Failed to find 'RegisterEngineScripts' function in: " + dllPath + " - " + GetSystemError());
+                FreeLibrary(dllHandle);
+                return false;
+            }
+
+            // Store the loaded DLL information
+            m_loadedDLL.handle = dllHandle;
+            m_loadedDLL.filepath = dllPath;
+            m_loadedDLL.registerFunction = registerFunc;
+
+            // Call the registration function
+            try {
+                registerFunc(this);
+                SPD_INFO("Successfully loaded and registered scripts from: " << dllPath);
+                return true;
+            }
+            catch (const std::exception& e) {
+                SetLastError("Exception during script registration: " + std::string(e.what()));
+                FreeLibrary(dllHandle);
+                m_loadedDLL.handle = nullptr;
+                m_loadedDLL.filepath.clear();
+                m_loadedDLL.registerFunction = nullptr;
+                return false;
+            }
         }
         catch (const std::exception& e) {
             SetLastError("Exception loading DLL '" + dllPath + "': " + e.what());
@@ -118,107 +184,114 @@ namespace NE::Scripting {
         }
     }
 
-    int ScriptingEngine::LoadAllDLLsInDirectory(const std::string& directory) {
-        int loadedCount = 0;
-
-        try {
-            if (!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory)) {
-                SetLastError("Directory does not exist: " + directory);
-                return 0;
-            }
-
-            SPD_INFO("Scanning directory for DLLs: " << directory);
-
-            for (const auto& entry : std::filesystem::directory_iterator(directory)) {
-                if (entry.is_regular_file() && entry.path().extension() == ".dll") {
-                    std::string dllPath = entry.path().string();
-                    SPD_INFO("Found DLL: " << dllPath);
-
-                    if (LoadGameDLL(dllPath)) {
-                        loadedCount++;
-                    }
-                    else {
-                        SPD_ERROR("Failed to load DLL: " << dllPath << " - " << GetLastError());
-                    }
-                }
-            }
-
-            SPD_INFO("Successfully loaded " << loadedCount << " DLLs from directory: " << directory);
-
-        }
-        catch (const std::filesystem::filesystem_error& e) {
-            SetLastError("Filesystem error: " + std::string(e.what()));
-        }
-        catch (const std::exception& e) {
-            SetLastError("Exception while loading DLLs: " + std::string(e.what()));
-        }
-
-        return loadedCount;
-    }
-
-    bool ScriptingEngine::UnloadDLL(const std::string& dllName) {
-        LoadedDLL* dll = FindLoadedDLL(dllName);
-        if (!dll) {
-            SetLastError("DLL not found: " + dllName);
+    bool ScriptingEngine::UnloadScriptDLL() {
+        if (!IsScriptDLLLoaded()) {
+            SetLastError("No script DLL is currently loaded");
             return false;
         }
 
-        // Remove scripts that were registered by this DLL
-        //SPD_INFO("Unloading DLL: " << dllName << " (scripts will remain registered)");
-
-        ClearRegisteredScripts();
-       
-
-        bool success = UnloadSingleDLL(*dll);
-        if (success) {
-            // Remove from loaded DLLs list
-            m_loadedDLLs.erase(
-                std::remove_if(m_loadedDLLs.begin(), m_loadedDLLs.end(),
-                    [&dllName](const LoadedDLL& d) { return d.name == dllName; }),
-                m_loadedDLLs.end());
-        }
-
-        return success;
-    }
-
-    void ScriptingEngine::UnloadAllDLLs() {
-        SPD_INFO("Unloading all DLLs...");
-
-        for (auto& dll : m_loadedDLLs) {
-            UnloadSingleDLL(dll);
-        }
-
-        m_loadedDLLs.clear();
-
         ClearRegisteredScripts();
 
-        SPD_INFO("All DLLs unloaded and scripts cleared.");
+        if (FreeLibrary(m_loadedDLL.handle)) {
+            SPD_INFO("Unloaded script DLL: " << m_loadedDLL.filepath);
+            m_loadedDLL.handle = nullptr;
+            m_loadedDLL.filepath.clear();
+            m_loadedDLL.registerFunction = nullptr;
+            return true;
+        }
+        else {
+            SetLastError("Failed to unload DLL: " + m_loadedDLL.filepath + " - " + GetSystemError());
+            return false;
+        }
     }
 
-    const std::vector<ScriptingEngine::LoadedDLL>& ScriptingEngine::GetLoadedDLLs() const {
-        return m_loadedDLLs;
-    }
-
-    bool ScriptingEngine::IsDLLLoaded(const std::string& dllName) const {
-        return FindLoadedDLL(dllName) != nullptr;
+    bool ScriptingEngine::IsScriptDLLLoaded() const {
+        return m_loadedDLL.handle != nullptr;
     }
 
     // === Engine Lifecycle ===
 
-    void ScriptingEngine::Initialize() {
+    void ScriptingEngine::Initialize(const ScriptEngineConfig& config) {
         if (m_initialized) {
             SPD_INFO("ScriptingEngine already initialized.");
             return;
         }
 
         SPD_INFO("Initializing ScriptingEngine...");
-        SPD_INFO("  - " << m_loadedDLLs.size() << " DLLs loaded");
-        SPD_INFO("  - " << m_scriptFactories.size() << " scripts registered");
 
-        PrintSummary();
+        // Set up paths from config
+        m_scriptDLLPath = config.scriptDLLName;
+        m_scriptDLLPath = std::filesystem::absolute(m_scriptDLLPath).string();
+        SPD_INFO("Script DLL path: " << m_scriptDLLPath);
+
+        m_scriptSourceDirectory = config.scriptSourceDirectory;
+        m_scriptSourceDirectory = std::filesystem::absolute(m_scriptSourceDirectory).string();
+        SPD_INFO("Script source directory: " << m_scriptSourceDirectory);
+
+        // Configure build command from config
+        std::string msbuildPath = GetMSBuildPath();
+        if (msbuildPath.empty()) {
+            msbuildPath = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe";
+            SPD_WARNING("MSBuild not found via vswhere, using fallback path");
+        }
+
+        m_scriptBuildCommand =
+            "\"\"" + msbuildPath + "\" "
+            "\"" + config.scriptProjectPath + "\" "
+            "/p:Configuration=" + config.buildConfiguration + " "
+            "/p:Platform=" + config.buildPlatform + " "
+            "/p:BuildProjectReferences=false "
+            "/p:LanguageStandard=stdcpp20\"";
+
+        SPD_INFO("Build command: " << m_scriptBuildCommand);
+
+        // Load initial DLL copy for hot-reload support
+        m_currentLoadedDLLPath = CreateHotReloadCopyPath(m_hotReloadCounter);
+        m_hotReloadCounter++;
+
+        try {
+            std::filesystem::path originalDLL(m_scriptDLLPath);
+            std::filesystem::path targetDLL(m_currentLoadedDLLPath);
+
+            std::filesystem::copy_file(originalDLL, targetDLL, std::filesystem::copy_options::overwrite_existing);
+
+            SPD_INFO("Created hot-reload copy: " << m_currentLoadedDLLPath);
+
+            if (!LoadScriptDLL(m_currentLoadedDLLPath)) {
+                SPD_ERROR("Failed to load script DLL copy: " << m_currentLoadedDLLPath);
+                SPD_ERROR("Error: " << GetLastError());
+            } else {
+                SPD_INFO("Successfully loaded script DLL.");
+                PrintSummary();
+            }
+
+        } catch (const std::filesystem::filesystem_error& e) {
+            SPD_ERROR("Failed to copy initial DLL for loading: " << e.what());
+            SPD_WARNING("Continuing without game scripts. Hot-compile may still function.");
+        }
+
+        // Set up file watcher for hot-reloading
+        try {
+            auto fileWatchCallback = [this](const std::string& path, const filewatch::Event eventType) {
+                this->HandleFileWatchEvent(path, eventType);
+            };
+
+            m_sourceWatcher = std::make_unique<filewatch::FileWatch<std::string>>(
+                m_scriptSourceDirectory,
+                std::regex(".*\\.(cpp|hpp|h)$"),
+                fileWatchCallback
+            );
+            SPD_INFO("File watcher started for: " << m_scriptSourceDirectory);
+        } catch (const std::exception& e) {
+            SPD_ERROR("Failed to create file watcher: " << e.what());
+            SPD_WARNING("Hot-reload will be disabled.");
+            m_sourceWatcher.reset();
+        }
 
         m_initialized = true;
         SPD_INFO("ScriptingEngine initialization complete.");
+        SPD_INFO("  - Script DLL: " << (IsScriptDLLLoaded() ? "Loaded" : "Not loaded"));
+        SPD_INFO("  - Registered scripts: " << m_scriptFactories.size());
     }
 
     void ScriptingEngine::Shutdown() {
@@ -228,7 +301,16 @@ namespace NE::Scripting {
 
         SPD_INFO("Shutting down ScriptingEngine...");
 
-        UnloadAllDLLs();
+        // Stop file watching
+        m_sourceWatcher.reset();
+
+        // Clear script registrations
+        ClearRegisteredScripts();
+
+        // Unload the script DLL
+        if (IsScriptDLLLoaded()) {
+            UnloadScriptDLL();
+        }
 
         m_initialized = false;
         SPD_INFO("ScriptingEngine shutdown complete.");
@@ -249,46 +331,23 @@ namespace NE::Scripting {
     void ScriptingEngine::PrintSummary() const {
         SPD_INFO("=== Scripting Engine Summary ===");
 
-        // Print loaded DLLs
-        SPD_INFO("Loaded DLLs (" << m_loadedDLLs.size() << "):");
-        if (m_loadedDLLs.empty()) {
-            SPD_INFO("  (none)");
-        }
-        else {
-            for (const auto& dll : m_loadedDLLs) {
-                SPD_INFO("  - " << dll.name << " (" << dll.filepath << ")");
-            }
+        if (IsScriptDLLLoaded()) {
+            SPD_INFO("Loaded Script DLL:");
+            SPD_INFO("  - " << m_loadedDLL.filepath);
+        } else {
+            SPD_INFO("Loaded Script DLL: (none)");
         }
 
-        // Print registered scripts
         auto scriptNames = GetRegisteredScriptNames();
         SPD_INFO("Registered Scripts (" << scriptNames.size() << "):");
         if (scriptNames.empty()) {
             SPD_INFO("  (none)");
-        }
-        else {
+        } else {
             for (const auto& name : scriptNames) {
                 SPD_INFO("  - " << name);
             }
         }
         SPD_INFO("================================\n");
-    }
-
-    bool ScriptingEngine::ReloadDLL(const std::string& dllPath) {
-        std::string dllName = GetDLLName(dllPath);
-
-        SPD_INFO("Reloading DLL: " << dllName);
-
-        // Unload if currently loaded
-        if (IsDLLLoaded(dllName)) {
-            if (!UnloadDLL(dllName)) {
-                SetLastError("Failed to unload DLL for reload: " + dllName);
-                return false;
-            }
-        }
-
-        // Load again
-        return LoadGameDLL(dllPath);
     }
 
     void ScriptingEngine::ClearRegisteredScripts() {
@@ -308,11 +367,6 @@ namespace NE::Scripting {
         if (name.find_first_of(" \t\n\r") != std::string::npos) {
             throw std::invalid_argument("Script name cannot contain whitespace characters");
         }
-    }
-
-    std::string ScriptingEngine::GetDLLName(const std::string& filepath) const {
-        std::filesystem::path path(filepath);
-        return path.filename().string();
     }
 
     bool ScriptingEngine::ValidateDLLPath(const std::string& path) const {
@@ -336,27 +390,18 @@ namespace NE::Scripting {
             }
 
             return true;
-
         }
         catch (const std::filesystem::filesystem_error&) {
             return false;
         }
     }
 
-    ScriptingEngine::LoadedDLL* ScriptingEngine::FindLoadedDLL(const std::string& dllName) {
-        auto it = std::find_if(m_loadedDLLs.begin(), m_loadedDLLs.end(),
-            [&dllName](const LoadedDLL& dll) {
-                return dll.name == dllName;
-            });
-        return (it != m_loadedDLLs.end()) ? &(*it) : nullptr;
-    }
-
-    const ScriptingEngine::LoadedDLL* ScriptingEngine::FindLoadedDLL(const std::string& dllName) const {
-        auto it = std::find_if(m_loadedDLLs.begin(), m_loadedDLLs.end(),
-            [&dllName](const LoadedDLL& dll) {
-                return dll.name == dllName;
-            });
-        return (it != m_loadedDLLs.end()) ? &(*it) : nullptr;
+    std::string ScriptingEngine::CreateHotReloadCopyPath(int version) const {
+        std::filesystem::path path(m_scriptDLLPath);
+        std::string stem = path.stem().string();
+        std::string ext = path.extension().string();
+        std::string newFilename = stem + "_hot_" + std::to_string(version) + ext;
+        return path.replace_filename(newFilename).string();
     }
 
     void ScriptingEngine::SetLastError(const std::string& error) {
@@ -385,63 +430,283 @@ namespace NE::Scripting {
         return message;
     }
 
-    bool ScriptingEngine::LoadSingleDLL(const std::string& dllPath) {
-        // Load the DLL
-        HMODULE dllHandle = LoadLibraryA(dllPath.c_str());
-        if (!dllHandle) {
-            SetLastError("Failed to load DLL: " + dllPath + " - " + GetSystemError());
-            return false;
+    void ScriptingEngine::HandleFileWatchEvent(const std::string& path, const filewatch::Event eventType) {
+        // Only trigger on modifications to existing files, not new file creation
+        // This prevents hot reload when creating new scripts that haven't been compiled yet
+        if (eventType == filewatch::Event::modified) {
+            SPD_INFO("File change detected: " << path);
+            m_compileQueued.store(true);
+        }
+        // Ignore 'added' and 'renamed_new' events to prevent premature hot reload
+    }
+
+    void ScriptingEngine::HotCompileAndReload() {
+        SPD_INFO("=== HOT COMPILE & RELOAD BEGIN ===");
+        SPD_INFO("Executing: " << m_scriptBuildCommand);
+
+        // Clear previous error
+        SetLastError("");
+
+        int result = std::system(m_scriptBuildCommand.c_str());
+
+        if (result != 0) {
+            std::string errorMsg = "Build failed with exit code " + std::to_string(result) +
+                                   ". Check build output for errors. Command: " + m_scriptBuildCommand;
+            SPD_ERROR(errorMsg);
+            SetLastError(errorMsg);
+            return;
         }
 
-        // Get the registration function
-        RegisterScriptsFunction registerFunc = (RegisterScriptsFunction)GetProcAddress(dllHandle, "RegisterEngineScripts");
-        if (!registerFunc) {
-            SetLastError("Failed to find 'RegisterEngineScripts' function in: " + dllPath + " - " + GetSystemError());
-            FreeLibrary(dllHandle);
-            return false;
-        }
+        SPD_INFO("Build successful. Starting hot-reload...");
+
+        std::string newDLLPath = CreateHotReloadCopyPath(m_hotReloadCounter);
+        std::string oldDLLPath = m_currentLoadedDLLPath;
+
+        m_hotReloadCounter++;
+        m_currentLoadedDLLPath = newDLLPath;
 
         try {
-            std::string dllName = GetDLLName(dllPath);
+            std::filesystem::path originalDLL(m_scriptDLLPath);
+            std::filesystem::path targetDLL(newDLLPath);
 
-            // Store the loaded DLL information
-            m_loadedDLLs.emplace_back(dllHandle, dllPath, dllName, registerFunc);
+            std::filesystem::copy_file(originalDLL, targetDLL,
+                std::filesystem::copy_options::overwrite_existing);
 
-            // Set temp state *before* calling registerFunc
-            m_currentLoadingDLLHandle = dllHandle;
+            SPD_INFO("Created new DLL copy: " << newDLLPath);
 
-            // Call the registration function
-            registerFunc(this);
-
-            // Clear temp state
-            m_currentLoadingDLLHandle = nullptr;
-
-            SPD_INFO("Successfully loaded and registered scripts from: " << dllPath);
-            return true;
-
+        } catch (const std::filesystem::filesystem_error& e) {
+            std::string errorMsg = std::string("Failed to copy new DLL: ") + e.what();
+            SPD_ERROR(errorMsg);
+            SetLastError(errorMsg);
+            m_currentLoadedDLLPath = oldDLLPath;
+            m_hotReloadCounter--;
+            return;
         }
-        catch (const std::exception& e) {
-            SetLastError("Exception during script registration: " + std::string(e.what()));
-            m_currentLoadingDLLHandle = nullptr; // Clear temp state
-            FreeLibrary(dllHandle);
-            return false;
-        }
-        catch (...) {
-            SetLastError("Unknown exception during script registration");
-            m_currentLoadingDLLHandle = nullptr; // Clear temp state
-            FreeLibrary(dllHandle);
-            return false;
+
+        HotReloadDLL(oldDLLPath, newDLLPath);
+
+        // Clean up old DLL copy
+        try {
+            if (!oldDLLPath.empty() && std::filesystem::exists(oldDLLPath)) {
+                std::filesystem::remove(oldDLLPath);
+                SPD_INFO("Removed old DLL copy: " << oldDLLPath);
+            }
+        } catch (const std::exception& e) {
+            SPD_WARNING("Failed to remove old DLL: " << e.what());
         }
     }
 
-    bool ScriptingEngine::UnloadSingleDLL(LoadedDLL& dll) {
-        if (FreeLibrary(dll.handle)) {
-            SPD_INFO("Unloaded DLL: " << dll.name);
-            return true;
+    std::unordered_map<NE::ECS::Entity, ScriptingEngine::ScriptState>
+    ScriptingEngine::SaveAllScriptStates() {
+        std::unordered_map<NE::ECS::Entity, ScriptState> stateToRestore;
+
+        auto entities = GetScene().GetECSCoordinator().GetComponentManager()
+            .GetEntitiesWithComponent<ECS::Component::NativeScript>();
+
+        for (NE::ECS::Entity entity : entities) {
+            auto& nsc = GetScene().GetECSCoordinator().GetComponentManager()
+                .GetComponent<ECS::Component::NativeScript>(entity);
+
+            if (!nsc.Instance) continue;
+
+            SPD_INFO("Saving state for entity " << (int)entity << " (" << nsc.ScriptName << ")");
+
+            ScriptState state;
+            state.scriptName = nsc.ScriptName;
+            state.isEnabled = nsc.Instance->IsEnabled();
+
+            SaveSerializedFields(nsc);
+            state.fields = nsc.SerializedFields;
+            stateToRestore[entity] = state;
+
+            // Disable script before destroying to prevent execution during cleanup
+            nsc.Instance->SetEnabled(false);
         }
-        else {
-            SetLastError("Failed to unload DLL: " + dll.name + " - " + GetSystemError());
+
+        return stateToRestore;
+    }
+
+    void ScriptingEngine::DestroyAllScriptInstances() {
+        // CRITICAL: Clear all event listeners and coroutines BEFORE destroying scripts
+        // This prevents dangling function pointers when the old DLL is unloaded
+        SPD_INFO("Clearing event listeners and coroutines...");
+        NANOEngine::Events::ClearScriptEventListeners();
+        Engine_ClearAllCoroutines();
+
+        // Now safe to destroy script instances
+        auto entities = GetScene().GetECSCoordinator().GetComponentManager()
+            .GetEntitiesWithComponent<ECS::Component::NativeScript>();
+
+        for (NE::ECS::Entity entity : entities) {
+            auto& nsc = GetScene().GetECSCoordinator().GetComponentManager()
+                .GetComponent<ECS::Component::NativeScript>(entity);
+
+            if (!nsc.Instance) continue;
+
+            OnScriptComponentDestroyed(entity);
+            nsc.CreateScript = nullptr;
+            nsc.DestroyScript = nullptr;
+        }
+    }
+
+    bool ScriptingEngine::SwapDLLs(const std::string& oldDllPath, const std::string& newDllPath) {
+        if (IsScriptDLLLoaded()) {
+            if (!UnloadScriptDLL()) {
+                SPD_ERROR("Failed to unload old DLL. Attempting to load new one anyway...");
+            } else {
+                SPD_INFO("Unloaded old DLL");
+            }
+        }
+
+        if (!LoadScriptDLL(newDllPath)) {
+            SPD_ERROR("HOT RELOAD FAILED: Could not load new DLL");
+            SPD_ERROR("Error: " << GetLastError());
             return false;
+        }
+
+        SPD_INFO("New DLL loaded. Restoring script states...");
+        PrintSummary();
+        return true;
+    }
+
+    void ScriptingEngine::RestoreAllScriptStates(
+        const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore) {
+
+        for (auto const& [entity, state] : stateToRestore) {
+            auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
+
+            if (!componentMgr.HasComponent<ECS::Component::NativeScript>(entity)) {
+                SPD_WARNING("Entity " << (int)entity << " no longer exists, skipping");
+                continue;
+            }
+
+            auto& nsc = componentMgr.GetComponent<ECS::Component::NativeScript>(entity);
+            nsc.CreateScript = GetScriptFactory(state.scriptName);
+            nsc.DestroyScript = [](IScript* script) { delete script; };
+
+            if (!nsc.CreateScript) {
+                SPD_ERROR("Script factory not found for '" << state.scriptName << "', skipping");
+                nsc.Instance = nullptr;
+                continue;
+            }
+
+            try {
+                nsc.Instance = nsc.CreateScript();
+
+                if (!nsc.Instance) {
+                    SPD_ERROR("Failed to create script instance for '" << state.scriptName << "'");
+                    continue;
+                }
+
+                Scripting::LinkScriptToEngine(nsc.Instance, &componentMgr);
+                nsc.Instance->_SetEntity(entity);
+                nsc.Instance->Awake();
+                nsc.Instance->Initialize(entity);
+
+                nsc.SerializedFields = state.fields;
+                RestoreSerializedFields(nsc);
+
+                nsc.Instance->SetEnabled(false);
+            }
+            catch (const std::exception& e) {
+                SPD_ERROR("Exception creating script '" << state.scriptName << "': " << e.what());
+                nsc.Instance = nullptr;
+            }
+        }
+    }
+
+    void ScriptingEngine::EnableScripts(
+        const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore) {
+
+        for (auto const& [entity, state] : stateToRestore) {
+            auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
+
+            if (!componentMgr.HasComponent<ECS::Component::NativeScript>(entity)) {
+                continue;
+            }
+
+            auto& nsc = componentMgr.GetComponent<ECS::Component::NativeScript>(entity);
+
+            if (nsc.Instance) {
+                nsc.Instance->SetEnabled(state.isEnabled);
+            }
+        }
+    }
+
+    void ScriptingEngine::HotReloadDLL(const std::string& oldDllPath, const std::string& newDllPath) {
+        SPD_INFO("=== HOT RELOAD: Swapping DLLs ===");
+        SPD_INFO("  Old: " << std::filesystem::path(oldDllPath).filename().string());
+        SPD_INFO("  New: " << std::filesystem::path(newDllPath).filename().string());
+
+        // Step 1: Save all script states
+        auto stateToRestore = SaveAllScriptStates();
+
+        // Step 2: Destroy all script instances and clear event listeners
+        DestroyAllScriptInstances();
+
+        // Step 3: Unload old DLL and load new one
+        if (!SwapDLLs(oldDllPath, newDllPath)) {
+            return;
+        }
+
+        // Step 4: Restore all script states
+        RestoreAllScriptStates(stateToRestore);
+
+        // Step 5: Enable scripts after full initialization
+        EnableScripts(stateToRestore);
+
+        SPD_INFO("=== HOT RELOAD COMPLETE ===");
+    }
+
+    void ScriptingEngine::SaveSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+        if (!nsc.Instance) return;
+
+        // Clear existing serialized fields
+        nsc.SerializedFields.clear();
+
+        // Get all exposed field names from the script
+        auto fieldNames = nsc.Instance->GetExposedFieldNames();
+
+        // Save each field's current value as a string
+        for (const auto& fieldName : fieldNames) {
+            std::string value = nsc.Instance->GetFieldValueAsString(fieldName);
+            nsc.SerializedFields[fieldName] = value;
+        }
+
+        SPD_DEBUG("Saved " << nsc.SerializedFields.size() << " fields for script '" << nsc.ScriptName << "'");
+    }
+
+    void ScriptingEngine::RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc) {
+        if (!nsc.Instance || nsc.SerializedFields.empty()) return;
+
+        // Restore each serialized field value
+        for (const auto& [fieldName, value] : nsc.SerializedFields) {
+            bool success = nsc.Instance->SetFieldValueFromString(fieldName, value);
+            if (!success) {
+                SPD_WARNING("Failed to restore field '" << fieldName << "' for script '" << nsc.ScriptName << "'");
+            }
+        }
+
+        SPD_DEBUG("Restored " << nsc.SerializedFields.size() << " fields for script '" << nsc.ScriptName << "'");
+    }
+    
+    void ScriptingEngine::OnScriptComponentDestroyed(NE::ECS::Entity entity) {
+        auto& nsc = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+        if (nsc.Instance) {
+            // Only call OnDestroy if the script was actually started
+            // Editor scene scripts are never started, so skip OnDestroy for them
+            if (nsc.Instance->_HasStarted()) {
+                nsc.Instance->OnDestroy();
+            }
+
+            // Always clean up the instance itself
+            if (nsc.DestroyScript) {
+                nsc.DestroyScript(nsc.Instance);
+            } else {
+                delete nsc.Instance; // Fallback
+            }
+            nsc.Instance = nullptr;
+            SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
         }
     }
 

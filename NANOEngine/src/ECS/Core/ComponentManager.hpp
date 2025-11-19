@@ -15,7 +15,6 @@ namespace NE::ECS {
             std::type_index index(typeid(T));
             assert(m_pools.find(index) == m_pools.end());
             m_pools[index] = std::make_unique<Wrapper<T>>();
-
             m_componentTypes[index] = m_nextComponentType++;
         }
 

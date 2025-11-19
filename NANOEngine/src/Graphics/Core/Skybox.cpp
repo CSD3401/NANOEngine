@@ -8,7 +8,7 @@
 #include <glad/glad.h>
 #include "../../Math/Mat4.hpp"
 #include "Vertex.hpp"
-#include "../../AssetManager.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 namespace NE::Graphics {
 
@@ -39,7 +39,7 @@ namespace NE::Graphics {
         auto ib = std::make_shared<GLIndexBuffer>(indices, sizeof(indices) / sizeof(uint32_t));
         m_Mesh = std::make_shared<GLGeometryBuffer>(vb, ib);
 
-        auto shader = std::make_shared<GLShader>("Library/Shaders/Skybox.glsl");
+        auto shader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("neskybox");
         PipelineSpecification spec;
         spec.shader = shader;
         spec.CullMode = GL_FRONT;

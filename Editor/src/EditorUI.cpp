@@ -1,5 +1,7 @@
 #include "EditorUI.hpp"
 #include <Math/Vec3.hpp>
+#include "AssetManagement/AssetManager.hpp"
+#include <imgui/widgets/imsearch/imsearch.h>
 
 namespace Editor {
 
@@ -142,21 +144,56 @@ namespace Editor {
         if (slotTex) {
             if (auto* gltex = dynamic_cast<NE::Graphics::OpenGL::GLTexture*>(slotTex.get()))
                 img = (ImTextureID)(uintptr_t)gltex->GLName();
-        }
 
-        ImVec2 size(previewSize, previewSize);
-        if (img) {
-            ImGui::Image(img, size);
+            ImGui::Image(img, ImVec2(previewSize, previewSize));
         } else {
-            if (ImGui::Button("+ Assign Texture", size)) {
+            //ImVec2 cursor = ImGui::GetCursorScreenPos();
+            //ImDrawList* dl = ImGui::GetWindowDrawList();
+            //ImVec2 rectMax = ImVec2(cursor.x + previewSize, cursor.y + previewSize);
+
+            //// Fill background
+            //dl->AddRectFilled(cursor, rectMax, IM_COL32(60, 60, 60, 255)); // dark gray
+            //// Outline
+            //dl->AddRect(cursor, rectMax, IM_COL32(100, 100, 100, 255)); // border
+
+            //ImGui::Dummy(ImVec2(previewSize, previewSize)); // Reserve space for layout
+            
+
+            ImVec2 cursor = ImGui::GetCursorScreenPos();
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            ImVec2 rectMax = ImVec2(cursor.x + previewSize, cursor.y + previewSize);
+
+            dl->AddRectFilled(cursor, rectMax, IM_COL32(50, 50, 50, 255)); // background
+            dl->AddRect(cursor, rectMax, IM_COL32(100, 100, 100, 255));    // border
+
+            // Add '+' sign
+            ImVec2 center = ImVec2(cursor.x + previewSize * 0.5f, cursor.y + previewSize * 0.5f);
+            float half = previewSize * 0.25f;
+            dl->AddLine(ImVec2(center.x - half, center.y), ImVec2(center.x + half, center.y), IM_COL32(180, 180, 180, 255), 2.0f);
+            dl->AddLine(ImVec2(center.x, center.y - half), ImVec2(center.x, center.y + half), IM_COL32(180, 180, 180, 255), 2.0f);
+
+            ImGui::Dummy(ImVec2(previewSize, previewSize));
+
+            ImGui::SetCursorScreenPos(cursor); // reset cursor to top-left of the quad
+            if (ImGui::InvisibleButton("##texture_slot_btn", ImVec2(previewSize, previewSize))) {
                 ImGui::OpenPopup("AssetPicker_Texture");
             }
         }
 
+        //ImVec2 size(previewSize, previewSize);
+        //if (img) {
+        //    ImGui::Image(img, size);
+        //} else {
+        //    if (ImGui::Button("+ Assign Texture", size)) {
+        //        ImGui::OpenPopup("AssetPicker_Texture");
+        //    }
+        //}
+
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH")) {
                 std::string dropped((const char*)p->Data, p->DataSize - 1);
-                assignById(dropped);
+                auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+                assignById(uuid);
                 changed = true;
             }
             ImGui::EndDragDropTarget();
@@ -182,6 +219,26 @@ namespace Editor {
         //    }
         //    ImGui::EndPopup();
         //}
+
+        if (ImGui::BeginPopup("AssetPicker_Texture")) {
+            ImGui::Text("Select a texture");
+            ImGui::Separator();
+            auto& textureList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Texture>();
+
+            if (ImSearch::BeginSearch()) {
+                ImSearch::SearchBar();
+                for (const auto& [textureName, uuid] : textureList) {
+                    ImSearch::SearchableItem(textureName.c_str(), [&, textureName](const char*) {
+                        if (ImGui::Selectable(textureName.c_str())) {
+                            assignById(uuid);
+                            ImGui::CloseCurrentPopup();
+                        }
+                        });
+                }
+                ImSearch::EndSearch();
+            }
+            ImGui::EndPopup();
+        }
 
         ImGui::PopID();
         return changed;

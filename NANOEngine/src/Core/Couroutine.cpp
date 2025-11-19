@@ -2,69 +2,133 @@
 
 static CoroutineManager g_CoroutineManager;
 
-CoroutineHandle CoroutineManager::Start(void* userData, bool (*updateFunc)(void*, float))
+CoroutineHandle CoroutineManager::CreateCoroutine()
 {
-    if (!updateFunc) return 0;
-    unsigned int id = m_NextHandle++;
-    m_Entries[id] = { id, userData, updateFunc };
-    return id;
+    m_coroutines.emplace_back();
+    return static_cast<CoroutineHandle>(m_coroutines.size() - 1);
 }
 
-void CoroutineManager::Stop(CoroutineHandle handle)
+void CoroutineManager::AddAction(CoroutineHandle handle, std::function<void()> action)
 {
-    m_Entries.erase(handle);
+    if (handle >= m_coroutines.size()) return;
+    CoroutineStep step;
+    step.type = CoroutineStep::Type::Action;
+    step.action = std::make_shared<std::function<void()>>(std::move(action));
+    m_coroutines[handle].steps.push_back(std::move(step));
 }
 
-bool CoroutineManager::IsRunning(CoroutineHandle handle) const
+void CoroutineManager::AddWait(CoroutineHandle handle, float seconds)
 {
-    return m_Entries.find(handle) != m_Entries.end();
+    if (handle >= m_coroutines.size()) return;
+    CoroutineStep step;
+    step.type = CoroutineStep::Type::WaitSeconds;
+    step.waitTime = seconds;
+    m_coroutines[handle].steps.push_back(step);
+}
+
+void CoroutineManager::Start(CoroutineHandle /*handle*/)
+{
+    // No-op for now, coroutines begin automatically during update
 }
 
 void CoroutineManager::Update(float dt)
 {
-    std::vector<unsigned int> toRemove;
-
-    for (auto& [id, entry] : m_Entries)
+    for (auto& c : m_coroutines)
     {
-        bool finished = false;
-        try {
-            finished = entry.updateFunc(entry.userData, dt);
-        }
-        catch (...) {
-            finished = true; // error -> terminate
+        if (c.finished) continue;
+
+        if (c.currentWait > 0.0f)
+        {
+            c.currentWait -= dt;
+            continue;
         }
 
-        if (finished)
-            toRemove.push_back(id);
+        if (c.currentStepIndex >= c.steps.size())
+        {
+            c.finished = true;
+            continue;
+        }
+
+        auto& step = c.steps[c.currentStepIndex];
+
+        switch (step.type)
+        {
+        case CoroutineStep::Type::Action:
+            if (step.action && *step.action)
+                (*step.action)();
+            c.currentStepIndex++;
+            break;
+
+        case CoroutineStep::Type::WaitSeconds:
+            c.currentWait = step.waitTime;
+            c.currentStepIndex++;
+            break;
+        }
     }
-
-    for (auto id : toRemove)
-        m_Entries.erase(id);
 }
 
-CoroutineHandle Engine_StartCoroutine(CoroutineUpdateFunc updateFunc, void* userData)
+void CoroutineManager::Clear()
 {
-    return g_CoroutineManager.Start(userData, updateFunc);
+    m_coroutines.clear();
 }
 
-void Engine_StopCoroutine(CoroutineHandle handle)
+void CoroutineManager::StopCoroutine(CoroutineHandle handle)
 {
-    g_CoroutineManager.Stop(handle);
+    if (handle < m_coroutines.size())
+    {
+        m_coroutines[handle].finished = true;
+        m_coroutines[handle].steps.clear();  // Clear the steps to release any captured lambdas
+    }
 }
 
-bool Engine_IsCoroutineRunning(CoroutineHandle handle)
+bool CoroutineManager::IsRunning(CoroutineHandle handle) const
+{
+    if (handle >= m_coroutines.size())
+        return false;
+    return !m_coroutines[handle].finished;
+}
+
+NANOENGINE_API void Engine_ClearAllCoroutines()
+{
+    g_CoroutineManager.Clear();
+}
+
+NANOENGINE_API void Engine_StopCoroutine(CoroutineHandle handle)
+{
+    g_CoroutineManager.StopCoroutine(handle);
+}
+
+NANOENGINE_API bool Engine_IsCoroutineRunning(CoroutineHandle handle)
 {
     return g_CoroutineManager.IsRunning(handle);
 }
 
-// Engine-internal call per frame
-void Engine_UpdateCoroutines(float dt)
+NANOENGINE_API CoroutineHandle Engine_CreateCoroutine()
 {
-    g_CoroutineManager.Update(dt);
+    return g_CoroutineManager.CreateCoroutine();
 }
 
-CoroutineHandle Engine_WaitForSeconds(float seconds)
+NANOENGINE_API void Engine_AddWaitForSeconds(CoroutineHandle handle, float seconds)
 {
-    auto* s = new CoroutineWaitForSeconds{ seconds };
-    return Engine_StartCoroutine(&CoroutineWaitForSeconds::Update, s);
+    g_CoroutineManager.AddWait(handle, seconds);
+}
+
+NANOENGINE_API void Engine_StartCoroutine(CoroutineHandle handle)
+{
+    g_CoroutineManager.Start(handle);
+}
+
+NANOENGINE_API void Engine_UpdateCoroutines(float deltaTime)
+{
+    g_CoroutineManager.Update(deltaTime);
+}
+
+NANOENGINE_API void Engine_AddAction(CoroutineHandle handle, void (*func)())
+{
+    g_CoroutineManager.AddAction(handle, [func]() { func(); });
+}
+
+NANOENGINE_API void Engine_AddActionCpp(CoroutineHandle handle, std::function<void()> func)
+{
+    g_CoroutineManager.AddAction(handle, std::move(func));
 }

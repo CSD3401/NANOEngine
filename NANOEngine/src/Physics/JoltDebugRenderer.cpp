@@ -1,7 +1,7 @@
 #include "JoltDebugRenderer.hpp"
-#include "../Graphics/Core/GraphicsManager.hpp"
-#include "../Graphics/Core/Frustum.hpp"
-#include "../Graphics/Core/Camera.hpp" 
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/Frustum.hpp"
+#include "Graphics/Core/EditorCamera.hpp" 
 
 namespace NE::Physics {
     std::vector<JoltDebugRenderer::LineData> JoltDebugRenderer::m_BatchedLines;
@@ -45,7 +45,7 @@ namespace NE::Physics {
     }
 
     bool JoltDebugRenderer::IsVisible(const NE::Math::Vec3& center, float radius) {
-        auto* cam = NE::Graphics::GraphicsManager::GetCamera();
+        auto* cam = NE::Graphics::GraphicsManager::GetEditorCamera();
         if (!cam) return true;
 
         const NE::Math::Mat4& V = cam->GetViewMatrix();
@@ -57,7 +57,7 @@ namespace NE::Physics {
     }
 
     bool JoltDebugRenderer::IsVisible(const JPH::AABox& worldBounds) {
-        auto* cam = NE::Graphics::GraphicsManager::GetCamera();
+        auto* cam = NE::Graphics::GraphicsManager::GetEditorCamera();
         if (!cam) return true;
 
         const NE::Math::Mat4& V = cam->GetViewMatrix();

@@ -4,9 +4,11 @@
 #include <Engine.hpp>
 #include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
-#include <Utility/MetadataHandler.hpp>
+#include "../AssetManagement/AssetManager.hpp"
 #include <Core/SpdLogger.hpp>
 #include <fstream>
+#include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
@@ -19,20 +21,9 @@ namespace Editor {
         for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
             std::filesystem::path filePath = entry.path();
 
-            // Skip meta files themselves
             if (filePath.extension() == ".meta") continue;
 
-            if (!NE::Utility::MetadataHandler::MetaFileExists(entry.path().string())) {
-                NE::Utility::MetadataHandler::GenerateMetaFile(entry.path().string());
-            }
-
-            if (filePath.extension() == ".nanoshader") {
-                NE::LoadShader(filePath.string());
-            }
-
-            if (filePath.extension() == ".jpg" || filePath.extension() == ".png") {
-                NE::LoadTexture(filePath.string());
-            }
+            AssetManager::GetInstance().GenerateMetadata(entry.path().string());
         }
 	}
 
@@ -253,9 +244,12 @@ namespace Editor {
                 if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx") {
                     if (ImGui::BeginDragDropSource()) {
                         std::string assetPath = entry.path().string();
-                        ImGui::SetDragDropPayload("ASSET_PATH", assetPath.c_str(), assetPath.size() + 1);
+                        ImGui::SetDragDropPayload("ASSET_MESH_PATH", assetPath.c_str(), assetPath.size() + 1);
                         ImGui::TextUnformatted(name.c_str());
                         ImGui::EndDragDropSource();
+                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 } else if (entryPath.extension() == ".scene") {    
                     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -273,7 +267,7 @@ namespace Editor {
                         ImGui::EndDragDropSource();
                     } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         EditorScene::s_selectedEntity = nullptr;
-                        EditorScene::selectedMaterial = entryPath.string();
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 } else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
                     if (ImGui::BeginDragDropSource()) {
@@ -281,6 +275,9 @@ namespace Editor {
                         ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", texturePath.c_str(), texturePath.size() + 1);
                         ImGui::TextUnformatted(name.c_str());
                         ImGui::EndDragDropSource();
+                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 }
             }
@@ -308,10 +305,36 @@ namespace Editor {
 
                 if (ImGui::InputText("##RenameInput", m_renameBuffer, sizeof(m_renameBuffer),
                     ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
-                    
-                    std::filesystem::path newPath = entry.path().parent_path() / m_renameBuffer;
                     std::error_code ec;
-                    std::filesystem::rename(entry.path(), newPath, ec);
+
+                    // Old/new asset paths
+                    std::filesystem::path oldAssetPath = entry.path();
+                    std::filesystem::path newAssetPath = oldAssetPath.parent_path() / m_renameBuffer;
+
+                    // 1) Rename the main asset
+                    std::filesystem::rename(oldAssetPath, newAssetPath, ec);
+                    if (ec) {
+                        // TODO: log error somewhere if you have logging
+                        m_isRenaming = false;
+                        return;
+                    }
+
+                    // 2) Rename the .meta sidecar if it exists
+                    std::filesystem::path oldMetaPath = oldAssetPath;
+                    oldMetaPath += ".meta";               // e.g. "MyTex.png" -> "MyTex.png.meta"
+
+                    if (std::filesystem::exists(oldMetaPath)) {
+                        std::filesystem::path newMetaPath = newAssetPath;
+                        newMetaPath += ".meta";           // e.g. "NewName.png" -> "NewName.png.meta"
+
+                        std::filesystem::rename(oldMetaPath, newMetaPath, ec);
+                        // Optional: handle ec here if you care
+                    }
+
+                    // Keep selection pointing at the new asset path (optional but nice)
+                    m_selectedPath = newAssetPath;
+                    m_renamingPath = newAssetPath;
+
                     m_isRenaming = false;
                 }
 
@@ -335,7 +358,7 @@ namespace Editor {
             ImGui::PopID();
         }
 
-        ImGui::Columns(1);
+        ImGui::Columns();
 
         if (m_triggerRenameNextFrame) {
             m_triggerRenameNextFrame = false;
@@ -358,7 +381,7 @@ namespace Editor {
                     CreateNewFolder();
                 }
                 if (ImGui::MenuItem("Material")) {
-                    //CreateNewFolder();
+                    CreateNewMaterial();
                 }
                 if (ImGui::MenuItem("Script", "", false, false)) {
                     //CreateNewFolder();
@@ -415,6 +438,10 @@ namespace Editor {
                 if (ImGui::MenuItem("Delete")) {
                     m_confirmDeletePopupOpen = true;
                 }
+
+                if (ImGui::MenuItem("Reimport")) {
+                    AssetManager::GetInstance().ReimportAsset(m_selectedPath.string());
+                }
             }
             else {
                 ImGui::BeginDisabled();
@@ -448,57 +475,53 @@ namespace Editor {
     void AssetBrowserPanel::CreateNewMaterial() {
         namespace fs = std::filesystem;
 
-        try {
-            // 1) Decide where to place the file
-            fs::path targetDir = m_currentDirectory;               // assumes you already track this
-            if (targetDir.empty()) targetDir = fs::current_path();  // fallback, just in case
-            if (!fs::exists(targetDir)) fs::create_directories(targetDir);
+        // 1) decide where to put it — assuming you have a "current folder" in the browser
+        fs::path targetDir = m_currentDirectory;   // adjust to whatever your panel uses
+        if (!fs::exists(targetDir))
+            return;
 
-            // 2) Pick a unique filename
-            const std::string baseName = "NewShader";
-            fs::path outPath = targetDir / (baseName + ".nanoshader");
-            int counter = 1;
-            while (fs::exists(outPath)) {
-                outPath = targetDir / (baseName + " (" + std::to_string(counter++) + ").nanoshader");
-            }
+        // 2) make a unique name
+        static int s_MatCounter = 1;
+        fs::path matPath;
+        do {
+            matPath = targetDir / ("NewMaterial_" + std::to_string(s_MatCounter++) + ".nanomat");
+        } while (fs::exists(matPath));
 
-            // 3) JSON preset content (exactly as requested)
-            static constexpr const char* kPreset = R"({
-    "Shader": "Unlit",
-    "DepthTest": true,
-    "BlendMode": true,
-    "CullMode": 1029,
-    "PolygonMode": 6914,
-    "Properties": {
-        "u_BaseColor": [
-            0.0,
-            0.5,
-            1.0
-        ]
-    }
-}
-)";
+        // 3) build the JSON in the exact format your Material::LoadFromFile expects
+        rapidjson::Document doc;
+        doc.SetObject();
+        auto& alloc = doc.GetAllocator();
 
-            // 4) Write file
-            std::ofstream ofs(outPath, std::ios::out | std::ios::trunc);
-            if (!ofs) {
-                // Replace with your logger if different
-                SPD_WARNING(std::string("Failed to create file: ") + outPath.string());
-                return;
-            }
-            ofs << kPreset;
-            ofs.close();
+        // default shader — you can change this to "Basic" or whatever your engine ships with
+        doc.AddMember("Shader", rapidjson::Value("Unlit", alloc), alloc);
 
-            // 5) (Optional) Notify / refresh selection
-            SPD_INFO(std::string("Created shader preset: ") + outPath.string());
-            // If you have such methods, you can refresh the panel / select the new file here:
-            // RefreshDirectoryListing();
-            // m_selectedPath = outPath;
-            // m_clickedOnItem = true;
+        // pipeline settings (these match what your material save/load uses)
+        doc.AddMember("DepthTest", true, alloc);
+        doc.AddMember("BlendMode", true, alloc);
 
-        } catch (const std::exception& e) {
-            SPD_WARNING(std::string("CreateNewMaterial() error: ") + e.what());
+        // these numbers are exactly the ones your material code saved earlier:
+        // 1029  -> GL_BACK
+        // 6914  -> GL_FILL
+        doc.AddMember("CullMode", 1029, alloc);
+        doc.AddMember("PolygonMode", 6914, alloc);
+
+        // empty properties for now — when the material is opened in inspector,
+        // and user changes values, you can overwrite this.
+        rapidjson::Value props(rapidjson::kObjectType);
+        doc.AddMember("Properties", props, alloc);
+
+        // 4) write to disk
+        rapidjson::StringBuffer buffer;
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+        doc.Accept(writer);
+
+        std::ofstream out(matPath);
+        if (out.is_open()) {
+            out << buffer.GetString();
+            out.close();
         }
+
+        AssetManager::GetInstance().GenerateMetadata(matPath.string());
     }
     
 }

@@ -11,9 +11,12 @@
 #include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/NativeScript.hpp"
+#include "ECS/Components/Camera.hpp"
 
 #include "../Graphics/Core/Model.hpp"
 #include "../ECS/Components/ComponentKey.hpp"
+
+#include "ECS/Systems/ScriptSystem.hpp"
 
 // rapidjson
 #include <rapidjson/document.h>
@@ -57,7 +60,8 @@ namespace {
         NE::ECS::Component::Light,
         NE::ECS::Component::Collider,
         NE::ECS::Component::Rigidbody,
-        NE::ECS::Component::NativeScript
+        NE::ECS::Component::NativeScript,
+        NE::ECS::Component::Camera
     >;
 
     template <class F>
@@ -155,6 +159,61 @@ namespace NE::Serialization {
                 ReloadComponent<C>(scene.GetECSCoordinator(), e, entVal);
             });
         }
+    }
+
+    void JsonSceneSerializer::SerializeToMemory(SceneManagement::Scene& scene, std::vector<uint8_t>& outBuffer) {
+        Document doc;
+        doc.SetObject();
+        auto& a = doc.GetAllocator();
+        Value entities(kArrayType);
+
+        const auto& ids = scene.GetECSCoordinator().GetUsedEntities();
+        for (ECS::Entity e : ids) {
+            Value ent(kObjectType);
+
+            // same component loop as your file serialize
+            ForEachComponentType([&]<typename C>() {
+                WriteComponentIfPresent<C>(scene.GetECSCoordinator(), e, ent, a);
+            });
+
+            entities.PushBack(ent, a);
+        }
+        doc.AddMember("Entities", entities, a);
+
+        // write to string buffer
+        rapidjson::StringBuffer sb;
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
+        doc.Accept(wr);
+
+        // copy to byte buffer
+        outBuffer.clear();
+        outBuffer.resize(sb.GetSize());
+        std::memcpy(outBuffer.data(), sb.GetString(), sb.GetSize());
+    }
+
+    void JsonSceneSerializer::DeserializeFromMemory(SceneManagement::Scene& scene, const uint8_t* data, size_t size) {
+        if (!data || size == 0) return;
+
+        // rapidjson expects a null-terminated string; we can copy into a std::string
+        std::string jsonStr(reinterpret_cast<const char*>(data), size);
+
+        Document doc;
+        doc.Parse(jsonStr.c_str());
+        if (!doc.IsObject() || !doc.HasMember("Entities"))
+            return;
+
+        // NOTE: this matches your existing Deserialize: it just creates entities and fills components.
+        for (auto& entVal : doc["Entities"].GetArray()) {
+            ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
+
+            ForEachComponentType([&]<typename C>() {
+                ReadComponentIfPresent<C>(scene.GetECSCoordinator(), e, entVal);
+            });
+        }
+    }
+
+    void JsonSceneSerializer::DeserializeFromMemory(SceneManagement::Scene& scene, const std::vector<uint8_t>& buffer) {
+        DeserializeFromMemory(scene, buffer.data(), buffer.size());
     }
 
 }

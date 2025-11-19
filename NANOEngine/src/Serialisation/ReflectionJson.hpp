@@ -25,6 +25,11 @@ namespace NE::Serialization {
     inline RJson to_json(std::string_view s, Alloc& a) { return RJson(s.data(), a); }
     inline RJson to_json(const char* s, Alloc& a) { return RJson(s, a); }
     inline RJson to_json(const std::filesystem::path& p, Alloc& a) { return RJson(p.string().c_str(), a); }
+    inline RJson to_json(const uint64_t& v, Alloc&) {
+        RJson out;
+        out.SetUint64(v);
+        return out;
+    }
 
     template <typename T>
     void from_json(const RJson& v, T& out) requires std::is_arithmetic_v<T> {
@@ -33,6 +38,7 @@ namespace NE::Serialization {
     }
     inline void from_json(const RJson& v, std::string& out) { out = v.GetString(); }
     inline void from_json(const RJson& v, std::filesystem::path& out) { out = v.GetString(); }
+    inline void from_json(const RJson& v, uint64_t& out) { out = v.GetUint64(); }
 
     // ----------- Enums -----------
     template <typename E>

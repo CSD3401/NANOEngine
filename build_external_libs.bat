@@ -22,7 +22,7 @@ echo Verifying that this branch tracks the submodules (gitlink mode 160000)...
 rem extern/assimp must be a gitlink
 git ls-tree -d HEAD extern/assimp 2>nul | findstr /R "^[ ]*160000" >nul
 if errorlevel 1 (
-  echo [91mERROR: extern/assimp is NOT a tracked submodule on this branch.[0m
+  echo [91mERROR: extern/assimp is NOT a tracked submodule on this branch.[0m
   echo        Switch to a branch that tracks it or add it once:
   echo        git submodule add https://github.com/assimp/assimp.git extern/assimp
   exit /b 2
@@ -31,7 +31,7 @@ if errorlevel 1 (
 rem extern/jolt must be a gitlink
 git ls-tree -d HEAD extern/jolt 2>nul | findstr /R "^[ ]*160000" >nul
 if errorlevel 1 (
-  echo [91mERROR: extern/jolt is NOT a tracked submodule on this branch.[0m
+  echo [91mERROR: extern/jolt is NOT a tracked submodule on this branch.[0m
   echo        Switch to a branch that tracks it or add it once:
   echo        git submodule add https://github.com/jrouwe/JoltPhysics.git extern/jolt
   exit /b 2
@@ -53,8 +53,6 @@ if not exist "extern\jolt\Build\CMakeLists.txt" (
   exit /b 1
 )
 
-
-
 echo [92mSubmodules ready (pinned to commits recorded in this repo).[0m
 echo.
 
@@ -69,6 +67,7 @@ for %%D in (assimp jolt) do (
 rem ============================================================
 rem Build Assimp
 rem ============================================================
+
 echo [96m Building Assimp Debug[0m
 pushd extern\assimp\build-debug
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DASSIMP_BUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF || exit /b 1
@@ -84,6 +83,8 @@ popd
 rem ============================================================
 rem Build Jolt
 rem ============================================================
+
+echo Building Jolt...
 echo [96m Building Jolt Debug[0m
 pushd extern\jolt\build-debug
 cmake ..\Build ^

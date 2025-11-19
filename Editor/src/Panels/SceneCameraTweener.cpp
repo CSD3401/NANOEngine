@@ -7,7 +7,7 @@
 #include "Math/Vec3.hpp"
 #include <iostream>
 
-NE::Graphics::Camera* Editor::SceneCameraTweener::sceneCamera = nullptr;
+NE::Graphics::EditorCamera* Editor::SceneCameraTweener::sceneCamera = nullptr;
 float isTweening = 0.0f;
 
 namespace Editor {
@@ -43,13 +43,13 @@ namespace Editor {
 		NE::ECS::Component::Transform const& entityTransform = NE::ECS::Query::GetEntityTransform(entity);
 
 		// Get position
-		NE::Math::Vec3 entityPosition = entityTransform.position;
+		NE::Math::Vec3 entityPosition = entityTransform.localPosition;
 
 		// Get camera's look direction, and reverse it
 		NE::Math::Vec3 reversedCameraLookDirection = -sceneCamera->GetForward();
 
 		// Get scale
-		NE::Math::Vec3 entityScale = entityTransform.scale;
+		NE::Math::Vec3 entityScale = entityTransform.localScale;
 
 		// Get the maximum scale value to approximate required distance
 		float distance = std::max(std::max(entityScale.x, entityScale.y), entityScale.z);
@@ -60,7 +60,7 @@ namespace Editor {
 		// Tween
 		TweenManager::Get().StartTween(
 			sceneCamera,
-			&NE::Graphics::Camera::SetPosition,
+			&NE::Graphics::EditorCamera::SetPosition,
 			sceneCamera->GetPosition(),
 			targetPosition,
 			tweenDuration,
@@ -68,7 +68,7 @@ namespace Editor {
 		);
 	}
 
-	void SceneCameraTweener::SetSceneCamera(NE::Graphics::Camera* camera)
+	void SceneCameraTweener::SetSceneCamera(NE::Graphics::EditorCamera* camera)
 	{
 		sceneCamera = camera;
 	}

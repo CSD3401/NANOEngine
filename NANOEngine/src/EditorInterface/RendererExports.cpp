@@ -1,9 +1,11 @@
 #include "RendererExports.hpp"
-#include "../AssetManager.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "../ECS/Components/UIImage.hpp"
-#include <iostream>
+#include "ResourceManagement/ResourceManager.hpp"
+#include "../EngineState.hpp"  // For GetEngineState
+#include "../Engine.hpp"  // For MarkSceneDirty
+#include <Core/SpdLogger.hpp>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -16,21 +18,35 @@ namespace NE::Renderer {
 	}
 
 	namespace Command {
-		void AssignModel(uint32_t e, std::string_view path) {
+		void AssignModel(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
-			r.modelPath = std::string(path);
-			r.model = Asset::AssetManager::GetInstance().Get<Graphics::Model>(path.data());
+			r.modelUUID = uuid;
+			r.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(uuid);
 
-			if (r.materialPath.empty()) {
-				r.materialPath = "Assets/Basic.nanomat";
-				r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>("Assets/Basic.nanomat", false);
+			if (r.materialUUID.empty()) {
+				r.materialUUID = "neunlitmat";
+				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>("neunlitmat");
+			}
+			
+			// Mark component and scene dirty (Edit mode only)
+			if (NE::GetEngineState() == NE::EngineState::Edit) {
+				if constexpr (requires { r.isDirty; }) r.isDirty = true;
+				NE::MarkSceneDirty();
+				SPD_DEBUG("[DirtyFlag] Model changed - Scene marked DIRTY");
 			}
 		}
 
-		void AssignMaterial(uint32_t e, std::string_view path) {
+		void AssignMaterial(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
-			r.materialPath = std::string(path);
-			r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(path.data(), false);
+			r.materialUUID = uuid;
+			r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
+			
+			// Mark component and scene dirty (Edit mode only)
+			if (NE::GetEngineState() == NE::EngineState::Edit) {
+				if constexpr (requires { r.isDirty; }) r.isDirty = true;
+				NE::MarkSceneDirty();
+				SPD_DEBUG("[DirtyFlag] Material changed - Scene marked DIRTY");
+			}
 		}
 	}
 }

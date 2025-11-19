@@ -4,7 +4,7 @@
 #include "../Components/Transform.hpp"
 #include <fmod/fmod.hpp>
 #include <fmod/fmod_studio.hpp>
-#include "../../AssetManager.hpp"
+//#include "../../AssetManager.hpp"
 #include "../../Audio/AudioBank.hpp"
 #include <map>
 
@@ -42,7 +42,7 @@ namespace NE::ECS::Systems
 			FMOD::Studio::Bank* bank;
 		};
 
-		const std::vector<std::pair<std::string, std::shared_ptr<NE::Asset::AudioBank>>>& GetLoadedBanks() const;
+		//const std::vector<std::pair<std::string, std::shared_ptr<NE::Asset::AudioBank>>>& GetLoadedBanks() const;
 		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> GetAllEvents() const;
 
 

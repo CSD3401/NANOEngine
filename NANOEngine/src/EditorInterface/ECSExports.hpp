@@ -18,6 +18,8 @@ namespace NE::ECS {
 		struct EntityMeta;
 		struct AudioSource;
 		struct NativeScript;
+		struct Animator;
+		struct Camera;
 		struct PhysicsBody;
 		struct UIRectTransform;
 		struct UIImage;
@@ -48,6 +50,20 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
+
+		// --- Component Existence Checks ---
+		NANOENGINE_API bool HasTransform(uint32_t e);
+		NANOENGINE_API bool HasRenderer(uint32_t e);
+		NANOENGINE_API bool HasLight(uint32_t e);
+		NANOENGINE_API bool HasRigidbody(uint32_t e);
+		NANOENGINE_API bool HasCollider(uint32_t e);
+		NANOENGINE_API bool HasAudioSource(uint32_t e);
+		NANOENGINE_API bool HasScript(uint32_t e);
+		NANOENGINE_API bool HasAnimator(uint32_t e);
+		NANOENGINE_API bool HasCamera(uint32_t e);
+
+		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
+		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
 	}
 
 	namespace Command {
@@ -56,6 +72,8 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
+		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays = true);
+		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
 		NANOENGINE_API void AddLightComponent(uint32_t e);
 		NANOENGINE_API void AddRendererComponent(uint32_t e);
@@ -66,6 +84,7 @@ namespace NE::ECS {
 		//NANOENGINE_API void AddUIRectTransformComponent(uint32_t e);
 		//NANOENGINE_API void AddUIImageComponent(uint32_t e);
 		//NANOENGINE_API void AddUICanvasComponent(uint32_t e)
+		NANOENGINE_API void AddCameraComponent(uint32_t e);
 
 		// --- Editor Component Mutators --- //
 		NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
@@ -79,12 +98,16 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();
 		NANOENGINE_API bool SetEntityScript(uint32_t e, const std::string& scriptName);
 		NANOENGINE_API void RemoveEntityScript(uint32_t e);
 		NANOENGINE_API bool IsScriptRegistered(const std::string& scriptName);
+
+		NANOENGINE_API void AddAnimatorComponent(uint32_t e);              // <-- ADD
+		NANOENGINE_API Component::Animator& GetEntityAnimator(uint32_t e);
 	}
 
 }

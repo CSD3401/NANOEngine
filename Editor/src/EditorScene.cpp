@@ -17,7 +17,8 @@ namespace Editor {
     std::vector<EditorEntity> EditorScene::s_entities;
     EditorEntity* EditorScene::s_selectedEntity;
 
-    std::string EditorScene::selectedMaterial;
+    //std::string EditorScene::selectedMaterial;
+    std::string EditorScene::selectedAsset;
 
     std::string EditorScene::currentScenePath("Assets/NewScene.scene");
 
@@ -26,47 +27,61 @@ namespace Editor {
     std::vector<uint32_t> EditorScene::s_roots;
 
     // builds the hierarchy tree from the flat entity list
-    void EditorScene::BuildFlatHierarchy() {
-        // clear old data
-        s_nodes.clear();
-        s_children.clear();
-        s_roots.clear();
+    // void EditorScene::BuildFlatHierarchy() {
+    //     // clear old data
+    //     s_nodes.clear();
+    //     s_children.clear();
+    //     s_roots.clear();
 
-        s_roots.reserve(s_entities.size());
+    //     s_roots.reserve(s_entities.size());
 
-        // first pass: loop through all entities in the scene and determine its parent
-        float k = 0.f;
-        for (const auto& e : s_entities) {                    // s_entities exists already
-            uint32_t id = e.linkedEntity;                    // (see your struct) 
-            //s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
-            //s_roots.push_back(id);
+    //     // first pass: loop through all entities in the scene and determine its parent
+    //     float k = 0.f;
+    //     for (const auto& e : s_entities) {                    // s_entities exists already
+    //         uint32_t id = e.linkedEntity;                    // (see your struct) 
+    //         //s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
+    //         //s_roots.push_back(id);
 
-            uint32_t parentId = NE::ECS::NO_ENTITY;
-            if (NE::ECS::Query::HasUIRectTransform(id)) 
-            {
-                auto& rect = NE::ECS::Query::GetUIRectTransform(id);
-                parentId = rect.parent; 
-            } 
-            // 3D entities: parentId stays NO_ENTITY --> they are all root
+    //         uint32_t parentId = NE::ECS::NO_ENTITY;
+    //         if (NE::ECS::Query::HasUIRectTransform(id)) 
+    //         {
+    //             auto& rect = NE::ECS::Query::GetUIRectTransform(id);
+    //             parentId = rect.parent; 
+    //         } 
+    //         // 3D entities: parentId stays NO_ENTITY --> they are all root
 
-            // create node with correct parent
-            s_nodes[id] = Node{ id, parentId, k };
+    //         // create node with correct parent
+    //         s_nodes[id] = Node{ id, parentId, k };
 
-            k += 1.f; // order key
-        }
+    //         k += 1.f; // order key
+    //     }
 
-        // second pass: build hierarchy relationships (build s_roots and s_children)
-        for (const auto& [id, node] : s_nodes) {
-            if (node.parent == NE::ECS::NO_ENTITY) 
-            {
-                s_roots.push_back(id); // this entity is a parent
-            }
-            else 
-            {
-                s_children[node.parent].push_back(id); // this entity is a child
-            }
-        }
-    }
+    //     // second pass: build hierarchy relationships (build s_roots and s_children)
+    //     for (const auto& [id, node] : s_nodes) {
+    //         if (node.parent == NE::ECS::NO_ENTITY) 
+    //         {
+    //             s_roots.push_back(id); // this entity is a parent
+    //         }
+    //         else 
+    //         {
+    //             s_children[node.parent].push_back(id); // this entity is a child
+    //         }
+    //     }
+    // }
+    //void EditorScene::BuildFlatHierarchy() {
+    //    s_nodes.clear();
+    //    s_children.clear();
+    //    s_roots.clear();
+
+    //    s_roots.reserve(s_entities.size());
+    //    float k = 0.f;
+    //    for (const auto& e : s_entities) {                    // s_entities exists already
+    //        uint32_t id = e.linkedEntity;                    // (see your struct) 
+    //        s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
+    //        s_roots.push_back(id);
+    //        k += 1.f;
+    //    }
+    //}
 
     // reassigns order keys to preveent precision issues
     static void RenormalizeKeys(std::vector<uint32_t>& ids, uint32_t) {
@@ -157,11 +172,64 @@ namespace Editor {
         } else {
             itChild->second.orderKey = newK;
         }
+        NE::ECS::Command::SetParent(child, newParent, /*worldPositionStays=*/true);
         return true;
     }
 
     // make an entity a root (remove parent)
     bool EditorScene::UnparentToRoot(uint32_t child, int insertIndex) {
+        NE::ECS::Command::SetParent(child, NE::ECS::NO_ENTITY);
         return AttachAsChild(NE::ECS::NO_ENTITY, child, insertIndex);
+    }
+
+    void EditorScene::BuildHierarchyFromECS() {
+        s_nodes.clear();
+        s_children.clear();
+        s_roots.clear();
+
+        s_roots.reserve(s_entities.size());
+
+        // --- First pass: create nodes with parent taken from ECS ---
+        for (const auto& e : s_entities) {
+            uint32_t id = e.linkedEntity;
+
+            // Ask ECS what the parent is (this should reflect Transform.parent)
+            uint32_t parent = NE::ECS::Command::GetParent(id); // NO_ENTITY if root
+
+            Node node;
+            node.id = id;
+            node.parent = parent;  // NE::ECS::NO_ENTITY means root for us too
+            node.orderKey = 0.0f;  // we'll fill this in per-sibling
+
+            s_nodes[id] = node;
+        }
+
+        // --- Second pass: fill children and roots ---
+        for (auto& [id, node] : s_nodes) {
+            if (node.parent == NE::ECS::NO_ENTITY) {
+                s_roots.push_back(id);
+            } else {
+                s_children[node.parent].push_back(id);
+            }
+        }
+
+        // --- Third pass: assign simple orderKey for each sibling list ---
+        {
+            // roots
+            float k = 0.f;
+            for (uint32_t id : s_roots) {
+                s_nodes[id].orderKey = k;
+                k += 1.f;
+            }
+
+            // children
+            for (auto& [parent, vec] : s_children) {
+                float kk = 0.f;
+                for (uint32_t id : vec) {
+                    s_nodes[id].orderKey = kk;
+                    kk += 1.f;
+                }
+            }
+        }
     }
 }

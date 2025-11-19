@@ -1,6 +1,7 @@
 #pragma once
-#include <unordered_map>
+#include <vector>
 #include <functional>
+#include <memory>
 #include "NANOEngineAPI.hpp"
 
 #pragma warning(push)
@@ -9,58 +10,62 @@
 // Handle type
 typedef unsigned int CoroutineHandle;
 
-// Function type for coroutine update step
-// return true -> coroutine finished
-// return false -> keep running
-typedef bool (*CoroutineUpdateFunc)(void* userData, float deltaTime);
-
-// Start coroutine (engine will call updateFunc every frame until it returns true)
-NANOENGINE_API CoroutineHandle Engine_StartCoroutine(CoroutineUpdateFunc updateFunc, void* userData);
-
-// Stop manually
-NANOENGINE_API void Engine_StopCoroutine(CoroutineHandle handle);
-
-// Check if still running
-NANOENGINE_API bool Engine_IsCoroutineRunning(CoroutineHandle handle);
-
-NANOENGINE_API void Engine_UpdateCoroutines(float dt);
-
-struct NANOENGINE_API CoroutineEntry
+struct CoroutineStep
 {
-    unsigned int handle;
-    void* userData;
-    bool (*updateFunc)(void*, float);
+    enum class Type
+    {
+        Action,
+        WaitSeconds,
+    };
+
+    Type type = Type::Action;
+    float waitTime = 0.0f;
+    std::shared_ptr<std::function<void()>> action;
+};
+
+struct Coroutine
+{
+    std::vector<CoroutineStep> steps;
+    size_t currentStepIndex = 0;
+    float currentWait = 0.0f;
+    bool finished = false;
 };
 
 class NANOENGINE_API CoroutineManager
 {
 public:
-    CoroutineHandle Start(void* userData, bool (*updateFunc)(void*, float));
-    void Stop(CoroutineHandle handle);
-    bool IsRunning(CoroutineHandle handle) const;
-    void Update(float dt); // call this every frame
+    CoroutineHandle CreateCoroutine();
+    void AddAction(CoroutineHandle handle, std::function<void()> action);
+    void AddWait(CoroutineHandle handle, float seconds);
+    void Start(CoroutineHandle handle);
+    void Update(float dt);
+
+    void Clear();  // Clear all coroutines
+    void StopCoroutine(CoroutineHandle handle);  // Stop a specific coroutine
+    bool IsRunning(CoroutineHandle handle) const;  // Check if coroutine is still running
 
 private:
-    std::unordered_map<CoroutineHandle, CoroutineEntry> m_Entries;
-    unsigned int m_NextHandle = 1;
+    std::vector<Coroutine> m_coroutines;  // Direct vector of Coroutines
 };
 
-struct NANOENGINE_API CoroutineWaitForSeconds
+NANOENGINE_API CoroutineHandle Engine_CreateCoroutine();
+NANOENGINE_API void Engine_AddAction(CoroutineHandle handle, void (*func)());
+NANOENGINE_API void Engine_AddWaitForSeconds(CoroutineHandle handle, float seconds);
+NANOENGINE_API void Engine_StartCoroutine(CoroutineHandle handle);
+NANOENGINE_API void Engine_UpdateCoroutines(float deltaTime);
+
+// C++ API for lambdas and any callable
+NANOENGINE_API void Engine_AddActionCpp(CoroutineHandle handle, std::function<void()> func);
+
+NANOENGINE_API void Engine_ClearAllCoroutines();
+NANOENGINE_API void Engine_StopCoroutine(CoroutineHandle handle);
+NANOENGINE_API bool Engine_IsCoroutineRunning(CoroutineHandle handle);
+
+// Convenience overload that forwards to the C++ version
+template<typename Func>
+inline void Engine_AddAction(CoroutineHandle handle, Func&& func)
 {
-    float timeLeft;
-    static bool Update(void* data, float dt)
-    {
-        auto* s = static_cast<CoroutineWaitForSeconds*>(data);
-        s->timeLeft -= dt;
-        if (s->timeLeft <= 0.0f)
-        {
-            delete s;
-            return true;
-        }
-        return false;
-    }
-};
-
-NANOENGINE_API CoroutineHandle Engine_WaitForSeconds(float seconds);
+    Engine_AddActionCpp(handle, std::function<void()>(std::forward<Func>(func)));
+}
 
 #pragma warning(pop)

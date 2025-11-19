@@ -13,7 +13,7 @@
 #include <iostream>
 
 namespace Editor {
-	static uint32_t temp;
+	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
 
@@ -33,7 +33,7 @@ namespace Editor {
 		float fovYRadians = 45.0f * (NE::Math::PI / 180.0f); // 45 degrees fov
 		float aspectRatio = 1920.f / 1080.f;
 		float nearPlane = 0.1f;
-		float farPlane = 100.0f;
+		float farPlane = 1000.0f;
 
 		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
 		m_editorCamera.SetPosition(position);
@@ -87,13 +87,19 @@ namespace Editor {
 				ImGui::SameLine();
 				if (ImGui::Button("Pause")) {
 					if (playing) paused = !paused;
-					
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Stop")) {
 					playing = false;
 					paused = false;
+
+					EditorScene::s_entities.clear();
 					NE::EditorEdit();
+
+					auto numEntt = NE::GetNumEntities();
+					for (unsigned int i = 0; i < numEntt; ++i) {
+						EditorScene::s_entities.push_back(EditorEntity{ i });
+					}
 				}
 			}
 			ImGui::End();
@@ -162,9 +168,7 @@ namespace Editor {
 						uint32_t id = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
-						EditorScene::selectedMaterial = "";
-
-						// find the entity with that ID and mark it as selected
+						EditorScene::selectedAsset = "";
 						for (auto& ent : EditorScene::s_entities) {
 							if (ent.linkedEntity == id) {
 								EditorScene::s_selectedEntity = &ent;
@@ -184,8 +188,7 @@ namespace Editor {
 			bool hasTransform = NE::ECS::Query::HasTransform(eid);
 			bool hasUIRectTransform = NE::ECS::Query::HasUIRectTransform(eid);
 
-			if (hasTransform) 
-			{
+			if (hasTransform) {
 				static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
 				if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
 				if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
@@ -195,17 +198,45 @@ namespace Editor {
 				ImGuizmo::SetDrawlist();
 				ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
-				using Owner = NE::ECS::Component::Transform;
+				//using Owner = NE::ECS::Component::Transform;
 				//const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
+				//const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
+
+				//float matrix[16];
+				//memcpy(matrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
+
+				//bool editedThisFrame = ImGuizmo::Manipulate(
+				//	m_editorCamera.GetViewMatrix().Data(),
+				//	m_editorCamera.GetProjectionMatrix().Data(),
+				//	currentOperation, ImGuizmo::LOCAL, matrix
+				//);
+				//bool isUsing = ImGuizmo::IsUsing();
+
+				using Owner = NE::ECS::Component::Transform;
+				const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
 				const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
 
-				float matrix[16];
-				memcpy(matrix, tRO.modelMatrix.Data(), sizeof(float) * 16);
+				// Get parent world matrix
+				NE::Math::Mat4 parentWorld;
+				parentWorld.SetToIdentity();
+
+				{
+					// However you get parent; adjust to your API
+					// Example: if Transform has a 'parent' entity id:
+					auto& t = NE::ECS::Query::GetEntityTransform(eid); // or Command::GetEntityTransform
+					if (t.parent != NE::ECS::Component::INVALID_PARENT) {
+						const auto& parentT = NE::ECS::Query::GetEntityTransform(t.parent);
+						parentWorld = parentT.worldMatrix;
+					}
+				}
+
+				float worldMatrix[16];
+				memcpy(worldMatrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
 
 				bool editedThisFrame = ImGuizmo::Manipulate(
 					m_editorCamera.GetViewMatrix().Data(),
 					m_editorCamera.GetProjectionMatrix().Data(),
-					currentOperation, ImGuizmo::LOCAL, matrix
+					currentOperation, ImGuizmo::LOCAL, worldMatrix
 				);
 				bool isUsing = ImGuizmo::IsUsing();
 
@@ -218,7 +249,7 @@ namespace Editor {
 					case ImGuizmo::SCALE:     return Cmd::Scl;
 					default:                  return Cmd::Pos;
 					}
-					};
+				};
 
 				if (!s_gizmoActive && isUsing) {
 					s_gizmoActive = true;
@@ -230,22 +261,53 @@ namespace Editor {
 					);
 				}
 
+				//if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+				//	float tr[3], rotDeg[3], sc[3];
+				//	ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+
+				//	auto current = NE::ECS::Query::GetEntityTransform(eid);
+				//	auto after = current;
+
+				//	if (s_gizmoMask & Editor::SetTransformCommand::Pos)
+				//		after.localPosition = { tr[0], tr[1], tr[2] };
+				//	if (s_gizmoMask & Editor::SetTransformCommand::Rot)
+				//		after.localRotationEuler = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+				//	if (s_gizmoMask & Editor::SetTransformCommand::Scl)
+				//		after.localScale = { sc[0], sc[1], sc[2] };
+
+				//	s_gizmoCmd->SetAfter(after);
+				//}
 				if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+					// Convert worldMatrix[16] back to Mat4
+					NE::Math::Mat4 newWorld;
+					memcpy(newWorld.Data(), worldMatrix, sizeof(float) * 16);
+
+					// local = parent^-1 * world
+					NE::Math::Mat4 invParent = parentWorld.Inverse(); // or your InverseTRS(parentWorld)
+					NE::Math::Mat4 newLocal = invParent * newWorld;
+
+					// Now decompose *local* matrix, not world
 					float tr[3], rotDeg[3], sc[3];
-					ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+					float localMatrix[16];
+					memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
+
+					ImGuizmo::DecomposeMatrixToComponents(localMatrix, tr, rotDeg, sc);
 
 					auto current = NE::ECS::Query::GetEntityTransform(eid);
 					auto after = current;
 
 					if (s_gizmoMask & Editor::SetTransformCommand::Pos)
-						after.position = { tr[0], tr[1], tr[2] };
+						after.localPosition = { tr[0], tr[1], tr[2] };
 					if (s_gizmoMask & Editor::SetTransformCommand::Rot)
-						after.rotation = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+						after.localRotationEuler = {
+							Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2])
+					};
 					if (s_gizmoMask & Editor::SetTransformCommand::Scl)
-						after.scale = { sc[0], sc[1], sc[2] };
+						after.localScale = { sc[0], sc[1], sc[2] };
 
 					s_gizmoCmd->SetAfter(after);
 				}
+
 
 				if (s_gizmoActive && !isUsing) {
 					if (s_gizmoCmd) {
@@ -255,22 +317,19 @@ namespace Editor {
 							return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
 							};
 						bool changed = false;
-						if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.position, A.position);
-						if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.rotation, A.rotation);
-						if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.scale, A.scale);
+						if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.localPosition, A.localPosition);
+						if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.localRotationEuler, A.localRotationEuler);
+						if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.localScale, A.localScale);
 
 						if (changed) {
 							Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
-						}
-						else {
+						} else {
 							s_gizmoCmd.reset();
 						}
 					}
 					s_gizmoActive = false;
 				}
-			}
-			else if (hasUIRectTransform)
-			{
+			} else if (hasUIRectTransform) {
 				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
 
 				// draw in pixel space
@@ -428,137 +487,10 @@ namespace Editor {
 		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
 		m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
-		//if (EditorScene::s_selectedEntity) {
-		//	static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
-
-		//	if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
-		//	if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
-		//	if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
-
-		//	ImGuizmo::SetOrthographic(false);
-		//	ImGuizmo::SetDrawlist();
-		//	ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
-
-		//	const auto& t = NE::ECS::Query::GetEntityTransform(EditorScene::s_selectedEntity->linkedEntity);
-
-		//	float matrix[16];
-		//	memcpy(matrix, t.modelMatrix.Data(), sizeof(float) * 16);
-
-		//	if (ImGuizmo::Manipulate(m_editorCamera.GetViewMatrix().Data(),
-		//		m_editorCamera.GetProjectionMatrix().Data(),
-		//		currentOperation, ImGuizmo::LOCAL, matrix)) {
-		//		float tr[3], rot[3], sc[3];
-		//		ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rot, sc);
-		//		//t.position = { tr[0], tr[1], tr[2] };
-		//		//t.rotation = { rot[0], rot[1], rot[2] };
-		//		//t.scale = { sc[0], sc[1], sc[2] };
-		//		//t.isDirty = true;
-		//	}
-		//}
-
-		//ImGuizmo::IsUsingAny()
-		//ImVec2 mousePos = ImGui::GetMousePos();
-		//float localX = mousePos.x - panelPos.x;
-		//float localY = mousePos.y - panelPos.y;
-		//float spMouseX = localX / panelSize.x;
-		//float spMouseY = localY / panelSize.y;
-
-		//if (localX < 0 || localY < 0 || localX > panelSize.x || localY > panelSize.y) {
-		//	//return; // Mouse is outside the panel
-		//} else {
-		//	float scrollOffset = ImGui::GetIO().MouseWheel;
-		//	if (scrollOffset != 0) {
-		//		float zoomSpeed = 0.1f; // Zoom sensitivity
-		//		camera.SetZoom(scrollOffset * zoomSpeed);
-		//	}
-
-		//	// Moving the camera
-		//	if (ImGui::IsWindowFocused()) {
-		//		float camSpeed = 10.f;
-		//		if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
-		//			camera.MoveUp(camSpeed);
-		//		} else if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
-		//			camera.MoveDown(camSpeed);
-		//		}
-		//		if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
-		//			camera.MoveLeft(camSpeed);
-		//		} else if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
-		//			camera.MoveRight(camSpeed);
-		//		}
-
-		//		// Object Picking
-		//		if (!ImGuizmo::IsUsingAny()) {
-		//			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-		//				int x = static_cast<int>(spMouseX * Application::GetWindowSize().first);
-		//				int y = static_cast<int>(spMouseY * Application::GetWindowSize().second);
-		//				Vec4 colour = GraphicsManager::GetInstance().GetPixelColor(
-		//					GraphicsManager::GetInstance().frameBuffers[GraphicsManager::FrameBufferIndex::OBJ_PICKING_ENGINE], x, y);
-
-		//				uint32_t clickedEntity = ECSManager::GetInstance().renderSystem->DecodeColor(colour);
-		//				//std::cout << "Clicked on entity: " << clickedEntity << std::endl;
-		//				if (sceneEntityMap.find(clickedEntity) != sceneEntityMap.end()) {
-		//					selectedEntity = &*sceneEntityMap.find(clickedEntity)->second;
-		//					//auto r = ECSManager::GetInstance().TryGetComponent<Renderer>(selectedEntity->id);
-		//					//if (r.has_value()) {
-		//					//	ECSManager::GetInstance().renderSystem->SetVisibility(r->get().currentMeshDebugID, true);
-		//					//}
-		//				} else {
-		//					//if (selectedEntity) {
-		//					//	auto r = ECSManager::GetInstance().TryGetComponent<Renderer>(selectedEntity->id);
-		//					//	if (r.has_value()) {
-		//					//		ECSManager::GetInstance().renderSystem->SetVisibility(r->get().currentMeshDebugID, false);
-		//					//	}
-		//					//}
-		//					selectedEntity = nullptr;
-		//				}
-		//			}
-		//		}
-		//	}
-
-		//	// Camera Dragging
-		//	static bool isDragging = false;
-		//	static ImVec2 lastMousePos;
-		//	if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
-		//		if (!isDragging) {
-		//			isDragging = true;
-		//			lastMousePos = ImGui::GetMousePos();
-		//		}
-
-		//		ImVec2 currentMousePos = ImGui::GetMousePos();
-		//		ImVec2 delta = ImVec2(currentMousePos.x - lastMousePos.x, currentMousePos.y - lastMousePos.y);
-
-		//		float viewportWidth = panelSize.x;
-		//		float viewportHeight = panelSize.y;
-
-		//		float ndcX = delta.x / viewportWidth * 2.0f;
-		//		float ndcY = delta.y / viewportHeight * 2.0f;
-
-		//		float worldDeltaX = ndcX * (camera.screenWidth / 2.0f) / camera.zoom;
-		//		float worldDeltaY = ndcY * (camera.screenHeight / 2.0f) / camera.zoom;
-
-		//		camera.MoveRight(-worldDeltaX);
-		//		camera.MoveUp(worldDeltaY);
-
-		//		lastMousePos = currentMousePos;
-		//	} else {
-		//		isDragging = false;
-		//	}
-
-		//	if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-		//		currentOperation = ImGuizmo::TRANSLATE;
-		//	}
-		//	if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-		//		currentOperation = ImGuizmo::SCALE;
-		//	}
-		//	if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-		//		currentOperation = ImGuizmo::ROTATE;
-		//	}
-		//}
-
 		ImGui::End();
 	}
 
-	NE::Graphics::Camera* ScenePanel::GetCamera()
+	NE::Graphics::EditorCamera* ScenePanel::GetCamera()
 	{
 		return &m_editorCamera;
 	}
