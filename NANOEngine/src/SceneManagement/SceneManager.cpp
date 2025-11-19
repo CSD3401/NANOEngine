@@ -86,6 +86,24 @@ namespace NE::SceneManagement {
 		m_isPlaying = false;
 		// restore editor scene from backup
 		if (m_editor && !m_editorBackup.empty()) {
+			// CRITICAL: Null out editor script instances before Exit()
+			// During hot reload, only runtime scene was updated. Editor scene scripts
+			// still reference the OLD unloaded DLL, causing crashes in Exit().
+			// We null them out so Exit() doesn't try to call methods on stale DLL code.
+			auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
+			for (NE::ECS::Entity entity : entities) {
+				auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+				if (nsc.Instance) {
+					// Don't call any methods on Instance - it may reference freed DLL!
+					// Just manually delete and null it out
+					delete nsc.Instance;
+					nsc.Instance = nullptr;
+				}
+				// Clear function pointers too (they also reference old DLL)
+				nsc.CreateScript = nullptr;
+				nsc.DestroyScript = nullptr;
+			}
+
 			m_editor->Exit();
 			m_editor = std::make_unique<Scene>();
 			NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_editor, m_editorBackup);

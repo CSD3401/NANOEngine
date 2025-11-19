@@ -31,6 +31,8 @@ namespace NE::ECS::Component {
         float linear{ 0.f };
         float quadratic{ 1.f };
 
+        uint64_t luid;
+
         // Dirty flag for editor changes
         bool isDirty = false;
 

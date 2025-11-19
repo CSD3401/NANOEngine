@@ -7,6 +7,8 @@ namespace NE::ECS::Component {
     struct EntityMeta {
 
         std::string name;
+        
+        uint64_t luid;
         bool isActive = true;  // Entity active state - controls whether entity updates and renders
         //std::string guid; // commented out as unused param warning - RF during m1
 

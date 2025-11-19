@@ -54,6 +54,9 @@
     <ClInclude Include="Scripts\FollowerScript.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Scripts\PlayerController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Scripts\EngineAPI.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

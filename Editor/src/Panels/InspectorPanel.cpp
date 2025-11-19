@@ -39,6 +39,7 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
+#include <EditorInterface/PhysicsExports.hpp>
 
 namespace {
 	template<typename Owner, typename T>

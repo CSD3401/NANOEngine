@@ -14,6 +14,7 @@
 #include <Core/Profiler.hpp>
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include "Panels/AssetBrowserPanel.hpp"
+#include "Panels/ScriptsPanel.hpp"
 #include "Panels/ScenePanel.hpp"
 #include "Panels/HierarchyPanel.hpp"
 #include "Panels/InspectorPanel.hpp"
@@ -99,6 +100,7 @@ namespace Editor {
 			});
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
+		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
 		NE::LoadStartupScene();
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
 		editorLayer.AddPanel<GamePanel>(NE::GetGameFrameBuffer());

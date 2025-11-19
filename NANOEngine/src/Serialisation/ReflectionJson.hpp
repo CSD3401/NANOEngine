@@ -25,6 +25,11 @@ namespace NE::Serialization {
     inline RJson to_json(std::string_view s, Alloc& a) { return RJson(s.data(), a); }
     inline RJson to_json(const char* s, Alloc& a) { return RJson(s, a); }
     inline RJson to_json(const std::filesystem::path& p, Alloc& a) { return RJson(p.string().c_str(), a); }
+    inline RJson to_json(const uint64_t& v, Alloc&) {
+        RJson out;
+        out.SetUint64(v);
+        return out;
+    }
 
     template <typename T>
     void from_json(const RJson& v, T& out) requires std::is_arithmetic_v<T> {
@@ -33,6 +38,7 @@ namespace NE::Serialization {
     }
     inline void from_json(const RJson& v, std::string& out) { out = v.GetString(); }
     inline void from_json(const RJson& v, std::filesystem::path& out) { out = v.GetString(); }
+    inline void from_json(const RJson& v, uint64_t& out) { out = v.GetUint64(); }
 
     // ----------- Enums -----------
     template <typename E>
@@ -63,6 +69,12 @@ namespace NE::Serialization {
     template <NE::Core::Reflectable T>
     RJson to_json(const T& obj, Alloc& a) {
         RJson o(rapidjson::kObjectType);
+
+        if constexpr (requires (const T & t) { t.luid; }) {
+            RJson key("luid", a);
+            o.AddMember(key, to_json(obj.luid, a), a);
+        }
+
         NE::Core::ForEachFieldView(obj, [&](auto&& desc, auto&& field) {
             // field name is a std::string_view per FieldDescriptor
             RJson key(desc.name.data(), a);
@@ -73,6 +85,16 @@ namespace NE::Serialization {
 
     template <NE::Core::Reflectable T>
     void from_json(const RJson& v, T& out) {
+
+        if constexpr (requires (T & t) { t.luid; }) {
+            auto it = v.FindMember("luid");
+            if (it != v.MemberEnd()) {
+                from_json(it->value, out.luid); // calls uint64_t overload
+                // or: out.luid = it->value.GetUint64();
+            }
+            // else: leave out.luid as-is (maybe you generated a new one before)
+        }
+
         NE::Core::ForEachField(out, [&](auto&& desc, auto& field) {
             const auto key = desc.name; // std::string_view
             if (v.HasMember(rapidjson::StringRef(key.data(), static_cast<rapidjson::SizeType>(key.size())))) {

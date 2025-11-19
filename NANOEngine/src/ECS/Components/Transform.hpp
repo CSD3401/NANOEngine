@@ -17,6 +17,8 @@ namespace NE::ECS::Component {
 		Math::Mat4 modelMatrix{};
 		Math::Mat4 parent{};
 
+		uint64_t luid;
+
 		NE_REFLECT_BEGIN(Transform)
 			NE_REFLECT_FIELD_NAMED(position, "Position"),
 			NE_REFLECT_FIELD_NAMED(scale, "Scale"),
