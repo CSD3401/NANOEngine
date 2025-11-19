@@ -213,7 +213,6 @@ namespace Editor {
 				//bool isUsing = ImGuizmo::IsUsing();
 
 				using Owner = NE::ECS::Component::Transform;
-				const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
 				const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
 
 				// Get parent world matrix

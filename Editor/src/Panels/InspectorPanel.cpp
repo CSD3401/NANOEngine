@@ -1926,8 +1926,29 @@ namespace Editor {
 
                         ImGui::Unindent();
                     }
-            }
+				}
 
+			} else if (EditorScene::selectedAsset != "") {
+
+				std::filesystem::path assetPath = EditorScene::selectedAsset;
+
+				if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
+					RenderTextureImportSettings(assetPath.string() + ".meta");
+				} else if (assetPath.extension() == ".obj" || assetPath.extension() == ".fbx") {
+					RenderModelImportSettings(assetPath.string() + ".meta");
+				} else if (assetPath.extension() == ".nanomat") {
+					//RenderMaterialSettings();
+					if (!m_materialEditor || m_lastPath != assetPath.string()) {
+						m_materialEditor = std::make_unique<MaterialEditor>();
+						if (m_materialEditor->LoadMaterial(assetPath.string(), AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
+							m_lastPath = assetPath.string();
+						else
+							m_materialEditor.reset();
+					}
+
+					if (m_materialEditor)
+						m_materialEditor->RenderSettings();
+				}
 			}
 
 			if (ImGui::Button("Add Component")) {
@@ -1979,29 +2000,7 @@ namespace Editor {
 
 				ImGui::EndPopup();
 			}
-		}
-		else if (EditorScene::selectedAsset != "") {
-        
-			std::filesystem::path assetPath = EditorScene::selectedAsset;
 
-			if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
-				RenderTextureImportSettings(assetPath.string() + ".meta");
-			} else if (assetPath.extension() == ".obj" || assetPath.extension() == ".fbx") {
-				RenderModelImportSettings(assetPath.string() + ".meta");
-			} else if (assetPath.extension() == ".nanomat") {
-				//RenderMaterialSettings();
-				if (!m_materialEditor || m_lastPath != assetPath.string()) {
-					m_materialEditor = std::make_unique<MaterialEditor>();
-					if (m_materialEditor->LoadMaterial(assetPath.string(), AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
-						m_lastPath = assetPath.string();
-					else
-						m_materialEditor.reset();
-				}
-
-				if (m_materialEditor)
-					m_materialEditor->RenderSettings();
-			}
-		}
 
 		ImGui::End();
 	}

@@ -97,10 +97,6 @@ namespace NE::ECS {
 		bool HasUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
 		}
-		// Component existence checks
-		bool HasTransform(uint32_t e) {
-			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Transform>(e);
-		}
 
 		bool HasRenderer(uint32_t e) {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e);

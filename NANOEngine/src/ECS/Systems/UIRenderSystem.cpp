@@ -4,7 +4,7 @@
 #include "../../Graphics/Core/UIDrawCommand.hpp" 
 #include "../../Graphics/Core/UIRenderer.hpp" 
 #include "../../Graphics/Core/GraphicsManager.hpp"
-#include "../../Graphics/Core/Camera.hpp"
+#include "../../Graphics/Core/EditorCamera.hpp"
 #include <iostream>
 
 using namespace NE::ECS;
@@ -19,7 +19,7 @@ namespace NE::ECS::Systems {
     void UIRenderSystem::Init() {}
 
     bool UIRenderSystem::GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj) {
-        auto* cam = NE::Graphics::GraphicsManager::GetCamera();
+        auto* cam = NE::Graphics::GraphicsManager::GetEditorCamera();
         if (!cam) return false;
 
         outView = cam->GetViewMatrix();
