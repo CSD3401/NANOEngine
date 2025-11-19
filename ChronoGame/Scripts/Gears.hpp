@@ -17,10 +17,10 @@ public:
         if (Input::WasKeyPressed('E')) {
             auto& transform = NE::ECS::Command::GetEntityTransform(GetEntity());
 
-            if (transform.scale == NE::Math::Vec3(0.f, 0.f, 0.f)) {
-                transform.scale = NE::Math::Vec3(0.2f, 0.2f, 0.2f);
+            if (transform.localScale == NE::Math::Vec3(0.f, 0.f, 0.f)) {
+                transform.localScale = NE::Math::Vec3(0.2f, 0.2f, 0.2f);
             } else {
-                transform.scale = NE::Math::Vec3(0.f, 0.f, 0.f);
+                transform.localScale = NE::Math::Vec3(0.f, 0.f, 0.f);
             }
             //if (!switched) {
             //    light.color = NE::Math::Vec3(0.7f, 0.4f, 0.f);

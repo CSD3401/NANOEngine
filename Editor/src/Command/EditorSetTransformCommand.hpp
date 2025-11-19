@@ -40,9 +40,9 @@ namespace Editor {
         void Apply(const Owner& v) {
             Owner& t = m_get(m_entity);
 
-            if (m_mask & Pos) t.position = v.position;
-            if (m_mask & Rot) t.rotation = v.rotation;
-            if (m_mask & Scl) t.scale = v.scale;
+            if (m_mask & Pos) t.localPosition = v.localPosition;
+            if (m_mask & Rot) t.localRotationEuler = v.localRotationEuler;
+            if (m_mask & Scl) t.localScale = v.localScale;
 
             if constexpr (requires(Owner x) { x.isDirty; }) t.isDirty = true;
      

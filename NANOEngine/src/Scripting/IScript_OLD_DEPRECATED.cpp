@@ -233,7 +233,7 @@ NE::Math::Vec3 IScript::GetPosition() const {
 	if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
 		return NE::Math::Vec3{ 0, 0, 0 };
 
-	return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).position;
+	return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).localPosition;
 }
 
 void IScript::SetPosition(const NE::Math::Vec3& pos) {
@@ -241,7 +241,7 @@ void IScript::SetPosition(const NE::Math::Vec3& pos) {
 
 	if (m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
 		auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
-		transform.position = pos;
+		transform.localPosition = pos;
 		transform.isDirty = true;
 		
 		// Only mark dirty for serialization if in Edit mode
@@ -261,7 +261,7 @@ NE::Math::Vec3 IScript::GetRotation() const {
 	if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
 		return NE::Math::Vec3{ 0, 0, 0 };
 
-	return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).rotation;
+	return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).localRotationEuler;
 }
 
 void IScript::SetRotation(const NE::Math::Vec3& rot) {
@@ -269,7 +269,7 @@ void IScript::SetRotation(const NE::Math::Vec3& rot) {
 
 	if (m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
 		auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
-		transform.rotation = rot;
+		transform.localRotationEuler = rot;
 		transform.isDirty = true;
 		
 		// Only mark dirty for serialization if in Edit mode
@@ -289,7 +289,7 @@ NE::Math::Vec3 IScript::GetScale() const {
 	if (!m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity))
 		return NE::Math::Vec3{ 1, 1, 1 };
 
-	return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).scale;
+	return m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity).localScale;
 }
 
 void IScript::SetScale(const NE::Math::Vec3& scale) {
@@ -297,7 +297,7 @@ void IScript::SetScale(const NE::Math::Vec3& scale) {
 
 	if (m_componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
 		auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
-		transform.scale = scale;
+		transform.localScale = scale;
 		transform.isDirty = true;
 		
 		// Only mark dirty for serialization if in Edit mode

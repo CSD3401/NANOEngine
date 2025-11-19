@@ -119,7 +119,7 @@ namespace Scripting {
             return Vec3::Zero();
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
-        return ToSDKVec3(transform.position);
+        return ToSDKVec3(transform.localPosition);
     }
 
     void IScript::SetPosition(const Vec3& pos) {
@@ -127,7 +127,7 @@ namespace Scripting {
 
         if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
             auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
-            transform.position = ToEngineVec3(pos);
+            transform.localPosition = ToEngineVec3(pos);
             transform.isDirty = true;
         }
     }
@@ -143,7 +143,7 @@ namespace Scripting {
             return Vec3::Zero();
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
-        return ToSDKVec3(transform.rotation);
+        return ToSDKVec3(transform.localRotationEuler);
     }
 
     void IScript::SetRotation(const Vec3& rot) {
@@ -151,7 +151,7 @@ namespace Scripting {
 
         if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
             auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
-            transform.rotation = ToEngineVec3(rot);
+            transform.localRotationEuler = ToEngineVec3(rot);
             transform.isDirty = true;
         }
     }
@@ -167,7 +167,7 @@ namespace Scripting {
             return Vec3::One();
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
-        return ToSDKVec3(transform.scale);
+        return ToSDKVec3(transform.localScale);
     }
 
     void IScript::SetScale(const Vec3& scale) {
@@ -175,7 +175,7 @@ namespace Scripting {
 
         if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
             auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
-            transform.scale = ToEngineVec3(scale);
+            transform.localScale = ToEngineVec3(scale);
             transform.isDirty = true;
         }
     }
@@ -565,14 +565,14 @@ namespace Scripting {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-        return ToSDKVec3(transform.position);
+        return ToSDKVec3(transform.localPosition);
     }
 
     void IScript::SetPosition(const TransformRef& ref, const Vec3& pos) {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-        transform.position = ToEngineVec3(pos);
+        transform.localPosition = ToEngineVec3(pos);
         transform.isDirty = true;
     }
 
@@ -584,14 +584,14 @@ namespace Scripting {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-        return ToSDKVec3(transform.rotation);
+        return ToSDKVec3(transform.localRotationEuler);
     }
 
     void IScript::SetRotation(const TransformRef& ref, const Vec3& rot) {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-        transform.rotation = ToEngineVec3(rot);
+        transform.localRotationEuler = ToEngineVec3(rot);
         transform.isDirty = true;
     }
 
@@ -599,14 +599,14 @@ namespace Scripting {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::One();
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-        return ToSDKVec3(transform.scale);
+        return ToSDKVec3(transform.localScale);
     }
 
     void IScript::SetScale(const TransformRef& ref, const Vec3& scale) {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
 
         auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-        transform.scale = ToEngineVec3(scale);
+        transform.localScale = ToEngineVec3(scale);
         transform.isDirty = true;
     }
 
