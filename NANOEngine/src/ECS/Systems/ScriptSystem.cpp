@@ -1,9 +1,13 @@
-#include "ScriptSystem.hpp" 
+#include "ScriptSystem.hpp"
 #include <iostream>
 #include <filesystem>
 #include "../Components/NativeScript.hpp"
+#include "../../Scripting/IScript.hpp"  // Explicitly include IScript definition
 #include "Core/SpdLogger.hpp"
-#include "Scripting/ScriptingEngine.hpp"
+#include "Core/Couroutine.hpp"
+#include "Events/EventBus.hpp"
+#include "../../Scripting/ScriptingEngine.hpp"
+#include "../../Scripting/ScriptContextFactory.hpp"
 
 // Entire scripting requires a major refactor ~ irwen
 
@@ -42,8 +46,8 @@ namespace NE::ECS::Systems {
         auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
         if (nsc.CreateScript && !nsc.Instance) {
             nsc.Instance = nsc.CreateScript();
-            nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
-            nsc.Instance->SetEntity(entity);
+            Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager); // Link to engine systems via new API
+            nsc.Instance->_SetEntity(entity);
       
             // Call Awake() first (even if disabled)
             nsc.Instance->Awake();
@@ -76,13 +80,26 @@ namespace NE::ECS::Systems {
     }
 
     void ScriptSystem::Exit() {
+        // CRITICAL: Clear these FIRST before ANY cleanup
+        NANOEngine::Events::ClearScriptEventListeners();
+        Engine_ClearAllCoroutines();
+
         auto& entities = GetEntities();
 
         for (NE::ECS::Entity entity : entities) {
+            if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
+                continue;
+            }
+
+            // Destroy the script instance
             Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-            auto& ns = m_componentManager->GetComponent<Component::NativeScript>(entity);
-            ns.CreateScript = {};   // or ns.CreateScript = nullptr; if it’s a function ptr
-            ns.DestroyScript = {};
+
+            // Clear function pointers using swap
+            auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+            std::function<IScript* ()> emptyCreate;
+            std::function<void(IScript*)> emptyDestroy;
+            nsc.CreateScript.swap(emptyCreate);
+            nsc.DestroyScript.swap(emptyDestroy);
         }
     }
 
@@ -100,8 +117,8 @@ namespace NE::ECS::Systems {
 
             if (nsc.CreateScript && !nsc.Instance) {
                 nsc.Instance = nsc.CreateScript();
-                nsc.Instance->LinkToEngine(m_componentManager);
-                nsc.Instance->SetEntity(entity);
+                Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager);
+                nsc.Instance->_SetEntity(entity);
 
                 nsc.Instance->Awake();
                 nsc.Instance->Initialize(entity);
@@ -125,7 +142,7 @@ namespace NE::ECS::Systems {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
             if (nsc.Instance) {
-                nsc.Instance->RefreshComponentReferences();
+                nsc.Instance->_RefreshComponentReferences();
                 nsc.Instance->SetEnabled(true);
             }
         }
@@ -173,9 +190,9 @@ namespace NE::ECS::Systems {
             // Recreate the script instance for the next play session
             if (nsc.CreateScript && !nsc.Instance) {
                 nsc.Instance = nsc.CreateScript();
-                nsc.Instance->LinkToEngine(m_componentManager); // Link to engine systems
-                nsc.Instance->SetEntity(entity);
-        
+                Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager); // Link to engine systems via new API
+                nsc.Instance->_SetEntity(entity);
+
                 // Call Awake() and Initialize()
                 nsc.Instance->Awake();
                 nsc.Instance->Initialize(entity);
@@ -205,9 +222,9 @@ namespace NE::ECS::Systems {
             auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
             if (nsc.Instance && nsc.Instance->IsEnabled()) {
                 // Call Start() before first Update() if not yet called
-                if (!nsc.Instance->HasStarted()) {
+                if (!nsc.Instance->_HasStarted()) {
                     nsc.Instance->Start();
-                    nsc.Instance->MarkStartCalled();
+                    nsc.Instance->_MarkStartCalled();
                 }
         
                 nsc.Instance->Update(deltaTime);

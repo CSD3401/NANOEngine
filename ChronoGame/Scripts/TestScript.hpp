@@ -1,9 +1,6 @@
 #pragma once
 #include <iostream>
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "Events/EventBus.hpp"
-#include <Math/Vec3.hpp>
+#include "EngineAPI.hpp"
 
 /**
  * Test script to demonstrate the new built-in field system.
@@ -12,12 +9,12 @@
 
 void PlayerTestEvent(void* data) {
     int tmp = *reinterpret_cast<int*>(data);
-   // SPD_CRITICAL("HIIII Player {}", tmp);
+    // LOG_CRITICAL("HIIII Player {}", tmp);
     std::cout << tmp << std::endl;
 }
 
 
-class TestScript : public IScript {
+class TestScript : public NE::Scripting::IScript {
 public:
     TestScript() {
         // Register all our fields using the simple macros
@@ -31,7 +28,7 @@ public:
         std::cout << "[TestScript] Created with fields registered" << std::endl;
     }
 
-    void Initialize(NE::ECS::Entity entity) override {
+    void Initialize(NE::Scripting::Entity entity) override {
         //std::cout << "[TestScript] Initialized for entity " << entity << std::endl;
         //std::cout << "[TestScript] Initial values:" << std::endl;
         //std::cout << "  - Rotation Speed: " << rotationSpeed << std::endl;
@@ -41,26 +38,25 @@ public:
         //std::cout << "  - Is Active: " << (isActive ? "true" : "false") << std::endl;
         //std::cout << "  - Object Name: " << objectName << std::endl;
 
-        NANOEngine::Events::RegisterScriptEventListener("OnPlayerHit", PlayerTestEvent);
+        Events::Listen("OnPlayerHit", PlayerTestEvent);
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
         // Use the exposed fields in our logic
-        auto transform = GetComponent<NE::ECS::Component::Transform>();
-        if (transform) {
-            // Rotate using the rotation speed field
-            static float totalTime = 0.0f;
-            totalTime += static_cast<float>(deltaTime);
-            
-            // Simple bobbing motion using bounce height
-            transform->position.y = std::sin(totalTime * 2.0f) * bounceHeight;
-            
-            // You could also use the color field to set renderer color
-            // You could use particleCount to control particle systems
-            // etc.
-        }
+        // Rotate using the rotation speed field
+        static float totalTime = 0.0f;
+        totalTime += static_cast<float>(deltaTime);
+
+        // Simple bobbing motion using bounce height using SDK methods
+        NE::Scripting::Vec3 currentPos = GetPosition();
+        currentPos.y = std::sin(totalTime * 2.0f) * bounceHeight;
+        SetPosition(currentPos);
+
+        // You could also use the color field to set renderer color
+        // You could use particleCount to control particle systems
+        // etc.
     }
 
     void OnDestroy() override {
@@ -72,17 +68,17 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::ECS::Entity other) override {}
-    void OnCollisionExit(NE::ECS::Entity other) override {}
-    void OnTriggerEnter(NE::ECS::Entity other) override {}
-    void OnTriggerExit(NE::ECS::Entity other) override {}
+    void OnCollisionEnter(NE::Scripting::Entity other) override {}
+    void OnCollisionExit(NE::Scripting::Entity other) override {}
+    void OnTriggerEnter(NE::Scripting::Entity other) override {}
+    void OnTriggerExit(NE::Scripting::Entity other) override {}
 
 private:
     // === Exposed Fields ===
     // These will automatically appear in the editor inspector
     float rotationSpeed = 90.0f;  // degrees per second
     float bounceHeight = 1.0f;    // units
-    NE::Math::Vec3 color{1.0f, 0.0f, 0.0f};  // red by default
+    NE::Scripting::Vec3 color{1.0f, 0.0f, 0.0f};  // red by default
     int particleCount = 50;
     bool isActive = true;
     std::string objectName = "TestObject";

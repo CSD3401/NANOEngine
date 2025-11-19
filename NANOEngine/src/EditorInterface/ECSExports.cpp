@@ -13,6 +13,7 @@
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
+#include "Core/LUIDGenerator.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -62,8 +63,41 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
 
+		// Component existence checks
+		bool HasTransform(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Transform>(e);
+		}
+
+		bool HasRenderer(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e);
+		}
+
+		bool HasLight(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Light>(e);
+		}
+
+		bool HasRigidbody(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Rigidbody>(e);
+		}
+
+		bool HasCollider(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Collider>(e);
+		}
+
+		bool HasAudioSource(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::AudioSource>(e);
+		}
+
+		bool HasScript(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e);
+		}
+
 		bool HasAnimator(uint32_t e) {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Animator>(e);
+		}
+
+		bool HasCamera(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Camera>(e);
 		}
 
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
@@ -78,7 +112,16 @@ namespace NE::ECS {
 	namespace Command {
 
 		uint32_t CreateEntity() {
-			return GetScene().GetECSCoordinator().CreateEntity();
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity, 
+				Component::EntityMeta{ "Unnamed Entity", Core::LUIDGenerator::Generate("en")});
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity, 
+				Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
+
+			return newEntity;
 		}
 
 		void DestroyEntity(uint32_t e) {
@@ -86,20 +129,18 @@ namespace NE::ECS {
 		}
 
 		void AddLightComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{ .luid = Core::LUIDGenerator::Generate("tr") });
 		}
 
 		void AddRendererComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{});
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{ .luid = Core::LUIDGenerator::Generate("re") });
 		}
 
 		void AddRigidbodyComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{});
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{ .luid = Core::LUIDGenerator::Generate("ri") });
 		}
 
 		void AddColliderComponent(uint32_t e) {
-			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Collider>(e))
-				return;
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Collider{});
 		}
 
@@ -108,15 +149,11 @@ namespace NE::ECS {
 		}
 
 		void AddScriptComponent(uint32_t e) {
-			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e))
-				return;
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{});
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{ .luid = Core::LUIDGenerator::Generate("sc") });
 		}
 
 		void AddCameraComponent(uint32_t e) {
-			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Camera>(e))
-				return;
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Core::LUIDGenerator::Generate("ca") });
 		}
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {

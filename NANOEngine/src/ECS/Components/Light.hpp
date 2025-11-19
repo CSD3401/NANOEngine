@@ -31,6 +31,8 @@ namespace NE::ECS::Component {
         float linear{ 0.f };
         float quadratic{ 1.f };
 
+        uint64_t luid;
+
         NE_REFLECT_BEGIN(Light)
             //NE_REFLECT_FIELD(type),
             NE_REFLECT_FIELD(direction),

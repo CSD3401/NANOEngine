@@ -1,28 +1,20 @@
 #pragma once
 #include <iostream>
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "Events/EventBus.hpp"
-#include "Core/Couroutine.hpp"
-#include <Math/Vec3.hpp>
-#include <Input/InputManager.hpp>
-#include <ECS/Components/Light.hpp>
-#include <EditorInterface/ECSExports.hpp>
+#include "EngineAPI.hpp"
 
-
-class Gears : public IScript {
+class Gears : public NE::Scripting::IScript {
 public:
     Gears() {
     }
 
-    void Initialize(NE::ECS::Entity entity) override {
+    void Initialize(NE::Scripting::Entity entity) override {
 
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        if (NE::InputManager::WasKeyPressed('E')) {
+        if (Input::WasKeyPressed('E')) {
             auto& transform = NE::ECS::Command::GetEntityTransform(GetEntity());
 
             if (transform.scale == NE::Math::Vec3(0.f, 0.f, 0.f)) {
@@ -50,10 +42,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::ECS::Entity other) override {}
-    void OnCollisionExit(NE::ECS::Entity other) override {}
-    void OnTriggerEnter(NE::ECS::Entity other) override {}
-    void OnTriggerExit(NE::ECS::Entity other) override {}
+    void OnCollisionEnter(NE::Scripting::Entity other) override {}
+    void OnCollisionExit(NE::Scripting::Entity other) override {}
+    void OnTriggerEnter(NE::Scripting::Entity other) override {}
+    void OnTriggerExit(NE::Scripting::Entity other) override {}
 
 private:
     // === Exposed Fields ===
