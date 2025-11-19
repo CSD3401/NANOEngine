@@ -38,8 +38,8 @@ namespace NE::ECS {
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
         RegisterComponent<Component::NativeScript>();
-        RegisterComponent<Component::UICanvas>();
         RegisterComponent<Component::UIRectTransform>();
+        RegisterComponent<Component::UICanvas>();
         RegisterComponent<Component::UIImage>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());

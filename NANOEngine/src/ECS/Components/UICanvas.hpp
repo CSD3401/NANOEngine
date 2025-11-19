@@ -13,27 +13,27 @@ namespace NE::ECS::Component {
             WORLD_SPACE           // Exists in 3D world <--
         };
 
+        RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY; // default
+
+        // for Camera mode
+        float planeDistance = 100.0f;        // Distance from camera
+
         enum class ScaleMode {
             CONSTANT_PIXEL_SIZE,
             SCALE_WITH_SCREEN_SIZE, // <--
             CONSTANT_PHYSICAL_SIZE
         };
 
-        RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY; // default
-
         ScaleMode scaleMode = ScaleMode::SCALE_WITH_SCREEN_SIZE; // default
 
-        // For ScreenSpaceOverlay and ScreenSpaceCamera
-        int sortingOrder = 0;  // Higher values render on top (layering of canvases)
-
-        // Reference resolution for scaling
+        float scaleFactor = 1.0f; // default
         float referenceWidth = 1920.0f;
         float referenceHeight = 1080.0f;
 
-        // Scaling factor (calculated at runtime)
-        float scaleFactor = 1.0f; // default
+        bool pixelPerfect = false;
 
-        // Is this canvas active?
+        // other fields
+        int sortingOrder = 0; // Higher values render on top (layering of canvases) (for ScreenSpaceOverlay and ScreenSpaceCamera)
         bool isActive = true;
     };
 

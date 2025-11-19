@@ -5,6 +5,7 @@
 #include "../src/ECS/Components/UIRectTransform.hpp"
 
 namespace {
+    // helper function: remove an entity ID from a vector if it exist
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
         auto it = std::find(v.begin(), v.end(), id);
         if (it != v.end()) v.erase(it);
@@ -24,12 +25,16 @@ namespace Editor {
     std::unordered_map<uint32_t, std::vector<uint32_t>> EditorScene::s_children;
     std::vector<uint32_t> EditorScene::s_roots;
 
+    // builds the hierarchy tree from the flat entity list
     void EditorScene::BuildFlatHierarchy() {
+        // clear old data
         s_nodes.clear();
         s_children.clear();
         s_roots.clear();
 
         s_roots.reserve(s_entities.size());
+
+        // first pass: loop through all entities in the scene and determine its parent
         float k = 0.f;
         for (const auto& e : s_entities) {                    // s_entities exists already
             uint32_t id = e.linkedEntity;                    // (see your struct) 
@@ -42,27 +47,28 @@ namespace Editor {
                 auto& rect = NE::ECS::Query::GetUIRectTransform(id);
                 parentId = rect.parent; 
             } 
-            // 3D entities: parentId stays NO_ENTITY 
+            // 3D entities: parentId stays NO_ENTITY --> they are all root
 
-            // Create node with correct parent
+            // create node with correct parent
             s_nodes[id] = Node{ id, parentId, k };
 
-            k += 1.f;
+            k += 1.f; // order key
         }
 
-        //SECOND PASS: Build s_roots and s_children
+        // second pass: build hierarchy relationships (build s_roots and s_children)
         for (const auto& [id, node] : s_nodes) {
-            if (node.parent == NE::ECS::NO_ENTITY) {
-                // This is a root entity (Canvas, 3D objects with no parent)
-                s_roots.push_back(id);
+            if (node.parent == NE::ECS::NO_ENTITY) 
+            {
+                s_roots.push_back(id); // this entity is a parent
             }
-            else {
-                // This is a child - add to parent's children list
-                s_children[node.parent].push_back(id);
+            else 
+            {
+                s_children[node.parent].push_back(id); // this entity is a child
             }
         }
     }
 
+    // reassigns order keys to preveent precision issues
     static void RenormalizeKeys(std::vector<uint32_t>& ids, uint32_t) {
         float k = 0.f;
         for (auto id : ids) {
@@ -71,12 +77,13 @@ namespace Editor {
         }
     }
 
+    // returns the children of a given parent
     const std::vector<uint32_t>& EditorScene::ChildrenOf(uint32_t parent) {
         if (parent == NE::ECS::NO_ENTITY) return s_roots;
         return s_children[parent];
     }
 
-    // Reorder within siblings by updating the dragged row's orderKey (constant work).
+    // reorder within siblings by updating the dragged row's orderKey (constant work).
     bool EditorScene::ReorderWithinSiblings(uint32_t parent, uint32_t child, int insertIndex) {
         auto& vec = (parent == NE::ECS::NO_ENTITY) ? s_roots : s_children[parent];
         if (vec.empty()) return false;
@@ -107,6 +114,7 @@ namespace Editor {
         return true;
     }
 
+    // moves an entity to become a child of a new parent
     bool EditorScene::AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex) {
         if (child == NE::ECS::NO_ENTITY || newParent == child) return false;
         // Ensure nodes exist
@@ -152,6 +160,7 @@ namespace Editor {
         return true;
     }
 
+    // make an entity a root (remove parent)
     bool EditorScene::UnparentToRoot(uint32_t child, int insertIndex) {
         return AttachAsChild(NE::ECS::NO_ENTITY, child, insertIndex);
     }

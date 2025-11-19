@@ -13,8 +13,10 @@
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
+        // reserve enough memory for entities
         EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
 
+        // collect all existing entities from the editor scene
         auto numEntt = NE::GetNumEntities();
         for (unsigned int i = 0; i < numEntt; ++i) {
             EditorScene::s_entities.push_back(EditorEntity{ i });
@@ -24,6 +26,7 @@ namespace Editor {
 
 	void HierarchyPanel::OnImGuiRender()
 	{
+        // create the hierarchy window
 		ImGui::Begin("Hierarchy", nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
 			| ImGuiWindowFlags_MenuBar);
@@ -31,6 +34,8 @@ namespace Editor {
 		//ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
 		//ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
 
+        // right click to trigger menu pop ups, with options to,
+        // create entity, cut/copy/paste, delete, 3d object submenu, UI submenu
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 			ImGui::OpenPopup("HierarchyContextMenu");
 		}
@@ -86,6 +91,7 @@ namespace Editor {
                 Editor::EditorScene::BuildFlatHierarchy();
                 // need to add into display list also currently creates but not shown in hierarchy
             }
+
             if (ImGui::BeginMenu("3D Object")) { // Creates a submenu with an arrow
                 if (ImGui::MenuItem("Cube")) {
 
@@ -112,8 +118,10 @@ namespace Editor {
 
             ImGui::Separator();
 
-            if (ImGui::BeginMenu("UI")) { // Creates a submenu with an arrow
-                if (ImGui::MenuItem("Canvas")) {
+            if (ImGui::BeginMenu("UI")) 
+            {
+                if (ImGui::MenuItem("Canvas")) 
+                {
                     NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUICanvasEntityEvent{});
                     //Editor::EditorScene::BuildFlatHierarchy();
                 }
@@ -123,24 +131,25 @@ namespace Editor {
         }
 
         // === Entity Tree ===
+        // build the hierarchy once
         static bool s_built = false;
         if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
 
         // ---- Drag state ----
-        static uint32_t draggingId = NE::ECS::NO_ENTITY;
-        //static bool     hadDragThisFrame = false; // warning unused var - RF 
+        static uint32_t draggingId = NE::ECS::NO_ENTITY;             //the if of the entity you are currently dragging
+        //static bool     hadDragThisFrame = false;                  // warning unused var - RF 
+                                                                     
+        static bool     previewAsChild = false;                      // highlight a row to adopt as parent
+        static uint32_t previewParent = NE::ECS::NO_ENTITY;          // which entity will become the parent if you drop the dragged row now (insert as child)
 
-        static bool     previewAsChild = false;  // highlight a row to adopt as parent
-        static uint32_t previewParent = NE::ECS::NO_ENTITY;
+        static uint32_t previewParentForInsert = NE::ECS::NO_ENTITY; // parent whose sibling list will get the line (insert as sibling)
+        static int      previewInsert = -1;                          // index within that parent’s children
+        static float    previewLineY = -1.0f;                        // cached Y for the line
+        static float    previewLineX1 = 0.f, previewLineX2 = 0.f;    // the screen coordinates for drawing the yellow previw line
 
-        static uint32_t previewParentForInsert = NE::ECS::NO_ENTITY; // parent whose sibling list will get the line
-        static int      previewInsert = -1;         // index within that parent’s children
-        static float    previewLineY = -1.0f;       // cached Y for the line
-        static float    previewLineX1 = 0.f, previewLineX2 = 0.f;
+        auto& childrenOf0 = Editor::EditorScene::ChildrenOf(NE::ECS::NO_ENTITY); // getting root entities (entities that have no parent)
 
-        auto& childrenOf0 = Editor::EditorScene::ChildrenOf(NE::ECS::NO_ENTITY);
-
-        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImDrawList* dl = ImGui::GetWindowDrawList(); // canvas for drawing the yellow preview line
 
         std::function<void(uint32_t /*parent*/, const std::vector<uint32_t>& /*siblings*/, int /*depth*/)> DrawLevel;
         DrawLevel = [&](uint32_t parent, const std::vector<uint32_t>& siblings, int depth) {
@@ -149,9 +158,10 @@ namespace Editor {
 
                 // -------- label & selection ----------
                 Editor::EditorEntity* ent = nullptr;
-                for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } }
-                std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id);
+                for (auto& e : Editor::EditorScene::s_entities) { if (e.linkedEntity == id) { ent = &e; break; } } // get the entity that matches the id, its data and store in a pointer
+                std::string label = (ent ? ent->displayName : std::string("Entity")) + "##" + std::to_string(id); // ccreating the label
 
+                // checking for children
                 const auto& kids = Editor::EditorScene::ChildrenOf(id);
                 bool isLeaf = kids.empty();
 
@@ -159,28 +169,36 @@ namespace Editor {
                     ImGuiTreeNodeFlags_SpanAvailWidth |
                     (isLeaf ? ImGuiTreeNodeFlags_Leaf : 0);
 
+                // if entity is currently selected, add the selected flag
                 if (Editor::EditorScene::s_selectedEntity && ent == Editor::EditorScene::s_selectedEntity)
                     flags |= ImGuiTreeNodeFlags_Selected;
 
                 // Optional: auto-open non-leaf by default
                 // if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
+                // drawing the tree node
+                // returns true if the node is expanded, shows children below it
                 bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
+
+                // to detect selecting of row
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
                     Editor::EditorScene::s_selectedEntity = ent;
                     EditorScene::selectedMaterial = "";
                 }
 
                 // row rect
+                // gets the bounding box of the row
                 ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
                 // DO NOT REMOVE - Needed for tween to work
+                // double click event
                 if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                 {
                     // Broadcast message
                     NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
                 }
 
+                // right click context menu
                 if (ImGui::BeginPopupContextItem()) {
                     // Check if this entity is a Canvas
                     bool isCanvas = NE::ECS::Query::HasUICanvas(id);
@@ -212,8 +230,8 @@ namespace Editor {
                 // -------- begin drag from this row ----------
                 if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
                     draggingId = id;
-                    ImGui::SetDragDropPayload("HIER_DRAG_ID", &draggingId, sizeof(uint32_t));
-                    ImGui::TextUnformatted(label.c_str());
+                    ImGui::SetDragDropPayload("HIER_DRAG_ID", &draggingId, sizeof(uint32_t)); // stores id into imgui's deag system
+                    ImGui::TextUnformatted(label.c_str()); // shows the entity name next to the cursor while dragging
                     ImGui::EndDragDropSource();
                 }
 
@@ -221,6 +239,7 @@ namespace Editor {
                 if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                     //hadDragThisFrame = true; // warning unused var - RF
 
+                    // is mouse hovering over this row
                     if (ImGui::IsMouseHoveringRect(r.Min, r.Max, true)) {
                         const float h = r.Max.y - r.Min.y;
                         const float y = ImGui::GetIO().MousePos.y;
@@ -261,7 +280,8 @@ namespace Editor {
                 }
 
                 // -------- recurse if open ----------
-                if (open) {
+                // drawing children
+                if (open) { // if node is expanded
                     if (!isLeaf) {
                         DrawLevel(id, kids, depth + 1);
                     }
@@ -270,6 +290,7 @@ namespace Editor {
             }
         };
 
+        // draw the yellow line
         DrawLevel(NE::ECS::NO_ENTITY, childrenOf0, 0);
 
         if (draggingId != NE::ECS::NO_ENTITY && previewInsert >= 0 && previewLineY >= 0.f) {
@@ -278,6 +299,7 @@ namespace Editor {
             dl->AddLine(ImVec2(previewLineX2, previewLineY - 3), ImVec2(previewLineX2, previewLineY + 3), IM_COL32(255, 255, 0, 200), 2.0f);
         }
 
+        // auto-scrolling
         {
             ImGuiWindow* win = ImGui::GetCurrentWindow();
             const float innerTop = win->InnerRect.Min.y;

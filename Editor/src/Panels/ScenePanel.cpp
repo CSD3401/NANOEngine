@@ -56,6 +56,7 @@ namespace Editor {
 
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
+		// display the rendered game world
 		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
 
 		// --- Floating Play Controls ---
@@ -148,6 +149,7 @@ namespace Editor {
 					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
 
+						// convert mouse position to framebuffer coordinates
 						float localX = mousePos.x - panelPos.x;
 						float localY = mousePos.y - panelPos.y;
 						float spMouseX = localX / panelSize.x;
@@ -156,11 +158,13 @@ namespace Editor {
 						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
 						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
+						// object picking
 						uint32_t id = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
 						EditorScene::selectedMaterial = "";
 
+						// find the entity with that ID and mark it as selected
 						for (auto& ent : EditorScene::s_entities) {
 							if (ent.linkedEntity == id) {
 								EditorScene::s_selectedEntity = &ent;
@@ -172,6 +176,7 @@ namespace Editor {
 			}
 		}
 
+		// transform gizmos
 		if (EditorScene::s_selectedEntity) {
 			const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
 
@@ -179,7 +184,8 @@ namespace Editor {
 			bool hasTransform = NE::ECS::Query::HasTransform(eid);
 			bool hasUIRectTransform = NE::ECS::Query::HasUIRectTransform(eid);
 
-			if (hasTransform) {
+			if (hasTransform) 
+			{
 				static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
 				if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
 				if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
@@ -358,7 +364,7 @@ namespace Editor {
 					}
 				}
 
-				// Perform move (pixel deltas!)
+				// perform move
 				if (isDraggingUI) {
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
@@ -372,7 +378,7 @@ namespace Editor {
 					}
 				}
 
-				// Perform resize (pixel deltas!)
+				// perform resize
 				if (draggingCorner >= 0) {
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);

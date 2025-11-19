@@ -36,6 +36,13 @@
 #include <Core/SpdLogger.hpp>
 
 namespace {
+    // the widget maker
+    // takes a field and draws the right UI widget for it
+    // bool -> checkbox
+    // int -> number dragger
+    // float -> decimal dragger
+    // vec3 -> 3 number inputs
+    // string -> text input box
 	template<typename Owner, typename T>
 	bool DrawField(const NE::Core::FieldDescriptor<Owner, T>& desc, T& value) {
 		if constexpr (std::is_same_v<T, bool>) {
@@ -85,6 +92,7 @@ namespace {
 		return oss.str();
 	}
 
+    // when you change sth in the inspector, this creates an undo/redo command
 	template <typename Owner, typename T>
 	static void SubmitSetFieldCommand(uint32_t entity,
 		const NE::Core::FieldDescriptor<Owner, T>& desc,
@@ -123,6 +131,7 @@ namespace {
 		Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
 	}
 
+    // converts a member pointer into a unique hash number for fast look ups
 	template <class Owner, class T>
 	struct MemberPointerHasher {
 		size_t operator()(T Owner::* mp) const noexcept {
@@ -135,7 +144,8 @@ namespace {
 			return h;
 		}
 	};
-
+    
+    // check if 2 field keys are identical by comparing entity ID, component type, field ID
 	struct FieldKey {
 		uint32_t entity;
 		const std::type_info* ownerType;
@@ -146,6 +156,7 @@ namespace {
 		}
 	};
 
+    // combines all parts of a field key into a single hash number for use in unordered maps
 	struct FieldKeyHash {
 		size_t operator()(const FieldKey& k) const noexcept {
 			size_t h = std::hash<uint32_t>{}(k.entity);
@@ -155,6 +166,7 @@ namespace {
 		}
 	};
 
+    // compares 2 value for equality, with special handling for floats
 	template<class T>
 	static bool Equal(const T& a, const T& b) {
 		if constexpr (std::is_floating_point_v<T>) {
@@ -169,6 +181,7 @@ namespace {
 namespace Editor {
     std::unordered_map<std::type_index, uint8_t> componentTypeRegistry;
 
+    // active command map
     static std::unordered_map<FieldKey,
         std::unique_ptr<ICommand>,
         FieldKeyHash> g_activeCommands;
@@ -190,12 +203,14 @@ namespace Editor {
         if (EditorScene::s_selectedEntity) {
             uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
+            // checkbox turns the entity on/off
             bool isActive = true;
             if (ImGui::Checkbox("##", &isActive)) {
 
             }
             ImGui::SameLine();
 
+            // edit entity's name
             {
                 using Owner = NE::ECS::Component::EntityMeta;
                 using FieldT = std::string;
@@ -280,6 +295,7 @@ namespace Editor {
                 }
             }
 
+            // component loop
             NE::ECS::Signature sig(NE::ECS::Query::GetEntitySignature(entity));
             for (const auto& [typeIdx, compType] : componentTypeRegistry) {
                 if (!sig.test(compType)) continue;
@@ -984,90 +1000,594 @@ namespace Editor {
                 else if (typeIdx == typeid(NE::ECS::Component::UIRectTransform)) 
                 {
                     auto& comp = NE::ECS::Command::GetUIRectTransform(entity);
-                    ImGui::SeparatorText("UI Rect Transform");
 
-                    // Parent (read-only display)
-                    if (comp.parent == NE::ECS::NO_ENTITY) 
+                    if (ImGui::CollapsingHeader("Rect Transform", ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        ImGui::Text("Parent: Root (Canvas)");
-                    }
-                    else 
-                    {
-                        ImGui::Text("Parent: Entity %u", comp.parent);
-                    }
+                        ImGui::Indent();
 
+                        // Parent (read-only display)
+                        if (comp.parent == NE::ECS::NO_ENTITY)
+                        {
+                            ImGui::Text("Parent: Root (Canvas)");
+                        }
+                        else
+                        {
+                            ImGui::Text("Parent: Entity %u", comp.parent);
+                        }
+
+                        ImGui::Spacing();
+
+                        // position section
+                        bool isOverlay = false;
+                        if (NE::ECS::Query::HasUICanvas(entity))
+                        {
+                            auto& compCanvas = NE::ECS::Command::GetUICanvas(entity);
+                            isOverlay = compCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY;
+                        }
+
+                        ImGui::BeginGroup();
+                        {
+                            // set up column based on render mode
+                            int columnCount = isOverlay ? 3 : 4; // // Label + X + Y (+ Z if not overlay)
+                            ImGui::Columns(columnCount, "PosColumns", false);
+
+                            // column widths
+                            ImGui::SetColumnWidth(0, 80.0f);  // label column
+                            ImGui::SetColumnWidth(1, 80.0f);  // X column
+                            ImGui::SetColumnWidth(2, 80.0f);  // Y column
+          
+                            // Pos Z disabled for render mode - screen space overlay
+                            if (!isOverlay) ImGui::SetColumnWidth(3, 80.0f);
+
+                            // header row
+                            ImGui::NextColumn(); // skip label column
+                            ImGui::TextDisabled("Pos X");
+                            ImGui::NextColumn();
+                            ImGui::TextDisabled("Pos Y");
+                            ImGui::NextColumn();
+                            if (!isOverlay) 
+                            {
+                                ImGui::TextDisabled("Pos Z");
+                                ImGui::NextColumn();
+                            }
+
+                            // position row
+                            ImGui::Text("Position");
+                            ImGui::NextColumn();
+
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##PosX", &comp.x, 1.0f);
+                            ImGui::NextColumn();
+
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##PosY", &comp.y, 1.0f);
+                            ImGui::NextColumn();
+
+                            if (!isOverlay) 
+                            {
+                                ImGui::SetNextItemWidth(-1);
+                                ImGui::DragFloat("##PosZ", &comp.z, 1.0f);
+                                ImGui::NextColumn();
+                            }
+
+                            ImGui::Columns(1); // end columns
+                        }
+                        ImGui::EndGroup();
+
+                        ImGui::Spacing();
+
+                        // width & height section
+                        ImGui::BeginGroup();
+                        {
+                            // column widths
+                            ImGui::Columns(3, "SizeColumns", false);
+                            ImGui::SetColumnWidth(0, 80.0f);
+                            ImGui::SetColumnWidth(1, 80.0f);
+                            ImGui::SetColumnWidth(2, 80.0f);
+
+                            // header row
+                            ImGui::NextColumn();
+                            ImGui::TextDisabled("Width"); ImGui::NextColumn();
+                            ImGui::TextDisabled("Height"); ImGui::NextColumn();
+
+                            // size row
+                            ImGui::Text("Size"); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##Width", &comp.width, 1.0f, 1.0f, 10000.0f); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##Height", &comp.height, 1.0f, 1.0f, 10000.0f); ImGui::NextColumn();
+
+                            ImGui::Columns(1);
+                        }
+                        ImGui::EndGroup();
+
+                        ImGui::Unindent();
+                    }
+#pragma region kiv
+                    // --- Anchors Section (if you implement them) ---
+                    // Uncomment and modify when you add anchor support to your UIRectTransform component
+                    /*
+                    if (ImGui::CollapsingHeader("Anchors", ImGuiTreeNodeFlags_DefaultOpen)) {
+                        ImGui::Indent();
+
+                        ImGui::BeginGroup();
+                        {
+                            ImGui::Columns(3, "AnchorColumns", false);
+                            ImGui::SetColumnWidth(0, 80.0f);
+                            ImGui::SetColumnWidth(1, 80.0f);
+                            ImGui::SetColumnWidth(2, 80.0f);
+
+                            // Min anchors
+                            ImGui::Text("Min"); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##MinX", &comp.anchorMin.x, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##MinY", &comp.anchorMin.y, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+
+                            // Max anchors
+                            ImGui::Text("Max"); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##MaxX", &comp.anchorMax.x, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##MaxY", &comp.anchorMax.y, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+
+                            ImGui::Columns(1);
+                        }
+                        ImGui::EndGroup();
+
+                        ImGui::Unindent();
+                    }
+                    */
+
+                    // --- Pivot Section ---
+                    // Uncomment when you add pivot support
+                    /*
+                    if (ImGui::CollapsingHeader("Pivot", ImGuiTreeNodeFlags_DefaultOpen)) {
+                        ImGui::Indent();
+
+                        ImGui::BeginGroup();
+                        {
+                            ImGui::Columns(3, "PivotColumns", false);
+                            ImGui::SetColumnWidth(0, 80.0f);
+                            ImGui::SetColumnWidth(1, 80.0f);
+                            ImGui::SetColumnWidth(2, 80.0f);
+
+                            ImGui::Text("Pivot"); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##PivotX", &comp.pivot.x, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##PivotY", &comp.pivot.y, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+
+                            ImGui::Columns(1);
+                        }
+                        ImGui::EndGroup();
+
+                        ImGui::Unindent();
+                    }
+                    */
+
+                    // --- Rotation (if you add it) ---
+                    /*
                     ImGui::Spacing();
+                    ImGui::BeginGroup();
+                    {
+                        ImGui::Columns(4, "RotColumns", false);
+                        ImGui::SetColumnWidth(0, 80.0f);
+                        ImGui::SetColumnWidth(1, 80.0f);
+                        ImGui::SetColumnWidth(2, 80.0f);
+                        ImGui::SetColumnWidth(3, 80.0f);
 
-                    // Position - now comp.x and comp.y are mutable
-                    ImGui::DragFloat("X", &comp.x, 1.0f);
-                    ImGui::DragFloat("Y", &comp.y, 1.0f);
+                        ImGui::NextColumn();
+                        ImGui::TextDisabled("X"); ImGui::NextColumn();
+                        ImGui::TextDisabled("Y"); ImGui::NextColumn();
+                        ImGui::TextDisabled("Z"); ImGui::NextColumn();
 
-                    // Size
-                    ImGui::DragFloat("Width", &comp.width, 1.0f, 1.0f, 10000.0f);
-                    ImGui::DragFloat("Height", &comp.height, 1.0f, 1.0f, 10000.0f);
+                        ImGui::Text("Rotation"); ImGui::NextColumn();
+                        ImGui::SetNextItemWidth(-1);
+                        ImGui::DragFloat("##RotX", &comp.rotation.x, 1.0f); ImGui::NextColumn();
+                        ImGui::SetNextItemWidth(-1);
+                        ImGui::DragFloat("##RotY", &comp.rotation.y, 1.0f); ImGui::NextColumn();
+                        ImGui::SetNextItemWidth(-1);
+                        ImGui::DragFloat("##RotZ", &comp.rotation.z, 1.0f); ImGui::NextColumn();
+
+                        ImGui::Columns(1);
+                    }
+                    ImGui::EndGroup();
+                    */
+#pragma endregion
+                }
+                else if (typeIdx == typeid(NE::ECS::Component::UICanvas))
+                {
+                    auto& comp = NE::ECS::Command::GetUICanvas(entity);
+
+                    if (ImGui::CollapsingHeader("Canvas", ImGuiTreeNodeFlags_DefaultOpen))
+                    {
+                        ImGui::Indent();
+
+                        const float labelWidth = 140.0f;
+
+                        // render Mode dropdown
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text("Render Mode");
+                        ImGui::SameLine(labelWidth);
+                        ImGui::SetNextItemWidth(-1);
+                        static const char* RenderModes[] = {
+                            "Screen Space - Overlay",
+                            "Screen Space - Camera",
+                            "World Space"
+                        };
+                        int currentMode = static_cast<int>(comp.renderMode);
+                        if (ImGui::Combo("##RenderMode", &currentMode, RenderModes, IM_ARRAYSIZE(RenderModes))) {
+                            comp.renderMode = static_cast<decltype(comp.renderMode)>(currentMode);
+                        }
+
+                        // pixel perfect toggle (if in overlay mode or camera mode)
+                        if (comp.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+                            comp.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) 
+                        {
+                            ImGui::AlignTextToFramePadding();
+                            ImGui::Text("Pixel Perfect");
+                            ImGui::SameLine(labelWidth);
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::Checkbox("##Pixel Perfect", &comp.pixelPerfect);
+                        }
+
+                        // show plane distqance for camera mode only
+                        if (comp.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+                            ImGui::AlignTextToFramePadding();
+                            ImGui::Text("Plane Distance");
+                            ImGui::SameLine(labelWidth);
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##PlaneDistance", &comp.planeDistance, 1.0f, 0.1f, 1000.0f);
+
+                            // helpful tooltip
+                            if (ImGui::IsItemHovered())
+                            {
+                                ImGui::SetTooltip("Distance from camera where UI is rendered");
+                            }
+                        }
+
+                        // Sort Order
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text("Sort Order");
+                        ImGui::SameLine(labelWidth);
+                        ImGui::SetNextItemWidth(-1);
+                        ImGui::DragInt("##SortOrder", &comp.sortingOrder);
+
+                        //// Target Display dropdown
+                        //static const char* Displays[] = { "Display 1", "Display 2", "Display 3", "Display 4" };
+                        //int currentDisplay = comp.targetDisplay;
+                        //if (ImGui::Combo("Target Display", &currentDisplay, Displays, IM_ARRAYSIZE(Displays))) {
+                        //    comp.targetDisplay = currentDisplay;
+                        //}
+
+                        ImGui::Unindent();
+                    }
+
+                    // scalar section
+                    if (ImGui::CollapsingHeader("Canvas Scaler", ImGuiTreeNodeFlags_DefaultOpen)) 
+                    {
+                        ImGui::Indent();
+
+                        const float labelWidth = 140.0f;
+
+                        // UI scale mode
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text("UI Scale Mode");
+                        ImGui::SameLine(labelWidth);
+                        ImGui::SetNextItemWidth(-1);
+                        static const char* ScaleModes[] = {
+                            "Constant Pixel Size",
+                            "Scale With Screen Size",
+                            "Constant Physical Size"
+                        };
+                        int currentScaleMode = static_cast<int>(comp.scaleMode);
+                        if (ImGui::Combo("##UIScaleMode", &currentScaleMode, ScaleModes, IM_ARRAYSIZE(ScaleModes))) {
+                            comp.scaleMode = static_cast<decltype(comp.scaleMode)>(currentScaleMode);
+                        }
+
+                        ImGui::Spacing();
+
+                        // show different options based on UI Scale Mode
+                        switch (comp.scaleMode) {
+                        case NE::ECS::Component::UICanvas::ScaleMode::CONSTANT_PIXEL_SIZE:
+                        {
+                            ImGui::AlignTextToFramePadding();
+                            ImGui::Text("Scale Factor");
+                            ImGui::SameLine(labelWidth);
+                            ImGui::SetNextItemWidth(-1);
+                            ImGui::DragFloat("##ScaleFactor", &comp.scaleFactor, 0.01f, 0.01f, 10.0f);
+
+                            //ImGui::TextDisabled("Reference Pixels Per Unit");
+                            //float refPixels = 100.0f; // Add this to your component if needed
+                            //ImGui::DragFloat("##RefPixels", &refPixels, 1.0f, 1.0f, 1000.0f);
+                            break;
+                        }
+
+                        case NE::ECS::Component::UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE:
+                        {
+                            ImGui::Text("Reference Resolution");
+                            ImGui::Indent();
+
+                            ImGui::BeginGroup();
+                            {
+                                ImGui::Columns(3, "RefResColumns", false);
+                                ImGui::SetColumnWidth(0, 20.0f);
+                                ImGui::SetColumnWidth(1, 100.0f);
+
+                                ImGui::Text("X"); ImGui::NextColumn();
+                                ImGui::SetNextItemWidth(-1);
+                                ImGui::DragFloat("##RefResX", &comp.referenceWidth, 1.0f, 1.0f, 10000.0f);
+                                ImGui::NextColumn(); ImGui::NextColumn();
+
+                                ImGui::Text("Y"); ImGui::NextColumn();
+                                ImGui::SetNextItemWidth(-1);
+                                ImGui::DragFloat("##RefResY", &comp.referenceHeight, 1.0f, 1.0f, 10000.0f);
+                                ImGui::NextColumn();
+
+                                ImGui::Columns(1);
+                            }
+                            ImGui::EndGroup();
+
+                            ImGui::Unindent();
+
+                            //ImGui::Spacing();
+                            //ImGui::Text("Screen Match Mode");
+                            //static const char* MatchModes[] = { "Match Width Or Height", "Expand", "Shrink" };
+                            //int matchMode = 0; // Add this to your component if needed
+                            //ImGui::Combo("##ScreenMatchMode", &matchMode, MatchModes, IM_ARRAYSIZE(MatchModes));
+
+                            //ImGui::DragFloat("Match", &comp.screenMatchMode, 0.01f, 0.0f, 1.0f);
+                            //ImGui::SameLine();
+                            //ImGui::TextDisabled("(0=Width, 1=Height)");
+                            break;
+                        }
+
+                        case NE::ECS::Component::UICanvas::ScaleMode::CONSTANT_PHYSICAL_SIZE:
+                        {
+                            //static const char* PhysicalUnits[] = {
+                            //    "Centimeters",
+                            //    "Millimeters",
+                            //    "Inches",
+                            //    "Points",
+                            //    "Picas"
+                            //};
+                            //int currentUnit = static_cast<int>(comp.physicalUnit);
+                            //ImGui::Combo("Physical Unit", &currentUnit, PhysicalUnits, IM_ARRAYSIZE(PhysicalUnits));
+                            //comp.physicalUnit = static_cast<NE::ECS::Component::UICanvas::PhysicalUnit>(currentUnit);
+
+                            //ImGui::DragFloat("Fallback Screen DPI", &comp.fallbackScreenDPI, 1.0f, 1.0f, 1000.0f);
+                            //ImGui::DragFloat("Default Sprite DPI", &comp.defaultSpriteDPI, 1.0f, 1.0f, 1000.0f);
+                            break;
+                        }
+                        }
+
+                        ImGui::Unindent();
+                    }
                 }
                 else if (typeIdx == typeid(NE::ECS::Component::UIImage))
                 {
                     auto& comp = NE::ECS::Command::GetUIImage(entity);
-                    ImGui::SeparatorText("UI Image");
 
-                    // Texture Path
-                    bool openPopup = false;
-                    DrawAssetField("Texture", comp.texturePath.string(), "+", 0.f, &openPopup);
-                    if (openPopup) {
-                        ImGui::OpenPopup("AssetPicker_Texture");
-                    }
+                    if (ImGui::CollapsingHeader("UI Image", ImGuiTreeNodeFlags_DefaultOpen)) 
+                    {
+                        ImGui::Indent();
 
-                    // Drag and drop support
-                    if (ImGui::BeginDragDropTarget()) {
-                        if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-                            std::string dropped((const char*)p->Data, p->DataSize - 1);
-                            // TODO: Assign texture to UI Image
-                            // NE::ECS::Command::SetUIImageTexture(entity, dropped);
-                            auto& img = NE::ECS::Command::GetUIImage(entity);
-                            img.texturePath = dropped;
+                        const float labelWidth = 140.0f;
+
+                        // source image
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text("Source Image");
+                        ImGui::SameLine(labelWidth);
+
+                        // text input buffer
+                        static char texturePathBuffer[256] = "";
+                        std::string currentPath = comp.texturePath.string();
+                        strncpy_s(texturePathBuffer, currentPath.c_str(), sizeof(texturePathBuffer));
+                        texturePathBuffer[sizeof(texturePathBuffer) - 1] = '\0';
+
+                        ImGui::SetNextItemWidth(-1);
+                        if (ImGui::InputText("##SourceImage", texturePathBuffer, sizeof(texturePathBuffer))) 
+                        {
+                            // user typed something --> update the path
+                            comp.texturePath = std::string(texturePathBuffer);
                         }
-                        ImGui::EndDragDropTarget();
+
+                        // drag and drop support
+                        //if (ImGui::BeginDragDropTarget()) 
+                        //{
+                        //    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) 
+                        //    {
+                        //        std::string dropped((const char*)p->Data, p->DataSize - 1);
+                        //        comp.texturePath = dropped;
+                        //        // Update buffer for next frame
+                        //        strncpy_s(texturePathBuffer, dropped.c_str(), sizeof(texturePathBuffer));
+                        //    }
+                        //    ImGui::EndDragDropTarget();
+                        //}
+
+                        // color
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text("Color");
+                        ImGui::SameLine(labelWidth);
+                        ImGui::SetNextItemWidth(-1);
+                        float color[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
+                        if (ImGui::ColorEdit4("##Color", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+                            comp.color.x = color[0];
+                            comp.color.y = color[1];
+                            comp.color.z = color[2];
+                            comp.color.w = color[3];
+                        }
+
+                        // material
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text("Material");
+                        ImGui::SameLine(labelWidth);
+
+  /*                      std::string matDisplayName = comp.materialPath.empty() ? "None (Material)" : comp.materialPath.filename().string();
+                        ImGui::Button(matDisplayName.c_str(), ImVec2(-1, 0));*/
+
+                        //// Drag and drop for material
+                        //if (ImGui::BeginDragDropTarget()) 
+                        //{
+                        //    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
+                        //        std::string dropped((const char*)p->Data, p->DataSize - 1);
+                        //        comp.materialPath = dropped;
+                        //    }
+                        //    ImGui::EndDragDropTarget();
+                        //}
+
+                        //// Right-click to clear
+                        //if (ImGui::BeginPopupContextItem("##MaterialContext")) 
+                        //{
+                        //    if (ImGui::MenuItem("Clear")) {
+                        //        comp.materialPath.clear();
+                        //    }
+                        //    ImGui::EndPopup();
+                        //}
+
+                        //// --- Raycast Target ---
+                        //ImGui::Checkbox("Raycast Target", &comp.raycastTarget);
+
+                        //// --- Raycast Padding ---
+                        //if (ImGui::TreeNode("Raycast Padding")) {
+                        //    ImGui::DragFloat("Left", &comp.raycastPadding.left, 1.0f);
+                        //    ImGui::DragFloat("Right", &comp.raycastPadding.right, 1.0f);
+                        //    ImGui::DragFloat("Top", &comp.raycastPadding.top, 1.0f);
+                        //    ImGui::DragFloat("Bottom", &comp.raycastPadding.bottom, 1.0f);
+                        //    ImGui::TreePop();
+                        //}
+
+                        //// --- Maskable ---
+                        //ImGui::Checkbox("Maskable", &comp.maskable);
+
+                        // image type
+                        ImGui::AlignTextToFramePadding();
+                        ImGui::Text("Image Type");
+                        ImGui::SameLine(labelWidth);
+                        ImGui::SetNextItemWidth(-1);
+
+                        static const char* ImageTypes[] = {
+                            "Simple",
+                            "Sliced",
+                            "Tiled",
+                            "Filled"
+                        };
+                        //int currentImageType = static_cast<int>(comp.imageType);
+                        //if (ImGui::Combo("##ImageType", &currentImageType, ImageTypes, IM_ARRAYSIZE(ImageTypes))) {
+                        //    comp.imageType = static_cast<decltype(comp.imageType)>(currentImageType);
+                        //}
+
+                        // image type specific options
+                        ImGui::Indent();
+
+                        //switch (comp.imageType) {
+                        //case 0: // Simple
+                        //{
+                        //    ImGui::Checkbox("Use Sprite Mesh", &comp.useSpriteMesh);
+                        //    ImGui::Checkbox("Preserve Aspect", &comp.preserveAspect);
+                        //    break;
+                        //}
+
+                        //case 1: // Sliced
+                        //{
+                        //    ImGui::Checkbox("Fill Center", &comp.fillCenter);
+                        //    ImGui::DragFloat("Pixels Per Unit Multiplier", &comp.pixelsPerUnitMultiplier, 0.1f, 0.01f, 100.0f);
+                        //    break;
+                        //}
+
+                        //case 2: // Tiled
+                        //{
+                        //    ImGui::Checkbox("Fill Center", &comp.fillCenter);
+                        //    ImGui::DragFloat("Pixels Per Unit Multiplier", &comp.pixelsPerUnitMultiplier, 0.1f, 0.01f, 100.0f);
+                        //    break;
+                        //}
+
+                        //case 3: // Filled
+                        //{
+                        //    // Fill Method
+                        //    ImGui::AlignTextToFramePadding();
+                        //    ImGui::Text("Fill Method");
+                        //    ImGui::SameLine(100.0f);
+                        //    ImGui::SetNextItemWidth(-1);
+
+                        //    static const char* FillMethods[] = {
+                        //        "Horizontal",
+                        //        "Vertical",
+                        //        "Radial 90",
+                        //        "Radial 180",
+                        //        "Radial 360"
+                        //    };
+                        //    int currentFillMethod = static_cast<int>(comp.fillMethod);
+                        //    if (ImGui::Combo("##FillMethod", &currentFillMethod, FillMethods, IM_ARRAYSIZE(FillMethods))) {
+                        //        comp.fillMethod = static_cast<decltype(comp.fillMethod)>(currentFillMethod);
+                        //    }
+
+                        //    // Fill Origin (depends on fill method)
+                        //    if (comp.fillMethod <= 1) { // Horizontal or Vertical
+                        //        ImGui::AlignTextToFramePadding();
+                        //        ImGui::Text("Fill Origin");
+                        //        ImGui::SameLine(100.0f);
+                        //        ImGui::SetNextItemWidth(-1);
+
+                        //        if (comp.fillMethod == 0) { // Horizontal
+                        //            static const char* HOrigins[] = { "Left", "Right" };
+                        //            int origin = comp.fillOrigin;
+                        //            if (ImGui::Combo("##FillOrigin", &origin, HOrigins, IM_ARRAYSIZE(HOrigins))) {
+                        //                comp.fillOrigin = origin;
+                        //            }
+                        //        }
+                        //        else { // Vertical
+                        //            static const char* VOrigins[] = { "Bottom", "Top" };
+                        //            int origin = comp.fillOrigin;
+                        //            if (ImGui::Combo("##FillOrigin", &origin, VOrigins, IM_ARRAYSIZE(VOrigins))) {
+                        //                comp.fillOrigin = origin;
+                        //            }
+                        //        }
+                        //    }
+                        //    else { // Radial
+                        //        ImGui::AlignTextToFramePadding();
+                        //        ImGui::Text("Fill Origin");
+                        //        ImGui::SameLine(100.0f);
+                        //        ImGui::SetNextItemWidth(-1);
+
+                        //        static const char* RadialOrigins[] = {
+                        //            "Bottom",
+                        //            "Right",
+                        //            "Top",
+                        //            "Left"
+                        //        };
+                        //        int origin = comp.fillOrigin;
+                        //        if (ImGui::Combo("##FillOrigin", &origin, RadialOrigins, IM_ARRAYSIZE(RadialOrigins))) {
+                        //            comp.fillOrigin = origin;
+                        //        }
+                        //    }
+
+                        //    // Fill Amount
+                        //    ImGui::AlignTextToFramePadding();
+                        //    ImGui::Text("Fill Amount");
+                        //    ImGui::SameLine(100.0f);
+                        //    ImGui::SetNextItemWidth(-1);
+                        //    ImGui::SliderFloat("##FillAmount", &comp.fillAmount, 0.0f, 1.0f);
+
+                        //    // Clockwise (for radial only)
+                        //    if (comp.fillMethod >= 2) {
+                        //        ImGui::Checkbox("Clockwise", &comp.fillClockwise);
+                        //    }
+
+                        //    // Preserve Aspect
+                        //    ImGui::Checkbox("Preserve Aspect", &comp.preserveAspect);
+                        //    break;
+                        //}
+                        }
+
+                        ImGui::Unindent();
+
+                        ImGui::Unindent();
                     }
-
-                    //// Texture picker popup
-                    //if (ImGui::BeginPopup("AssetPicker_Texture")) {
-                    //    ImGui::Text("Select a Texture");
-                    //    ImGui::Separator();
-                    //    auto& assets = NE::GetAllTextures(); // You'll need this function
-
-                    //    if (ImSearch::BeginSearch()) {
-                    //        ImSearch::SearchBar();
-
-                    //        for (const auto& [name, asset] : assets) {
-                    //            ImSearch::SearchableItem(name.c_str(),
-                    //                [name, entity](const char*) {
-                    //                    if (ImGui::Selectable(name.c_str())) {
-                    //                        // TODO: Assign texture
-                    //                        auto& img = NE::ECS::Command::GetUIImage(entity);
-                    //                        img.texturePath = name;
-                    //                        ImGui::CloseCurrentPopup();
-                    //                    }
-                    //                });
-                    //        }
-
-                    //        ImSearch::EndSearch();
-                    //    }
-                    //    ImGui::EndPopup();
-                    //}
-
-                    // Color tint
-                    float color[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
-                    if (ImGui::ColorEdit4("Color", color)) {
-                        auto& img = NE::ECS::Command::GetUIImage(entity);
-                        img.color.x = color[0];
-                        img.color.y = color[1];
-                        img.color.z = color[2];
-                        img.color.w = color[3];
-                    }
-                }
             }
 
+            // component button to open pop up menu, to add new components to entity
             if (ImGui::Button("Add Component")) {
                 ImGui::OpenPopup("ComponentList");
             }
@@ -1096,7 +1616,8 @@ namespace Editor {
             }
 
         }
-        else if (EditorScene::selectedMaterial != "") {
+        else if (EditorScene::selectedMaterial != "") { // material editing mode
+            // loads material from asset system
             if (m_loadedPath != EditorScene::selectedMaterial) {
                 try {
                     m_loadedMaterial = NE::GetMaterial(EditorScene::selectedMaterial);
@@ -1108,9 +1629,12 @@ namespace Editor {
                 }
             }
 
+            // shader selection UI
             if (m_loadedMaterial) {
                 bool openPopup = false;
                 DrawAssetField("Shader", m_loadedMaterial->GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openPopup);
+                
+                // searchable shader pop up
                 if (openPopup) {
                     ImGui::OpenPopup("AssetPicker_Shader");
                 }
@@ -1139,6 +1663,7 @@ namespace Editor {
                     ImGui::EndPopup();
                 }
 
+                // shader params, you can tweak like slider
                 ImGui::SeparatorText("Material Uniforms");
 
                 for (auto& [name, val] : m_loadedMaterial->GetFloatUniforms()) {
@@ -1163,6 +1688,7 @@ namespace Editor {
                     }
                 }
 
+                // save button
                 if (ImGui::Button("Save Material", { 100.f, 30.f })) {
                     m_loadedMaterial->SaveMaterial("");
                 }

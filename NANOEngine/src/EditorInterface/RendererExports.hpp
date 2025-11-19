@@ -19,5 +19,4 @@ namespace NE::Renderer {
 		NANOENGINE_API void AssignModel(uint32_t e, std::string_view path);
 		NANOENGINE_API void AssignMaterial(uint32_t e, std::string_view path);
 	}
-
 }

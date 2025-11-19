@@ -2,6 +2,8 @@
 #include "../AssetManager.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/UIImage.hpp"
+#include <iostream>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -31,5 +33,4 @@ namespace NE::Renderer {
 			r.material = Asset::AssetManager::GetInstance().Load<Graphics::Material>(path.data(), false);
 		}
 	}
-
 }
