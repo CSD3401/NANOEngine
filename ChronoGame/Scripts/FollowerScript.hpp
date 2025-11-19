@@ -10,18 +10,18 @@
  * 2. In the inspector, drag the "Player" entity onto the "targetTransform" field
  * 3. The enemy will now follow the player!
  */
-class FollowerScript : public NE::Scripting::IScript {
+class FollowerScript : public IScript {
 public:
     FollowerScript() {
 // Register component reference - this will show up in the inspector
         SCRIPT_COMPONENT_REF(targetTransform, Transform);
-      
+
         // Register other fields
         SCRIPT_FIELD(followSpeed, Float);
         SCRIPT_FIELD(stopDistance, Float);
     }
 
-    void Initialize(NE::Scripting::Entity entity) override {
+    void Initialize(Entity entity) override {
         // Nothing to do here
     }
 
@@ -32,11 +32,11 @@ public:
         }
 
         // Get target position using SDK method
-        NE::Scripting::Vec3 targetPos = GetPosition(targetTransform);
-        NE::Scripting::Vec3 myPos = GetPosition();
+        Vec3 targetPos = GetPosition(targetTransform);
+        Vec3 myPos = GetPosition();
 
         // Calculate direction to target
-        NE::Scripting::Vec3 direction = {
+        Vec3 direction = {
             targetPos.x - myPos.x,
             targetPos.y - myPos.y,
             targetPos.z - myPos.z
@@ -72,14 +72,14 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::Scripting::Entity other) override {}
-    void OnCollisionExit(NE::Scripting::Entity other) override {}
-    void OnTriggerEnter(NE::Scripting::Entity other) override {}
-    void OnTriggerExit(NE::Scripting::Entity other) override {}
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     // Component reference - will hold reference to target's Transform
-    NE::Scripting::TransformRef targetTransform;
+    TransformRef targetTransform;
 
     // Regular fields
     float followSpeed = 5.0f;

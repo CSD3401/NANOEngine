@@ -2,12 +2,12 @@
 #include <iostream>
 #include "EngineAPI.hpp"
 
-class Gears : public NE::Scripting::IScript {
+class Gears : public IScript {
 public:
     Gears() {
     }
 
-    void Initialize(NE::Scripting::Entity entity) override {
+    void Initialize(Entity entity) override {
 
     }
 
@@ -15,7 +15,7 @@ public:
         if (!isActive) return;
 
         if (Input::WasKeyPressed('E')) {
-            auto& transform = NE::ECS::Command::GetEntityTransform(GetEntity());
+            auto& transform = Command::GetEntityTransform(GetEntity());
 
             if (transform.localScale == NE::Math::Vec3(0.f, 0.f, 0.f)) {
                 transform.localScale = NE::Math::Vec3(0.2f, 0.2f, 0.2f);
@@ -23,9 +23,9 @@ public:
                 transform.localScale = NE::Math::Vec3(0.f, 0.f, 0.f);
             }
             //if (!switched) {
-            //    light.color = NE::Math::Vec3(0.7f, 0.4f, 0.f);
+            //    light.color = Vec3(0.7f, 0.4f, 0.f);
             //} else {
-            //    light.color = NE::Math::Vec3(1.f, 1.f, 1.f);
+            //    light.color = Vec3(1.f, 1.f, 1.f);
             //}
 
             //switched = !switched;
@@ -42,10 +42,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::Scripting::Entity other) override {}
-    void OnCollisionExit(NE::Scripting::Entity other) override {}
-    void OnTriggerEnter(NE::Scripting::Entity other) override {}
-    void OnTriggerExit(NE::Scripting::Entity other) override {}
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     // === Exposed Fields ===

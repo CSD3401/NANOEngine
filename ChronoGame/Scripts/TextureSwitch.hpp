@@ -19,7 +19,7 @@ void TextureSwitchActivate(int entity) {
 
 }
 
-class TextureSwitch : public NE::Scripting::IScript {
+class TextureSwitch : public IScript {
 public:
     TextureSwitch() {
         // Register all our fields using the simple macros
@@ -29,7 +29,7 @@ public:
         std::cout << "[TextureSwitch] Created with fields registered" << std::endl;
     }
 
-    void Initialize(NE::Scripting::Entity entity) override {
+    void Initialize(Entity entity) override {
 
 
         //Events::Listen("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
@@ -47,7 +47,7 @@ public:
 
             switched = !switched;
         }
-        
+
     }
 
     void OnDestroy() override {
@@ -59,10 +59,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::Scripting::Entity other) override {}
-    void OnCollisionExit(NE::Scripting::Entity other) override {}
-    void OnTriggerEnter(NE::Scripting::Entity other) override {}
-    void OnTriggerExit(NE::Scripting::Entity other) override {}
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     // === Exposed Fields ===
