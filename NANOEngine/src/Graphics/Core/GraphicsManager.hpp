@@ -75,7 +75,7 @@ namespace NE::Graphics {
         static void AddDebugTriangle(const Math::Vec3& v0, const Math::Vec3& v1, const Math::Vec3& v2, const Math::Vec3& color);
         static void DrawDebugTriangles(); // drawing solid triangles
 
-        // batch functions
+        // Debug Batch functions
         static void AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);
         static void AddDebugTrianglesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);
         static void DrawAllDebugGeometry();

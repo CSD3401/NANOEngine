@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../Interfaces/IGeometryBuffer.hpp"
-#include <memory>
 #include "../Interfaces/IVertexBuffer.hpp"
 #include "../Interfaces/IIndexBuffer.hpp"
+#include <memory>
 
 namespace NE::Graphics::OpenGL {
 
@@ -15,11 +15,21 @@ namespace NE::Graphics::OpenGL {
 
         void Bind() const override;
         void Draw() const override;
+        void Unbind() const override;
+
+        void EnableInstanceLayout(int locModel, int locIdRGB);
+        void DrawInstanced(size_t instanceCount) const;
+
+        static void InitInstanceBuffer();
+		static void UpdateInstanceBuffer(const void* instanceData, size_t instanceDataSize);
+		static void ShutdownInstanceBuffer();
 
     private:
         unsigned int m_VAO = 0;
         std::shared_ptr<IVertexBuffer> m_VertexBuffer;
         std::shared_ptr<IIndexBuffer> m_IndexBuffer;
+
+		static unsigned int s_InstanceVBO;
     };
 
 }

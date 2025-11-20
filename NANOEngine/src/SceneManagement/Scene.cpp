@@ -60,11 +60,11 @@ namespace NE::SceneManagement {
 			break;
 		case RenderPass::SCENE_PICKING:
 			Graphics::GraphicsManager::UpdatePicking();
-			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
+			//Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
 
 			Graphics::GraphicsManager::DrawFrame();
 			Graphics::GraphicsManager::s_PickingCommands.clear();
-			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
+			//Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
 			break;
 		}
 	}

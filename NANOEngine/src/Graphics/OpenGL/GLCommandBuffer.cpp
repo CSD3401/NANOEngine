@@ -62,6 +62,7 @@ namespace NE::Graphics::OpenGL {
     }
 
     void GLCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount) {
+		// Not used, currently using IGeometryBuffer for indexed draws
         if (instanceCount == 1)
             glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
         else

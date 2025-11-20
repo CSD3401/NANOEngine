@@ -1,6 +1,5 @@
 #include "GraphicsManager.hpp"
 #include "../../Math/Mat4.hpp"
-#include "../OpenGL/GLCommandBuffer.hpp"
 #include "../Interfaces/IShader.hpp"
 #include "EditorCamera.hpp"
 #include "Skybox.hpp"
@@ -9,15 +8,18 @@
 #include "../../Core/Profiler.hpp"
 #include "../Interfaces/IFrameBuffer.hpp"
 #include "../../ECS/Components/Light.hpp"
+#include "../OpenGL/GLCommandBuffer.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
+#include "../OpenGL/GLStateCache.hpp"
+#include "../OpenGL/GLFrameBuffer.hpp"
+#include "../OpenGL/GLGeometryBuffer.hpp"
 #include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
-#include "../OpenGL/GLStateCache.hpp"
-#include "Graphics/OpenGL/GLFrameBuffer.hpp"
 #include "../../SceneManagement/Scene.hpp"
+#include "InstanceData.hpp"
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
@@ -92,6 +94,8 @@ namespace NE::Graphics {
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateSphere(), "Sphere");
         Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
 
+        NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
+
         // temp
         //InitDebugLines();
     }
@@ -114,7 +118,7 @@ namespace NE::Graphics {
     {
         NE_PROFILE_FUNCTION();
 
-        // TEMP?
+		// Set camera matrices and position based on current render pass
 		Mat4 camProj, camView;
 		Vec3 camPos;
         switch (s_CurrentRenderPass) {
@@ -129,11 +133,123 @@ namespace NE::Graphics {
             camView = m_ActiveCamera.view;
             camPos = m_ActiveCamera.position;
 			break;
-            
         }
 
-		if (enableSorting) s_DrawQueue->Sort(camPos);
-		for (const auto& command : s_DrawQueue->GetCommands()) {
+		// Sort by RenderQueue -> Material -> Mesh
+		if (enableSorting) 
+            s_DrawQueue->Sort(camPos);
+
+		// Prepare instance data buffer and batching variables
+		std::vector<InstanceData> instanceData;
+        instanceData.reserve(32);
+        std::shared_ptr<IGeometryBuffer> currentMesh;
+        std::shared_ptr<Material> currentMaterial;
+        std::shared_ptr<IPipeline> currentPipeline;
+
+        auto flushBatch = [&]() 
+            {
+            if (instanceData.empty() || !currentMesh || !currentMaterial)
+                return;
+
+            // Bind pipeline & GL state
+            auto pipeline = currentMaterial->GetPipeline();
+            s_StateCache->Bind(pipeline);
+
+            // Upload transform matrix to shader
+            auto shader = pipeline->GetSpecification().shader;
+            shader->SetUniformMat4("u_View", camView);
+            shader->SetUniformMat4("u_Projection", camProj);
+            shader->SetUniformVec3("u_CameraPos", camPos);
+            //shader->SetUniformMat4("u_Model", command.transform);
+            //shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
+
+
+			// Set lights
+            shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
+            for (size_t i = 0; i < m_lights.size(); ++i) {
+                const auto* light = m_lights[i];
+                std::string base = "u_lights[" + std::to_string(i) + "]";
+                shader->SetUniformInt(base + ".type", light->type);
+                shader->SetUniformVec3(base + ".position", light->position);
+                shader->SetUniformVec3(base + ".direction", light->direction);
+                shader->SetUniformVec3(base + ".color", light->color);
+                shader->SetUniformFloat(base + ".intensity", light->intensity);
+                shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
+                shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
+                shader->SetUniformFloat(base + ".constant", light->constant);
+                shader->SetUniformFloat(base + ".linear", light->linear);
+                shader->SetUniformFloat(base + ".quadratic", light->quadratic);
+            }
+            
+            shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
+
+            // For object picking
+            /*if (command.entity.has_value()) {
+                float r = (float)(*command.entity & 0xFF) / 255.0f;
+                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
+                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
+                shader->SetUniformVec3("u_ID", { r, g, b });
+            }*/
+
+            NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instanceData.data(),
+                instanceData.size() * sizeof(InstanceData)
+            );
+
+			// Bind and draw mesh with instancing
+			currentMesh->Bind();
+            //currentMesh->Draw();
+			currentMesh->DrawInstanced(instanceData.size());
+			currentMesh->Unbind();
+
+			++drawCount;
+			instanceData.clear();
+        };
+
+		const auto& commands = s_DrawQueue->GetCommands();
+        for (const auto& command : commands)
+        {
+			auto mesh = command.mesh;
+			auto material = command.material;
+			auto pipeline = material->GetPipeline();
+
+			// Check compatibility with current batch
+			bool compatible = 
+                (mesh == currentMesh) && 
+                (material == currentMaterial) && 
+                (pipeline == currentPipeline);
+
+			// Flush current batch if not compatible
+			if (!compatible && !instanceData.empty()) {
+                flushBatch();
+			}
+
+			// Prepare to create new batch if not compatible
+            if (!compatible) {
+                currentMesh = mesh;
+                currentMaterial = material;
+                currentPipeline = pipeline;
+			}
+
+			NE::Graphics::InstanceData instance{};
+			instance.model = command.transform;
+            if (command.entity.has_value()) {
+                float r = (float)(*command.entity & 0xFF) / 255.0f;
+                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
+                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
+                instance.idRGB = { r, g, b };
+            }
+            instanceData.push_back(instance);
+        }
+
+		// Flush any remaining batch
+        if (!instanceData.empty()) {
+            flushBatch();
+        }
+
+        /*
+		const auto& commands = s_DrawQueue->GetCommands();
+		for (const auto& command : commands) {
             // Bind the pipeline (shader program + GL state)
             //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
 
@@ -187,6 +303,7 @@ namespace NE::Graphics {
 
             glBindVertexArray(0);
 		}
+        */
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) 
@@ -234,6 +351,7 @@ namespace NE::Graphics {
         s_DebugVertexBuffer.shrink_to_fit();
 
         NE::Graphics::GizmosRenderer::Cleanup();
+		NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
     }
 
     void GraphicsManager::SetRenderPass(SceneManagement::RenderPass pass) 
