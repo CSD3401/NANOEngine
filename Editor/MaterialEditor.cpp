@@ -131,8 +131,10 @@ namespace Editor {
         doc.Accept(writer);
 
         std::ofstream out(m_path);
-        if (out.is_open())
+        if (out.is_open()) {
             out << buffer.GetString();
+            out.flush();
+        }
 
         AssetManager::GetInstance().ReimportAsset(m_path);
 	}
