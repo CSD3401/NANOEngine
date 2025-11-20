@@ -2,7 +2,7 @@
     "Entities": [
         {
             "EntityMeta": {
-                "name": "Unnamed Entity",
+                "name": "Cube",
                 "isActive": 1
             },
             "Transform": {
@@ -31,13 +31,13 @@
         },
         {
             "EntityMeta": {
-                "name": "Unnamed Entity",
+                "name": "Point Light",
                 "isActive": 1
             },
             "Transform": {
                 "Position": {
-                    "x": -0.9384770393371582,
-                    "y": 1.1517910957336426,
+                    "x": 0.20398026704788208,
+                    "y": 1.8239973783493042,
                     "z": 0.8216584920883179
                 },
                 "Scale": {
@@ -64,13 +64,42 @@
                     "y": 1.0,
                     "z": 1.0
                 },
-                "intensity": 1.0,
+                "intensity": 14.100000381469727,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
                 "linear": 0.0,
                 "quadratic": 1.0,
                 "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Level",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390769055744655361,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
+                "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
             }
         }
     ]
