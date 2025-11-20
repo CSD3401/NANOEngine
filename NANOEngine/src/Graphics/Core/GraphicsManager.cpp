@@ -15,8 +15,6 @@
 #include "../OpenGL/GLStateCache.hpp"
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
-#include "../../AssetManager.hpp"
-//#include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
 #include "../../SceneManagement/Scene.hpp"
@@ -86,13 +84,6 @@ namespace NE::Graphics {
         //auto litBlinnPhong = std::make_shared<OpenGL::GLShader>();
         //litBlinnPhong->LoadFromFile("Library/Shaders/Lit_BlinnPhong.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litBlinnPhong, "Lit_BlinnPhong");
-
-        // Load Primitives
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCube(), "Cube");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreatePlane(), "Plane");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCylinder(), "Cylinder");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateSphere(), "Sphere");
-        Asset::AssetManager::GetInstance().AddToMap<Graphics::Model>(CreateCapsule(), "Capsule");
 
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
 
