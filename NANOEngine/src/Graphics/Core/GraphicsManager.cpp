@@ -12,13 +12,14 @@
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
-//#include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include "Graphics/OpenGL/GLFrameBuffer.hpp"
 #include "../../SceneManagement/Scene.hpp"
 #include "Core/SpdLogger.hpp"
+#include "InstanceData.hpp"
+#include "../OpenGL/GLGeometryBuffer.hpp"
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
@@ -88,6 +89,9 @@ namespace NE::Graphics {
         //auto skinned = std::make_shared<OpenGL::GLShader>();
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
+
+        NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
+
     }
 
     void GraphicsManager::BeginFrame() 
@@ -104,50 +108,52 @@ namespace NE::Graphics {
         if (s_skybox) s_skybox->Draw();
     }
 
-    void GraphicsManager::DrawFrame() 
+    void GraphicsManager::DrawFrame()
     {
         NE_PROFILE_FUNCTION();
 
-        // TEMP?
-		Mat4 camProj, camView;
-		Vec3 camPos;
+        // Set camera matrices and position based on current render pass
+        Mat4 camProj, camView;
+        Vec3 camPos;
         switch (s_CurrentRenderPass) {
         case SceneManagement::RenderPass::SCENE:
         case SceneManagement::RenderPass::SCENE_PICKING:
-			camProj = s_EditorCamera->GetProjectionMatrix();
-			camView = s_EditorCamera->GetViewMatrix();
+            camProj = s_EditorCamera->GetProjectionMatrix();
+            camView = s_EditorCamera->GetViewMatrix();
             camPos = s_EditorCamera->GetPosition();
-			break;
+            break;
         case SceneManagement::RenderPass::GAME:
             camProj = m_ActiveCamera.projection;
             camView = m_ActiveCamera.view;
             camPos = m_ActiveCamera.position;
-			break;
-            
+            break;
         }
 
-		if (enableSorting) s_DrawQueue->Sort(camPos);
-		for (const auto& command : s_DrawQueue->GetCommands()) {
-            // Bind the pipeline (shader program + GL state)
-            //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
+        // Sort by RenderQueue -> Material -> Mesh
+        if (enableSorting)
+            s_DrawQueue->Sort(camPos);
 
-            // Bind pipeline state and update the cache
-            s_StateCache->Bind(command.material->GetPipeline());
+        // Prepare instance data buffer and batching variables
+        std::vector<InstanceData> instanceData;
+        instanceData.reserve(32);
+        std::shared_ptr<IGeometryBuffer> currentMesh;
+        std::shared_ptr<Material> currentMaterial;
 
-            // Bind the vertex/index buffers
-            command.mesh->Bind();
+        auto flushBatch = [&]() {
+            if (instanceData.empty() || !currentMesh || !currentMaterial)
+                return;
 
-            // Bind material (textures, uniforms, etc.)
-            command.material->Bind();
+            // Bind pipeline & GL state
+            auto pipeline = currentMaterial->GetPipeline();
+            s_StateCache->Bind(pipeline);
 
             // Upload transform matrix to shader
-            auto shader = command.material->GetPipeline()->GetSpecification().shader;
-            shader->SetUniformMat4("u_Model", command.transform);
+            auto shader = pipeline->GetSpecification().shader;
             shader->SetUniformMat4("u_View", camView);
             shader->SetUniformMat4("u_Projection", camProj);
-            shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
             shader->SetUniformVec3("u_CameraPos", camPos);
 
+            // Set lights
             shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
             for (size_t i = 0; i < m_lights.size(); ++i) {
                 const auto* light = m_lights[i];
@@ -166,21 +172,57 @@ namespace NE::Graphics {
 
             shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
-            // For object picking
+            NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instanceData.data(),
+                instanceData.size() * sizeof(InstanceData)
+            );
+
+            // Bind and draw mesh with instancing
+            currentMesh->Bind();
+            currentMesh->DrawInstanced(instanceData.size());
+            currentMesh->Unbind();
+
+            ++drawCount;
+            instanceData.clear();
+            };
+
+        const auto& commands = s_DrawQueue->GetCommands();
+        for (const auto& command : commands)
+        {
+            auto mesh = command.mesh;
+            auto material = command.material;
+
+            // Check compatibility with current batch
+            bool compatible =
+                (mesh == currentMesh) &&
+                (material == currentMaterial);
+
+            // Flush current batch if not compatible
+            if (!compatible && !instanceData.empty()) {
+                flushBatch();
+            }
+
+            // Prepare to create new batch if not compatible
+            if (!compatible) {
+                currentMesh = mesh;
+                currentMaterial = material;
+            }
+
+            NE::Graphics::InstanceData instance{};
+            instance.model = command.transform;
             if (command.entity.has_value()) {
                 float r = (float)(*command.entity & 0xFF) / 255.0f;
                 float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
                 float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
-                shader->SetUniformVec3("u_ID", { r, g, b });
-			}
+                instance.idRGB = { r, g, b };
+            }
+            instanceData.push_back(instance);
+        }
 
-            // Draw indexed
-            //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
-            command.mesh->Draw();
-            ++drawCount;
-
-            glBindVertexArray(0);
-		}
+        // Flush any remaining batch
+        if (!instanceData.empty()) {
+            flushBatch();
+        }
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) 
@@ -228,6 +270,7 @@ namespace NE::Graphics {
         s_DebugVertexBuffer.shrink_to_fit();
 
         NE::Graphics::GizmosRenderer::Cleanup();
+        NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
     }
 
     void GraphicsManager::SetRenderPass(SceneManagement::RenderPass pass) 
