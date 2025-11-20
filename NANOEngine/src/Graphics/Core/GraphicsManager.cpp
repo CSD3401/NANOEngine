@@ -144,10 +144,8 @@ namespace NE::Graphics {
         instanceData.reserve(32);
         std::shared_ptr<IGeometryBuffer> currentMesh;
         std::shared_ptr<Material> currentMaterial;
-        std::shared_ptr<IPipeline> currentPipeline;
 
-        auto flushBatch = [&]() 
-            {
+        auto flushBatch = [&]() {
             if (instanceData.empty() || !currentMesh || !currentMaterial)
                 return;
 
@@ -160,9 +158,6 @@ namespace NE::Graphics {
             shader->SetUniformMat4("u_View", camView);
             shader->SetUniformMat4("u_Projection", camProj);
             shader->SetUniformVec3("u_CameraPos", camPos);
-            //shader->SetUniformMat4("u_Model", command.transform);
-            //shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
-
 
 			// Set lights
             shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
@@ -183,14 +178,6 @@ namespace NE::Graphics {
             
             shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
-            // For object picking
-            /*if (command.entity.has_value()) {
-                float r = (float)(*command.entity & 0xFF) / 255.0f;
-                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
-                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
-                shader->SetUniformVec3("u_ID", { r, g, b });
-            }*/
-
             NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
                 instanceData.data(),
                 instanceData.size() * sizeof(InstanceData)
@@ -198,7 +185,6 @@ namespace NE::Graphics {
 
 			// Bind and draw mesh with instancing
 			currentMesh->Bind();
-            //currentMesh->Draw();
 			currentMesh->DrawInstanced(instanceData.size());
 			currentMesh->Unbind();
 
@@ -211,13 +197,11 @@ namespace NE::Graphics {
         {
 			auto mesh = command.mesh;
 			auto material = command.material;
-			auto pipeline = material->GetPipeline();
 
 			// Check compatibility with current batch
-			bool compatible = 
-                (mesh == currentMesh) && 
-                (material == currentMaterial) && 
-                (pipeline == currentPipeline);
+            bool compatible =
+                (mesh == currentMesh) &&
+                (material == currentMaterial);
 
 			// Flush current batch if not compatible
 			if (!compatible && !instanceData.empty()) {
@@ -228,7 +212,6 @@ namespace NE::Graphics {
             if (!compatible) {
                 currentMesh = mesh;
                 currentMaterial = material;
-                currentPipeline = pipeline;
 			}
 
 			NE::Graphics::InstanceData instance{};
@@ -246,64 +229,6 @@ namespace NE::Graphics {
         if (!instanceData.empty()) {
             flushBatch();
         }
-
-        /*
-		const auto& commands = s_DrawQueue->GetCommands();
-		for (const auto& command : commands) {
-            // Bind the pipeline (shader program + GL state)
-            //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
-
-            // Bind pipeline state and update the cache
-            s_StateCache->Bind(command.material->GetPipeline());
-
-            // Bind the vertex/index buffers
-            command.mesh->Bind();
-
-            // Bind material (textures, uniforms, etc.)
-            command.material->Bind();
-
-            // Upload transform matrix to shader
-            auto shader = command.material->GetPipeline()->GetSpecification().shader;
-            shader->SetUniformMat4("u_Model", command.transform);
-            shader->SetUniformMat4("u_View", camView);
-            shader->SetUniformMat4("u_Projection", camProj);
-            shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
-            shader->SetUniformVec3("u_CameraPos", camPos);
-
-            shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
-            for (size_t i = 0; i < m_lights.size(); ++i) {
-                const auto* light = m_lights[i];
-                std::string base = "u_lights[" + std::to_string(i) + "]";
-                shader->SetUniformInt(base + ".type", light->type);
-                shader->SetUniformVec3(base + ".position", light->position);
-                shader->SetUniformVec3(base + ".direction", light->direction);
-                shader->SetUniformVec3(base + ".color", light->color);
-                shader->SetUniformFloat(base + ".intensity", light->intensity);
-                shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
-                shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
-                shader->SetUniformFloat(base + ".constant", light->constant);
-                shader->SetUniformFloat(base + ".linear", light->linear);
-                shader->SetUniformFloat(base + ".quadratic", light->quadratic);
-            }
-
-            shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
-
-            // For object picking
-            if (command.entity.has_value()) {
-                float r = (float)(*command.entity & 0xFF) / 255.0f;
-                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
-                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
-                shader->SetUniformVec3("u_ID", { r, g, b });
-			}
-
-            // Draw indexed
-            //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
-            command.mesh->Draw();
-            ++drawCount;
-
-            glBindVertexArray(0);
-		}
-        */
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) 
