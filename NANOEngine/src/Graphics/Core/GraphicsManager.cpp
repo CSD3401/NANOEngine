@@ -25,7 +25,8 @@
 
 namespace NE::Graphics {
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
-    int GraphicsManager::drawCount = 0;
+    int GraphicsManager::sceneDrawCount = 0;
+	int GraphicsManager::gameDrawCount = 0;
     bool GraphicsManager::enableSorting = true;
 
 	SceneManagement::RenderPass GraphicsManager::s_CurrentRenderPass = SceneManagement::RenderPass::SCENE;
@@ -96,7 +97,14 @@ namespace NE::Graphics {
 
     void GraphicsManager::BeginFrame() 
     {
-        drawCount = 0;
+        switch (s_CurrentRenderPass) {
+        case SceneManagement::RenderPass::GAME:
+            gameDrawCount = 0;
+			break;
+        case SceneManagement::RenderPass::SCENE:
+            sceneDrawCount = 0;
+            break;
+        }
 		s_StateCache->InvalidateAll();
         s_ActiveFrameBuffer->Bind();
         s_CommandBuffer->Begin();
@@ -115,8 +123,10 @@ namespace NE::Graphics {
         // Set camera matrices and position based on current render pass
         Mat4 camProj, camView;
         Vec3 camPos;
+		int* drawCount = nullptr;
         switch (s_CurrentRenderPass) {
         case SceneManagement::RenderPass::SCENE:
+            drawCount = &sceneDrawCount;
         case SceneManagement::RenderPass::SCENE_PICKING:
             camProj = s_EditorCamera->GetProjectionMatrix();
             camView = s_EditorCamera->GetViewMatrix();
@@ -126,6 +136,7 @@ namespace NE::Graphics {
             camProj = m_ActiveCamera.projection;
             camView = m_ActiveCamera.view;
             camPos = m_ActiveCamera.position;
+			drawCount = &gameDrawCount;
             break;
         }
 
@@ -143,9 +154,16 @@ namespace NE::Graphics {
             if (instanceData.empty() || !currentMesh || !currentMaterial)
                 return;
 
+            NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instanceData.data(),
+                instanceData.size() * sizeof(InstanceData)
+            );
+
             // Bind pipeline & GL state
             auto pipeline = currentMaterial->GetPipeline();
             s_StateCache->Bind(pipeline);
+            currentMaterial->Bind();
+            currentMesh->Bind();
 
             // Upload transform matrix to shader
             auto shader = pipeline->GetSpecification().shader;
@@ -172,19 +190,13 @@ namespace NE::Graphics {
 
             shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
-            NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
-                instanceData.data(),
-                instanceData.size() * sizeof(InstanceData)
-            );
-
-            // Bind and draw mesh with instancing
-            currentMesh->Bind();
+            // Draw mesh with instancing
             currentMesh->DrawInstanced(instanceData.size());
             currentMesh->Unbind();
 
-            ++drawCount;
+            if (drawCount) (*drawCount)++;
             instanceData.clear();
-            };
+        };
 
         const auto& commands = s_DrawQueue->GetCommands();
         for (const auto& command : commands)

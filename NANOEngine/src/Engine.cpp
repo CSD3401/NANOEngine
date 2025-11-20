@@ -295,7 +295,11 @@ namespace NE {
 		gSceneManager.StopPlay();
 	}
 
-	int GetDrawCallCount() {
-		return Graphics::GraphicsManager::drawCount;
+	int GetSceneDrawCallCount() {
+		return Graphics::GraphicsManager::sceneDrawCount;
+	}
+
+	int GetGameDrawCallCount() {
+		return Graphics::GraphicsManager::gameDrawCount;
 	}
 }

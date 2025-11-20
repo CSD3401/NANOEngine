@@ -139,7 +139,7 @@ namespace NE::Graphics::OpenGL {
 
         glGenBuffers(1, &s_InstanceVBO);
         glBindBuffer(GL_ARRAY_BUFFER, s_InstanceVBO);
-        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(InstanceData), nullptr, GL_STREAM_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
@@ -148,7 +148,19 @@ namespace NE::Graphics::OpenGL {
         if (s_InstanceVBO == 0 || instanceData == nullptr || instanceDataSize == 0) return;
 
         glBindBuffer(GL_ARRAY_BUFFER, s_InstanceVBO);
-        glBufferData(GL_ARRAY_BUFFER, instanceDataSize, instanceData, GL_STREAM_DRAW);
+
+        // Check if we need to resize
+        GLint currentSize = 0;
+        glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &currentSize);
+        if (instanceDataSize > static_cast<size_t>(currentSize)) {
+            // Need to reallocate
+            glBufferData(GL_ARRAY_BUFFER, instanceDataSize, instanceData, GL_STREAM_DRAW);
+        }
+        else {
+            // Can use SubData for better performance
+            glBufferSubData(GL_ARRAY_BUFFER, 0, instanceDataSize, instanceData);
+        }
+
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 

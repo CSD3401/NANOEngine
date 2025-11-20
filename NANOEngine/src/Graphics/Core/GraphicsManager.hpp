@@ -83,7 +83,8 @@ namespace NE::Graphics {
         static std::vector<ECS::Component::Light*> m_lights;
 
         // Draw Count Profiling
-        static int drawCount;
+        static int sceneDrawCount;
+		static int gameDrawCount;
 
         // Flag to toggle sorting
 		static bool enableSorting;
