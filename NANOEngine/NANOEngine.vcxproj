@@ -19,11 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
+    <ClInclude Include="src\ResourceManagement\IResource.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoTexHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\ResourceManager.hpp" />
     <ClInclude Include="src\ECS\Components\Camera.hpp" />
     <ClInclude Include="src\ECS\Systems\CameraSystem.hpp" />
     <ClInclude Include="src\Core\Couroutine.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
+    <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
@@ -33,11 +41,18 @@
     <ClInclude Include="src\Graphics\Interfaces\IStateCache.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLStateCache.hpp" />
     <ClInclude Include="src\Core\SpdLoggerInternal.hpp" />
-    <ClInclude Include="src\ResourceManager.hpp" />
+    <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
+    <ClInclude Include="src\Animation\AnimatorController.hpp" />
+    <ClInclude Include="src\Animation\AnimatorControllerIO.hpp" />
+    <ClInclude Include="src\Animation\TransformClip.hpp" />
+    <ClInclude Include="src\Animation\TransformClipIO.hpp" />
+    <ClInclude Include="src\ECS\Components\Animator.hpp" />
+    <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
     <ClInclude Include="src\Audio\AudioBank.hpp" />
     <ClInclude Include="src\ECS\Components\AudioSource.hpp" />
     <ClInclude Include="src\Graphics\Core\PipelineCache.hpp" />
     <ClInclude Include="src\Input\InputManager.hpp" />
+    <ClInclude Include="src\ResourceManagement\ResourcePaths.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
     <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
@@ -59,8 +74,6 @@
     <ClInclude Include="src\ECS\Components\Collider.hpp" />
     <ClInclude Include="src\ECS\Components\Rigidbody.hpp" />
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
-    <ClInclude Include="src\Asset.hpp" />
-    <ClInclude Include="src\AssetManager.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
     <ClInclude Include="src\ECSInternals.hpp" />
@@ -127,17 +140,21 @@
     <ClInclude Include="src\Tween\Tween.hpp" />
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
-    <ClInclude Include="src\Utility\MetadataHandler.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\Core\Couroutine.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
+    <ClCompile Include="src\ECS\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
     <ClCompile Include="src\Core\SpdLogger.cpp" />
-    <ClCompile Include="src\ResourceManager.cpp" />
+    <ClCompile Include="src\Physics\PhysicsContactListener.cpp" />
+    <ClCompile Include="src\Animation\AnimatorControllerIO.cpp" />
+    <ClCompile Include="src\Animation\TransformClipIO.cpp" />
+    <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
     <ClCompile Include="src\Audio\AudioBank.cpp" />
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
@@ -190,10 +207,8 @@
     <ClCompile Include="src\Math\Vec4.cpp" />
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
-    <ClCompile Include="src\AssetManager.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
     <ClCompile Include="src\Tween\TweenManager.cpp" />
-    <ClCompile Include="src\Utility\MetadataHandler.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -260,7 +275,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -272,7 +287,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -288,7 +303,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -301,8 +316,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\assimp\$(Configuration);$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\$(Configuration);$(ProjectDir)vendor\lib\glfw;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;assimp-vc143-mtd.lib;zlibstaticd.lib;Jolt.lib;fmod\fmodL_vc.lib;fmod\fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\glfw;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;Jolt.lib;fmod\fmodL_vc.lib;fmod\fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
@@ -315,7 +330,7 @@ xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Con
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -331,8 +346,8 @@ xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Con
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\assimp\$(Configuration);$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\zlib\$(Configuration);$(ProjectDir)vendor\lib\glfw;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;assimp-vc143-mt.lib;zlibstatic.lib;Jolt.lib;fmod\fmodL_vc.lib;fmod\fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)vendor\lib\Jolt\$(Configuration);$(ProjectDir)vendor\lib\glfw;$(ProjectDir)vendor\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3dll.lib;opengl32.lib;Jolt.lib;fmod\fmodL_vc.lib;fmod\fmodstudioL_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"

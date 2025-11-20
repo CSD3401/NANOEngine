@@ -12,17 +12,25 @@ namespace NE::SceneManagement {
 
 		void LoadScene(const std::string& scenePath);
 		void ReloadScene();
-		void SaveScene();
-		void ExitScene();
-
 		void Update(double dt);
-		void Render(NE::SceneManagement::RenderPass pass);
+		void Render(RenderPass pass);
+		void ExitScene();
+		void SaveScene();
 
-		NE::SceneManagement::Scene* GetActive() { return m_active.get(); }
+		void BeginPlay();
+		void StopPlay();
+		bool IsPlaying() const;
+
+		Scene* GetActive();
 
 	private:
-		std::unique_ptr<NE::SceneManagement::Scene> m_active;
 		std::string m_loadedPath;
+
+		std::unique_ptr<Scene> m_editor;
+		std::unique_ptr<Scene> m_runtime;
+		bool m_isPlaying = false;
+
+		std::vector<uint8_t> m_editorBackup;
 	};
 
 }

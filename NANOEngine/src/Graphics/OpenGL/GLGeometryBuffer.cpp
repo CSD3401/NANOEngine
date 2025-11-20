@@ -37,12 +37,19 @@ namespace NE::Graphics::OpenGL {
         // TexCoord (location = 2)
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, TexCoord));
+        
+        // Bone IDs (location = 3) - integer attribute
+        glEnableVertexAttribArray(3);
+        glVertexAttribIPointer(3, 4, GL_INT, stride, (void*)offsetof(Vertex, BoneIDs));
+
+        // Bone Weights (location = 4)
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, Weights));
 
         // ---- Per-instance attributes ----
-		
         if (s_InstanceVBO == 0) InitInstanceBuffer();
-		EnableInstanceLayout(3, 7); // locations 3-6 for mat4, 7 for vec3
-        
+		EnableInstanceLayout(5, 9); // locations 5-8 for mat4, 9 for vec3
+
         glBindVertexArray(0);
     }
 

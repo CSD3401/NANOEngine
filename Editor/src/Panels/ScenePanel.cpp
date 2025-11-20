@@ -30,7 +30,7 @@ namespace Editor {
 		float fovYRadians = 45.0f * (NE::Math::PI / 180.0f); // 45 degrees fov
 		float aspectRatio = 1920.f / 1080.f;
 		float nearPlane = 0.1f;
-		float farPlane = 100.0f;
+		float farPlane = 1000.0f;
 
 		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
 		m_editorCamera.SetPosition(position);
@@ -83,13 +83,19 @@ namespace Editor {
 				ImGui::SameLine();
 				if (ImGui::Button("Pause")) {
 					if (playing) paused = !paused;
-					
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Stop")) {
 					playing = false;
 					paused = false;
+
+					EditorScene::s_entities.clear();
 					NE::EditorEdit();
+
+					auto numEntt = NE::GetNumEntities();
+					for (unsigned int i = 0; i < numEntt; ++i) {
+						EditorScene::s_entities.push_back(EditorEntity{ i });
+					}
 				}
 			}
 			ImGui::End();
@@ -156,7 +162,7 @@ namespace Editor {
 						uint32_t id = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
-						EditorScene::selectedMaterial = "";
+						EditorScene::selectedAsset = "";
 						for (auto& ent : EditorScene::s_entities) {
 							if (ent.linkedEntity == id) {
 								EditorScene::s_selectedEntity = &ent;
@@ -258,133 +264,6 @@ namespace Editor {
 		dir.y = sinf(Radians(m_cameraPitch));
 		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
 		m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
-
-		//if (EditorScene::s_selectedEntity) {
-		//	static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
-
-		//	if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
-		//	if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
-		//	if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
-
-		//	ImGuizmo::SetOrthographic(false);
-		//	ImGuizmo::SetDrawlist();
-		//	ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
-
-		//	const auto& t = NE::ECS::Query::GetEntityTransform(EditorScene::s_selectedEntity->linkedEntity);
-
-		//	float matrix[16];
-		//	memcpy(matrix, t.modelMatrix.Data(), sizeof(float) * 16);
-
-		//	if (ImGuizmo::Manipulate(m_editorCamera.GetViewMatrix().Data(),
-		//		m_editorCamera.GetProjectionMatrix().Data(),
-		//		currentOperation, ImGuizmo::LOCAL, matrix)) {
-		//		float tr[3], rot[3], sc[3];
-		//		ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rot, sc);
-		//		//t.position = { tr[0], tr[1], tr[2] };
-		//		//t.rotation = { rot[0], rot[1], rot[2] };
-		//		//t.scale = { sc[0], sc[1], sc[2] };
-		//		//t.isDirty = true;
-		//	}
-		//}
-
-		//ImGuizmo::IsUsingAny()
-		//ImVec2 mousePos = ImGui::GetMousePos();
-		//float localX = mousePos.x - panelPos.x;
-		//float localY = mousePos.y - panelPos.y;
-		//float spMouseX = localX / panelSize.x;
-		//float spMouseY = localY / panelSize.y;
-
-		//if (localX < 0 || localY < 0 || localX > panelSize.x || localY > panelSize.y) {
-		//	//return; // Mouse is outside the panel
-		//} else {
-		//	float scrollOffset = ImGui::GetIO().MouseWheel;
-		//	if (scrollOffset != 0) {
-		//		float zoomSpeed = 0.1f; // Zoom sensitivity
-		//		camera.SetZoom(scrollOffset * zoomSpeed);
-		//	}
-
-		//	// Moving the camera
-		//	if (ImGui::IsWindowFocused()) {
-		//		float camSpeed = 10.f;
-		//		if (ImGui::IsKeyDown(ImGuiKey_UpArrow)) {
-		//			camera.MoveUp(camSpeed);
-		//		} else if (ImGui::IsKeyDown(ImGuiKey_DownArrow)) {
-		//			camera.MoveDown(camSpeed);
-		//		}
-		//		if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {
-		//			camera.MoveLeft(camSpeed);
-		//		} else if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) {
-		//			camera.MoveRight(camSpeed);
-		//		}
-
-		//		// Object Picking
-		//		if (!ImGuizmo::IsUsingAny()) {
-		//			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-		//				int x = static_cast<int>(spMouseX * Application::GetWindowSize().first);
-		//				int y = static_cast<int>(spMouseY * Application::GetWindowSize().second);
-		//				Vec4 colour = GraphicsManager::GetInstance().GetPixelColor(
-		//					GraphicsManager::GetInstance().frameBuffers[GraphicsManager::FrameBufferIndex::OBJ_PICKING_ENGINE], x, y);
-
-		//				uint32_t clickedEntity = ECSManager::GetInstance().renderSystem->DecodeColor(colour);
-		//				//std::cout << "Clicked on entity: " << clickedEntity << std::endl;
-		//				if (sceneEntityMap.find(clickedEntity) != sceneEntityMap.end()) {
-		//					selectedEntity = &*sceneEntityMap.find(clickedEntity)->second;
-		//					//auto r = ECSManager::GetInstance().TryGetComponent<Renderer>(selectedEntity->id);
-		//					//if (r.has_value()) {
-		//					//	ECSManager::GetInstance().renderSystem->SetVisibility(r->get().currentMeshDebugID, true);
-		//					//}
-		//				} else {
-		//					//if (selectedEntity) {
-		//					//	auto r = ECSManager::GetInstance().TryGetComponent<Renderer>(selectedEntity->id);
-		//					//	if (r.has_value()) {
-		//					//		ECSManager::GetInstance().renderSystem->SetVisibility(r->get().currentMeshDebugID, false);
-		//					//	}
-		//					//}
-		//					selectedEntity = nullptr;
-		//				}
-		//			}
-		//		}
-		//	}
-
-		//	// Camera Dragging
-		//	static bool isDragging = false;
-		//	static ImVec2 lastMousePos;
-		//	if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
-		//		if (!isDragging) {
-		//			isDragging = true;
-		//			lastMousePos = ImGui::GetMousePos();
-		//		}
-
-		//		ImVec2 currentMousePos = ImGui::GetMousePos();
-		//		ImVec2 delta = ImVec2(currentMousePos.x - lastMousePos.x, currentMousePos.y - lastMousePos.y);
-
-		//		float viewportWidth = panelSize.x;
-		//		float viewportHeight = panelSize.y;
-
-		//		float ndcX = delta.x / viewportWidth * 2.0f;
-		//		float ndcY = delta.y / viewportHeight * 2.0f;
-
-		//		float worldDeltaX = ndcX * (camera.screenWidth / 2.0f) / camera.zoom;
-		//		float worldDeltaY = ndcY * (camera.screenHeight / 2.0f) / camera.zoom;
-
-		//		camera.MoveRight(-worldDeltaX);
-		//		camera.MoveUp(worldDeltaY);
-
-		//		lastMousePos = currentMousePos;
-		//	} else {
-		//		isDragging = false;
-		//	}
-
-		//	if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-		//		currentOperation = ImGuizmo::TRANSLATE;
-		//	}
-		//	if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-		//		currentOperation = ImGuizmo::SCALE;
-		//	}
-		//	if (ImGui::IsKeyPressed(ImGuiKey_R)) {
-		//		currentOperation = ImGuizmo::ROTATE;
-		//	}
-		//}
 
 		ImGui::End();
 	}

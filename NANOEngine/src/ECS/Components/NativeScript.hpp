@@ -8,7 +8,7 @@
 namespace NE::ECS::Component {
     struct NativeScript {
         std::string ScriptName; // The name of the script class, e.g., "PlayerScript"
-
+        
         IScript* Instance = nullptr;
 
         // Function pointers to create and destroy the script instance.
