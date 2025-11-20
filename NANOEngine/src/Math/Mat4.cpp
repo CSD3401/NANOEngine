@@ -36,18 +36,18 @@ namespace NE::Math {
 		return *this;
 	}
 
-	Mat4 Mat4::operator*(const Mat4& rhs) {
-		Mat4 mat4{};
-		for (unsigned int i = 0; i < 4; ++i) {
-			for (unsigned int j = 0; j < 4; ++j) {
-				for (unsigned int k = 0; k < 4; ++k) {
-					mat4.GetElement(i, j) += GetElement(i, k) * rhs.GetElement(k, j);
-				}
-			}
-		}
+	//Mat4 Mat4::operator*(const Mat4& rhs) {
+	//	Mat4 mat4{};
+	//	for (unsigned int i = 0; i < 4; ++i) {
+	//		for (unsigned int j = 0; j < 4; ++j) {
+	//			for (unsigned int k = 0; k < 4; ++k) {
+	//				mat4.GetElement(i, j) += GetElement(i, k) * rhs.GetElement(k, j);
+	//			}
+	//		}
+	//	}
 
-		return mat4;
-	}
+	//	return mat4;
+	//}
 
 	Mat4 Mat4::operator*(float scalar) {
 		Mat4 mat4;
@@ -416,5 +416,35 @@ namespace NE::Math {
 		float roll = std::atan2(-normalized.a[1], normalized.a[0]);
 
 		return Vec3(pitch, yaw, roll);
+	}
+
+	Mat4 Mat4::operator*(const Mat4& rhs) const
+	{
+		Mat4 result{};
+
+		for (unsigned int col = 0; col < 4; ++col) {
+			for (unsigned int row = 0; row < 4; ++row) {
+				float sum = 0.0f;
+				for (unsigned int k = 0; k < 4; ++k) {
+					sum += GetElement(row, k) * rhs.GetElement(k, col);
+				}
+				result.GetElement(row, col) = sum;
+			}
+		}
+
+		return result;
+	}
+
+	Mat4 Mat4::operator*(const Mat4& rhs) {
+		Mat4 mat4{};
+		for (unsigned int i = 0; i < 4; ++i) {
+			for (unsigned int j = 0; j < 4; ++j) {
+				for (unsigned int k = 0; k < 4; ++k) {
+					mat4.GetElement(i, j) += GetElement(i, k) * rhs.GetElement(k, j);
+				}
+			}
+		}
+
+		return mat4;
 	}
 }

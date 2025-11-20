@@ -125,8 +125,8 @@ namespace NANOEngine::Events {
             dispatching = false;
         }
 
+        void ClearDomain(EventDomain domain);
 
-        
     private:
         EventBus() = default;
         EventBus(const EventBus&) = delete;
@@ -173,6 +173,8 @@ namespace NANOEngine::Events {
 
     // Register a script-side callback
     NANOENGINE_API void RegisterScriptEventListener(const char* eventName, std::function<void(void* data)> callback);
+
+    NANOENGINE_API void ClearScriptEventListeners();
 }
 
 #pragma warning(pop)

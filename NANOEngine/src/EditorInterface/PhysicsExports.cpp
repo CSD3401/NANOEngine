@@ -143,8 +143,8 @@ namespace NE::Physics
 			auto& collider = coordinator.GetComponent<NE::ECS::Component::Collider>(entity);
 
 			printf("Transform: pos(%.2f, %.2f, %.2f) rot(%.2f, %.2f, %.2f)\n",
-				transform.position.x, transform.position.y, transform.position.z,
-				transform.rotation.x, transform.rotation.y, transform.rotation.z);
+				transform.localPosition.x, transform.localPosition.y, transform.localPosition.z,
+				transform.localRotationEuler.x, transform.localRotationEuler.y, transform.localRotationEuler.z);
 			printf("Collider shapeType: %d\n", static_cast<int>(collider.shapeType));
 
 			if (collider.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
@@ -161,8 +161,8 @@ namespace NE::Physics
 					fullSize.x, fullSize.y, fullSize.z);
 
 				uint32_t bodyId = Physics::PhysicsManager::CreateBoxBody(
-					transform.position,
-					transform.rotation,
+					transform.localPosition,
+					transform.localRotationEuler,
 					fullSize,
 					JPH::EMotionType::Dynamic
 				);
@@ -224,6 +224,11 @@ namespace NE::Physics
 			{
 				Physics::PhysicsManager::SetMotionType(bodyId, static_cast<JPH::EMotionType>(motionType));
 			}
+		}
+
+		void LockConstraints(uint32_t entity, bool lockX, bool lockY, bool lockZ) {
+			uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
+			NE::Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);
 		}
 	}
 

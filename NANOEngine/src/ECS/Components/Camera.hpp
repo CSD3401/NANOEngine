@@ -24,6 +24,7 @@ namespace NE::ECS::Component {
 
 		// Flag tracks the projection matrix needs to be rebuilt, view matrix is tracked via transform component
 		bool isDirty{ true }; 
+		uint64_t luid;
 
 		NE_REFLECT_BEGIN(Camera)
 			NE_REFLECT_FIELD_NAMED(fovY, "FOV Y"),

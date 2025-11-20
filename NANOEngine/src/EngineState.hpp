@@ -1,4 +1,5 @@
 #pragma once
+#include "NANOEngineAPI.hpp"
 
 namespace NE {
     enum class EngineState {
@@ -7,8 +8,8 @@ namespace NE {
         Paused
     };
 
-    extern EngineState g_EngineState;
+    extern NANOENGINE_API EngineState g_EngineState;
 
-    void SetEngineState(EngineState state);
-    EngineState GetEngineState();
+    NANOENGINE_API void SetEngineState(EngineState state);
+    NANOENGINE_API EngineState GetEngineState();
 }

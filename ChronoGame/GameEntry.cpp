@@ -1,13 +1,9 @@
 // GameEntry.cpp
 
-// Include the registrar interface from Engine DLL
+// Include the SDK from Engine DLL
 #include "pch.h"
-#include "Scripting/IScriptRegistrar.hpp"
+#include <ScriptSDK/ScriptAPI.h>
 
-
-// Include the base script interface
-// Note: If IScript is defined in Engine DLL, include it from there
-// #include "Core/IScript.hpp"
 
 // Include headers for all scripts you want to register
 #include "Scripts/PlayerScript.hpp"
@@ -19,9 +15,10 @@
 #include "Scripts/Gears.hpp"
 #include "Scripts/k1bswitch.hpp"
 #include "Scripts/k2bswitch.hpp"
-
+#include "Scripts/PlayerController.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
+
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
     // Export this function so it can be called from the Engine DLL
@@ -35,47 +32,51 @@ extern "C" {
 
       
         // Register all your game-specific scripts here
-        registrar->RegisterScript("PlayerScript", []() -> IScript* {
+        registrar->RegisterScript("PlayerScript", []() -> NE::Scripting::IScript* {
             return new PlayerScript();
             });
 
-        registrar->RegisterScript("TestScript", []() -> IScript* {
+        registrar->RegisterScript("TestScript", []() -> NE::Scripting::IScript* {
             return new TestScript();
             });
 
         // Register the new physics-based player controller
-        registrar->RegisterScript("PhysicsPlayerController", []() -> IScript* {
+        registrar->RegisterScript("PhysicsPlayerController", []() -> NE::Scripting::IScript* {
             return new PhysicsPlayerController();
             });
 
-        registrar->RegisterScript("TextureSwitch", []() -> IScript* {
+        registrar->RegisterScript("TextureSwitch", []() -> NE::Scripting::IScript* {
             return new TextureSwitch();
             });
 
-        registrar->RegisterScript("LightSwitch", []() -> IScript* {
+        registrar->RegisterScript("LightSwitch", []() -> NE::Scripting::IScript* {
             return new LightSwitch();
             });
 
-        registrar->RegisterScript("PlayerCamera", []() -> IScript* {
+        registrar->RegisterScript("PlayerCamera", []() -> NE::Scripting::IScript* {
             return new PlayerCamera();
             });
 
-        registrar->RegisterScript("Gears", []() -> IScript* {
+        registrar->RegisterScript("Gears", []() -> NE::Scripting::IScript* {
             return new Gears();
             });
 
-        registrar->RegisterScript("k1bswitch", []() -> IScript* {
+        registrar->RegisterScript("k1bswitch", []() -> NE::Scripting::IScript* {
             return new k1bswitch();
             });
 
-        registrar->RegisterScript("k2bswitch", []() -> IScript* {
+        registrar->RegisterScript("k2bswitch", []() -> NE::Scripting::IScript* {
             return new k2bswitch();
-     });
+            });
 
         // Component Reference Example Scripts
-          registrar->RegisterScript("FollowerScript", []() -> IScript* {
+          registrar->RegisterScript("FollowerScript", []() -> NE::Scripting::IScript* {
           return new FollowerScript();
      });
+
+          registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
+             return new PlayerController();
+           });
 
     }
 }

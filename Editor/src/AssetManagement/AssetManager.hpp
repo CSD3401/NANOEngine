@@ -22,6 +22,7 @@ namespace Editor {
 		std::string RetrieveUUID(const std::string& sourcePath);
 		std::string RetrieveFileName(const std::string& uuid);
 		
+		bool SaveTextureImportSettings(const std::string& metaPath, const TextureImportSettings& settings);
 
 		template <AssetType T>
 		std::vector<std::pair<std::string, UUID>>& GetAssetsOfType() {
@@ -35,7 +36,6 @@ namespace Editor {
 		AssetType GetAssetTypeFromString(std::string_view extension);
 		AssetType GetAssetTypeFromExtension(std::string_view);
 
-		bool ImportTexture();
 		bool CookTexture(const std::string& sourcePath, const std::string& outPath, const TextureImportSettings& settings);
 		bool CookShader(const std::string& sourcePath, const std::string& outPath);
 		bool CookMaterial(const std::string& sourcePath, const std::string& outPath);

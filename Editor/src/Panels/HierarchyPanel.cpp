@@ -59,6 +59,7 @@ namespace Editor {
 			}
 			if (ImGui::MenuItem("Select Children", "", false, false)) {
 			}
+
 			ImGui::Separator();
 			if (ImGui::MenuItem("Find References in Scene", "", false, false)) {
 			}
@@ -107,8 +108,13 @@ namespace Editor {
 		}
 
 		// === Entity Tree ===
+		//static bool s_built = false;
+		//if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
 		static bool s_built = false;
-		if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
+		if (!s_built) {
+			Editor::EditorScene::BuildHierarchyFromECS();
+			s_built = true;
+		}
 
 		// ---- Drag state ----
 		static uint32_t draggingId = NE::ECS::NO_ENTITY;
@@ -172,7 +178,7 @@ namespace Editor {
 				ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
 				// DO NOT REMOVE - Needed for tween to work
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && EditorScene::s_selectedEntity != nullptr)
 				{
 					// Broadcast message
 					NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));

@@ -24,7 +24,7 @@ namespace NE::ECS::Systems {
         for (Entity entity : entities) {
             auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
             auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
-            sl.position = t.position;
+            sl.position = t.localPosition;
             Graphics::GraphicsManager::m_lights.push_back(&sl);
         }
     }

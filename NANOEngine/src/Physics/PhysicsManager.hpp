@@ -48,7 +48,9 @@ namespace NE::Physics {
         static void Shutdown();
 
         static void ActivateBodies();
+        static void ActivateBody(uint32_t bodyID);
         static void DeactivateBodies();
+        static void DeactivateBody(uint32_t bodyID);
 
         static uint32_t CreateBody(const JPH::BodyCreationSettings& settings);
         static void DestroyBody(uint32_t index);
@@ -117,6 +119,12 @@ namespace NE::Physics {
             const Math::Vec3& rot,
             float radius,
             JPH::EMotionType motionType);
+
+        static uint32_t CreateMeshShape(
+            std::string meshID,
+            const std::vector<Math::Vec3>& vertices,
+            const std::vector<uint32_t>& indices);
+
 
         static void UpdateSphereRadius(uint32_t bodyID, float newRadius);
 

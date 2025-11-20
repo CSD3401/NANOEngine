@@ -16,12 +16,14 @@ namespace NE::SceneManagement {
 		void Render(RenderPass pass);
 		void ExitScene();
 		void SaveScene();
+		void SaveSceneIfDirty(const std::string& path = "");
 
 		void BeginPlay();
 		void StopPlay();
 		bool IsPlaying() const;
 
 		Scene* GetActive();
+		Scene* GetEditorScene() { return m_editor.get(); }
 
 	private:
 		std::string m_loadedPath;

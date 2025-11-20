@@ -18,6 +18,9 @@ namespace NE::ECS::Component {
 		std::shared_ptr<Graphics::Material> material;
 
 		bool visible = true;
+		bool isDirty = false;  // Dirty flag for editor changes
+
+		uint64_t luid;
 
 		NE_REFLECT_BEGIN(Renderer)
 			NE_REFLECT_FIELD(modelUUID),

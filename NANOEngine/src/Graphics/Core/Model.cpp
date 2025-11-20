@@ -221,6 +221,25 @@ namespace NE::Graphics {
         m_staged.clear();
     }
 
+    bool Model::GetPhysicsMesh(std::vector<Math::Vec3>& outVerts, std::vector<uint32_t>& outIndices) const {
+        outVerts.clear();
+        outIndices.clear();
+
+        for (const auto& sm : meshes) {
+            uint32_t base = (uint32_t)outVerts.size();
+
+            // Copy positions
+            for (const auto& v : sm.vertices)
+                outVerts.push_back(v.Position);
+
+            // Copy indices (offset by base)
+            for (auto idx : sm.indices)
+                outIndices.push_back(base + idx);
+        }
+
+        return !outVerts.empty() && !outIndices.empty();
+    }
+
     //void Model::ComputeModelSphereBounds() {
     //    if (meshes.empty())
     //    {

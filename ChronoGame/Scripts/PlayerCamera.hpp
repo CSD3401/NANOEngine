@@ -1,34 +1,27 @@
 #pragma once
 #include <iostream>
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "Events/EventBus.hpp"
-#include "Core/Couroutine.hpp"
-#include <Math/Vec3.hpp>
-#include <Input/InputManager.hpp>
-#include <ECS/Components/Light.hpp>
-#include <EditorInterface/ECSExports.hpp>
-#include <Engine.hpp>
-
+#include "EngineAPI.hpp"
 
 class PlayerCamera : public IScript {
 public:
     PlayerCamera() {
     }
 
-    void Initialize(NE::ECS::Entity entity) override {
+    void Initialize(Entity entity) override {
         SetRotation(0.f, 180.f, 0.f);
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        auto playerPos = NE::ECS::Query::GetEntityTransform(6).position;
-        NE::Math::Vec3 camPos = playerPos + NE::Math::Vec3(0.f, 0.6f, 0.f);
+        auto playerPos = Query::GetEntityTransform(6).localPosition;
+        // Implicit conversion from Math::Vec3 to Scripting::Vec3
+        Vec3 camPos(playerPos.x,playerPos.y,playerPos.z);
+        camPos.y += 0.6f;  // Add camera height offset
         SetPosition(camPos);
 
         // --- mouse look ---
-        auto [mouseX, mouseY] = NE::InputManager::MousePos();
+        auto [mouseX, mouseY] = Input::GetMousePosition();
 
         if (m_firstMouse) {
             m_lastX = (float)mouseX;
@@ -52,11 +45,11 @@ public:
         if (m_pitch > 89.0f)  m_pitch = 89.0f;
         if (m_pitch < -89.0f) m_pitch = -89.0f;
 
-        SetRotation(NE::Math::Vec3(m_pitch, m_yaw, 0.0f));
+        SetRotation(m_pitch, m_yaw, 0.0f);
 
-        if (NE::InputManager::IsKeyDown('Q')) {
+        if (Input::IsKeyDown('Q')) {
             //auto selectedEntt = NE::GetPickedEntity(960, 540);
-            //SPD_WARNING("Selected Entity: " << selectedEntt);
+            //LOG_WARNING("Selected Entity: " << selectedEntt);
             //if (pickedEntity == NE::ECS::NO_ENTITY) {
             //    if (selectedEntt == 5 || selectedEntt == 6) {
             //        pickedEntity = selectedEntt;
@@ -67,12 +60,12 @@ public:
         }
 
         if (pickedEntity != NE::ECS::NO_ENTITY) {
-            auto& enttTransform = NE::ECS::Command::GetEntityTransform(pickedEntity);
+            auto& enttTransform = Command::GetEntityTransform(pickedEntity);
 
             float pitchRad = m_pitch * 0.017453292519943295f;
             float yawRad = m_yaw * 0.017453292519943295f;
 
-            NE::Math::Vec3 forward;
+            Vec3 forward;
             forward.x = cosf(pitchRad) * sinf(yawRad);
             forward.y = sinf(pitchRad);
             forward.z = -cosf(pitchRad) * cosf(yawRad);
@@ -82,10 +75,11 @@ public:
 
             const float distance = 0.8f;
 
-            //enttTransform.position = camPos + forward * distance;
-            float keepY = enttTransform.position.y;
-            enttTransform.position = camPos + forward * distance;
-            enttTransform.position.y = keepY;
+            // Calculate new position with implicit Vec3 conversion
+            float keepY = enttTransform.localPosition.y;
+            auto newPos = camPos + forward * distance;
+            newPos.y = keepY;
+            enttTransform.localPosition = newPos;  // Implicit conversion from Scripting::Vec3 to Math::Vec3
         }
     }
 
@@ -98,10 +92,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::ECS::Entity other) override {}
-    void OnCollisionExit(NE::ECS::Entity other) override {}
-    void OnTriggerEnter(NE::ECS::Entity other) override {}
-    void OnTriggerExit(NE::ECS::Entity other) override {}
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     // === Exposed Fields ===
@@ -117,5 +111,5 @@ private:
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
 
-    NE::ECS::Entity pickedEntity = NE::ECS::NO_ENTITY;
+    Entity pickedEntity = NE::ECS::NO_ENTITY;
 };

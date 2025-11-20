@@ -27,6 +27,7 @@ namespace NE::ECS::Component {
             // The actual function pointers will be looked up and assigned
             // by the ScriptingEngine. We just store the name for now.
         }
+        uint64_t luid;
 
         // Unbind is handled automatically when the component is destroyed.
         // The ScriptSystem will call DestroyScript(Instance).

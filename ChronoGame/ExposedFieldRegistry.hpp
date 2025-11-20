@@ -5,9 +5,10 @@
 #include <unordered_map>
 #include <functional>
 #include <sstream>
-#include <Math/Vec3.hpp>
 #include <type_traits>
-#include <Core/Reflection.hpp>
+#include <ScriptSDK/Math.h>
+#include <ScriptSDK/ScriptTypes.h>
+#include <ScriptSDK/Reflection.h>
 
 // Lightweight helper to register exposed fields in game scripts and
 // provide string-based get/set that the Editor uses.
@@ -151,6 +152,19 @@ struct ExposedFieldRegistry {
 			[obj, member](NE::Math::Vec3 v) { obj->*member = v; });
 	}
 
+	// SDK Vec3 overload - converts between SDK and engine Vec3
+	template<typename Owner>
+	void RegisterMember(const std::string& name, Owner* obj, NE::Scripting::Vec3 Owner::* member) {
+		RegisterVec3(name,
+			[obj, member]() -> NE::Math::Vec3 {
+				auto sdkVec = obj->*member;
+				return NE::Math::Vec3(sdkVec.x, sdkVec.y, sdkVec.z);
+			},
+			[obj, member](NE::Math::Vec3 v) {
+				obj->*member = NE::Scripting::Vec3(v.x, v.y, v.z);
+			});
+	}
+
 	// NEW: Convenience overload for enum members
 	template<typename Owner, typename EnumType>
 	void RegisterEnumMember(const std::string& name,
@@ -198,6 +212,16 @@ struct ExposedFieldRegistry {
 			RegisterVec3(fullName,
 				[owner, structMember, field]() -> NE::Math::Vec3 { return (owner->*structMember).*field; },
 				[owner, structMember, field](const NE::Math::Vec3& v) { (owner->*structMember).*field = v; });
+		}
+		else if constexpr (std::is_same_v<FieldType, NE::Scripting::Vec3>) {
+			RegisterVec3(fullName,
+				[owner, structMember, field]() -> NE::Math::Vec3 {
+					auto sdkVec = (owner->*structMember).*field;
+					return NE::Math::Vec3(sdkVec.x, sdkVec.y, sdkVec.z);
+				},
+				[owner, structMember, field](const NE::Math::Vec3& v) {
+					(owner->*structMember).*field = NE::Scripting::Vec3(v.x, v.y, v.z);
+				});
 		}
 	}
 
@@ -258,6 +282,16 @@ struct ExposedFieldRegistry {
 					},
 					[owner, structMember, member = desc.member](const NE::Math::Vec3& v) {
 						(owner->*structMember).*member = v;
+					});
+			}
+			else if constexpr (std::is_same_v<FieldT, NE::Scripting::Vec3>) {
+				RegisterVec3(fullName,
+					[owner, structMember, member = desc.member]() -> NE::Math::Vec3 {
+						auto sdkVec = (owner->*structMember).*member;
+						return NE::Math::Vec3(sdkVec.x, sdkVec.y, sdkVec.z);
+					},
+					[owner, structMember, member = desc.member](const NE::Math::Vec3& v) {
+						(owner->*structMember).*member = NE::Scripting::Vec3(v.x, v.y, v.z);
 					});
 			}
 			});
@@ -362,6 +396,7 @@ struct ExposedFieldRegistry {
 		else if constexpr (std::is_same_v<T, bool>) return "bool";
 		else if constexpr (std::is_same_v<T, std::string>) return "string";
 		else if constexpr (std::is_same_v<T, NE::Math::Vec3>) return "vec3";
+		else if constexpr (std::is_same_v<T, NE::Scripting::Vec3>) return "vec3";
 		else return "unknown";
 	}
 
@@ -382,6 +417,11 @@ struct ExposedFieldRegistry {
 			return std::to_string(value);
 		}
 		else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+			std::ostringstream oss;
+			oss << value.x << " " << value.y << " " << value.z;
+			return oss.str();
+		}
+		else if constexpr (std::is_same_v<T, NE::Scripting::Vec3>) {
 			std::ostringstream oss;
 			oss << value.x << " " << value.y << " " << value.z;
 			return oss.str();
@@ -416,6 +456,10 @@ struct ExposedFieldRegistry {
 			return !iss.fail();
 		}
 		else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+			iss >> value.x >> value.y >> value.z;
+			return !iss.fail();
+		}
+		else if constexpr (std::is_same_v<T, NE::Scripting::Vec3>) {
 			iss >> value.x >> value.y >> value.z;
 			return !iss.fail();
 		}

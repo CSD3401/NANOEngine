@@ -2,6 +2,9 @@
 #include <string>
 #include <memory>
 #include "ICommand.hpp"
+#include <Engine.hpp>  // For MarkSceneDirty
+#include <EngineState.hpp>  // For GetEngineState
+#include <Core/SpdLogger.hpp>  
 
 namespace Editor {
 
@@ -37,11 +40,17 @@ namespace Editor {
         void Apply(const Owner& v) {
             Owner& t = m_get(m_entity);
 
-            if (m_mask & Pos) t.position = v.position;
-            if (m_mask & Rot) t.rotation = v.rotation;
-            if (m_mask & Scl) t.scale = v.scale;
+            if (m_mask & Pos) t.localPosition = v.localPosition;
+            if (m_mask & Rot) t.localRotationEuler = v.localRotationEuler;
+            if (m_mask & Scl) t.localScale = v.localScale;
 
             if constexpr (requires(Owner x) { x.isDirty; }) t.isDirty = true;
+     
+            // Mark scene dirty for serialization (Edit mode only)
+            if (NE::GetEngineState() == NE::EngineState::Edit) {
+                NE::MarkSceneDirty();
+                //SPD_DEBUG("[DirtyFlag] Transform changed via Gizmo - Scene marked DIRTY");
+            }
         }
 
         uint32_t    m_entity;
