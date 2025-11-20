@@ -14,7 +14,7 @@ public:
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        auto playerPos = Query::GetEntityTransform(6).localPosition;
+        auto playerPos = Query::GetEntityTransform(6).position;
         // Implicit conversion from Math::Vec3 to Scripting::Vec3
         Vec3 camPos(playerPos.x,playerPos.y,playerPos.z);
         camPos.y += 0.6f;  // Add camera height offset
@@ -76,10 +76,10 @@ public:
             const float distance = 0.8f;
 
             // Calculate new position with implicit Vec3 conversion
-            float keepY = enttTransform.localPosition.y;
+            float keepY = enttTransform.position.y;
             auto newPos = camPos + forward * distance;
             newPos.y = keepY;
-            enttTransform.localPosition = newPos;  // Implicit conversion from Scripting::Vec3 to Math::Vec3
+            enttTransform.position = newPos;  // Implicit conversion from Scripting::Vec3 to Math::Vec3
         }
     }
 

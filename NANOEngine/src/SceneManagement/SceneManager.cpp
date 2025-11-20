@@ -95,8 +95,8 @@ namespace NE::SceneManagement {
 				auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
 				if (nsc.Instance) {
 					// Don't call any methods on Instance - it may reference freed DLL!
-					// Don't delete either - the destructor code is in the unloaded DLL!
-					// Just null it out. Scene deserialization will recreate fresh instances.
+					// Just manually delete and null it out
+					delete nsc.Instance;
 					nsc.Instance = nullptr;
 				}
 				// Clear function pointers too (they also reference old DLL)
