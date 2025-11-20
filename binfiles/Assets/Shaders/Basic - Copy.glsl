@@ -5,6 +5,7 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 5) in mat4 i_Model;
+layout(location = 9) in vec3 i_IDRGB;
 
 uniform mat4 u_View;
 uniform mat4 u_Projection;
@@ -12,12 +13,14 @@ uniform mat4 u_Projection;
 out vec3 v_Normal;
 out vec3 v_FragPos;
 out vec2 v_TexCoord;
+out vec3 v_ID;
 
 void main() {
     v_Normal = mat3(i_Model) * a_Normal;
     v_FragPos = vec3(i_Model * vec4(aPos, 1.0));
     v_TexCoord = a_TexCoord;
     gl_Position = u_Projection * u_View * i_Model * vec4(aPos, 1.0);
+	v_ID = i_IDRGB;
 }
 
 #type fragment
@@ -79,7 +82,8 @@ uniform SpotLight u_SpotLights[MAX_SPOT_LIGHTS];
 uniform vec3 u_CameraPos;
 uniform Material u_Material;
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 OutID;
 
 vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir) {
     vec3 lightDir = normalize(-light.direction);
@@ -135,4 +139,6 @@ void main() {
         result += CalcSpotLight(u_SpotLights[i], norm, v_FragPos, viewDir);
 
     FragColor = vec4(result, 1.0);
+	
+	OutID = vec4(v_ID, 1.0);
 }

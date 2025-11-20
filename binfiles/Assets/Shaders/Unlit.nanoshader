@@ -5,16 +5,19 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 a_Normal; // not used for this
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 5) in mat4 i_Model;
+layout(location = 9) in vec3 i_IDRGB;
 
 uniform mat4 u_View;
 uniform mat4 u_Projection;
 
 out vec2 v_TexCoord;
+out vec3 v_ID;
 
 void main() {
 	vec4 world = i_Model * vec4(aPos, 1.0);
 	gl_Position = u_Projection * u_View * world;
     v_TexCoord = a_TexCoord;
+	v_ID = i_IDRGB;
 }
 
 #type fragment
@@ -29,7 +32,10 @@ uniform vec3 u_Tiling = vec3(1.0, 1.0, 0.0);
 uniform vec3 u_Offset = vec3(0.0, 0.0, 0.0);
 
 in vec2 v_TexCoord;
-out vec4 FragColor;
+in vec3 v_ID;
+
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 OutID;
 
 void main() {
 	vec3 base = u_BaseColor;
@@ -39,4 +45,5 @@ void main() {
 		base *= texture(u_BaseMap, uv).rgb;
 	}
     FragColor = vec4(base, 1.0);
+	OutID = vec4(v_ID, 1.0);
 }

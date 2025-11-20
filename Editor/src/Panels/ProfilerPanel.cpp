@@ -52,8 +52,7 @@ namespace Editor {
 
         ImGui::Text("FPS: %d", Application::timer.GetFPS());
 
-        ImGui::Text("Scene Draw Call Count: %d", NE::GetSceneDrawCallCount());
-        ImGui::Text("Game Draw Call Count: %d", NE::GetGameDrawCallCount());
+        ImGui::Text("Draw Call Count: %d", NE::GetDrawCallCount());
 
         ImGui::End();
     }

@@ -25,8 +25,7 @@
 
 namespace NE::Graphics {
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
-    int GraphicsManager::sceneDrawCount = 0;
-	int GraphicsManager::gameDrawCount = 0;
+    int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
 
 	SceneManagement::RenderPass GraphicsManager::s_CurrentRenderPass = SceneManagement::RenderPass::SCENE;
@@ -45,10 +44,8 @@ namespace NE::Graphics {
     int GraphicsManager::s_DebugProjLoc;
 
     // Temp
-	std::vector<DrawCommand> GraphicsManager::s_PickingCommands;
 	std::shared_ptr<IFrameBuffer> GraphicsManager::s_ActiveFrameBuffer;
     std::shared_ptr<IFrameBuffer> GraphicsManager::s_SceneFrameBuffer;
-    std::shared_ptr<IFrameBuffer> GraphicsManager::s_PickingFrameBuffer;
 	std::shared_ptr<IFrameBuffer> GraphicsManager::s_GameFrameBuffer;
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
@@ -59,8 +56,9 @@ namespace NE::Graphics {
         s_StateCache = std::make_unique<OpenGL::GLStateCache>();
         s_DrawQueue = std::make_unique<DrawQueue>();
         s_SceneFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
-        s_PickingFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		s_GameFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
+
+		s_GameFrameBuffer->SetPickingWrite(false); // Turn off picking for game framebuffer
 
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
@@ -97,23 +95,18 @@ namespace NE::Graphics {
 
     void GraphicsManager::BeginFrame() 
     {
-        switch (s_CurrentRenderPass) {
-        case SceneManagement::RenderPass::GAME:
-            gameDrawCount = 0;
-			break;
-        case SceneManagement::RenderPass::SCENE:
-            sceneDrawCount = 0;
-            break;
-        }
 		s_StateCache->InvalidateAll();
         s_ActiveFrameBuffer->Bind();
         s_CommandBuffer->Begin();
-        s_CommandBuffer->BeginRenderPass();
+        //s_CommandBuffer->BeginRenderPass();
+
+        if (s_CurrentRenderPass == SceneManagement::RenderPass::SCENE)
+            drawCount = 0;
     }
 
-    void GraphicsManager::DrawSkybox() 
+    void GraphicsManager::SubmitSkybox() 
     {
-        if (s_skybox) s_skybox->Draw();
+        if (s_skybox) s_skybox->Submit();
     }
 
     void GraphicsManager::DrawFrame()
@@ -123,11 +116,8 @@ namespace NE::Graphics {
         // Set camera matrices and position based on current render pass
         Mat4 camProj, camView;
         Vec3 camPos;
-		int* drawCount = nullptr;
         switch (s_CurrentRenderPass) {
         case SceneManagement::RenderPass::SCENE:
-            drawCount = &sceneDrawCount;
-        case SceneManagement::RenderPass::SCENE_PICKING:
             camProj = s_EditorCamera->GetProjectionMatrix();
             camView = s_EditorCamera->GetViewMatrix();
             camPos = s_EditorCamera->GetPosition();
@@ -136,7 +126,6 @@ namespace NE::Graphics {
             camProj = m_ActiveCamera.projection;
             camView = m_ActiveCamera.view;
             camPos = m_ActiveCamera.position;
-			drawCount = &gameDrawCount;
             break;
         }
 
@@ -194,8 +183,11 @@ namespace NE::Graphics {
             currentMesh->DrawInstanced(instanceData.size());
             currentMesh->Unbind();
 
-            if (drawCount) (*drawCount)++;
             instanceData.clear();
+
+			// For now, the draw count refers to number of batches drawn in the scene pass
+            if (s_CurrentRenderPass == SceneManagement::RenderPass::SCENE)
+				drawCount++;
         };
 
         const auto& commands = s_DrawQueue->GetCommands();
@@ -222,12 +214,8 @@ namespace NE::Graphics {
 
             NE::Graphics::InstanceData instance{};
             instance.model = command.transform;
-            if (command.entity.has_value()) {
-                float r = (float)(*command.entity & 0xFF) / 255.0f;
-                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
-                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
-                instance.idRGB = { r, g, b };
-            }
+			instance.idRGB = command.idRGB;
+            
             instanceData.push_back(instance);
         }
 
@@ -244,17 +232,19 @@ namespace NE::Graphics {
 
     void GraphicsManager::EndFrame() 
     {
-        s_DrawQueue->Clear();
 		s_ActiveFrameBuffer->Unbind();
-        s_CommandBuffer->EndRenderPass();
-        s_CommandBuffer->End();
+        //s_CommandBuffer->EndRenderPass();
+        //s_CommandBuffer->End();
     }
+
+    void GraphicsManager::Clear() 
+    {
+        s_DrawQueue->Clear();
+	}
 
     void GraphicsManager::Shutdown() 
     {
 		s_SceneFrameBuffer.reset();
-		s_PickingFrameBuffer.reset();
-
         s_skybox.reset();
         s_CommandBuffer.reset();
 
@@ -292,27 +282,10 @@ namespace NE::Graphics {
         case SceneManagement::RenderPass::SCENE:
             s_ActiveFrameBuffer = s_SceneFrameBuffer;
 		    break;
-        case SceneManagement::RenderPass::SCENE_PICKING:
-			s_ActiveFrameBuffer = s_PickingFrameBuffer;
-			break;
         case SceneManagement::RenderPass::GAME:
             s_ActiveFrameBuffer = s_GameFrameBuffer;
 			break;
-        default:
-			break;
         }
-    }
-
-    void GraphicsManager::SubmitPicking(const DrawCommand& command) 
-    {
-        s_PickingCommands.push_back(command);
-    }
-
-    void GraphicsManager::UpdatePicking() 
-    {
-        for (const auto& cmd : s_PickingCommands) {
-			s_DrawQueue->Submit(cmd);
-		}
     }
 
     void GraphicsManager::SetEditorCamera(EditorCamera* cam) 
@@ -325,7 +298,6 @@ namespace NE::Graphics {
         return s_EditorCamera;
     }
 
-
     void GraphicsManager::SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain) 
     {
 		m_ActiveCamera.projection = projection;
@@ -337,13 +309,7 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) 
     {
         //SPD_DEBUG("Clicked on X: " << x << " Y: " << y);
-        s_PickingFrameBuffer->Bind();
-        uint8_t data[4] = { 0, 0, 0, 0 };
-        glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        s_PickingFrameBuffer->Unbind();
-
-        uint32_t id = data[0] | (data[1] << 8) | (data[2] << 16);
-        return id;
+		return s_SceneFrameBuffer->ReadPixel(x, y);
     }
 
     // Debug drawing test code

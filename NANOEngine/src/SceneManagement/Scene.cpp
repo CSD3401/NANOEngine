@@ -73,22 +73,10 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::Render(RenderPass pass) {
-		switch (pass) {
-		case RenderPass::SCENE:
-			Graphics::GraphicsManager::DrawFrame();
-			//Graphics::GraphicsManager::DrawDebugLines();
-			break;
-		case RenderPass::GAME:
-			Graphics::GraphicsManager::DrawFrame();
-			break;
-		case RenderPass::SCENE_PICKING:
-			Graphics::GraphicsManager::UpdatePicking();
-			//Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
-			Graphics::GraphicsManager::DrawFrame();
-			Graphics::GraphicsManager::s_PickingCommands.clear();
-			//Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
-			break;
-		}
+		Graphics::GraphicsManager::SetRenderPass(pass);
+		Graphics::GraphicsManager::BeginFrame();
+		Graphics::GraphicsManager::DrawFrame();
+		Graphics::GraphicsManager::EndFrame();
 	}
 
 	void Scene::Exit() {

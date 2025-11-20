@@ -22,7 +22,6 @@ namespace NE::Graphics::OpenGL {
         //glEnableVertexAttribArray(1);
         //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vb->GetStride(), (void*)(sizeof(float) * 2));
 
-
         const GLsizei stride = static_cast<GLsizei>(vb->GetStride());
 
         // Position (location = 0)

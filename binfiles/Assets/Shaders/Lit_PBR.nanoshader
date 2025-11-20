@@ -5,6 +5,7 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 5) in mat4 i_Model;
+layout(location = 9) in vec3 i_IDRGB;
 
 uniform mat4 u_View;
 uniform mat4 u_Projection;
@@ -12,6 +13,7 @@ uniform mat4 u_Projection;
 out vec3 v_Normal;
 out vec3 v_FragPos;
 out vec2 v_TexCoord;
+out vec3 v_ID;
 
 void main() {
     vec4 world = i_Model * vec4(aPos, 1.0);
@@ -22,6 +24,8 @@ void main() {
 	
     v_TexCoord = a_TexCoord;
     gl_Position = u_Projection * u_View * world;
+	
+	v_ID = i_IDRGB;
 }
 
 
@@ -38,7 +42,8 @@ in vec3 v_Normal;
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 OutID;
 
 // ===== Scene / Lighting =====
 uniform vec3 u_CameraPos;
@@ -291,4 +296,6 @@ void main()
 	vec3 color_srgb = linear_to_srgb(color_linear);
     //FragColor = vec4(max(color, 0.0), 1.0);
     FragColor = vec4(color_srgb, 1.0);
+	
+	OutID = vec4(v_ID, 1.0);
 }

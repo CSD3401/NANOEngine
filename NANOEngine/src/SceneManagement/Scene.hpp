@@ -4,7 +4,7 @@
 #include "Core/LUIDRegistry.hpp"
 
 namespace NE::SceneManagement {
-	enum class RenderPass { SCENE, SCENE_PICKING, GAME };
+	enum class RenderPass { SCENE, GAME };
 
 	class Scene {
 	public:

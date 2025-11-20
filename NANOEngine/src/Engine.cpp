@@ -113,21 +113,14 @@ namespace NE {
 
 		gSceneManager.Update(dt);
 
-		Graphics::GraphicsManager::DrawSkybox();
-		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::SCENE);
-		Graphics::GraphicsManager::BeginFrame();
-		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE);
+		Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
 
-		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::GAME);
-		Graphics::GraphicsManager::BeginFrame();
+		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE);
 		gSceneManager.Render(NE::SceneManagement::RenderPass::GAME);
 
+		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
+
 		TweenManager::Get().Update(static_cast<float>(dt));
-		Graphics::GraphicsManager::EndFrame();
-		
-		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::SCENE_PICKING);
-		Graphics::GraphicsManager::BeginFrame();
-		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE_PICKING);
 		Graphics::GraphicsManager::EndFrame();
 
 		if (InputManager::WasKeyPressed('L')) {
@@ -295,11 +288,7 @@ namespace NE {
 		gSceneManager.StopPlay();
 	}
 
-	int GetSceneDrawCallCount() {
-		return Graphics::GraphicsManager::sceneDrawCount;
-	}
-
-	int GetGameDrawCallCount() {
-		return Graphics::GraphicsManager::gameDrawCount;
+	int GetDrawCallCount() {
+		return Graphics::GraphicsManager::drawCount;
 	}
 }
