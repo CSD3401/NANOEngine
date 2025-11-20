@@ -2,6 +2,8 @@
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Transform.hpp"
 #include "../../ECS/Components/Rigidbody.hpp"
+#include "../../ECS/Components/Renderer.hpp"
+#include "../../ECS/Components/EntityMeta.hpp"
 #include "EngineState.hpp"
 
 namespace NE::ECS::Systems
@@ -159,6 +161,19 @@ namespace NE::ECS::Systems
         entities.insert(rigidbodyEntities.begin(), rigidbodyEntities.end());
 
         for (auto entity : entities) {
+            // Skip inactive entities
+            if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
+                const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+                if (!meta.isActive) {
+                    // Deactivate physics body if it exists
+                    if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
+                        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
+                        NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+                    }
+                    continue; // Skip physics sync for inactive entities
+                }
+            }
+
             if (m_componentManager->HasComponent<Component::Transform>(entity)) {
                 if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
                     CreatePhysicsBody(entity);
@@ -185,7 +200,7 @@ namespace NE::ECS::Systems
 
                 if (NE::Physics::PhysicsManager::GetMotionType(bodyID) == JPH::EMotionType::Kinematic) {
                     auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-                    NE::Physics::PhysicsManager::SetTransform(bodyID, transform.position, transform.rotation);
+                    NE::Physics::PhysicsManager::SetTransform(bodyID, transform.localPosition, transform.localRotationEuler);
                 }
             }
         }
@@ -221,8 +236,8 @@ namespace NE::ECS::Systems
                     //printf("  NEW physics:   (%.2f, %.2f, %.2f)\n",
                     //    position.x, position.y, position.z);
 
-                    transform.position = position;
-                    transform.rotation = rotation;
+                    transform.localPosition = position;
+                    transform.localRotationEuler = rotation;
                     transform.isDirty = true;
 
                     //printf("  UPDATED! isDirty = %d\n", transform.isDirty);
@@ -274,11 +289,12 @@ namespace NE::ECS::Systems
 
         if (m_componentManager->HasComponent<Component::Collider>(entity)) {
             auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+            //auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
 
             switch (collider.shapeType) {
             case Component::Collider::ShapeType::Box:
                 bodyID = NE::Physics::PhysicsManager::CreateBoxBody(
-                    transform.position, transform.rotation,
+                    transform.localPosition, transform.localRotationEuler,
                     collider.halfExtents * 2.0f,
                     motionType
                 );
@@ -286,7 +302,7 @@ namespace NE::ECS::Systems
 
             case Component::Collider::ShapeType::Sphere:
                 bodyID = NE::Physics::PhysicsManager::CreateSphereBody(
-                    transform.position, transform.rotation,
+                    transform.localPosition, transform.localRotationEuler,
                     collider.radius,
                     motionType
                 );
@@ -294,13 +310,23 @@ namespace NE::ECS::Systems
 
             case Component::Collider::ShapeType::Capsule:
                 bodyID = NE::Physics::PhysicsManager::CreateCapsuleBody(
-                    transform.position, transform.rotation,
+                    transform.localPosition, transform.localRotationEuler,
                     collider.height * 0.5f,
                     collider.radius,
                     motionType
                 );
                 break;
-
+            case Component::Collider::ShapeType::Mesh: {
+                auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+                std::vector<Math::Vec3> outVerts;
+                std::vector<uint32_t> outIndices;
+                renderer.model->GetPhysicsMesh(outVerts, outIndices);
+                //rb.isStatic = true;
+                //rb.motionType = 0U;
+                //rb.mass = 1.f;
+                bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices);
+            }
+            break;
             case Component::Collider::ShapeType::None:
                 break;
             }
@@ -308,7 +334,7 @@ namespace NE::ECS::Systems
         else {
             Math::Vec3 defaultSize(1.0f, 1.0f, 1.0f);
             bodyID = NE::Physics::PhysicsManager::CreateBoxBody(
-                transform.position, transform.rotation,
+                transform.localPosition, transform.localRotationEuler,
                 defaultSize,
                 motionType
             );
@@ -356,8 +382,8 @@ namespace NE::ECS::Systems
                 NE::Physics::PhysicsManager::GetTransform(bodyID, currentPhysicsPos, currentPhysicsRot);
 
                 auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-                transform.position = currentPhysicsPos;
-                transform.rotation = currentPhysicsRot;
+                transform.localPosition = currentPhysicsPos;
+                transform.localRotationEuler = currentPhysicsRot;
 
                 NE::Physics::PhysicsManager::SetMotionType(bodyID, desiredMotionType);
             }

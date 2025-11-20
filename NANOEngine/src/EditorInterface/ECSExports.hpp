@@ -40,7 +40,17 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API const Component::NativeScript& GetEntityScript(uint32_t e);
 
-		NANOENGINE_API bool HasAnimator(uint32_t e);                       // <-- ADD
+		// --- Component Existence Checks ---
+		NANOENGINE_API bool HasTransform(uint32_t e);
+		NANOENGINE_API bool HasRenderer(uint32_t e);
+		NANOENGINE_API bool HasLight(uint32_t e);
+		NANOENGINE_API bool HasRigidbody(uint32_t e);
+		NANOENGINE_API bool HasCollider(uint32_t e);
+		NANOENGINE_API bool HasAudioSource(uint32_t e);
+		NANOENGINE_API bool HasScript(uint32_t e);
+		NANOENGINE_API bool HasAnimator(uint32_t e);
+		NANOENGINE_API bool HasCamera(uint32_t e);
+
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
 	}
@@ -48,6 +58,8 @@ namespace NE::ECS {
 	namespace Command {
 		NANOENGINE_API uint32_t CreateEntity();
 		NANOENGINE_API void DestroyEntity(uint32_t e);
+		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays = true);
+		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
 		NANOENGINE_API void AddLightComponent(uint32_t e);
 		NANOENGINE_API void AddRendererComponent(uint32_t e);

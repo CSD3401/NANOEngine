@@ -183,6 +183,7 @@
     <ClCompile Include="src\Panels\ScenePanel.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Panels\AssetBrowserPanel.cpp" />
+    <ClCompile Include="src\Panels\ScriptsPanel.cpp" />
     <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\ImGuiLayer.cpp" />
@@ -203,6 +204,8 @@
     <ClInclude Include="src\AssetManagement\AssetManager.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\AssetManagement\AssetMetadata.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\IAsset.hpp" />
+    <ClInclude Include="src\AssetManagement\Settings\ModelImportSettings.hpp" />
     <ClInclude Include="src\AssetManagement\Settings\TextureImportSettings.hpp" />
     <ClInclude Include="src\AssetManagement\UUID.hpp" />
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
@@ -226,6 +229,7 @@
     <ClInclude Include="src\Panels\ScenePanel.hpp" />
     <ClInclude Include="src\Application.hpp" />
     <ClInclude Include="src\Panels\AssetBrowserPanel.hpp" />
+    <ClInclude Include="src\Panels\ScriptsPanel.hpp" />
     <ClInclude Include="src\EditorLayer.hpp" />
     <ClInclude Include="src\EditorUI.hpp" />
     <ClInclude Include="src\ImGuiLayer.hpp" />

@@ -42,7 +42,7 @@ namespace NE::ECS::Systems {
 				auto& transform = m_componentManager->GetComponent<Component::Transform>(*m_mainCameraEntity);
 				BuildProjection(mainCam);
 				BuildView(mainCam, transform);
-				Graphics::GraphicsManager::SetActiveCamera(mainCam.projectionMtx, mainCam.viewMtx, transform.position, mainCam.isMain);
+				Graphics::GraphicsManager::SetActiveCamera(mainCam.projectionMtx, mainCam.viewMtx, transform.localPosition, mainCam.isMain);
 			}
 			else {
 				if (!entities.empty()) {
@@ -51,7 +51,7 @@ namespace NE::ECS::Systems {
 					auto& transform = m_componentManager->GetComponent<Component::Transform>(entities[0]);
 					BuildProjection(firstCam);
 					BuildView(firstCam, transform);
-					Graphics::GraphicsManager::SetActiveCamera(firstCam.projectionMtx, firstCam.viewMtx, transform.position, firstCam.isMain);
+					Graphics::GraphicsManager::SetActiveCamera(firstCam.projectionMtx, firstCam.viewMtx, transform.localPosition, firstCam.isMain);
 				}
 			}
 		}
@@ -76,7 +76,7 @@ namespace NE::ECS::Systems {
 			}
 
 			// For now, support only one active camera at a time
-			Graphics::GraphicsManager::SetActiveCamera(camera.projectionMtx, camera.viewMtx, transform.position, camera.isMain);
+			Graphics::GraphicsManager::SetActiveCamera(camera.projectionMtx, camera.viewMtx, transform.localPosition, camera.isMain);
 			break;
 		}
 
@@ -88,7 +88,7 @@ namespace NE::ECS::Systems {
 				auto& transform = m_componentManager->GetComponent<Component::Transform>(*m_mainCameraEntity);
 				BuildProjection(mainCam);
 				BuildView(mainCam, transform);
-				Graphics::GraphicsManager::SetActiveCamera(mainCam.projectionMtx, mainCam.viewMtx, transform.position, mainCam.isMain);
+				Graphics::GraphicsManager::SetActiveCamera(mainCam.projectionMtx, mainCam.viewMtx, transform.localPosition, mainCam.isMain);
 			}
 			else {
 				if (!entities.empty()) {
@@ -97,7 +97,7 @@ namespace NE::ECS::Systems {
 					auto& transform = m_componentManager->GetComponent<Component::Transform>(entities[0]);
 					BuildProjection(firstCam);
 					BuildView(firstCam, transform);
-					Graphics::GraphicsManager::SetActiveCamera(firstCam.projectionMtx, firstCam.viewMtx, transform.position, firstCam.isMain);
+					Graphics::GraphicsManager::SetActiveCamera(firstCam.projectionMtx, firstCam.viewMtx, transform.localPosition, firstCam.isMain);
 				}
 			}
 		}
@@ -131,8 +131,8 @@ namespace NE::ECS::Systems {
 	{
 		// Build view matrix from transform
 		cam.viewMtx = Mat4::BuildViewMtx(
-			transform.position, 
-			transform.position + ForwardFromEuler(transform.rotation), 
+			transform.localPosition,
+			transform.localPosition + ForwardFromEuler(transform.localRotationEuler),
 			Vec3{ 0.0f, 1.0f, 0.0f }
 		);
 	}

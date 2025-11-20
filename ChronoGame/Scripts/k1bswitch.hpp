@@ -1,12 +1,6 @@
 #pragma once
 #include <iostream>
-#include "Scripting/IScript.hpp"
-#include "ECS/Components/Transform.hpp"
-#include "Events/EventBus.hpp"
-#include "EditorInterface/RendererExports.hpp"
-#include "Core/Couroutine.hpp"
-#include <Math/Vec3.hpp>
-
+#include "EngineAPI.hpp"
 
 class k1bswitch : public IScript {
 public:
@@ -18,16 +12,16 @@ public:
         std::cout << "[TextureSwitch] Created with fields registered" << std::endl;
     }
 
-    void Initialize(NE::ECS::Entity entity) override {
+    void Initialize(Entity entity) override {
 
 
-        //NANOEngine::Events::RegisterScriptEventListener("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
+        //Events::Listen("TimeSwapNow", [entity](void* data) {TextureSwitchActivate(entity); });
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        if (NE::InputManager::WasKeyPressed('E')) {
+        if (Input::WasKeyPressed('E')) {
             if (!switched) {
                 NE::Renderer::Command::AssignMaterial(GetEntity(), "d246b58e-4ef2-4539-a2e4-7f56d920185f");
             } else {
@@ -48,10 +42,10 @@ public:
     }
 
     // Event handlers (required by interface)
-    void OnCollisionEnter(NE::ECS::Entity other) override {}
-    void OnCollisionExit(NE::ECS::Entity other) override {}
-    void OnTriggerEnter(NE::ECS::Entity other) override {}
-    void OnTriggerExit(NE::ECS::Entity other) override {}
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     // === Exposed Fields ===

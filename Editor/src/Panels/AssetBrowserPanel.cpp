@@ -247,6 +247,9 @@ namespace Editor {
                         ImGui::SetDragDropPayload("ASSET_MESH_PATH", assetPath.c_str(), assetPath.size() + 1);
                         ImGui::TextUnformatted(name.c_str());
                         ImGui::EndDragDropSource();
+                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = entryPath.string();
                     }
                 } else if (entryPath.extension() == ".scene") {    
                     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {

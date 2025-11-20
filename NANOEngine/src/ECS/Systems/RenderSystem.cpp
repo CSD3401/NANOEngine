@@ -3,6 +3,7 @@
 #include "../Components/Transform.hpp"
 #include "../Components/Collider.hpp"
 #include "../Components/Light.hpp"
+#include "../Components/EntityMeta.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/Vertex.hpp"
 #include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
@@ -32,8 +33,11 @@ namespace NE::ECS::Systems {
     {
     }
 
-    void RenderSystem::OnEntityAdded(Entity)
-    {
+    void RenderSystem::OnEntityAdded(Entity entity) {
+        auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+
+        renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
+        renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
     }
 
     void RenderSystem::OnEntityRemoved(Entity)
@@ -41,13 +45,13 @@ namespace NE::ECS::Systems {
     }
 
     void RenderSystem::Init() {
-        const auto& entities = GetEntities();
-        for (Entity entity : entities) {
-            auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+        //const auto& entities = GetEntities();
+        //for (Entity entity : entities) {
+        //    auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
-            renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
-            renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
-        }
+        //    renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
+        //    renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
+        //}
 
 		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
 		//Graphics::PipelineSpecification pipelineSpec;
@@ -75,9 +79,17 @@ namespace NE::ECS::Systems {
 
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
+     // Skip inactive entities
+    if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
+const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+      if (!meta.isActive) {
+         continue; // Skip rendering for inactive entities
+    }
+            }
+
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
             if (!renderer.visible || !renderer.model) continue;
-            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+    auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
             //if (!renderer.visible)
             //{
@@ -98,7 +110,7 @@ namespace NE::ECS::Systems {
 				Graphics::DrawCommand cmd;
 				cmd.mesh = sub.buffer;
 				cmd.material = renderer.material;
-				cmd.transform = transform.modelMatrix;
+				cmd.transform = transform.worldMatrix;
 
                 //cmd.material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
                 //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
@@ -120,7 +132,7 @@ namespace NE::ECS::Systems {
                 Graphics::DrawCommand cmdPicking;
                 cmdPicking.mesh = sub.buffer;
                 cmdPicking.material = pickingMaterial;
-                cmdPicking.transform = transform.modelMatrix;
+                cmdPicking.transform = transform.worldMatrix;
                 cmdPicking.entity = entity;
                 Graphics::GraphicsManager::SubmitPicking(cmdPicking);
 			}

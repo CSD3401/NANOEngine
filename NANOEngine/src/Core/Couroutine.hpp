@@ -40,6 +40,10 @@ public:
     void Start(CoroutineHandle handle);
     void Update(float dt);
 
+    void Clear();  // Clear all coroutines
+    void StopCoroutine(CoroutineHandle handle);  // Stop a specific coroutine
+    bool IsRunning(CoroutineHandle handle) const;  // Check if coroutine is still running
+
 private:
     std::vector<Coroutine> m_coroutines;  // Direct vector of Coroutines
 };
@@ -52,6 +56,10 @@ NANOENGINE_API void Engine_UpdateCoroutines(float deltaTime);
 
 // C++ API for lambdas and any callable
 NANOENGINE_API void Engine_AddActionCpp(CoroutineHandle handle, std::function<void()> func);
+
+NANOENGINE_API void Engine_ClearAllCoroutines();
+NANOENGINE_API void Engine_StopCoroutine(CoroutineHandle handle);
+NANOENGINE_API bool Engine_IsCoroutineRunning(CoroutineHandle handle);
 
 // Convenience overload that forwards to the C++ version
 template<typename Func>
