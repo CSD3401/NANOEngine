@@ -16,12 +16,6 @@ namespace NE::Graphics::OpenGL {
         vb->Bind();
         ib->Bind();
 
-        //glEnableVertexAttribArray(0);
-        //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(vb->GetStride()), (void*)0);
-
-        //glEnableVertexAttribArray(1);
-        //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, vb->GetStride(), (void*)(sizeof(float) * 2));
-
         const GLsizei stride = static_cast<GLsizei>(vb->GetStride());
 
         // ---- Per-vertex attributes ----
