@@ -39,6 +39,17 @@ namespace NE::SceneManagement {
 		if (savePath.empty()) return;
 
 		SPD_INFO("[DirtyFlag] Saving scene to: {}", savePath);
+
+		// CRITICAL: Capture current field values from script instances before serializing
+		// This ensures any changes made in the editor inspector are persisted
+		auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
+		for (NE::ECS::Entity entity : entities) {
+			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+			if (nsc.Instance) {
+				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
+			}
+		}
+
 		Serialization::JsonSceneSerializer::Serialize(*m_editor, savePath);
 		m_editor->ClearDirty();
 		SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
