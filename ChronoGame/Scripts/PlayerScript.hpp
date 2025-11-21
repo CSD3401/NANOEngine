@@ -305,9 +305,9 @@ private:
 };
 
 // Register the PlayerState enum at global scope for automatic name extraction
-NE_REGISTER_ENUM(PlayerScript::PlayerState,
-	PlayerScript::PlayerState::Idle,
-	PlayerScript::PlayerState::Walking,
-	PlayerScript::PlayerState::Running,
-	PlayerScript::PlayerState::Jumping);
+//NE_REGISTER_ENUM(PlayerScript::PlayerState,
+//	PlayerScript::PlayerState::Idle,
+//	PlayerScript::PlayerState::Walking,
+//	PlayerScript::PlayerState::Running,
+//	PlayerScript::PlayerState::Jumping);
 
