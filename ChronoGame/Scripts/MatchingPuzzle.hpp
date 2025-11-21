@@ -2,19 +2,10 @@
 #include "EngineAPI.hpp"
 #include <array>
 
-// GLFW key codes
-#define GLFW_KEY_UP 265
-#define GLFW_KEY_DOWN 264
-#define GLFW_KEY_LEFT 263
-#define GLFW_KEY_RIGHT 262
-#define GLFW_KEY_SPACE 32
-#define GLFW_KEY_X 88
-#define GLFW_KEY_Z 90
-
 class MatchingPuzzle : public IScript {
 public:
 	MatchingPuzzle() {
-		// Component refs for start, end, and all 12 tiles
+		// Original target and grid
 		SCRIPT_COMPONENT_REF(targetTransform, Transform);
 		SCRIPT_COMPONENT_REF(endTransform, Transform);
 
@@ -31,9 +22,25 @@ public:
 		SCRIPT_COMPONENT_REF(transform10, Transform);
 		SCRIPT_COMPONENT_REF(transform11, Transform);
 
-		// Register fields for grid spacing
-		//SCRIPT_FIELD(tileSpacingX, Float);
-		//SCRIPT_FIELD(tileSpacingY, Float);
+		// Mirror target and grid
+		SCRIPT_COMPONENT_REF(mirrorTargetTransform, Transform);
+		SCRIPT_COMPONENT_REF(mirrorEndTransform, Transform);
+
+		SCRIPT_COMPONENT_REF(mirrorTransform0, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform1, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform2, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform3, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform4, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform5, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform6, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform7, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform8, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform9, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform10, Transform);
+		SCRIPT_COMPONENT_REF(mirrorTransform11, Transform);
+
+		SCRIPT_FIELD(tileSpacingX, Float);
+		SCRIPT_FIELD(tileSpacingY, Float);
 	}
 
 	~MatchingPuzzle() override = default;
@@ -45,7 +52,7 @@ public:
 	void Start() override {
 		LOG_INFO("=== MatchingPuzzle Started ===");
 
-		// Initialize the transform array
+		// Initialize original grid transforms
 		tileTransforms[0] = transform0;
 		tileTransforms[1] = transform1;
 		tileTransforms[2] = transform2;
@@ -59,34 +66,59 @@ public:
 		tileTransforms[10] = transform10;
 		tileTransforms[11] = transform11;
 
-		// Set each tile to ALL directions by default
+		// Initialize mirror grid transforms
+		mirrorTileTransforms[0] = mirrorTransform0;
+		mirrorTileTransforms[1] = mirrorTransform1;
+		mirrorTileTransforms[2] = mirrorTransform2;
+		mirrorTileTransforms[3] = mirrorTransform3;
+		mirrorTileTransforms[4] = mirrorTransform4;
+		mirrorTileTransforms[5] = mirrorTransform5;
+		mirrorTileTransforms[6] = mirrorTransform6;
+		mirrorTileTransforms[7] = mirrorTransform7;
+		mirrorTileTransforms[8] = mirrorTransform8;
+		mirrorTileTransforms[9] = mirrorTransform9;
+		mirrorTileTransforms[10] = mirrorTransform10;
+		mirrorTileTransforms[11] = mirrorTransform11;
+
+		// Set all tiles to ALL directions by default (for testing)
 		for (auto& row : grid) {
 			row.fill(ALL);
 		}
-
-		// Example: Set up a specific puzzle pattern
-		// grid[0][0] = static_cast<Direction>(RIGHT | DOWN);
-		// grid[0][1] = static_cast<Direction>(LEFT | RIGHT);
-		// grid[1][1] = static_cast<Direction>(UP | DOWN | LEFT | RIGHT);
-		// etc.
-
-		// Start at position (0, 0)
-		currentRow = 0;
-		currentCol = 0;
-
-		// Position the target at the starting tile
-		if (targetTransform.IsValid() && transform0.IsValid()) {
-			Vec3 startPos = GetPosition(transform0);
-			startPos.z += 1;
-			SetPosition(targetTransform, startPos);
-			LOG_INFO("Target placed at start position (" << currentRow << "," << currentCol << ")");
+		for (auto& row : mirrorGrid) {
+			row.fill(ALL);
 		}
 
-		LogCurrentTile();
+		// Start both at position (2, 0) - bottom left
+		currentRow = 2;
+		currentCol = 0;
+		mirrorRow = 2;
+		mirrorCol = 3;  // Mirror starts at opposite column (3 - 0 = 3)
+
+		// Position the original target
+		if (targetTransform.IsValid() && transform8.IsValid()) {
+			Vec3 startPos = GetPosition(transform8);  // Tile at [2,0]
+			startPos.z += 1.0f; 
+			SetPosition(targetTransform, startPos);
+			LOG_INFO("Original target placed at (" << currentRow << "," << currentCol << ")");
+		}
+
+		// Position the mirror target
+		if (mirrorTargetTransform.IsValid() && mirrorTransform11.IsValid()) {
+			Vec3 mirrorStartPos = GetPosition(mirrorTransform11);  // Tile at [2,3]
+			mirrorStartPos.z += 1.0f;
+			SetPosition(mirrorTargetTransform, mirrorStartPos);
+			LOG_INFO("Mirror target placed at (" << mirrorRow << "," << mirrorCol << ")");
+		}
+
+		LogCurrentState();
+
+		
+		//NE::Renderer::Command::AssignMaterial(targetTransform, "41e072ab-c276-4cf3-8b95-6c92401fcdec");
+		//NE::Renderer::Command::AssignMaterial(mirrorTargetTransform, "ad9dd997-3747-4fe2-8abe-723a6d7fc27f");
 	}
 
 	void Update(double deltaTime) override {
-		if (!targetTransform.IsValid()) return;
+		if (!targetTransform.IsValid() || !mirrorTargetTransform.IsValid()) return;
 
 		// Grid-based movement with WASD
 		if (Input::WasKeyPressed('W')) {
@@ -102,21 +134,16 @@ public:
 			TryMoveRight();
 		}
 
-		// Debug: Press 'P' to print current grid state
+		// Debug: Press 'P' to print current state
 		if (Input::WasKeyPressed('P')) {
 			PrintGridState();
 		}
 
-		// Debug: Press 'T' to toggle current tile directions
-		if (Input::WasKeyPressed('T')) {
-			ToggleCurrentTileDirections();
-		}
-
-		// Check if reached end
-		if (HasReachedEnd()) {
+		// Check if both reached their goals
+		if (HasReachedEnd() && HasMirrorReachedEnd()) {
 			static bool hasLogged = false;
 			if (!hasLogged) {
-				LOG_INFO("PUZZLE SOLVED! Reached the end!");
+				LOG_INFO("*** PUZZLE SOLVED! Both targets reached their goals! ***");
 				hasLogged = true;
 			}
 		}
@@ -137,137 +164,158 @@ public:
 	void OnTriggerExit(Entity other) override {}
 
 private:
-	// === DIRECTION ENUM ===
 	enum Direction : uint8_t {
-		NONE = 0b0000,  // 0
-		UP = 0b0001,    // 1
-		RIGHT = 0b0010, // 2
-		DOWN = 0b0100,  // 4
-		LEFT = 0b1000,  // 8
-		ALL = 0b1111    // 15
+		NONE = 0b0000,
+		UP = 0b0001,
+		RIGHT = 0b0010,
+		DOWN = 0b0100,
+		LEFT = 0b1000,
+		ALL = 0b1111
 	};
 
-	// === GRID MOVEMENT METHODS ===
+	// === MOVEMENT METHODS ===
 
 	void TryMoveUp() {
-		// Check if current tile allows UP movement
-		if (!CanMoveInDirection(UP)) {
-			LOG_WARNING("Cannot move UP from current tile!");
-			return;
-		}
+		LOG_INFO("\n--- Attempting UP ---");
 
-		// Check if we're at the top edge
-		if (currentRow == 0) {
-			LOG_WARNING("Cannot move UP - at top edge!");
-			return;
-		}
+		// Try moving original UP
+		bool originalMoved = TryMoveOriginal(UP, -1, 0);
 
-		// Check if destination tile allows entry from DOWN
-		int newRow = currentRow - 1;
-		if (!CanEnterFrom(newRow, currentCol, DOWN)) {
-			LOG_WARNING("Destination tile doesn't allow entry from below!");
-			return;
-		}
+		// Try moving mirror UP (same direction)
+		bool mirrorMoved = TryMoveMirror(UP, -1, 0);
 
-		// Move is valid!
-		currentRow = newRow;
-		MoveTargetToCurrentTile();
-		LOG_INFO("Moved UP to (" << currentRow << "," << currentCol << ")");
-		LogCurrentTile();
+		if (originalMoved || mirrorMoved) {
+			LogCurrentState();
+		}
 	}
 
 	void TryMoveDown() {
-		if (!CanMoveInDirection(DOWN)) {
-			LOG_WARNING("Cannot move DOWN from current tile!");
-			return;
-		}
+		LOG_INFO("\n--- Attempting DOWN ---");
 
-		if (currentRow >= 2) {  // 3 rows (0, 1, 2)
-			LOG_WARNING("Cannot move DOWN - at bottom edge!");
-			return;
-		}
+		// Try moving original DOWN
+		bool originalMoved = TryMoveOriginal(DOWN, 1, 0);
 
-		int newRow = currentRow + 1;
-		if (!CanEnterFrom(newRow, currentCol, UP)) {
-			LOG_WARNING("Destination tile doesn't allow entry from above!");
-			return;
-		}
+		// Try moving mirror DOWN (same direction)
+		bool mirrorMoved = TryMoveMirror(DOWN, 1, 0);
 
-		currentRow = newRow;
-		MoveTargetToCurrentTile();
-		LOG_INFO("Moved DOWN to (" << currentRow << "," << currentCol << ")");
-		LogCurrentTile();
+		if (originalMoved || mirrorMoved) {
+			LogCurrentState();
+		}
 	}
 
 	void TryMoveLeft() {
-		if (!CanMoveInDirection(LEFT)) {
-			LOG_WARNING("Cannot move LEFT from current tile!");
-			return;
-		}
+		LOG_INFO("\n--- Attempting LEFT ---");
 
-		if (currentCol == 0) {
-			LOG_WARNING("Cannot move LEFT - at left edge!");
-			return;
-		}
+		// Original moves LEFT
+		bool originalMoved = TryMoveOriginal(LEFT, 0, -1);
 
-		int newCol = currentCol - 1;
-		if (!CanEnterFrom(currentRow, newCol, RIGHT)) {
-			LOG_WARNING("Destination tile doesn't allow entry from right!");
-			return;
-		}
+		// Mirror moves RIGHT (opposite!)
+		bool mirrorMoved = TryMoveMirror(RIGHT, 0, 1);
 
-		currentCol = newCol;
-		MoveTargetToCurrentTile();
-		LOG_INFO("Moved LEFT to (" << currentRow << "," << currentCol << ")");
-		LogCurrentTile();
+		if (originalMoved || mirrorMoved) {
+			LogCurrentState();
+		}
 	}
 
 	void TryMoveRight() {
-		if (!CanMoveInDirection(RIGHT)) {
-			LOG_WARNING("Cannot move RIGHT from current tile!");
-			return;
-		}
+		LOG_INFO("\n--- Attempting RIGHT ---");
 
-		if (currentCol >= 3) {  // 4 columns (0, 1, 2, 3)
-			LOG_WARNING("Cannot move RIGHT - at right edge!");
-			return;
-		}
+		// Original moves RIGHT
+		bool originalMoved = TryMoveOriginal(RIGHT, 0, 1);
 
-		int newCol = currentCol + 1;
-		if (!CanEnterFrom(currentRow, newCol, LEFT)) {
-			LOG_WARNING("Destination tile doesn't allow entry from left!");
-			return;
-		}
+		// Mirror moves LEFT (opposite!)
+		bool mirrorMoved = TryMoveMirror(LEFT, 0, -1);
 
-		currentCol = newCol;
-		MoveTargetToCurrentTile();
-		LOG_INFO("Moved RIGHT to (" << currentRow << "," << currentCol << ")");
-		LogCurrentTile();
+		if (originalMoved || mirrorMoved) {
+			LogCurrentState();
+		}
 	}
 
 	// === HELPER METHODS ===
 
-	bool CanMoveInDirection(Direction dir) const {
-		Direction currentTile = grid[currentRow][currentCol];
-		return (static_cast<uint8_t>(currentTile) & static_cast<uint8_t>(dir)) != 0;
-	}
-
-	bool CanEnterFrom(int row, int col, Direction fromDirection) const {
-		Direction destinationTile = grid[row][col];
-		return (static_cast<uint8_t>(destinationTile) & static_cast<uint8_t>(fromDirection)) != 0;
-	}
-
-	void MoveTargetToCurrentTile() {
-		// Get the transform of the current tile
-		int tileIndex = currentRow * 4 + currentCol;  // Convert (row,col) to index
-		TransformRef& tileTransform = tileTransforms[tileIndex];
-
-		if (tileTransform.IsValid()) {
-			Vec3 tilePos = GetPosition(tileTransform);
-			SetPosition(targetTransform, tilePos);
+	bool TryMoveOriginal(Direction dir, int rowDelta, int colDelta) {
+		// Check if current tile allows this direction
+		if (!CanMoveInDirection(grid[currentRow][currentCol], dir)) {
+			LOG_WARNING("Original: Cannot move - current tile doesn't allow it");
+			return false;
 		}
-		else {
-			LOG_ERROR("Tile transform at index " << tileIndex << " is invalid!");
+
+		// Calculate new position
+		int newRow = currentRow + rowDelta;
+		int newCol = currentCol + colDelta;
+
+		// Check bounds
+		if (newRow < 0 || newRow > 2 || newCol < 0 || newCol > 3) {
+			LOG_WARNING("Original: Cannot move - would go out of bounds");
+			return false;
+		}
+
+		// Check if destination tile allows entry from opposite direction
+		Direction oppositeDir = GetOppositeDirection(dir);
+		if (!CanMoveInDirection(grid[newRow][newCol], oppositeDir)) {
+			LOG_WARNING("Original: Cannot move - destination doesn't allow entry");
+			return false;
+		}
+
+		// Move is valid!
+		currentRow = newRow;
+		currentCol = newCol;
+		MoveTargetToTile(targetTransform, tileTransforms[currentRow * 4 + currentCol]);
+		LOG_INFO("Original moved to (" << currentRow << "," << currentCol << ")");
+		return true;
+	}
+
+	bool TryMoveMirror(Direction dir, int rowDelta, int colDelta) {
+		// Check if current tile allows this direction
+		if (!CanMoveInDirection(mirrorGrid[mirrorRow][mirrorCol], dir)) {
+			LOG_WARNING("Mirror: Cannot move - current tile doesn't allow it");
+			return false;
+		}
+
+		// Calculate new position
+		int newRow = mirrorRow + rowDelta;
+		int newCol = mirrorCol + colDelta;
+
+		// Check bounds
+		if (newRow < 0 || newRow > 2 || newCol < 0 || newCol > 3) {
+			LOG_WARNING("Mirror: Cannot move - would go out of bounds");
+			return false;
+		}
+
+		// Check if destination tile allows entry from opposite direction
+		Direction oppositeDir = GetOppositeDirection(dir);
+		if (!CanMoveInDirection(mirrorGrid[newRow][newCol], oppositeDir)) {
+			LOG_WARNING("Mirror: Cannot move - destination doesn't allow entry");
+			return false;
+		}
+
+		// Move is valid!
+		mirrorRow = newRow;
+		mirrorCol = newCol;
+		MoveTargetToTile(mirrorTargetTransform, mirrorTileTransforms[mirrorRow * 4 + mirrorCol]);
+		LOG_INFO("Mirror moved to (" << mirrorRow << "," << mirrorCol << ")");
+		return true;
+	}
+
+	bool CanMoveInDirection(Direction tile, Direction dir) const {
+		return (static_cast<uint8_t>(tile) & static_cast<uint8_t>(dir)) != 0;
+	}
+
+	Direction GetOppositeDirection(Direction dir) const {
+		switch (dir) {
+		case UP: return DOWN;
+		case DOWN: return UP;
+		case LEFT: return RIGHT;
+		case RIGHT: return LEFT;
+		default: return NONE;
+		}
+	}
+
+	void MoveTargetToTile(TransformRef& target, TransformRef& tile) {
+		if (tile.IsValid() && target.IsValid()) {
+			Vec3 tilePos = GetPosition(tile);
+			tilePos.z += 1.0f;
+			SetPosition(target, tilePos);
 		}
 	}
 
@@ -279,7 +327,6 @@ private:
 		Vec3 targetPos = GetPosition(targetTransform);
 		Vec3 endPos = GetPosition(endTransform);
 
-		// Check if target is close to end (within 0.5 units)
 		float dx = targetPos.x - endPos.x;
 		float dy = targetPos.y - endPos.y;
 		float dz = targetPos.z - endPos.z;
@@ -288,18 +335,31 @@ private:
 		return distance < 0.5f;
 	}
 
-	void LogCurrentTile() const {
-		Direction current = grid[currentRow][currentCol];
-		uint8_t val = static_cast<uint8_t>(current);
-		LOG_INFO("Current tile (" << currentRow << "," << currentCol << ") allows: "
-			<< ((val & static_cast<uint8_t>(UP)) ? "UP " : "")
-			<< ((val & static_cast<uint8_t>(DOWN)) ? "DOWN " : "")
-			<< ((val & static_cast<uint8_t>(LEFT)) ? "LEFT " : "")
-			<< ((val & static_cast<uint8_t>(RIGHT)) ? "RIGHT" : ""));
+	bool HasMirrorReachedEnd() const {
+		if (!mirrorEndTransform.IsValid() || !mirrorTargetTransform.IsValid()) {
+			return false;
+		}
+
+		Vec3 targetPos = GetPosition(mirrorTargetTransform);
+		Vec3 endPos = GetPosition(mirrorEndTransform);
+
+		float dx = targetPos.x - endPos.x;
+		float dy = targetPos.y - endPos.y;
+		float dz = targetPos.z - endPos.z;
+		float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+		return distance < 0.5f;
+	}
+
+	void LogCurrentState() const {
+		LOG_INFO("=== Current State ===");
+		LOG_INFO("Original: (" << currentRow << "," << currentCol << ")");
+		LOG_INFO("Mirror:   (" << mirrorRow << "," << mirrorCol << ")");
 	}
 
 	void PrintGridState() const {
-		LOG_INFO("=== Grid State ===");
+		LOG_INFO("\n=== Grid State ===");
+		LOG_INFO("ORIGINAL GRID:");
 		for (int row = 0; row < 3; row++) {
 			LOG_INFO("Row " << row << ": "
 				<< static_cast<int>(grid[row][0]) << " "
@@ -307,55 +367,50 @@ private:
 				<< static_cast<int>(grid[row][2]) << " "
 				<< static_cast<int>(grid[row][3]));
 		}
-		LOG_INFO("Current position: (" << currentRow << "," << currentCol << ")");
-	}
+		LOG_INFO("Original position: (" << currentRow << "," << currentCol << ")");
 
-	void ToggleCurrentTileDirections() {
-		// Cycle through direction patterns for testing
-		Direction& current = grid[currentRow][currentCol];
-
-		if (current == ALL) {
-			current = static_cast<Direction>(UP | DOWN);  // Vertical only
+		LOG_INFO("\nMIRROR GRID:");
+		for (int row = 0; row < 3; row++) {
+			LOG_INFO("Row " << row << ": "
+				<< static_cast<int>(mirrorGrid[row][0]) << " "
+				<< static_cast<int>(mirrorGrid[row][1]) << " "
+				<< static_cast<int>(mirrorGrid[row][2]) << " "
+				<< static_cast<int>(mirrorGrid[row][3]));
 		}
-		else if (current == static_cast<Direction>(UP | DOWN)) {
-			current = static_cast<Direction>(LEFT | RIGHT);  // Horizontal only
-		}
-		else if (current == static_cast<Direction>(LEFT | RIGHT)) {
-			current = NONE;  // Blocked
-		}
-		else {
-			current = ALL;  // Back to all
-		}
-
-		LOG_INFO("Toggled tile (" << currentRow << "," << currentCol << ") to: " << static_cast<int>(current));
-		LogCurrentTile();
+		LOG_INFO("Mirror position: (" << mirrorRow << "," << mirrorCol << ")");
 	}
 
 	// === EXPOSED FIELDS ===
-	TransformRef targetTransform;  // The moving piece
-	TransformRef endTransform;     // The goal position
 
-	// All 12 tile transforms (4 cols x 3 rows)
-	TransformRef transform0;   // Row 0, Col 0
-	TransformRef transform1;   // Row 0, Col 1
-	TransformRef transform2;   // Row 0, Col 2
-	TransformRef transform3;   // Row 0, Col 3
-	TransformRef transform4;   // Row 1, Col 0
-	TransformRef transform5;   // Row 1, Col 1
-	TransformRef transform6;   // Row 1, Col 2
-	TransformRef transform7;   // Row 1, Col 3
-	TransformRef transform8;   // Row 2, Col 0
-	TransformRef transform9;   // Row 2, Col 1
-	TransformRef transform10;  // Row 2, Col 2
-	TransformRef transform11;  // Row 2, Col 3
+	// Original grid
+	TransformRef targetTransform;
+	TransformRef endTransform;
+	TransformRef transform0, transform1, transform2, transform3;
+	TransformRef transform4, transform5, transform6, transform7;
+	TransformRef transform8, transform9, transform10, transform11;
 
-	//float tileSpacingX = 1.5f;
-	//float tileSpacingY = 1.5f;
+	// Mirror grid
+	TransformRef mirrorTargetTransform;
+	TransformRef mirrorEndTransform;
+	TransformRef mirrorTransform0, mirrorTransform1, mirrorTransform2, mirrorTransform3;
+	TransformRef mirrorTransform4, mirrorTransform5, mirrorTransform6, mirrorTransform7;
+	TransformRef mirrorTransform8, mirrorTransform9, mirrorTransform10, mirrorTransform11;
+
+	float tileSpacingX = 1.5f;
+	float tileSpacingY = 1.5f;
 
 	// === INTERNAL STATE ===
-	std::array<std::array<Direction, 4>, 3> grid;  // 4 cols x 3 rows
-	std::array<TransformRef, 12> tileTransforms;    // For easy indexing
+	std::array<std::array<Direction, 4>, 3> grid;
+	std::array<std::array<Direction, 4>, 3> mirrorGrid;
 
+	std::array<TransformRef, 12> tileTransforms;
+	std::array<TransformRef, 12> mirrorTileTransforms;
+
+	// Original target position
 	int currentRow = 0;
 	int currentCol = 0;
+
+	// Mirror target position
+	int mirrorRow = 0;
+	int mirrorCol = 0;
 };
