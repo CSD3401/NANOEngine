@@ -106,7 +106,7 @@ namespace NE::ECS {
             Signature sig;
             //sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UICanvas>());
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
-            sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIImage>());
+            //sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIImage>());
             SetSystemSignature<Systems::UIRenderSystem>(sig);
         }
 
@@ -140,52 +140,24 @@ namespace NE::ECS {
         return entt;
     }
 
-    Entity ECSCoordinator::CreateUIEntity()
-    {
-        Entity entt = m_entityManager->CreateEntity();
-        AddComponent(entt, Component::EntityMeta{ "Unnamed UI Entity" });
-        AddComponent(entt, Component::UIRectTransform{});
-        AddComponent(entt, Component::UIImage{});
-        return entt;
-    }
+    //Entity ECSCoordinator::CreateUIEntity()
+    //{
+    //    Entity entt = m_entityManager->CreateEntity();
+    //    AddComponent(entt, Component::EntityMeta{ "Unnamed UI Entity" });
+    //    AddComponent(entt, Component::UIRectTransform{});
+    //    AddComponent(entt, Component::UIImage{});
+    //    return entt;
+    //}
 
     Entity ECSCoordinator::CreateUICanvasEntity()
     {
         Entity entt = m_entityManager->CreateEntity();
-        AddComponent(entt, Component::EntityMeta{ "Canvas" });
-        AddComponent(entt, Component::UICanvas{});
-        Component::UIRectTransform rectTransform;
-        rectTransform.x = 0.0f;
-        rectTransform.y = 0.0f;
-        rectTransform.width = 1920.0f;
-        rectTransform.height = 1080.0f;
-        rectTransform.parent = NO_ENTITY;  // Canvas has no parent - it's the root
-
-        AddComponent(entt, rectTransform);
-
         return entt;
     }
 
     Entity ECSCoordinator::CreateUIImageEntity(Entity parentCanvas)
     {
         Entity entt = m_entityManager->CreateEntity();
-        AddComponent(entt, Component::EntityMeta{ "UI Image" });
-
-        // Set up rect transform with parent
-        Component::UIRectTransform rect;
-        rect.x = 100.0f;
-        rect.y = 100.0f;
-        rect.width = 100.0f;
-        rect.height = 100.0f;
-        rect.parent = parentCanvas;  // Link to parent canvas
-        AddComponent(entt, rect);
-
-        // Set up image with default color (white = show texture as-is)
-        Component::UIImage img;
-        img.color = Math::Vec4{ 1.f, 1.f, 1.f, 1.f };
-        img.material = nullptr;  // Start with solid color
-        AddComponent(entt, img);
-
         return entt;
     }
 

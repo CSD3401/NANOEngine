@@ -1,6 +1,9 @@
 #include "UIRenderer.hpp"
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include "../OpenGL/GLShader.hpp"
+#include "../src/Graphics/Core/PipelineCache.hpp"
+#include "../src/ResourceManagement/ResourceManager.hpp"
+#include "../src/Graphics/Core/GraphicsManager.hpp"
 #include <glad/glad.h>
 #include <iostream>
 #include <algorithm>
@@ -12,15 +15,11 @@ namespace NE::Graphics {
     unsigned int UIRenderer::s_VAO = 0;
     unsigned int UIRenderer::s_VBO = 0;
     unsigned int UIRenderer::s_EBO = 0;
-    unsigned int UIRenderer::s_Shader = 0;          // Overlay
-    unsigned int UIRenderer::s_CameraShader = 0;    // Camera
-    unsigned int UIRenderer::s_WorldShader = 0;     // World
     unsigned int UIRenderer::s_CompositeShader = 0;
     unsigned int UIRenderer::s_CompositeVAO = 0;
     unsigned int UIRenderer::s_CompositeVBO = 0;
     uint32_t UIRenderer::s_ScreenW = 0;
     uint32_t UIRenderer::s_ScreenH = 0;
-
 
     // shader checks helpers
     static void CheckCompile(GLuint shader, const char* name) {
@@ -31,7 +30,7 @@ namespace NE::Graphics {
             std::cout << "[SHADER COMPILE FAIL] " << name << "\n" << log << std::endl;
         }
     }
-
+    
     static void CheckLink(GLuint prog, const char* name) {
         GLint ok = 0; glGetProgramiv(prog, GL_LINK_STATUS, &ok);
         if (!ok) {
@@ -40,82 +39,6 @@ namespace NE::Graphics {
             std::cout << "[PROGRAM LINK FAIL] " << name << "\n" << log << std::endl;
         }
     }
-
-    // overlay mode shader (screen space - pixel coordinates)
-    static const char* UIOverlayVertexShader = R"(#version 460 core
-    layout (location = 0) in vec2 aPos;
-    layout (location = 1) in vec2 aUV;
-
-    uniform vec2 uScreenSize;
-
-    out vec2 vUV;
-
-    void main() {
-        // Convert pixel coordinates to NDC (-1 to 1)
-        float x = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
-        float y = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
-        gl_Position = vec4(x, y, 0.0, 1.0);
-        vUV = aUV;
-    })";
-
-    // camera mode shader (screen space with camera)
-    static const char* UICameraVertexShader = R"(#version 460 core
-    layout (location = 0) in vec2 aPos;
-    layout (location = 1) in vec2 aUV;
-
-    uniform vec2 uScreenSize;
-    uniform mat4 uView;
-    uniform mat4 uProj;
-    uniform float uPlaneDistance;
-
-    out vec2 vUV;
-
-    void main() {
-        // Convert pixel coords to NDC
-        float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
-        float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
-        
-        // Place at distance from camera in view space
-        vec4 viewPos = vec4(ndcX * uPlaneDistance, ndcY * uPlaneDistance, -uPlaneDistance, 1.0);
-        
-        // Transform to clip space
-        gl_Position = uProj * viewPos;
-        vUV = aUV;
-    })";
-
-    // world space shader (full 3d transformation)
-    static const char* UIWorldVertexShader = R"(#version 460 core
-    layout (location = 0) in vec3 aPos;  // 3D position
-    layout (location = 1) in vec2 aUV;
-
-    uniform mat4 uModel;
-    uniform mat4 uView;
-    uniform mat4 uProj;
-
-    out vec2 vUV;
-
-    void main() {
-        gl_Position = uProj * uView * uModel * vec4(aPos, 1.0);
-        vUV = aUV;
-    })";
-
-    // fragment shader (shared by all modes)
-    static const char* UIFragmentShader = R"(#version 460 core
-    in vec2 vUV;
-    out vec4 FragColor;
-
-    uniform vec4 uColor;
-    uniform int uUseTexture;
-    uniform sampler2D uTex;
-
-    void main() {
-        if (uUseTexture == 1) {
-            vec4 texColor = texture(uTex, vUV);
-            FragColor = texColor * uColor;
-        } else {
-            FragColor = uColor;
-        }
-    })";
 
     void UIRenderer::Init(uint32_t width, uint32_t height) {
         // saves screen size
@@ -146,72 +69,6 @@ namespace NE::Graphics {
             s_FBO->Unbind(); // back to FBO 0 (default framebuffer)
         }
 
-        // compile overlay shader
-        {
-            unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vs, 1, &UIOverlayVertexShader, nullptr);
-            glCompileShader(vs);
-            CheckCompile(vs, "UI Overlay VS");
-
-            unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fs, 1, &UIFragmentShader, nullptr);
-            glCompileShader(fs);
-            CheckCompile(fs, "UI FS");
-
-            s_Shader = glCreateProgram();
-            glAttachShader(s_Shader, vs);
-            glAttachShader(s_Shader, fs);
-            glLinkProgram(s_Shader);
-            CheckLink(s_Shader, "UI Overlay Shader");
-
-            glDeleteShader(vs);
-            glDeleteShader(fs);
-        }
-
-        // compile camera shader
-        {
-            unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vs, 1, &UICameraVertexShader, nullptr);
-            glCompileShader(vs);
-            CheckCompile(vs, "UI Camera VS");
-
-            unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fs, 1, &UIFragmentShader, nullptr);
-            glCompileShader(fs);
-            CheckCompile(fs, "UI FS");
-
-            s_CameraShader = glCreateProgram();
-            glAttachShader(s_CameraShader, vs);
-            glAttachShader(s_CameraShader, fs);
-            glLinkProgram(s_CameraShader);
-            CheckLink(s_CameraShader, "UI Camera Shader");
-
-            glDeleteShader(vs);
-            glDeleteShader(fs);
-        }
-
-        // compile world space shader
-        {
-            unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vs, 1, &UIWorldVertexShader, nullptr);
-            glCompileShader(vs);
-            CheckCompile(vs, "UI World VS");
-
-            unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fs, 1, &UIFragmentShader, nullptr);
-            glCompileShader(fs);
-            CheckCompile(fs, "UI FS");
-
-            s_WorldShader = glCreateProgram();
-            glAttachShader(s_WorldShader, vs);
-            glAttachShader(s_WorldShader, fs);
-            glLinkProgram(s_WorldShader);
-            CheckLink(s_WorldShader, "UI World Shader");
-
-            glDeleteShader(vs);
-            glDeleteShader(fs);
-        }
-
         // generate handles for VAO, VBO, EBO
         glGenVertexArrays(1, &s_VAO);
         glGenBuffers(1, &s_VBO);
@@ -240,6 +97,39 @@ namespace NE::Graphics {
 
         // initialize composite shader
         InitCompositeShader();
+    }
+
+    void UIRenderer::BuildQuadVertices(const UIDrawCommand& cmd, float* verts) {
+        switch (cmd.renderMode) {
+        case 0: // overlay - screen space 2D
+        case 1: // camera - screen space 2D (shader handles transform)
+            verts[0] = cmd.x; verts[1] = cmd.y; verts[2] = cmd.z;
+            verts[3] = 0.0f; verts[4] = 0.0f; // uv
+
+            verts[5] = cmd.x + cmd.width; verts[6] = cmd.y; verts[7] = cmd.z;
+            verts[8] = 1.0f; verts[9] = 0.0f;
+
+            verts[10] = cmd.x + cmd.width; verts[11] = cmd.y + cmd.height; verts[12] = cmd.z;
+            verts[13] = 1.0f; verts[14] = 1.0f;
+
+            verts[15] = cmd.x; verts[16] = cmd.y + cmd.height; verts[17] = cmd.z;
+            verts[18] = 0.0f; verts[19] = 1.0f;
+            break;
+
+        case 2: // world - unit quad (model matrix scales it)
+            verts[0] = 0.0f; verts[1] = 0.0f; verts[2] = 0.0f;
+            verts[3] = 0.0f; verts[4] = 0.0f;
+
+            verts[5] = 1.0f; verts[6] = 0.0f; verts[7] = 0.0f;
+            verts[8] = 1.0f; verts[9] = 0.0f;
+
+            verts[10] = 1.0f; verts[11] = 1.0f; verts[12] = 0.0f;
+            verts[13] = 1.0f; verts[14] = 1.0f;
+
+            verts[15] = 0.0f; verts[16] = 1.0f; verts[17] = 0.0f;
+            verts[18] = 0.0f; verts[19] = 1.0f;
+            break;
+        }
     }
 
     // fullscreen quad vertex shader
@@ -283,7 +173,7 @@ namespace NE::Graphics {
             glAttachShader(s_CompositeShader, vs);
             glAttachShader(s_CompositeShader, fs);
             glLinkProgram(s_CompositeShader);
-            CheckLink(s_Shader, "UI Program");
+            CheckLink(s_CompositeShader, "UI Composite Program");
 
             // clean up shaders (no longer needed after linking)
             glDeleteShader(vs);
@@ -369,85 +259,6 @@ namespace NE::Graphics {
         }
     }
 
-    void UIRenderer::RenderOverlay(const UIDrawCommand& cmd) {
-        glUseProgram(s_Shader);
-        glUniform2f(glGetUniformLocation(s_Shader, "uScreenSize"), (float)s_ScreenW, (float)s_ScreenH);
-
-        // build quad vertices (2D positions)
-        float verts[20] = {
-            cmd.x, cmd.y, 0.0f, 0.f, 0.f,                          // top-left
-            cmd.x + cmd.width, cmd.y, 0.0f, 1.f, 0.f,              // top-right
-            cmd.x + cmd.width, cmd.y + cmd.height, 0.0f, 1.f, 1.f, // bottom-right
-            cmd.x, cmd.y + cmd.height, 0.0f, 0.f, 1.f              // bottom-left
-        };
-
-        glBindVertexArray(s_VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-
-        glUniform4f(glGetUniformLocation(s_Shader, "uColor"), cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
-        glUniform1i(glGetUniformLocation(s_Shader, "uUseTexture"), 0);
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    }
-
-    void UIRenderer::RenderWithCamera(const UIDrawCommand& cmd) {
-        glUseProgram(s_CameraShader);
-        glUniform2f(glGetUniformLocation(s_CameraShader, "uScreenSize"), (float)s_ScreenW, (float)s_ScreenH);
-
-        // Pass camera matrices
-        glUniformMatrix4fv(glGetUniformLocation(s_CameraShader, "uView"), 1, GL_FALSE, cmd.viewMatrix.Data());
-        glUniformMatrix4fv(glGetUniformLocation(s_CameraShader, "uProj"), 1, GL_FALSE, cmd.projMatrix.Data());
-        glUniform1f(glGetUniformLocation(s_CameraShader, "uPlaneDistance"), cmd.planeDistance);
-
-        // build quad (pixel coordinates, shader converts to camera space)
-        float verts[20] = {
-            cmd.x, cmd.y, 0.0f, 0.f, 0.f,
-            cmd.x + cmd.width, cmd.y, 0.0f, 1.f, 0.f,
-            cmd.x + cmd.width, cmd.y + cmd.height, 0.0f, 1.f, 1.f,
-            cmd.x, cmd.y + cmd.height, 0.0f, 0.f, 1.f
-        };
-
-        glBindVertexArray(s_VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-
-        glUniform4f(glGetUniformLocation(s_CameraShader, "uColor"), cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
-        glUniform1i(glGetUniformLocation(s_CameraShader, "uUseTexture"), 0);
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    }
-
-    void UIRenderer::RenderWorldSpace(const UIDrawCommand& cmd) {
-        glUseProgram(s_WorldShader);
-
-        // build model matrix (position and size in world space)
-        Math::Mat4 model = Math::Mat4::BuildTranslation(cmd.x, cmd.y, cmd.z);
-        model = model * Math::Mat4::BuildScaling(cmd.width, cmd.height, 1.0f);
-
-        glUniformMatrix4fv(glGetUniformLocation(s_WorldShader, "uModel"), 1, GL_FALSE, model.Data());
-        glUniformMatrix4fv(glGetUniformLocation(s_WorldShader, "uView"), 1, GL_FALSE, cmd.viewMatrix.Data());
-        glUniformMatrix4fv(glGetUniformLocation(s_WorldShader, "uProj"), 1, GL_FALSE, cmd.projMatrix.Data());
-
-        // build quad (local space: 0-1)
-        float verts[20] = {
-            0.0f, 0.0f, 0.0f, 0.f, 0.f,
-            1.0f, 0.0f, 0.0f, 1.f, 0.f,
-            1.0f, 1.0f, 0.0f, 1.f, 1.f,
-            0.0f, 1.0f, 0.0f, 0.f, 1.f
-        };
-
-        glBindVertexArray(s_VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-
-        glUniform4f(glGetUniformLocation(s_WorldShader, "uColor"),
-            cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
-        glUniform1i(glGetUniformLocation(s_WorldShader, "uUseTexture"), 0);
-
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    }
-
     void UIRenderer::DrawFrame() {
         if (s_Commands.empty()) return;
 
@@ -465,7 +276,7 @@ namespace NE::Graphics {
             printed = true;
         }
 
-        // sort commands by order
+        // sort commands by order (lower renders first)
         std::sort(s_Commands.begin(), s_Commands.end(),
             [](const UIDrawCommand& a, const UIDrawCommand& b) {
                 return a.order < b.order;
@@ -485,30 +296,76 @@ namespace NE::Graphics {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        // get StateCache for efficient pipeline binding
+        auto* stateCache = NE::Graphics::GraphicsManager::GetStateCache();
+
         // render each command based on mode
         for (const auto& cmd : s_Commands) 
         {
+            // Use material from the command (set by UIImage component)
+            if (!cmd.material) 
+            {
+                std::cerr << "[UIRenderer] Warning: Command has no material!" << std::endl;
+                continue;
+            }
+
+            // bind pipeline (sets shader + GL state)
+            if (stateCache)
+            {
+                stateCache->Bind(cmd.material->GetPipeline());
+            }
+
+            auto shader = cmd.material->GetPipeline()->GetSpecification().shader;
+            if (!shader) 
+            {
+                std::cerr << "[UIRenderer] Warning: Material has no shader!" << std::endl;
+                continue;
+            }
+
+            // build vertex data for this quad
+            float verts[20];
+            BuildQuadVertices(cmd, verts);
+
+            glBindVertexArray(s_VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
+            // bind material uniforms (empty for UI, but kept for consistency)
+            cmd.material->Bind();
+
+            // set UI-specific uniforms
+            shader->SetUniformVec4("uColor", cmd.color);
+
             switch (cmd.renderMode) {
-            case 0: // overlay
+            case 0: // overlay mode
                 glDisable(GL_DEPTH_TEST);
-                RenderOverlay(cmd);
+                shader->SetUniformVec2("uScreenSize",
+                    NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
                 break;
 
-            case 1: // camera
-                glDisable(GL_DEPTH_TEST);  // or enable for depth with 3D scene
-                RenderWithCamera(cmd);
+            case 1: // camera mode
+                glDisable(GL_DEPTH_TEST);
+                shader->SetUniformVec2("uScreenSize",
+                    NE::Math::Vec2(s_ScreenW, s_ScreenH));
+                shader->SetUniformMat4("uView", cmd.viewMatrix);
+                shader->SetUniformMat4("uProj", cmd.projMatrix);
+                shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
                 break;
 
-            case 2: // world space
-                glEnable(GL_DEPTH_TEST);   // enable depth for occlusion
-                RenderWorldSpace(cmd);
+            case 2: // world mode
+                glEnable(GL_DEPTH_TEST);
+                shader->SetUniformMat4("uModel", cmd.modelMatrix);
+                shader->SetUniformMat4("uView", cmd.viewMatrix);
+                shader->SetUniformMat4("uProj", cmd.projMatrix);
                 break;
             }
+
+            // draw the quad
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         }
 
         // restore state
         glBindVertexArray(0);
-        glUseProgram(0);
         if (depthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
         if (!blend) glDisable(GL_BLEND); else glBlendFunc(blendSrc, blendDst);
         if (cullFace) glEnable(GL_CULL_FACE);
@@ -613,12 +470,6 @@ namespace NE::Graphics {
         {
             glDeleteVertexArrays(1, &s_VAO);
             s_VAO = 0;
-        }
-
-        if (s_Shader) 
-        {
-            glDeleteProgram(s_Shader);
-            s_Shader = 0;
         }
 
         if (s_CompositeVBO)

@@ -4,12 +4,16 @@
 #include <string>
 
 namespace NE::Math {
+    struct Vec2;
     struct Vec3;
+    struct Vec4;
     struct Mat4;
 }
 
 namespace NE::Graphics {
+    using NE::Math::Vec2;
     using NE::Math::Vec3;
+    using NE::Math::Vec4;
     using NE::Math::Mat4;
 
     class IShader {
@@ -21,10 +25,12 @@ namespace NE::Graphics {
 
         virtual void SetUniformInt(const std::string& name, int value) = 0;
         virtual void SetUniformFloat(const std::string& name, float value) = 0;
+        virtual void SetUniformVec2(const std::string& name, const Vec2& value) = 0;
         virtual void SetUniformVec3(const std::string& name, const Vec3& value) = 0;
+        virtual void SetUniformVec4(const std::string& name, const Vec4& value) = 0;
         virtual void SetUniformMat4(const std::string& name, const Mat4& matrix) = 0;
 
-		    virtual const uint32_t GetProgramID() const = 0;
+		virtual const uint32_t GetProgramID() const = 0;
         virtual void SetUniformHandle(const std::string& uName, uint64_t handle) = 0;
         virtual void SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) = 0;
 

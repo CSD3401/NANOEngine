@@ -63,6 +63,8 @@ namespace NE::Graphics {
         static void SetEditorCamera(EditorCamera* cam);
         static EditorCamera* GetEditorCamera();
 
+        static IStateCache* GetStateCache();
+
 		static void SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
 
         static uint32_t ReadPixel(uint32_t x, uint32_t y);

@@ -68,7 +68,7 @@ namespace NE::ECS {
 
 	namespace Command {
 		NANOENGINE_API uint32_t CreateEntity();
-		NANOENGINE_API uint32_t CreateUIEntity();
+		//NANOENGINE_API uint32_t CreateUIEntity();
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);

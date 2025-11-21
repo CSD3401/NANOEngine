@@ -29,7 +29,7 @@ namespace NE::ECS {
         void DestroyEntity(Entity e);
 
         // --- UI API ---
-        Entity CreateUIEntity();
+        //Entity CreateUIEntity();
         Entity CreateUICanvasEntity();
         Entity CreateUIImageEntity(Entity parentCanvas);
 

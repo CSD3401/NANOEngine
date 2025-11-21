@@ -6,6 +6,8 @@
 namespace NE::ECS::Component {
 
     struct UIRectTransform {
+        std::string luid;
+
         // top-left position in pixels
         float x = 0.0f;
         float y = 0.0f;

@@ -9,21 +9,27 @@ namespace NE::Graphics {
 
     class UIDrawCommand {
     public:
-        float x, y, z;       // top-left in pixels
-        float width, height; // in pixels
+        // position and size
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
+        float width = 0.0f;
+        float height = 0.0f;
 
-        std::shared_ptr<Material> material;
+        // rendering
         Math::Vec4 color{ 1.0f ,1.0f ,1.0f ,1.0f }; // white
+        std::shared_ptr<Material> material;  // Contains shader + texture + uniforms
 
+        // layering
         int order = 0; // kiv
         uint32_t entityId = 0;
 
-        int renderMode = 0;
-
+        // more specific datas
+        int renderMode = 0; // 0=overlay, 1=camera, 2=world
         float planeDistance = 100.0f; // for camera mode
-
         Math::Mat4 viewMatrix{};
         Math::Mat4 projMatrix{};
+        Math::Mat4 modelMatrix{}; // for world mode
     };
 
 } // namespace NE::Graphics

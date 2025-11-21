@@ -25,24 +25,18 @@ namespace NE::Graphics {
         static IFrameBuffer* GetFramebuffer(); // for compositing
 
     private:
-        static void InitCompositeShader();
-        static void InitWorldSpaceShader();
-
-        // render methods for different modes
-        static void RenderOverlay(const UIDrawCommand& cmd);
-        static void RenderWithCamera(const UIDrawCommand& cmd);
-        static void RenderWorldSpace(const UIDrawCommand& cmd);
-
         // openGl resources
         static std::vector<UIDrawCommand> s_Commands;
         static std::unique_ptr<IFrameBuffer> s_FBO; // GLFrameBuffer
         static unsigned int s_VAO, s_VBO, s_EBO;
-        static unsigned int s_Shader;               // Overlay shader
-        static unsigned int s_CameraShader;         // Camera mode shader
-        static unsigned int s_WorldShader;          // World space shader
         static unsigned int s_CompositeShader;
         static unsigned int s_CompositeVAO, s_CompositeVBO;
         static uint32_t s_ScreenW, s_ScreenH;
+
+        static void InitCompositeShader();
+
+        // material helpers
+        static void BuildQuadVertices(const UIDrawCommand& cmd, float* verts);
     };
 
 } // namespace NE::Graphics

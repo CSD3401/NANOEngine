@@ -313,6 +313,10 @@ namespace NE::Graphics {
         return id;
     }
 
+    IStateCache* GraphicsManager::GetStateCache() {
+        return s_StateCache.get();
+    }
+
     // Debug drawing test code
     const char* vertexShaderSource = R"(
     #version 330 core

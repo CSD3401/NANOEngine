@@ -100,11 +100,14 @@ namespace Editor {
 			ImGui::Separator();
 
 			if (ImGui::BeginMenu("UI")) { // Creates a submenu with an arrow
-				if (ImGui::MenuItem("Create Textbox")) {
-					//CreateTextboxUIEntity();
-				}
-				if (ImGui::MenuItem("Create Image")) {
-					//CreateQuadUIEntity();
+				//if (ImGui::MenuItem("Create Textbox")) {
+				//	//CreateTextboxUIEntity();
+				//}
+				//if (ImGui::MenuItem("Create Image")) {
+				//	//CreateQuadUIEntity();
+				//}
+				if (ImGui::MenuItem("Canvas")) {
+					NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUICanvasEntityEvent{});
 				}
 				ImGui::EndMenu();
 			}
@@ -171,16 +174,26 @@ namespace Editor {
 
 				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
 
-            // if (ImGui::BeginMenu("UI")) 
-            // {
-            //     if (ImGui::MenuItem("Canvas")) 
-            //     {
-            //         NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUICanvasEntityEvent{});
-            //         //Editor::EditorScene::BuildFlatHierarchy();
-            //     }
-            //     ImGui::EndMenu();
-            // }
-            // ImGui::EndPopup();
+				if (ImGui::BeginPopupContextItem()) {
+					// check if this entity is a UI Canvas
+					bool isCanvas = NE::ECS::Query::HasUICanvas(id);
+
+					if (isCanvas) 
+					{
+						if (ImGui::MenuItem("Image")) {
+							NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUIImageEntityEvent{ id }); // pass canvas ID as parent;
+						}
+						if (ImGui::MenuItem("Text")) {
+
+						}
+						if (ImGui::MenuItem("Button")) {
+
+						}
+					}
+
+					ImGui::EndPopup();
+				}
+			 
 				// Delay selection logic - only select if not starting a drag
 				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
 					clickedEntityId = id;

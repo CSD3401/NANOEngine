@@ -6,6 +6,7 @@
 namespace NE::ECS::Component {
 
     struct UICanvas {
+        std::string luid;
 
         enum class RenderMode {
             SCREEN_SPACE_OVERLAY, // Always on top, no camera needed <--

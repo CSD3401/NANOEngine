@@ -1560,6 +1560,7 @@ namespace Editor {
                         int currentMode = static_cast<int>(comp.renderMode);
                         if (ImGui::Combo("##RenderMode", &currentMode, RenderModes, IM_ARRAYSIZE(RenderModes))) {
                             comp.renderMode = static_cast<decltype(comp.renderMode)>(currentMode);
+							NE::MarkSceneDirty(); // rebuild child materials when mode changes
                         }
 
                         // pixel perfect toggle (if in overlay mode or camera mode)
@@ -1721,31 +1722,99 @@ namespace Editor {
                         ImGui::Text("Source Image");
                         ImGui::SameLine(labelWidth);
 
-                        // text input buffer
-                        static char texturePathBuffer[256] = "";
-                        std::string currentPath = comp.texturePath.string();
-                        strncpy_s(texturePathBuffer, currentPath.c_str(), sizeof(texturePathBuffer));
-                        texturePathBuffer[sizeof(texturePathBuffer) - 1] = '\0';
+						ImGui::SetNextItemWidth(-1);
 
-                        ImGui::SetNextItemWidth(-1);
-                        if (ImGui::InputText("##SourceImage", texturePathBuffer, sizeof(texturePathBuffer))) 
-                        {
-                            // user typed something --> update the path
-                            comp.texturePath = std::string(texturePathBuffer);
-                        }
+						std::string texLabel = comp.textureUUID.empty()
+							? ""
+							: AssetManager::GetInstance().RetrieveFileName(comp.textureUUID);
 
-                        // drag and drop support
-                        //if (ImGui::BeginDragDropTarget()) 
-                        //{
-                        //    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_PATH")) 
-                        //    {
-                        //        std::string dropped((const char*)p->Data, p->DataSize - 1);
-                        //        comp.texturePath = dropped;
-                        //        // Update buffer for next frame
-                        //        strncpy_s(texturePathBuffer, dropped.c_str(), sizeof(texturePathBuffer));
-                        //    }
-                        //    ImGui::EndDragDropTarget();
-                        //}
+						char bufTex[256];
+						strncpy_s(bufTex, texLabel.c_str(), sizeof(bufTex));
+						ImGui::InputText("Source Image", bufTex, sizeof(bufTex));
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH"))
+							{
+								std::string dropped((const char*)p->Data, p->DataSize - 1); // dropped = "Assets/Textures/MyTexture.jpg"
+								auto textureUUID = AssetManager::GetInstance().RetrieveUUID(dropped); // convert file path to UUID --> uuid = "abc123def456" (from MyTexture.jpg.meta file)
+								
+								// find parent canvas to determine render mode
+								auto& rectTransform = NE::ECS::Command::GetUIRectTransform(entity);
+								uint32_t canvasEntity = entity;
+								uint32_t current = rectTransform.parent;
+
+								// walk up hierarchy to find canvas
+								while (current != NE::ECS::NO_ENTITY)
+								{
+									if (NE::ECS::Query::HasUICanvas(current))
+									{
+										canvasEntity = current;
+										break;
+									}
+									if (NE::ECS::Query::HasUIRectTransform(current))
+									{
+										current = NE::ECS::Query::GetUIRectTransform(current).parent;
+									}
+									else
+									{
+										break;
+									}
+								}
+
+								// get render mode from canvas
+								int renderMode = 0;
+								if (NE::ECS::Query::HasUICanvas(canvasEntity))
+								{
+									auto& canvas = NE::ECS::Command::GetUICanvas(canvasEntity);
+									renderMode = static_cast<int>(canvas.renderMode);
+								}
+
+								// determine material file path based on render mode
+								std::string materialPath;
+								switch (renderMode) {
+								case 0: materialPath = "Assets/UI_Overlay.nanomat"; break;
+								case 1: materialPath = "Assets/UI_Camera.nanomat"; break;
+								case 2: materialPath = "Assets/UI_World.nanomat"; break;
+								default: materialPath = "Assets/UI_Overlay.nanomat"; break;
+								}
+
+								// convert material path to UUID
+								std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+
+								if (materialUUID.empty()) 
+								{
+									SPD_ERROR("[InspectorPanel] Failed to retrieve material UUID for: " << materialPath);
+								}
+								else if (textureUUID.empty()) 
+								{
+									SPD_ERROR("[InspectorPanel] Failed to retrieve texture UUID for: " << dropped);
+								}
+								else
+								{
+									// call assignment function with both UUIDs
+									NE::Renderer::Command::AssignUITexture(entity, textureUUID, materialUUID);
+								}
+							}
+							ImGui::EndDragDropTarget();
+						}
+
+						// Right-click to clear texture
+						if (ImGui::BeginPopupContextItem("##TextureContext"))
+						{
+							if (ImGui::MenuItem("Clear")) {
+								comp.textureUUID.clear();
+								comp.material.reset();  // Clear material
+
+								// Mark dirty
+								if (NE::GetEngineState() == NE::EngineState::Edit) 
+								{
+									if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
+							}
+							ImGui::EndPopup();
+						}
 
                         // color
                         ImGui::AlignTextToFramePadding();
@@ -1760,10 +1829,28 @@ namespace Editor {
                             comp.color.w = color[3];
                         }
 
+						//// Optional: Show texture preview if available
+						//if (comp.material) {
+						//	ImGui::Separator();
+						//	ImGui::Text("Preview:");
+
+						//	// Get texture from material (you'll need to add GetTextures() to Material)
+						//	auto& textures = comp.material->GetTextures();
+						//	if (!textures.empty()) {
+						//		auto firstTex = textures.begin()->second;
+						//		if (firstTex) {
+						//			uint64_t handle = firstTex->GetBindlessHandle();
+
+						//			// Display texture preview (convert bindless handle to ImTextureID)
+						//			ImGui::Image((ImTextureID)(intptr_t)handle, ImVec2(100, 100));
+						//		}
+						//	}
+						//}
+
                         // material
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::Text("Material");
-                        ImGui::SameLine(labelWidth);
+                        //ImGui::AlignTextToFramePadding();
+                        //ImGui::Text("Material");
+                        //ImGui::SameLine(labelWidth);
 
   /*                      std::string matDisplayName = comp.materialPath.empty() ? "None (Material)" : comp.materialPath.filename().string();
                         ImGui::Button(matDisplayName.c_str(), ImVec2(-1, 0));*/
@@ -1803,17 +1890,17 @@ namespace Editor {
                         //ImGui::Checkbox("Maskable", &comp.maskable);
 
                         // image type
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::Text("Image Type");
-                        ImGui::SameLine(labelWidth);
-                        ImGui::SetNextItemWidth(-1);
+                        //ImGui::AlignTextToFramePadding();
+                        //ImGui::Text("Image Type");
+                        //ImGui::SameLine(labelWidth);
+                        //ImGui::SetNextItemWidth(-1);
 
-                        static const char* ImageTypes[] = {
-                            "Simple",
-                            "Sliced",
-                            "Tiled",
-                            "Filled"
-                        };
+                        //static const char* ImageTypes[] = {
+                        //    "Simple",
+                        //    "Sliced",
+                        //    "Tiled",
+                        //    "Filled"
+                        //};
                         //int currentImageType = static_cast<int>(comp.imageType);
                         //if (ImGui::Combo("##ImageType", &currentImageType, ImageTypes, IM_ARRAYSIZE(ImageTypes))) {
                         //    comp.imageType = static_cast<decltype(comp.imageType)>(currentImageType);

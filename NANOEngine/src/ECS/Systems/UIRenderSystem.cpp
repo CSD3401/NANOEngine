@@ -6,6 +6,7 @@
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
 #include <iostream>
+#include <algorithm>
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -219,56 +220,50 @@ namespace NE::ECS::Systems {
             }
         }
 
-        // sort by Z-order if needed (for world space or layering)
-        // std::sort(canvasChildren.begin(), canvasChildren.end(), ...);
+        //// kiv: sort by Z-order if needed (for world space or layering)
+        //if (canvasChildren.size() > 1) {
+        //    std::sort(canvasChildren.begin(), canvasChildren.end(),
+        //        [this](Entity a, Entity b) {
+        //            auto& rectA = m_cm->GetComponent<UIRectTransform>(a);
+        //            auto& rectB = m_cm->GetComponent<UIRectTransform>(b);
+        //            // Lower Z-index renders first (behind)
+        //            return rectA.zIndex < rectB.zIndex;
+        //        });
+        //}
 
         // render all children
         for (Entity e : canvasChildren) 
         {
             auto& img = m_cm->GetComponent<UIImage>(e);
-
-            //// load texture if not already loaded
-            //if (!img.material && !img.texturePath.empty())
-            //{
-            //    // Create material if doesn't exist
-            //    img.material = std::make_shared<NE::Graphics::Material>();
-
-            //    // Load texture from path
-            //    auto texture = NE::Graphics::TextureManager::LoadTexture(img.texturePath.string());
-
-            //    if (texture)
-            //    {
-            //        img.material->SetTexture("albedo", texture);
-            //        std::cout << "[UIRenderSystem] Loaded texture: " << img.texturePath << std::endl;
-            //    }
-            //    else
-            //    {
-            //        std::cerr << "[UIRenderSystem] Failed to load texture: " << img.texturePath << std::endl;
-            //    }
-            //}
-
-            // calculate world transform based on render mode
             WorldTransform worldTransform = CalculateWorldTransform(e, canvas, viewMatrix, projMatrix);
 
-            // create draw command
+            // create draw command with material
             NE::Graphics::UIDrawCommand cmd;
             cmd.x = worldTransform.x;
             cmd.y = worldTransform.y;
-            cmd.z = worldTransform.z; 
+            cmd.z = worldTransform.z;
             cmd.width = worldTransform.width;
             cmd.height = worldTransform.height;
             cmd.color = img.color;
-            cmd.material = img.material;
             cmd.order = canvas.sortingOrder;
             cmd.entityId = e;
-            cmd.renderMode = static_cast<int>(canvas.renderMode); // pass render mode to renderer
+            cmd.renderMode = static_cast<int>(canvas.renderMode);
             cmd.planeDistance = canvas.planeDistance;
 
-            // for camera/world space, include matrices
+            // pass the material that contains the texture
+            cmd.material = img.material;
+
+            // include matrices for all modes
             if (viewMatrix) cmd.viewMatrix = *viewMatrix;
             if (projMatrix) cmd.projMatrix = *projMatrix;
 
-            // submit draw command to UI renderer
+            // build model matrix for world space
+            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                cmd.modelMatrix = Math::Mat4::BuildTranslation(cmd.x, cmd.y, cmd.z);
+                cmd.modelMatrix = cmd.modelMatrix *
+                    Math::Mat4::BuildScaling(cmd.width, cmd.height, 1.0f);
+            }
+
             NE::Graphics::UIRenderer::Submit(cmd);
         }
     }

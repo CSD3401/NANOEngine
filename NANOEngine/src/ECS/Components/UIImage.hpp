@@ -1,7 +1,7 @@
 #ifndef UI_IMAGE_HPP
 #define UI_IMAGE_HPP
 
-#include <filesystem>
+#include <string>
 #include <memory>
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Math/Vec4.hpp"
@@ -9,14 +9,12 @@
 namespace NE::ECS::Component {
 
     struct UIImage {
-        // where to load from
-        std::filesystem::path texturePath;
-
-        // what we actually draw with
+        std::string luid;
+        std::string textureUUID;
         std::shared_ptr<NE::Graphics::Material> material;
-
-        // tint
-        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 0.f };
+        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 0.f }; // tint
+        int renderMode = 0;
+        bool isDirty = false;
     };
 
 } // namespace NE::ECS::Component

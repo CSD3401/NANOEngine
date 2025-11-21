@@ -10,6 +10,7 @@
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
+#include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -154,16 +155,58 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
-		uint32_t CreateUIEntity() {
-			return GetScene().GetECSCoordinator().CreateUIEntity();
-		}
+		//uint32_t CreateUIEntity() {
+		//	return GetScene().GetECSCoordinator().CreateUIEntity();
+		//}
 
 		uint32_t CreateUICanvasEntity() {
-			return GetScene().GetECSCoordinator().CreateUICanvasEntity();
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ "Canvas", Core::LUIDGenerator::Generate("en") });
+
+			// set up canvas component
+			Component::UICanvas canvas;
+			canvas.luid = Core::LUIDGenerator::Generate("canvas");
+			GetScene().GetECSCoordinator().AddComponent(newEntity, canvas);
+
+			// setup RectTransform for canvas (fullscreen by default)
+			Component::UIRectTransform rectTransform;
+			rectTransform.luid = Core::LUIDGenerator::Generate("rect");
+			rectTransform.x = 0.0f;
+			rectTransform.y = 0.0f;
+			rectTransform.width = 1920.0f;
+			rectTransform.height = 1080.0f;
+			rectTransform.parent = NE::ECS::NO_ENTITY;  // Canvas has no parent - it's the root
+			GetScene().GetECSCoordinator().AddComponent(newEntity, rectTransform);
+
+			return newEntity;
 		}
 
 		uint32_t CreateUIImageEntity(uint32_t parentCanvas) {
-			return GetScene().GetECSCoordinator().CreateUIImageEntity(parentCanvas);
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ "Image", Core::LUIDGenerator::Generate("en") });
+
+			// setup RectTransform with parent linkage
+			Component::UIRectTransform rect;
+			rect.luid = Core::LUIDGenerator::Generate("rect");
+			rect.x = 100.0f;
+			rect.y = 100.0f;
+			rect.width = 100.0f;
+			rect.height = 100.0f;
+			rect.parent = parentCanvas;  // Link to parent canvas
+			GetScene().GetECSCoordinator().AddComponent(newEntity, rect);
+
+			// setup UIImage with default white color
+			Component::UIImage img;
+			img.luid = Core::LUIDGenerator::Generate("image");
+			img.color = Math::Vec4{ 1.f, 1.f, 1.f, 1.f };
+			img.material = nullptr;  // start with solid color
+			GetScene().GetECSCoordinator().AddComponent(newEntity, img);
+
+			return newEntity;
 		}
 
 		void DestroyEntity(uint32_t e) {
