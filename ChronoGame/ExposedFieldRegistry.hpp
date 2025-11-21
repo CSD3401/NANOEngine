@@ -6,13 +6,103 @@
 #include <functional>
 #include <sstream>
 #include <type_traits>
+#include <string_view>
 #include <ScriptSDK/Math.h>
 #include <ScriptSDK/ScriptTypes.h>
 #include <ScriptSDK/Reflection.h>
 
+// ============================================================================
+// EXPOSED FIELD REGISTRY
+// ============================================================================
 // Lightweight helper to register exposed fields in game scripts and
 // provide string-based get/set that the Editor uses.
+// Includes automatic enum name extraction using C++20 features.
+
 struct ExposedFieldRegistry {
+
+	// ========================================================================
+	// AUTOMATIC ENUM NAME EXTRACTION
+	// ========================================================================
+	// This system uses C++20 features to automatically extract enum names at
+	// compile time, eliminating the need to hardcode string lists.
+	//
+	// Usage:
+	//   enum class MyEnum { Value1, Value2, Value3 };
+	//   NE_REGISTER_ENUM(MyEnum, MyEnum::Value1, MyEnum::Value2, MyEnum::Value3);
+	//
+	//   auto names = ExposedFieldRegistry::EnumReflection::GetEnumNames<MyEnum>();
+	// ========================================================================
+	
+	struct EnumReflection {
+		// Helper: Extract enum name from __PRETTY_FUNCTION__ or __FUNCSIG__
+		template<auto Value>
+		static constexpr std::string_view GetEnumValueName() {
+#if defined(__GNUC__) || defined(__clang__)
+			// GCC/Clang: __PRETTY_FUNCTION__
+			constexpr std::string_view name = __PRETTY_FUNCTION__;
+			constexpr auto start = name.find("Value = ") + 8;
+			constexpr auto end = name.find_first_of(";]", start);
+			constexpr auto result = name.substr(start, end - start);
+
+			// Extract just the enum value name (after last ::)
+			constexpr auto lastColon = result.find_last_of(':');
+			if (lastColon != std::string_view::npos) {
+				return result.substr(lastColon + 1);
+			}
+			return result;
+#elif defined(_MSC_VER)
+			// MSVC: __FUNCSIG__
+			constexpr std::string_view name = __FUNCSIG__;
+			constexpr auto start = name.find("GetEnumValueName<") + 17;
+			constexpr auto end = name.find_first_of('>', start);
+			constexpr auto result = name.substr(start, end - start);
+
+			// Extract just the enum value name (after last ::)
+			constexpr auto lastColon = result.find_last_of(':');
+			if (lastColon != std::string_view::npos) {
+				return result.substr(lastColon + 1);
+			}
+			return result;
+#else
+			return "Unknown";
+#endif
+		}
+
+		// Storage for enum name arrays
+		template<typename Enum>
+		struct EnumInfo {
+			static inline std::vector<std::string> names;
+			static inline bool initialized = false;
+		};
+
+		// Register enum names (called by NE_REGISTER_ENUM macro)
+		template<typename Enum, auto... Values>
+		static void RegisterEnumNames() {
+			if (EnumInfo<Enum>::initialized) return;
+
+			EnumInfo<Enum>::names = {
+				std::string(GetEnumValueName<Values>())...
+			};
+			EnumInfo<Enum>::initialized = true;
+		}
+
+		// Get enum names (used at runtime)
+		template<typename Enum>
+		static const std::vector<std::string>& GetEnumNames() {
+			return EnumInfo<Enum>::names;
+		}
+
+		// Check if enum is registered
+		template<typename Enum>
+		static bool IsEnumRegistered() {
+			return EnumInfo<Enum>::initialized;
+		}
+	}; // End of EnumReflection
+
+	// ========================================================================
+	// FIELD ENTRY STRUCTURE
+	// ========================================================================
+	
 	struct Entry {
 		std::string typeToken;
 		std::function<std::string()> getStr;
@@ -179,7 +269,7 @@ struct ExposedFieldRegistry {
 
 	// ============ NEW: STRUCT FIELD HELPERS ============
 
-   // Template helper to register nested struct fields
+	// Template helper to register nested struct fields
 	template<typename Owner, typename StructType, typename FieldType>
 	void RegisterStructField(const std::string& structName,
 		const std::string& fieldName,
@@ -530,36 +620,60 @@ private:
 	std::unordered_map<std::string, std::vector<std::string>> m_enumOptions; // Enum name -> options
 };
 
+// ============================================================================
+// MACROS FOR FIELD REGISTRATION
+// ============================================================================
+
+// ============================================================================
+// NE_REGISTER_ENUM - Register enum type at global scope
+// ============================================================================
+// Usage:
+//   enum class MyEnum { Value1, Value2, Value3 };
+//   NE_REGISTER_ENUM(MyEnum, MyEnum::Value1, MyEnum::Value2, MyEnum::Value3);
+//
+// Must be called at global scope (not inside functions or classes)
+// Note: You must use fully-qualified enum values (e.g., MyEnum::Value1)
+// ============================================================================
+#define NE_REGISTER_ENUM(EnumType, ...) \
+    namespace { \
+        inline bool NEREGISTER##__LINE__ = (ExposedFieldRegistry::EnumReflection::RegisterEnumNames<EnumType, __VA_ARGS__>(), true); \
+    }
+
 // Macro to auto-register a member within a script's constructor
 #ifndef REGISTER_FIELD
 #define REGISTER_FIELD(member) m_fields.RegisterMember(#member, this, &std::remove_reference_t<decltype(*this)>::member)
 #endif
 
-// NEW: Macro to register enum with options
+// Macro to register enum with AUTOMATIC name extraction
 #ifndef REGISTER_ENUM
-#define REGISTER_ENUM(member, ...) \
-    m_fields.RegisterEnumMember(#member, this, &std::remove_reference_t<decltype(*this)>::member, {__VA_ARGS__})
+#define REGISTER_ENUM(member) \
+    do { \
+     using EnumType = std::decay_t<decltype(member)>; \
+        const auto& enumNames = ExposedFieldRegistry::EnumReflection::GetEnumNames<EnumType>(); \
+        m_fields.RegisterEnumMember(#member, this, \
+       &std::remove_reference_t<decltype(*this)>::member, enumNames); \
+    } while(0)
 #endif
 
-// NEW: Macro to register vector
+// Macro to register vector
 #ifndef REGISTER_VECTOR
 #define REGISTER_VECTOR(member) \
- m_fields.RegisterVector(#member, &member)
+    m_fields.RegisterVector(#member, &member)
 #endif
 
-// NEW: Macro to register struct
+// Macro to register struct
 #ifndef REGISTER_STRUCT
 #define REGISTER_STRUCT(member) \
- m_fields.RegisterStruct(#member, &member)
+    m_fields.RegisterStruct(#member, &member)
 #endif
 
-// NEW: Macro to register reflectable struct (uses NE_REFLECT) 
+// Macro to register reflectable struct (uses NE_REFLECT)
 #ifndef REGISTER_REFLECTABLE_STRUCT
 #define REGISTER_REFLECTABLE_STRUCT(member) \
     m_fields.RegisterReflectableStruct(#member, this, &std::remove_reference_t<decltype(*this)>::member)
 #endif
 
-// NEW: Simple macro to register struct fields (up to 10 fields)
+// Simple macro to register struct fields (up to 10 fields)
 // Usage: REGISTER_STRUCT_FIELDS(stats, health, maxHealth, stamina, level);
 #ifndef REGISTER_STRUCT_FIELDS
 
@@ -578,7 +692,7 @@ private:
 // FOR_EACH macro (supports up to 10 fields - can be extended)
 #define FOR_EACH_FIELD(macro, structName, ...) \
     GET_MACRO(__VA_ARGS__, \
- FE_10, FE_9, FE_8, FE_7, FE_6, FE_5, FE_4, FE_3, FE_2, FE_1)(macro, structName, __VA_ARGS__)
+        FE_10, FE_9, FE_8, FE_7, FE_6, FE_5, FE_4, FE_3, FE_2, FE_1)(macro, structName, __VA_ARGS__)
 
 #define GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, NAME, ...) NAME
 

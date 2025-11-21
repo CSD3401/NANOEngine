@@ -166,6 +166,7 @@
     <ClInclude Include="Scripts\k1bswitch.hpp" />
     <ClInclude Include="Scripts\k2bswitch.hpp" />
     <ClInclude Include="Scripts\LightSwitch.hpp" />
+    <ClInclude Include="Scripts\MaterialSequencer.hpp" />
     <ClInclude Include="Scripts\ParentControllerScript.hpp" />
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerCamera.hpp" />
