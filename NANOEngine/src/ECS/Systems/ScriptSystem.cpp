@@ -39,9 +39,22 @@ namespace NE::ECS::Systems {
     }
 
     void ScriptSystem::OnEntityRemoved(Entity entity) {
-        // should probably call OnScriptComponentDestroyed here if the entity
-        // has a script component, to ensure proper cleanup.
-        (void)entity;
+        // Clean up script instance when entity is removed
+        if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
+            return;
+        }
+
+        auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+
+        // Destroy script instance if it exists
+        if (nsc.Instance) {
+            // Call OnDestroy and properly clean up
+            Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
+        }
+
+        // Clear function pointers to prevent stale DLL references
+        nsc.CreateScript = nullptr;
+        nsc.DestroyScript = nullptr;
     }
 
     void ScriptSystem::Init() {

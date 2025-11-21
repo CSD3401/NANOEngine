@@ -60,7 +60,20 @@ namespace NE::SceneManagement {
 		m_editorBackup.clear();
 		NE::Serialization::JsonSceneSerializer::SerializeToMemory(*m_editor, m_editorBackup);
 
-		// 2) create runtime scene and load from the same data
+		// 2) Destroy editor scene script instances to prevent memory leaks
+		// We don't need them during play mode - only runtime scene needs active scripts
+		for (NE::ECS::Entity entity : entities) {
+			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+			if (nsc.Instance) {
+				// Properly destroy the instance
+				Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
+			}
+			// Clear function pointers
+			nsc.CreateScript = nullptr;
+			nsc.DestroyScript = nullptr;
+		}
+
+		// 3) create runtime scene and load from the same data
 		m_runtime = std::make_unique<Scene>();
 		NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_runtime, m_editorBackup);
 		m_runtime->Init();
@@ -86,20 +99,18 @@ namespace NE::SceneManagement {
 		m_isPlaying = false;
 		// restore editor scene from backup
 		if (m_editor && !m_editorBackup.empty()) {
-			// CRITICAL: Null out editor script instances before Exit()
-			// During hot reload, only runtime scene was updated. Editor scene scripts
-			// still reference the OLD unloaded DLL, causing crashes in Exit().
-			// We null them out so Exit() doesn't try to call methods on stale DLL code.
+			// NOTE: Editor scene script instances were already destroyed in BeginPlay()
+			// This loop is a safety check in case any instances were somehow created during play
+			// (they shouldn't be, since editor scene isn't updated during play mode)
 			auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
 			for (NE::ECS::Entity entity : entities) {
 				auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
 				if (nsc.Instance) {
-					// Don't call any methods on Instance - it may reference freed DLL!
-					// Don't delete either - the destructor code is in the unloaded DLL!
-					// Just null it out. Scene deserialization will recreate fresh instances.
+					// Safety: null out any unexpected instances
+					// Don't delete - may reference old DLL if hot reload occurred
 					nsc.Instance = nullptr;
 				}
-				// Clear function pointers too (they also reference old DLL)
+				// Clear function pointers
 				nsc.CreateScript = nullptr;
 				nsc.DestroyScript = nullptr;
 			}
