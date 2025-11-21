@@ -248,6 +248,54 @@ namespace Scripting {
     }
 
     //=========================================================================
+    // Hierarchy Operations
+    //=========================================================================
+
+    Entity IScript::GetParent() const {
+        CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return INVALID_ENTITY;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.parent;
+    }
+
+    size_t IScript::GetChildCount() const {
+        CHECK_CONTEXT_OR_RETURN(0);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return 0;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.children.size();
+    }
+
+    Entity IScript::GetChild(size_t index) const {
+        CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return INVALID_ENTITY;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+
+        if (index >= transform.children.size())
+            return INVALID_ENTITY;
+
+        return transform.children[index];
+    }
+
+    std::vector<Entity> IScript::GetChildren() const {
+        CHECK_CONTEXT_OR_RETURN(std::vector<Entity>());
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return std::vector<Entity>();
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.children;
+    }
+
+    //=========================================================================
     // Rigidbody Physics
     //=========================================================================
 

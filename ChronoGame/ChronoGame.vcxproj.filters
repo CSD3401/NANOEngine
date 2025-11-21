@@ -63,6 +63,9 @@
     <ClInclude Include="Scripts\TweenExampleScript.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Scripts\ParentControllerScript.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

@@ -211,6 +211,35 @@ namespace Scripting {
         Vec3 GetUp() const;
 
         //=====================================================================
+        // HIERARCHY OPERATIONS
+        //=====================================================================
+
+        /**
+         * Get the parent entity of this entity.
+         * @return Parent entity ID, or INVALID_ENTITY if no parent
+         */
+        Entity GetParent() const;
+
+        /**
+         * Get the number of child entities.
+         * @return Number of children
+         */
+        size_t GetChildCount() const;
+
+        /**
+         * Get a child entity by index.
+         * @param index The index of the child (0-based)
+         * @return Child entity ID, or INVALID_ENTITY if index out of range
+         */
+        Entity GetChild(size_t index) const;
+
+        /**
+         * Get all child entities.
+         * @return Vector of child entity IDs
+         */
+        std::vector<Entity> GetChildren() const;
+
+        //=====================================================================
         // RIGIDBODY PHYSICS (Unity-style)
         //=====================================================================
 
