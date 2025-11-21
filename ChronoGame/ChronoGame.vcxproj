@@ -166,13 +166,14 @@
     <ClInclude Include="Scripts\k1bswitch.hpp" />
     <ClInclude Include="Scripts\k2bswitch.hpp" />
     <ClInclude Include="Scripts\LightSwitch.hpp" />
+    <ClInclude Include="Scripts\ParentControllerScript.hpp" />
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerCamera.hpp" />
     <ClInclude Include="Scripts\PlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerScript.hpp" />
     <ClInclude Include="Scripts\TestScript.hpp" />
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
-    <ClInclude Include="Scripts\TileDataRegistry.hpp" />
+    <ClInclude Include="Scripts\TweenExampleScript.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />

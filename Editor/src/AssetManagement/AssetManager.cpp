@@ -579,11 +579,11 @@ namespace Editor {
 
     AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {
         std::string e = ToLower(std::string(extension));
-        if (e == "Texture") return AssetType::Texture;
-        else if (e == "Mesh") return AssetType::Mesh;
-        else if (e == "Shader") return AssetType::Shader;
-        else if (e == "Material") return AssetType::Material;
-        else if (e == "Audio") return AssetType::Audio;
+        if (e == "texture") return AssetType::Texture;
+        else if (e == "mesh") return AssetType::Mesh;
+        else if (e == "shader") return AssetType::Shader;
+        else if (e == "material") return AssetType::Material;
+        else if (e == "audio") return AssetType::Audio;
         return AssetType::Unknown;
     }
 
