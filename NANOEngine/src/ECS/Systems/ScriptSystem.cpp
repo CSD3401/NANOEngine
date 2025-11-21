@@ -38,12 +38,6 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void ScriptSystem::OnEntityRemoved(Entity entity) {
-		// should probably call OnScriptComponentDestroyed here if the entity
-		// has a script component, to ensure proper cleanup.
-		(void)entity;
-	}
-
     void ScriptSystem::OnEntityRemoved(Entity entity) {
         // Clean up script instance when entity is removed
         if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {

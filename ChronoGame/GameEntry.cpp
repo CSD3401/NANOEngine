@@ -20,6 +20,7 @@
 #include "Scripts/FollowerScript.hpp"
 #include "Scripts/TweenExampleScript.hpp"
 #include "Scripts/ParentControllerScript.hpp"
+#include "Scripts/MaterialSequencer.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -86,6 +87,10 @@ extern "C" {
 
           registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
               return new ParentControllerScript();
+              });
+
+          registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
+              return new MaterialSequencer();
               });
 
     }
