@@ -18,6 +18,8 @@
 #include "Scripts/PlayerController.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
+#include "Scripts/TweenExampleScript.hpp"
+#include "Scripts/ParentControllerScript.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -77,6 +79,14 @@ extern "C" {
           registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
              return new PlayerController();
            });
+
+          registrar->RegisterScript("TweenExampleScript", []() -> NE::Scripting::IScript* {
+              return new TweenExampleScript();
+              });
+
+          registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
+              return new ParentControllerScript();
+              });
 
     }
 }
