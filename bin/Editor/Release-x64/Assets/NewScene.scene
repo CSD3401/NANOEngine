@@ -2,14 +2,14 @@
     "Entities": [
         {
             "EntityMeta": {
-                "name": "Cube",
+                "name": "Elev",
                 "isActive": 1
             },
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
+                    "y": 1.399999976158142,
+                    "z": 0.20000000298023224
                 },
                 "Scale": {
                     "x": 1.0,
@@ -25,7 +25,7 @@
                 "parentLuid": 0
             },
             "Renderer": {
-                "modelUUID": "builtin:model/cube",
+                "modelUUID": "64ce120a-8510-44e6-9831-1c4c39c06090",
                 "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
             }
         },
@@ -36,22 +36,22 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 0.20398026704788208,
-                    "y": 1.8239973783493042,
-                    "z": 0.8216584920883179
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
                     "x": 0.0,
                     "y": 0.0,
                     "z": 0.0
                 },
+                "Scale": {
+                    "x": 2.0,
+                    "y": 2.0,
+                    "z": 2.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
                 "luid": 8390769055744655362,
-                "parentLuid": 0
+                "parentLuid": 8390884645595447297
             },
             "Light": {
                 "direction": {
@@ -64,7 +64,7 @@
                     "y": 1.0,
                     "z": 1.0
                 },
-                "intensity": 14.100000381469727,
+                "intensity": 2.0,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
@@ -100,6 +100,35 @@
             "Renderer": {
                 "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
                 "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 1.97214674949646,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884645595447297,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
             }
         }
     ]
