@@ -117,6 +117,14 @@ namespace Scripting {
         bool IsActive() const;
 
         /**
+         * Check if the entity is active in the hierarchy.
+         * An entity is active in hierarchy if both it and all its parents are active.
+         * This is Unity-style behavior where parent active state affects children.
+         * @return true if active in hierarchy, false otherwise
+         */
+        bool IsActiveInHierarchy() const;
+
+        /**
          * Set the active state of the entity.
          * Inactive entities stop updating scripts and rendering.
          * Useful for hiding/disabling game objects.
@@ -413,11 +421,14 @@ namespace Scripting {
             std::function<std::string()> getValue,
             std::function<bool(const std::string&)> setValue);
 
-        Entity m_entity = INVALID_ENTITY;
-        bool m_enabled = true;
-        bool m_hasStarted = false;
+        // Helper function for Unity-style hierarchy active state propagation
+        void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
 
-        ScriptContext* m_context = nullptr;  // Opaque pointer to engine internals
+     Entity m_entity = INVALID_ENTITY;
+        bool m_enabled = true;
+  bool m_hasStarted = false;
+
+     ScriptContext* m_context = nullptr;  // Opaque pointer to engine internals
         FieldRegistry* m_fieldRegistry = nullptr;  // Opaque pointer to field storage
     };
 
