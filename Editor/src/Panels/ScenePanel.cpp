@@ -331,6 +331,11 @@ namespace Editor {
 			} else if (hasUIRectTransform) {
 				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
 
+				NE::Graphics::UIRenderer::SetViewportSize(
+					(uint32_t)panelSize.x,
+					(uint32_t)panelSize.y
+				);
+
 				// draw in pixel space
 				float fbWidth = 1920.f;  // temp hardcoded
 				float fbHeight = 1080.f; // temp hardcoded

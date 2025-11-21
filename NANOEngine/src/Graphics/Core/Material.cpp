@@ -8,6 +8,7 @@
 #include "ResourceManagement/BinaryHeaders/NanoMatHeader.hpp"
 #include <glad/glad.h>
 #include <vector>
+#include <iostream>
 
 namespace {
     static bool IsEngineUniform(std::string_view n) {

@@ -10,6 +10,7 @@
 #include "../EngineState.hpp"  // For GetEngineState
 #include "../Engine.hpp"  // For MarkSceneDirty
 #include <Core/SpdLogger.hpp>
+#include <iostream>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -70,6 +71,11 @@ namespace NE::Renderer {
                 SPD_ERROR("[AssignUITexture] Failed to load material with UUID: " << materialUUID);
                 return;
             }
+
+			std::cout << "=== AssignUITexture Debug ===" << std::endl;
+			std::cout << "  Entity: " << e << std::endl;
+			std::cout << "  Texture UUID: " << textureUUID << std::endl;
+			std::cout << "  Material UUID: " << materialUUID << std::endl;
 
             // assign the texture to the material
             img.material->SetTexture("u_BaseMap", textureUUID);

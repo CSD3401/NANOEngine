@@ -20,6 +20,8 @@ namespace NE::Graphics {
     unsigned int UIRenderer::s_CompositeVBO = 0;
     uint32_t UIRenderer::s_ScreenW = 0;
     uint32_t UIRenderer::s_ScreenH = 0;
+    uint32_t UIRenderer::s_ViewportW = 1920;
+    uint32_t UIRenderer::s_ViewportH = 1080;
 
     // shader checks helpers
     static void CheckCompile(GLuint shader, const char* name) {
@@ -305,7 +307,7 @@ namespace NE::Graphics {
             // Use material from the command (set by UIImage component)
             if (!cmd.material) 
             {
-                std::cerr << "[UIRenderer] Warning: Command has no material!" << std::endl;
+                //std::cerr << "[UIRenderer] Warning: Command has no material!" << std::endl;
                 continue;
             }
 
@@ -326,6 +328,45 @@ namespace NE::Graphics {
             float verts[20];
             BuildQuadVertices(cmd, verts);
 
+            static bool debugOnce = false;
+
+            if (!debugOnce) {
+                std::cout << "\n=== Vertex Data Debug ===" << std::endl;
+                std::cout << "Command: x=" << cmd.x << " y=" << cmd.y
+                    << " w=" << cmd.width << " h=" << cmd.height << std::endl;
+
+                std::cout << "Screen size (FBO): " << s_ScreenW << "x" << s_ScreenH << std::endl;
+                std::cout << "Viewport size (Panel): " << s_ViewportW << "x" << s_ViewportH << std::endl;
+
+                std::cout << "\nVertices:" << std::endl;
+                std::cout << "  BL: pos(" << verts[0] << ", " << verts[1] << ", " << verts[2]
+                    << ") uv(" << verts[3] << ", " << verts[4] << ")" << std::endl;
+                std::cout << "  BR: pos(" << verts[5] << ", " << verts[6] << ", " << verts[7]
+                    << ") uv(" << verts[8] << ", " << verts[9] << ")" << std::endl;
+                std::cout << "  TR: pos(" << verts[10] << ", " << verts[11] << ", " << verts[12]
+                    << ") uv(" << verts[13] << ", " << verts[14] << ")" << std::endl;
+                std::cout << "  TL: pos(" << verts[15] << ", " << verts[16] << ", " << verts[17]
+                    << ") uv(" << verts[18] << ", " << verts[19] << ")" << std::endl;
+
+                // Calculate what NDC coords shader will produce
+                float ndcX_left = (verts[0] / s_ViewportW) * 2.0f - 1.0f;
+                float ndcX_right = (verts[5] / s_ViewportW) * 2.0f - 1.0f;
+                float ndcY_bottom = 1.0f - (verts[1] / s_ViewportH) * 2.0f;
+                float ndcY_top = 1.0f - (verts[11] / s_ViewportH) * 2.0f;
+
+                float ndcWidth = ndcX_right - ndcX_left;
+                float ndcHeight = ndcY_bottom - ndcY_top;
+                std::cout << "  NDC size: " << ndcWidth << " x " << ndcHeight << std::endl;
+
+                float expectedScreenWidth = ndcWidth * s_ViewportW * 0.5f;
+                float expectedScreenHeight = ndcHeight * s_ViewportH * 0.5f;
+                std::cout << "  Expected screen size: " << expectedScreenWidth << " x "
+                    << expectedScreenHeight << " pixels" << std::endl;
+
+                std::cout << "======================\n" << std::endl;
+                debugOnce = true;
+            }
+
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
@@ -340,13 +381,13 @@ namespace NE::Graphics {
             case 0: // overlay mode
                 glDisable(GL_DEPTH_TEST);
                 shader->SetUniformVec2("uScreenSize",
-                    NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                    NE::Math::Vec2((float)s_ViewportW, (float)s_ViewportH));
                 break;
 
             case 1: // camera mode
                 glDisable(GL_DEPTH_TEST);
                 shader->SetUniformVec2("uScreenSize",
-                    NE::Math::Vec2(s_ScreenW, s_ScreenH));
+                    NE::Math::Vec2(s_ViewportW, s_ViewportH));
                 shader->SetUniformMat4("uView", cmd.viewMatrix);
                 shader->SetUniformMat4("uProj", cmd.projMatrix);
                 shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
@@ -440,18 +481,6 @@ namespace NE::Graphics {
         }
     }
 
-    //uint32_t UIRenderer::ReadPickId(int x, int y) {
-    //    glBindFramebuffer(GL_READ_FRAMEBUFFER, s_PickingFBO->GetFramebuffer());
-    //    unsigned char rgba[4] = {};
-    //    glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
-    //    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    //    uint32_t id = (uint32_t)rgba[0]
-    //        | (uint32_t(rgba[1]) << 8)
-    //        | (uint32_t(rgba[2]) << 16)
-    //        | (uint32_t(rgba[3]) << 24);
-    //    return id;
-    //}
-
     void UIRenderer::Shutdown() {
         // delete OpenGL resources
         if (s_VBO) 
@@ -500,5 +529,10 @@ namespace NE::Graphics {
         s_Commands.clear();
         s_FBO.reset();
         //s_PickingFBO.reset();
+    }
+
+    void UIRenderer::SetViewportSize(uint32_t width, uint32_t height) {
+        s_ViewportW = width;
+        s_ViewportH = height;
     }
 }

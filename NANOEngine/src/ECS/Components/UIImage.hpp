@@ -12,7 +12,7 @@ namespace NE::ECS::Component {
         std::string luid;
         std::string textureUUID;
         std::shared_ptr<NE::Graphics::Material> material;
-        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 0.f }; // tint
+        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 1.f }; // tint
         int renderMode = 0;
         bool isDirty = false;
     };

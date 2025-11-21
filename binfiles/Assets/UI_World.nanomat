@@ -1,5 +1,5 @@
 {
-    "Shader": "UI_World",
+    "Shader": "neunlit",
     "DepthTest": true,
     "BlendMode": true,
     "CullMode": 0,

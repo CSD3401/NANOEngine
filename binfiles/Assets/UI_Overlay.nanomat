@@ -1,5 +1,5 @@
 {
-    "Shader": "UI_Overlay",
+    "Shader": "neunlit",
     "DepthTest": false,
     "BlendMode": true,
     "CullMode": 0,
