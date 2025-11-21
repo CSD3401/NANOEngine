@@ -433,7 +433,7 @@ namespace NE::Graphics {
         }
 
         // bind default framebuffer (screen)
-        glBindFramebuffer(GL_FRAMEBUFFER, 1);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // ensure viewport matches screen size
         glViewport(0, 0, s_ScreenW, s_ScreenH);
