@@ -8,7 +8,7 @@
 namespace NE::ECS::Component {
     struct NativeScript {
         std::string ScriptName; // The name of the script class, e.g., "PlayerScript"
-        
+
         IScript* Instance = nullptr;
 
         // Function pointers to create and destroy the script instance.
@@ -29,8 +29,14 @@ namespace NE::ECS::Component {
         }
         uint64_t luid;
 
-        // Unbind is handled automatically when the component is destroyed.
-        // The ScriptSystem will call DestroyScript(Instance).
+        // Destructor to safely clear function pointers
+        // This prevents crashes when DLLs are unloaded before components are destroyed
+        ~NativeScript() {
+            // Clear function pointers to prevent accessing unloaded DLL memory
+            CreateScript = nullptr;
+            DestroyScript = nullptr;
+            // Note: Instance should have been cleaned up by ScriptSystem before this point
+        }
 
         NE_REFLECT_BEGIN(NativeScript)
             NE_REFLECT_FIELD(ScriptName)

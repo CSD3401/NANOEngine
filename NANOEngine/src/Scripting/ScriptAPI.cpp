@@ -25,6 +25,7 @@
 #include "../Events/EventBus.hpp"
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 #include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
+#include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
 
 #include <sstream>
 #include <unordered_map>
@@ -244,6 +245,54 @@ namespace Scripting {
         // Up is always world up in this simple implementation
         // For more complex scenarios, you might want to calculate it from forward and right
         return Vec3(0.0f, 1.0f, 0.0f);
+    }
+
+    //=========================================================================
+    // Hierarchy Operations
+    //=========================================================================
+
+    Entity IScript::GetParent() const {
+        CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return INVALID_ENTITY;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.parent;
+    }
+
+    size_t IScript::GetChildCount() const {
+        CHECK_CONTEXT_OR_RETURN(0);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return 0;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.children.size();
+    }
+
+    Entity IScript::GetChild(size_t index) const {
+        CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return INVALID_ENTITY;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+
+        if (index >= transform.children.size())
+            return INVALID_ENTITY;
+
+        return transform.children[index];
+    }
+
+    std::vector<Entity> IScript::GetChildren() const {
+        CHECK_CONTEXT_OR_RETURN(std::vector<Entity>());
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return std::vector<Entity>();
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.children;
     }
 
     //=========================================================================
@@ -950,41 +999,136 @@ namespace Scripting {
     void IScript::SetActive(bool active) {
         if (!m_context->componentManager) return;
 
-        if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+    if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
             auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
 
-            // Only update if changed
-            if (meta.isActive != active) {
-                meta.isActive = active;
+    // Only update if changed
+    if (meta.isActive != active) {
+         meta.isActive = active;
 
-                // 1. Disable rendering if entity has Renderer component
-                if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
-                    auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
-                    renderer.visible = active;
-                }
+ // 1. Update rendering visibility
+    if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
+        auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
+ renderer.visible = active && IsActiveInHierarchy();
+      }
 
-                // 2. Disable physics interaction if entity has physics body
-                if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
-                    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+     // 2. Update physics state
+      if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
+        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
 
-                    if (active) {
-                        // Reactivate physics body
-                        NE::Physics::PhysicsManager::ActivateBody(bodyID);
-                    }
-                    else {
-                        // Deactivate physics body (stops collision and physics simulation)
-                        NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-                    }
-                }
+    if (active && IsActiveInHierarchy()) {
+               // Reactivate physics body only if parent hierarchy is also active
+    NE::Physics::PhysicsManager::ActivateBody(bodyID);
+      }
+               else {
+    // Deactivate physics body (stops collision and physics simulation)
+      NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+          }
+ }
 
-                // TODO: 3. Recursively propagate to children when hierarchy system is implemented
-                // For now, this affects only the current entity
+                // 3. Update script enabled state (NEW!)
+           // When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
+       // No need to manually disable here - the hierarchy check in ScriptSystem handles it
 
-                // Mark scene dirty when active state changes (Edit mode only)
-                if (NE::GetEngineState() == NE::EngineState::Edit) {
-                    NE::MarkSceneDirty();
-                }
+                // 4. Recursively propagate to all children (Unity-style)
+                if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
+         auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
+      PropagateActiveStateToChildren(transform.children, active);
+   }
+
+    // Mark scene dirty ONLY when called from a running script in Edit mode
+    // Not during scene deserialization or Play mode
+  if (NE::GetEngineState() == NE::EngineState::Edit && m_hasStarted) {
+          NE::MarkSceneDirty();
+}
+        }
+        }
+    }
+
+    bool IScript::IsActiveInHierarchy() const {
+        if (!m_context || !m_context->componentManager) return false;
+
+        // Check if this entity is active
+        if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+            return true; // Default to active if no EntityMeta
+        }
+
+        auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
+        if (!meta.isActive) {
+            return false; // This entity is disabled
+        }
+
+        // Check if any parent in the hierarchy is disabled
+        if (!m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
+            return true; // No parent, just check self
+        }
+
+        auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
+        if (transform.parent == NE::ECS::Component::INVALID_PARENT) {
+            return true; // No parent, entity is active
+        }
+
+        // Recursively check parent active state
+        Entity currentParent = transform.parent;
+        while (currentParent != NE::ECS::Component::INVALID_PARENT) {
+            if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(currentParent)) {
+                break; // Parent has no EntityMeta, assume active
             }
+
+            auto& parentMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(currentParent);
+            if (!parentMeta.isActive) {
+                return false; // Parent is disabled, so this entity is inactive in hierarchy
+            }
+
+            // Move up the hierarchy
+            if (!m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(currentParent)) {
+                break; // No transform on parent, we're done
+            }
+
+            auto& parentTransform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(currentParent);
+            currentParent = parentTransform.parent;
+        }
+
+        return true; // All parents are active
+    }
+
+    void IScript::PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const {
+        if (!m_context || !m_context->componentManager) return;
+
+        for (Entity childEntity : children) {
+            // Get child's own isActive state
+            if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
+                continue;
+            }
+
+            auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
+            
+            // Determine effective active state: parent must be active AND child must be active
+            bool effectiveActive = parentActive && childMeta.isActive;
+
+            // Update child's rendering
+            if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
+                auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
+                renderer.visible = effectiveActive;
+            }
+
+          // Update child's physics
+      if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
+        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
+
+  if (effectiveActive) {
+  NE::Physics::PhysicsManager::ActivateBody(bodyID);
+           }
+            else {
+  NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+    }
+     }
+
+  // Recursively propagate to grandchildren
+            if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(childEntity)) {
+         auto& childTransform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(childEntity);
+  PropagateActiveStateToChildren(childTransform.children, effectiveActive);
+   }
         }
     }
 
@@ -1090,6 +1234,183 @@ namespace Scripting {
 
     void ClearScriptEventListeners() {
         NANOEngine::Events::ClearScriptEventListeners();
+    }
+
+    //=========================================================================
+    // TWEEN API IMPLEMENTATION (Wrapper to adapt lambdas to TweenManager)
+    //=========================================================================
+
+    // Wrapper objects that adapt lambda callbacks to member function pointers
+    // These are lightweight adapters - TweenManager handles all the actual tweening logic
+
+    // Wrapper for lambda-based tweens (receives normalized time 0-1)
+    struct LambdaTweenWrapper {
+        std::function<void(float)> callback;
+        Entity entity;
+
+        void SetValue(float value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Wrapper for Vec3 tweens
+    struct Vec3TweenWrapper {
+        std::function<void(const Vec3&)> callback;
+        Entity entity;
+
+        void SetValue(const Vec3& value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Wrapper for float tweens
+    struct FloatTweenWrapper {
+        std::function<void(float)> callback;
+        Entity entity;
+
+        void SetValue(float value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Global tween wrapper tracking for cleanup
+    static std::unordered_map<TweenHandle, void*> s_tweenWrappers;
+    static TweenHandle s_nextTweenHandle = 1;
+
+    // Helper to convert SDK TweenType to engine TweenType
+    inline ::TweenType ToEngineTweenType(TweenType type) {
+        return static_cast<::TweenType>(static_cast<int>(type));
+    }
+
+    TweenHandle StartTweenLambda(
+        std::function<void(float)> updateFunc,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new LambdaTweenWrapper{updateFunc, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &LambdaTweenWrapper::SetValue,
+            0.0f,
+            1.0f,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    TweenHandle StartTweenVec3(
+        std::function<void(const Vec3&)> setter,
+        const Vec3& start,
+        const Vec3& end,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new Vec3TweenWrapper{setter, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &Vec3TweenWrapper::SetValue,
+            start,
+            end,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    TweenHandle StartTweenFloat(
+        std::function<void(float)> setter,
+        float start,
+        float end,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new FloatTweenWrapper{setter, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &FloatTweenWrapper::SetValue,
+            start,
+            end,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    bool CheckEntityTween(Entity entity) {
+        // Check if any wrapper belongs to this entity
+        for (const auto& [handle, wrapperPtr] : s_tweenWrappers) {
+            // Try each wrapper type
+            auto* lambdaWrapper = static_cast<LambdaTweenWrapper*>(wrapperPtr);
+            if (TweenManager::Get().CheckTween(lambdaWrapper) && lambdaWrapper->entity == entity) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void StopTween(TweenHandle handle) {
+        auto it = s_tweenWrappers.find(handle);
+        if (it != s_tweenWrappers.end()) {
+            // The wrapper will be cleaned up automatically by TweenManager when tween becomes inactive
+            // We just remove our handle tracking
+            s_tweenWrappers.erase(it);
+        }
+    }
+
+    void StopEntityTweens(Entity entity) {
+        // Remove all wrapper handles for this entity
+        // TweenManager will clean up the actual tweens when they become inactive
+        for (auto it = s_tweenWrappers.begin(); it != s_tweenWrappers.end();) {
+            void* wrapperPtr = it->second;
+
+            // Check wrapper entity (simplified type check)
+            bool shouldErase = false;
+            if (auto* wrapper = static_cast<LambdaTweenWrapper*>(wrapperPtr)) {
+                if (wrapper->entity == entity) {
+                    shouldErase = true;
+                }
+            }
+
+            if (shouldErase) {
+                it = s_tweenWrappers.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    void ClearAllTweens() {
+        // Use TweenManager's Clean() function to clear all tweens
+        TweenManager::Get().Clean();
+        s_tweenWrappers.clear();
     }
 
 } // namespace Scripting

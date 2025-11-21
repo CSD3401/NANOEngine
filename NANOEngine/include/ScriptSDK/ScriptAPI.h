@@ -117,6 +117,14 @@ namespace Scripting {
         bool IsActive() const;
 
         /**
+         * Check if the entity is active in the hierarchy.
+         * An entity is active in hierarchy if both it and all its parents are active.
+         * This is Unity-style behavior where parent active state affects children.
+         * @return true if active in hierarchy, false otherwise
+         */
+        bool IsActiveInHierarchy() const;
+
+        /**
          * Set the active state of the entity.
          * Inactive entities stop updating scripts and rendering.
          * Useful for hiding/disabling game objects.
@@ -209,6 +217,35 @@ namespace Scripting {
         Vec3 GetForward() const;
         Vec3 GetRight() const;
         Vec3 GetUp() const;
+
+        //=====================================================================
+        // HIERARCHY OPERATIONS
+        //=====================================================================
+
+        /**
+         * Get the parent entity of this entity.
+         * @return Parent entity ID, or INVALID_ENTITY if no parent
+         */
+        Entity GetParent() const;
+
+        /**
+         * Get the number of child entities.
+         * @return Number of children
+         */
+        size_t GetChildCount() const;
+
+        /**
+         * Get a child entity by index.
+         * @param index The index of the child (0-based)
+         * @return Child entity ID, or INVALID_ENTITY if index out of range
+         */
+        Entity GetChild(size_t index) const;
+
+        /**
+         * Get all child entities.
+         * @return Vector of child entity IDs
+         */
+        std::vector<Entity> GetChildren() const;
 
         //=====================================================================
         // RIGIDBODY PHYSICS (Unity-style)
@@ -384,11 +421,14 @@ namespace Scripting {
             std::function<std::string()> getValue,
             std::function<bool(const std::string&)> setValue);
 
-        Entity m_entity = INVALID_ENTITY;
-        bool m_enabled = true;
-        bool m_hasStarted = false;
+        // Helper function for Unity-style hierarchy active state propagation
+        void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
 
-        ScriptContext* m_context = nullptr;  // Opaque pointer to engine internals
+     Entity m_entity = INVALID_ENTITY;
+        bool m_enabled = true;
+  bool m_hasStarted = false;
+
+     ScriptContext* m_context = nullptr;  // Opaque pointer to engine internals
         FieldRegistry* m_fieldRegistry = nullptr;  // Opaque pointer to field storage
     };
 
@@ -597,6 +637,116 @@ namespace Scripting {
      */
     SCRIPT_API void ClearScriptEventListeners();
 
+    //=========================================================================
+    // TWEEN API (SDK-level tween/animation functions)
+    //=========================================================================
+
+    /// Tween type enumeration for different interpolation curves
+    enum class TweenType {
+        LINEAR = 0,
+        EASE_IN,
+        EASE_OUT,
+        EASE_BOTH,
+        CUBIC_EASE_IN,
+        CUBIC_EASE_OUT,
+        CUBIC_EASE_BOTH
+    };
+
+    /// Opaque handle to a tween animation
+    using TweenHandle = unsigned int;
+
+    /**
+     * @brief Start a tween animation using a lambda/callback function
+     * @param updateFunc Callback function that receives the interpolated value (0.0 to 1.0)
+     * @param duration Duration of the tween in seconds
+     * @param type The interpolation curve type
+     * @param entity Optional entity to associate with this tween (for CheckTween)
+     * @return Handle to the created tween
+     *
+     * Example:
+     * @code
+     * Vec3 startPos = GetPosition();
+     * Vec3 targetPos = Vec3(10, 0, 0);
+     * StartTweenLambda([this, startPos, targetPos](float t) {
+     *     SetPosition(startPos + (targetPos - startPos) * t);
+     * }, 2.0f, TweenType::LINEAR, GetEntity());
+     * @endcode
+     */
+    SCRIPT_API TweenHandle StartTweenLambda(
+        std::function<void(float)> updateFunc,
+        float duration,
+        TweenType type = TweenType::CUBIC_EASE_IN,
+        Entity entity = 0
+    );
+
+    /**
+     * @brief Start a tween for Vec3 values (position, rotation, scale)
+     * @param setter Function to call with interpolated Vec3 value
+     * @param start Starting Vec3 value
+     * @param end Ending Vec3 value
+     * @param duration Duration of the tween in seconds
+     * @param type The interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the created tween
+     *
+     * Example:
+     * @code
+     * StartTweenVec3([this](const Vec3& pos) { SetPosition(pos); },
+     *                GetPosition(), Vec3(10, 0, 0), 2.0f, TweenType::LINEAR, GetEntity());
+     * @endcode
+     */
+    SCRIPT_API TweenHandle StartTweenVec3(
+        std::function<void(const Vec3&)> setter,
+        const Vec3& start,
+        const Vec3& end,
+        float duration,
+        TweenType type = TweenType::CUBIC_EASE_IN,
+        Entity entity = 0
+    );
+
+    /**
+     * @brief Start a tween for float values
+     * @param setter Function to call with interpolated float value
+     * @param start Starting float value
+     * @param end Ending float value
+     * @param duration Duration of the tween in seconds
+     * @param type The interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the created tween
+     */
+    SCRIPT_API TweenHandle StartTweenFloat(
+        std::function<void(float)> setter,
+        float start,
+        float end,
+        float duration,
+        TweenType type = TweenType::CUBIC_EASE_IN,
+        Entity entity = 0
+    );
+
+    /**
+     * @brief Check if an entity has any active tweens
+     * @param entity The entity to check
+     * @return true if the entity has active tweens, false otherwise
+     */
+    SCRIPT_API bool CheckEntityTween(Entity entity);
+
+    /**
+     * @brief Stop a specific tween by handle
+     * @param handle The tween handle to stop
+     */
+    SCRIPT_API void StopTween(TweenHandle handle);
+
+    /**
+     * @brief Stop all tweens associated with an entity
+     * @param entity The entity whose tweens should be stopped
+     */
+    SCRIPT_API void StopEntityTweens(Entity entity);
+
+    /**
+     * @brief Clear all active tweens
+     */
+    SCRIPT_API void ClearAllTweens();
+
 } // namespace Scripting
 } // namespace NE
 
@@ -667,6 +817,103 @@ namespace Log {
     }
     inline void Critical(const std::string& message, const std::string& file = "", int line = -1) {
         NE::Scripting::Log(NE::Scripting::LogLevel::Critical, message, file, line);
+    }
+}
+
+/// Tween system namespace - animation and interpolation
+namespace Tweener {
+    using Handle = NE::Scripting::TweenHandle;
+    using Type = NE::Scripting::TweenType;
+
+    /**
+     * @brief Start a tween using a lambda function that receives normalized time (0.0 to 1.0)
+     * @param updateFunc Callback that receives interpolated value from 0.0 to 1.0
+     * @param duration Duration in seconds
+     * @param type Interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the tween
+     */
+    inline Handle StartLambda(
+        std::function<void(float)> updateFunc,
+        float duration,
+        Type type = Type::CUBIC_EASE_IN,
+        NE::Scripting::Entity entity = 0)
+    {
+        return NE::Scripting::StartTweenLambda(updateFunc, duration, type, entity);
+    }
+
+    /**
+     * @brief Start a tween for Vec3 values
+     * @param setter Function to call with interpolated Vec3
+     * @param start Starting value
+     * @param end Ending value
+     * @param duration Duration in seconds
+     * @param type Interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the tween
+     */
+    inline Handle StartVec3(
+        std::function<void(const NE::Scripting::Vec3&)> setter,
+        const NE::Scripting::Vec3& start,
+        const NE::Scripting::Vec3& end,
+        float duration,
+        Type type = Type::CUBIC_EASE_IN,
+        NE::Scripting::Entity entity = 0)
+    {
+        return NE::Scripting::StartTweenVec3(setter, start, end, duration, type, entity);
+    }
+
+    /**
+     * @brief Start a tween for float values
+     * @param setter Function to call with interpolated float
+     * @param start Starting value
+     * @param end Ending value
+     * @param duration Duration in seconds
+     * @param type Interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the tween
+     */
+    inline Handle StartFloat(
+        std::function<void(float)> setter,
+        float start,
+        float end,
+        float duration,
+        Type type = Type::CUBIC_EASE_IN,
+        NE::Scripting::Entity entity = 0)
+    {
+        return NE::Scripting::StartTweenFloat(setter, start, end, duration, type, entity);
+    }
+
+    /**
+     * @brief Check if an entity has any active tweens
+     * @param entity The entity to check
+     * @return true if entity has active tweens
+     */
+    inline bool CheckEntity(NE::Scripting::Entity entity) {
+        return NE::Scripting::CheckEntityTween(entity);
+    }
+
+    /**
+     * @brief Stop a specific tween
+     * @param handle The tween handle to stop
+     */
+    inline void Stop(Handle handle) {
+        NE::Scripting::StopTween(handle);
+    }
+
+    /**
+     * @brief Stop all tweens associated with an entity
+     * @param entity The entity whose tweens to stop
+     */
+    inline void StopEntity(NE::Scripting::Entity entity) {
+        NE::Scripting::StopEntityTweens(entity);
+    }
+
+    /**
+     * @brief Clear all active tweens
+     */
+    inline void Clear() {
+        NE::Scripting::ClearAllTweens();
     }
 }
 
