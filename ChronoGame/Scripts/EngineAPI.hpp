@@ -126,15 +126,15 @@ using Bool = ScriptFieldType::Bool;
 using String = ScriptFieldType::String;
 // Note: Vec3 type alias is in ChronoGame namespace below
 
-// SCRIPT_FIELD macro - currently a no-op for SDK scripts
+// SCRIPT_FIELD macro - registers fields for editor exposure
 // Usage: SCRIPT_FIELD(myFloatField, Float)
 #define SCRIPT_FIELD(fieldName, fieldType) \
-    ((void)0)  // No-op: field registration is handled by reflection system
+    Register##fieldType##Field(#fieldName, &this->fieldName)
 
-// SCRIPT_COMPONENT_REF macro - currently a no-op for SDK scripts
+// SCRIPT_COMPONENT_REF macro - registers component references for editor exposure
 // Usage: SCRIPT_COMPONENT_REF(targetTransform, Transform)
 #define SCRIPT_COMPONENT_REF(refName, componentType) \
-    ((void)0)  // No-op: component references are managed automatically
+    Register##componentType##RefField(#refName, &this->refName)
 
 // ============ CONVENIENCE NAMESPACES (GLOBAL SCOPE) ============
 // Similar pattern to Input, Events, Coroutines namespaces in ScriptAPI.h

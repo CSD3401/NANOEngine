@@ -25,6 +25,7 @@
 #include "../Events/EventBus.hpp"
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 #include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
+#include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
 
 #include <sstream>
 #include <unordered_map>
@@ -1185,6 +1186,183 @@ namespace Scripting {
 
     void ClearScriptEventListeners() {
         NANOEngine::Events::ClearScriptEventListeners();
+    }
+
+    //=========================================================================
+    // TWEEN API IMPLEMENTATION (Wrapper to adapt lambdas to TweenManager)
+    //=========================================================================
+
+    // Wrapper objects that adapt lambda callbacks to member function pointers
+    // These are lightweight adapters - TweenManager handles all the actual tweening logic
+
+    // Wrapper for lambda-based tweens (receives normalized time 0-1)
+    struct LambdaTweenWrapper {
+        std::function<void(float)> callback;
+        Entity entity;
+
+        void SetValue(float value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Wrapper for Vec3 tweens
+    struct Vec3TweenWrapper {
+        std::function<void(const Vec3&)> callback;
+        Entity entity;
+
+        void SetValue(const Vec3& value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Wrapper for float tweens
+    struct FloatTweenWrapper {
+        std::function<void(float)> callback;
+        Entity entity;
+
+        void SetValue(float value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Global tween wrapper tracking for cleanup
+    static std::unordered_map<TweenHandle, void*> s_tweenWrappers;
+    static TweenHandle s_nextTweenHandle = 1;
+
+    // Helper to convert SDK TweenType to engine TweenType
+    inline ::TweenType ToEngineTweenType(TweenType type) {
+        return static_cast<::TweenType>(static_cast<int>(type));
+    }
+
+    TweenHandle StartTweenLambda(
+        std::function<void(float)> updateFunc,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new LambdaTweenWrapper{updateFunc, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &LambdaTweenWrapper::SetValue,
+            0.0f,
+            1.0f,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    TweenHandle StartTweenVec3(
+        std::function<void(const Vec3&)> setter,
+        const Vec3& start,
+        const Vec3& end,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new Vec3TweenWrapper{setter, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &Vec3TweenWrapper::SetValue,
+            start,
+            end,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    TweenHandle StartTweenFloat(
+        std::function<void(float)> setter,
+        float start,
+        float end,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new FloatTweenWrapper{setter, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &FloatTweenWrapper::SetValue,
+            start,
+            end,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    bool CheckEntityTween(Entity entity) {
+        // Check if any wrapper belongs to this entity
+        for (const auto& [handle, wrapperPtr] : s_tweenWrappers) {
+            // Try each wrapper type
+            auto* lambdaWrapper = static_cast<LambdaTweenWrapper*>(wrapperPtr);
+            if (TweenManager::Get().CheckTween(lambdaWrapper) && lambdaWrapper->entity == entity) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void StopTween(TweenHandle handle) {
+        auto it = s_tweenWrappers.find(handle);
+        if (it != s_tweenWrappers.end()) {
+            // The wrapper will be cleaned up automatically by TweenManager when tween becomes inactive
+            // We just remove our handle tracking
+            s_tweenWrappers.erase(it);
+        }
+    }
+
+    void StopEntityTweens(Entity entity) {
+        // Remove all wrapper handles for this entity
+        // TweenManager will clean up the actual tweens when they become inactive
+        for (auto it = s_tweenWrappers.begin(); it != s_tweenWrappers.end();) {
+            void* wrapperPtr = it->second;
+
+            // Check wrapper entity (simplified type check)
+            bool shouldErase = false;
+            if (auto* wrapper = static_cast<LambdaTweenWrapper*>(wrapperPtr)) {
+                if (wrapper->entity == entity) {
+                    shouldErase = true;
+                }
+            }
+
+            if (shouldErase) {
+                it = s_tweenWrappers.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    void ClearAllTweens() {
+        // Use TweenManager's Clean() function to clear all tweens
+        TweenManager::Get().Clean();
+        s_tweenWrappers.clear();
     }
 
 } // namespace Scripting
