@@ -27,6 +27,11 @@ public:
     }
 
     void Initialize(Entity entity) override {
+        
+    }
+
+    void Start() override {
+
         // Log how many children this entity has
         size_t childCount = GetChildCount();
         LOG_INFO("ParentController initialized with " << childCount << " children");
@@ -34,11 +39,9 @@ public:
         // Log information about each child
         for (size_t i = 0; i < childCount; ++i) {
             Entity childEntity = GetChild(i);
-            LOG_INFO("  Child " << i << " has entity ID: "<< childEntity);
+            LOG_INFO("  Child " << i << " has entity ID: " << childEntity);
         }
-    }
 
-    void Start() override {
         initialRotation = GetRotation();
     }
 
