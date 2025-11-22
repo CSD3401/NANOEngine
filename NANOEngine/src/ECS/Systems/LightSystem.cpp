@@ -3,6 +3,7 @@
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../ECS/Components/Transform.hpp"
 #include "../Components/Light.hpp"
+#include "Core/SpdLogger.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -41,6 +42,7 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void LightSystem::Exit() {}
+    void LightSystem::Exit() {
+    }
 
 }
