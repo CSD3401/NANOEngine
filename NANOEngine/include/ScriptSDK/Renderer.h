@@ -22,7 +22,15 @@ namespace Renderer {
     //=========================================================================
 
     namespace Query {
-        // Future query functions can go here
+        /// Get the model UUID assigned to an entity
+        /// @param e Entity ID
+        /// @return Model UUID string, or "empty uuid" if none assigned
+        __declspec(dllimport) std::string GetModel(uint32_t e);
+
+        /// Get the material UUID assigned to an entity
+        /// @param e Entity ID
+        /// @return Material UUID string, or "empty uuid" if none assigned
+        __declspec(dllimport) std::string GetMaterial(uint32_t e);
     }
 
     //=========================================================================
