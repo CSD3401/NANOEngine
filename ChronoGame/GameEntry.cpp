@@ -21,6 +21,7 @@
 #include "Scripts/MatchingPuzzle.hpp"
 #include "Scripts/TweenExampleScript.hpp"
 #include "Scripts/ParentControllerScript.hpp"
+#include "Scripts/MaterialSequencer.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -91,6 +92,10 @@ extern "C" {
               
         registrar->RegisterScript("MatchingPuzzle", []() -> NE::Scripting::IScript* {
               return new MatchingPuzzle();
+              });
+
+          registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
+              return new MaterialSequencer();
               });
 
     }

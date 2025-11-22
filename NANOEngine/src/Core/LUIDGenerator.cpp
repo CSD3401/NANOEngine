@@ -18,9 +18,9 @@ namespace NE::Core {
 	}
 
 	uint32_t LUIDGenerator::GetTimeInSeconds() {
-		static auto start = std::chrono::steady_clock::now();
-		auto now = std::chrono::steady_clock::now();
-		return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(now - start).count());
+		auto now = std::chrono::system_clock::now();
+		auto sec = duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+		return static_cast<uint32_t>(sec);
 	}
 
 }
