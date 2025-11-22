@@ -1,0 +1,53 @@
+{
+    "Entities": [
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884651407966209,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "MaterialSwapperExample",
+                "SerializedFields": {
+                    "materialA_UUID": "",
+                    "autoRun": "0",
+                    "rayParent": "0",
+                    "isActive": "1",
+                    "materialB_UUID": "",
+                    "delayBetween": "0.250000",
+                    "rayDistance": "100.000000",
+                    "target1": "0",
+                    "target2": "0",
+                    "target3": "0",
+                    "target4": "0",
+                    "target5": "0",
+                    "attached1": "0",
+                    "attached2": "0",
+                    "attached3": "0",
+                    "attached4": "0",
+                    "attached5": "0",
+                    "clickRayOrigin": "0",
+                    "layerMask": "-1"
+                }
+            }
+        }
+    ]
+}

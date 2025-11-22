@@ -105,6 +105,9 @@ namespace NE {
 // Exposed field registry (for advanced editor integration)
 #include "../ExposedFieldRegistry.hpp"
 
+// ScriptBase - CRTP helper for automatic inspector interface (recommended)
+#include "ScriptBase.hpp"
+
 // ============ SCRIPT FIELD MACROS ============
 // Note: SCRIPT_FIELD is a legacy macro that is now a no-op for SDK scripts.
 // Field registration is handled automatically by the engine's reflection system

@@ -1,0 +1,6 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "b9266479-063b-4c70-a4a3-b6c4e365f97c",
+    "assetType": "Shader",
+    "sourcePath": "Assets/Shaders\\Lit_BlinnPhong.nanoshader"
+}

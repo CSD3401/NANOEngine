@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "EngineAPI.hpp"
+#include "ScriptBase.hpp"
 
 void DelayedPrintUpdate() {
 	LOG_DEBUG("hi 3 seconds over player");
@@ -12,9 +12,9 @@ void DelayedPrintUpdate() {
 
 /**
  * Example player script demonstrating how to implement IScript.
- * Now uses the built-in field system from IScript base class.
+ * Now uses ScriptBase for automatic inspector interface.
  */
-class PlayerScript : public IScript {
+class PlayerScript : public ScriptBase<PlayerScript> {
 public:
 	// Example enum for testing
 	enum class PlayerState {
@@ -244,38 +244,6 @@ public:
 		//LOG_DEBUG("PlayerScript trigger exit with entity {}", other);
 	}
 
-	// === Exposed editable fields via registry ===
-	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
-	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
-	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { return m_fields.SetValue(name, value); }
-
-	// Enum support
-	std::vector<std::string> GetEnumOptions(const std::string& fieldName) const override {
-		return m_fields.GetEnumOptions(fieldName);
-	}
-
-	// Array/Vector support
-	size_t GetArraySize(const std::string& fieldName) const override {
-		return m_fields.GetArraySize(fieldName);
-	}
-
-	std::string GetArrayElement(const std::string& fieldName, size_t index) const override {
-		return m_fields.GetArrayElement(fieldName, index);
-	}
-
-	bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) override {
-		return m_fields.SetArrayElement(fieldName, index, value);
-	}
-
-	void AddArrayElement(const std::string& fieldName) override {
-		m_fields.AddArrayElement(fieldName);
-	}
-
-	void RemoveArrayElement(const std::string& fieldName, size_t index) override {
-		m_fields.RemoveArrayElement(fieldName, index);
-	}
-
 private:
 	double m_timeSinceLastLog = 0.0;
 	static constexpr double LOG_INTERVAL = 2.0;
@@ -299,9 +267,6 @@ private:
 
 	// Coroutine
 	CoroutineHandle chandle;
-
-	// Field registry
-	ExposedFieldRegistry m_fields;
 };
 
 // Register the PlayerState enum at global scope for automatic name extraction

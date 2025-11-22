@@ -1,18 +1,18 @@
 #pragma once
-#include "EngineAPI.hpp"
+#include "ScriptBase.hpp"
 
 /**
  * ColourSwapManager - Auto-generated script template
  * Implement your game logic in the lifecycle methods below.
  */
-class ColourSwapManager : public IScript {
+class ColourSwapManager : public ScriptBase<ColourSwapManager> {
 public:
 	ColourSwapManager() {
 		// Register any editable fields here
 		// Example: SCRIPT_FIELD(speed, Float);
 		SCRIPT_FIELD(isActive, Bool);
 		SCRIPT_FIELD(numColourChildren, Int);
-		//REGISTER_VECTOR(colours);
+		REGISTER_VECTOR(colours);  // Now uncommented - will work!
 		REGISTER_VECTOR(flags);
 		flags = { true, false, true, false, true };
 		std::cout << "[ColourSwapManager] Created with fields registered" << std::endl;
@@ -179,9 +179,4 @@ private:
 			NE::Renderer::Command::AssignMaterial(child, colours[0]);
 		}
 	}
-
-	// Field registry for exposing variables to the editor
-	ExposedFieldRegistry m_fields;
-
-
 };
