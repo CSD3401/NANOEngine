@@ -25,6 +25,8 @@
 
 
 namespace NE::Graphics {
+    uint32_t GraphicsManager::s_ScreenWidth = 1920;
+    uint32_t GraphicsManager::s_ScreenHeight = 1080;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
@@ -94,10 +96,10 @@ namespace NE::Graphics {
         // initialize UI renderer
         GLint viewport[4];
         glGetIntegerv(GL_VIEWPORT, viewport);
-        uint32_t width = static_cast<uint32_t>(viewport[2]);
-        uint32_t height = static_cast<uint32_t>(viewport[3]);
+        s_ScreenWidth = static_cast<uint32_t>(viewport[2]);
+        s_ScreenHeight = static_cast<uint32_t>(viewport[3]);
 
-        UIRenderer::Init(width, height);
+        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight);
     }
 
     void GraphicsManager::BeginFrame() 
@@ -325,6 +327,14 @@ namespace NE::Graphics {
 
     IStateCache* GraphicsManager::GetStateCache() {
         return s_StateCache.get();
+    }
+
+    uint32_t GraphicsManager::GetScreenWidth() {
+        return s_ScreenWidth;
+    }
+
+    uint32_t GraphicsManager::GetScreenHeight() {
+        return s_ScreenHeight;
     }
 
     // Debug drawing test code

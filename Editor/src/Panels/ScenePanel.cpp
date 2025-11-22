@@ -16,6 +16,7 @@ namespace Editor {
 	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
+	static bool s_usingUIGizmo = false;
 
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
@@ -149,7 +150,7 @@ namespace Editor {
 				m_rightMouseHeld = false;
 			}
 
-			if (!ImGuizmo::IsUsingAny()) {
+			if (!ImGuizmo::IsUsingAny() && !s_usingUIGizmo) {
 				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					ImVec2 mousePos = ImGui::GetMousePos();
 					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
@@ -307,7 +308,6 @@ namespace Editor {
 					s_gizmoCmd->SetAfter(after);
 				}
 
-
 				if (s_gizmoActive && !isUsing) {
 					if (s_gizmoCmd) {
 						const auto& B = s_gizmoCmd->Before();
@@ -328,13 +328,10 @@ namespace Editor {
 					}
 					s_gizmoActive = false;
 				}
-			} else if (hasUIRectTransform) {
+			} 
+			else if (hasUIRectTransform) 
+			{
 				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
-
-				NE::Graphics::UIRenderer::SetViewportSize(
-					(uint32_t)panelSize.x,
-					(uint32_t)panelSize.y
-				);
 
 				// draw in pixel space
 				float fbWidth = 1920.f;  // temp hardcoded
@@ -369,10 +366,31 @@ namespace Editor {
 					bottomRight,
 					ImVec2(topLeft.x, bottomRight.y)
 				};
-				for (int i = 0; i < 4; i++) {
+
+				// edge center positions
+				ImVec2 edges[4] = {
+					ImVec2(center.x, topLeft.y),           // Top edge (index 0)
+					ImVec2(bottomRight.x, center.y),       // Right edge (index 1)
+					ImVec2(center.x, bottomRight.y),       // Bottom edge (index 2)
+					ImVec2(topLeft.x, center.y)            // Left edge (index 3)
+				};
+
+				// draw corner handles
+				for (int i = 0; i < 4; i++) 
+				{
 					drawList->AddRectFilled(
 						ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
 						ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
+						IM_COL32(0, 0, 255, 255)
+					);
+				}
+
+				// draw edge handles
+				for (int i = 0; i < 4; i++)
+				{
+					drawList->AddRectFilled(
+						ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
+						ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
 						IM_COL32(0, 0, 255, 255)
 					);
 				}
@@ -383,67 +401,187 @@ namespace Editor {
 				// --- Interaction state (static so it persists across frames) ---
 				static bool isDraggingUI = false;
 				static int  draggingCorner = -1; // -1 = none, 0..3 = which corner
+				static int  draggingEdge = -1;   // -1 = none, 0..3 = which edge
 				static ImVec2 dragStart;         // mouse start (pixels)
 				static NE::ECS::Component::UIRectTransform originalTransform;
 
 				// helper
 				auto mouseInPanel = [&](ImVec2 p) {
 					return p.x >= panelPos.x && p.x <= panelPos.x + panelSize.x &&
-						p.y >= panelPos.y && p.y <= panelPos.y + panelSize.y;
+						   p.y >= panelPos.y && p.y <= panelPos.y + panelSize.y;
 					};
 
 				ImVec2 mousePos = ImGui::GetMousePos();
 				bool mouseInThisPanel = mouseInPanel(mousePos);
 
-				// handle move by center handle
-				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+				// hovering detection
+				if (!isDraggingUI && draggingCorner < 0 && draggingEdge < 0 && mouseInThisPanel)
 				{
-					float dx = mousePos.x - center.x;
-					float dy = mousePos.y - center.y;
-					float dist2 = dx * dx + dy * dy;
-					float radius = handleSize * 0.5f;
-					if (dist2 <= radius * radius) {
-						isDraggingUI = true;
-						dragStart = mousePos;
-						originalTransform = rectTransform;
-						// Optional: visual feedback
-						ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+					bool hoveringHandle = false;
+
+					// check corner hover
+					for (int i = 0; i < 4; ++i)
+					{
+						float dx = mousePos.x - corners[i].x;
+						float dy = mousePos.y - corners[i].y;
+						float dist2 = dx * dx + dy * dy;
+						float cornerRadius = handleSize * 0.5f;
+
+						if (dist2 <= cornerRadius * cornerRadius)
+						{
+							// set cursor based on corner
+							switch (i) {
+							case 0: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break; // Top-left
+							case 1: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break; // Top-right
+							case 2: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break; // Bottom-right
+							case 3: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break; // Bottom-left
+							}
+
+							hoveringHandle = true;
+							break;
+						}
+					}
+
+					//cCheck edge hover if not hovering a corner
+					if (!hoveringHandle)
+					{
+						for (int i = 0; i < 4; ++i)
+						{
+							float dx = mousePos.x - edges[i].x;
+							float dy = mousePos.y - edges[i].y;
+							float dist2 = dx * dx + dy * dy;
+							float edgeRadius = handleSize * 0.5f;
+
+							if (dist2 <= edgeRadius * edgeRadius)
+							{
+								// Set cursor based on edge orientation
+								switch (i) {
+								case 0: // Top
+								case 2: // Bottom
+									ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+									break;
+								case 1: // Right
+								case 3: // Left
+									ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+									break;
+								}
+								hoveringHandle = true;
+								break;
+							}
+						}
+					}
+
+					// check center hover if not hovering a corner
+					if (!hoveringHandle)
+					{
+						float dx = mousePos.x - center.x;
+						float dy = mousePos.y - center.y;
+						float dist2 = dx * dx + dy * dy;
+						float radius = handleSize * 0.5f;
+
+						if (dist2 <= radius * radius)
+						{
+							ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+							hoveringHandle = true;
+						}
 					}
 				}
 
-				// handle by corner handles
+				// handle moving of gizmos
 				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 				{
-					for (int i = 0; i < 4; ++i) {
+					bool handleClicked = false;
+
+					// check corners first
+					for (int i = 0; i < 4; ++i) 
+					{
 						float dx = mousePos.x - corners[i].x;
 						float dy = mousePos.y - corners[i].y;
-						if (fabsf(dx) <= handleSize && fabsf(dy) <= handleSize) {
+						float dist2 = dx * dx + dy * dy;
+						float cornerRadius = handleSize * 0.5f;
+
+						if (dist2 <= cornerRadius * cornerRadius)
+						{
 							draggingCorner = i;
 							dragStart = mousePos;
 							originalTransform = rectTransform;
-							ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-							break;
+							s_usingUIGizmo = true;
+							handleClicked = true;
+							break; // to avoid checking other corners
+						}
+					}
+
+					// Check edges if no corner was clicked
+					if (!handleClicked)
+					{
+						for (int i = 0; i < 4; ++i)
+						{
+							float dx = mousePos.x - edges[i].x;
+							float dy = mousePos.y - edges[i].y;
+							float dist2 = dx * dx + dy * dy;
+							float edgeRadius = handleSize * 0.5f;
+
+							if (dist2 <= edgeRadius * edgeRadius)
+							{
+								draggingEdge = i;
+								dragStart = mousePos;
+								originalTransform = rectTransform;
+								s_usingUIGizmo = true;
+								handleClicked = true;
+								break;
+							}
+						}
+					}
+
+					// check center if no corner were clicked
+					if (!handleClicked)
+					{
+						float dx = mousePos.x - center.x;
+						float dy = mousePos.y - center.y;
+						float dist2 = dx * dx + dy * dy;
+						float radius = handleSize * 0.5f;
+
+						if (dist2 <= radius * radius) 
+						{
+							isDraggingUI = true;
+							dragStart = mousePos;
+							originalTransform = rectTransform;
+							s_usingUIGizmo = true;
 						}
 					}
 				}
 
 				// perform move
-				if (isDraggingUI) {
-					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+				if (isDraggingUI) 
+				{
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) 
+					{
 						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
 						// Convert panel deltas back to framebuffer deltas
 						rectTransform.x = originalTransform.x + (deltaPixels.x / scaleX);
 						rectTransform.y = originalTransform.y + (deltaPixels.y / scaleY);
 					}
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+					{
 						isDraggingUI = false;
 						// TODO: push command for undo/redo
 					}
 				}
 
 				// perform resize
-				if (draggingCorner >= 0) {
-					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+				if (draggingCorner >= 0)
+				{
+					// set cursor during drag based on corner
+					switch (draggingCorner) {
+					case 0: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break;
+					case 1: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break;
+					case 2: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break;
+					case 3: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break;
+					}
+
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+					{
 						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
 						float deltaFBX = deltaPixels.x / scaleX;
 						float deltaFBY = deltaPixels.y / scaleY;
@@ -476,9 +614,77 @@ namespace Editor {
 						rectTransform.width = std::max(1.0f, rectTransform.width);
 						rectTransform.height = std::max(1.0f, rectTransform.height);
 					}
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+					{
 						draggingCorner = -1;
 						// TODO: push command for undo/redo
+					}
+				}
+
+				// perform edge stretch
+				if (draggingEdge >= 0)
+				{
+					// Set cursor during drag
+					switch (draggingEdge) {
+					case 0: // Top
+					case 2: // Bottom
+						ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+						break;
+					case 1: // Right
+					case 3: // Left
+						ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+						break;
+					}
+
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+					{
+						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
+						float deltaFBX = deltaPixels.x / scaleX;
+						float deltaFBY = deltaPixels.y / scaleY;
+
+						switch (draggingEdge) {
+						case 0: // Top edge
+							rectTransform.y = originalTransform.y + deltaFBY;
+							rectTransform.height = originalTransform.height - deltaFBY;
+							break;
+						case 1: // Right edge
+							rectTransform.width = originalTransform.width + deltaFBX;
+							break;
+						case 2: // Bottom edge
+							rectTransform.height = originalTransform.height + deltaFBY;
+							break;
+						case 3: // Left edge
+							rectTransform.x = originalTransform.x + deltaFBX;
+							rectTransform.width = originalTransform.width - deltaFBX;
+							break;
+						}
+
+						// Clamp size
+						rectTransform.width = std::max(1.0f, rectTransform.width);
+						rectTransform.height = std::max(1.0f, rectTransform.height);
+					}
+
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+					{
+						draggingEdge = -1;
+						// TODO: push command for undo/redo
+					}
+				}
+
+				// reset states
+				if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+				{
+					if (isDraggingUI || draggingCorner >= 0)
+					{
+						isDraggingUI = false;
+						draggingCorner = -1;
+						draggingEdge = -1;
+						s_usingUIGizmo = false;
+					}
+					else if (s_usingUIGizmo)
+					{
+						s_usingUIGizmo = false;
 					}
 				}
 			}

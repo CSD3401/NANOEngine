@@ -63,6 +63,8 @@ namespace NE::Graphics {
         static void SetEditorCamera(EditorCamera* cam);
         static EditorCamera* GetEditorCamera();
 
+        static uint32_t GetScreenWidth();
+        static uint32_t GetScreenHeight();
         static IStateCache* GetStateCache();
 
 		static void SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
@@ -95,6 +97,9 @@ namespace NE::Graphics {
 		static bool enableSorting;
 
     private:
+        static uint32_t s_ScreenWidth;
+        static uint32_t s_ScreenHeight;
+
 		static SceneManagement::RenderPass s_CurrentRenderPass; // TEMP?
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;

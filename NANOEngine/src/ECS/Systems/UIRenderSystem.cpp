@@ -61,13 +61,6 @@ namespace NE::ECS::Systems {
         switch (canvas.renderMode) {
         case UICanvas::RenderMode::SCREEN_SPACE_OVERLAY:
         {
-            // simple 2D screen-space rendering
-            // apply scale factor (for different resolutions)
-            result.x *= canvas.scaleFactor;
-            result.y *= canvas.scaleFactor;
-            result.width *= canvas.scaleFactor;
-            result.height *= canvas.scaleFactor;
-
             // pixel perfect snapping
             if (canvas.pixelPerfect) 
             {
@@ -85,8 +78,8 @@ namespace NE::ECS::Systems {
             if (viewMatrix && projMatrix) 
             {
                 // get screen dimensions (temp)
-                float screenWidth = 1920.0f;   // TODO: Get from GraphicsManager
-                float screenHeight = 1080.0f;
+                float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+                float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
 
                 // convert UI position to NDC (-1 to 1)
                 float ndcX = (result.x / screenWidth) * 2.0f - 1.0f;
@@ -105,10 +98,7 @@ namespace NE::ECS::Systems {
             else 
             {
                 // fallback to overlay mode if no camera
-                result.x *= canvas.scaleFactor;
-                result.y *= canvas.scaleFactor;
-                result.width *= canvas.scaleFactor;
-                result.height *= canvas.scaleFactor;
+                // keep raw coordinates
             }
 
             // pixel perfect snapping
@@ -131,10 +121,6 @@ namespace NE::ECS::Systems {
             // Treat UI as 3D object in world space
             // UI elements have world coordinates and can be occluded by 3D objects
 
-            // apply scale factor
-            result.width *= canvas.scaleFactor;
-            result.height *= canvas.scaleFactor;
-
             // Z-depth is preserved (can be set via UIRectTransform.z if you add it)
             // result.z = rect.z;  // If you add Z to UIRectTransform
 
@@ -151,8 +137,8 @@ namespace NE::ECS::Systems {
 
     float UIRenderSystem::CalculateScaleFactor(const UICanvas& canvas) {
         // get current screen size from GraphicsManager (temp)
-        float screenWidth = 1920.0f;   // TODO: Get actual screen size
-        float screenHeight = 1080.0f;  // GraphicsManager::GetScreenWidth/Height()
+        float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+        float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
 
         switch (canvas.scaleMode) {
         case UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE:

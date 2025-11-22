@@ -13,8 +13,6 @@ namespace NE::Graphics {
         static void Init(uint32_t width, uint32_t height);
         static void SetWindowSize(uint32_t width, uint32_t height);
 
-        NANOENGINE_API static void SetViewportSize(uint32_t width, uint32_t height); // TEMP
-
         static void BeginFrame();
         static void Submit(const UIDrawCommand& cmd);
         static void DrawFrame();
@@ -32,11 +30,10 @@ namespace NE::Graphics {
         static std::vector<UIDrawCommand> s_Commands;
         static std::unique_ptr<IFrameBuffer> s_FBO; // GLFrameBuffer
         static unsigned int s_VAO, s_VBO, s_EBO;
-        static unsigned int s_CompositeShader;
         static unsigned int s_Shader;
+        static unsigned int s_CompositeShader;
         static unsigned int s_CompositeVAO, s_CompositeVBO;
         static uint32_t s_ScreenW, s_ScreenH;
-        static uint32_t s_ViewportW, s_ViewportH; // game panel size (e.g., 800x600)
 
         static void InitCompositeShader();
 

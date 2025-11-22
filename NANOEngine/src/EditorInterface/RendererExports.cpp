@@ -72,11 +72,6 @@ namespace NE::Renderer {
                 return;
             }
 
-			std::cout << "=== AssignUITexture Debug ===" << std::endl;
-			std::cout << "  Entity: " << e << std::endl;
-			std::cout << "  Texture UUID: " << textureUUID << std::endl;
-			std::cout << "  Material UUID: " << materialUUID << std::endl;
-
             // assign the texture to the material
             img.material->SetTexture("u_BaseMap", textureUUID);
 
