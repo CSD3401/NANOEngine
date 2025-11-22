@@ -17,9 +17,15 @@ namespace NE::Graphics {
 		// Camera data
 		Math::Mat4 projection;
 		Math::Mat4 view;
+
 		Math::Vec3 position;
+
 		bool isMain = false;
 		bool isActive = false; // GraphicsManager only renders active views
+
+		// In the event of multiple framebuffers using the same camera, 
+		// this determines the order they are added to the graphics manager's render loop
+		uint16_t order = 0;
 	};
 
 	class RenderViewManager {
@@ -37,7 +43,7 @@ namespace NE::Graphics {
 		void DestroyAll();
 
 		// Sets the camera data for the given render view handle
-		void SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, bool isMain);
+		void SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, bool isMain, uint16_t order);
 
 		// Enable/Disable camera for the given render view handle
 		void EnableCamera(RenderViewHandle handle);

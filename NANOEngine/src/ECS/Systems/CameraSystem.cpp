@@ -39,23 +39,27 @@ namespace NE::ECS::Systems {
 			BuildProjection(camera);
 			BuildView(camera, transform);
 
-			if (camera.renderViewHandle == 0) {
+			if (camera.renderViewHandles.empty()) {
 				// Create a render view for this camera if it doesn't have one
-				camera.renderViewHandle = Graphics::GraphicsManager::CreateRenderView(1920, 1080, false);
+				camera.renderViewHandles.push_back(Graphics::GraphicsManager::CreateRenderView(1920, 1080, false));
 			}
 
 			if (camera.isActive) {
 				// Note: Setting the data automatically enables the camera, so no need to call EnableCamera separately
-				Graphics::GraphicsManager::SetCameraData(
-					camera.renderViewHandle,
-					camera.projectionMtx,
-					camera.viewMtx,
-					transform.localPosition,
-					camera.isMain
-				);
+				for (uint16_t i = 0; i < camera.renderViewHandles.size(); ++i) {
+					Graphics::GraphicsManager::SetCameraData(
+						camera.renderViewHandles[i],
+						camera.projectionMtx,
+						camera.viewMtx,
+						transform.localPosition,
+						camera.isMain,
+						i
+					);
+				}
 			}
 			else {
-				Graphics::GraphicsManager::DisableCamera(camera.renderViewHandle);
+				for (auto& handle : camera.renderViewHandles)
+					Graphics::GraphicsManager::DisableCamera(handle);
 			}
 		}
 	}
@@ -95,22 +99,27 @@ namespace NE::ECS::Systems {
 
 			BuildView(camera, transform);
 
-			if (camera.renderViewHandle == 0) {
+			if (camera.renderViewHandles.empty()) {
 				// Create a render view for this camera if it doesn't have one
-				camera.renderViewHandle = Graphics::GraphicsManager::CreateRenderView(1920, 1080, false);
+				camera.renderViewHandles.push_back(Graphics::GraphicsManager::CreateRenderView(1920, 1080, false));
 			}
 
 			if (camera.isActive) {
-				Graphics::GraphicsManager::SetCameraData(
-					camera.renderViewHandle,
-					camera.projectionMtx,
-					camera.viewMtx,
-					transform.localPosition,
-					camera.isMain
-				);
+				// Note: Setting the data automatically enables the camera, so no need to call EnableCamera separately
+				for (uint16_t i = 0; i < camera.renderViewHandles.size(); ++i) {
+					Graphics::GraphicsManager::SetCameraData(
+						camera.renderViewHandles[i],
+						camera.projectionMtx,
+						camera.viewMtx,
+						transform.localPosition,
+						camera.isMain,
+						i
+					);
+				}
 			}
 			else {
-				Graphics::GraphicsManager::DisableCamera(camera.renderViewHandle);
+				for (auto& handle : camera.renderViewHandles)
+					Graphics::GraphicsManager::DisableCamera(handle);
 			}
 		}
 	}

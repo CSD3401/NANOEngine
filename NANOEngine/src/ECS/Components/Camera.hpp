@@ -27,7 +27,7 @@ namespace NE::ECS::Component {
 		uint64_t luid;
 
 		// The render view handle associated with this camera
-		RenderViewHandle renderViewHandle{ 0 };
+		std::vector<RenderViewHandle> renderViewHandles;
 
 		NE_REFLECT_BEGIN(Camera)
 			NE_REFLECT_FIELD_NAMED(fovY, "FOV Y"),

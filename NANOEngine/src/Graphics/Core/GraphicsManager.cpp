@@ -107,15 +107,11 @@ namespace NE::Graphics {
     {
         NE_PROFILE_FUNCTION();
 
-        uint32_t t1 = s_GameViewHandle;
-		uint32_t t2 = s_SceneViewHandle;
-        t1; t2;
-
 		int renderedViews = 0;
         for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
-            if (view.isMain) s_GameViewHandle = handle;
-
+            if (view.isMain && view.order == 0) s_GameViewHandle = handle;
+            
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
             
@@ -290,7 +286,8 @@ namespace NE::Graphics {
 			s_EditorCamera->GetProjectionMatrix(),
 			s_EditorCamera->GetViewMatrix(),
 			s_EditorCamera->GetPosition(),
-            false
+            false,
+            0
         );
     }
 
@@ -299,9 +296,9 @@ namespace NE::Graphics {
         return s_RenderViewManager->Create(width, height, enablePicking);
 	}
 
-    void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain)
+    void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain, uint16_t order)
     {
-		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, isMain);
+		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, isMain, order);
     }
 
     void GraphicsManager::EnableCamera(RenderViewHandle viewHandle)

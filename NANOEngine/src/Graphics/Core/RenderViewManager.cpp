@@ -51,7 +51,7 @@ namespace NE::Graphics {
 		m_NextHandle = 1;
 	}
 
-	void RenderViewManager::SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, bool isMain)
+	void RenderViewManager::SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, bool isMain, uint16_t order)
 	{
 		auto it = m_Views.find(handle);
 		if (it != m_Views.end()) {
@@ -60,6 +60,7 @@ namespace NE::Graphics {
 			it->second.position = position;
 			it->second.isMain = isMain;
 			it->second.isActive = true;
+			it->second.order = order;
 		}
 	}
 
