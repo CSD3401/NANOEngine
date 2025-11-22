@@ -62,8 +62,8 @@ public:
 		REGISTER_FIELD(godMode);
 		REGISTER_FIELD(label);
 
-		// Register enum field
-		REGISTER_ENUM(state, "Idle", "Walking", "Running", "Jumping");
+		// Register enum field - names extracted automatically
+		REGISTER_ENUM(state);
 
 		// Register vector fields
 		REGISTER_VECTOR(enemyIDs);
@@ -303,4 +303,11 @@ private:
 	// Field registry
 	ExposedFieldRegistry m_fields;
 };
+
+// Register the PlayerState enum at global scope for automatic name extraction
+//NE_REGISTER_ENUM(PlayerScript::PlayerState,
+//	PlayerScript::PlayerState::Idle,
+//	PlayerScript::PlayerState::Walking,
+//	PlayerScript::PlayerState::Running,
+//	PlayerScript::PlayerState::Jumping);
 
