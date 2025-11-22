@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "bc4ccd49-35d2-46e1-b352-3ef61e437df8",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\SwitchBase\\SwitchBasePast_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

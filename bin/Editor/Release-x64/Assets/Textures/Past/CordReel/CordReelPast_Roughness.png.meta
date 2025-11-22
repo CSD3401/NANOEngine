@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "311e1d51-43a4-45b9-b2b5-eefea66882b8",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\CordReel\\CordReelPast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

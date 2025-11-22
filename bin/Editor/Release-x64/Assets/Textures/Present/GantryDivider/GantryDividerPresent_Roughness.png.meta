@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "cb2b2e94-96d8-40b4-8ca3-5b5ea656f967",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\GantryDivider\\GantryDividerPresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

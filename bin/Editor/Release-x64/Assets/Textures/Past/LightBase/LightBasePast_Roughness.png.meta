@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "09759635-35b0-4878-8219-28dc55afb370",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\LightBase\\LightBasePast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
