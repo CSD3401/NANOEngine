@@ -107,6 +107,16 @@ namespace NE::Graphics {
         s_ActiveFrameBuffer->Bind();
         s_CommandBuffer->Begin();
         s_CommandBuffer->BeginRenderPass();
+
+        // DEBUG:
+        static bool printed = false;
+        if (!printed)
+        {
+            GLint currentFBO;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &currentFBO);
+            std::cout << "[BeginFrame] FBO before 3D render: " << currentFBO << std::endl;
+            printed = true;
+        }
     }
 
     void GraphicsManager::DrawSkybox() 
@@ -205,7 +215,7 @@ namespace NE::Graphics {
         s_CommandBuffer->EndRenderPass();
         s_CommandBuffer->End();
 
-        // DEBUG: Check what's in FBO 0
+        // DEBUG:
         static bool printed = false;
         if (!printed)
         {
@@ -640,8 +650,9 @@ namespace NE::Graphics {
 
         UIRenderer::BeginFrame();
         UIRenderer::DrawFrame();
+        UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
-        UIRenderer::Composite();
+        UIRenderer::Composite(s_SceneFrameBuffer->GetFramebuffer());
         UIRenderer::ClearCommands();
 
         if (!printed) {

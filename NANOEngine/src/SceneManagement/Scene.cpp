@@ -111,7 +111,7 @@ namespace NE::SceneManagement {
 	void Scene::Render(RenderPass pass) {
 		switch (pass) {
 		case RenderPass::SCENE:
-			//Graphics::GraphicsManager::DrawFrame();
+			Graphics::GraphicsManager::DrawFrame();
 
 			Graphics::GraphicsManager::DrawUI();
 			break;

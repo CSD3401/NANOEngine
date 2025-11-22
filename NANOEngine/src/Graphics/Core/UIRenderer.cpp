@@ -4,6 +4,7 @@
 #include "../src/Graphics/Core/PipelineCache.hpp"
 #include "../src/ResourceManagement/ResourceManager.hpp"
 #include "../src/Graphics/Core/GraphicsManager.hpp"
+#include "../OpenGL/GLStateCache.hpp"
 #include <glad/glad.h>
 #include <iostream>
 #include <algorithm>
@@ -16,12 +17,14 @@ namespace NE::Graphics {
     unsigned int UIRenderer::s_VBO = 0;
     unsigned int UIRenderer::s_EBO = 0;
     unsigned int UIRenderer::s_CompositeShader = 0;
+    unsigned int UIRenderer::s_Shader = 0;
     unsigned int UIRenderer::s_CompositeVAO = 0;
     unsigned int UIRenderer::s_CompositeVBO = 0;
     uint32_t UIRenderer::s_ScreenW = 0;
     uint32_t UIRenderer::s_ScreenH = 0;
     uint32_t UIRenderer::s_ViewportW = 1920;
     uint32_t UIRenderer::s_ViewportH = 1080;
+
 
     // shader checks helpers
     static void CheckCompile(GLuint shader, const char* name) {
@@ -32,7 +35,7 @@ namespace NE::Graphics {
             std::cout << "[SHADER COMPILE FAIL] " << name << "\n" << log << std::endl;
         }
     }
-    
+
     static void CheckLink(GLuint prog, const char* name) {
         GLint ok = 0; glGetProgramiv(prog, GL_LINK_STATUS, &ok);
         if (!ok) {
@@ -41,6 +44,37 @@ namespace NE::Graphics {
             std::cout << "[PROGRAM LINK FAIL] " << name << "\n" << log << std::endl;
         }
     }
+
+    // simple vertex shader (converts pixel coordinates to NDC)
+    static const char* UIVertexShaderSource = R"(#version 460 core
+    // overlay mode shader (screen space - pixel coordinates)
+    layout(location = 0) in vec3 aPos;
+    layout(location = 1) in vec2 aUV;
+
+    out vec2 vUV;
+
+    uniform vec2 uScreenSize;
+
+    void main() {
+        // Convert pixel coordinates to NDC (-1 to 1)
+        float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
+        float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;  // Flip Y (top-left origin)
+    
+        gl_Position = vec4(ndcX, ndcY, aPos.z, 1.0);
+        vUV = aUV;
+    })";
+
+    static const char* UIFragmentShaderSource = R"(#version 460 core
+    #extension GL_ARB_bindless_texture : require
+    in vec2 vUV;
+    out vec4 FragColor;
+
+    uniform vec4 uColor;
+
+    void main() {
+        // Simple solid color - no texture needed!
+        FragColor = uColor;
+    })";
 
     void UIRenderer::Init(uint32_t width, uint32_t height) {
         // saves screen size
@@ -71,6 +105,32 @@ namespace NE::Graphics {
             s_FBO->Unbind(); // back to FBO 0 (default framebuffer)
         }
 
+        // color UI shader
+        // compile overlay shader
+        {
+            // compile vertex shader
+            unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource(vs, 1, &UIVertexShaderSource, nullptr);
+            glCompileShader(vs);
+            CheckCompile(vs, "UI VS");
+
+            // Compile fragment shader
+            unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource(fs, 1, &UIFragmentShaderSource, nullptr);
+            glCompileShader(fs);
+            CheckCompile(fs, "UI FS");
+
+            // link shader program
+            s_Shader = glCreateProgram();
+            glAttachShader(s_Shader, vs);
+            glAttachShader(s_Shader, fs);
+            glLinkProgram(s_Shader);
+            CheckLink(s_Shader, "UI Program");
+
+            glDeleteShader(vs);
+            glDeleteShader(fs);
+        }
+
         // generate handles for VAO, VBO, EBO
         glGenVertexArrays(1, &s_VAO);
         glGenBuffers(1, &s_VBO);
@@ -79,7 +139,7 @@ namespace NE::Graphics {
         // setup VBO (4 vertices, each with pos(2) + uv(2) = 4 floats)
         glBindVertexArray(s_VAO);
         glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 4, nullptr, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 5, nullptr, GL_DYNAMIC_DRAW);
 
         // position attribute (location 0) (2D for overlay/camera, 3D for world)
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -215,7 +275,7 @@ namespace NE::Graphics {
         s_ScreenW = width;
         s_ScreenH = height;
 
-        if (s_FBO) 
+        if (s_FBO)
         {
             s_FBO->Resize(width, height);
         }
@@ -223,7 +283,7 @@ namespace NE::Graphics {
 
     void UIRenderer::BeginFrame() {
         // prepare UI render target before drawing
-        if (s_FBO) 
+        if (s_FBO)
         {
             s_FBO->Bind();
 
@@ -231,8 +291,8 @@ namespace NE::Graphics {
             glViewport(0, 0, s_ScreenW, s_ScreenH);
 
             // clear the framebuffer
-            //glClearColor(1, 0, 1, 1); // magenta (temp debug color)
-            glClearColor(0, 0, 0, 0); // transparent black
+            //glClearColor(1, 0, 1, 1); // magenta - for debug
+            glClearColor(0, 0, 0, 0); // balck transparent
             glClear(GL_COLOR_BUFFER_BIT);
         }
 
@@ -258,6 +318,55 @@ namespace NE::Graphics {
         {
             std::cout << "[End Frame} UI FBO unbinded" << std::endl;
             printed = true;
+        }
+    }
+
+    void UIRenderer::DrawTestQuad() {
+
+        if (s_FBO) {
+            s_FBO->Bind();
+        }
+
+        static bool print = false;
+        if (!print)
+        {
+            GLint currentFBO;
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &currentFBO);
+            std::cout << "Current FBO: " << currentFBO << std::endl;
+            std::cout << "[DrawTestQuad] Screen size: " << s_ScreenW << "x" << s_ScreenH << std::endl;
+            std::cout << "[DrawTestQuad] Viewport size: " << s_ViewportW << "x" << s_ViewportH << std::endl;
+            print = true;
+        }
+
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glUseProgram(s_Shader);
+        glUniform2f(glGetUniformLocation(s_Shader, "uScreenSize"), (float)s_ScreenW, (float)s_ScreenH);
+        glBindVertexArray(s_VAO);
+
+        // Center screen square (assuming 1920x1080)
+        float x = s_ScreenW / 2.f - 100.f;
+        float y = s_ScreenH / 2.f - 100.f;
+        float testVerts[20] = {
+            x,       y,       0.f, 0.f, 0.f,
+            x + 200, y,       0.f, 1.f, 0.f,
+            x + 200, y + 200, 0.f, 1.f, 1.f,
+            x,       y + 200, 0.f, 0.f, 1.f
+        };
+
+        glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(testVerts), testVerts);
+
+        glUniform4f(glGetUniformLocation(s_Shader, "uColor"), 0.f, 1.f, 0.f, 1.f); // green
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        glBindVertexArray(0);
+        glUseProgram(0);
+
+        if (s_FBO) {
+            s_FBO->Unbind();
         }
     }
 
@@ -302,27 +411,34 @@ namespace NE::Graphics {
         auto* stateCache = NE::Graphics::GraphicsManager::GetStateCache();
 
         // render each command based on mode
-        for (const auto& cmd : s_Commands) 
+        for (const auto& cmd : s_Commands)
         {
             // Use material from the command (set by UIImage component)
-            if (!cmd.material) 
+            if (!cmd.material)
             {
                 //std::cerr << "[UIRenderer] Warning: Command has no material!" << std::endl;
                 continue;
             }
 
             // bind pipeline (sets shader + GL state)
-            if (stateCache)
-            {
-                stateCache->Bind(cmd.material->GetPipeline());
+            //if (stateCache)
+            //{
+            //    stateCache->Bind(cmd.material->GetPipeline());
+            //}
+
+            auto pipeline = cmd.material->GetPipeline();
+            if (!pipeline) {
+                std::cerr << "[UIRenderer] Warning: Command material has no pipeline!" << std::endl;
+                continue;
             }
 
-            auto shader = cmd.material->GetPipeline()->GetSpecification().shader;
-            if (!shader) 
-            {
+            auto shader = pipeline->GetSpecification().shader;
+            if (!shader) {
                 std::cerr << "[UIRenderer] Warning: Material has no shader!" << std::endl;
                 continue;
             }
+
+            shader->Bind();
 
             // build vertex data for this quad
             float verts[20];
@@ -371,7 +487,7 @@ namespace NE::Graphics {
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
             glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
 
-            // bind material uniforms (empty for UI, but kept for consistency)
+            // bind material uniforms
             cmd.material->Bind();
 
             // set UI-specific uniforms
@@ -401,8 +517,9 @@ namespace NE::Graphics {
                 break;
             }
 
-            // draw the quad
+                // draw the quad
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
         }
 
         // restore state
@@ -420,20 +537,21 @@ namespace NE::Graphics {
         return s_FBO.get();
     }
 
-    void UIRenderer::Composite() {
+    void UIRenderer::Composite(GLuint targetFBO) {
         if (!s_FBO) return;
 
         static bool printed = false;
         if (!printed)
         {
             std::cout << "[UIRenderer::Composite] Compositing UI to screen" << std::endl;
-            std::cout << "  FBO Color Attachment: " << s_FBO->GetColorAttachment() << std::endl;
-            std::cout << "  Screen size: " << s_ScreenW << "x" << s_ScreenH << std::endl;
+            std::cout << "UI FBO handle: " << s_FBO->GetFramebuffer() << std::endl;
+            std::cout << "UI Color Texture: " << s_FBO->GetColorAttachment() << std::endl;
+            std::cout << "Target FBO: " << targetFBO << std::endl;
             printed = true;
         }
 
         // bind default framebuffer (screen)
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
 
         // ensure viewport matches screen size
         glViewport(0, 0, s_ScreenW, s_ScreenH);
@@ -483,19 +601,19 @@ namespace NE::Graphics {
 
     void UIRenderer::Shutdown() {
         // delete OpenGL resources
-        if (s_VBO) 
+        if (s_VBO)
         {
             glDeleteBuffers(1, &s_VBO);
             s_VBO = 0;
         }
 
-        if (s_EBO) 
+        if (s_EBO)
         {
             glDeleteBuffers(1, &s_EBO);
             s_EBO = 0;
         }
 
-        if (s_VAO) 
+        if (s_VAO)
         {
             glDeleteVertexArrays(1, &s_VAO);
             s_VAO = 0;
@@ -507,28 +625,21 @@ namespace NE::Graphics {
             s_CompositeVBO = 0;
         }
 
-        if (s_CompositeVAO) 
+        if (s_CompositeVAO)
         {
             glDeleteVertexArrays(1, &s_CompositeVAO);
             s_CompositeVAO = 0;
         }
 
-        if (s_CompositeShader) 
+        if (s_CompositeShader)
         {
             glDeleteProgram(s_CompositeShader);
             s_CompositeShader = 0;
         }
 
-        //if (s_PickingShader)
-        //{
-        //    glDeleteProgram(s_PickingShader);
-        //    s_PickingShader = 0;
-        //}
-        
         // clear containers
         s_Commands.clear();
         s_FBO.reset();
-        //s_PickingFBO.reset();
     }
 
     void UIRenderer::SetViewportSize(uint32_t width, uint32_t height) {

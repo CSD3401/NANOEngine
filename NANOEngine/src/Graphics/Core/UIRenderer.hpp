@@ -20,9 +20,10 @@ namespace NE::Graphics {
         static void DrawFrame();
         static void EndFrame();
         static void ClearCommands();
-        static void Composite();
+        static void Composite(uint32_t targetFBO = 0);
         static void Shutdown();
 
+        static void DrawTestQuad();
 
         static IFrameBuffer* GetFramebuffer(); // for compositing
 
@@ -32,6 +33,7 @@ namespace NE::Graphics {
         static std::unique_ptr<IFrameBuffer> s_FBO; // GLFrameBuffer
         static unsigned int s_VAO, s_VBO, s_EBO;
         static unsigned int s_CompositeShader;
+        static unsigned int s_Shader;
         static unsigned int s_CompositeVAO, s_CompositeVBO;
         static uint32_t s_ScreenW, s_ScreenH;
         static uint32_t s_ViewportW, s_ViewportH; // game panel size (e.g., 800x600)

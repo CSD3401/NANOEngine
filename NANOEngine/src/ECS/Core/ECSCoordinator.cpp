@@ -161,24 +161,6 @@ namespace NE::ECS {
         return entt;
     }
 
-    //Entity ECSCoordinator::CreateUIImageEntity(Entity parentCanvas) {
-    //    Entity e = CreateEntity();
-
-    //    AddComponent(e, Component::EntityMeta{ "Image" });
-    //    AddComponent(e, Component::UIRectTransform{
-    //        100.0f, 100.0f, 200.0f, 100.0f // x, y, w, h
-    //        });
-    //    AddComponent(e, Component::UIImage{
-    //        .textureId = LoadSomeTextureSomewhere(),
-    //        .color = {1, 1, 1, 1}
-    //        });
-
-    //    // Parent it under canvas in your scene graph
-    //    m_sceneHierarchy->SetParent(e, parentCanvas);
-
-    //    return e;
-    //}
-
     void ECSCoordinator::DestroyEntity(Entity e) {
         m_entityManager->DestroyEntity(e);
         m_componentManager->EntityDestroyed(e);
