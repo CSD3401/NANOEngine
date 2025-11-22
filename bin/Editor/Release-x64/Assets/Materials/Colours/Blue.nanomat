@@ -1,0 +1,16 @@
+{
+    "Shader": "04adf533-af94-47e6-8959-50543ea75c27",
+    "DepthTest": true,
+    "BlendMode": true,
+    "CullMode": 1029,
+    "PolygonMode": 6914,
+    "Properties": {
+        "u_HasBaseMap": 0,
+        "u_BaseColor": [
+            0.0,
+            0.0,
+            1.0
+        ],
+        "u_BaseMap": ""
+    }
+}

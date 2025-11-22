@@ -546,6 +546,121 @@
                 "modelUUID": "743993dc-1bb0-44b6-810b-c0bb1a9e687a",
                 "materialUUID": "073e43c5-319e-4555-a3e3-ef2fc7e46b1b"
             }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_parent",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 4.115004062652588
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884648075001857,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": ""
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_switch01",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884648075460611,
+                "parentLuid": 8390884648075001857
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_colour01",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": -1.0,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884648075919365,
+                "parentLuid": 8390884648075001857
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "c57f74a5-e22a-40fe-bc56-f02aaaa494c8"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_colour02",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884648076902407,
+                "parentLuid": 8390884648075001857
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "c427718b-41d1-465f-a21f-99ac1981e4e9"
+            }
         }
     ]
 }
