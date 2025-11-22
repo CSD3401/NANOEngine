@@ -19,6 +19,7 @@
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
 #include "Scripts/MatchingPuzzle.hpp"
+#include "Scripts/MirrorPuzzle.hpp"
 #include "Scripts/TweenExampleScript.hpp"
 #include "Scripts/ParentControllerScript.hpp"
 #include "Scripts/MaterialSequencer.hpp"
@@ -93,6 +94,10 @@ extern "C" {
         registrar->RegisterScript("MatchingPuzzle", []() -> NE::Scripting::IScript* {
               return new MatchingPuzzle();
               });
+
+        registrar->RegisterScript("MirrorPuzzle", []() -> NE::Scripting::IScript* {
+            return new MirrorPuzzle();
+            });
 
           registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
               return new MaterialSequencer();
