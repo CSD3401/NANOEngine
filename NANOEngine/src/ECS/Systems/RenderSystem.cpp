@@ -79,17 +79,17 @@ namespace NE::ECS::Systems {
 
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
-     // Skip inactive entities
-    if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
-const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
-      if (!meta.isActive) {
-         continue; // Skip rendering for inactive entities
-    }
+            // Skip inactive entities
+            if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
+                const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+                if (!meta.isActive) {
+                    continue; // Skip rendering for inactive entities
+                }
             }
 
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
             if (!renderer.visible || !renderer.model) continue;
-    auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+            auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
             //if (!renderer.visible)
             //{
@@ -112,6 +112,11 @@ const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entit
 				cmd.material = renderer.material;
 				cmd.transform = transform.worldMatrix;
 
+                float r = (float)(entity & 0xFF) / 255.0f;
+                float g = (float)((entity >> 8) & 0xFF) / 255.0f;
+                float b = (float)((entity >> 16) & 0xFF) / 255.0f;
+				cmd.idRGB = Vec3{ r, g, b };
+
                 //cmd.material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
                 //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
                 //cmd.material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
@@ -126,15 +131,8 @@ const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entit
                 //        renderer.material->SetUniformMat4Array("u_Bones", bones);
                 //    }
                 //}
-				Graphics::GraphicsManager::Submit(cmd);
 
-                // Object picking
-                Graphics::DrawCommand cmdPicking;
-                cmdPicking.mesh = sub.buffer;
-                cmdPicking.material = pickingMaterial;
-                cmdPicking.transform = transform.worldMatrix;
-                cmdPicking.entity = entity;
-                Graphics::GraphicsManager::SubmitPicking(cmdPicking);
+				Graphics::GraphicsManager::Submit(cmd);
 			}
         }
     }

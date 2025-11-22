@@ -9,7 +9,7 @@ namespace NE::Graphics {
     class Skybox {
     public:
         Skybox();
-        void Draw() const;
+        void Submit() const;
 
     private:
         std::shared_ptr<IGeometryBuffer> m_Mesh;

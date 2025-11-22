@@ -4,20 +4,22 @@
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
+layout(location = 5) in mat4 i_Model;
 
-uniform mat4 u_Model;
 uniform mat4 u_View;
 uniform mat4 u_Projection;
-uniform mat4 u_NormalMatrix;
 
 out vec3 v_Normal;
 out vec3 v_FragPos;
 out vec2 v_TexCoord;
 
 void main() {
-    vec4 world = u_Model * vec4(aPos, 1.0);
+    vec4 world = i_Model * vec4(aPos, 1.0);
     v_FragPos = world.xyz;
-    v_Normal  = mat3(u_NormalMatrix) * a_Normal;
+	
+	mat3 normalMtx = transpose(inverse(mat3(i_Model)));
+    v_Normal  = mat3(normalMtx) * a_Normal;
+	
     v_TexCoord = a_TexCoord;
     gl_Position = u_Projection * u_View * world;
 }
@@ -81,6 +83,10 @@ uniform int       u_ParallaxMaxLayers; // e.g. 48
 // NEW: border clipping controls
 uniform int   u_ParallaxClipBorders;  // 0=off, 1=hard clip, 2=smart clip
 uniform float u_ParallaxEdgeFade;     // smart-clip ring width in UV units (e.g. 0.04)
+
+// UV Transform
+uniform vec3 u_Tiling;
+uniform vec3 u_Offset;
 
 struct Light {
     int   type; // 0 = directional, 1 = point, 2 = spot
@@ -351,7 +357,7 @@ vec3 EvalSpot(in Light Lgt, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic,
 
 void main()
 {
-	vec2 uv = v_TexCoord;
+	vec2 uv = v_TexCoord * u_Tiling + u_Offset;
 
     // view/normal
     vec3 V = normalize(u_CameraPos - v_FragPos);

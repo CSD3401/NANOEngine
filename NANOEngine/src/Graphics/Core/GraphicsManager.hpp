@@ -49,16 +49,15 @@ namespace NE::Graphics {
         static void Init();
 
         static void BeginFrame();
-        static void DrawSkybox();
+        static void SubmitSkybox();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
         static void EndFrame();
+        static void Clear();
         static void Shutdown();
 
         // Temp
 		static void SetRenderPass(SceneManagement::RenderPass pass);
-        static void SubmitPicking(const DrawCommand& command); 
-		static void UpdatePicking(); 
 
         static void SetEditorCamera(EditorCamera* cam);
         static EditorCamera* GetEditorCamera();
@@ -116,14 +115,10 @@ namespace NE::Graphics {
 		static std::unique_ptr<DrawQueue> s_DrawQueue;
 
     public:
-        // Temp, store picking commands
-		static std::vector<DrawCommand> s_PickingCommands;
-
 		// Temp, TODO: Create framebuffer registry
 		static std::shared_ptr<IFrameBuffer> s_ActiveFrameBuffer;
-        static std::shared_ptr<Graphics::IFrameBuffer> s_SceneFrameBuffer;
-        static std::shared_ptr<Graphics::IFrameBuffer> s_PickingFrameBuffer;
-        static std::shared_ptr<Graphics::IFrameBuffer> s_GameFrameBuffer;
+        static std::shared_ptr<IFrameBuffer> s_SceneFrameBuffer;
+        static std::shared_ptr<IFrameBuffer> s_GameFrameBuffer;
     };
 
 }
