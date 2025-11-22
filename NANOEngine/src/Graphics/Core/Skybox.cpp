@@ -50,7 +50,7 @@ namespace NE::Graphics {
 		m_Material->SetQueueBase(RenderQueue::BACKGROUND);
     }
 
-    void Skybox::Draw() const {
+    void Skybox::Submit() const {
         DrawCommand cmd;
         cmd.mesh = m_Mesh;
         cmd.material = m_Material;

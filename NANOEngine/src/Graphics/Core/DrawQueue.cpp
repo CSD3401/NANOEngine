@@ -91,12 +91,18 @@ namespace NE::Graphics {
 				// Step 2a: Within this range, sort by PipelineKey to minimize state changes
 				std::stable_sort(m_Commands.begin() + i, m_Commands.begin() + j,
 					[](const DrawCommand& a, const DrawCommand& b) {
-						const auto pa = a.material->GetPipeline();
-						const auto pb = b.material->GetPipeline();
-						if (pa == pb) return false; // no change
-						if (!pa) return true;
-						if (!pb) return false;
-						return pa->GetKey() < pb->GetKey();
+						const auto pa = a.material ? a.material->GetPipeline() : nullptr;
+						const auto pb = b.material ? b.material->GetPipeline() : nullptr;
+						// First sort by PipelineKey
+						if (pa != pb) {
+							if (!pa) return false;
+							if (!pb) return true;
+							return pa->GetKey() < pb->GetKey();
+						}
+						// Then sort by mesh
+						else {
+							return a.mesh.get() < b.mesh.get();
+						}
 					});
 
 				// Further optimize within this range by grouping commands with less state change cost between their pipelines
@@ -138,7 +144,7 @@ namespace NE::Graphics {
 					groups.push_back(std::move(g));
 					kBegin = kEnd;
 
-					if (groups.back().indices.size() > groups[largestGroupIdx].indices.size()) 
+					if (groups.back().indices.size() > groups[largestGroupIdx].indices.size())
 						largestGroupIdx = groups.size() - 1;
 				}
 				if (groups.size() > 1) {

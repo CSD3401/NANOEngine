@@ -28,6 +28,7 @@
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
     <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
+    <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
