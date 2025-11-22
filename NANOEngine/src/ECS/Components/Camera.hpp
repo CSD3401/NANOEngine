@@ -8,7 +8,7 @@ namespace NE::ECS::Component {
 	using NE::Math::Vec3;
 	using NE::Math::Mat4;
 
-	// TODO: camera should know which fbo it is rendering to
+	using RenderViewHandle = std::uint32_t;
 
 	struct Camera {
 		Mat4 viewMtx;
@@ -19,12 +19,15 @@ namespace NE::ECS::Component {
 		float nearPlane{ 0.1f };
 		float farPlane{ 1000.0f };
 
-		bool isMain{ true };
-		bool isActive{ false };
+		bool isMain{ true }; // This camera is the main camera used for rendering to screen
+		bool isActive{ true }; // This camera is active and will be rendered, but not necessarily sent to screen
 
 		// Flag tracks the projection matrix needs to be rebuilt, view matrix is tracked via transform component
 		bool isDirty{ true }; 
 		uint64_t luid;
+
+		// The render view handle associated with this camera
+		RenderViewHandle renderViewHandle{ 0 };
 
 		NE_REFLECT_BEGIN(Camera)
 			NE_REFLECT_FIELD_NAMED(fovY, "FOV Y"),

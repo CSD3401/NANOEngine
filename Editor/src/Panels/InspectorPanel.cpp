@@ -1179,13 +1179,13 @@ namespace Editor {
 					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					ImGui::SeparatorText("Camera");
 
-					//auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
 						[&](auto const& desc, auto const& currentValue) {
 							using Owner = NE::ECS::Component::Camera;
 							using FieldT = std::decay_t<decltype(currentValue)>;
 
 							FieldT edited = currentValue;
+
 							// --- draw widget, track edit lifecycle ---
 							ImGui::PushID(desc.name.data());
 							const bool changed = DrawField(desc, edited);  // your field drawer
@@ -1196,9 +1196,9 @@ namespace Editor {
 
 							// Key to coalesce continuous edits (dragging slider, etc.)
 							FieldKey key{
-								  entity,
-								  &typeid(Owner),
-								  MemberPointerHasher<Owner, FieldT>{}(desc.member)
+								entity,
+								&typeid(Owner),
+								MemberPointerHasher<Owner, FieldT>{}(desc.member)
 							};
 
 							// 1) Begin an active command when editing starts
@@ -1209,7 +1209,7 @@ namespace Editor {
 									std::string("Set Camera ") + desc.name.data(),
 									desc.member,
 									currentValue,  // before
-									currentValue,  // after (will change while dragging)
+									currentValue,  // after (will change while dragging / on release)
 									&NE::ECS::Command::GetEntityCamera
 								);
 								g_activeCommands[key] = std::move(cmd);
@@ -1236,8 +1236,24 @@ namespace Editor {
 							if (deactivated) {
 								auto it = g_activeCommands.find(key);
 								if (it != g_activeCommands.end()) {
+									// Ensure final 'edited' value is applied at the end,
+									// even if no coalescing happened while active (e.g. checkboxes).
+									if (changed) {
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},    // no label
+											desc.member,
+											currentValue,     // before (ignored by CoalesceFrom)
+											edited,           // final value
+											&NE::ECS::Command::GetEntityCamera
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+
 									// If no net change, drop it; else execute & mark camera dirty
-									if (auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (auto* asSet =
+										dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
 										asSet && Equal(asSet->Before(), asSet->After())) {
 										g_activeCommands.erase(it);
 									}
@@ -1246,14 +1262,13 @@ namespace Editor {
 										g_activeCommands.erase(it);
 
 										// Ensure projection is rebuilt after param changes
-										// (Either handle in SetFieldCommand::Apply, or do it here.)
 										auto& cam = NE::ECS::Command::GetEntityCamera(entity);
 										cam.isDirty = true;  // projection rebuild flag
 									}
 								}
 							}
 						});
-				}
+}
 				else if (typeIdx == typeid(NE::ECS::Component::Animator)) {
 					auto& comp = NE::ECS::Command::GetEntityAnimator(entity);
 					ImGui::SeparatorText("Animator");

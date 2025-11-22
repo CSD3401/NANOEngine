@@ -10,7 +10,7 @@
 namespace Editor {
 	class ScenePanel : public IPanel {
 	public:
-		ScenePanel(uint32_t sceneFrameBuffer);
+		ScenePanel();
 
 		virtual void OnImGuiRender() override;
 

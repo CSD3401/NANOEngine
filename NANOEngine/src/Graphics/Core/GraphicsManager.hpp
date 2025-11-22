@@ -7,6 +7,7 @@
 #include "Material.hpp"
 #include "DrawCommand.hpp"
 #include "DrawQueue.hpp"
+#include "RenderViewManager.hpp"
 
 // Forward declarations
 namespace NE::ECS::Component {
@@ -30,13 +31,6 @@ namespace NE::Graphics {
         Math::Vec3 color;
     };
 
-    struct CameraData {
-        // TODO: camera should know which fbo it is rendering to
-        Math::Mat4 projection;
-        Math::Mat4 view;
-        Math::Vec3 position;
-        bool isMain;
-	};
     struct DebugTriangle {
         Math::Vec3 v0;
         Math::Vec3 v1;
@@ -56,15 +50,20 @@ namespace NE::Graphics {
         static void Clear();
         static void Shutdown();
 
-        // Temp
-		static void SetRenderPass(SceneManagement::RenderPass pass);
-
         static void SetEditorCamera(EditorCamera* cam);
         static EditorCamera* GetEditorCamera();
+        static void UpdateEditorCameraData();
 
-		static void SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
+		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);
+        static void SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
+		static void EnableCamera(RenderViewHandle viewHandle);
+		static void DisableCamera(RenderViewHandle viewHandle);
 
         static uint32_t ReadPixel(uint32_t x, uint32_t y);
+
+		// Used for ImGui texture display
+		static uint32_t GetSceneColorAttachment();
+		static uint32_t GetGameColorAttachment();
 
         // Gizmo Drawing
         static void InitDebugPrimitives();
@@ -87,15 +86,18 @@ namespace NE::Graphics {
         // Flag to toggle sorting
 		static bool enableSorting;
 
+		// Render View Handles
+        static RenderViewHandle s_SceneViewHandle;
+        static RenderViewHandle s_GameViewHandle;
+
     private:
-		static SceneManagement::RenderPass s_CurrentRenderPass; // TEMP?
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;
         static EditorCamera* s_EditorCamera;
 
 		// Note: Each camera should be stored within its own framebuffer in the future
 		// Current active camera matrices and position
-		static CameraData m_ActiveCamera;
+		//static CameraData m_ActiveCamera;
 
         // Gizmo and jolt Drawing
         static std::vector<DebugLine> s_DebugLines;
@@ -114,11 +116,9 @@ namespace NE::Graphics {
 		// Draw Queue
 		static std::unique_ptr<DrawQueue> s_DrawQueue;
 
-    public:
-		// Temp, TODO: Create framebuffer registry
-		static std::shared_ptr<IFrameBuffer> s_ActiveFrameBuffer;
-        static std::shared_ptr<IFrameBuffer> s_SceneFrameBuffer;
-        static std::shared_ptr<IFrameBuffer> s_GameFrameBuffer;
+		// Framebuffer Manager
+		static std::unique_ptr<RenderViewManager> s_RenderViewManager;
+		static RenderViewHandle s_ActiveViewHandle;
     };
 
 }

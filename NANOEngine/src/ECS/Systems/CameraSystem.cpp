@@ -21,84 +21,96 @@ namespace NE::ECS::Systems {
 
 	void CameraSystem::Init()
 	{
-		bool allInactive = true;
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
-			if (camera.isMain) m_mainCameraEntity = entity;
-			if (camera.isActive == false) continue;
-			else allInactive = true;
 			auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+			if (camera.isMain) {
+				if (!m_mainCameraEntity.has_value()) {
+					m_mainCameraEntity = entity;
+				}
+				else {
+					// Only one main camera allowed, set this to false
+					// Should never happen at init unless user misconfigured multiple cameras as main
+					camera.isMain = false;
+				}
+			}
 
 			BuildProjection(camera);
 			BuildView(camera, transform);
-		}
 
-		// Must have at least one active camera, default to main camera
-		if (allInactive) {
-			if (m_mainCameraEntity.has_value()) {
-				auto& mainCam = m_componentManager->GetComponent<Component::Camera>(*m_mainCameraEntity);
-				mainCam.isActive = true;
-				auto& transform = m_componentManager->GetComponent<Component::Transform>(*m_mainCameraEntity);
-				BuildProjection(mainCam);
-				BuildView(mainCam, transform);
-				Graphics::GraphicsManager::SetActiveCamera(mainCam.projectionMtx, mainCam.viewMtx, transform.localPosition, mainCam.isMain);
+			if (camera.renderViewHandle == 0) {
+				// Create a render view for this camera if it doesn't have one
+				camera.renderViewHandle = Graphics::GraphicsManager::CreateRenderView(1920, 1080, false);
+			}
+
+			if (camera.isActive) {
+				// Note: Setting the data automatically enables the camera, so no need to call EnableCamera separately
+				Graphics::GraphicsManager::SetCameraData(
+					camera.renderViewHandle,
+					camera.projectionMtx,
+					camera.viewMtx,
+					transform.localPosition,
+					camera.isMain
+				);
 			}
 			else {
-				if (!entities.empty()) {
-					auto& firstCam = m_componentManager->GetComponent<Component::Camera>(entities[0]);
-					firstCam.isActive = true;
-					auto& transform = m_componentManager->GetComponent<Component::Transform>(entities[0]);
-					BuildProjection(firstCam);
-					BuildView(firstCam, transform);
-					Graphics::GraphicsManager::SetActiveCamera(firstCam.projectionMtx, firstCam.viewMtx, transform.localPosition, firstCam.isMain);
-				}
+				Graphics::GraphicsManager::DisableCamera(camera.renderViewHandle);
 			}
 		}
 	}
 
 	void CameraSystem::Update(double)
 	{
-		bool allInactive = true;
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
-			if (camera.isMain) m_mainCameraEntity = entity;
-			if (camera.isActive == false) continue;
-			else allInactive = true;
 			auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+			if (camera.isMain) {
+				if (!m_mainCameraEntity.has_value()) {
+					m_mainCameraEntity = entity;
+				}
+				else {
+					// This happens if another camera was set to main during runtime
+					// The previous main camera will be demoted but still active
+					if (*m_mainCameraEntity != entity) {
+						// Check if component exists before modifying (in case the previous main camera was deleted)
+						if (m_componentManager->HasComponent<Component::Camera>(*m_mainCameraEntity)) {
+							auto& prevMainCam = m_componentManager->GetComponent<Component::Camera>(*m_mainCameraEntity);
+							prevMainCam.isMain = false;
+						}
+						m_mainCameraEntity = entity;
+					}
+				}
+			}
 
-			if (camera.isDirty) {
+			if (camera.isDirty) {				
 				BuildProjection(camera);
 			}
-			if (transform.isDirty) {
+
+			// transform isDirty seems to be broken.
+			/*if (transform.isDirty) {
 				BuildView(camera, transform);
+			}*/
+
+			BuildView(camera, transform);
+
+			if (camera.renderViewHandle == 0) {
+				// Create a render view for this camera if it doesn't have one
+				camera.renderViewHandle = Graphics::GraphicsManager::CreateRenderView(1920, 1080, false);
 			}
 
-			// For now, support only one active camera at a time
-			Graphics::GraphicsManager::SetActiveCamera(camera.projectionMtx, camera.viewMtx, transform.localPosition, camera.isMain);
-			break;
-		}
-
-		// Must have at least one active camera, default to main camera
-		if (allInactive) {
-			if (m_mainCameraEntity.has_value()) {
-				auto& mainCam = m_componentManager->GetComponent<Component::Camera>(*m_mainCameraEntity);
-				mainCam.isActive = true;
-				auto& transform = m_componentManager->GetComponent<Component::Transform>(*m_mainCameraEntity);
-				BuildProjection(mainCam);
-				BuildView(mainCam, transform);
-				Graphics::GraphicsManager::SetActiveCamera(mainCam.projectionMtx, mainCam.viewMtx, transform.localPosition, mainCam.isMain);
+			if (camera.isActive) {
+				Graphics::GraphicsManager::SetCameraData(
+					camera.renderViewHandle,
+					camera.projectionMtx,
+					camera.viewMtx,
+					transform.localPosition,
+					camera.isMain
+				);
 			}
 			else {
-				if (!entities.empty()) {
-					auto& firstCam = m_componentManager->GetComponent<Component::Camera>(entities[0]);
-					firstCam.isActive = true;
-					auto& transform = m_componentManager->GetComponent<Component::Transform>(entities[0]);
-					BuildProjection(firstCam);
-					BuildView(firstCam, transform);
-					Graphics::GraphicsManager::SetActiveCamera(firstCam.projectionMtx, firstCam.viewMtx, transform.localPosition, firstCam.isMain);
-				}
+				Graphics::GraphicsManager::DisableCamera(camera.renderViewHandle);
 			}
 		}
 	}

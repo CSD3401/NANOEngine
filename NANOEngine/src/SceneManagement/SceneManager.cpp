@@ -150,11 +150,11 @@ namespace NE::SceneManagement {
 		}
 	}
 
-	void SceneManager::Render(NE::SceneManagement::RenderPass pass) {
+	void SceneManager::Render() {
 		if (m_isPlaying) {
-			if (m_runtime) m_runtime->Render(pass);
+			if (m_runtime) m_runtime->Render();
 		} else {
-			if (m_editor) m_editor->Render(pass);
+			if (m_editor) m_editor->Render();
 		}
 	}
 
