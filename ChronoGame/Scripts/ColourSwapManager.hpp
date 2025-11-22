@@ -11,8 +11,10 @@ public:
 		// Register any editable fields here
 		// Example: SCRIPT_FIELD(speed, Float);
 		SCRIPT_FIELD(isActive, Bool);
-		SCRIPT_FIELD(objectName, String);
-
+		SCRIPT_FIELD(numColourChildren, Int);
+		//REGISTER_VECTOR(colours);
+		REGISTER_VECTOR(flags);
+		flags = { true, false, true, false, true };
 		std::cout << "[ColourSwapManager] Created with fields registered" << std::endl;
 	}
 
@@ -26,14 +28,24 @@ public:
 
 	void Initialize(Entity entity) override {
 		// Called to initialize the script with its entity
+		GrabChildren();
 	}
 
 	void Start() override {
 		// Called when the script is enabled and play mode starts
+		GrabChildren();
 	}
 
 	void Update(double deltaTime) override {
 		// Called every frame while the script is enabled
+		if (!isActive) return;
+
+		if (Input::WasKeyPressed('N')) {
+			SwapColours(1, 2);
+		}
+		if (Input::WasKeyPressed('M')) {
+			SwapColours(2, 4);
+		}
 	}
 
 	void OnDestroy() override {
@@ -79,7 +91,45 @@ public:
 private:
 	// Add your private member variables here
 	// Example: float speed = 5.0f;
+	bool isActive = true;
+	int numColourChildren = 0;
+	std::vector<bool> flags;
+	// green, red, blue
+	std::vector<std::string> colours = { "c57f74a5-e22a-40fe-bc56-f02aaaa494c8", "c427718b-41d1-465f-a21f-99ac1981e4e9", "ea32e122-a8ba-4672-ab60-705fd79b9086"};
+	std::unordered_map<int, std::string> childColours;
+
+
+	void GrabChildren() {
+		size_t childCount = GetChildCount();
+		int currColour = 0;
+		for (int i = 0; i < childCount; ++i)
+		{
+			Entity child = GetChild(i);
+
+			if (!Command::HasComponent<Component::NativeScript>(child)) {
+				LOG_INFO("  Child " << i << " has entity ID: " << child);
+				LOG_INFO("  Child " << i << " does not have Script component");
+				childColours[i] = colours[currColour++];
+			}
+		}
+	}
+
+	void SwapColours(size_t rightIndex, size_t leftIndex) {
+		// get entities
+		Entity rChild = GetChild(rightIndex);
+		Entity lChild = GetChild(leftIndex);
+
+		// swap the values in the map
+		std::swap(childColours[leftIndex], childColours[rightIndex]);
+
+		// assign the materials using the new map values
+		NE::Renderer::Command::AssignMaterial(rChild, childColours[rightIndex]);
+		NE::Renderer::Command::AssignMaterial(lChild, childColours[leftIndex]);
+
+	}
 
 	// Field registry for exposing variables to the editor
 	ExposedFieldRegistry m_fields;
+
+
 };

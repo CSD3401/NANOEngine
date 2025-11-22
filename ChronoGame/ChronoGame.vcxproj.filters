@@ -66,6 +66,12 @@
     <ClInclude Include="Scripts\ParentControllerScript.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Scripts\MaterialSequencer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\ColourSwapManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

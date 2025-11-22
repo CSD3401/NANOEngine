@@ -554,7 +554,7 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 0.0,
+                    "x": -1.0446891784667969,
                     "y": 0.0,
                     "z": 4.115004062652588
                 },
@@ -572,7 +572,11 @@
                 "parentLuid": 0
             },
             "NativeScript": {
-                "ScriptName": ""
+                "ScriptName": "ColourSwapManager",
+                "SerializedFields": {
+                    "isActive": "1",
+                    "numColourChildren": "0"
+                }
             }
         },
         {
@@ -601,7 +605,29 @@
             },
             "Renderer": {
                 "modelUUID": "builtin:model/cube",
-                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            },
+            "NativeScript": {
+                "ScriptName": "PlayerScript",
+                "SerializedFields": {
+                    "color": "1 0.5 0.25",
+                    "speed": "5.000000",
+                    "lives": "3",
+                    "stats.health": "100",
+                    "playerFlags.questComplete": "0",
+                    "godMode": "0",
+                    "label": "Player",
+                    "state": "0",
+                    "enemyIDs": "4 42 57 103 999",
+                    "waypoints": "4 10.500000 25.000000 42.299999 58.700001",
+                    "flags": "5 1 0 1 0 1",
+                    "stats.maxHealth": "100",
+                    "playerFlags.canDoubleJump": "0",
+                    "stats.stamina": "50.000000",
+                    "stats.level": "1",
+                    "playerFlags.canJump": "1",
+                    "playerFlags.hasKey": "0"
+                }
             }
         },
         {
@@ -660,6 +686,67 @@
             "Renderer": {
                 "modelUUID": "builtin:model/sphere",
                 "materialUUID": "c427718b-41d1-465f-a21f-99ac1981e4e9"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_switch02",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884649909813249,
+                "parentLuid": 8390884648075001857
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            },
+            "NativeScript": {
+                "ScriptName": ""
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_colour03",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 3.0,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884649915514884,
+                "parentLuid": 8390884648075001857
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
             }
         }
     ]

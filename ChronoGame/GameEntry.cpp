@@ -16,6 +16,7 @@
 #include "Scripts/k1bswitch.hpp"
 #include "Scripts/k2bswitch.hpp"
 #include "Scripts/PlayerController.hpp"
+#include "Scripts/ColourSwapManager.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
 #include "Scripts/TweenExampleScript.hpp"
@@ -70,6 +71,10 @@ extern "C" {
 
         registrar->RegisterScript("k2bswitch", []() -> NE::Scripting::IScript* {
             return new k2bswitch();
+            });
+
+        registrar->RegisterScript("ColourSwapManager", []() -> NE::Scripting::IScript* {
+            return new ColourSwapManager();
             });
 
         // Component Reference Example Scripts
