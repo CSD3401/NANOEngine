@@ -34,17 +34,33 @@ public:
 	void Start() override {
 		// Called when the script is enabled and play mode starts
 		GrabChildren();
+		LOG_DEBUG("CORRECT SEQUENCE FOR PUZZLE: BLUE - GREEN - RED");
 	}
 
 	void Update(double deltaTime) override {
 		// Called every frame while the script is enabled
 		if (!isActive) return;
 
-		if (Input::WasKeyPressed('N')) {
-			SwapColours(1, 2);
+		if (!isSolved)
+		{
+			if (Input::WasKeyPressed('N')) {
+				SwapColours(1, 2);
+			}
+			if (Input::WasKeyPressed('M')) {
+				SwapColours(2, 4);
+			}
 		}
-		if (Input::WasKeyPressed('M')) {
-			SwapColours(2, 4);
+		else
+		{
+			if (!changedToSolved)
+			{
+				turnTimer -= deltaTime;
+				if (turnTimer <= 0.0f)
+				{
+					changedToSolved = true;
+					PuzzleSolved();
+				}
+			}
 		}
 	}
 
@@ -94,11 +110,17 @@ private:
 	bool isActive = true;
 	int numColourChildren = 0;
 	std::vector<bool> flags;
+	bool isSolved = false;
+	bool changedToSolved = false;
+	float turnTimer = 1.0f;
 	// green, red, blue
 	std::vector<std::string> colours = { "c57f74a5-e22a-40fe-bc56-f02aaaa494c8", "c427718b-41d1-465f-a21f-99ac1981e4e9", "ea32e122-a8ba-4672-ab60-705fd79b9086"};
+	// Child Index - Child Material
 	std::unordered_map<int, std::string> childColours;
-
-
+	// blue, green, red 
+	std::vector<std::string> correctSolution = { "ea32e122-a8ba-4672-ab60-705fd79b9086" ,"c57f74a5-e22a-40fe-bc56-f02aaaa494c8",  "c427718b-41d1-465f-a21f-99ac1981e4e9" };
+	// for future marc: use sol and colours for the checking
+	std::vector<int> sol;
 	void GrabChildren() {
 		size_t childCount = GetChildCount();
 		int currColour = 0;
@@ -125,7 +147,37 @@ private:
 		// assign the materials using the new map values
 		NE::Renderer::Command::AssignMaterial(rChild, childColours[rightIndex]);
 		NE::Renderer::Command::AssignMaterial(lChild, childColours[leftIndex]);
+		if (CheckPuzzle())
+		{
 
+			LOG_DEBUG("Puzzle is correct!");
+			isSolved = true;
+		}
+
+	}
+
+	bool CheckPuzzle()
+	{
+		int currIndex = 0;
+		for (std::pair<int, std::string> pair : childColours)
+		{
+			if (pair.second != correctSolution[currIndex++])
+			{
+				return false;
+			}
+
+		}
+
+		return true;
+	}
+
+	void PuzzleSolved()
+	{
+		for (std::pair<int, std::string> pair : childColours)
+		{
+			Entity child = GetChild(pair.first);
+			NE::Renderer::Command::AssignMaterial(child, colours[0]);
+		}
 	}
 
 	// Field registry for exposing variables to the editor
