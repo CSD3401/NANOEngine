@@ -6,14 +6,14 @@
     "PolygonMode": 6914,
     "Properties": {
         "u_HasAlbedoMap": 1,
-        "u_HasAmbientOcclusionMap": 0,
         "u_HasMetallicMap": 1,
+        "u_HasAmbientOcclusionMap": 0,
         "u_HasNormalMap": 1,
         "u_HasRoughnessMap": 1,
         "u_AmbientOcclusion": 0.0,
         "u_Metallic": 0.0,
         "u_Roughness": 0.0,
-        "u_AmbientColor": [
+        "u_Tiling": [
             1.0,
             1.0,
             1.0
@@ -23,7 +23,7 @@
             0.0,
             0.0
         ],
-        "u_Tiling": [
+        "u_AmbientColor": [
             1.0,
             1.0,
             1.0
@@ -38,10 +38,10 @@
             0.0,
             0.0
         ],
-        "u_AlbedoMap": "0f9e8224-4d14-4f0a-958b-570a000b27a3",
-        "u_MetallicMap": "072363dd-fbef-423c-a5fc-0c1bcb242683",
+        "u_MetallicMap": "3a972f9e-d610-4986-8f05-711486e05fed",
+        "u_AlbedoMap": "76f32f87-166a-4e89-b93c-eb00aa326326",
         "u_AmbientOcclusionMap": "",
-        "u_NormalMap": "413ce02f-6cf9-4e33-a3d8-c4434fafbc4e",
-        "u_RoughnessMap": "2fae7414-de43-45e5-a3ed-d421a4e74b24"
+        "u_NormalMap": "6722b587-9371-4414-bd05-d5af32ea89fc",
+        "u_RoughnessMap": "46d3cca6-6b1a-4c8d-8aa2-38bb266b65f8"
     }
 }
