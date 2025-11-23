@@ -20,6 +20,8 @@ namespace NE::Graphics::OpenGL {
 
 	void GLStateCache::Bind(const PipelineSpecification& spec)
 	{
+		if (!spec.shader) return;
+
 		if (!m_Valid) {
 			// Apply all states
 			// Depth test
