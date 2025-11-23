@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../ECS/Core/ComponentManager.hpp"
+#include "../ECS/Core/EntityManager.hpp"
 #include "../Physics/PhysicsManager.hpp"
 
 namespace NE {
@@ -26,12 +27,13 @@ namespace Scripting {
     class ScriptContext {
     public:
         ECS::ComponentManager* componentManager = nullptr;
+        ECS::EntityManager* entityManager = nullptr;
         // Note: PhysicsManager is static, accessed directly via static methods
 
         ScriptContext() = default;
 
-        explicit ScriptContext(ECS::ComponentManager* cm)
-            : componentManager(cm) {
+        explicit ScriptContext(ECS::ComponentManager* cm, ECS::EntityManager* em = nullptr)
+            : componentManager(cm), entityManager(em) {
             // PhysicsManager is accessed statically, no instance needed
         }
 

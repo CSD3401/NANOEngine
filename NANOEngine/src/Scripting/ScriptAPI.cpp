@@ -47,6 +47,50 @@ namespace Scripting {
         return Vec3(v.x, v.y, v.z);
     }
 
+    //=========================================================================
+    // LUID ↔ ENTITY CONVERSION UTILITIES
+    //=========================================================================
+
+    /**
+     * Get LUID from Entity ID.
+     * Returns 0 if entity doesn't exist or has no EntityMeta component.
+     */
+    inline uint64_t GetLUIDFromEntity(Entity entity, ECS::ComponentManager* componentManager) {
+        if (!componentManager || entity == INVALID_ENTITY) {
+            return 0;
+        }
+
+        if (!componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+            return 0;
+        }
+
+        return componentManager->GetComponent<ECS::Component::EntityMeta>(entity).luid;
+    }
+
+    /**
+     * Get Entity ID from LUID.
+     * Returns INVALID_ENTITY if LUID not found.
+     * This iterates through all entities, so it's not super fast - use sparingly.
+     */
+    inline Entity GetEntityFromLUID(uint64_t luid, ECS::ComponentManager* componentManager, ECS::EntityManager* entityManager) {
+        if (!componentManager || !entityManager || luid == 0) {
+            return INVALID_ENTITY;
+        }
+
+        // Iterate through all active entities to find matching LUID
+        const auto& usedEntities = entityManager->GetUsedEntities();
+        for (Entity entity : usedEntities) {
+            if (componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+                const auto& meta = componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+                if (meta.luid == luid) {
+                    return entity;
+                }
+            }
+        }
+
+        return INVALID_ENTITY;
+    }
+
     // Vector normalization helper
     inline Vec3 Normalize(const Vec3& v) {
         float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);

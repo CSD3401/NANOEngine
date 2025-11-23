@@ -104,6 +104,8 @@ public:
 
 	void Start() override {
 		//LOG_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
+
+		tref0 = GetTransformRef(eDDDD[0]);
 	}
 
 	void OnValidate() override {
@@ -144,6 +146,8 @@ public:
 		else {
 			state = PlayerState::Idle;
 		}
+
+		SetPosition(tref0, GetPosition() + Vec3(1.0,1.0,0));
 
 		if (Input::WasKeyPressed('K')) {
 			int dmg = 20;
@@ -243,6 +247,8 @@ private:
 	std::vector<bool> flags;
 	std::vector<std::string> blingstring;
 	std::vector<Entity> eDDDD;
+
+	TransformRef tref0;
 
 	// Struct fields
 	PlayerStats stats;
