@@ -41,6 +41,7 @@ void main() {
 in vec3 v_Normal;
 in vec3 v_FragPos;
 in vec2 v_TexCoord;
+in vec3 v_ID;
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 OutID;
