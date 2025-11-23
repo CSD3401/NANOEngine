@@ -4,6 +4,7 @@
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include <Core/SpdLogger.hpp>  // For SPD_INFO logging
+#include "Graphics/Core/GraphicsManager.hpp"
 
 namespace NE::SceneManagement {
 
@@ -14,14 +15,6 @@ namespace NE::SceneManagement {
 		m_editor->Init();
 		m_isPlaying = false;
 		m_runtime.reset();
-	}
-
-	void SceneManager::ReloadScene() {
-		if (!m_editor || m_loadedPath.empty()) return;
-		m_editor->Exit();
-		m_editor = std::make_unique<NE::SceneManagement::Scene>();
-		m_editor->Init();
-		Serialization::JsonSceneSerializer::Deserialize(*m_editor, m_loadedPath);
 	}
 
 	void SceneManager::SaveScene() {
@@ -57,7 +50,7 @@ namespace NE::SceneManagement {
 
 	void SceneManager::BeginPlay() {
 		if (!m_editor || m_isPlaying) return;
-
+		Graphics::GraphicsManager::m_lights.clear();
 		// This ensures component references and other script fields are preserved
 		auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
 		for (NE::ECS::Entity entity : entities) {
@@ -97,7 +90,7 @@ namespace NE::SceneManagement {
 
 	void SceneManager::StopPlay() {
 		if (!m_isPlaying) return;
-
+		Graphics::GraphicsManager::m_lights.clear();
 		// stop scripts first
 		if (m_runtime) {
 			m_runtime->ScriptStop();

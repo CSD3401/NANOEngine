@@ -57,7 +57,8 @@ namespace NE::Graphics {
 
     void Material::SetTexture(const std::string& uName, const std::string& uuid) {
         m_Textures[uName] = Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
-        m_Textures[uName]->MakeResident();
+        if (uuid != "")
+            m_Textures[uName]->MakeResident();
     }
 
     void Material::SetQueueBase(RenderQueue queue) {
