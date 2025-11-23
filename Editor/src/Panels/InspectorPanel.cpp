@@ -1147,6 +1147,56 @@ namespace Editor {
 													elemChanged = true;
 												}
 											}
+											else if (elementType == "entity") {
+												// Entity reference support for vector<entity>
+												std::string entityIdStr = elemValue;
+												std::string displayName = "None";
+												uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+												std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+												if (!entityIdStr.empty() && entityIdStr != noEntityStr) {
+													try {
+														assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+
+														// Verify entity still exists
+														if (assignedEntityId != NE::ECS::NO_ENTITY) {
+															const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+															displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+														}
+													}
+													catch (...) {
+														displayName = "[Error]";
+													}
+												}
+
+												// Button shows entity name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept entity drops from hierarchy
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
+													if (payload && payload->DataSize == sizeof(uint32_t)) {
+														uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+														SPD_DEBUG("[Entity Vector] Dropped entity: {}", droppedEntity);
+
+														bool success = comp.Instance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+														if (success) {
+															elemChanged = true;
+															SPD_DEBUG("[Entity Vector] Successfully assigned entity to vector element");
+														} else {
+															SPD_ERROR("[Entity Vector] Failed to set array element");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, noEntityStr);
+													elemChanged = true;
+												}
+											}
 											else {
 												// Unknown type fallback - treat as string
 												char buf[256];

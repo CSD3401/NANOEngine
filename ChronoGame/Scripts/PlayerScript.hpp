@@ -59,6 +59,9 @@ public:
 		enemyIDs = { 42, 57, 103, 999 };  // 4 enemy IDs to test remove
 		waypoints = { 10.5f, 25.0f, 42.3f, 58.7f };  // 4 waypoint positions
 		flags = { true, false, true, false, true };// 5 quest flags
+
+		SCRIPT_FIELD_VECTOR(blingstring, String);
+		SCRIPT_FIELD_VECTOR(eDDDD,Entity);
 	}
 
 	~PlayerScript() override {
@@ -238,6 +241,8 @@ private:
 	std::vector<int> enemyIDs;
 	std::vector<float> waypoints;
 	std::vector<bool> flags;
+	std::vector<std::string> blingstring;
+	std::vector<Entity> eDDDD;
 
 	// Struct fields
 	PlayerStats stats;
