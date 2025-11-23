@@ -173,7 +173,6 @@
     <ClInclude Include="Scripts\PlayerCamera.hpp" />
     <ClInclude Include="Scripts\PlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerScript.hpp" />
-    <ClInclude Include="Scripts\ScriptBase.hpp" />
     <ClInclude Include="Scripts\TestScript.hpp" />
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />

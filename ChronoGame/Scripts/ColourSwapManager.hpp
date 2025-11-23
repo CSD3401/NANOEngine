@@ -1,20 +1,20 @@
 #pragma once
-#include "ScriptBase.hpp"
+#include "EngineAPI.hpp"
 
 /**
  * ColourSwapManager - Auto-generated script template
  * Implement your game logic in the lifecycle methods below.
  */
-class ColourSwapManager : public ScriptBase<ColourSwapManager> {
+class ColourSwapManager : public IScript {
 public:
 	ColourSwapManager() {
 		// Register any editable fields here
 		// Example: SCRIPT_FIELD(speed, Float);
 		SCRIPT_FIELD(isActive, Bool);
 		SCRIPT_FIELD(numColourChildren, Int);
-		REGISTER_VECTOR(colours);  // Now uncommented - will work!
-		REGISTER_VECTOR(flags);
-		REGISTER_VECTOR(correctSolution);
+		//SCRIPT_FIELD_VECTOR(colours, Material);  // Now uncommented - will work!
+		SCRIPT_FIELD_VECTOR(flags, Bool);
+		SCRIPT_FIELD_VECTOR(correctSol, MaterialRef);
 		flags = { true, false, true, false, true };
 		std::cout << "[ColourSwapManager] Created with fields registered" << std::endl;
 	}
@@ -120,7 +120,7 @@ private:
 	std::unordered_map<int, std::string> childColours;
 	// blue, green, red 
 	std::vector<std::string> correctSolution = { "ea32e122-a8ba-4672-ab60-705fd79b9086" ,"c57f74a5-e22a-40fe-bc56-f02aaaa494c8",  "c427718b-41d1-465f-a21f-99ac1981e4e9" };
-
+	std::vector<MaterialRef> correctSol;
 
 	void GrabChildren() {
 		size_t childCount = GetChildCount();

@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "ScriptBase.hpp"
+#include "EngineAPI.hpp"
 
 void DelayedPrintUpdate() {
 	LOG_DEBUG("hi 3 seconds over player");
@@ -14,7 +14,7 @@ void DelayedPrintUpdate() {
  * Example player script demonstrating standardized field registration.
  * Now uses ONLY IScript's built-in FieldRegistry - no ExposedFieldRegistry needed!
  */
-class PlayerScript : public ScriptBase<PlayerScript> {
+class PlayerScript : public IScript {
 public:
 	// Example enum for testing
 	enum class PlayerState {
