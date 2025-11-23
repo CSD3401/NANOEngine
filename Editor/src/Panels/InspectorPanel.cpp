@@ -263,7 +263,10 @@ namespace Editor {
 
 				bool isActiveValue = metaRO.isActive;
 				if (ImGui::Checkbox("isActive", &isActiveValue)) {
-					metaRO.isActive = isActiveValue;
+					//metaRO.isActive = isActiveValue;
+
+					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
+					EditorScene::SetAllDescendantsActive(entity, isActiveValue);
 					NE::MarkSceneDirty();
 				}
 
