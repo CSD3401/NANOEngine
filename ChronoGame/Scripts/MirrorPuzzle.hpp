@@ -3,57 +3,54 @@
 #include <array>
 
 /**
- * MirrorPuzzle - Refactored version of MatchingPuzzle
+ * MirrorPuzzle - Tile-based puzzle with mirrored movement
  *
- * Instead of 28 individual TransformRefs, we use just 6:
- *   - targetTransform, endTransform, gridParent (original)
- *   - mirrorTargetTransform, mirrorEndTransform, mirrorGridParent (mirror)
+ * Uses 4 TransformRefs:
+ *   - targetTransform, gridParent (original)
+ *   - mirrorTargetTransform, mirrorGridParent (mirror)
  *
- * The 12 tiles for each grid are obtained via GetChildOf() from the parent entities.
+ * Start/End positions are configured via exposed int fields.
+ * Mirror positions are automatically calculated (horizontally mirrored).
  *
  * ============================================================================
- * REQUIRED ENGINE UPDATE:
+ * EXPOSED FIELDS:
  * ============================================================================
- *
- * Add these functions to IScript (see ScriptAPI_additions.h/.cpp):
- *   - size_t GetChildCountOf(Entity entity) const;
- *   - Entity GetChildOf(Entity entity, size_t index) const;
+ *   - startRow, startCol: Starting tile for original target (0-2, 0-3)
+ *   - endRow, endCol: Goal tile for original target (0-2, 0-3)
+ *   Mirror positions auto-calculated: mirrorCol = 3 - col
  *
  * ============================================================================
  * HIERARCHY SETUP:
  * ============================================================================
  *
  *   Scene
- *   ├── ScriptHolder (attach this script here - can be any entity)
+ *   ├── ScriptHolder (attach this script here)
  *   ├── OriginalGridParent (assign to gridParent)
- *   │   ├── Tile0 (child 0)
- *   │   ├── Tile1 (child 1)
- *   │   └── ... Tile11 (child 11)
+ *   │   ├── Tile0 (child 0) ... Tile11 (child 11)
  *   ├── MirrorGridParent (assign to mirrorGridParent)
- *   │   ├── Tile0 (child 0)
- *   │   ├── Tile1 (child 1)
- *   │   └── ... Tile11 (child 11)
+ *   │   ├── Tile0 (child 0) ... Tile11 (child 11)
  *   ├── Target (assign to targetTransform)
- *   ├── MirrorTarget (assign to mirrorTargetTransform)
- *   ├── EndGoal (assign to endTransform)
- *   └── MirrorEndGoal (assign to mirrorEndTransform)
+ *   └── MirrorTarget (assign to mirrorTargetTransform)
  *
  * Grid Layout (4 columns x 3 rows):
- *   Row 0: [0] [1] [2] [3]
- *   Row 1: [4] [5] [6] [7]
- *   Row 2: [8] [9] [10][11]
+ *   Row 0: [00] [01] [02] [03]
+ *   Row 1: [10] [11] [12] [13]
+ *   Row 2: [20] [21] [22] [23]
  */
 class MirrorPuzzle : public IScript {
 public:
 	MirrorPuzzle() {
-		// Only 6 TransformRefs instead of 28!
+		// 4 TransformRefs (removed end transforms)
 		SCRIPT_COMPONENT_REF(targetTransform, Transform);
-		SCRIPT_COMPONENT_REF(endTransform, Transform);
 		SCRIPT_COMPONENT_REF(gridParent, Transform);
-
 		SCRIPT_COMPONENT_REF(mirrorTargetTransform, Transform);
-		SCRIPT_COMPONENT_REF(mirrorEndTransform, Transform);
 		SCRIPT_COMPONENT_REF(mirrorGridParent, Transform);
+
+		// Start/End positions (user configurable in editor)
+		SCRIPT_FIELD(startRow, Int);
+		SCRIPT_FIELD(startCol, Int);
+		SCRIPT_FIELD(endRow, Int);
+		SCRIPT_FIELD(endCol, Int);
 
 		SCRIPT_FIELD(tileSpacingX, Float);
 		SCRIPT_FIELD(tileSpacingY, Float);
@@ -65,7 +62,7 @@ public:
 	void Initialize(Entity entity) override {}
 
 	void Start() override {
-		LOG_INFO("=== UPDATED MirrorPuzzle Started ===");
+		LOG_INFO("=== MirrorPuzzle Started ===");
 
 		// Validate parent refs
 		if (!gridParent.IsValid()) {
@@ -77,7 +74,22 @@ public:
 			return;
 		}
 
-		// Get the 12 children of gridParent using GetChildOf()
+		// Clamp start/end positions to valid range
+		startRow = Clamp(startRow, 0, 2);
+		startCol = Clamp(startCol, 0, 3);
+		endRow = Clamp(endRow, 0, 2);
+		endCol = Clamp(endCol, 0, 3);
+
+		// Calculate mirror positions (horizontally mirrored)
+		mirrorStartRow = startRow;
+		mirrorStartCol = 3 - startCol;
+		mirrorEndRow = endRow;
+		mirrorEndCol = 3 - endCol;
+
+		LOG_INFO("Original: Start(" << startRow << "," << startCol << ") -> End(" << endRow << "," << endCol << ")");
+		LOG_INFO("Mirror:   Start(" << mirrorStartRow << "," << mirrorStartCol << ") -> End(" << mirrorEndRow << "," << mirrorEndCol << ")");
+
+		// Cache original grid tile transforms
 		Entity gridParentEntity = gridParent.GetEntity();
 		size_t originalChildCount = GetChildCountOf(gridParentEntity);
 		LOG_INFO("Original grid parent has " << originalChildCount << " children");
@@ -93,7 +105,7 @@ public:
 		}
 		LOG_INFO("Cached 12 original tile transforms");
 
-		// Get the 12 children of mirrorGridParent using GetChildOf()
+		// Cache mirror grid tile transforms
 		Entity mirrorGridParentEntity = mirrorGridParent.GetEntity();
 		size_t mirrorChildCount = GetChildCountOf(mirrorGridParentEntity);
 		LOG_INFO("Mirror grid parent has " << mirrorChildCount << " children");
@@ -117,49 +129,53 @@ public:
 			row.fill(ALL);
 		}
 
-		// Start positions (logical grid coordinates)
-		// Original starts at bottom-left (2,0)
-		// Mirror starts at bottom-right (2,3) - horizontally mirrored
-		currentRow = 2;
-		currentCol = 0;
-		mirrorRow = 2;
-		mirrorCol = 3;
+		// Set current positions to start positions
+		currentRow = startRow;
+		currentCol = startCol;
+		mirrorRow = mirrorStartRow;
+		mirrorCol = mirrorStartCol;
 
-		// Position targets on starting tiles using WORLD position
-		// Original: tile index = 2*4 + 0 = 8
-		if (targetTransform.IsValid() && tileTransforms[8].IsValid()) {
-			Vec3 startPos = GetTileWorldPosition(tileTransforms[8], gridParent);
-			startPos.z += 1.0f;
-			SetPosition(targetTransform, startPos);
-			LOG_INFO("Original target placed at (" << currentRow << "," << currentCol << ")");
+		// Position original target on starting tile
+		if (targetTransform.IsValid()) {
+			int startTileIndex = startRow * 4 + startCol;
+			if (tileTransforms[startTileIndex].IsValid()) {
+				Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex], gridParent);
+				startPos.z += 1.0f;
+				SetPosition(targetTransform, startPos);
+				LOG_INFO("Original target placed at (" << currentRow << "," << currentCol << ")");
+			}
 		}
 
-		// Mirror: tile index = 2*4 + 3 = 11 on the MIRROR grid
-		if (mirrorTargetTransform.IsValid() && mirrorTileTransforms[mirrorRow * 4 + mirrorCol].IsValid()) {
-			Vec3 mirrorStartPos = GetTileWorldPosition(mirrorTileTransforms[mirrorRow * 4 + mirrorCol], mirrorGridParent);
-			mirrorStartPos.z += 1.0f;
-			SetPosition(mirrorTargetTransform, mirrorStartPos);
-			LOG_INFO("Mirror target placed at (" << mirrorRow << "," << mirrorCol << ") on mirror grid");
+		// Position mirror target on starting tile
+		if (mirrorTargetTransform.IsValid()) {
+			int mirrorStartTileIndex = mirrorStartRow * 4 + mirrorStartCol;
+			if (mirrorTileTransforms[mirrorStartTileIndex].IsValid()) {
+				Vec3 mirrorStartPos = GetTileWorldPosition(mirrorTileTransforms[mirrorStartTileIndex], mirrorGridParent);
+				mirrorStartPos.z += 1.0f;
+				SetPosition(mirrorTargetTransform, mirrorStartPos);
+				LOG_INFO("Mirror target placed at (" << mirrorRow << "," << mirrorCol << ")");
+			}
 		}
 
+		puzzleSolved = false;
 		LogCurrentState();
 	}
 
 	void Update(double deltaTime) override {
 		if (!targetTransform.IsValid() || !mirrorTargetTransform.IsValid()) return;
+		if (puzzleSolved) return;
 
 		if (Input::WasKeyPressed('W')) TryMoveUp();
 		if (Input::WasKeyPressed('S')) TryMoveDown();
 		if (Input::WasKeyPressed('A')) TryMoveLeft();
 		if (Input::WasKeyPressed('D')) TryMoveRight();
 		if (Input::WasKeyPressed('P')) PrintGridState();
+		if (Input::WasKeyPressed('R')) ResetPuzzle();
 
+		// Check win condition
 		if (HasReachedEnd() && HasMirrorReachedEnd()) {
-			static bool hasLogged = false;
-			if (!hasLogged) {
-				LOG_INFO("*** PUZZLE SOLVED! Both targets reached their goals! ***");
-				hasLogged = true;
-			}
+			puzzleSolved = true;
+			LOG_INFO("*** PUZZLE SOLVED! Both targets reached their goals! ***");
 		}
 	}
 
@@ -185,15 +201,21 @@ private:
 		ALL = 0b1111
 	};
 
-	// === HELPER: Get world position of a tile ===
-	// GetPosition returns local position, so we need to add parent's position
+	// === UTILITY ===
+
+	int Clamp(int value, int minVal, int maxVal) const {
+		if (value < minVal) return minVal;
+		if (value > maxVal) return maxVal;
+		return value;
+	}
+
 	Vec3 GetTileWorldPosition(TransformRef& tile, TransformRef& parent) {
 		Vec3 localPos = GetPosition(tile);
 		Vec3 parentPos = GetPosition(parent);
 		return Vec3(localPos.x + parentPos.x, localPos.y + parentPos.y, localPos.z + parentPos.z);
 	}
 
-	// === MOVEMENT METHODS ===
+	// === MOVEMENT ===
 
 	void TryMoveUp() {
 		LOG_INFO("\n--- Attempting UP ---");
@@ -212,18 +234,16 @@ private:
 	void TryMoveLeft() {
 		LOG_INFO("\n--- Attempting LEFT ---");
 		bool originalMoved = TryMoveOriginal(LEFT, 0, -1);
-		bool mirrorMoved = TryMoveMirror(RIGHT, 0, 1);  // Mirror moves opposite!
+		bool mirrorMoved = TryMoveMirror(RIGHT, 0, 1);  // Mirror moves opposite horizontally
 		if (originalMoved || mirrorMoved) LogCurrentState();
 	}
 
 	void TryMoveRight() {
 		LOG_INFO("\n--- Attempting RIGHT ---");
 		bool originalMoved = TryMoveOriginal(RIGHT, 0, 1);
-		bool mirrorMoved = TryMoveMirror(LEFT, 0, -1);  // Mirror moves opposite!
+		bool mirrorMoved = TryMoveMirror(LEFT, 0, -1);  // Mirror moves opposite horizontally
 		if (originalMoved || mirrorMoved) LogCurrentState();
 	}
-
-	// === HELPER METHODS ===
 
 	bool TryMoveOriginal(Direction dir, int rowDelta, int colDelta) {
 		if (!CanMoveInDirection(grid[currentRow][currentCol], dir)) {
@@ -309,38 +329,55 @@ private:
 		}
 	}
 
+	// === WIN CONDITION (now based on grid coordinates) ===
+
 	bool HasReachedEnd() const {
-		if (!endTransform.IsValid() || !targetTransform.IsValid()) return false;
-
-		Vec3 targetPos = GetPosition(targetTransform);
-		Vec3 endPos = GetPosition(endTransform);
-
-		float dx = targetPos.x - endPos.x;
-		float dy = targetPos.y - endPos.y;
-		float dz = targetPos.z - endPos.z;
-		float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-		return distance < 0.5f;
+		return (currentRow == endRow && currentCol == endCol);
 	}
 
 	bool HasMirrorReachedEnd() const {
-		if (!mirrorEndTransform.IsValid() || !mirrorTargetTransform.IsValid()) return false;
-
-		Vec3 targetPos = GetPosition(mirrorTargetTransform);
-		Vec3 endPos = GetPosition(mirrorEndTransform);
-
-		float dx = targetPos.x - endPos.x;
-		float dy = targetPos.y - endPos.y;
-		float dz = targetPos.z - endPos.z;
-		float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
-
-		return distance < 0.5f;
+		return (mirrorRow == mirrorEndRow && mirrorCol == mirrorEndCol);
 	}
+
+	// === RESET ===
+
+	void ResetPuzzle() {
+		LOG_INFO("\n=== Resetting Puzzle ===");
+
+		currentRow = startRow;
+		currentCol = startCol;
+		mirrorRow = mirrorStartRow;
+		mirrorCol = mirrorStartCol;
+		puzzleSolved = false;
+
+		// Reposition targets
+		if (targetTransform.IsValid()) {
+			int startTileIndex = startRow * 4 + startCol;
+			if (tileTransforms[startTileIndex].IsValid()) {
+				Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex], gridParent);
+				startPos.z += 1.0f;
+				SetPosition(targetTransform, startPos);
+			}
+		}
+
+		if (mirrorTargetTransform.IsValid()) {
+			int mirrorStartTileIndex = mirrorStartRow * 4 + mirrorStartCol;
+			if (mirrorTileTransforms[mirrorStartTileIndex].IsValid()) {
+				Vec3 mirrorStartPos = GetTileWorldPosition(mirrorTileTransforms[mirrorStartTileIndex], mirrorGridParent);
+				mirrorStartPos.z += 1.0f;
+				SetPosition(mirrorTargetTransform, mirrorStartPos);
+			}
+		}
+
+		LogCurrentState();
+	}
+
+	// === DEBUG ===
 
 	void LogCurrentState() const {
 		LOG_INFO("=== Current State ===");
-		LOG_INFO("Original: (" << currentRow << "," << currentCol << ")");
-		LOG_INFO("Mirror:   (" << mirrorRow << "," << mirrorCol << ")");
+		LOG_INFO("Original: (" << currentRow << "," << currentCol << ") -> Goal(" << endRow << "," << endCol << ")");
+		LOG_INFO("Mirror:   (" << mirrorRow << "," << mirrorCol << ") -> Goal(" << mirrorEndRow << "," << mirrorEndCol << ")");
 	}
 
 	void PrintGridState() const {
@@ -354,6 +391,7 @@ private:
 				<< static_cast<int>(grid[row][3]));
 		}
 		LOG_INFO("Original position: (" << currentRow << "," << currentCol << ")");
+		LOG_INFO("Original goal: (" << endRow << "," << endCol << ")");
 
 		LOG_INFO("\nMIRROR GRID:");
 		for (int row = 0; row < 3; row++) {
@@ -364,32 +402,46 @@ private:
 				<< static_cast<int>(mirrorGrid[row][3]));
 		}
 		LOG_INFO("Mirror position: (" << mirrorRow << "," << mirrorCol << ")");
+		LOG_INFO("Mirror goal: (" << mirrorEndRow << "," << mirrorEndCol << ")");
 	}
 
-	// === EXPOSED FIELDS (6 refs instead of 28!) ===
+	// === EXPOSED FIELDS (4 refs + 4 position ints) ===
 
-	// Original
 	TransformRef targetTransform;
-	TransformRef endTransform;
-	TransformRef gridParent;  // Parent entity with 12 original tile children
-
-	// Mirror
+	TransformRef gridParent;
 	TransformRef mirrorTargetTransform;
-	TransformRef mirrorEndTransform;
-	TransformRef mirrorGridParent;  // Parent entity with 12 mirror tile children
+	TransformRef mirrorGridParent;
+
+	// User-configurable start/end positions (exposed in editor)
+	int startRow = 2;  // Default: bottom-left
+	int startCol = 0;
+	int endRow = 0;    // Default: top-right
+	int endCol = 3;
 
 	float tileSpacingX = 1.5f;
 	float tileSpacingY = 1.5f;
 
-	// === INTERNAL STATE (populated from GetChildOf in Start) ===
-	std::array<std::array<Direction, 4>, 3> grid;
-	std::array<std::array<Direction, 4>, 3> mirrorGrid;
+	// === INTERNAL STATE ===
 
-	std::array<TransformRef, 12> tileTransforms;       // Filled via GetChildOf(gridParent, 0-11)
-	std::array<TransformRef, 12> mirrorTileTransforms; // Filled via GetChildOf(mirrorGridParent, 0-11)
+	// Mirror positions (calculated from original)
+	int mirrorStartRow = 0;
+	int mirrorStartCol = 0;
+	int mirrorEndRow = 0;
+	int mirrorEndCol = 0;
 
+	// Current positions
 	int currentRow = 0;
 	int currentCol = 0;
 	int mirrorRow = 0;
 	int mirrorCol = 0;
+
+	bool puzzleSolved = false;
+
+	// Direction grids
+	std::array<std::array<Direction, 4>, 3> grid;
+	std::array<std::array<Direction, 4>, 3> mirrorGrid;
+
+	// Tile transforms (populated from GetChildOf in Start)
+	std::array<TransformRef, 12> tileTransforms;
+	std::array<TransformRef, 12> mirrorTileTransforms;
 };
