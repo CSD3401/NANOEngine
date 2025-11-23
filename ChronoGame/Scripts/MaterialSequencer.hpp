@@ -17,21 +17,21 @@ public:
         SCRIPT_FIELD(materialA_UUID, String);
         SCRIPT_FIELD(materialB_UUID, String);
 
-        SCRIPT_COMPONENT_REF(target1, Transform);
-        SCRIPT_COMPONENT_REF(target2, Transform);
-        SCRIPT_COMPONENT_REF(target3, Transform);
-        SCRIPT_COMPONENT_REF(target4, Transform);
-        SCRIPT_COMPONENT_REF(target5, Transform);
+        SCRIPT_COMPONENT_REF(target1, TransformRef);
+        SCRIPT_COMPONENT_REF(target2, TransformRef);
+        SCRIPT_COMPONENT_REF(target3, TransformRef);
+        SCRIPT_COMPONENT_REF(target4, TransformRef);
+        SCRIPT_COMPONENT_REF(target5, TransformRef);
 
-        SCRIPT_COMPONENT_REF(attached1, Transform);
-        SCRIPT_COMPONENT_REF(attached2, Transform);
-        SCRIPT_COMPONENT_REF(attached3, Transform);
-        SCRIPT_COMPONENT_REF(attached4, Transform);
-        SCRIPT_COMPONENT_REF(attached5, Transform);
+        SCRIPT_COMPONENT_REF(attached1, TransformRef);
+        SCRIPT_COMPONENT_REF(attached2, TransformRef);
+        SCRIPT_COMPONENT_REF(attached3, TransformRef);
+        SCRIPT_COMPONENT_REF(attached4, TransformRef);
+        SCRIPT_COMPONENT_REF(attached5, TransformRef);
 
         // Ray setup
-        SCRIPT_COMPONENT_REF(clickRayOrigin, Transform);  // usually the Camera
-        SCRIPT_COMPONENT_REF(rayParent, Transform);       // set to Player if camera is a child
+        SCRIPT_COMPONENT_REF(clickRayOrigin, TransformRef);  // usually the Camera
+        SCRIPT_COMPONENT_REF(rayParent, TransformRef);       // set to Player if camera is a child
         SCRIPT_FIELD(rayDistance, Float);
         SCRIPT_FIELD(layerMask, Int);
     }

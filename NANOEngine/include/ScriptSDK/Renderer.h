@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <string>
+#include "ScriptTypes.h"
 
 namespace NE {
 namespace Renderer {
@@ -22,7 +23,20 @@ namespace Renderer {
     //=========================================================================
 
     namespace Query {
-        // Future query functions can go here
+        /// Get the model UUID assigned to an entity
+        /// @param e Entity ID
+        /// @return Model UUID string, or "empty uuid" if none assigned
+        __declspec(dllimport) std::string GetModel(uint32_t e);
+
+        /// Get the material UUID assigned to an entity
+        /// @param e Entity ID
+        /// @return Material UUID string, or "empty uuid" if none assigned
+        __declspec(dllimport) std::string GetMaterial(uint32_t e);
+
+        /// Get the material UUID from a MaterialRef
+        /// @param materialRef Material reference
+        /// @return Material UUID string
+        __declspec(dllimport) std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef);
     }
 
     //=========================================================================
@@ -39,6 +53,18 @@ namespace Renderer {
         /// @param e Entity ID
         /// @param uuid Material asset UUID string
         __declspec(dllimport) void AssignMaterial(uint32_t e, const std::string& uuid);
+
+        /// Assign a material to an entity using MaterialRef
+        /// @param e Entity ID
+        /// @param materialRef Material reference
+        inline void AssignMaterial(uint32_t e, const NE::Scripting::MaterialRef& materialRef) {
+            if (materialRef.IsValid()) {
+                // Get UUID from material ref via the material registry
+                // Note: This requires the GetMaterialUUID helper function
+                std::string uuid = Query::GetMaterialUUID(materialRef);
+                AssignMaterial(e, uuid);
+            }
+        }
     }
 
 } // namespace Renderer
