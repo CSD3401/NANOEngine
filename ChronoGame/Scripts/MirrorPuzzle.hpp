@@ -66,12 +66,12 @@ public:
 		SCRIPT_COMPONENT_REF(mirrorGridParent, Transform);
 
 		// Primitive fields (use SCRIPT_FIELD)
-		SCRIPT_FIELD(startRow, Int);
-		SCRIPT_FIELD(startCol, Int);
-		SCRIPT_FIELD(endRow, Int);
-		SCRIPT_FIELD(endCol, Int);
-		SCRIPT_FIELD(tileSpacingX, Float);
-		SCRIPT_FIELD(tileSpacingY, Float);
+		REGISTER_FIELD(startRow);
+		REGISTER_FIELD(startCol);
+		REGISTER_FIELD(endRow);
+		REGISTER_FIELD(endCol);
+		REGISTER_FIELD(tileSpacingX);
+		REGISTER_FIELD(tileSpacingY);
 
 		// Vectors of structs (use REGISTER_VECTOR with NE_REFLECT_BEGIN/END in struct)
 		REGISTER_VECTOR(tileRestrictions);
@@ -242,10 +242,48 @@ public:
 	void OnTriggerExit(Entity other) override {}
 
 	// === Exposed editable fields ===
-	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
-	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
-	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { return m_fields.SetValue(name, value); }
+	// Merge fields from both IScript's built-in system (component refs) and ExposedFieldRegistry (primitives/vectors)
+	std::vector<std::string> GetExposedFieldNames() const override { 
+		// Get built-in SDK fields (component references)
+		auto sdkFields = IScript::GetExposedFieldNames();
+		
+		// Get ExposedFieldRegistry fields (primitives, vectors)
+		auto customFields = m_fields.GetNames();
+		
+		// Merge both lists
+		std::vector<std::string> allFields;
+		allFields.reserve(sdkFields.size() + customFields.size());
+		allFields.insert(allFields.end(), sdkFields.begin(), sdkFields.end());
+		allFields.insert(allFields.end(), customFields.begin(), customFields.end());
+		
+		return allFields;
+	}
+	
+	std::string GetFieldType(const std::string& name) const override { 
+		// Check ExposedFieldRegistry first
+		std::string type = m_fields.GetType(name);
+		if (!type.empty()) return type;
+		
+		// Fall back to SDK built-in system
+		return IScript::GetFieldType(name);
+	}
+	
+	std::string GetFieldValueAsString(const std::string& name) const override { 
+		// Check ExposedFieldRegistry first
+		std::string value = m_fields.GetValue(name);
+		if (!value.empty()) return value;
+		
+		// Fall back to SDK built-in system
+		return IScript::GetFieldValueAsString(name);
+	}
+	
+	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { 
+		// Try ExposedFieldRegistry first
+		if (m_fields.SetValue(name, value)) return true;
+		
+		// Fall back to SDK built-in system
+		return IScript::SetFieldValueFromString(name, value);
+	}
 
 	// Array/Vector support for tile restrictions
 	size_t GetArraySize(const std::string& fieldName) const override {
