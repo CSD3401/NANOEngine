@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <ECS/Core/Entity.hpp>
 #include <EditorInterface/ECSExports.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace {
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
@@ -135,6 +136,18 @@ namespace Editor {
         if (it != s_children.end()) {
             for (uint32_t child : it->second) {
                 GetAllDescendants(child, out);
+            }
+        }
+    }
+
+    void EditorScene::SetAllDescendantsActive(uint32_t id, bool& active) {
+        auto& enttMeta = NE::ECS::Command::GetEntityMeta(id);
+        enttMeta.isActive = active;
+
+        auto it = s_children.find(id);
+        if (it != s_children.end()) {
+            for (uint32_t child : it->second) {
+                SetAllDescendantsActive(child, active);
             }
         }
     }
