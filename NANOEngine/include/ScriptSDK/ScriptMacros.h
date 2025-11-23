@@ -57,18 +57,16 @@
 //=============================================================================
 
 /**
- * Legacy macro for field registration (same as SCRIPT_FIELD).
- * Provided for backward compatibility with existing scripts.
+ * DEPRECATED: REGISTER_FIELD and SCRIPT_REGISTER_FIELD macros have been removed.
+ *
+ * Use the new standardized field registration methods in Initialize() instead:
+ *   - RegisterFloatField("fieldName", &fieldName)
+ *   - RegisterIntField("fieldName", &fieldName)
+ *   - RegisterBoolField("fieldName", &fieldName)
+ *   - RegisterStringField("fieldName", &fieldName)
+ *   - RegisterVec3Field("fieldName", &fieldName)
+ *   - RegisterEnumField("fieldName", &fieldName, {"Option1", "Option2"})
+ *   - RegisterStructField("fieldName", &fieldName)
+ *
+ * See PlayerScript.hpp for a complete example.
  */
-#ifndef SCRIPT_REGISTER_FIELD
-#define SCRIPT_REGISTER_FIELD(fieldName, fieldType) \
-    SCRIPT_FIELD(fieldName, fieldType)
-#endif
-
-/**
- * Legacy macro alias for SCRIPT_FIELD.
- */
-#ifndef REGISTER_FIELD
-#define REGISTER_FIELD(fieldName) \
-    RegisterFloatField(#fieldName, &this->fieldName)
-#endif

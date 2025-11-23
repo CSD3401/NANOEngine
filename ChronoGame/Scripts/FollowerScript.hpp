@@ -14,7 +14,7 @@ class FollowerScript : public IScript {
 public:
     FollowerScript() {
 // Register component reference - this will show up in the inspector
-        SCRIPT_COMPONENT_REF(targetTransform, Transform);
+        SCRIPT_COMPONENT_REF(targetTransform, TransformRef);
 
         // Register other fields
         SCRIPT_FIELD(followSpeed, Float);

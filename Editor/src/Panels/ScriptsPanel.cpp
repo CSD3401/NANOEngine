@@ -554,8 +554,6 @@ namespace Editor {
 		ss << "\t// Add your private member variables here\n";
 		ss << "\t// Example: float speed = 5.0f;\n";
 		ss << "\n";
-		ss << "\t// Field registry for exposing variables to the editor\n";
-		ss << "\tExposedFieldRegistry m_fields;\n";
 		ss << "};\n";
 
 		return ss.str();

@@ -7,12 +7,13 @@
  */
 class TweenExampleScript : public IScript {
 public:
-    TweenExampleScript() {
-        REGISTER_FIELD(tweenDuration);
-        REGISTER_FIELD(targetDistance);
-    }
+    TweenExampleScript() = default;
 
     void Initialize(Entity entity) override {
+        // Register editable fields
+        SCRIPT_FIELD(tweenDuration, Float);
+        SCRIPT_FIELD(targetDistance, Float);
+
         // Store initial position
         initialPosition = GetPosition();
     }
@@ -191,7 +192,4 @@ private:
     // Internal state
     Vec3 initialPosition;
     float customValue = 0.0f;
-
-    // Field registry
-    ExposedFieldRegistry m_fields;
 };
