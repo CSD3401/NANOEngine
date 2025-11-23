@@ -29,18 +29,17 @@ private:
 public:
     void Initialize(Entity entity) override {
         // Register single material field
-        RegisterMaterialRefField("primaryMaterial", &primaryMaterial);
+        SCRIPT_COMPONENT_REF(primaryMaterial, MaterialRef);
 
         // Register vector material field
-        RegisterMaterialRefVectorField("materialList", &materialList);
+        SCRIPT_FIELD_VECTOR(materialList, MaterialRef);
 
         // Legacy string approach still works
-        RegisterStringField("legacyMaterialUUID", &legacyMaterialUUID);
+        SCRIPT_FIELD(legacyMaterialUUID, String);
 
+        // Testing fields
         SCRIPT_FIELD(testing1, Bool);
-
         SCRIPT_FIELD(testing2, Int);
-
         SCRIPT_FIELD(nmua, Int);
     }
 
@@ -111,7 +110,7 @@ public:
  *     NE::Scripting::MaterialRef myMaterial;
  *
  *     void Initialize(Entity entity) override {
- *         RegisterMaterialRefField("myMaterial", &myMaterial);
+ *         SCRIPT_COMPONENT_REF(myMaterial, MaterialRef);
  *     }
  * };
  *
@@ -121,7 +120,7 @@ public:
  *     std::vector<NE::Scripting::MaterialRef> myMaterials;
  *
  *     void Initialize(Entity entity) override {
- *         RegisterMaterialRefVectorField("myMaterials", &myMaterials);
+ *         SCRIPT_FIELD_VECTOR(myMaterials, MaterialRef);
  *     }
  * };
  *

@@ -19,7 +19,9 @@
 #pragma once
 
 #include "ScriptTypes.h"
+#include "Reflection.h"
 #include <functional>
+#include <sstream>
 
 namespace NE {
 namespace Scripting {
@@ -391,6 +393,15 @@ namespace Scripting {
         void RegisterBoolVectorField(const std::string& name, std::vector<bool>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
 
+        // Enum field registration (with automatic enum options)
+        template<typename EnumType>
+        void RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions);
+
+        // Struct field registration (with reflection support)
+        // NOTE: StructType must have NE_REFLECT macros. Include "Reflection.h" in your script.
+        template<typename StructType>
+        void RegisterStructField(const std::string& structName, StructType* memberPtr);
+
         //=====================================================================
         // EDITOR FIELD QUERY INTERFACE (Virtual - for advanced use)
         //=====================================================================
@@ -437,6 +448,12 @@ namespace Scripting {
 
         // Helper function for Unity-style hierarchy active state propagation
         void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
+
+        // Helper methods for template functions to access FieldRegistry
+        void SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options);
+        void SetFieldEnumCallbacks(const std::string& name,
+            std::function<int()> getEnumValue,
+            std::function<void(int)> setEnumValue);
 
      Entity m_entity = INVALID_ENTITY;
         bool m_enabled = true;
@@ -961,6 +978,104 @@ namespace Tweener {
 #define SCRIPT_LOG_WARNING LOG_WARNING
 #define SCRIPT_LOG_ERROR LOG_ERROR
 #define SCRIPT_LOG_CRITICAL LOG_CRITICAL
+
+//=============================================================================
+// TEMPLATE METHOD IMPLEMENTATIONS (Enum and Struct Registration)
+//=============================================================================
+
+namespace NE::Scripting {
+
+    /**
+     * Register an enum field with automatic dropdown support in editor
+     * @param name Field name
+     * @param memberPtr Pointer to enum member variable
+     * @param enumOptions List of enum value names (in order)
+     */
+    template<typename EnumType>
+    inline void IScript::RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions) {
+        RegisterFieldInternal(
+            name,
+            "enum",
+            memberPtr,
+            // getValue: Return enum as string index
+            [memberPtr]() -> std::string {
+                return std::to_string(static_cast<int>(*memberPtr));
+            },
+            // setValue: Set enum from string index
+            [memberPtr, enumOptions](const std::string& value) -> bool {
+                try {
+                    int idx = std::stoi(value);
+                    if (idx >= 0 && idx < static_cast<int>(enumOptions.size())) {
+                        *memberPtr = static_cast<EnumType>(idx);
+                        return true;
+                    }
+                    return false;
+                } catch (...) {
+                    return false;
+                }
+            }
+        );
+
+        // Store enum options and accessor functions using helper methods
+        SetFieldEnumOptions(name, enumOptions);
+        SetFieldEnumCallbacks(name,
+            [memberPtr]() -> int {
+                return static_cast<int>(*memberPtr);
+            },
+            [memberPtr](int value) {
+                *memberPtr = static_cast<EnumType>(value);
+            }
+        );
+    }
+
+    /**
+     * Register a struct field using reflection system
+     * All reflected fields will be registered as "structName.fieldName"
+     * @param structName Prefix for nested fields
+     * @param memberPtr Pointer to struct member variable
+     *
+     * NOTE: This requires StructType to have NE_REFLECT macros defined.
+     *       Include "Reflection.h" in your game script file before using this.
+     */
+    template<typename StructType>
+    inline void IScript::RegisterStructField(const std::string& structName, StructType* memberPtr)
+    {
+        // Use reflection system to iterate over all struct fields
+        NE::Core::ForEachField(*memberPtr, [&](auto const& desc, auto& fieldValue) {
+            std::string fullName = structName + "." + std::string(desc.name);
+
+            using FieldT = std::remove_reference_t<decltype(fieldValue)>;
+
+            if constexpr (std::is_same_v<FieldT, int>) {
+                RegisterIntField(fullName,
+                    reinterpret_cast<int*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, float>) {
+                RegisterFloatField(fullName,
+                    reinterpret_cast<float*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, bool>) {
+                RegisterBoolField(fullName,
+                    reinterpret_cast<bool*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, std::string>) {
+                RegisterStringField(fullName,
+                    reinterpret_cast<std::string*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, Vec3>) {
+                RegisterVec3Field(fullName,
+                    reinterpret_cast<Vec3*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+        });
+    }
+
+} // namespace Scripting
+
 
 //=============================================================================
 // DLL ENTRY POINT SIGNATURE

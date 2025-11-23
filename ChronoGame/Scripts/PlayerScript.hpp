@@ -11,8 +11,8 @@ void DelayedPrintUpdate() {
 }
 
 /**
- * Example player script demonstrating how to implement IScript.
- * Now uses the built-in field system from IScript base class.
+ * Example player script demonstrating standardized field registration.
+ * Now uses ONLY IScript's built-in FieldRegistry - no ExposedFieldRegistry needed!
  */
 class PlayerScript : public IScript {
 public:
@@ -55,35 +55,10 @@ public:
 	};
 
 	PlayerScript() {
-		// Register primitive fields
-		/*REGISTER_FIELD(speed);
-		REGISTER_FIELD(color);
-		REGISTER_FIELD(lives);
-		REGISTER_FIELD(godMode);
-		REGISTER_FIELD(label);*/
-
-		// Register enum field - names extracted automatically
-		//REGISTER_ENUM(state);
-
-		// Register struct fields
-		//REGISTER_REFLECTABLE_STRUCT(stats);
-		//REGISTER_REFLECTABLE_STRUCT(playerFlags);  //  4 bool struct
-
-		//  PRE-FILL TEST DATA  working
+		//  PRE-FILL TEST DATA
 		enemyIDs = { 42, 57, 103, 999 };  // 4 enemy IDs to test remove
 		waypoints = { 10.5f, 25.0f, 42.3f, 58.7f };  // 4 waypoint positions
 		flags = { true, false, true, false, true };// 5 quest flags
-
-		//LOG_DEBUG("PlayerScript created");
-	}
-
-	void Initialize(Entity entity) override {
-		// Register vector fields using native support - no override boilerplate needed!
-		RegisterIntVectorField("enemyIDs", &enemyIDs);
-		RegisterFloatVectorField("waypoints", &waypoints);
-		RegisterBoolVectorField("flags", &flags);
-
-		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
 	}
 
 	~PlayerScript() override {
@@ -93,10 +68,36 @@ public:
 	// === IScript Interface ===
 	void Awake() override {
 		//LOG_DEBUG("PlayerScript::Awake() called for entity {}", GetEntity());
-
 		Coroutines::Create();
 	}
 
+	void Initialize(Entity entity) override {
+		// Register primitive fields
+		SCRIPT_FIELD(speed, Float);
+		SCRIPT_FIELD(color, Vec3);
+		SCRIPT_FIELD(lives, Int);
+		SCRIPT_FIELD(godMode, Bool);
+		SCRIPT_FIELD(label, String);
+
+		// Register enum field - provide enum option names
+		RegisterEnumField("state", &state, {
+			"Idle",
+			"Walking",
+			"Running",
+			"Jumping"
+		});
+
+		// Register vector fields
+		SCRIPT_FIELD_VECTOR(enemyIDs, Int);
+		SCRIPT_FIELD_VECTOR(waypoints, Float);
+		SCRIPT_FIELD_VECTOR(flags, Bool);
+
+		// Register struct fields using reflection
+		SCRIPT_FIELD_STRUCT(stats);
+		SCRIPT_FIELD_STRUCT(playerFlags);
+
+		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
+	}
 
 	void Start() override {
 		//LOG_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
@@ -104,17 +105,6 @@ public:
 
 	void OnValidate() override {
 		//LOG_DEBUG(" PlayerScript::OnValidate() called!");
-		//LOG_DEBUG("  speed={}, lives={}, state={}", speed, lives, static_cast<int>(state));
-		//LOG_DEBUG("  flags vector size: {}", flags.size());
-		//for (size_t i = 0; i < flags.size(); ++i) {
-		//	LOG_DEBUG("    flags[{}] = {}", i, flags[i] ? "true" : "false");
-		//}
-		//LOG_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}",
-		//	playerFlags.canJump ? "true" : "false",
-		//	playerFlags.canDoubleJump ? "true" : "false",
-		//	playerFlags.hasKey ? "true" : "false",
-		//	playerFlags.questComplete ? "true" : "false");
-
 		// Validate field values when changed in editor
 		if (speed < 0) speed = 0;
 		if (lives < 0) lives = 0;
@@ -125,9 +115,6 @@ public:
 
 		if (m_timeSinceLastLog >= LOG_INTERVAL) {
 			//LOG_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
-			//LOG_DEBUG("  State: {}", static_cast<int>(state));
-			//LOG_DEBUG("  Health: {}/{}, Stamina: {}", stats.health, stats.maxHealth, stats.stamina);
-			//LOG_DEBUG("  Tracking {} enemies, {} waypoints", enemyIDs.size(), waypoints.size());
 			m_timeSinceLastLog = 0.0;
 		}
 
@@ -179,20 +166,13 @@ public:
 			LOG_DEBUG("Timer start macdonaldo!");
 		}
 
-		//Courutine Test
-		// if (ctimer != 0 && !Engine_IsCoroutineRunning(ctimer)) {
-        // LOG_DEBUG("hi 3 seconds over player");
-        // std::cout << "santa clause" << std::endl;
-        // ctimer = 0;  // Reset so we don't print every frame
-    	// }
-
 		//  EXAMPLE: Use the bool flags
 		if (Input::IsKeyDown(VK_SPACE) && playerFlags.canJump) {
 			//LOG_DEBUG("Player jumped!");
 			// Jump logic here
 		}
 
-		//  EXAMPLE: Patrol through waypointsc
+		//  EXAMPLE: Patrol through waypoints
 		if (!waypoints.empty()) {
 			static size_t currentWaypoint = 0;
 			float targetX = waypoints[currentWaypoint % waypoints.size()];
@@ -206,9 +186,6 @@ public:
 		//  EXAMPLE: Chase enemies if we have any tracked
 		if (!enemyIDs.empty()) {
 			// Chase first enemy in list
-			// Entity enemyEntity = enemyIDs[0];
-			// Vec3 enemyPos = GetEntityPosition(enemyEntity);
-			// MoveTowards(enemyPos, speed * deltaTime);
 		}
 	}
 
@@ -245,36 +222,6 @@ public:
 		//LOG_DEBUG("PlayerScript trigger exit with entity {}", other);
 	}
 
-	// === Exposed editable fields via registry ===
-	//std::vector<std::string> GetExposedFieldNames() const override {
-	//	auto names = IScript::GetExposedFieldNames();
-	//	auto customNames = m_fields.GetNames();
-	//	names.insert(names.end(), customNames.begin(), customNames.end());
-	//	return names;
-	//}
-
-	//std::string GetFieldType(const std::string& name) const override {
-	//	std::string type = IScript::GetFieldType(name);
-	//	if (type.empty()) type = m_fields.GetType(name);
-	//	return type;
-	//}
-
-	//std::string GetFieldValueAsString(const std::string& name) const override {
-	//	std::string value = IScript::GetFieldValueAsString(name);
-	//	if (value.empty()) value = m_fields.GetValue(name);
-	//	return value;
-	//}
-
-	//bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
-	//	if (IScript::SetFieldValueFromString(name, value)) return true;
-	//	return m_fields.SetValue(name, value);
-	//}
-
-	//// Enum support
-	//std::vector<std::string> GetEnumOptions(const std::string& fieldName) const override {
-	//	return m_fields.GetEnumOptions(fieldName);
-	//}
-
 private:
 	double m_timeSinceLastLog = 0.0;
 	static constexpr double LOG_INTERVAL = 2.0;
@@ -294,19 +241,8 @@ private:
 
 	// Struct fields
 	PlayerStats stats;
-	PlayerFlags playerFlags;  //  4 bool struct
+	PlayerFlags playerFlags;
 
 	// Coroutine
 	CoroutineHandle chandle;
-
-	// Field registry
-	//ExposedFieldRegistry m_fields;
 };
-
-// Register the PlayerState enum at global scope for automatic name extraction
-//NE_REGISTER_ENUM(PlayerScript::PlayerState,
-//	PlayerScript::PlayerState::Idle,
-//	PlayerScript::PlayerState::Walking,
-//	PlayerScript::PlayerState::Running,
-//	PlayerScript::PlayerState::Jumping);
-

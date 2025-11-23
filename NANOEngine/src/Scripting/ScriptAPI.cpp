@@ -78,6 +78,11 @@ namespace Scripting {
             std::function<bool(size_t, const std::string&)> setElement;
             std::function<void()> addElement;
             std::function<void(size_t)> removeElement;
+
+            // Enum support
+            std::vector<std::string> enumOptions;
+            std::function<int()> getEnumValue;
+            std::function<void(int)> setEnumValue;
         };
 
         std::unordered_map<std::string, FieldEntry> fields;
@@ -1280,6 +1285,35 @@ namespace Scripting {
     }
 
     //=========================================================================
+    // Helper Methods for Template Functions
+    //=========================================================================
+
+    void IScript::SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        auto it = m_fieldRegistry->fields.find(name);
+        if (it != m_fieldRegistry->fields.end()) {
+            it->second.enumOptions = options;
+        }
+    }
+
+    void IScript::SetFieldEnumCallbacks(const std::string& name,
+        std::function<int()> getEnumValue,
+        std::function<void(int)> setEnumValue) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        auto it = m_fieldRegistry->fields.find(name);
+        if (it != m_fieldRegistry->fields.end()) {
+            it->second.getEnumValue = getEnumValue;
+            it->second.setEnumValue = setEnumValue;
+        }
+    }
+
+    //=========================================================================
     // Field Query Interface
     //=========================================================================
 
@@ -1334,18 +1368,32 @@ namespace Scripting {
 
     // Virtual methods with default implementations for optional override
     std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return {};
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && !it->second.enumOptions.empty()) {
+            return it->second.enumOptions;
+        }
         return {};
     }
 
     int IScript::GetEnumValue(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return 0;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getEnumValue) {
+            return it->second.getEnumValue();
+        }
         return 0;
     }
 
     void IScript::SetEnumValue(const std::string& fieldName, int value) {
-        (void)fieldName;
-        (void)value;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.setEnumValue) {
+            it->second.setEnumValue(value);
+        }
     }
 
     size_t IScript::GetArraySize(const std::string& fieldName) const {
