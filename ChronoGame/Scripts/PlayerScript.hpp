@@ -65,11 +65,6 @@ public:
 		// Register enum field - names extracted automatically
 		REGISTER_ENUM(state);
 
-		// Register vector fields
-		REGISTER_VECTOR(enemyIDs);
-		REGISTER_VECTOR(waypoints);
-		REGISTER_VECTOR(flags);
-
 		// Register struct fields
 		REGISTER_REFLECTABLE_STRUCT(stats);
 		REGISTER_REFLECTABLE_STRUCT(playerFlags);  //  4 bool struct
@@ -80,6 +75,15 @@ public:
 		flags = { true, false, true, false, true };// 5 quest flags
 
 		//LOG_DEBUG("PlayerScript created");
+	}
+
+	void Initialize(Entity entity) override {
+		// Register vector fields using native support - no override boilerplate needed!
+		RegisterIntVectorField("enemyIDs", &enemyIDs);
+		RegisterFloatVectorField("waypoints", &waypoints);
+		RegisterBoolVectorField("flags", &flags);
+
+		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
 	}
 
 	~PlayerScript() override {
@@ -93,9 +97,6 @@ public:
 		Coroutines::Create();
 	}
 
-	void Initialize(Entity entity) override {
-		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
-	}
 
 	void Start() override {
 		//LOG_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
@@ -245,35 +246,33 @@ public:
 	}
 
 	// === Exposed editable fields via registry ===
-	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
-	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
-	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { return m_fields.SetValue(name, value); }
+	std::vector<std::string> GetExposedFieldNames() const override {
+		auto names = IScript::GetExposedFieldNames();
+		auto customNames = m_fields.GetNames();
+		names.insert(names.end(), customNames.begin(), customNames.end());
+		return names;
+	}
+
+	std::string GetFieldType(const std::string& name) const override {
+		std::string type = IScript::GetFieldType(name);
+		if (type.empty()) type = m_fields.GetType(name);
+		return type;
+	}
+
+	std::string GetFieldValueAsString(const std::string& name) const override {
+		std::string value = IScript::GetFieldValueAsString(name);
+		if (value.empty()) value = m_fields.GetValue(name);
+		return value;
+	}
+
+	bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
+		if (IScript::SetFieldValueFromString(name, value)) return true;
+		return m_fields.SetValue(name, value);
+	}
 
 	// Enum support
 	std::vector<std::string> GetEnumOptions(const std::string& fieldName) const override {
 		return m_fields.GetEnumOptions(fieldName);
-	}
-
-	// Array/Vector support
-	size_t GetArraySize(const std::string& fieldName) const override {
-		return m_fields.GetArraySize(fieldName);
-	}
-
-	std::string GetArrayElement(const std::string& fieldName, size_t index) const override {
-		return m_fields.GetArrayElement(fieldName, index);
-	}
-
-	bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) override {
-		return m_fields.SetArrayElement(fieldName, index, value);
-	}
-
-	void AddArrayElement(const std::string& fieldName) override {
-		m_fields.AddArrayElement(fieldName);
-	}
-
-	void RemoveArrayElement(const std::string& fieldName, size_t index) override {
-		m_fields.RemoveArrayElement(fieldName, index);
 	}
 
 private:

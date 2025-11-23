@@ -23,6 +23,9 @@ private:
     // You can still use strings if you prefer the old way
     std::string legacyMaterialUUID;
 
+    bool testing1;
+    int testing2;
+    int nmua;
 public:
     void Initialize(Entity entity) override {
         // Register single material field
@@ -33,6 +36,12 @@ public:
 
         // Legacy string approach still works
         RegisterStringField("legacyMaterialUUID", &legacyMaterialUUID);
+
+        SCRIPT_FIELD(testing1, Bool);
+
+        SCRIPT_FIELD(testing2, Int);
+
+        SCRIPT_FIELD(nmua, Int);
     }
 
     void Update(double deltaTime) override {

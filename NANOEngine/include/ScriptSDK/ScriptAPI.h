@@ -385,7 +385,10 @@ namespace Scripting {
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
 
-        // Vector field registration
+        // Vector field registration (native support - no override boilerplate needed!)
+        void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
+        void RegisterFloatVectorField(const std::string& name, std::vector<float>* memberPtr);
+        void RegisterBoolVectorField(const std::string& name, std::vector<bool>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
 
         //=====================================================================
