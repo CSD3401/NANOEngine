@@ -4,6 +4,7 @@
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include <Core/SpdLogger.hpp>  // For SPD_INFO logging
+#include "PrefabManagement/PrefabManager.hpp"
 
 namespace NE::SceneManagement {
 
@@ -12,8 +13,10 @@ namespace NE::SceneManagement {
 		m_editor = std::make_unique<Scene>();
 		NE::Serialization::JsonSceneSerializer::Deserialize(*m_editor, path);
 		m_editor->Init();
+		Prefab::PrefabManager::Init(m_editor.get());
 		m_isPlaying = false;
 		m_runtime.reset();
+
 	}
 
 	void SceneManager::ReloadScene() {
@@ -117,12 +120,16 @@ namespace NE::SceneManagement {
 	}
 
 	Scene* SceneManager::GetActive() {
-		return m_isPlaying ? m_runtime.get() : m_editor.get();
+		if (m_isPlaying)          return m_runtime.get();
+		if (m_isEditingPrefab)    return m_prefabScene.get();
+		return m_editor.get();
 	}
 
 	void SceneManager::Update(double dt) {
 		if (m_isPlaying) {
 			if (m_runtime) m_runtime->Update(dt);
+		} else if (m_isEditingPrefab) {
+			if (m_prefabScene) m_prefabScene->Update(dt);
 		} else {
 			if (m_editor) m_editor->Update(dt);
 		}
@@ -131,9 +138,35 @@ namespace NE::SceneManagement {
 	void SceneManager::Render(NE::SceneManagement::RenderPass pass) {
 		if (m_isPlaying) {
 			if (m_runtime) m_runtime->Render(pass);
+		} else if (m_isEditingPrefab) {
+			if (m_prefabScene) m_prefabScene->Render(pass);
 		} else {
 			if (m_editor) m_editor->Render(pass);
 		}
+	}
+
+	void SceneManager::LoadPrefabScene(const std::string& path) {
+		if (m_prefabScene) {
+			m_prefabScene->Exit();
+			m_prefabScene.reset();
+		}
+
+		m_prefabScene = std::make_unique<Scene>();
+
+		NE::Serialization::JsonSceneSerializer::Deserialize(*m_prefabScene, path);
+		m_prefabScene->Init();
+
+		m_prefabPath = path;
+		m_isEditingPrefab = true;
+	}
+
+	void SceneManager::ClosePrefabScene() {
+		if (m_prefabScene) {
+			m_prefabScene->Exit();
+			m_prefabScene.reset();
+		}
+		m_prefabPath.clear();
+		m_isEditingPrefab = false;
 	}
 
 	void SceneManager::ExitScene() {

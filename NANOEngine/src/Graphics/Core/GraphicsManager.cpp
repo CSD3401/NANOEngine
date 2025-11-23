@@ -133,7 +133,7 @@ namespace NE::Graphics {
 
             // Bind pipeline state and update the cache
             s_StateCache->Bind(command.material->GetPipeline());
-
+                
             // Bind the vertex/index buffers
             command.mesh->Bind();
 

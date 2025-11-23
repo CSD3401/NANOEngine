@@ -9,6 +9,8 @@
 #include <fstream>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
+#include <EditorInterface/ECSExports.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
 	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
@@ -31,8 +33,7 @@ namespace Editor {
         m_thumbnailManager.Shutdown();
     }
 
-	void AssetBrowserPanel::OnImGuiRender()
-	{
+	void AssetBrowserPanel::OnImGuiRender() {
 		ImGui::Begin("Asset Browser", nullptr, ImGuiWindowFlags_MenuBar);
 
         // Search bar
@@ -55,38 +56,35 @@ namespace Editor {
 
         ImGui::BeginChild("DirectoryContents", ImVec2(0, 0), false);
         RenderDirectoryContents(m_currentDirectory);
+
+        ImGuiWindow* child = ImGui::GetCurrentWindow();
+        ImRect drop_rect = child->InnerRect;      // or child->ContentRegionRect depending on what you want
+
+        if (ImGui::BeginDragDropTargetCustom(drop_rect, child->ID)) {
+            auto* draw = child->DrawList;
+            draw->AddRect(drop_rect.Min, drop_rect.Max,
+                ImGui::GetColorU32(ImVec4(1, 1, 0, 0.3f)),
+                0.0f, 0, 2.0f);
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_DRAG_ID")) {
+                if (p->DataSize == sizeof(uint32_t)) {
+                    uint32_t dropped = *static_cast<const uint32_t*>(p->Data);
+                    std::string filePath = NE::SerializePrefab(dropped, m_currentDirectory.string());
+                    if (filePath != "")
+                        AssetManager::GetInstance().GenerateMetadata(filePath);
+
+                    std::string prefabID = AssetManager::GetInstance().RetrieveUUID(filePath);
+                    NE::ECS::Command::GetEntityMeta(dropped).prefabID = prefabID;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         RenderPopups();
         ImGui::EndChild();
 
         ImGui::EndChild();
 
 		ImGui::End();
-
-
-        // Popup utils
-        //if (m_renamePopupOpen) {
-        //    ImGui::OpenPopup("Rename Asset");
-        //    m_renamePopupOpen = false;
-        //}
-        //if (ImGui::BeginPopupModal("Rename Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        //    ImGui::InputText("##NewName", m_renameBuffer, sizeof(m_renameBuffer));
-
-        //    if (ImGui::Button("Rename")) {
-        //        std::filesystem::path newPath = m_selectedPath.parent_path() / m_renameBuffer;
-        //        std::error_code ec;
-        //        std::filesystem::rename(m_selectedPath, newPath, ec);
-        //        if (!ec) {
-        //            m_selectedPath.clear();
-        //        }
-        //        ImGui::CloseCurrentPopup();
-        //    }
-        //    ImGui::SameLine();
-        //    if (ImGui::Button("Cancel")) {
-        //        ImGui::CloseCurrentPopup();
-        //    }
-
-        //    ImGui::EndPopup();
-        //}
 
         if (m_confirmDeletePopupOpen) {
             ImGui::OpenPopup("Confirm Delete");
@@ -278,6 +276,21 @@ namespace Editor {
                     } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         EditorScene::s_selectedEntity = nullptr;
                         EditorScene::selectedAsset = entryPath.string();
+                    }
+                } else if (entryPath.extension() == ".nfab") {
+                    if (ImGui::BeginDragDropSource()) {
+                        std::string prefabPath = entry.path().string();
+                        ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", prefabPath.c_str(), prefabPath.size() + 1);
+                        ImGui::TextUnformatted(name.c_str());
+                        ImGui::EndDragDropSource();
+                    } 
+                    else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = "";
+                        NE::LoadPrefabScene(entryPath.string());
+
+                        Editor::EditorScene::selectedPrefab = entryPath.string();
+                        Editor::EditorScene::RebuildFromActiveScene();
                     }
                 }
             }
@@ -475,42 +488,31 @@ namespace Editor {
     void AssetBrowserPanel::CreateNewMaterial() {
         namespace fs = std::filesystem;
 
-        // 1) decide where to put it — assuming you have a "current folder" in the browser
-        fs::path targetDir = m_currentDirectory;   // adjust to whatever your panel uses
+        fs::path targetDir = m_currentDirectory;
         if (!fs::exists(targetDir))
             return;
 
-        // 2) make a unique name
         static int s_MatCounter = 1;
         fs::path matPath;
         do {
             matPath = targetDir / ("NewMaterial_" + std::to_string(s_MatCounter++) + ".nanomat");
         } while (fs::exists(matPath));
 
-        // 3) build the JSON in the exact format your Material::LoadFromFile expects
         rapidjson::Document doc;
         doc.SetObject();
         auto& alloc = doc.GetAllocator();
 
-        // default shader — you can change this to "Basic" or whatever your engine ships with
         doc.AddMember("Shader", rapidjson::Value("Unlit", alloc), alloc);
 
-        // pipeline settings (these match what your material save/load uses)
         doc.AddMember("DepthTest", true, alloc);
         doc.AddMember("BlendMode", true, alloc);
 
-        // these numbers are exactly the ones your material code saved earlier:
-        // 1029  -> GL_BACK
-        // 6914  -> GL_FILL
         doc.AddMember("CullMode", 1029, alloc);
         doc.AddMember("PolygonMode", 6914, alloc);
 
-        // empty properties for now — when the material is opened in inspector,
-        // and user changes values, you can overwrite this.
         rapidjson::Value props(rapidjson::kObjectType);
         doc.AddMember("Properties", props, alloc);
 
-        // 4) write to disk
         rapidjson::StringBuffer buffer;
         rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
         doc.Accept(writer);

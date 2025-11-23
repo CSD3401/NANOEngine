@@ -20,23 +20,19 @@ namespace Editor {
         static EditorEntity* s_selectedEntity;
         static std::string selectedAsset;
         static std::string currentScenePath;
+        static std::string selectedPrefab;
 
         // NEW: hierarchy index
         static std::unordered_map<uint32_t, Node> s_nodes;                // id -> node
         static std::unordered_map<uint32_t, std::vector<uint32_t>> s_children; // parent -> children ids
         static std::vector<uint32_t> s_roots;
 
-        // Build a flat tree (everyone root) from s_entities; stable keys 0..N-1
-        // static void BuildFlatHierarchy();
-
-        // Sibling-order ops -------------------------------------------------------
-        // Moves 'child' to appear at 'insertIndex' among children of 'parent'.
-        // Returns true if order changed.
         static bool ReorderWithinSiblings(uint32_t parent, uint32_t child, int insertIndex);
         static bool AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex);
         static bool UnparentToRoot(uint32_t child, int insertIndex = -1);
         static void BuildHierarchyFromECS();
         // Helpers
+        static void RebuildFromActiveScene();
         static const std::vector<uint32_t>& ChildrenOf(uint32_t parent);
     };
 

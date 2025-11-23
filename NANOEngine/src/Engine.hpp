@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "NANOEngineAPI.hpp"
 #include "Graphics/Core/Material.hpp"
 #include "Math/Vec3.hpp"
@@ -36,6 +37,10 @@ namespace NE {
 	NANOENGINE_API void LoadTargetScene(std::string targetPath);
 
 	NANOENGINE_API size_t GetNumEntities();
+	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);
+	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid);
+	NANOENGINE_API void LoadPrefabScene(std::string prefabPath);
+	NANOENGINE_API void ClosePrefabScene();
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 

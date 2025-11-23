@@ -147,18 +147,6 @@ namespace Editor {
 
             ImGui::Image(img, ImVec2(previewSize, previewSize));
         } else {
-            //ImVec2 cursor = ImGui::GetCursorScreenPos();
-            //ImDrawList* dl = ImGui::GetWindowDrawList();
-            //ImVec2 rectMax = ImVec2(cursor.x + previewSize, cursor.y + previewSize);
-
-            //// Fill background
-            //dl->AddRectFilled(cursor, rectMax, IM_COL32(60, 60, 60, 255)); // dark gray
-            //// Outline
-            //dl->AddRect(cursor, rectMax, IM_COL32(100, 100, 100, 255)); // border
-
-            //ImGui::Dummy(ImVec2(previewSize, previewSize)); // Reserve space for layout
-            
-
             ImVec2 cursor = ImGui::GetCursorScreenPos();
             ImDrawList* dl = ImGui::GetWindowDrawList();
             ImVec2 rectMax = ImVec2(cursor.x + previewSize, cursor.y + previewSize);
@@ -180,15 +168,6 @@ namespace Editor {
             }
         }
 
-        //ImVec2 size(previewSize, previewSize);
-        //if (img) {
-        //    ImGui::Image(img, size);
-        //} else {
-        //    if (ImGui::Button("+ Assign Texture", size)) {
-        //        ImGui::OpenPopup("AssetPicker_Texture");
-        //    }
-        //}
-
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH")) {
                 std::string dropped((const char*)p->Data, p->DataSize - 1);
@@ -198,27 +177,6 @@ namespace Editor {
             }
             ImGui::EndDragDropTarget();
         }
-
-        // implement next time
-        //ImGui::SameLine();
-        //if (ImGui::SmallButton("Pick…")) ImGui::OpenPopup("AssetPicker_Texture");
-        //ImGui::SameLine();
-        //if (ImGui::SmallButton("Clear")) { slotTex.reset(); changed = true; }
-
-        //if (ImGui::BeginPopup("AssetPicker_Texture")) {
-        //    ImGui::TextUnformatted("Select a Texture"); ImGui::Separator();
-
-        //    // TODO: replace with your actual enumeration (e.g., NE::GetAllTextures()).
-        //    // Example skeleton:
-        //    for (const auto& [texId, meta] : NE::GetAllTextures()) {
-        //        if (ImGui::Selectable(texId.c_str())) {
-        //            assignById(texId);
-        //            changed = true;
-        //            ImGui::CloseCurrentPopup();
-        //        }
-        //    }
-        //    ImGui::EndPopup();
-        //}
 
         if (ImGui::BeginPopup("AssetPicker_Texture")) {
             ImGui::Text("Select a texture");

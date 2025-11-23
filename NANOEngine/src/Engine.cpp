@@ -25,6 +25,7 @@
 #include "Graphics/OpenGL/GLTexture.hpp"
 #include "Audio/AudioBank.hpp"
 #include "Scripting/ScriptingEngine.hpp"
+#include "PrefabManagement/PrefabManager.hpp"
 #include <glfw/glfw3.h>
 
 namespace {
@@ -210,6 +211,24 @@ namespace NE {
 
 	size_t GetNumEntities() {
 		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities().size();
+	}
+
+	std::string SerializePrefab(uint32_t entt, std::string targetPath) {
+		return Serialization::JsonSceneSerializer::SerializePrefab(*gSceneManager.GetActive(), entt, targetPath);
+	}
+
+	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid) {
+		auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
+		Prefab::PrefabManager::Instantiate(uuid, newEntities);
+		return newEntities;
+	}
+
+	void LoadPrefabScene(std::string prefabPath) {
+		gSceneManager.LoadPrefabScene(prefabPath);
+	}
+
+	void ClosePrefabScene() {
+		gSceneManager.ClosePrefabScene();
 	}
 
 	// Internal use only

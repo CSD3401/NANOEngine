@@ -8,6 +8,10 @@
 #include <ECS/Components/Transform.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
+#include <unordered_set>
+#include <ECS/Core/Entity.hpp>
+#include "../AssetManagement/AssetManager.hpp"
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
 	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
@@ -55,6 +59,73 @@ namespace Editor {
 
 		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
 
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
+				std::string dropped((const char*)p->Data, p->DataSize - 1);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid);
+
+				if (newEntities.empty()) {
+					ImGui::EndDragDropTarget();
+					return;
+				}
+
+				// For convenience in root-detection
+				std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+				// 3) Register new entities into editor structures (like CreateEntity, but with parents)
+				for (uint32_t entt : newEntities) {
+					// EditorEntity list
+					Editor::EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+					// Build node from ECS parent info
+					Editor::Node node{};
+					node.id = entt;
+
+					uint32_t parent = NE::ECS::Command::GetParent(entt); // NO_ENTITY if root
+					node.parent = parent;
+
+					if (parent == NE::ECS::NO_ENTITY) {
+						// New root in hierarchy
+						node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+						Editor::EditorScene::s_roots.push_back(entt);
+					} else {
+						// Child of existing or newly created entity
+						auto& childrenVec = Editor::EditorScene::s_children[parent];
+						node.orderKey = static_cast<float>(childrenVec.size());
+						childrenVec.push_back(entt);
+					}
+
+					Editor::EditorScene::s_nodes[entt] = node;
+				}
+
+				// 4) Choose a prefab root among the new entities and select it
+				uint32_t prefabRoot = NE::ECS::NO_ENTITY;
+				for (uint32_t entt : newEntities) {
+					uint32_t parent = NE::ECS::Command::GetParent(entt);
+					// Root of this prefab instance = parent is NO_ENTITY OR parent is not in this batch
+					if (parent == NE::ECS::NO_ENTITY || !newSet.count(parent)) {
+						prefabRoot = entt;
+						NE::ECS::Command::GetEntityMeta(entt).prefabID = AssetManager::GetInstance().RetrieveUUID(dropped);
+						break;
+					}
+				}
+
+				if (prefabRoot != NE::ECS::NO_ENTITY) {
+					Editor::EditorScene::s_selectedEntity = nullptr;
+					for (auto& ee : Editor::EditorScene::s_entities) {
+						if (ee.linkedEntity == prefabRoot) {
+							Editor::EditorScene::s_selectedEntity = &ee;
+							break;
+						}
+					}
+				}
+
+				// Clear asset selection since we just selected an entity
+				Editor::EditorScene::selectedAsset.clear();
+			}
+			ImGui::EndDragDropTarget();
+		}
 		// --- Floating Play Controls ---
 		{
 			// Centered at the top of the viewport

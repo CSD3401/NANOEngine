@@ -17,6 +17,7 @@
 #include "../ECS/Components/ComponentKey.hpp"
 
 #include "ECS/Systems/ScriptSystem.hpp"
+#include "Core/LUIDGenerator.hpp"
 
 // rapidjson
 #include <rapidjson/document.h>
@@ -69,6 +70,27 @@ namespace {
         std::apply([&](auto&&... t) {
             (f.template operator() < std::decay_t<decltype(t)> > (), ...);
             }, ComponentTypes{});
+    }
+
+    static void CollectPrefabSubtree(NE::ECS::ECSCoordinator& ecs,
+        uint32_t root,
+        std::vector<uint32_t>& out)
+    {
+        using NE::ECS::Component::Transform;
+
+        if (!ecs.HasComponent<Transform>(root))
+            return;
+
+        out.push_back(root);
+
+        auto& t = ecs.GetComponent<Transform>(root);
+        for (uint32_t child : t.children) {
+            // Defensive: skip invalid / missing transform children
+            if (!ecs.HasComponent<Transform>(child))
+                continue;
+
+            CollectPrefabSubtree(ecs, child, out);
+        }
     }
 }
 
@@ -142,24 +164,187 @@ namespace NE::Serialization {
         }
     }
 
-    void JsonSceneSerializer::ReloadScene(SceneManagement::Scene& scene, std::vector<uint32_t>& hierarchy, const std::string& path) {
-        std::ifstream in(path, std::ios::binary);
-        if (!in) return;
+    std::string JsonSceneSerializer::SerializePrefab(SceneManagement::Scene& scene, uint32_t rootEnt, const std::string& directoryPath) {
+        using namespace rapidjson;
+        auto& ecs = scene.GetECSCoordinator();
 
-        std::string data((std::istreambuf_iterator<char>(in)), {});
-        Document doc; doc.Parse(data.c_str());
-        if (!doc.IsObject() || !doc.HasMember("Entities")) return;
+        using NE::ECS::Component::EntityMeta;
+        using NE::ECS::Component::Transform;
 
-        int i = 0;
-        for (auto& entVal : doc["Entities"].GetArray()) {
-            //ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
-            ECS::Entity e = hierarchy[i++];
+        if (!ecs.HasComponent<Transform>(rootEnt))
+            return "";
+
+        std::vector<uint32_t> entities;
+        entities.reserve(16);
+        CollectPrefabSubtree(ecs, rootEnt, entities);
+
+        if (entities.empty())
+            return "";
+
+        std::string prefabName = "Prefab";
+        if (ecs.HasComponent<EntityMeta>(rootEnt)) {
+            const auto& meta = ecs.GetComponent<EntityMeta>(rootEnt);
+            if (!meta.name.empty())
+                prefabName = meta.name;
+        }
+
+        std::string filePath = directoryPath + "/" + prefabName + ".nfab";
+
+        std::unordered_map<uint32_t, uint64_t> entityToLocalId;
+        entityToLocalId.reserve(entities.size());
+
+        uint64_t nextId = 1;
+        for (uint32_t e : entities) {
+            entityToLocalId[e] = nextId++;
+        }
+
+        Document doc;
+        doc.SetObject();
+        auto& a = doc.GetAllocator();
+        Value entitiesArr(kArrayType);
+
+        for (uint32_t e : entities) {
+            Value ent(kObjectType);
 
             ForEachComponentType([&]<typename C>() {
-                ReloadComponent<C>(scene.GetECSCoordinator(), e, entVal);
+                WriteComponentIfPresent<C>(ecs, e, ent, a);
+            });
+
+            if (ent.HasMember(ComponentKey<Transform>::value)) {
+                auto& tJson = ent[ComponentKey<Transform>::value];
+                const auto& t = ecs.GetComponent<Transform>(e);
+
+                const uint64_t myId = entityToLocalId[e];
+
+                uint64_t parentId = 0;
+                if (t.parent != NE::ECS::Component::INVALID_PARENT) {
+                    auto it = entityToLocalId.find(t.parent);
+                    if (it != entityToLocalId.end())
+                        parentId = it->second;
+                }
+
+                if (tJson.HasMember("luid"))
+                    tJson["luid"].SetUint64(myId);
+                else
+                    tJson.AddMember("luid", myId, a);
+
+                if (tJson.HasMember("parentLuid"))
+                    tJson["parentLuid"].SetUint64(parentId);
+                else
+                    tJson.AddMember("parentLuid", parentId, a);
+            }
+
+            entitiesArr.PushBack(ent, a);
+        }
+
+        doc.AddMember("Entities", entitiesArr, a);
+
+        // --- 5) Write file ---
+        rapidjson::StringBuffer sb;
+        rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
+        doc.Accept(wr);
+
+        std::ofstream out(filePath, std::ios::binary);
+        if (out) {
+            out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
+        }
+
+        return filePath;
+    }
+
+    std::vector<uint32_t> JsonSceneSerializer::DeserializePrefab(SceneManagement::Scene& scene, const std::string& path) {
+        std::vector<uint32_t> ret{};
+        std::ifstream in(path, std::ios::binary);
+        if (!in) return ret;
+
+        std::string data((std::istreambuf_iterator<char>(in)), {});
+        Document doc;
+        doc.Parse(data.c_str());
+        if (!doc.IsObject() || !doc.HasMember("Entities"))
+            return ret;
+
+        auto& ecs = scene.GetECSCoordinator();
+        auto entities = doc["Entities"].GetArray();
+        const size_t count = entities.Size();
+
+        using NE::ECS::Component::Transform;
+
+        std::vector<NE::ECS::Entity> created(count, NE::ECS::NO_ENTITY);
+        std::vector<uint64_t> prefabLuid(count, 0);
+        std::vector<uint64_t> prefabParentLuid(count, 0);
+        std::vector<bool> hasTransform(count, false);
+
+        for (size_t i = 0; i < count; ++i) {
+            auto& entVal = entities[i];
+
+            if (entVal.HasMember(ComponentKey<Transform>::value)) {
+                auto& tJson = entVal[ComponentKey<Transform>::value];
+
+                if (tJson.HasMember("luid") && tJson["luid"].IsUint64())
+                    prefabLuid[i] = tJson["luid"].GetUint64();
+
+                if (tJson.HasMember("parentLuid") && tJson["parentLuid"].IsUint64())
+                    prefabParentLuid[i] = tJson["parentLuid"].GetUint64();
+
+                hasTransform[i] = true;
+
+                uint64_t newLuid = Core::LUIDGenerator::Generate("tr");
+                tJson["luid"].SetUint64(newLuid);
+
+                tJson["parentLuid"].SetUint64(0);
+            }
+
+            NE::ECS::Entity e = ecs.CreateEntity();
+            ret.push_back(e);
+            created[i] = e;
+
+            ForEachComponentType([&]<typename C>() {
+                ReadComponentIfPresent<C>(ecs, e, entVal);
             });
         }
+
+        std::unordered_map<uint64_t, NE::ECS::Entity> prefabToEntity;
+        prefabToEntity.reserve(count);
+
+        for (size_t i = 0; i < count; ++i) {
+            if (!hasTransform[i]) continue;
+            if (prefabLuid[i] == 0) continue;
+            prefabToEntity[prefabLuid[i]] = created[i];
+        }
+
+        for (size_t i = 0; i < count; ++i) {
+            if (!hasTransform[i]) continue;
+
+            uint64_t parentLocal = prefabParentLuid[i];
+            if (parentLocal == 0)
+                continue;
+
+            auto it = prefabToEntity.find(parentLocal);
+            if (it == prefabToEntity.end())
+                continue;
+
+            NE::ECS::Entity child = created[i];
+            NE::ECS::Entity parent = it->second;
+
+            auto& childT = ecs.GetComponent<Transform>(child);
+            auto& parentT = ecs.GetComponent<Transform>(parent);
+
+            if (childT.parent != NE::ECS::Component::INVALID_PARENT) {
+                auto& oldParentT = ecs.GetComponent<Transform>(childT.parent);
+                auto& vec = oldParentT.children;
+                vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
+            }
+
+            childT.parent = parent;
+            parentT.children.push_back(child);
+            childT.parentLuid = parentT.luid;
+
+            childT.isDirty = true;
+        }
+
+        return ret;
     }
+
 
     void JsonSceneSerializer::SerializeToMemory(SceneManagement::Scene& scene, std::vector<uint8_t>& outBuffer) {
         Document doc;
@@ -171,7 +356,6 @@ namespace NE::Serialization {
         for (ECS::Entity e : ids) {
             Value ent(kObjectType);
 
-            // same component loop as your file serialize
             ForEachComponentType([&]<typename C>() {
                 WriteComponentIfPresent<C>(scene.GetECSCoordinator(), e, ent, a);
             });
@@ -180,12 +364,10 @@ namespace NE::Serialization {
         }
         doc.AddMember("Entities", entities, a);
 
-        // write to string buffer
         rapidjson::StringBuffer sb;
         rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
         doc.Accept(wr);
 
-        // copy to byte buffer
         outBuffer.clear();
         outBuffer.resize(sb.GetSize());
         std::memcpy(outBuffer.data(), sb.GetString(), sb.GetSize());
@@ -194,7 +376,6 @@ namespace NE::Serialization {
     void JsonSceneSerializer::DeserializeFromMemory(SceneManagement::Scene& scene, const uint8_t* data, size_t size) {
         if (!data || size == 0) return;
 
-        // rapidjson expects a null-terminated string; we can copy into a std::string
         std::string jsonStr(reinterpret_cast<const char*>(data), size);
 
         Document doc;
@@ -202,7 +383,6 @@ namespace NE::Serialization {
         if (!doc.IsObject() || !doc.HasMember("Entities"))
             return;
 
-        // NOTE: this matches your existing Deserialize: it just creates entities and fills components.
         for (auto& entVal : doc["Entities"].GetArray()) {
             ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
 

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <ECS/Core/Entity.hpp>
 #include <EditorInterface/ECSExports.hpp>
+#include <Engine.hpp>
 
 namespace {
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
@@ -15,8 +16,8 @@ namespace Editor {
     std::vector<EditorEntity> EditorScene::s_entities;
     EditorEntity* EditorScene::s_selectedEntity;
 
-    //std::string EditorScene::selectedMaterial;
     std::string EditorScene::selectedAsset;
+    std::string EditorScene::selectedPrefab;
 
     std::string EditorScene::currentScenePath("Assets/NewScene.scene");
 
@@ -24,27 +25,28 @@ namespace Editor {
     std::unordered_map<uint32_t, std::vector<uint32_t>> EditorScene::s_children;
     std::vector<uint32_t> EditorScene::s_roots;
 
-    //void EditorScene::BuildFlatHierarchy() {
-    //    s_nodes.clear();
-    //    s_children.clear();
-    //    s_roots.clear();
-
-    //    s_roots.reserve(s_entities.size());
-    //    float k = 0.f;
-    //    for (const auto& e : s_entities) {                    // s_entities exists already
-    //        uint32_t id = e.linkedEntity;                    // (see your struct) 
-    //        s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
-    //        s_roots.push_back(id);
-    //        k += 1.f;
-    //    }
-    //}
-
     static void RenormalizeKeys(std::vector<uint32_t>& ids, uint32_t) {
         float k = 0.f;
         for (auto id : ids) {
             auto it = EditorScene::s_nodes.find(id);
             if (it != EditorScene::s_nodes.end()) it->second.orderKey = k, k += 1.f;
         }
+    }
+
+    void EditorScene::RebuildFromActiveScene() {
+        s_entities.clear();
+        s_nodes.clear();
+        s_children.clear();
+        s_roots.clear();
+
+        // Fill s_entities based on active scene’s ECS
+        auto numEntt = NE::GetNumEntities(); // this uses SceneManager::GetActive()
+        s_entities.reserve(numEntt);
+        for (unsigned int i = 0; i < numEntt; ++i) {
+            s_entities.push_back(EditorEntity{ i });
+        }
+
+        BuildHierarchyFromECS();
     }
 
     const std::vector<uint32_t>& EditorScene::ChildrenOf(uint32_t parent) {

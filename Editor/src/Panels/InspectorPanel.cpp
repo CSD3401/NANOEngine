@@ -39,7 +39,6 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
-#include <EditorInterface/PhysicsExports.hpp>
 
 namespace {
 	template<typename Owner, typename T>
@@ -234,6 +233,38 @@ namespace {
 
 		return true;
 	}
+
+	//static void ApplyPrefabOverridesForEntity(uint32_t entity) {
+	//	using NE::ECS::Component::EntityMeta;
+
+	//	auto& meta = NE::ECS::Command::GetEntityMeta(entity);
+	//	if (meta.prefabID.empty())
+	//		return;
+
+	//	// 1) Decide which entity is the prefab root for the instance
+	//	uint32_t rootEntity = entity;
+	//	if (!meta.isPrefabRoot && meta.prefabInstanceID != 0) {
+	//		if (auto* inst = NE::Prefab::PrefabManager::GetInstance(meta.prefabInstanceID)) {
+	//			if (inst->rootEntity != NE::ECS::NO_ENTITY)
+	//				rootEntity = inst->rootEntity;
+	//		}
+	//	}
+
+	//	// 2) Get prefab asset path from UUID
+	//	auto& assetMgr = Editor::AssetManager::GetInstance();
+	//	std::string prefabPath = assetMgr.RetrieveFileName(meta.prefabID);
+
+	//	// 3) Re-serialize the current root hierarchy over that prefab file
+	//	//    NE::SerializePrefab(scene, entt, targetPath) already exists. :contentReference[oaicite:5]{index=5}
+	//	NE::SerializePrefab(rootEntity, prefabPath);
+
+	//	// 4) Optional: ask AssetManager to reimport/update any cached data
+	//	// assetMgr.ReimportAsset(prefabPath);
+
+	//	// Optional: mark scene clean/dirty as you like
+	//	NE::MarkSceneDirty(); // or maybe not, depends on your workflow
+	//}
+
 }
 
 namespace Editor {
@@ -344,6 +375,20 @@ namespace Editor {
 							.ExecuteCommand(std::move(it->second));
 						g_activeCommands.erase(it);
 					}
+				}
+
+				if (metaRO.prefabID != "") {
+					//if (ImGui::Button("Apply Override To All Instances")) {
+
+					//}
+					//if (ImGui::Button("Save")) {
+					//	std::string filePath = AssetManager::GetInstance().RetrieveFileName(metaRO.prefabID);
+					//	NE::SerializePrefab(entity, filePath);
+					//}
+					//ImGui::SameLine();
+					//if (ImGui::Button("Apply overrides")) {
+					//	//ApplyPrefabOverridesForEntity(entity);
+					//}
 				}
 			}
 

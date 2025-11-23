@@ -119,7 +119,7 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
-				Component::EntityMeta{ "Unnamed Entity", Core::LUIDGenerator::Generate("en")});
+				Component::EntityMeta{ .name = "Unnamed Entity", .luid = Core::LUIDGenerator::Generate("en") });
 
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
