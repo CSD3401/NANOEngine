@@ -33,27 +33,49 @@
  *   └── MirrorTarget (assign to mirrorTargetTransform)
  *
  * Grid Layout (4 columns x 3 rows):
- *   Row 0: [00] [01] [02] [03]
- *   Row 1: [10] [11] [12] [13]
- *   Row 2: [20] [21] [22] [23]
+ *   Row 0: [0] [1] [2] [3]
+ *   Row 1: [4] [5] [6] [7]
+ *   Row 2: [8] [9] [10][11]
  */
 class MirrorPuzzle : public IScript {
 public:
+	// Struct to configure individual tile movement directions
+	struct TileConfig {
+		int row = 0;
+		int col = 0;
+		bool allowUp = true;
+		bool allowDown = true;
+		bool allowLeft = true;
+		bool allowRight = true;
+
+		NE_REFLECT_BEGIN(TileConfig)
+			NE_REFLECT_FIELD(row),
+			NE_REFLECT_FIELD(col),
+			NE_REFLECT_FIELD(allowUp),
+			NE_REFLECT_FIELD(allowDown),
+			NE_REFLECT_FIELD(allowLeft),
+			NE_REFLECT_FIELD(allowRight)
+			NE_REFLECT_END()
+	};
+
 	MirrorPuzzle() {
-		// 4 TransformRefs (removed end transforms)
+		// Component references (use SCRIPT_COMPONENT_REF)
 		SCRIPT_COMPONENT_REF(targetTransform, Transform);
 		SCRIPT_COMPONENT_REF(gridParent, Transform);
 		SCRIPT_COMPONENT_REF(mirrorTargetTransform, Transform);
 		SCRIPT_COMPONENT_REF(mirrorGridParent, Transform);
 
-		// Start/End positions (user configurable in editor)
+		// Primitive fields (use SCRIPT_FIELD)
 		SCRIPT_FIELD(startRow, Int);
 		SCRIPT_FIELD(startCol, Int);
 		SCRIPT_FIELD(endRow, Int);
 		SCRIPT_FIELD(endCol, Int);
-
 		SCRIPT_FIELD(tileSpacingX, Float);
 		SCRIPT_FIELD(tileSpacingY, Float);
+
+		// Vectors of structs (use REGISTER_VECTOR with NE_REFLECT_BEGIN/END in struct)
+		REGISTER_VECTOR(tileRestrictions);
+		REGISTER_VECTOR(mirrorTileRestrictions);
 	}
 
 	~MirrorPuzzle() override = default;
@@ -121,12 +143,40 @@ public:
 		}
 		LOG_INFO("Cached 12 mirror tile transforms");
 
-		// Initialize direction grids - all tiles allow all directions
+		// Initialize direction grids - all tiles allow all directions by default
 		for (auto& row : grid) {
 			row.fill(ALL);
 		}
 		for (auto& row : mirrorGrid) {
 			row.fill(ALL);
+		}
+
+		// Apply user-configured tile restrictions for original grid
+		for (const auto& restriction : tileRestrictions) {
+			if (restriction.row >= 0 && restriction.row < 3 && restriction.col >= 0 && restriction.col < 4) {
+				Direction allowed = NONE;
+				if (restriction.allowUp) allowed = static_cast<Direction>(allowed | UP);
+				if (restriction.allowDown) allowed = static_cast<Direction>(allowed | DOWN);
+				if (restriction.allowLeft) allowed = static_cast<Direction>(allowed | LEFT);
+				if (restriction.allowRight) allowed = static_cast<Direction>(allowed | RIGHT);
+
+				grid[restriction.row][restriction.col] = allowed;
+				LOG_INFO("Original tile (" << restriction.row << "," << restriction.col << ") restricted to: " << static_cast<int>(allowed));
+			}
+		}
+
+		// Apply user-configured tile restrictions for mirror grid
+		for (const auto& restriction : mirrorTileRestrictions) {
+			if (restriction.row >= 0 && restriction.row < 3 && restriction.col >= 0 && restriction.col < 4) {
+				Direction allowed = NONE;
+				if (restriction.allowUp) allowed = static_cast<Direction>(allowed | UP);
+				if (restriction.allowDown) allowed = static_cast<Direction>(allowed | DOWN);
+				if (restriction.allowLeft) allowed = static_cast<Direction>(allowed | LEFT);
+				if (restriction.allowRight) allowed = static_cast<Direction>(allowed | RIGHT);
+
+				mirrorGrid[restriction.row][restriction.col] = allowed;
+				LOG_INFO("Mirror tile (" << restriction.row << "," << restriction.col << ") restricted to: " << static_cast<int>(allowed));
+			}
 		}
 
 		// Set current positions to start positions
@@ -190,6 +240,33 @@ public:
 	void OnCollisionExit(Entity other) override {}
 	void OnTriggerEnter(Entity other) override {}
 	void OnTriggerExit(Entity other) override {}
+
+	// === Exposed editable fields ===
+	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
+	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
+	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
+	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { return m_fields.SetValue(name, value); }
+
+	// Array/Vector support for tile restrictions
+	size_t GetArraySize(const std::string& fieldName) const override {
+		return m_fields.GetArraySize(fieldName);
+	}
+
+	std::string GetArrayElement(const std::string& fieldName, size_t index) const override {
+		return m_fields.GetArrayElement(fieldName, index);
+	}
+
+	bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) override {
+		return m_fields.SetArrayElement(fieldName, index, value);
+	}
+
+	void AddArrayElement(const std::string& fieldName) override {
+		m_fields.AddArrayElement(fieldName);
+	}
+
+	void RemoveArrayElement(const std::string& fieldName, size_t index) override {
+		m_fields.RemoveArrayElement(fieldName, index);
+	}
 
 private:
 	enum Direction : uint8_t {
@@ -421,6 +498,10 @@ private:
 	float tileSpacingX = 1.5f;
 	float tileSpacingY = 1.5f;
 
+	// Tile movement restrictions (configurable in editor)
+	std::vector<TileConfig> tileRestrictions;        // Original grid restrictions
+	std::vector<TileConfig> mirrorTileRestrictions;  // Mirror grid restrictions
+
 	// === INTERNAL STATE ===
 
 	// Mirror positions (calculated from original)
@@ -444,4 +525,7 @@ private:
 	// Tile transforms (populated from GetChildOf in Start)
 	std::array<TransformRef, 12> tileTransforms;
 	std::array<TransformRef, 12> mirrorTileTransforms;
+
+	// Field registry for editor integration
+	ExposedFieldRegistry m_fields;
 };
