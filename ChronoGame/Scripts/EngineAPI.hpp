@@ -272,6 +272,7 @@ using RaycastHit = NE::Scripting::RaycastHit;
 using TransformRef = NE::Scripting::TransformRef;
 using RigidbodyRef = NE::Scripting::RigidbodyRef;
 using AudioSourceRef = NE::Scripting::AudioSourceRef;
+using MaterialRef = NE::Scripting::MaterialRef;
 
 // Coroutine handle type
 using CoroutineHandle = NE::Scripting::CoroutineHandle;

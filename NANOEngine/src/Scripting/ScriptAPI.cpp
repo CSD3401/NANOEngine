@@ -71,6 +71,13 @@ namespace Scripting {
             void* memberPtr;
             std::function<std::string()> getValue;
             std::function<bool(const std::string&)> setValue;
+
+            // Array operation callbacks for vector fields
+            std::function<size_t()> getSize;
+            std::function<std::string(size_t)> getElement;
+            std::function<bool(size_t, const std::string&)> setElement;
+            std::function<void()> addElement;
+            std::function<void(size_t)> removeElement;
         };
 
         std::unordered_map<std::string, FieldEntry> fields;
@@ -614,6 +621,62 @@ namespace Scripting {
         return AudioSourceRef();
     }
 
+    //=========================================================================
+    // Material UUID Registry (Maps material IDs to UUIDs)
+    //=========================================================================
+
+    namespace {
+        struct MaterialRegistry {
+            std::unordered_map<uint32_t, std::string> idToUUID;
+            std::unordered_map<std::string, uint32_t> uuidToID;
+            uint32_t nextID = 1; // Start from 1, 0 is reserved for invalid
+
+            uint32_t GetOrCreateID(const std::string& uuid) {
+                if (uuid.empty()) return 0;
+
+                auto it = uuidToID.find(uuid);
+                if (it != uuidToID.end()) {
+                    return it->second;
+                }
+
+                // Create new ID
+                uint32_t id = nextID++;
+                idToUUID[id] = uuid;
+                uuidToID[uuid] = id;
+                return id;
+            }
+
+            std::string GetUUID(uint32_t id) const {
+                if (id == 0) return "";
+                auto it = idToUUID.find(id);
+                return (it != idToUUID.end()) ? it->second : "";
+            }
+        };
+
+        MaterialRegistry& GetMaterialRegistry() {
+            static MaterialRegistry registry;
+            return registry;
+        }
+    }
+
+    MaterialRef IScript::GetMaterialRef(const std::string& materialUUID) const {
+        if (materialUUID.empty()) return MaterialRef();
+
+        // Get or create an ID for this material UUID
+        uint32_t materialID = GetMaterialRegistry().GetOrCreateID(materialUUID);
+        return MaterialRef(materialID);
+    }
+
+    //=========================================================================
+    // Global helper function for material UUID conversion (exported for SDK)
+    //=========================================================================
+
+    /// Get material UUID from MaterialRef (accessible from other modules)
+    SCRIPT_API std::string GetMaterialUUIDFromRef(const MaterialRef& materialRef) {
+        if (!materialRef.IsValid()) return "";
+        return GetMaterialRegistry().GetUUID(materialRef.GetEntity());
+    }
+
     // Component ref operations (for stored references)
     Vec3 IScript::GetPosition(const TransformRef& ref) const {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
@@ -870,6 +933,137 @@ namespace Scripting {
         );
     }
 
+    void IScript::RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr) {
+        RegisterFieldInternal(
+            name,
+            "materialref",
+            memberPtr,
+            [memberPtr]() -> std::string {
+                // For MaterialRef, the ownerEntity field stores a material ID
+                // Use the material registry to convert ID back to UUID
+                if (!memberPtr->IsValid()) {
+                    return "";
+                }
+                return GetMaterialRegistry().GetUUID(memberPtr->GetEntity());
+            },
+            [this, memberPtr, name](const std::string& value) -> bool {
+                try {
+                    SPD_DEBUG("[MaterialRef] Setting field '{}' to '{}'", name, value.empty() ? "<empty>" : value);
+
+                    // Empty string means no material
+                    if (value.empty()) {
+                        *memberPtr = MaterialRef();
+                        return true;
+                    }
+
+                    // Create MaterialRef from UUID
+                    MaterialRef newRef = GetMaterialRef(value);
+                    if (!newRef.IsValid()) {
+                        SPD_ERROR("[MaterialRef] Failed to create valid MaterialRef from UUID: {}", value);
+                        return false;
+                    }
+
+                    *memberPtr = newRef;
+                    SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
+                    return true;
+                } catch (const std::exception& e) {
+                    SPD_ERROR("[MaterialRef] setValue exception for field '{}': {}", name, e.what());
+                    return false;
+                } catch (...) {
+                    SPD_ERROR("[MaterialRef] setValue unknown exception for field '{}'", name);
+                    return false;
+                }
+            }
+        );
+    }
+
+    void IScript::RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<materialref>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size uuid1 uuid2 ..."
+        entry.getValue = [this, memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& ref : *memberPtr) {
+                oss << " ";
+                if (ref.IsValid()) {
+                    oss << GetMaterialRegistry().GetUUID(ref.GetEntity());
+                }
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector from "size uuid1 uuid2 ..."
+        entry.setValue = [this, memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    std::string uuid;
+                    iss >> uuid;
+                    if (uuid.empty()) {
+                        memberPtr->push_back(MaterialRef());
+                    } else {
+                        memberPtr->push_back(GetMaterialRef(uuid));
+                    }
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [this, memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            const auto& materialRef = (*memberPtr)[index];
+            if (!materialRef.IsValid()) return "";
+            // Return UUID for display in editor
+            return GetMaterialRegistry().GetUUID(materialRef.GetEntity());
+        };
+
+        entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+
+            if (value.empty()) {
+                (*memberPtr)[index] = MaterialRef();
+                return true;
+            }
+
+            // Convert UUID to MaterialRef
+            MaterialRef newRef = GetMaterialRef(value);
+            (*memberPtr)[index] = newRef;
+            return newRef.IsValid();
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(MaterialRef());
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
     //=========================================================================
     // Field Query Interface
     //=========================================================================
@@ -940,30 +1134,51 @@ namespace Scripting {
     }
 
     size_t IScript::GetArraySize(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return 0;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getSize) {
+            return it->second.getSize();
+        }
         return 0;
     }
 
     std::string IScript::GetArrayElement(const std::string& fieldName, size_t index) const {
-        (void)fieldName;
-        (void)index;
+        if (!m_fieldRegistry) return "";
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getElement) {
+            return it->second.getElement(index);
+        }
         return "";
     }
 
     bool IScript::SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) {
-        (void)fieldName;
-        (void)index;
-        (void)value;
+        if (!m_fieldRegistry) return false;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.setElement) {
+            return it->second.setElement(index, value);
+        }
         return false;
     }
 
     void IScript::AddArrayElement(const std::string& fieldName) {
-        (void)fieldName;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.addElement) {
+            it->second.addElement();
+        }
     }
 
     void IScript::RemoveArrayElement(const std::string& fieldName, size_t index) {
-        (void)fieldName;
-        (void)index;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.removeElement) {
+            it->second.removeElement(index);
+        }
     }
 
     template<typename T>

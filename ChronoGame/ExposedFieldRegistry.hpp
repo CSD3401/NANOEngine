@@ -457,6 +457,91 @@ struct ExposedFieldRegistry {
 		m_entries[name] = std::move(e);
 	}
 
+	// Specialized RegisterVector for MaterialRef (handles UUID strings from editor)
+	void RegisterVector(const std::string& name, std::vector<NE::Scripting::MaterialRef>* vec) {
+		Entry e;
+		e.typeToken = "vector<materialref>";
+
+		// Serialization: store material IDs
+		e.getStr = [vec]() {
+			std::ostringstream oss;
+			oss << vec->size();
+			for (const auto& item : *vec) {
+				oss << " " << item.GetEntity();  // Store material ID
+			}
+			return oss.str();
+		};
+
+		// Deserialization: load material IDs
+		e.setStr = [vec](const std::string& s) {
+			try {
+				std::istringstream iss(s);
+				size_t size;
+				iss >> size;
+				vec->clear();
+				vec->reserve(size);
+				for (size_t i = 0; i < size; ++i) {
+					uint32_t materialID;
+					if (!(iss >> materialID)) return false;
+					NE::Scripting::MaterialRef ref;
+					ref._SetEntity(materialID);
+					vec->push_back(ref);
+				}
+				return true;
+			}
+			catch (...) { return false; }
+		};
+
+		// Array operations
+		e.getSize = [vec]() { return vec->size(); };
+
+		// getElement: Convert material ID back to something displayable
+		// NOTE: This won't show the material name, just the ID
+		e.getElement = [vec](size_t idx) -> std::string {
+			if (idx < vec->size()) {
+				return std::to_string((*vec)[idx].GetEntity());
+			}
+			return "";
+		};
+
+		// setElement: Special handling for UUID strings from editor
+		e.setElement = [vec](size_t idx, const std::string& s) -> bool {
+			if (idx >= vec->size()) return false;
+
+			// Empty string = clear the material
+			if (s.empty()) {
+				(*vec)[idx] = NE::Scripting::MaterialRef();
+				return true;
+			}
+
+			// Try to parse as material ID (numeric)
+			try {
+				uint32_t materialID = std::stoul(s);
+				NE::Scripting::MaterialRef ref;
+				ref._SetEntity(materialID);
+				(*vec)[idx] = ref;
+				return true;
+			} catch (...) {
+				// Not a number - assume it's a UUID string from editor
+				// We can't convert UUID to MaterialRef here without access to the registry
+				// This will be handled by the IScript override
+				return false;
+			}
+		};
+
+		e.addElement = [vec]() {
+			vec->push_back(NE::Scripting::MaterialRef{});
+		};
+
+		e.removeElement = [vec](size_t idx) {
+			if (idx < vec->size()) {
+				vec->erase(vec->begin() + idx);
+			}
+		};
+
+		m_entries[name] = std::move(e);
+	}
+
 	// ============ NEW: STRUCT REGISTRATION ============
 
 	template<typename T>
@@ -487,6 +572,7 @@ struct ExposedFieldRegistry {
 		else if constexpr (std::is_same_v<T, std::string>) return "string";
 		else if constexpr (std::is_same_v<T, NE::Math::Vec3>) return "vec3";
 		else if constexpr (std::is_same_v<T, NE::Scripting::Vec3>) return "vec3";
+		else if constexpr (std::is_same_v<T, NE::Scripting::MaterialRef>) return "materialref";
 		else return "unknown";
 	}
 
@@ -515,6 +601,12 @@ struct ExposedFieldRegistry {
 			std::ostringstream oss;
 			oss << value.x << " " << value.y << " " << value.z;
 			return oss.str();
+		}
+		else if constexpr (std::is_same_v<T, NE::Scripting::MaterialRef>) {
+			// MaterialRef: For vectors, we need to store in a way the editor understands
+			// The editor passes UUIDs, so we return the material ID which can be looked up
+			// Note: This is a temporary solution - ideally we'd return the UUID
+			return std::to_string(value.GetEntity());
 		}
 		else {
 			return "unsupported";
@@ -552,6 +644,24 @@ struct ExposedFieldRegistry {
 		else if constexpr (std::is_same_v<T, NE::Scripting::Vec3>) {
 			iss >> value.x >> value.y >> value.z;
 			return !iss.fail();
+		}
+		else if constexpr (std::is_same_v<T, NE::Scripting::MaterialRef>) {
+			// MaterialRef: Handle both UUID strings (from editor) and material IDs (from serialization)
+			std::string str;
+			iss >> str;
+
+			// Try to parse as number (material ID from serialization)
+			try {
+				uint32_t materialID = std::stoul(str);
+				value._SetEntity(materialID);
+				return true;
+			} catch (...) {
+				// Not a number, treat as UUID string (from editor drag-drop)
+				// We can't directly convert UUID to MaterialRef here because we don't have
+				// access to the material registry. The editor should handle this conversion.
+				// For now, we'll fail and let the editor's SetArrayElement handle it differently
+				return false;
+			}
 		}
 		else {
 			return false;

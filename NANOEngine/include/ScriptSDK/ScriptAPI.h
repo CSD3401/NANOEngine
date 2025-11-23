@@ -342,6 +342,13 @@ namespace Scripting {
          */
         AudioSourceRef GetAudioSourceRef(Entity entity) const;
 
+        /**
+         * Get a reference to a material asset by UUID.
+         * @param materialUUID Material asset UUID string
+         * @return Material reference (check IsValid() before use)
+         */
+        MaterialRef GetMaterialRef(const std::string& materialUUID) const;
+
         //=====================================================================
         // COMPONENT REF OPERATIONS (For stored references)
         //=====================================================================
@@ -376,6 +383,10 @@ namespace Scripting {
         void RegisterTransformRefField(const std::string& name, TransformRef* memberPtr);
         void RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr);
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
+        void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
+
+        // Vector field registration
+        void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
 
         //=====================================================================
         // EDITOR FIELD QUERY INTERFACE (Virtual - for advanced use)
