@@ -128,6 +128,17 @@ namespace Editor {
         return AttachAsChild(NE::ECS::NO_ENTITY, child, insertIndex);
     }
 
+    void EditorScene::GetAllDescendants(uint32_t id, std::vector<uint32_t>& out) {
+        out.push_back(id);
+
+        auto it = s_children.find(id);
+        if (it != s_children.end()) {
+            for (uint32_t child : it->second) {
+                GetAllDescendants(child, out);
+            }
+        }
+    }
+
     void EditorScene::BuildHierarchyFromECS() {
         s_nodes.clear();
         s_children.clear();
