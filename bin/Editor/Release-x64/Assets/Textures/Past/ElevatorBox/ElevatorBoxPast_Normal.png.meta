@@ -1,11 +1,11 @@
 {
     "fileFormatVersion": 1,
-    "uuid": "16d6ffdb-70e2-43e1-a082-894122b07f3b",
+    "uuid": "73b96c08-0a2e-4854-bed7-e28b32ad7da0",
     "assetType": "Texture",
     "sourcePath": "Assets/Textures\\Past\\ElevatorBox\\ElevatorBoxPast_Normal.png",
     "textureImporterVersion": 1,
     "textureImport": {
-        "type": 1,
+        "type": 0,
         "shape": 0,
         "sRGB": 1,
         "alphaSource": 0,

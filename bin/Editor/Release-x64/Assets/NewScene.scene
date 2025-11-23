@@ -35,7 +35,7 @@
                     "y": 1.0,
                     "z": 1.0
                 },
-                "intensity": 2.0,
+                "intensity": 5.5,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
@@ -85,9 +85,9 @@
                     "z": 0.0
                 },
                 "Scale": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
                 },
                 "Rotation": {
                     "x": -0.0,
@@ -179,8 +179,8 @@
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 3.064014434814453,
-                    "z": -0.0504479706287384
+                    "y": 2.3482086658477783,
+                    "z": 0.0
                 },
                 "Scale": {
                     "x": 1.0,
@@ -199,7 +199,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 1
+                "isActive": 0
             },
             "Transform": {
                 "Position": {
@@ -221,8 +221,8 @@
                 "parentLuid": 8390884651432738817
             },
             "Renderer": {
-                "modelUUID": "builtin:model/sphere",
-                "materialUUID": "073e43c5-319e-4555-a3e3-ef2fc7e46b1b"
+                "modelUUID": "eee11c63-ef82-4672-be92-b56ba31b6e72",
+                "materialUUID": "4132cdcd-eadf-41bf-b8a3-b04d132bb8e4"
             }
         },
         {
@@ -250,81 +250,8 @@
                 "parentLuid": 8390884651432738817
             },
             "Renderer": {
-                "modelUUID": "builtin:model/sphere",
-                "materialUUID": "073e43c5-319e-4555-a3e3-ef2fc7e46b1b"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Additional Scene Light",
-                "isActive": 1
-            },
-            "Transform": {
-                "Position": {
-                    "x": -1.0,
-                    "y": 8.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "luid": 8390884645710004239,
-                "parentLuid": 0
-            },
-            "Light": {
-                "direction": {
-                    "x": 0.0,
-                    "y": -1.0,
-                    "z": 0.0
-                },
-                "color": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "intensity": 2.0,
-                "innerCutoff": 0.9100000262260437,
-                "outerCutoff": 0.8199999928474426,
-                "constant": 1.0,
-                "linear": 0.0,
-                "quadratic": 1.0,
-                "type": 1
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Sphere",
-                "isActive": 1
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884645711183890,
-                "parentLuid": 8390884645710004239
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/sphere",
-                "materialUUID": "neunlitmat"
+                "modelUUID": "eee11c63-ef82-4672-be92-b56ba31b6e72",
+                "materialUUID": "d1870980-f3a0-40ac-8d1f-1de3844262c7"
             }
         },
         {
@@ -335,8 +262,8 @@
             "Transform": {
                 "Position": {
                     "x": -0.22499999403953552,
-                    "y": 0.21000003814697266,
-                    "z": 0.9004479646682739
+                    "y": 0.20000000298023224,
+                    "z": 0.835307240486145
                 },
                 "Scale": {
                     "x": 1.0,
@@ -418,8 +345,8 @@
             "Transform": {
                 "Position": {
                     "x": 0.22499999403953552,
-                    "y": 0.21000003814697266,
-                    "z": 0.9004479646682739
+                    "y": 0.20000000298023224,
+                    "z": 0.8349999785423279
                 },
                 "Scale": {
                     "x": 1.0,

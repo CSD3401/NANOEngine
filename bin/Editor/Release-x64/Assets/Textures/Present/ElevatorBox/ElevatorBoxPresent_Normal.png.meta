@@ -1,11 +1,11 @@
 {
     "fileFormatVersion": 1,
-    "uuid": "a695cb8b-5dc8-4abb-a7a2-cbe41052e8cc",
+    "uuid": "8ae3a5e3-f556-41aa-8288-a66b6d8764fc",
     "assetType": "Texture",
     "sourcePath": "Assets/Textures\\Present\\ElevatorBox\\ElevatorBoxPresent_Normal.png",
     "textureImporterVersion": 1,
     "textureImport": {
-        "type": 1,
+        "type": 0,
         "shape": 0,
         "sRGB": 1,
         "alphaSource": 0,
