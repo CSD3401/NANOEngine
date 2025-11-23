@@ -12,7 +12,8 @@ namespace NE::ECS::Component {
 namespace NE::Renderer {
 
 	namespace Query {
-
+		NANOENGINE_API std::string GetModel(uint32_t e);
+		NANOENGINE_API std::string GetMaterial(uint32_t e);
 	}
 
 	namespace Command {

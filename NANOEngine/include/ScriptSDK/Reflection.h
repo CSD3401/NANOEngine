@@ -7,10 +7,33 @@
 
 namespace NE::Core {
 
+    enum class FieldFlags : std::uint8_t {
+        None = 0,
+        HiddenInEditor = 1 << 0,
+        // You can add more later, e.g. ReadOnly = 1 << 1, etc.
+    };
+
+    constexpr FieldFlags operator|(FieldFlags a, FieldFlags b) {
+        return static_cast<FieldFlags>(
+            static_cast<std::uint8_t>(a) | static_cast<std::uint8_t>(b)
+            );
+    }
+
+    constexpr FieldFlags operator&(FieldFlags a, FieldFlags b) {
+        return static_cast<FieldFlags>(
+            static_cast<std::uint8_t>(a) & static_cast<std::uint8_t>(b)
+            );
+    }
+
+    constexpr bool HasFlag(FieldFlags value, FieldFlags flag) {
+        return (value & flag) != FieldFlags::None;
+    }
+
     template <typename Owner, typename T>
     struct FieldDescriptor {
         std::string_view name;
         T Owner::* member;
+        FieldFlags flags;
     };
 
     template <class T>
@@ -51,10 +74,16 @@ namespace NE::Core {
         return std::make_tuple(
 
 #define NE_REFLECT_FIELD(field) \
-            NE::Core::FieldDescriptor<Self, decltype(Self::field)>{#field, &Self::field}
+    NE::Core::FieldDescriptor<Self, decltype(Self::field)>{#field, &Self::field, NE::Core::FieldFlags::None}
 
 #define NE_REFLECT_FIELD_NAMED(field, customName) \
-    NE::Core::FieldDescriptor<Self, decltype(Self::field)>{customName, &Self::field}
+    NE::Core::FieldDescriptor<Self, decltype(Self::field)>{customName, &Self::field, NE::Core::FieldFlags::None}
+
+#define NE_REFLECT_FIELD_HIDDEN(field) \
+    NE::Core::FieldDescriptor<Self, decltype(Self::field)>{#field, &Self::field, NE::Core::FieldFlags::HiddenInEditor}
+
+#define NE_REFLECT_FIELD_NAMED_HIDDEN(field, customName) \
+    NE::Core::FieldDescriptor<Self, decltype(Self::field)>{customName, &Self::field, NE::Core::FieldFlags::HiddenInEditor}
 
 #define NE_REFLECT_END() \
         ); \

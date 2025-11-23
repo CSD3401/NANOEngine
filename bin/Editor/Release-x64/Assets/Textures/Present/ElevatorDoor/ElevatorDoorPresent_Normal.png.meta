@@ -1,11 +1,11 @@
 {
     "fileFormatVersion": 1,
-    "uuid": "781397ea-c9d9-440a-b2c5-97defa235200",
+    "uuid": "028317a0-ebaa-49ae-b4a5-b05aab400d1f",
     "assetType": "Texture",
     "sourcePath": "Assets/Textures\\Present\\ElevatorDoor\\ElevatorDoorPresent_Normal.png",
     "textureImporterVersion": 1,
     "textureImport": {
-        "type": 0,
+        "type": 1,
         "shape": 0,
         "sRGB": 1,
         "alphaSource": 0,

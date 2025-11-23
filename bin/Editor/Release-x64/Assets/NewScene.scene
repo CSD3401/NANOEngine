@@ -35,7 +35,7 @@
                     "y": 1.0,
                     "z": 1.0
                 },
-                "intensity": 2.0,
+                "intensity": 5.5,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
@@ -85,9 +85,9 @@
                     "z": 0.0
                 },
                 "Scale": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
                 },
                 "Rotation": {
                     "x": -0.0,
@@ -104,13 +104,13 @@
         },
         {
             "EntityMeta": {
-                "name": "Elevator Light",
+                "name": "Light",
                 "isActive": 1
             },
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 0.699999988079071,
+                    "y": 2.5,
                     "z": -0.20000000298023224
                 },
                 "Scale": {
@@ -173,14 +173,14 @@
         },
         {
             "EntityMeta": {
-                "name": "Elevator 1",
+                "name": "Elevator",
                 "isActive": 1
             },
             "Transform": {
                 "Position": {
-                    "x": 0.0,
-                    "y": 1.3638451099395752,
-                    "z": 0.20000000298023224
+                    "x": -2.621436357498169,
+                    "y": -0.20988601446151733,
+                    "z": 0.0
                 },
                 "Scale": {
                     "x": 1.0,
@@ -199,7 +199,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 1
+                "isActive": 0
             },
             "Transform": {
                 "Position": {
@@ -218,11 +218,11 @@
                     "z": -0.0
                 },
                 "luid": 8390884645678546947,
-                "parentLuid": 8390884645677301761
+                "parentLuid": 8390884651432738817
             },
             "Renderer": {
-                "modelUUID": "64ce120a-8510-44e6-9831-1c4c39c06090",
-                "materialUUID": "bf6481ea-d530-4007-a476-fddfb7529648"
+                "modelUUID": "eee11c63-ef82-4672-be92-b56ba31b6e72",
+                "materialUUID": "4132cdcd-eadf-41bf-b8a3-b04d132bb8e4"
             }
         },
         {
@@ -247,84 +247,11 @@
                     "z": -0.0
                 },
                 "luid": 8390884645682020361,
-                "parentLuid": 8390884645677301761
+                "parentLuid": 8390884651432738817
             },
             "Renderer": {
-                "modelUUID": "64ce120a-8510-44e6-9831-1c4c39c06090",
-                "materialUUID": "c5f7c437-ccce-485b-b6c3-974072f24856"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Additional Scene Light",
-                "isActive": 1
-            },
-            "Transform": {
-                "Position": {
-                    "x": -1.0,
-                    "y": 8.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "luid": 8390884645710004239,
-                "parentLuid": 0
-            },
-            "Light": {
-                "direction": {
-                    "x": 0.0,
-                    "y": -1.0,
-                    "z": 0.0
-                },
-                "color": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "intensity": 2.0,
-                "innerCutoff": 0.9100000262260437,
-                "outerCutoff": 0.8199999928474426,
-                "constant": 1.0,
-                "linear": 0.0,
-                "quadratic": 1.0,
-                "type": 1
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Sphere",
-                "isActive": 1
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884645711183890,
-                "parentLuid": 8390884645710004239
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/sphere",
-                "materialUUID": "neunlitmat"
+                "modelUUID": "eee11c63-ef82-4672-be92-b56ba31b6e72",
+                "materialUUID": "d1870980-f3a0-40ac-8d1f-1de3844262c7"
             }
         },
         {
@@ -335,8 +262,8 @@
             "Transform": {
                 "Position": {
                     "x": -0.22499999403953552,
-                    "y": -0.1899999976158142,
-                    "z": 0.6499999761581421
+                    "y": 0.20000000298023224,
+                    "z": 0.835307240486145
                 },
                 "Scale": {
                     "x": 1.0,
@@ -355,7 +282,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 1
+                "isActive": 0
             },
             "Transform": {
                 "Position": {
@@ -377,8 +304,8 @@
                 "parentLuid": 8390884645718196247
             },
             "Renderer": {
-                "modelUUID": "b81e2fc0-8432-4838-9ed5-5654cefb2778",
-                "materialUUID": "359203cf-97a1-4a38-961c-5201236fa4fe"
+                "modelUUID": "ac37ec0a-9683-4833-a3ca-780bd7625fed",
+                "materialUUID": "8f2b3a11-4aaf-4d01-a446-c75e43fbe407"
             }
         },
         {
@@ -406,8 +333,8 @@
                 "parentLuid": 8390884645718196247
             },
             "Renderer": {
-                "modelUUID": "b81e2fc0-8432-4838-9ed5-5654cefb2778",
-                "materialUUID": "29a45268-a0d4-4fc4-b293-51c21d428de1"
+                "modelUUID": "ac37ec0a-9683-4833-a3ca-780bd7625fed",
+                "materialUUID": "77af859a-bf31-447a-9978-4b53574693e6"
             }
         },
         {
@@ -418,8 +345,8 @@
             "Transform": {
                 "Position": {
                     "x": 0.22499999403953552,
-                    "y": -0.1899999976158142,
-                    "z": 0.6499999761581421
+                    "y": 0.20000000298023224,
+                    "z": 0.8349999785423279
                 },
                 "Scale": {
                     "x": 1.0,
@@ -438,7 +365,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 1
+                "isActive": 0
             },
             "Transform": {
                 "Position": {
@@ -460,8 +387,8 @@
                 "parentLuid": 8390884645740675103
             },
             "Renderer": {
-                "modelUUID": "b81e2fc0-8432-4838-9ed5-5654cefb2778",
-                "materialUUID": "359203cf-97a1-4a38-961c-5201236fa4fe"
+                "modelUUID": "ac37ec0a-9683-4833-a3ca-780bd7625fed",
+                "materialUUID": "8f2b3a11-4aaf-4d01-a446-c75e43fbe407"
             }
         },
         {
@@ -489,8 +416,8 @@
                 "parentLuid": 8390884645740675103
             },
             "Renderer": {
-                "modelUUID": "b81e2fc0-8432-4838-9ed5-5654cefb2778",
-                "materialUUID": "29a45268-a0d4-4fc4-b293-51c21d428de1"
+                "modelUUID": "ac37ec0a-9683-4833-a3ca-780bd7625fed",
+                "materialUUID": "77af859a-bf31-447a-9978-4b53574693e6"
             }
         },
         {
@@ -501,8 +428,8 @@
             "Transform": {
                 "Position": {
                     "x": -0.75,
-                    "y": -0.5,
-                    "z": -0.20000000298023224
+                    "y": 1.100000023841858,
+                    "z": 0.0
                 },
                 "Scale": {
                     "x": 1.0,
@@ -521,11 +448,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 1
+                "isActive": 0
             },
             "Transform": {
                 "Position": {
-                    "x": 0.0,
+                    "x": 0.0000011324882507324219,
                     "y": 0.0,
                     "z": 0.0
                 },
@@ -543,8 +470,8 @@
                 "parentLuid": 8390884645770756097
             },
             "Renderer": {
-                "modelUUID": "743993dc-1bb0-44b6-810b-c0bb1a9e687a",
-                "materialUUID": "073e43c5-319e-4555-a3e3-ef2fc7e46b1b"
+                "modelUUID": "0af6b393-727a-47a0-a368-f1eddb202807",
+                "materialUUID": "480e66a4-e9cf-45e4-8b9a-f25c9cc3d68e"
             }
         },
         {
@@ -554,7 +481,7 @@
             },
             "Transform": {
                 "Position": {
-                    "x": -1.0446891784667969,
+                    "x": -6.727795600891113,
                     "y": 0.0,
                     "z": 4.115004062652588
                 },
@@ -748,6 +675,625 @@
             "Renderer": {
                 "modelUUID": "builtin:model/sphere",
                 "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Box",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884651432738817,
+                "parentLuid": 8390884645677301761
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.9999999403953552,
+                    "y": 1.0,
+                    "z": 0.9999999403953552
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884651442372611,
+                "parentLuid": 8390884645770756097
+            },
+            "Renderer": {
+                "modelUUID": "0af6b393-727a-47a0-a368-f1eddb202807",
+                "materialUUID": "aa23b387-489e-4a45-94d7-d440799d4034"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Button",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.5881452560424805,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884655633858561,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655635365891,
+                "parentLuid": 8390884655633858561
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655636348933,
+                "parentLuid": 8390884655635365891
+            },
+            "Renderer": {
+                "modelUUID": "1752cbf9-4ab6-450c-8ad6-8ccd35c606e9",
+                "materialUUID": "06d4e53d-f4d7-454c-b98f-90132ae4ac52"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655637331975,
+                "parentLuid": 8390884655635365891
+            },
+            "Renderer": {
+                "modelUUID": "1752cbf9-4ab6-450c-8ad6-8ccd35c606e9",
+                "materialUUID": "d6b47e0f-b050-4ae9-a740-4abc06cdcde3"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Clicker",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.008999999612569809,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655680389134,
+                "parentLuid": 8390884655633858561
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655681372176,
+                "parentLuid": 8390884655680389134
+            },
+            "Renderer": {
+                "modelUUID": "0e0856a8-0ead-4063-b8da-656d4c4f244c",
+                "materialUUID": "c4ff9cc0-0e1e-43b5-a7f9-93f3034b4ac9"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655682158610,
+                "parentLuid": 8390884655680389134
+            },
+            "Renderer": {
+                "modelUUID": "0e0856a8-0ead-4063-b8da-656d4c4f244c",
+                "materialUUID": "41a0252d-efb2-472a-b4de-b87fa29934bf"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Button (Coloured)",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.056730270385742,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884655698411542,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655712370712,
+                "parentLuid": 8390884655698411542
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Clicker",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.008999999612569809,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655712763930,
+                "parentLuid": 8390884655698411542
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655713091612,
+                "parentLuid": 8390884655712370712
+            },
+            "Renderer": {
+                "modelUUID": "1752cbf9-4ab6-450c-8ad6-8ccd35c606e9",
+                "materialUUID": "06d4e53d-f4d7-454c-b98f-90132ae4ac52"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655713812512,
+                "parentLuid": 8390884655712370712
+            },
+            "Renderer": {
+                "modelUUID": "1752cbf9-4ab6-450c-8ad6-8ccd35c606e9",
+                "materialUUID": "d6b47e0f-b050-4ae9-a740-4abc06cdcde3"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655715188770,
+                "parentLuid": 8390884655712763930
+            },
+            "Renderer": {
+                "modelUUID": "0e0856a8-0ead-4063-b8da-656d4c4f244c",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "CordReel",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.783823251724243,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884655735308327,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Renderers",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655736487977,
+                "parentLuid": 8390884655735308327
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655737405483,
+                "parentLuid": 8390884655736487977
+            },
+            "Renderer": {
+                "modelUUID": "7169c803-91e7-44bd-9219-6dd19e23d29e",
+                "materialUUID": "e32e6387-b4a3-459f-8a46-377eababfef5"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655737798701,
+                "parentLuid": 8390884655736487977
+            },
+            "Renderer": {
+                "modelUUID": "7169c803-91e7-44bd-9219-6dd19e23d29e",
+                "materialUUID": "e08a3f81-5014-4251-b893-2b53bcddb1d0"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Crate",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884655746973745,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Renderers",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655747498035,
+                "parentLuid": 8390884655746973745
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655748087861,
+                "parentLuid": 8390884655747498035
+            },
+            "Renderer": {
+                "modelUUID": "2db0b34c-b68e-48a8-bba2-c58e842893cf",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884655748808759,
+                "parentLuid": 8390884655747498035
             }
         }
     ]

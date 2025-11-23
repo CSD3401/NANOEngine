@@ -26,8 +26,12 @@ namespace Editor {
 
         auto& mat = *m_material;
 
+        ImGui::Text(m_path.c_str());
+        ImGui::Separator();
+
         bool openShaderPopup = false;
-        DrawAssetField("Shader", mat.GetPipeline()->GetSpecification().shaderName, "+", 0.f, &openShaderPopup);
+        std::string uuidToName = AssetManager::GetInstance().RetrieveFileName(mat.GetPipeline()->GetSpecification().shaderName);
+        DrawAssetField("Shader", uuidToName.c_str(), "+", 0.f, &openShaderPopup);
         if (openShaderPopup) ImGui::OpenPopup("AssetPicker_Shader");
 
         if (ImGui::BeginPopup("AssetPicker_Shader")) {

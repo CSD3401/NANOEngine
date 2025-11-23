@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "54d4a580-8c8d-4f31-a3b5-b8316fe20fe5",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Handle\\HandlePresent_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

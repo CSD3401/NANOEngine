@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "fe0c3a52-17db-4c37-8fb5-b60b97e8ddb6",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Watch\\Watch_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

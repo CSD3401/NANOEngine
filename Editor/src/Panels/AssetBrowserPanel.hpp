@@ -23,6 +23,8 @@ namespace Editor {
 
 		void CreateNewFolder();
 		void CreateNewMaterial();
+		void DeleteAssetWithMeta(const std::filesystem::path& assetPath);
+		void MoveAssetWithMeta(const std::filesystem::path& source, const std::filesystem::path& destination);
 
 		std::filesystem::path m_rootDirectory;
 		std::filesystem::path m_currentDirectory;
@@ -37,6 +39,10 @@ namespace Editor {
 		bool m_renamePopupOpen = false;
 		char m_renameBuffer[256] = { 0 };
 		bool m_confirmDeletePopupOpen = false;
+
+		// Drag and drop state for moving files
+		std::filesystem::path m_draggedAssetPath;
+		bool m_isDraggingAsset = false;
 
 		ThumbnailManager m_thumbnailManager;
 	};

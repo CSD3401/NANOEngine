@@ -554,7 +554,7 @@ namespace Editor {
 		ss << "private:\n";
 		ss << "\t// Add your private member variables here\n";
 		ss << "\t// Example: float speed = 5.0f;\n";
-		ss << "\t// Example: std::vector<std::string> materials;\n";
+		ss << "\n";
 		ss << "};\n";
 
 		return ss.str();

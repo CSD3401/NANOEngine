@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "e86d40d0-92a0-43cf-95c0-a59c25b70ab2",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Watch\\Watch_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
