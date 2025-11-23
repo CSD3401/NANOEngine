@@ -106,7 +106,7 @@ namespace Editor {
 		editorLayer.AddPanel<GamePanel>(NE::GetGameFrameBuffer());
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
-		//editorLayer.AddPanel<ProfilerPanel>();
+		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
 		//editorLayer.AddPanel<AnimationPanel>();
 		//editorLayer.AddPanel<AnimatorRuntimePanel>();

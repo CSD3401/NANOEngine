@@ -12,13 +12,14 @@
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
-//#include "../../AssetManager.hpp"
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include "Graphics/OpenGL/GLFrameBuffer.hpp"
 #include "../../SceneManagement/Scene.hpp"
 #include "Core/SpdLogger.hpp"
+#include "InstanceData.hpp"
+#include "../OpenGL/GLGeometryBuffer.hpp"
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
@@ -43,10 +44,8 @@ namespace NE::Graphics {
     int GraphicsManager::s_DebugProjLoc;
 
     // Temp
-	std::vector<DrawCommand> GraphicsManager::s_PickingCommands;
 	std::shared_ptr<IFrameBuffer> GraphicsManager::s_ActiveFrameBuffer;
     std::shared_ptr<IFrameBuffer> GraphicsManager::s_SceneFrameBuffer;
-    std::shared_ptr<IFrameBuffer> GraphicsManager::s_PickingFrameBuffer;
 	std::shared_ptr<IFrameBuffer> GraphicsManager::s_GameFrameBuffer;
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
@@ -57,8 +56,9 @@ namespace NE::Graphics {
         s_StateCache = std::make_unique<OpenGL::GLStateCache>();
         s_DrawQueue = std::make_unique<DrawQueue>();
         s_SceneFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
-        s_PickingFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
 		s_GameFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
+
+		s_GameFrameBuffer->SetPickingWrite(false); // Turn off picking for game framebuffer
 
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
@@ -88,66 +88,79 @@ namespace NE::Graphics {
         //auto skinned = std::make_shared<OpenGL::GLShader>();
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
+
+        NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
+
     }
 
     void GraphicsManager::BeginFrame() 
     {
-        drawCount = 0;
 		s_StateCache->InvalidateAll();
         s_ActiveFrameBuffer->Bind();
         s_CommandBuffer->Begin();
-        s_CommandBuffer->BeginRenderPass();
+        //s_CommandBuffer->BeginRenderPass();
+
+        if (s_CurrentRenderPass == SceneManagement::RenderPass::SCENE)
+            drawCount = 0;
     }
 
-    void GraphicsManager::DrawSkybox() 
+    void GraphicsManager::SubmitSkybox() 
     {
-        if (s_skybox) s_skybox->Draw();
+        if (s_skybox) s_skybox->Submit();
     }
 
-    void GraphicsManager::DrawFrame() 
+    void GraphicsManager::DrawFrame()
     {
         NE_PROFILE_FUNCTION();
 
-        // TEMP?
-		Mat4 camProj, camView;
-		Vec3 camPos;
+        // Set camera matrices and position based on current render pass
+        Mat4 camProj, camView;
+        Vec3 camPos;
         switch (s_CurrentRenderPass) {
         case SceneManagement::RenderPass::SCENE:
-        case SceneManagement::RenderPass::SCENE_PICKING:
-			camProj = s_EditorCamera->GetProjectionMatrix();
-			camView = s_EditorCamera->GetViewMatrix();
+            camProj = s_EditorCamera->GetProjectionMatrix();
+            camView = s_EditorCamera->GetViewMatrix();
             camPos = s_EditorCamera->GetPosition();
-			break;
+            break;
         case SceneManagement::RenderPass::GAME:
             camProj = m_ActiveCamera.projection;
             camView = m_ActiveCamera.view;
             camPos = m_ActiveCamera.position;
-			break;
-            
+            break;
         }
 
-		if (enableSorting) s_DrawQueue->Sort(camPos);
-		for (const auto& command : s_DrawQueue->GetCommands()) {
-            // Bind the pipeline (shader program + GL state)
-            //s_CommandBuffer->BindPipeline(command.material->GetPipeline());
+        // Sort by RenderQueue -> Material -> Mesh
+        if (enableSorting)
+            s_DrawQueue->Sort(camPos);
 
-            // Bind pipeline state and update the cache
-            s_StateCache->Bind(command.material->GetPipeline());
-                
-            // Bind the vertex/index buffers
-            command.mesh->Bind();
+        // Prepare instance data buffer and batching variables
+        std::vector<InstanceData> instanceData;
+        instanceData.reserve(32);
+        std::shared_ptr<IGeometryBuffer> currentMesh;
+        std::shared_ptr<Material> currentMaterial;
 
-            // Bind material (textures, uniforms, etc.)
-            command.material->Bind();
+        auto flushBatch = [&]() {
+            if (instanceData.empty() || !currentMesh || !currentMaterial)
+                return;
+
+            NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instanceData.data(),
+                instanceData.size() * sizeof(InstanceData)
+            );
+
+            // Bind pipeline & GL state
+            auto pipeline = currentMaterial->GetPipeline();
+            s_StateCache->Bind(pipeline);
+            currentMaterial->Bind();
+            currentMesh->Bind();
 
             // Upload transform matrix to shader
-            auto shader = command.material->GetPipeline()->GetSpecification().shader;
-            shader->SetUniformMat4("u_Model", command.transform);
+            auto shader = pipeline->GetSpecification().shader;
             shader->SetUniformMat4("u_View", camView);
             shader->SetUniformMat4("u_Projection", camProj);
-            shader->SetUniformMat4("u_NormalMatrix", command.transform.Inverse().Transpose());
             shader->SetUniformVec3("u_CameraPos", camPos);
 
+            // Set lights
             shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
             for (size_t i = 0; i < m_lights.size(); ++i) {
                 const auto* light = m_lights[i];
@@ -166,21 +179,50 @@ namespace NE::Graphics {
 
             shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
-            // For object picking
-            if (command.entity.has_value()) {
-                float r = (float)(*command.entity & 0xFF) / 255.0f;
-                float g = (float)((*command.entity >> 8) & 0xFF) / 255.0f;
-                float b = (float)((*command.entity >> 16) & 0xFF) / 255.0f;
-                shader->SetUniformVec3("u_ID", { r, g, b });
-			}
+            // Draw mesh with instancing
+            currentMesh->DrawInstanced(instanceData.size());
+            currentMesh->Unbind();
 
-            // Draw indexed
-            //s_CommandBuffer->DrawIndexed(command.mesh->GetIndexCount());
-            command.mesh->Draw();
-            ++drawCount;
+            instanceData.clear();
 
-            glBindVertexArray(0);
-		}
+			// For now, the draw count refers to number of batches drawn in the scene pass
+            if (s_CurrentRenderPass == SceneManagement::RenderPass::SCENE)
+				drawCount++;
+        };
+
+        const auto& commands = s_DrawQueue->GetCommands();
+        for (const auto& command : commands)
+        {
+            auto mesh = command.mesh;
+            auto material = command.material;
+
+            // Check compatibility with current batch
+            bool compatible =
+                (mesh == currentMesh) &&
+                (material == currentMaterial);
+
+            // Flush current batch if not compatible
+            if (!compatible && !instanceData.empty()) {
+                flushBatch();
+            }
+
+            // Prepare to create new batch if not compatible
+            if (!compatible) {
+                currentMesh = mesh;
+                currentMaterial = material;
+            }
+
+            NE::Graphics::InstanceData instance{};
+            instance.model = command.transform;
+			instance.idRGB = command.idRGB;
+            
+            instanceData.push_back(instance);
+        }
+
+        // Flush any remaining batch
+        if (!instanceData.empty()) {
+            flushBatch();
+        }
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) 
@@ -190,17 +232,19 @@ namespace NE::Graphics {
 
     void GraphicsManager::EndFrame() 
     {
-        s_DrawQueue->Clear();
 		s_ActiveFrameBuffer->Unbind();
-        s_CommandBuffer->EndRenderPass();
-        s_CommandBuffer->End();
+        //s_CommandBuffer->EndRenderPass();
+        //s_CommandBuffer->End();
     }
+
+    void GraphicsManager::Clear() 
+    {
+        s_DrawQueue->Clear();
+	}
 
     void GraphicsManager::Shutdown() 
     {
 		s_SceneFrameBuffer.reset();
-		s_PickingFrameBuffer.reset();
-
         s_skybox.reset();
         s_CommandBuffer.reset();
 
@@ -228,6 +272,7 @@ namespace NE::Graphics {
         s_DebugVertexBuffer.shrink_to_fit();
 
         NE::Graphics::GizmosRenderer::Cleanup();
+        NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
     }
 
     void GraphicsManager::SetRenderPass(SceneManagement::RenderPass pass) 
@@ -237,27 +282,10 @@ namespace NE::Graphics {
         case SceneManagement::RenderPass::SCENE:
             s_ActiveFrameBuffer = s_SceneFrameBuffer;
 		    break;
-        case SceneManagement::RenderPass::SCENE_PICKING:
-			s_ActiveFrameBuffer = s_PickingFrameBuffer;
-			break;
         case SceneManagement::RenderPass::GAME:
             s_ActiveFrameBuffer = s_GameFrameBuffer;
 			break;
-        default:
-			break;
         }
-    }
-
-    void GraphicsManager::SubmitPicking(const DrawCommand& command) 
-    {
-        s_PickingCommands.push_back(command);
-    }
-
-    void GraphicsManager::UpdatePicking() 
-    {
-        for (const auto& cmd : s_PickingCommands) {
-			s_DrawQueue->Submit(cmd);
-		}
     }
 
     void GraphicsManager::SetEditorCamera(EditorCamera* cam) 
@@ -270,7 +298,6 @@ namespace NE::Graphics {
         return s_EditorCamera;
     }
 
-
     void GraphicsManager::SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain) 
     {
 		m_ActiveCamera.projection = projection;
@@ -282,13 +309,7 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) 
     {
         //SPD_DEBUG("Clicked on X: " << x << " Y: " << y);
-        s_PickingFrameBuffer->Bind();
-        uint8_t data[4] = { 0, 0, 0, 0 };
-        glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        s_PickingFrameBuffer->Unbind();
-
-        uint32_t id = data[0] | (data[1] << 8) | (data[2] << 16);
-        return id;
+		return s_SceneFrameBuffer->ReadPixel(x, y);
     }
 
     // Debug drawing test code

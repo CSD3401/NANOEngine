@@ -114,21 +114,14 @@ namespace NE {
 
 		gSceneManager.Update(dt);
 
-		Graphics::GraphicsManager::DrawSkybox();
-		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::SCENE);
-		Graphics::GraphicsManager::BeginFrame();
-		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE);
+		Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
 
-		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::GAME);
-		Graphics::GraphicsManager::BeginFrame();
+		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE);
 		gSceneManager.Render(NE::SceneManagement::RenderPass::GAME);
 
+		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
+
 		TweenManager::Get().Update(static_cast<float>(dt));
-		Graphics::GraphicsManager::EndFrame();
-		
-		Graphics::GraphicsManager::SetRenderPass(NE::SceneManagement::RenderPass::SCENE_PICKING);
-		Graphics::GraphicsManager::BeginFrame();
-		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE_PICKING);
 		Graphics::GraphicsManager::EndFrame();
 
 		if (InputManager::WasKeyPressed('L')) {
@@ -184,6 +177,17 @@ namespace NE {
 		if (!editorScene) return;
 		
 		SPD_INFO("[DirtyFlag] SaveCurrentScene called - Saving to: {}", path);
+
+		// CRITICAL: Capture current field values from script instances before serializing
+		// This ensures any changes made in the editor inspector are persisted
+		auto& entities = editorScene->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
+		for (NE::ECS::Entity entity : entities) {
+			auto& nsc = editorScene->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+			if (nsc.Instance) {
+				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
+			}
+		}
+
 		Serialization::JsonSceneSerializer::Serialize(*editorScene, path);
 		editorScene->ClearDirty();
 		SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");

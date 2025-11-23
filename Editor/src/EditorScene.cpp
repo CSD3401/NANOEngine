@@ -3,6 +3,7 @@
 #include <ECS/Core/Entity.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <Engine.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace {
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
@@ -39,7 +40,7 @@ namespace Editor {
         s_children.clear();
         s_roots.clear();
 
-        // Fill s_entities based on active scene’s ECS
+        // Fill s_entities based on active sceneï¿½s ECS
         auto numEntt = NE::GetNumEntities(); // this uses SceneManager::GetActive()
         s_entities.reserve(numEntt);
         for (unsigned int i = 0; i < numEntt; ++i) {
@@ -128,6 +129,29 @@ namespace Editor {
     bool EditorScene::UnparentToRoot(uint32_t child, int insertIndex) {
         NE::ECS::Command::SetParent(child, NE::ECS::NO_ENTITY);
         return AttachAsChild(NE::ECS::NO_ENTITY, child, insertIndex);
+    }
+
+    void EditorScene::GetAllDescendants(uint32_t id, std::vector<uint32_t>& out) {
+        out.push_back(id);
+
+        auto it = s_children.find(id);
+        if (it != s_children.end()) {
+            for (uint32_t child : it->second) {
+                GetAllDescendants(child, out);
+            }
+        }
+    }
+
+    void EditorScene::SetAllDescendantsActive(uint32_t id, bool& active) {
+        auto& enttMeta = NE::ECS::Command::GetEntityMeta(id);
+        enttMeta.isActive = active;
+
+        auto it = s_children.find(id);
+        if (it != s_children.end()) {
+            for (uint32_t child : it->second) {
+                SetAllDescendantsActive(child, active);
+            }
+        }
     }
 
     void EditorScene::BuildHierarchyFromECS() {

@@ -146,6 +146,11 @@ namespace Editor {
                 img = (ImTextureID)(uintptr_t)gltex->GLName();
 
             ImGui::Image(img, ImVec2(previewSize, previewSize));
+            ImGui::SameLine();
+            if (ImGui::Button("x")) {
+                assignById("");
+                changed = true;
+            }
         } else {
             ImVec2 cursor = ImGui::GetCursorScreenPos();
             ImDrawList* dl = ImGui::GetWindowDrawList();

@@ -9,6 +9,7 @@
 #include "../../include/ScriptSDK/ScriptAPI.h"
 #include "../../include/ScriptSDK/ScriptMacros.h"
 #include "ScriptContext.hpp"
+#include "ScriptContextFactory.hpp"
 
 // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
@@ -24,6 +25,7 @@
 #include "../Events/EventBus.hpp"
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 #include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
+#include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
 
 #include <sstream>
 #include <unordered_map>
@@ -69,6 +71,18 @@ namespace Scripting {
             void* memberPtr;
             std::function<std::string()> getValue;
             std::function<bool(const std::string&)> setValue;
+
+            // Array operation callbacks for vector fields
+            std::function<size_t()> getSize;
+            std::function<std::string(size_t)> getElement;
+            std::function<bool(size_t, const std::string&)> setElement;
+            std::function<void()> addElement;
+            std::function<void(size_t)> removeElement;
+
+            // Enum support
+            std::vector<std::string> enumOptions;
+            std::function<int()> getEnumValue;
+            std::function<void(int)> setEnumValue;
         };
 
         std::unordered_map<std::string, FieldEntry> fields;
@@ -80,7 +94,11 @@ namespace Scripting {
 
     IScript::~IScript() {
         delete m_fieldRegistry;
-        // Note: ScriptContext is owned by the engine, don't delete it
+        // Properly clean up ScriptContext to avoid memory leak
+        if (m_context) {
+            DestroyScriptContext(m_context);
+            m_context = nullptr;
+        }
     }
 
     void IScript::_LinkToEngine(ScriptContext* context) {
@@ -239,6 +257,54 @@ namespace Scripting {
         // Up is always world up in this simple implementation
         // For more complex scenarios, you might want to calculate it from forward and right
         return Vec3(0.0f, 1.0f, 0.0f);
+    }
+
+    //=========================================================================
+    // Hierarchy Operations
+    //=========================================================================
+
+    Entity IScript::GetParent() const {
+        CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return INVALID_ENTITY;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.parent;
+    }
+
+    size_t IScript::GetChildCount() const {
+        CHECK_CONTEXT_OR_RETURN(0);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return 0;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.children.size();
+    }
+
+    Entity IScript::GetChild(size_t index) const {
+        CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return INVALID_ENTITY;
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+
+        if (index >= transform.children.size())
+            return INVALID_ENTITY;
+
+        return transform.children[index];
+    }
+
+    std::vector<Entity> IScript::GetChildren() const {
+        CHECK_CONTEXT_OR_RETURN(std::vector<Entity>());
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+            return std::vector<Entity>();
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        return transform.children;
     }
 
     //=========================================================================
@@ -560,6 +626,62 @@ namespace Scripting {
         return AudioSourceRef();
     }
 
+    //=========================================================================
+    // Material UUID Registry (Maps material IDs to UUIDs)
+    //=========================================================================
+
+    namespace {
+        struct MaterialRegistry {
+            std::unordered_map<uint32_t, std::string> idToUUID;
+            std::unordered_map<std::string, uint32_t> uuidToID;
+            uint32_t nextID = 1; // Start from 1, 0 is reserved for invalid
+
+            uint32_t GetOrCreateID(const std::string& uuid) {
+                if (uuid.empty()) return 0;
+
+                auto it = uuidToID.find(uuid);
+                if (it != uuidToID.end()) {
+                    return it->second;
+                }
+
+                // Create new ID
+                uint32_t id = nextID++;
+                idToUUID[id] = uuid;
+                uuidToID[uuid] = id;
+                return id;
+            }
+
+            std::string GetUUID(uint32_t id) const {
+                if (id == 0) return "";
+                auto it = idToUUID.find(id);
+                return (it != idToUUID.end()) ? it->second : "";
+            }
+        };
+
+        MaterialRegistry& GetMaterialRegistry() {
+            static MaterialRegistry registry;
+            return registry;
+        }
+    }
+
+    MaterialRef IScript::GetMaterialRef(const std::string& materialUUID) const {
+        if (materialUUID.empty()) return MaterialRef();
+
+        // Get or create an ID for this material UUID
+        uint32_t materialID = GetMaterialRegistry().GetOrCreateID(materialUUID);
+        return MaterialRef(materialID);
+    }
+
+    //=========================================================================
+    // Global helper function for material UUID conversion (exported for SDK)
+    //=========================================================================
+
+    /// Get material UUID from MaterialRef (accessible from other modules)
+    SCRIPT_API std::string GetMaterialUUIDFromRef(const MaterialRef& materialRef) {
+        if (!materialRef.IsValid()) return "";
+        return GetMaterialRegistry().GetUUID(materialRef.GetEntity());
+    }
+
     // Component ref operations (for stored references)
     Vec3 IScript::GetPosition(const TransformRef& ref) const {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
@@ -816,6 +938,381 @@ namespace Scripting {
         );
     }
 
+    void IScript::RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr) {
+        RegisterFieldInternal(
+            name,
+            "materialref",
+            memberPtr,
+            [memberPtr]() -> std::string {
+                // For MaterialRef, the ownerEntity field stores a material ID
+                // Use the material registry to convert ID back to UUID
+                if (!memberPtr->IsValid()) {
+                    return "";
+                }
+                return GetMaterialRegistry().GetUUID(memberPtr->GetEntity());
+            },
+            [this, memberPtr, name](const std::string& value) -> bool {
+                try {
+                    SPD_DEBUG("[MaterialRef] Setting field '{}' to '{}'", name, value.empty() ? "<empty>" : value);
+
+                    // Empty string means no material
+                    if (value.empty()) {
+                        *memberPtr = MaterialRef();
+                        return true;
+                    }
+
+                    // Create MaterialRef from UUID
+                    MaterialRef newRef = GetMaterialRef(value);
+                    if (!newRef.IsValid()) {
+                        SPD_ERROR("[MaterialRef] Failed to create valid MaterialRef from UUID: {}", value);
+                        return false;
+                    }
+
+                    *memberPtr = newRef;
+                    SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
+                    return true;
+                } catch (const std::exception& e) {
+                    SPD_ERROR("[MaterialRef] setValue exception for field '{}': {}", name, e.what());
+                    return false;
+                } catch (...) {
+                    SPD_ERROR("[MaterialRef] setValue unknown exception for field '{}'", name);
+                    return false;
+                }
+            }
+        );
+    }
+
+    void IScript::RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<materialref>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size uuid1 uuid2 ..."
+        entry.getValue = [this, memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& ref : *memberPtr) {
+                oss << " ";
+                if (ref.IsValid()) {
+                    oss << GetMaterialRegistry().GetUUID(ref.GetEntity());
+                }
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector from "size uuid1 uuid2 ..."
+        entry.setValue = [this, memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    std::string uuid;
+                    iss >> uuid;
+                    if (uuid.empty()) {
+                        memberPtr->push_back(MaterialRef());
+                    } else {
+                        memberPtr->push_back(GetMaterialRef(uuid));
+                    }
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [this, memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            const auto& materialRef = (*memberPtr)[index];
+            if (!materialRef.IsValid()) return "";
+            // Return UUID for display in editor
+            return GetMaterialRegistry().GetUUID(materialRef.GetEntity());
+        };
+
+        entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+
+            if (value.empty()) {
+                (*memberPtr)[index] = MaterialRef();
+                return true;
+            }
+
+            // Convert UUID to MaterialRef
+            MaterialRef newRef = GetMaterialRef(value);
+            (*memberPtr)[index] = newRef;
+            return newRef.IsValid();
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(MaterialRef());
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<int>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& val : *memberPtr) {
+                oss << " " << val;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    int val;
+                    if (!(iss >> val)) return false;
+                    memberPtr->push_back(val);
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return std::to_string((*memberPtr)[index]);
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            try {
+                (*memberPtr)[index] = std::stoi(value);
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(0);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterFloatVectorField(const std::string& name, std::vector<float>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<float>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& val : *memberPtr) {
+                oss << " " << val;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    float val;
+                    if (!(iss >> val)) return false;
+                    memberPtr->push_back(val);
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return std::to_string((*memberPtr)[index]);
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            try {
+                (*memberPtr)[index] = std::stof(value);
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(0.0f);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterBoolVectorField(const std::string& name, std::vector<bool>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<bool>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (size_t i = 0; i < memberPtr->size(); ++i) {
+                oss << " " << ((*memberPtr)[i] ? "1" : "0");
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    std::string val;
+                    if (!(iss >> val)) return false;
+                    memberPtr->push_back(val == "1" || val == "true");
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return (*memberPtr)[index] ? "1" : "0";
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            (*memberPtr)[index] = (value == "1" || value == "true");
+            return true;
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(false);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    //=========================================================================
+    // Helper Methods for Template Functions
+    //=========================================================================
+
+    void IScript::SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        auto it = m_fieldRegistry->fields.find(name);
+        if (it != m_fieldRegistry->fields.end()) {
+            it->second.enumOptions = options;
+        }
+    }
+
+    void IScript::SetFieldEnumCallbacks(const std::string& name,
+        std::function<int()> getEnumValue,
+        std::function<void(int)> setEnumValue) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        auto it = m_fieldRegistry->fields.find(name);
+        if (it != m_fieldRegistry->fields.end()) {
+            it->second.getEnumValue = getEnumValue;
+            it->second.setEnumValue = setEnumValue;
+        }
+    }
+
     //=========================================================================
     // Field Query Interface
     //=========================================================================
@@ -871,45 +1368,80 @@ namespace Scripting {
 
     // Virtual methods with default implementations for optional override
     std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return {};
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && !it->second.enumOptions.empty()) {
+            return it->second.enumOptions;
+        }
         return {};
     }
 
     int IScript::GetEnumValue(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return 0;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getEnumValue) {
+            return it->second.getEnumValue();
+        }
         return 0;
     }
 
     void IScript::SetEnumValue(const std::string& fieldName, int value) {
-        (void)fieldName;
-        (void)value;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.setEnumValue) {
+            it->second.setEnumValue(value);
+        }
     }
 
     size_t IScript::GetArraySize(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return 0;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getSize) {
+            return it->second.getSize();
+        }
         return 0;
     }
 
     std::string IScript::GetArrayElement(const std::string& fieldName, size_t index) const {
-        (void)fieldName;
-        (void)index;
+        if (!m_fieldRegistry) return "";
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getElement) {
+            return it->second.getElement(index);
+        }
         return "";
     }
 
     bool IScript::SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) {
-        (void)fieldName;
-        (void)index;
-        (void)value;
+        if (!m_fieldRegistry) return false;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.setElement) {
+            return it->second.setElement(index, value);
+        }
         return false;
     }
 
     void IScript::AddArrayElement(const std::string& fieldName) {
-        (void)fieldName;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.addElement) {
+            it->second.addElement();
+        }
     }
 
     void IScript::RemoveArrayElement(const std::string& fieldName, size_t index) {
-        (void)fieldName;
-        (void)index;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.removeElement) {
+            it->second.removeElement(index);
+        }
     }
 
     template<typename T>
@@ -945,41 +1477,136 @@ namespace Scripting {
     void IScript::SetActive(bool active) {
         if (!m_context->componentManager) return;
 
-        if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+    if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
             auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
 
-            // Only update if changed
-            if (meta.isActive != active) {
-                meta.isActive = active;
+    // Only update if changed
+    if (meta.isActive != active) {
+         meta.isActive = active;
 
-                // 1. Disable rendering if entity has Renderer component
-                if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
-                    auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
-                    renderer.visible = active;
-                }
+ // 1. Update rendering visibility
+    if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
+        auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
+ renderer.visible = active && IsActiveInHierarchy();
+      }
 
-                // 2. Disable physics interaction if entity has physics body
-                if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
-                    uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+     // 2. Update physics state
+      if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
+        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
 
-                    if (active) {
-                        // Reactivate physics body
-                        NE::Physics::PhysicsManager::ActivateBody(bodyID);
-                    }
-                    else {
-                        // Deactivate physics body (stops collision and physics simulation)
-                        NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-                    }
-                }
+    if (active && IsActiveInHierarchy()) {
+               // Reactivate physics body only if parent hierarchy is also active
+    NE::Physics::PhysicsManager::ActivateBody(bodyID);
+      }
+               else {
+    // Deactivate physics body (stops collision and physics simulation)
+      NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+          }
+ }
 
-                // TODO: 3. Recursively propagate to children when hierarchy system is implemented
-                // For now, this affects only the current entity
+                // 3. Update script enabled state (NEW!)
+           // When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
+       // No need to manually disable here - the hierarchy check in ScriptSystem handles it
 
-                // Mark scene dirty when active state changes (Edit mode only)
-                if (NE::GetEngineState() == NE::EngineState::Edit) {
-                    NE::MarkSceneDirty();
-                }
+                // 4. Recursively propagate to all children (Unity-style)
+                if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
+         auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
+      PropagateActiveStateToChildren(transform.children, active);
+   }
+
+    // Mark scene dirty ONLY when called from a running script in Edit mode
+    // Not during scene deserialization or Play mode
+  if (NE::GetEngineState() == NE::EngineState::Edit && m_hasStarted) {
+          NE::MarkSceneDirty();
+}
+        }
+        }
+    }
+
+    bool IScript::IsActiveInHierarchy() const {
+        if (!m_context || !m_context->componentManager) return false;
+
+        // Check if this entity is active
+        if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+            return true; // Default to active if no EntityMeta
+        }
+
+        auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
+        if (!meta.isActive) {
+            return false; // This entity is disabled
+        }
+
+        // Check if any parent in the hierarchy is disabled
+        if (!m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
+            return true; // No parent, just check self
+        }
+
+        auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
+        if (transform.parent == NE::ECS::Component::INVALID_PARENT) {
+            return true; // No parent, entity is active
+        }
+
+        // Recursively check parent active state
+        Entity currentParent = transform.parent;
+        while (currentParent != NE::ECS::Component::INVALID_PARENT) {
+            if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(currentParent)) {
+                break; // Parent has no EntityMeta, assume active
             }
+
+            auto& parentMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(currentParent);
+            if (!parentMeta.isActive) {
+                return false; // Parent is disabled, so this entity is inactive in hierarchy
+            }
+
+            // Move up the hierarchy
+            if (!m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(currentParent)) {
+                break; // No transform on parent, we're done
+            }
+
+            auto& parentTransform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(currentParent);
+            currentParent = parentTransform.parent;
+        }
+
+        return true; // All parents are active
+    }
+
+    void IScript::PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const {
+        if (!m_context || !m_context->componentManager) return;
+
+        for (Entity childEntity : children) {
+            // Get child's own isActive state
+            if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
+                continue;
+            }
+
+            auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
+            
+            // Determine effective active state: parent must be active AND child must be active
+            bool effectiveActive = parentActive && childMeta.isActive;
+
+            // Update child's rendering
+            if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
+                auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
+                renderer.visible = effectiveActive;
+            }
+
+          // Update child's physics
+      if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
+        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
+
+  if (effectiveActive) {
+  NE::Physics::PhysicsManager::ActivateBody(bodyID);
+           }
+            else {
+  NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+    }
+     }
+
+  // Recursively propagate to grandchildren
+            if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(childEntity)) {
+         auto& childTransform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(childEntity);
+  PropagateActiveStateToChildren(childTransform.children, effectiveActive);
+   }
         }
     }
 
@@ -1085,6 +1712,183 @@ namespace Scripting {
 
     void ClearScriptEventListeners() {
         NANOEngine::Events::ClearScriptEventListeners();
+    }
+
+    //=========================================================================
+    // TWEEN API IMPLEMENTATION (Wrapper to adapt lambdas to TweenManager)
+    //=========================================================================
+
+    // Wrapper objects that adapt lambda callbacks to member function pointers
+    // These are lightweight adapters - TweenManager handles all the actual tweening logic
+
+    // Wrapper for lambda-based tweens (receives normalized time 0-1)
+    struct LambdaTweenWrapper {
+        std::function<void(float)> callback;
+        Entity entity;
+
+        void SetValue(float value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Wrapper for Vec3 tweens
+    struct Vec3TweenWrapper {
+        std::function<void(const Vec3&)> callback;
+        Entity entity;
+
+        void SetValue(const Vec3& value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Wrapper for float tweens
+    struct FloatTweenWrapper {
+        std::function<void(float)> callback;
+        Entity entity;
+
+        void SetValue(float value) {
+            if (callback) {
+                callback(value);
+            }
+        }
+    };
+
+    // Global tween wrapper tracking for cleanup
+    static std::unordered_map<TweenHandle, void*> s_tweenWrappers;
+    static TweenHandle s_nextTweenHandle = 1;
+
+    // Helper to convert SDK TweenType to engine TweenType
+    inline ::TweenType ToEngineTweenType(TweenType type) {
+        return static_cast<::TweenType>(static_cast<int>(type));
+    }
+
+    TweenHandle StartTweenLambda(
+        std::function<void(float)> updateFunc,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new LambdaTweenWrapper{updateFunc, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &LambdaTweenWrapper::SetValue,
+            0.0f,
+            1.0f,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    TweenHandle StartTweenVec3(
+        std::function<void(const Vec3&)> setter,
+        const Vec3& start,
+        const Vec3& end,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new Vec3TweenWrapper{setter, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &Vec3TweenWrapper::SetValue,
+            start,
+            end,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    TweenHandle StartTweenFloat(
+        std::function<void(float)> setter,
+        float start,
+        float end,
+        float duration,
+        TweenType type,
+        Entity entity)
+    {
+        // Create wrapper and call TweenManager::StartTween
+        auto* wrapper = new FloatTweenWrapper{setter, entity};
+
+        TweenManager::Get().StartTween(
+            wrapper,
+            &FloatTweenWrapper::SetValue,
+            start,
+            end,
+            duration,
+            ToEngineTweenType(type)
+        );
+
+        TweenHandle handle = s_nextTweenHandle++;
+        s_tweenWrappers[handle] = wrapper;
+
+        return handle;
+    }
+
+    bool CheckEntityTween(Entity entity) {
+        // Check if any wrapper belongs to this entity
+        for (const auto& [handle, wrapperPtr] : s_tweenWrappers) {
+            // Try each wrapper type
+            auto* lambdaWrapper = static_cast<LambdaTweenWrapper*>(wrapperPtr);
+            if (TweenManager::Get().CheckTween(lambdaWrapper) && lambdaWrapper->entity == entity) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void StopTween(TweenHandle handle) {
+        auto it = s_tweenWrappers.find(handle);
+        if (it != s_tweenWrappers.end()) {
+            // The wrapper will be cleaned up automatically by TweenManager when tween becomes inactive
+            // We just remove our handle tracking
+            s_tweenWrappers.erase(it);
+        }
+    }
+
+    void StopEntityTweens(Entity entity) {
+        // Remove all wrapper handles for this entity
+        // TweenManager will clean up the actual tweens when they become inactive
+        for (auto it = s_tweenWrappers.begin(); it != s_tweenWrappers.end();) {
+            void* wrapperPtr = it->second;
+
+            // Check wrapper entity (simplified type check)
+            bool shouldErase = false;
+            if (auto* wrapper = static_cast<LambdaTweenWrapper*>(wrapperPtr)) {
+                if (wrapper->entity == entity) {
+                    shouldErase = true;
+                }
+            }
+
+            if (shouldErase) {
+                it = s_tweenWrappers.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    void ClearAllTweens() {
+        // Use TweenManager's Clean() function to clear all tweens
+        TweenManager::Get().Clean();
+        s_tweenWrappers.clear();
     }
 
 } // namespace Scripting

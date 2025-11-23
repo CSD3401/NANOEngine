@@ -102,9 +102,6 @@ namespace NE {
 // Reflection system (header-only, now in SDK)
 #include <ScriptSDK/Reflection.h>
 
-// Exposed field registry (for advanced editor integration)
-#include "../ExposedFieldRegistry.hpp"
-
 // ============ SCRIPT FIELD MACROS ============
 // Note: SCRIPT_FIELD is a legacy macro that is now a no-op for SDK scripts.
 // Field registration is handled automatically by the engine's reflection system
@@ -126,15 +123,30 @@ using Bool = ScriptFieldType::Bool;
 using String = ScriptFieldType::String;
 // Note: Vec3 type alias is in ChronoGame namespace below
 
-// SCRIPT_FIELD macro - currently a no-op for SDK scripts
+// SCRIPT_FIELD macro - registers fields for editor exposure
 // Usage: SCRIPT_FIELD(myFloatField, Float)
 #define SCRIPT_FIELD(fieldName, fieldType) \
-    ((void)0)  // No-op: field registration is handled by reflection system
+    Register##fieldType##Field(#fieldName, &this->fieldName)
 
-// SCRIPT_COMPONENT_REF macro - currently a no-op for SDK scripts
+// SCRIPT_COMPONENT_REF macro - registers component references for editor exposure
 // Usage: SCRIPT_COMPONENT_REF(targetTransform, Transform)
 #define SCRIPT_COMPONENT_REF(refName, componentType) \
-    ((void)0)  // No-op: component references are managed automatically
+    Register##componentType##Field(#refName, &this->refName)
+
+// SCRIPT_FIELD_VECTOR macro - registers vector fields for editor exposure
+// Usage: SCRIPT_FIELD_VECTOR(myIntList, Int)
+#define SCRIPT_FIELD_VECTOR(fieldName, elementType) \
+    Register##elementType##VectorField(#fieldName, &this->fieldName)
+
+// SCRIPT_FIELD_ENUM macro - registers enum fields with dropdown options
+// Usage: SCRIPT_FIELD_ENUM(myState, {"Idle", "Running", "Jumping"})
+//#define SCRIPT_FIELD_ENUM(fieldName, options) \
+//    RegisterEnumField(#fieldName, &this->fieldName, options)
+
+// SCRIPT_FIELD_STRUCT macro - registers struct fields using reflection
+// Usage: SCRIPT_FIELD_STRUCT(myStats)
+#define SCRIPT_FIELD_STRUCT(fieldName) \
+    RegisterStructField(#fieldName, &this->fieldName)
 
 // ============ CONVENIENCE NAMESPACES (GLOBAL SCOPE) ============
 // Similar pattern to Input, Events, Coroutines namespaces in ScriptAPI.h
@@ -272,6 +284,7 @@ using RaycastHit = NE::Scripting::RaycastHit;
 using TransformRef = NE::Scripting::TransformRef;
 using RigidbodyRef = NE::Scripting::RigidbodyRef;
 using AudioSourceRef = NE::Scripting::AudioSourceRef;
+using MaterialRef = NE::Scripting::MaterialRef;
 
 // Coroutine handle type
 using CoroutineHandle = NE::Scripting::CoroutineHandle;

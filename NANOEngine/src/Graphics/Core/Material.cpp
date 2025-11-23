@@ -57,7 +57,8 @@ namespace NE::Graphics {
 
     void Material::SetTexture(const std::string& uName, const std::string& uuid) {
         m_Textures[uName] = Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
-        m_Textures[uName]->MakeResident();
+        if (uuid != "")
+            m_Textures[uName]->MakeResident();
     }
 
     void Material::SetQueueBase(RenderQueue queue) {
@@ -135,7 +136,10 @@ namespace NE::Graphics {
             case GL_FLOAT_VEC3:
                 if (u.name.find("Color") != std::string::npos ||
                     u.name.find("color") != std::string::npos ||
-                    u.name.find("albedo") != std::string::npos)
+                    u.name.find("albedo") != std::string::npos ||
+					u.name.find("Tiling") != std::string::npos ||
+					u.name.find("tiling") != std::string::npos
+                    )
                     m_Vec3Uniforms.emplace(u.name, Vec3{ 1,1,1 });
                 else
                     m_Vec3Uniforms.emplace(u.name, Vec3{ 0,0,0 });

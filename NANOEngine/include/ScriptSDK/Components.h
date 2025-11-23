@@ -31,9 +31,9 @@ namespace Component {
     /// Binary-compatible with engine's internal Transform component
     struct Transform {
         // Exposed fields
-        Math::Vec3 position{ 0.f, 0.f, 0.f };  ///< World position
-        Math::Vec3 scale{ 1.f, 1.f, 1.f };     ///< Scale in each axis
-        Math::Vec3 rotation{ 0.f, 0.f, 0.f };  ///< Euler angles (degrees)
+        Math::Vec3 localPosition{ 0.f, 0.f, 0.f };
+        Math::Vec3 localScale{ 1.f, 1.f, 1.f };
+        Math::Vec3 localRotationEuler{ 0.f, 0.f,0.f };
 
         // Internal fields
         bool isDirty = true;        ///< Flag indicating transform needs recalculation

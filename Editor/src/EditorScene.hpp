@@ -31,6 +31,8 @@ namespace Editor {
         static bool AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex);
         static bool UnparentToRoot(uint32_t child, int insertIndex = -1);
         static void BuildHierarchyFromECS();
+        static void GetAllDescendants(uint32_t id, std::vector<uint32_t>& out);
+        static void SetAllDescendantsActive(uint32_t id, bool& active);
         // Helpers
         static void RebuildFromActiveScene();
         static const std::vector<uint32_t>& ChildrenOf(uint32_t parent);
