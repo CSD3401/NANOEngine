@@ -56,18 +56,18 @@ public:
 
 	PlayerScript() {
 		// Register primitive fields
-		REGISTER_FIELD(speed);
+		/*REGISTER_FIELD(speed);
 		REGISTER_FIELD(color);
 		REGISTER_FIELD(lives);
 		REGISTER_FIELD(godMode);
-		REGISTER_FIELD(label);
+		REGISTER_FIELD(label);*/
 
 		// Register enum field - names extracted automatically
-		REGISTER_ENUM(state);
+		//REGISTER_ENUM(state);
 
 		// Register struct fields
-		REGISTER_REFLECTABLE_STRUCT(stats);
-		REGISTER_REFLECTABLE_STRUCT(playerFlags);  //  4 bool struct
+		//REGISTER_REFLECTABLE_STRUCT(stats);
+		//REGISTER_REFLECTABLE_STRUCT(playerFlags);  //  4 bool struct
 
 		//  PRE-FILL TEST DATA  working
 		enemyIDs = { 42, 57, 103, 999 };  // 4 enemy IDs to test remove
@@ -246,34 +246,34 @@ public:
 	}
 
 	// === Exposed editable fields via registry ===
-	std::vector<std::string> GetExposedFieldNames() const override {
-		auto names = IScript::GetExposedFieldNames();
-		auto customNames = m_fields.GetNames();
-		names.insert(names.end(), customNames.begin(), customNames.end());
-		return names;
-	}
+	//std::vector<std::string> GetExposedFieldNames() const override {
+	//	auto names = IScript::GetExposedFieldNames();
+	//	auto customNames = m_fields.GetNames();
+	//	names.insert(names.end(), customNames.begin(), customNames.end());
+	//	return names;
+	//}
 
-	std::string GetFieldType(const std::string& name) const override {
-		std::string type = IScript::GetFieldType(name);
-		if (type.empty()) type = m_fields.GetType(name);
-		return type;
-	}
+	//std::string GetFieldType(const std::string& name) const override {
+	//	std::string type = IScript::GetFieldType(name);
+	//	if (type.empty()) type = m_fields.GetType(name);
+	//	return type;
+	//}
 
-	std::string GetFieldValueAsString(const std::string& name) const override {
-		std::string value = IScript::GetFieldValueAsString(name);
-		if (value.empty()) value = m_fields.GetValue(name);
-		return value;
-	}
+	//std::string GetFieldValueAsString(const std::string& name) const override {
+	//	std::string value = IScript::GetFieldValueAsString(name);
+	//	if (value.empty()) value = m_fields.GetValue(name);
+	//	return value;
+	//}
 
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
-		if (IScript::SetFieldValueFromString(name, value)) return true;
-		return m_fields.SetValue(name, value);
-	}
+	//bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
+	//	if (IScript::SetFieldValueFromString(name, value)) return true;
+	//	return m_fields.SetValue(name, value);
+	//}
 
-	// Enum support
-	std::vector<std::string> GetEnumOptions(const std::string& fieldName) const override {
-		return m_fields.GetEnumOptions(fieldName);
-	}
+	//// Enum support
+	//std::vector<std::string> GetEnumOptions(const std::string& fieldName) const override {
+	//	return m_fields.GetEnumOptions(fieldName);
+	//}
 
 private:
 	double m_timeSinceLastLog = 0.0;
@@ -300,7 +300,7 @@ private:
 	CoroutineHandle chandle;
 
 	// Field registry
-	ExposedFieldRegistry m_fields;
+	//ExposedFieldRegistry m_fields;
 };
 
 // Register the PlayerState enum at global scope for automatic name extraction
