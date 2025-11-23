@@ -21,11 +21,8 @@ namespace Editor {
 		}
 	}
 
-	void HierarchyPanel::OnImGuiRender()
-	{
-		ImGui::Begin("Hierarchy", nullptr,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
-			| ImGuiWindowFlags_MenuBar);
+	void HierarchyPanel::OnImGuiRender() {
+		ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
 
 		//ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
 		//ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
