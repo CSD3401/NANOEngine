@@ -574,8 +574,9 @@
             "NativeScript": {
                 "ScriptName": "ColourSwapManager",
                 "SerializedFields": {
-                    "isActive": "1",
-                    "numColourChildren": "0"
+                    "colours": "3 c57f74a5-e22a-40fe-bc56-f02aaaa494c8 c427718b-41d1-465f-a21f-99ac1981e4e9 ea32e122-a8ba-4672-ab60-705fd79b9086",
+                    "correctSolution": "3 ea32e122-a8ba-4672-ab60-705fd79b9086 c57f74a5-e22a-40fe-bc56-f02aaaa494c8 c427718b-41d1-465f-a21f-99ac1981e4e9",
+                    "flags": "5 1 0 1 0 1"
                 }
             }
         },
