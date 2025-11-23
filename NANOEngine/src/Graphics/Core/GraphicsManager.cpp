@@ -140,7 +140,7 @@ namespace NE::Graphics {
         std::shared_ptr<Material> currentMaterial;
 
         auto flushBatch = [&]() {
-            if (instanceData.empty() || !currentMesh || !currentMaterial)
+            if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
                 return;
 
             NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
