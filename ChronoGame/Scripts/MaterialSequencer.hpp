@@ -14,8 +14,8 @@ public:
         SCRIPT_FIELD(isActive, Bool);
         SCRIPT_FIELD(autoRun, Bool);
         SCRIPT_FIELD(delayBetween, Float);
-        SCRIPT_FIELD(materialA_UUID, String);
-        SCRIPT_FIELD(materialB_UUID, String);
+        SCRIPT_COMPONENT_REF(materialA, MaterialRef);
+        SCRIPT_COMPONENT_REF(materialB, MaterialRef);
 
         SCRIPT_COMPONENT_REF(target1, TransformRef);
         SCRIPT_COMPONENT_REF(target2, TransformRef);
@@ -83,8 +83,8 @@ private:
     bool isActive = true;
     bool autoRun = false;
     float delayBetween = 0.25f;
-    std::string materialA_UUID = "";
-    std::string materialB_UUID = "";
+    MaterialRef materialA{};
+    MaterialRef materialB{};
 
     TransformRef target1{}, target2{}, target3{}, target4{}, target5{};
     TransformRef attached1{}, attached2{}, attached3{}, attached4{}, attached5{};
@@ -145,7 +145,7 @@ private:
     }
 
     // Compose a world origin when camera is a child:
-    // worldOrigin ≈ parentPos + RotY(parentYaw) * cameraLocalPos
+    // worldOrigin = parentPos + RotY(parentYaw) * cameraLocalPos
     // (Assumes parent has no parent and no non-uniform scale; fits common player/camera rigs)
     Vec3 ComputeRayOrigin() {
         if (!clickRayOrigin.IsValid())
@@ -238,13 +238,11 @@ private:
         for (size_t step = 0; step < idx.size(); ++step) {
             int i = m_order[step];
             Entity e = trefs[i].GetEntity();
-            Coroutines::AddAction(h, [e, b = materialB_UUID]() {
-                NE::Renderer::Command::AssignMaterial(e, b);
-                });
+            Coroutines::AddAction(h, [e, b = materialB]() { NE::Renderer::Command::AssignMaterial(e, b); });
             Coroutines::AddWait(h, delayBetween);
         }
 
-        Coroutines::AddAction(h, [trefs, a = materialA_UUID]() {
+        Coroutines::AddAction(h, [trefs, a = materialA]() {
             for (const auto& ref : trefs) {
                 if (ref.IsValid()) {
                     Entity e = ref.GetEntity();
@@ -354,7 +352,7 @@ private:
         for (const auto& ref : trefs) {
             if (ref.IsValid()) {
                 Entity e = ref.GetEntity();
-                if (e != 0) NE::Renderer::Command::AssignMaterial(e, materialA_UUID);
+                if (e != 0) NE::Renderer::Command::AssignMaterial(e, materialA);
             }
         }
         m_waitingForClicks = false;

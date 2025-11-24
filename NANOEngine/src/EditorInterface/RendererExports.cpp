@@ -6,6 +6,7 @@
 #include "../Engine.hpp"  // For MarkSceneDirty
 #include <Core/SpdLogger.hpp>
 #include "../../include/ScriptSDK/ScriptTypes.h"
+#include <Graphics/Core/GraphicsManager.hpp>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -36,6 +37,13 @@ namespace NE::Renderer {
 		{
 			return NE::Scripting::GetMaterialUUIDFromRef(materialRef);
 		}
+		//FOG
+		bool  GetFogEnabled() { return NE::Graphics::GraphicsManager::GetFog().enabled; }
+		int   GetFogMode() { return (int)NE::Graphics::GraphicsManager::GetFog().mode; }
+		void  GetFogColor(float c[3]) { auto f = NE::Graphics::GraphicsManager::GetFog(); c[0] = f.color.x; c[1] = f.color.y; c[2] = f.color.z; }
+		float GetFogDensity() { return NE::Graphics::GraphicsManager::GetFog().density; }
+		void  GetFogRange(float& s, float& e) { auto f = NE::Graphics::GraphicsManager::GetFog(); s = f.start; e = f.end; }
+	//END FOG
 	}
 
 	namespace Command {
@@ -69,6 +77,13 @@ namespace NE::Renderer {
 				SPD_DEBUG("[DirtyFlag] Material changed - Scene marked DIRTY");
 			}
 		}
+//FOG
+		void SetFogEnabled(bool v) { auto f = NE::Graphics::GraphicsManager::GetFog(); f.enabled = v; NE::Graphics::GraphicsManager::SetFog(f); }
+		void SetFogMode(int m) { auto f = NE::Graphics::GraphicsManager::GetFog(); f.mode = (NE::Graphics::GraphicsManager::FogMode)m; NE::Graphics::GraphicsManager::SetFog(f); }
+		void SetFogColor(float r, float g, float b) { auto f = NE::Graphics::GraphicsManager::GetFog(); f.color = { r,g,b }; NE::Graphics::GraphicsManager::SetFog(f); }
+		void SetFogDensity(float d) { auto f = NE::Graphics::GraphicsManager::GetFog(); f.density = d; NE::Graphics::GraphicsManager::SetFog(f); }
+		void SetFogRange(float s, float e) { auto f = NE::Graphics::GraphicsManager::GetFog(); f.start = s; f.end = e; NE::Graphics::GraphicsManager::SetFog(f); }
+	//END FOG
 	}
 
 }

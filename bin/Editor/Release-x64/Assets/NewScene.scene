@@ -3,6 +3,7 @@
         {
             "EntityMeta": {
                 "name": "Point Light",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -47,6 +48,7 @@
         {
             "EntityMeta": {
                 "name": "Level",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -76,6 +78,7 @@
         {
             "EntityMeta": {
                 "name": "Sphere",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -105,6 +108,7 @@
         {
             "EntityMeta": {
                 "name": "Light",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -130,6 +134,7 @@
         {
             "EntityMeta": {
                 "name": "Sunlight",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -174,6 +179,7 @@
         {
             "EntityMeta": {
                 "name": "Elevator",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -199,6 +205,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -228,6 +235,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -257,6 +265,7 @@
         {
             "EntityMeta": {
                 "name": "Door Left",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -282,6 +291,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -311,6 +321,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -340,6 +351,7 @@
         {
             "EntityMeta": {
                 "name": "Door Right",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -365,6 +377,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -394,6 +407,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -423,6 +437,7 @@
         {
             "EntityMeta": {
                 "name": "Lever",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -448,6 +463,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -477,6 +493,7 @@
         {
             "EntityMeta": {
                 "name": "cs_parent",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -509,6 +526,7 @@
         {
             "EntityMeta": {
                 "name": "cs_switch01",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -539,6 +557,8 @@
                 "SerializedFields": {
                     "color": "1 0.5 0.25",
                     "speed": "5.000000",
+                    "eDDDD": "0",
+                    "blingstring": "0",
                     "lives": "3",
                     "stats.health": "100",
                     "playerFlags.questComplete": "0",
@@ -546,7 +566,7 @@
                     "label": "Player",
                     "state": "0",
                     "enemyIDs": "4 42 57 103 999",
-                    "waypoints": "4 10.500000 25.000000 42.299999 58.700001",
+                    "waypoints": "4 10.5 25 42.3 58.7",
                     "flags": "5 1 0 1 0 1",
                     "stats.maxHealth": "100",
                     "playerFlags.canDoubleJump": "0",
@@ -560,6 +580,7 @@
         {
             "EntityMeta": {
                 "name": "cs_colour01",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -589,6 +610,7 @@
         {
             "EntityMeta": {
                 "name": "cs_colour02",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -618,6 +640,7 @@
         {
             "EntityMeta": {
                 "name": "cs_switch02",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -650,6 +673,7 @@
         {
             "EntityMeta": {
                 "name": "cs_colour03",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -679,6 +703,7 @@
         {
             "EntityMeta": {
                 "name": "Box",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -704,6 +729,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -733,6 +759,7 @@
         {
             "EntityMeta": {
                 "name": "Button",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -758,6 +785,7 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -783,6 +811,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -812,6 +841,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -841,6 +871,7 @@
         {
             "EntityMeta": {
                 "name": "Clicker",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -866,6 +897,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -895,6 +927,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -924,6 +957,7 @@
         {
             "EntityMeta": {
                 "name": "Button (Coloured)",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -949,6 +983,7 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -974,6 +1009,7 @@
         {
             "EntityMeta": {
                 "name": "Clicker",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -999,6 +1035,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1028,6 +1065,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1057,6 +1095,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1086,6 +1125,7 @@
         {
             "EntityMeta": {
                 "name": "CordReel",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1111,6 +1151,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1140,6 +1181,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1169,6 +1211,7 @@
         {
             "EntityMeta": {
                 "name": "Crate",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1194,6 +1237,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1223,6 +1267,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1252,6 +1297,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1281,6 +1327,7 @@
         {
             "EntityMeta": {
                 "name": "Extinguisher",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1306,6 +1353,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1335,6 +1383,7 @@
         {
             "EntityMeta": {
                 "name": "Gantry",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1360,6 +1409,7 @@
         {
             "EntityMeta": {
                 "name": "Divider",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1385,6 +1435,7 @@
         {
             "EntityMeta": {
                 "name": "Left",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1410,6 +1461,7 @@
         {
             "EntityMeta": {
                 "name": "Right",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1435,6 +1487,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1464,6 +1517,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1493,6 +1547,7 @@
         {
             "EntityMeta": {
                 "name": "Door",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1518,6 +1573,7 @@
         {
             "EntityMeta": {
                 "name": "Left",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1543,6 +1599,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1572,6 +1629,7 @@
         {
             "EntityMeta": {
                 "name": "Right",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1597,6 +1655,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1626,6 +1685,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -1655,6 +1715,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1684,6 +1745,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1713,6 +1775,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1742,6 +1805,7 @@
         {
             "EntityMeta": {
                 "name": "Handle",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1767,6 +1831,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1796,6 +1861,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1825,6 +1891,7 @@
         {
             "EntityMeta": {
                 "name": "Key",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1850,6 +1917,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1879,6 +1947,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1908,6 +1977,7 @@
         {
             "EntityMeta": {
                 "name": "Key (Coloured)",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1933,6 +2003,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1962,6 +2033,7 @@
         {
             "EntityMeta": {
                 "name": "Lever",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -1987,6 +2059,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2016,6 +2089,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2045,6 +2119,7 @@
         {
             "EntityMeta": {
                 "name": "IndicatorLight",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2070,6 +2145,7 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2095,6 +2171,7 @@
         {
             "EntityMeta": {
                 "name": "Dome",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2120,6 +2197,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2149,6 +2227,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2178,6 +2257,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2207,6 +2287,7 @@
         {
             "EntityMeta": {
                 "name": "Lock",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2232,6 +2313,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2261,6 +2343,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2290,6 +2373,7 @@
         {
             "EntityMeta": {
                 "name": "Lock (Coloured)",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2315,6 +2399,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2344,6 +2429,7 @@
         {
             "EntityMeta": {
                 "name": "MirrorPathTile",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2369,6 +2455,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2398,6 +2485,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2427,6 +2515,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2456,6 +2545,7 @@
         {
             "EntityMeta": {
                 "name": "Numpad",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2481,6 +2571,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2510,6 +2601,7 @@
         {
             "EntityMeta": {
                 "name": "Phonebooth",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2535,6 +2627,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2564,6 +2657,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2593,6 +2687,7 @@
         {
             "EntityMeta": {
                 "name": "Switch",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2618,6 +2713,7 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2643,6 +2739,7 @@
         {
             "EntityMeta": {
                 "name": "Flipper",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2668,6 +2765,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2697,6 +2795,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2726,6 +2825,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "luid": 0,
                 "isActive": 0
             },
             "Transform": {
@@ -2755,6 +2855,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2784,6 +2885,7 @@
         {
             "EntityMeta": {
                 "name": "Right Hand",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2809,6 +2911,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2838,6 +2941,7 @@
         {
             "EntityMeta": {
                 "name": "Watch",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2863,6 +2967,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2892,6 +2997,7 @@
         {
             "EntityMeta": {
                 "name": "Player",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2917,6 +3023,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "luid": 0,
                 "isActive": 1
             },
             "Transform": {
@@ -2941,6 +3048,907 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cylinder",
                 "materialUUID": "8728d4e6-a15f-4dbc-8672-5a70f44ba811"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 0,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884660354809857,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": ""
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "MirrorPuzzleScript",
+                "luid": 7308894850290548736,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884660766310401,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "MirrorPuzzle",
+                "SerializedFields": {
+                    "targetTransform": "133",
+                    "gridParent": "107",
+                    "startRow": "2",
+                    "mirrorTargetTransform": "134",
+                    "mirrorGridParent": "120",
+                    "startCol": "0",
+                    "endRow": "0",
+                    "endCol": "3",
+                    "zOffset": "0.100000"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "OriginalGridParent",
+                "luid": 7308894850291728387,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.5949203968048096,
+                    "y": -23.635570526123047,
+                    "z": -6.467828273773193
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884660767490052,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850293760005,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660769521670,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850296119304,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660771880969,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850301624331,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660777385996,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850307391502,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660783153167,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850323578897,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660799340562,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850327511060,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660803272725,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850327707670,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660803469335,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850327838744,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660803600409,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850332622877,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660808384542,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850332753951,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660808515616,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850332819489,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660808581154,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850332885027,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660808646692,
+                "parentLuid": 8390884660767490052
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "",
+                "luid": 7308894850339569705,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 4.048829555511475,
+                    "y": -23.63599967956543,
+                    "z": -6.4679999351501465
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884660815331370,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850347368491,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660823130156,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850347499565,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660823261230,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850347630639,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660823392304,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850349465649,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660825227314,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850355953719,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660831715384,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850356084793,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660831846458,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850356150331,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660831911996,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850356215869,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660831977534,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850362114115,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660837875780,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850362376261,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660838137926,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850362441799,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660838203464,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "luid": 7308894850362507337,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884660838269002,
+                "parentLuid": 8390884660815331370
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Target",
+                "luid": 7308894850426273792,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.635266065597534,
+                    "y": -24.202707290649414,
+                    "z": -6.076908588409424
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884660902035457,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "c427718b-41d1-465f-a21f-99ac1981e4e9"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "MirrorTarget",
+                "luid": 7308894850437545987,
+                "isActive": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 4.939260482788086,
+                    "y": -24.196548461914063,
+                    "z": -6.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884660913307652,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "c427718b-41d1-465f-a21f-99ac1981e4e9"
             }
         }
     ]

@@ -10,6 +10,7 @@
 //#include <glad/glad.h>
 #include "SceneManagement/Scene.hpp"
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
+#include "ECS/Components/Transform.hpp"
 //#include "AssetManager.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
@@ -250,6 +251,51 @@ namespace NE {
 
 	void ClosePrefabScene() {
 		gSceneManager.ClosePrefabScene();
+	}
+
+	std::vector<uint32_t> DuplicateEntity(uint32_t entity) {
+		std::vector<uint8_t> buffer;
+		NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
+
+		if (buffer.empty())
+			return std::vector<uint32_t>{};
+
+		auto newEntities =
+			NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), buffer);
+
+		if (newEntities.empty())
+			return std::vector<uint32_t>{};
+
+		auto& transform = gSceneManager.
+			GetActive()->GetECSCoordinator().
+			GetComponent<ECS::Component::Transform>(newEntities[0]);
+
+		transform.localPosition.x += 0.5f;
+		transform.localPosition.y += 0.5f;
+		transform.localPosition.z += 0.5f;
+		transform.isDirty = true;
+
+		return newEntities;
+	}
+
+	std::vector<uint8_t> CopyEntity(uint32_t entity) {
+		std::vector<uint8_t> buffer;
+		NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
+		return buffer;
+	}
+
+	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard, Math::Vec3 pos) {
+		auto newEntities =
+			NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
+
+		auto& transform = gSceneManager.
+			GetActive()->GetECSCoordinator().
+			GetComponent<ECS::Component::Transform>(newEntities[0]);
+
+		transform.localPosition = pos;
+		transform.isDirty = true;
+
+		return newEntities;
 	}
 
 	// Internal use only

@@ -27,6 +27,7 @@
 #include "Panels/AnimationPanel.hpp"
 #include "Panels/AnimationRuntimePanel.hpp"
 #include "Panels/AnimationGraphPanel.hpp"
+#include "EditorScene.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -112,7 +113,7 @@ namespace Editor {
 		//editorLayer.AddPanel<AnimatorRuntimePanel>();
 		//editorLayer.AddPanel<AnimatorGraphPanel>();
 
-		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
+		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
 
 		SPD_INFO("=== Application initialization complete ===");
 		SPD_DEBUG("All panels loaded successfully");

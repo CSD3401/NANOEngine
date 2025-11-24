@@ -26,6 +26,8 @@ namespace Editor {
     std::unordered_map<uint32_t, std::vector<uint32_t>> EditorScene::s_children;
     std::vector<uint32_t> EditorScene::s_roots;
 
+    NE::Graphics::EditorCamera EditorScene::m_editorCamera;
+
     static void RenormalizeKeys(std::vector<uint32_t>& ids, uint32_t) {
         float k = 0.f;
         for (auto id : ids) {
