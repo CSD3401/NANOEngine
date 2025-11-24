@@ -66,12 +66,19 @@ public:
 		SCRIPT_COMPONENT_REF(mirrorGridParent, Transform);
 
 		// Primitive fields (use SCRIPT_FIELD)
-		REGISTER_FIELD(startRow);
-		REGISTER_FIELD(startCol);
-		REGISTER_FIELD(endRow);
-		REGISTER_FIELD(endCol);
-		REGISTER_FIELD(tileSpacingX);
-		REGISTER_FIELD(tileSpacingY);
+		//REGISTER_FIELD(startRow);
+		//REGISTER_FIELD(startCol);
+		//REGISTER_FIELD(endRow);
+		//REGISTER_FIELD(endCol);
+		//REGISTER_FIELD(tileSpacingX);
+		//REGISTER_FIELD(tileSpacingY);
+
+		SCRIPT_FIELD(startRow, Int);
+		SCRIPT_FIELD(startCol, Int);
+		SCRIPT_FIELD(endRow, Int);
+		SCRIPT_FIELD(endCol, Int);
+		SCRIPT_FIELD(tileSpacingX, Float);
+		SCRIPT_FIELD(tileSpacingY, Float);
 
 		// Vectors of structs (use REGISTER_VECTOR with NE_REFLECT_BEGIN/END in struct)
 		REGISTER_VECTOR(tileRestrictions);
