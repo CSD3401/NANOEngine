@@ -8,9 +8,12 @@
 #include <ECS/Components/Transform.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
+#include <unordered_set>
+#include <ECS/Core/Entity.hpp>
+#include "../AssetManagement/AssetManager.hpp"
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
-	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
 
@@ -19,8 +22,7 @@ namespace Editor {
 		return deg * 3.14159265358979323846f / 180.0f;
 	}
 
-	ScenePanel::ScenePanel(uint32_t sceneFrameBuffer) {
-		temp = sceneFrameBuffer;
+	ScenePanel::ScenePanel() {
 
 		NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
 		NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
@@ -38,6 +40,8 @@ namespace Editor {
 
 		// Give address of the editor camera to the scene camera tweener
 		sceneCameraTweener.SetSceneCamera(GetCamera());
+
+		//NE::UpdateEditorCameraData();
 	}
 
 	void ScenePanel::OnImGuiRender()
@@ -50,11 +54,83 @@ namespace Editor {
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
-
+		
 		float deltaTime = ImGui::GetIO().DeltaTime;
+		ImGui::Image(
+			(ImTextureID)(uintptr_t)NE::GetSceneColorAttachment(), 
+			panelSize, 
+			ImVec2(0, 1), 
+			ImVec2(1, 0)
+		);
 
-		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
+				std::string dropped((const char*)p->Data, p->DataSize - 1);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				Vec3 camForwardPos = m_editorCamera.GetPosition() + m_editorCamera.GetForward() * 8.0f;
+				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
 
+				if (newEntities.empty()) {
+					ImGui::EndDragDropTarget();
+					return;
+				}
+
+				// For convenience in root-detection
+				std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+				// 3) Register new entities into editor structures (like CreateEntity, but with parents)
+				for (uint32_t entt : newEntities) {
+					// EditorEntity list
+					Editor::EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+					// Build node from ECS parent info
+					Editor::Node node{};
+					node.id = entt;
+
+					uint32_t parent = NE::ECS::Command::GetParent(entt); // NO_ENTITY if root
+					node.parent = parent;
+
+					if (parent == NE::ECS::NO_ENTITY) {
+						// New root in hierarchy
+						node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+						Editor::EditorScene::s_roots.push_back(entt);
+					} else {
+						// Child of existing or newly created entity
+						auto& childrenVec = Editor::EditorScene::s_children[parent];
+						node.orderKey = static_cast<float>(childrenVec.size());
+						childrenVec.push_back(entt);
+					}
+
+					Editor::EditorScene::s_nodes[entt] = node;
+				}
+
+				// 4) Choose a prefab root among the new entities and select it
+				uint32_t prefabRoot = NE::ECS::NO_ENTITY;
+				for (uint32_t entt : newEntities) {
+					uint32_t parent = NE::ECS::Command::GetParent(entt);
+					// Root of this prefab instance = parent is NO_ENTITY OR parent is not in this batch
+					if (parent == NE::ECS::NO_ENTITY || !newSet.count(parent)) {
+						prefabRoot = entt;
+						NE::ECS::Command::GetEntityMeta(entt).prefabID = AssetManager::GetInstance().RetrieveUUID(dropped);
+						break;
+					}
+				}
+
+				if (prefabRoot != NE::ECS::NO_ENTITY) {
+					Editor::EditorScene::s_selectedEntity = nullptr;
+					for (auto& ee : Editor::EditorScene::s_entities) {
+						if (ee.linkedEntity == prefabRoot) {
+							Editor::EditorScene::s_selectedEntity = &ee;
+							break;
+						}
+					}
+				}
+
+				// Clear asset selection since we just selected an entity
+				Editor::EditorScene::selectedAsset.clear();
+			}
+			ImGui::EndDragDropTarget();
+		}
 		// --- Floating Play Controls ---
 		{
 			// Centered at the top of the viewport
@@ -93,8 +169,9 @@ namespace Editor {
 					NE::EditorEdit();
 
 					auto numEntt = NE::GetNumEntities();
-					for (unsigned int i = 0; i < numEntt; ++i) {
-						EditorScene::s_entities.push_back(EditorEntity{ i });
+					EditorScene::s_entities.reserve(numEntt.size());
+					for (auto e : numEntt) {
+						EditorScene::s_entities.push_back(EditorEntity{ e });
 					}
 				}
 			}
@@ -323,6 +400,8 @@ namespace Editor {
 		dir.y = sinf(Radians(m_cameraPitch));
 		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
 		m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
+
+		NE::UpdateEditorCameraData();
 
 		ImGui::End();
 	}

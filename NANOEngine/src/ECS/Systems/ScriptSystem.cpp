@@ -12,8 +12,8 @@
 #include "../../Scripting/ScriptContextFactory.hpp"
 
 namespace NE::ECS::Systems {
-	ScriptSystem::ScriptSystem(ComponentManager* cm)
-		: m_componentManager(cm) {
+	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em)
+		: m_componentManager(cm), m_entityManager(em) {
 	}
 
 	void ScriptSystem::OnEntityAdded(Entity entity) {
@@ -21,7 +21,7 @@ namespace NE::ECS::Systems {
 		auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 		if (nsc.CreateScript && !nsc.Instance) {
 			nsc.Instance = nsc.CreateScript();
-			Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager); // Link to engine systems via new API
+			Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager); // Link to engine systems via new API
 			nsc.Instance->_SetEntity(entity);
 
 			// Call Awake() first (even if disabled)
@@ -107,7 +107,7 @@ namespace NE::ECS::Systems {
 
 			if (nsc.CreateScript && !nsc.Instance) {
 				nsc.Instance = nsc.CreateScript();
-				Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager);
+				Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager);
 				nsc.Instance->_SetEntity(entity);
 
 				nsc.Instance->Awake();

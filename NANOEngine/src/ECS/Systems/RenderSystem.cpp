@@ -25,9 +25,9 @@ using NE::Graphics::GraphicsManager;
 namespace NE::ECS::Systems {
 
     // temp stuff
-    static std::shared_ptr<Graphics::IShader> pickingShader;
-    static std::shared_ptr<Graphics::IPipeline> pickingPipeline;
-    static std::shared_ptr<Graphics::Material> pickingMaterial;
+    //static std::shared_ptr<Graphics::IShader> pickingShader;
+    //static std::shared_ptr<Graphics::IPipeline> pickingPipeline;
+    //static std::shared_ptr<Graphics::Material> pickingMaterial;
 
     RenderSystem::RenderSystem(ComponentManager* cm) : m_componentManager(cm)
     {
@@ -36,8 +36,10 @@ namespace NE::ECS::Systems {
     void RenderSystem::OnEntityAdded(Entity entity) {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
-        renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
-        renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
+        if (!renderer.materialUUID.empty())
+            renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
+        if (!renderer.modelUUID.empty())
+            renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
     }
 
     void RenderSystem::OnEntityRemoved(Entity)
@@ -62,14 +64,14 @@ namespace NE::ECS::Systems {
 		//pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
 		//material = std::make_shared<Graphics::Material>(pipeline);
 
-        pickingShader = NE::Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>("nepicking");
-        Graphics::PipelineSpecification pickSpec;
-        pickSpec.shader = pickingShader;
-        pickSpec.CullMode = GL_BACK;
-        pickSpec.PolygonMode = GL_FILL;
-        pickSpec.EnableDepthTest = true;
-        pickingPipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pickSpec, "Picking");
-        pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
+        //pickingShader = NE::Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>("nepicking");
+        //Graphics::PipelineSpecification pickSpec;
+        //pickSpec.shader = pickingShader;
+        //pickSpec.CullMode = GL_BACK;
+        //pickSpec.PolygonMode = GL_FILL;
+        //pickSpec.EnableDepthTest = true;
+        //pickingPipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pickSpec, "Picking");
+        //pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
     }
 
     void RenderSystem::Update(double deltaTime) {

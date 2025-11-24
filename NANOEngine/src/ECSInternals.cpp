@@ -11,14 +11,6 @@
 namespace NE {
 	SceneManagement::Scene& GetScene();
 	//extern SceneManagement::Scene scene;
-
-	
-
-	std::vector<uint32_t>& GetEntities()
-	{
-		return GetScene().GetECSCoordinator().GetUsedEntities();
-	}
-
 	void SetMotionType(uint32_t bodyid, uint8_t motionType)
 	{
 		Physics::PhysicsManager::SetMotionType(bodyid, static_cast<JPH::EMotionType>(motionType));

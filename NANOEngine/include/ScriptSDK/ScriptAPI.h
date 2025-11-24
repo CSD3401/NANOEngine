@@ -391,6 +391,8 @@ namespace Scripting {
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
         void RegisterFloatVectorField(const std::string& name, std::vector<float>* memberPtr);
         void RegisterBoolVectorField(const std::string& name, std::vector<bool>* memberPtr);
+        void RegisterStringVectorField(const std::string& name, std::vector<std::string>* memberPtr);
+        void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
 
         // Enum field registration (with automatic enum options)

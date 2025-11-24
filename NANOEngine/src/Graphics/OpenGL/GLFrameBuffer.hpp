@@ -10,9 +10,10 @@ namespace NE::Graphics::OpenGL {
         ~GLFrameBuffer();
 
         void Bind() const override;
-        void Unbind() const override;
         void Resize(uint32_t width, uint32_t height) override;
+		void Clear() override;
 
+		// Enable or disable writing to the picking attachment
         void SetPickingWrite(bool enable) override;
 
         uint32_t GetColorAttachment() const override { return m_ColorAttachment; }
@@ -21,6 +22,8 @@ namespace NE::Graphics::OpenGL {
 
 		// Read pixel data from the picking attachment
 		uint32_t ReadPixel(uint32_t x, uint32_t y);
+
+        static void Unbind();
 
     private:
         void Invalidate();
