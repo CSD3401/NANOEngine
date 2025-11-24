@@ -13,7 +13,12 @@ public:
 		SCRIPT_FIELD(isActive, Bool);
 		SCRIPT_FIELD(numColourChildren, Int);
 		//SCRIPT_FIELD_VECTOR(colours, Material);  // Now uncommented - will work!
+
 		SCRIPT_FIELD_VECTOR(correctSol, MaterialRef);
+		SCRIPT_FIELD_VECTOR(startingColours, MaterialRef);
+		SCRIPT_FIELD_VECTOR(swappableChildren, Entity);
+		SCRIPT_FIELD_VECTOR(childSolution, Entity);
+
 		std::cout << "[ColourSwapManager] Created with fields registered" << std::endl;
 	}
 
@@ -121,10 +126,10 @@ private:
 	std::vector<std::string> correctSolution = { "ea32e122-a8ba-4672-ab60-705fd79b9086" ,"c57f74a5-e22a-40fe-bc56-f02aaaa494c8",  "c427718b-41d1-465f-a21f-99ac1981e4e9" };
 	
 	// Make sure the size of each of the vectors are the SAME
-	std::vector<MaterialRef> correctSol;
-	std::vector<MaterialRef> startingColours;
-	std::vector<Entity> swappableChildren;
-	std::vector<Entity> childSolution;
+	std::vector<MaterialRef> correctSol; // Set the materials in here for the solution the player has to get
+	std::vector<MaterialRef> startingColours; // Set the materials in here for the starting colours of the 2nd row
+	std::vector<Entity> swappableChildren; // set the 2nd row in here
+	std::vector<Entity> childSolution; // set the 1st row in here
 
 	std::unordered_map<Entity, MaterialRef> currentPuzzle;
 
