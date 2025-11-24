@@ -12,8 +12,9 @@ public:
 		// Example: SCRIPT_FIELD(speed, Float);
 		SCRIPT_FIELD(isActive, Bool);
 		SCRIPT_FIELD(numColourChildren, Int);
+		SCRIPT_FIELD(turnTimer, Float);
 		//SCRIPT_FIELD_VECTOR(colours, Material);  // Now uncommented - will work!
-
+		SCRIPT_FIELD(correctColour, MaterialRef);
 		SCRIPT_FIELD_VECTOR(correctSol, MaterialRef);
 		SCRIPT_FIELD_VECTOR(startingColours, MaterialRef);
 		SCRIPT_FIELD_VECTOR(swappableChildren, Entity);
@@ -32,13 +33,11 @@ public:
 
 	void Initialize(Entity entity) override {
 		// Called to initialize the script with its entity
-		GrabChildren();
 	}
 
 	void Start() override {
 		// Called when the script is enabled and play mode starts
-		GrabChildren();
-		LOG_DEBUG("CORRECT SEQUENCE FOR PUZZLE: BLUE - GREEN - RED");
+		InitPuzzle();
 	}
 
 	void Update(double deltaTime) override {
@@ -49,10 +48,10 @@ public:
 		{
 			// need to change this
 			if (Input::WasKeyPressed('N')) {
-				SwapColours(1, 2);
+				SwapColours(0, 1);
 			}
 			if (Input::WasKeyPressed('M')) {
-				SwapColours(2, 4);
+				SwapColours(1, 2);
 			}
 		}
 		else
@@ -119,68 +118,70 @@ private:
 	bool changedToSolved = false;
 	float turnTimer = 1.0f;
 	// green, red, blue
-	std::vector<std::string> colours = { "c57f74a5-e22a-40fe-bc56-f02aaaa494c8", "c427718b-41d1-465f-a21f-99ac1981e4e9", "ea32e122-a8ba-4672-ab60-705fd79b9086"};
-	// Child Index - Child Material
-	std::unordered_map<int, std::string> childColours;
-	// blue, green, red 
-	std::vector<std::string> correctSolution = { "ea32e122-a8ba-4672-ab60-705fd79b9086" ,"c57f74a5-e22a-40fe-bc56-f02aaaa494c8",  "c427718b-41d1-465f-a21f-99ac1981e4e9" };
-	
+	MaterialRef correctColour;
 	// Make sure the size of each of the vectors are the SAME
 	std::vector<MaterialRef> correctSol; // Set the materials in here for the solution the player has to get
 	std::vector<MaterialRef> startingColours; // Set the materials in here for the starting colours of the 2nd row
 	std::vector<Entity> swappableChildren; // set the 2nd row in here
 	std::vector<Entity> childSolution; // set the 1st row in here
 
-	std::unordered_map<Entity, MaterialRef> currentPuzzle;
-
-	void GrabChildren() {
-		size_t childCount = GetChildCount();
-		int currColour = 0;
-		for (int i = 0; i < childCount; ++i)
-		{
-			Entity child = GetChild(i);
-
-			if (!Command::HasComponent<Component::NativeScript>(child)) {
-				LOG_INFO("  Child " << i << " has entity ID: " << child);
-				LOG_INFO("  Child " << i << " does not have Script component");
-				childColours[i] = colours[currColour++];
-			}
-		}
-	}
+	std::unordered_map<int, MaterialRef> currentPuzzle;
 
 	void InitPuzzle()
 	{
+		if (swappableChildren.size() != startingColours.size())
+		{
+			LOG_ERROR("Vector sizes not equal!");
+			return;
+		}
 		int childIndex = 0;
 		// for each swappable child
 		// set it in the unordered map alongside its starting colour
 		// set the childs material to that colour
+		//LOG_DEBUG("STARTING CHILDS COLOURS:");
 		for (Entity child : swappableChildren)
 		{
-			childColours[childIndex] = startingColours[childIndex];
-			currentPuzzle[child] = startingColours[childIndex];
-			NE::Renderer::Command::AssignMaterial(child, startingColours[childIndex++]);
+			currentPuzzle[childIndex] = startingColours[childIndex];
+			NE::Renderer::Command::AssignMaterial(child, startingColours[childIndex]);
+			//LOG_DEBUG("CHILD[" << childIndex << "]: " << startingColours[childIndex].GetEntity());
+			childIndex++;
 		}
 
 		// Set the children in the vector to the materials according to the correct solution vector
-		childIndex = 0;
-		for (Entity child : childSolution)
+		if (childSolution.size() != correctSol.size())
 		{
-			NE::Renderer::Command::AssignMaterial(child, correctSol[childIndex++]);
+			LOG_ERROR("Vector sizes not equal!");
+			return;
+		}
+		childIndex = 0;
+		//LOG_DEBUG("SOLUTION CHILDS COLOURS:");
+		for (Entity c : childSolution)
+		{
+			NE::Renderer::Command::AssignMaterial(c, correctSol[childIndex]);
+			//LOG_DEBUG("SOLUTION[" << childIndex << "]: " << correctSol[childIndex].GetEntity());
+			childIndex++;
 		}
 	}
 
 	void SwapColours(size_t leftIndex, size_t rightIndex)
 	{
+		//LOG_DEBUG("SWAPPING COLOURS");
 		// Get the children to swap
 		Entity leftChild = swappableChildren[leftIndex];
 		Entity rightChild = swappableChildren[rightIndex];
 
+		//LOG_DEBUG("LEFT CHILD MATERIAL: " << currentPuzzle[leftIndex].GetEntity());
+		//LOG_DEBUG("RIGHT CHILD MATERIAL: " << currentPuzzle[rightIndex].GetEntity());
 		// Swap the colours assigned to those entities
-		std::swap(currentPuzzle[leftChild], currentPuzzle[rightChild]);
+		std::swap(currentPuzzle[leftIndex], currentPuzzle[rightIndex]);
 
+
+		//LOG_DEBUG("AFTER SWAPPING:");
+		//LOG_DEBUG("LEFT CHILD MATERIAL: " << currentPuzzle[leftIndex].GetEntity());
+		//LOG_DEBUG("RIGHT CHILD MATERIAL: " << currentPuzzle[rightIndex].GetEntity());
 		// Apply new materials to the actual scene objects
-		NE::Renderer::Command::AssignMaterial(leftChild, currentPuzzle[leftChild]);
-		NE::Renderer::Command::AssignMaterial(rightChild, currentPuzzle[rightChild]);
+		NE::Renderer::Command::AssignMaterial(leftChild, currentPuzzle[leftIndex]);
+		NE::Renderer::Command::AssignMaterial(rightChild, currentPuzzle[rightIndex]);
 
 		// Check if puzzle solved
 		if (CheckPuzzle())
@@ -195,36 +196,25 @@ private:
 	{
 		for (size_t i = 0; i < swappableChildren.size(); ++i)
 		{
-			Entity child = swappableChildren[i];
-
-			if (currentPuzzle[child] != correctSol[i])
+			//LOG_DEBUG("SWAPCHILD[" << i << "]: " << currentPuzzle[i].GetEntity());
+			//LOG_DEBUG("SOLUTION[" << i << "]: " << correctSol[i].GetEntity());
+			if (currentPuzzle[i].GetEntity() != correctSol[i].GetEntity())
 				return false;
 		}
-
-		//for (std::pair<int, std::string> pair : childColours)
-		//{
-		//	if (pair.second != correctSolution[currIndex++])
-		//	{
-		//		return false;
-		//	}
-
-		//}
 
 		return true;
 	}
 
 	void PuzzleSolved()
 	{
-		//for (std::pair<int, std::string> pair : childColours)
-		//{
-		//	Entity child = GetChild(pair.first);
-		//	// change the materials to white
-		//	NE::Renderer::Command::AssignMaterial(child, colours[0]);
-		//}
-
 		for (Entity child : swappableChildren)
 		{
-			NE::Renderer::Command::AssignMaterial(child, colours[0]);
+			NE::Renderer::Command::AssignMaterial(child, correctColour);
+		}
+		for (Entity child : childSolution)
+		{
+			NE::Renderer::Command::AssignMaterial(child, correctColour);
+
 		}
 	}
 };
