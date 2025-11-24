@@ -213,6 +213,7 @@
     <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
