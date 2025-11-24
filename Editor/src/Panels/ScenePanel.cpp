@@ -12,6 +12,7 @@
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <ECS/Components/EntityMeta.hpp>
+#include <EditorInterface/RendererExports.hpp>
 
 namespace Editor {
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
@@ -34,12 +35,12 @@ namespace Editor {
 		float nearPlane = 0.1f;
 		float farPlane = 1000.0f;
 
-		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
-		m_editorCamera.SetPosition(position);
-		m_editorCamera.LookAt(target, up);
+		EditorScene::m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
+		EditorScene::m_editorCamera.SetPosition(position);
+		EditorScene::m_editorCamera.LookAt(target, up);
 
 		// Give address of the editor camera to the scene camera tweener
-		sceneCameraTweener.SetSceneCamera(GetCamera());
+		sceneCameraTweener.SetSceneCamera(&EditorScene::m_editorCamera);
 
 		//NE::UpdateEditorCameraData();
 	}
@@ -64,10 +65,10 @@ namespace Editor {
 		);
 
 		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
-				std::string dropped((const char*)p->Data, p->DataSize - 1);
+			if (const ImGuiPayload* prefabPayload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
+				std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
 				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
-				Vec3 camForwardPos = m_editorCamera.GetPosition() + m_editorCamera.GetForward() * 8.0f;
+				Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
 				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
 
 				if (newEntities.empty()) {
@@ -128,6 +129,52 @@ namespace Editor {
 
 				// Clear asset selection since we just selected an entity
 				Editor::EditorScene::selectedAsset.clear();
+			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
+				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					ImVec2 mousePos = ImGui::GetMousePos();
+					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+
+						float localX = mousePos.x - panelPos.x;
+						float localY = mousePos.y - panelPos.y;
+						float spMouseX = localX / panelSize.x;
+						float spMouseY = localY / panelSize.y;
+
+						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
+						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
+
+						uint32_t id = NE::GetPickedEntity(x, y);
+
+						if (id != NE::ECS::NO_ENTITY)
+							NE::Renderer::Command::AssignMaterial(id, uuid);
+					}
+				}
+			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+				std::string dropped((const char*)modalPayload->Data, modalPayload->DataSize - 1);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					ImVec2 mousePos = ImGui::GetMousePos();
+					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+
+						float localX = mousePos.x - panelPos.x;
+						float localY = mousePos.y - panelPos.y;
+						float spMouseX = localX / panelSize.x;
+						float spMouseY = localY / panelSize.y;
+
+						uint32_t x = static_cast<int>(spMouseX * 1920.f);
+						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
+
+						uint32_t id = NE::GetPickedEntity(x, y);
+
+						if (id != NE::ECS::NO_ENTITY)
+							NE::Renderer::Command::AssignModel(id, uuid);
+					}
+				}
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -202,11 +249,11 @@ namespace Editor {
 				if (move.LengthSquared() > 0.0f) {
 					move.Normalize();
 					// Calculate direction vectors
-					Vec3 forward = m_editorCamera.GetForward();
+					Vec3 forward = EditorScene::m_editorCamera.GetForward();
 					Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
 
 					Vec3 offset = (right * move.x + forward * move.z + Vec3(0, 1, 0) * move.y) * m_cameraSpeed * deltaTime;
-					m_editorCamera.SetPosition(m_editorCamera.GetPosition() + offset);
+					EditorScene::m_editorCamera.SetPosition(EditorScene::m_editorCamera.GetPosition() + offset);
 				}
 
 				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
@@ -240,10 +287,14 @@ namespace Editor {
 
 						EditorScene::s_selectedEntity = nullptr;
 						EditorScene::selectedAsset = "";
-						for (auto& ent : EditorScene::s_entities) {
-							if (ent.linkedEntity == id) {
-								EditorScene::s_selectedEntity = &ent;
-								break;
+
+						if (id != NE::ECS::NO_ENTITY) {
+							// probably need to change this looks terrible when we have alot of entities
+							for (auto& ent : EditorScene::s_entities) { 
+								if (ent.linkedEntity == id) {
+									EditorScene::s_selectedEntity = &ent;
+									break;
+								}
 							}
 						}
 					}
@@ -253,9 +304,9 @@ namespace Editor {
 
 		if (EditorScene::s_selectedEntity) {
 			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::TRANSLATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::ROTATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_R)) currentOperation = ImGuizmo::SCALE;
 
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
@@ -297,8 +348,8 @@ namespace Editor {
 			memcpy(worldMatrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
 
 			bool editedThisFrame = ImGuizmo::Manipulate(
-				m_editorCamera.GetViewMatrix().Data(),
-				m_editorCamera.GetProjectionMatrix().Data(),
+				EditorScene::m_editorCamera.GetViewMatrix().Data(),
+				EditorScene::m_editorCamera.GetProjectionMatrix().Data(),
 				currentOperation, ImGuizmo::LOCAL, worldMatrix
 			);
 			bool isUsing = ImGuizmo::IsUsing();
@@ -399,15 +450,10 @@ namespace Editor {
 		dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
 		dir.y = sinf(Radians(m_cameraPitch));
 		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
-		m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
+		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
 		NE::UpdateEditorCameraData();
 
 		ImGui::End();
-	}
-
-	NE::Graphics::EditorCamera* ScenePanel::GetCamera()
-	{
-		return &m_editorCamera;
 	}
 }

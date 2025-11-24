@@ -11,6 +11,8 @@
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include "../AssetManagement/AssetManager.hpp"
+#include <unordered_set>
+#include <Math/Vec3.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
@@ -26,23 +28,34 @@ namespace Editor {
 	void HierarchyPanel::OnImGuiRender() {
 		ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
 
+		bool canEditHierarchy = EditorScene::s_selectedEntity && EditorScene::selectedPrefab.empty();
+		if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt) {
+			if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
+				DuplicateSelected();
+			} else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
+				CopySelected();
+			} else if (EditorScene::selectedPrefab.empty() && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
+				PasteSelected();
+			}
+		}
+
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 			ImGui::OpenPopup("HierarchyContextMenu");
 		}
 
-		bool canEditHierarchy = EditorScene::s_selectedEntity && EditorScene::selectedPrefab.empty();
 		if (ImGui::BeginPopupContextWindow("HierarchyContextMenu")) {
 			if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
 			}
-			if (ImGui::MenuItem("Copy", "Ctrl+C", false, false)) {
+			if (ImGui::MenuItem("Copy", "Ctrl+C", false, canEditHierarchy)) {
+				CopySelected();
 			}
-			if (ImGui::MenuItem("Paste", "Ctrl+V", false, false)) {
-			}
-			if (ImGui::MenuItem("Paste Special", "", false, false)) {
+			if (ImGui::MenuItem("Paste", "Ctrl+V", false, canEditHierarchy && !clipboard.empty())) {
+				PasteSelected();
 			}
 			if (ImGui::MenuItem("Rename", "", false, false)) {
 			}
-			if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, false)) {
+			if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, canEditHierarchy)) {
+				DuplicateSelected();
 			}
 			if (ImGui::MenuItem("Delete", "Del", false, canEditHierarchy)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
@@ -69,21 +82,21 @@ namespace Editor {
 				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
 			}
 			if (ImGui::BeginMenu("3D Object")) {
-				if (ImGui::MenuItem("Cube")) {
+				if (ImGui::MenuItem("Cube", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Sphere")) {
+				if (ImGui::MenuItem("Sphere", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Capsule")) {
+				if (ImGui::MenuItem("Capsule", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Cylinder")) {
+				if (ImGui::MenuItem("Cylinder", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Plane")) {
+				if (ImGui::MenuItem("Plane", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Quad")) {
+				if (ImGui::MenuItem("Quad", "", false, false)) {
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGui::MenuItem("Camera")) {
+			if (ImGui::MenuItem("Camera", "", false, false)) {
 				//CreateCameraEntity();
 			}
 
@@ -371,6 +384,73 @@ namespace Editor {
 		}
 
 		ImGui::End();
+	}
+
+	void HierarchyPanel::DuplicateSelected() {
+		std::vector<uint32_t> newEntities = NE::DuplicateEntity(EditorScene::s_selectedEntity->linkedEntity);
+
+		if (newEntities.empty()) return;
+
+		std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+		for (uint32_t entt : newEntities) {
+			EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+			Node node{};
+			node.id = entt;
+
+			uint32_t parent = NE::ECS::Command::GetParent(entt);
+			node.parent = parent;
+
+			if (parent == NE::ECS::NO_ENTITY) {
+				node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+				EditorScene::s_roots.push_back(entt);
+			} else {
+				auto& childrenVec = Editor::EditorScene::s_children[parent];
+				node.orderKey = static_cast<float>(childrenVec.size());
+				childrenVec.push_back(entt);
+			}
+
+			EditorScene::s_nodes[entt] = node;
+		}
+
+		EditorScene::s_selectedEntity = nullptr;
+	}
+
+	void HierarchyPanel::CopySelected() {
+		clipboard = NE::CopyEntity(EditorScene::s_selectedEntity->linkedEntity);
+	}
+
+	void HierarchyPanel::PasteSelected() {
+		NE::Math::Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
+		std::vector<uint32_t> newEntities = NE::PasteEntity(clipboard, camForwardPos);
+
+		if (newEntities.empty()) return;
+
+		std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+		for (uint32_t entt : newEntities) {
+			EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+			Node node{};
+			node.id = entt;
+
+			uint32_t parent = NE::ECS::Command::GetParent(entt);
+			node.parent = parent;
+
+			if (parent == NE::ECS::NO_ENTITY) {
+				node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+				EditorScene::s_roots.push_back(entt);
+			} else {
+				auto& childrenVec = Editor::EditorScene::s_children[parent];
+				node.orderKey = static_cast<float>(childrenVec.size());
+				childrenVec.push_back(entt);
+			}
+
+			EditorScene::s_nodes[entt] = node;
+		}
+
+		EditorScene::s_selectedEntity = nullptr;
 	}
 
 }
