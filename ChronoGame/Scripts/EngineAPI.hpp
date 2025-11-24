@@ -133,6 +133,11 @@ using String = ScriptFieldType::String;
 #define SCRIPT_COMPONENT_REF(refName, componentType) \
     Register##componentType##Field(#refName, &this->refName)
 
+// SCRIPT_PREFAB_REF macro - registers prefab references for editor exposure
+// Usage: SCRIPT_PREFAB_REF(enemyPrefab)
+#define SCRIPT_PREFAB_REF(refName) \
+    RegisterPrefabRefField(#refName, &this->refName)
+
 // SCRIPT_FIELD_VECTOR macro - registers vector fields for editor exposure
 // Usage: SCRIPT_FIELD_VECTOR(myIntList, Int)
 #define SCRIPT_FIELD_VECTOR(fieldName, elementType) \
@@ -285,6 +290,7 @@ using TransformRef = NE::Scripting::TransformRef;
 using RigidbodyRef = NE::Scripting::RigidbodyRef;
 using AudioSourceRef = NE::Scripting::AudioSourceRef;
 using MaterialRef = NE::Scripting::MaterialRef;
+using PrefabRef = NE::Scripting::PrefabRef;
 
 // Coroutine handle type
 using CoroutineHandle = NE::Scripting::CoroutineHandle;
@@ -305,4 +311,5 @@ namespace ChronoGame {
     using TransformRef = NE::Scripting::TransformRef;
     using RigidbodyRef = NE::Scripting::RigidbodyRef;
     using AudioSourceRef = NE::Scripting::AudioSourceRef;
+    using PrefabRef = NE::Scripting::PrefabRef;
 }

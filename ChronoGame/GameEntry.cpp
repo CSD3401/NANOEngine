@@ -26,6 +26,8 @@
 #include "Scripts/ParentControllerScript.hpp"
 #include "Scripts/MaterialSequencer.hpp"
 #include "Scripts/ExampleMaterialScript.hpp"
+#include "Scripts/PrefabSpawnerScript.hpp"
+#include "Scripts/BulletShooterScript.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -99,12 +101,12 @@ extern "C" {
         });
 
         registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
-             return new PlayerController();
-           });
+            return new PlayerController();
+            });
 
         registrar->RegisterScript("TweenExampleScript", []() -> NE::Scripting::IScript* {
-              return new TweenExampleScript();
-              });
+            return new TweenExampleScript();
+            });
 
         registrar->RegisterScript("ExampleMaterialScript", []() -> NE::Scripting::IScript* {
             return new ExampleMaterialScript();
@@ -113,5 +115,14 @@ extern "C" {
         registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
             return new ParentControllerScript();
             });
+
+        registrar->RegisterScript("PrefabSpawnerScript", []() -> NE::Scripting::IScript* {
+            return new PrefabSpawnerScript();
+            });
+
+        registrar->RegisterScript("BulletShooterScript", []() -> NE::Scripting::IScript* {
+            return new BulletShooterScript();
+            });
+
     }
 }

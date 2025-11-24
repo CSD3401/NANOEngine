@@ -116,7 +116,7 @@ namespace Scripting {
         * Inactive entities don't update scripts or render.
         * @return true if active, false otherwise
         */
-        bool IsActive() const;
+        bool IsActive(Entity e) const;
 
         /**
          * Check if the entity is active in the hierarchy.
@@ -131,8 +131,9 @@ namespace Scripting {
          * Inactive entities stop updating scripts and rendering.
          * Useful for hiding/disabling game objects.
          * @param active New active state
+         * @param entity Target entity (default: this entity)
          */
-        void SetActive(bool active);
+        void SetActive(bool active, Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
         // COLLISION/TRIGGER EVENTS
@@ -194,60 +195,72 @@ namespace Scripting {
 
         //=====================================================================
         // TRANSFORM OPERATIONS (Unity-style)
+        // All functions support optional Entity parameter:
+        // - If not specified, operates on this script's entity (m_entity)
+        // - If specified, operates on the target entity
         //=====================================================================
 
-        Vec3 GetPosition() const;
-        void SetPosition(const Vec3& pos);
-        void SetPosition(float x, float y, float z);
+        // Position
+        Vec3 GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        Vec3 GetRotation() const;
-        void SetRotation(const Vec3& rot);
-        void SetRotation(float x, float y, float z);
+        // Rotation (Euler angles in degrees)
+        Vec3 GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        Vec3 GetScale() const;
-        void SetScale(const Vec3& scale);
-        void SetScale(float x, float y, float z);
-        void SetScale(float uniformScale);
+        // Scale
+        Vec3 GetScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetScale(const Vec3& scale, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetScale(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetScale(float uniformScale, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void Translate(const Vec3& translation);
-        void Translate(float x, float y, float z);
+        // Relative transforms
+        void Translate(const Vec3& translation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void Translate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void Rotate(const Vec3& rotation);
-        void Rotate(float x, float y, float z);
+        void Rotate(const Vec3& rotation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void Rotate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        // Transform direction vectors
-        Vec3 GetForward() const;
-        Vec3 GetRight() const;
-        Vec3 GetUp() const;
+        // Direction vectors (based on rotation)
+        Vec3 GetForward(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetRight(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetUp(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
         // HIERARCHY OPERATIONS
+        // All functions support optional Entity parameter
         //=====================================================================
 
         /**
-         * Get the parent entity of this entity.
+         * Get the parent entity.
+         * @param entity Target entity (default: this entity)
          * @return Parent entity ID, or INVALID_ENTITY if no parent
          */
-        Entity GetParent() const;
+        Entity GetParent(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         /**
          * Get the number of child entities.
+         * @param entity Target entity (default: this entity)
          * @return Number of children
          */
-        size_t GetChildCount() const;
+        size_t GetChildCount(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         /**
          * Get a child entity by index.
          * @param index The index of the child (0-based)
+         * @param entity Target entity (default: this entity)
          * @return Child entity ID, or INVALID_ENTITY if index out of range
          */
-        Entity GetChild(size_t index) const;
+        Entity GetChild(size_t index, Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         /**
          * Get all child entities.
+         * @param entity Target entity (default: this entity)
          * @return Vector of child entity IDs
          */
-        std::vector<Entity> GetChildren() const;
+        std::vector<Entity> GetChildren(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         /**
          * Get the number of child entities for a specific entity.
@@ -273,30 +286,38 @@ namespace Scripting {
 
         //=====================================================================
         // RIGIDBODY PHYSICS (Unity-style)
+        // All functions support optional Entity parameter
         //=====================================================================
 
-        bool HasRigidbody() const;
+        bool HasRigidbody(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
-        float GetMass() const;
-        void SetMass(float mass);
+        // Mass
+        float GetMass(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetMass(float mass, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        bool GetUseGravity() const;
-        void SetUseGravity(bool use);
+        // Gravity
+        bool GetUseGravity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetUseGravity(bool use, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        bool IsStatic() const;
-        void SetStatic(bool isStatic);
+        // Static/Dynamic
+        bool IsStatic(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetStatic(bool isStatic, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void LockRotation(bool lockX, bool lockY, bool lockZ);
+        // Rotation locking
+        void LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        Vec3 GetVelocity() const;
-        void SetVelocity(const Vec3& velocity);
-        void SetVelocity(float x, float y, float z);
+        // Velocity
+        Vec3 GetVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetVelocity(const Vec3& velocity, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void AddForce(const Vec3& force);
-        void AddForce(float x, float y, float z);
+        // Forces
+        void AddForce(const Vec3& force, Entity entity = DEFAULT_ENTITY_PARAM);
+        void AddForce(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void AddImpulse(const Vec3& impulse);
-        void AddImpulse(float x, float y, float z);
+        // Impulses
+        void AddImpulse(const Vec3& impulse, Entity entity = DEFAULT_ENTITY_PARAM);
+        void AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
         // PHYSICS RAYCASTING
@@ -314,23 +335,28 @@ namespace Scripting {
 
         //=====================================================================
         // AUDIO SOURCE
+        // All functions support optional Entity parameter
         //=====================================================================
 
-        bool HasAudioSource() const;
+        bool HasAudioSource(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
-        void PlayAudio();
-        void StopAudio();
-        void PauseAudio();
-        void ResumeAudio();
-        bool IsAudioPlaying() const;
+        // Playback control
+        void PlayAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        void StopAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        void PauseAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        void ResumeAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        bool IsAudioPlaying(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
-        float GetVolume() const;
-        void SetVolume(float volume);
+        // Volume control
+        float GetVolume(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetVolume(float volume, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        float GetPitch() const;
-        void SetPitch(float pitch);
+        // Pitch control
+        float GetPitch(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetPitch(float pitch, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void SetAudioLoop(bool loop);
+        // Loop control
+        void SetAudioLoop(bool loop, Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
         // COMPONENT ACCESS (Type-safe opaque handles)
@@ -373,6 +399,36 @@ namespace Scripting {
          */
         MaterialRef GetMaterialRef(const std::string& materialUUID) const;
 
+        /**
+         * Get a reference to a prefab asset by UUID.
+         * Use this to store references to prefabs that can be instantiated at runtime.
+         * @param prefabUUID Prefab asset UUID string
+         * @return Prefab reference (check IsValid() before use)
+         */
+        PrefabRef GetPrefabRef(const std::string& prefabUUID) const;
+
+        //=====================================================================
+        // PREFAB INSTANTIATION
+        //=====================================================================
+
+        /**
+         * Instantiate a prefab at a specific position and rotation.
+         * @param prefabRef The prefab reference to instantiate
+         * @param position World position for the instantiated prefab
+         * @param rotation World rotation (Euler angles in degrees) for the instantiated prefab
+         * @return Root entity of the instantiated prefab, or INVALID_ENTITY if failed
+         */
+        Entity InstantiatePrefab(const PrefabRef& prefabRef, const Vec3& position = Vec3::Zero(), const Vec3& rotation = Vec3::Zero());
+
+        /**
+         * Instantiate a prefab by UUID at a specific position and rotation.
+         * @param prefabUUID The prefab asset UUID string
+         * @param position World position for the instantiated prefab
+         * @param rotation World rotation (Euler angles in degrees) for the instantiated prefab
+         * @return Root entity of the instantiated prefab, or INVALID_ENTITY if failed
+         */
+        Entity InstantiatePrefab(const std::string& prefabUUID, const Vec3& position = Vec3::Zero(), const Vec3& rotation = Vec3::Zero());
+
         //=====================================================================
         // COMPONENT REF OPERATIONS (For stored references)
         //=====================================================================
@@ -408,6 +464,7 @@ namespace Scripting {
         void RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr);
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
+        void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);
 
         // Vector field registration (native support - no override boilerplate needed!)
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
@@ -416,6 +473,7 @@ namespace Scripting {
         void RegisterStringVectorField(const std::string& name, std::vector<std::string>* memberPtr);
         void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
+        void RegisterPrefabRefVectorField(const std::string& name, std::vector<PrefabRef>* memberPtr);
 
         // Enum field registration (with automatic enum options)
         template<typename EnumType>
