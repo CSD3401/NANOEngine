@@ -28,25 +28,21 @@ namespace NE::Graphics {
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
 
-	SceneManagement::RenderPass GraphicsManager::s_CurrentRenderPass = SceneManagement::RenderPass::SCENE;
     std::unique_ptr<ICommandBuffer> GraphicsManager::s_CommandBuffer;
     std::unique_ptr<Skybox> GraphicsManager::s_skybox;
     EditorCamera* GraphicsManager::s_EditorCamera;
-	CameraData GraphicsManager::m_ActiveCamera;
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
-
+	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
+    RenderViewHandle GraphicsManager::s_ActiveViewHandle;
+    RenderViewHandle GraphicsManager::s_SceneViewHandle;
+    RenderViewHandle GraphicsManager::s_GameViewHandle;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
     std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
     std::vector<float> GraphicsManager::s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
     int GraphicsManager::s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
     int GraphicsManager::s_DebugProjLoc;
-
-    // Temp
-	std::shared_ptr<IFrameBuffer> GraphicsManager::s_ActiveFrameBuffer;
-    std::shared_ptr<IFrameBuffer> GraphicsManager::s_SceneFrameBuffer;
-	std::shared_ptr<IFrameBuffer> GraphicsManager::s_GameFrameBuffer;
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
 
@@ -55,10 +51,12 @@ namespace NE::Graphics {
         s_skybox = std::make_unique<Skybox>();
         s_StateCache = std::make_unique<OpenGL::GLStateCache>();
         s_DrawQueue = std::make_unique<DrawQueue>();
-        s_SceneFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
-		s_GameFrameBuffer = std::make_shared<Graphics::OpenGL::GLFrameBuffer>(1920, 1080);
+		s_RenderViewManager = std::make_unique<RenderViewManager>();
 
-		s_GameFrameBuffer->SetPickingWrite(false); // Turn off picking for game framebuffer
+        s_SceneViewHandle = s_RenderViewManager->Create(1920, 1080, true);
+        //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
+
+        NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
 
         // Load Basic Shader
         //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
@@ -89,19 +87,15 @@ namespace NE::Graphics {
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
-        NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
-
     }
 
     void GraphicsManager::BeginFrame() 
     {
 		s_StateCache->InvalidateAll();
-        s_ActiveFrameBuffer->Bind();
-        s_CommandBuffer->Begin();
+        
         //s_CommandBuffer->BeginRenderPass();
 
-        if (s_CurrentRenderPass == SceneManagement::RenderPass::SCENE)
-            drawCount = 0;
+        drawCount = 0;
     }
 
     void GraphicsManager::SubmitSkybox() 
@@ -113,115 +107,115 @@ namespace NE::Graphics {
     {
         NE_PROFILE_FUNCTION();
 
-        // Set camera matrices and position based on current render pass
-        Mat4 camProj, camView;
-        Vec3 camPos;
-        switch (s_CurrentRenderPass) {
-        case SceneManagement::RenderPass::SCENE:
-            camProj = s_EditorCamera->GetProjectionMatrix();
-            camView = s_EditorCamera->GetViewMatrix();
-            camPos = s_EditorCamera->GetPosition();
-            break;
-        case SceneManagement::RenderPass::GAME:
-            camProj = m_ActiveCamera.projection;
-            camView = m_ActiveCamera.view;
-            camPos = m_ActiveCamera.position;
-            break;
-        }
+		int renderedViews = 0;
+        for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
+            if (!view.isActive) continue;
+            if (view.isMain && view.order == 0) s_GameViewHandle = handle;
+            
+            s_RenderViewManager->Bind(handle);
+            s_CommandBuffer->Begin();
+            
+			const Mat4& camProj = view.projection;
+            const Mat4& camView = view.view;
+			const Vec3& camPos = view.position;
 
-        // Sort by RenderQueue -> Material -> Mesh
-        if (enableSorting)
-            s_DrawQueue->Sort(camPos);
+            // Sort by RenderQueue -> Material -> Mesh
+            if (enableSorting)
+                s_DrawQueue->Sort(camPos);
 
-        // Prepare instance data buffer and batching variables
-        std::vector<InstanceData> instanceData;
-        instanceData.reserve(32);
-        std::shared_ptr<IGeometryBuffer> currentMesh;
-        std::shared_ptr<Material> currentMaterial;
+            // Prepare instance data buffer and batching variables
+            std::vector<InstanceData> instanceData;
+            instanceData.reserve(32);
+            std::shared_ptr<IGeometryBuffer> currentMesh;
+            std::shared_ptr<Material> currentMaterial;
 
         auto flushBatch = [&]() {
             if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
                 return;
 
-            NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
-                instanceData.data(),
-                instanceData.size() * sizeof(InstanceData)
-            );
+                NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instanceData.data(),
+                    instanceData.size() * sizeof(InstanceData)
+                );
 
-            // Bind pipeline & GL state
-            auto pipeline = currentMaterial->GetPipeline();
-            s_StateCache->Bind(pipeline);
-            currentMaterial->Bind();
-            currentMesh->Bind();
+                // Bind pipeline & GL state
+                auto pipeline = currentMaterial->GetPipeline();
+                s_StateCache->Bind(pipeline);
+                currentMaterial->Bind();
+                currentMesh->Bind();
 
-            // Upload transform matrix to shader
-            auto shader = pipeline->GetSpecification().shader;
-            shader->SetUniformMat4("u_View", camView);
-            shader->SetUniformMat4("u_Projection", camProj);
-            shader->SetUniformVec3("u_CameraPos", camPos);
+                // Upload transform matrix to shader
+                auto shader = pipeline->GetSpecification().shader;
+                shader->SetUniformMat4("u_View", camView);
+                shader->SetUniformMat4("u_Projection", camProj);
+                shader->SetUniformVec3("u_CameraPos", camPos);
 
-            // Set lights
-            shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
-            for (size_t i = 0; i < m_lights.size(); ++i) {
-                const auto* light = m_lights[i];
-                std::string base = "u_lights[" + std::to_string(i) + "]";
-                shader->SetUniformInt(base + ".type", light->type);
-                shader->SetUniformVec3(base + ".position", light->position);
-                shader->SetUniformVec3(base + ".direction", light->direction);
-                shader->SetUniformVec3(base + ".color", light->color);
-                shader->SetUniformFloat(base + ".intensity", light->intensity);
-                shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
-                shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
-                shader->SetUniformFloat(base + ".constant", light->constant);
-                shader->SetUniformFloat(base + ".linear", light->linear);
-                shader->SetUniformFloat(base + ".quadratic", light->quadratic);
+                // Set lights
+                shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
+                for (size_t i = 0; i < m_lights.size(); ++i) {
+                    const auto* light = m_lights[i];
+                    std::string base = "u_lights[" + std::to_string(i) + "]";
+                    shader->SetUniformInt(base + ".type", light->type);
+                    shader->SetUniformVec3(base + ".position", light->position);
+                    shader->SetUniformVec3(base + ".direction", light->direction);
+                    shader->SetUniformVec3(base + ".color", light->color);
+                    shader->SetUniformFloat(base + ".intensity", light->intensity);
+                    shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
+                    shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
+                    shader->SetUniformFloat(base + ".constant", light->constant);
+                    shader->SetUniformFloat(base + ".linear", light->linear);
+                    shader->SetUniformFloat(base + ".quadratic", light->quadratic);
+                }
+
+                shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
+
+                // Draw mesh with instancing
+                currentMesh->DrawInstanced(instanceData.size());
+                currentMesh->Unbind();
+
+                instanceData.clear();
+                ++drawCount;
+
+                };
+
+            const auto& commands = s_DrawQueue->GetCommands();
+            for (const auto& command : commands)
+            {
+                auto mesh = command.mesh;
+                auto material = command.material;
+
+                // Check compatibility with current batch
+                bool compatible =
+                    (mesh == currentMesh) &&
+                    (material == currentMaterial);
+
+                // Flush current batch if not compatible
+                if (!compatible && !instanceData.empty()) {
+                    flushBatch();
+                }
+
+                // Prepare to create new batch if not compatible
+                if (!compatible) {
+                    currentMesh = mesh;
+                    currentMaterial = material;
+                }
+
+                NE::Graphics::InstanceData instance{};
+                instance.model = command.transform;
+                instance.idRGB = command.idRGB;
+
+                instanceData.push_back(instance);
             }
 
-            shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
-
-            // Draw mesh with instancing
-            currentMesh->DrawInstanced(instanceData.size());
-            currentMesh->Unbind();
-
-            instanceData.clear();
-
-			// For now, the draw count refers to number of batches drawn in the scene pass
-            if (s_CurrentRenderPass == SceneManagement::RenderPass::SCENE)
-				drawCount++;
-        };
-
-        const auto& commands = s_DrawQueue->GetCommands();
-        for (const auto& command : commands)
-        {
-            auto mesh = command.mesh;
-            auto material = command.material;
-
-            // Check compatibility with current batch
-            bool compatible =
-                (mesh == currentMesh) &&
-                (material == currentMaterial);
-
-            // Flush current batch if not compatible
-            if (!compatible && !instanceData.empty()) {
+            // Flush any remaining batch
+            if (!instanceData.empty()) {
                 flushBatch();
             }
-
-            // Prepare to create new batch if not compatible
-            if (!compatible) {
-                currentMesh = mesh;
-                currentMaterial = material;
-            }
-
-            NE::Graphics::InstanceData instance{};
-            instance.model = command.transform;
-			instance.idRGB = command.idRGB;
-            
-            instanceData.push_back(instance);
+            ++renderedViews;
+            s_RenderViewManager->Unbind();
         }
-
-        // Flush any remaining batch
-        if (!instanceData.empty()) {
-            flushBatch();
+        if (renderedViews > 0) {
+            drawCount /= renderedViews;
         }
     }
 
@@ -232,7 +226,7 @@ namespace NE::Graphics {
 
     void GraphicsManager::EndFrame() 
     {
-		s_ActiveFrameBuffer->Unbind();
+		s_RenderViewManager->Unbind();
         //s_CommandBuffer->EndRenderPass();
         //s_CommandBuffer->End();
     }
@@ -244,7 +238,7 @@ namespace NE::Graphics {
 
     void GraphicsManager::Shutdown() 
     {
-		s_SceneFrameBuffer.reset();
+		s_RenderViewManager->Shutdown();
         s_skybox.reset();
         s_CommandBuffer.reset();
 
@@ -275,19 +269,6 @@ namespace NE::Graphics {
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
     }
 
-    void GraphicsManager::SetRenderPass(SceneManagement::RenderPass pass) 
-    {
-		s_CurrentRenderPass = pass;
-        switch (pass) {
-        case SceneManagement::RenderPass::SCENE:
-            s_ActiveFrameBuffer = s_SceneFrameBuffer;
-		    break;
-        case SceneManagement::RenderPass::GAME:
-            s_ActiveFrameBuffer = s_GameFrameBuffer;
-			break;
-        }
-    }
-
     void GraphicsManager::SetEditorCamera(EditorCamera* cam) 
     {
         s_EditorCamera = cam;
@@ -298,18 +279,60 @@ namespace NE::Graphics {
         return s_EditorCamera;
     }
 
-    void GraphicsManager::SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain) 
+    void GraphicsManager::UpdateEditorCameraData()
     {
-		m_ActiveCamera.projection = projection;
-		m_ActiveCamera.view = view;
-		m_ActiveCamera.position = position;
-		m_ActiveCamera.isMain = isMain;
+        s_RenderViewManager->SetCameraData(
+            s_SceneViewHandle, 
+			s_EditorCamera->GetProjectionMatrix(),
+			s_EditorCamera->GetViewMatrix(),
+			s_EditorCamera->GetPosition(),
+            false,
+            0
+        );
+    }
+
+    RenderViewHandle GraphicsManager::CreateRenderView(uint32_t width, uint32_t height, bool enablePicking) 
+    {
+        return s_RenderViewManager->Create(width, height, enablePicking);
 	}
+
+    void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain, uint16_t order)
+    {
+		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, isMain, order);
+    }
+
+    void GraphicsManager::EnableCamera(RenderViewHandle viewHandle)
+    {
+        s_RenderViewManager->EnableCamera(viewHandle);
+	}
+
+    void GraphicsManager::DisableCamera(RenderViewHandle viewHandle)
+    {
+        s_RenderViewManager->DisableCamera(viewHandle);
+    }
 
     uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) 
     {
         //SPD_DEBUG("Clicked on X: " << x << " Y: " << y);
-		return s_SceneFrameBuffer->ReadPixel(x, y);
+		return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->ReadPixel(x, y);
+    }
+
+    uint32_t GraphicsManager::GetSceneColorAttachment() 
+    {
+		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (framebuffer) {
+            return framebuffer->GetColorAttachment();
+		}
+		return 0;
+	}
+
+    uint32_t GraphicsManager::GetGameColorAttachment()
+    {
+		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
+        if (framebuffer) {
+            return framebuffer->GetColorAttachment();
+		}
+		return 0;
     }
 
     // Debug drawing test code

@@ -249,6 +249,28 @@ namespace Scripting {
          */
         std::vector<Entity> GetChildren() const;
 
+        /**
+         * Get the number of child entities for a specific entity.
+         * @param entity The entity to query
+         * @return Number of children, or 0 if entity invalid
+         */
+        size_t GetChildCountOf(Entity entity) const;
+
+        /**
+         * Get a child entity by index from a specific entity.
+         * @param entity The parent entity to query
+         * @param index The index of the child (0-based)
+         * @return Child entity ID, or INVALID_ENTITY if index out of range
+         */
+        Entity GetChildOf(Entity entity, size_t index) const;
+
+        /**
+         * Get all child entities of a specific entity.
+         * @param entity The entity to query
+         * @return Vector of child entity IDs
+         */
+        std::vector<Entity> GetChildrenOf(Entity entity) const;
+
         //=====================================================================
         // RIGIDBODY PHYSICS (Unity-style)
         //=====================================================================
@@ -391,6 +413,8 @@ namespace Scripting {
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
         void RegisterFloatVectorField(const std::string& name, std::vector<float>* memberPtr);
         void RegisterBoolVectorField(const std::string& name, std::vector<bool>* memberPtr);
+        void RegisterStringVectorField(const std::string& name, std::vector<std::string>* memberPtr);
+        void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
 
         // Enum field registration (with automatic enum options)
