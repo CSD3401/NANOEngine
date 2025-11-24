@@ -2,16 +2,33 @@
 #include <string>
 #include <type_traits>
 #include <filesystem>
+#include <vector>
 #include <rapidjson/document.h>
 #include "../../src/Math/Vec3.hpp"
 #include "../Core/Reflection.hpp"
 #include "ECS/Components/Light.hpp" //temp
 #include "ECS/Components/NativeScript.hpp"
+#include "ECS/Components/EntityMeta.hpp"
+#include "ECS/Core/Entity.hpp"
+#include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Core/EntityManager.hpp"
+
+// Forward declare to avoid circular dependency
+namespace NE::ECS::Component { struct EntityMeta; }
 
 namespace NE::Serialization {
 
     using Alloc = rapidjson::Document::AllocatorType;
     using RJson = rapidjson::Value;
+
+    // Serialization context for Entity <-> LUID conversion
+    struct SerializationContext {
+        NE::ECS::ComponentManager* componentManager = nullptr;
+        NE::ECS::EntityManager* entityManager = nullptr;
+    };
+
+    // Thread-local context for serialization
+    inline thread_local SerializationContext g_serializationContext;
 
     // ----------- Primitives & std types -----------
     template <typename T>
@@ -39,6 +56,51 @@ namespace NE::Serialization {
     inline void from_json(const RJson& v, std::string& out) { out = v.GetString(); }
     inline void from_json(const RJson& v, std::filesystem::path& out) { out = v.GetString(); }
     inline void from_json(const RJson& v, uint64_t& out) { out = v.GetUint64(); }
+
+    // ----------- Entity serialization (Entity ID <-> LUID conversion) -----------
+   
+
+    // Get LUID from Entity ID
+    inline uint64_t GetLUIDFromEntity(NE::ECS::Entity entity);
+
+    // Get Entity ID from LUID
+    inline NE::ECS::Entity GetEntityFromLUID(uint64_t luid);
+
+    // Serialize Entity as LUID
+    inline RJson to_json(const NE::ECS::Entity& entity, Alloc&) {
+        RJson out;
+        uint64_t luid = GetLUIDFromEntity(entity);
+        out.SetUint64(luid);
+        return out;
+    }
+
+    // Deserialize LUID to Entity
+    inline void from_json(const RJson& v, NE::ECS::Entity& out) {
+        uint64_t luid = v.GetUint64();
+        out = GetEntityFromLUID(luid);
+    }
+
+    // ----------- std::vector serialization -----------
+    template <typename T>
+    RJson to_json(const std::vector<T>& vec, Alloc& a) {
+        RJson arr(rapidjson::kArrayType);
+        for (const auto& item : vec) {
+            arr.PushBack(to_json(item, a), a);
+        }
+        return arr;
+    }
+
+    template <typename T>
+    void from_json(const RJson& v, std::vector<T>& out) {
+        out.clear();
+        if (v.IsArray()) {
+            for (const auto& item : v.GetArray()) {
+                T value;
+                from_json(item, value);
+                out.push_back(value);
+            }
+        }
+    }
 
     // ----------- Enums -----------
     template <typename E>
@@ -145,6 +207,40 @@ namespace NE::Serialization {
      out.SerializedFields[fieldName] = fieldValue;
       }
     }
+    }
+
+    // ----------- Entity <-> LUID conversion implementation -----------
+
+    inline uint64_t GetLUIDFromEntity(NE::ECS::Entity entity) {
+        if (!g_serializationContext.componentManager || entity == NE::ECS::NO_ENTITY) {
+            return 0;
+        }
+
+        if (!g_serializationContext.componentManager->HasComponent<NE::ECS::Component::EntityMeta>(entity)) {
+            return 0;
+        }
+
+        return g_serializationContext.componentManager->GetComponent<NE::ECS::Component::EntityMeta>(entity).luid;
+    }
+
+    inline NE::ECS::Entity GetEntityFromLUID(uint64_t luid) {
+        if (!g_serializationContext.componentManager ||
+            !g_serializationContext.entityManager ||
+            luid == 0) {
+            return NE::ECS::NO_ENTITY;
+        }
+
+        const auto& usedEntities = g_serializationContext.entityManager->GetUsedEntities();
+        for (NE::ECS::Entity entity : usedEntities) {
+            if (g_serializationContext.componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+                const auto& meta = g_serializationContext.componentManager->GetComponent<NE::ECS::Component::EntityMeta>(entity);
+                if (meta.luid == luid) {
+                    return entity;
+                }
+            }
+        }
+
+        return NE::ECS::NO_ENTITY;
     }
 
 }

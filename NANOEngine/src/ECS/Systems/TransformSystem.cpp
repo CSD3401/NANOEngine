@@ -1,5 +1,7 @@
 #include "TransformSystem.hpp"
 #include "../Components/Transform.hpp"
+#include "../Components/EntityMeta.hpp"
+#include "PrefabManagement/PrefabManager.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../src/EngineState.hpp"
 #include <vector>                      
@@ -71,6 +73,13 @@ namespace NE::ECS::Systems {
 				UpdateWorldRecursive(e, I);
 			}
 		}
+
+		//for (Entity e : entities) {
+		//	auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		//	if (!meta.prefabID.empty()) {
+		//		
+		//	}
+		//}
 	}
 
 	void TransformSystem::Update(double) {

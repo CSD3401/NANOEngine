@@ -71,11 +71,6 @@ namespace NE::Graphics::OpenGL {
         glViewport(0, 0, m_Width, m_Height);
     }
 
-    void GLFrameBuffer::Unbind() const 
-    {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
     void GLFrameBuffer::Resize(uint32_t width, uint32_t height) 
     {
         if (width == 0 || height == 0)
@@ -85,6 +80,13 @@ namespace NE::Graphics::OpenGL {
         m_Height = height;
         Invalidate();
     }
+
+    void GLFrameBuffer::Clear() 
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	}
 
     void GLFrameBuffer::SetPickingWrite(bool enable) 
     {
@@ -109,5 +111,10 @@ namespace NE::Graphics::OpenGL {
         uint32_t id = data[0] | (data[1] << 8) | (data[2] << 16);
         return id;
 	}
+
+    void GLFrameBuffer::Unbind()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
 }

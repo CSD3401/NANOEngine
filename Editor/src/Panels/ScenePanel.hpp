@@ -3,22 +3,16 @@
 #include "IPanel.hpp"
 #include <vector>
 #include <string>
-#include "Graphics/Core/EditorCamera.hpp"
 #include "imgui/imgui_internal.h"
 #include "SceneCameraTweener.hpp"
 
 namespace Editor {
 	class ScenePanel : public IPanel {
 	public:
-		ScenePanel(uint32_t sceneFrameBuffer);
+		ScenePanel();
 
 		virtual void OnImGuiRender() override;
-
-		NE::Graphics::EditorCamera* GetCamera();
-
 	private:
-		NE::Graphics::EditorCamera m_editorCamera;
-
 		float m_cameraYaw = -90.0f;  // looking along -Z
 		float m_cameraPitch = 0.0f;
 		float m_cameraSpeed = 5.0f;

@@ -1,5 +1,6 @@
 #include "InspectorPanel.hpp"
 #include <imgui/imgui.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <EditorInterface/PhysicsExports.hpp>
@@ -39,7 +40,6 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
-#include <EditorInterface/PhysicsExports.hpp>
 
 namespace {
 	template<typename Owner, typename T>
@@ -234,6 +234,38 @@ namespace {
 
 		return true;
 	}
+
+	//static void ApplyPrefabOverridesForEntity(uint32_t entity) {
+	//	using NE::ECS::Component::EntityMeta;
+
+	//	auto& meta = NE::ECS::Command::GetEntityMeta(entity);
+	//	if (meta.prefabID.empty())
+	//		return;
+
+	//	// 1) Decide which entity is the prefab root for the instance
+	//	uint32_t rootEntity = entity;
+	//	if (!meta.isPrefabRoot && meta.prefabInstanceID != 0) {
+	//		if (auto* inst = NE::Prefab::PrefabManager::GetInstance(meta.prefabInstanceID)) {
+	//			if (inst->rootEntity != NE::ECS::NO_ENTITY)
+	//				rootEntity = inst->rootEntity;
+	//		}
+	//	}
+
+	//	// 2) Get prefab asset path from UUID
+	//	auto& assetMgr = Editor::AssetManager::GetInstance();
+	//	std::string prefabPath = assetMgr.RetrieveFileName(meta.prefabID);
+
+	//	// 3) Re-serialize the current root hierarchy over that prefab file
+	//	//    NE::SerializePrefab(scene, entt, targetPath) already exists. :contentReference[oaicite:5]{index=5}
+	//	NE::SerializePrefab(rootEntity, prefabPath);
+
+	//	// 4) Optional: ask AssetManager to reimport/update any cached data
+	//	// assetMgr.ReimportAsset(prefabPath);
+
+	//	// Optional: mark scene clean/dirty as you like
+	//	NE::MarkSceneDirty(); // or maybe not, depends on your workflow
+	//}
+
 }
 
 namespace Editor {
@@ -289,8 +321,11 @@ namespace Editor {
 				std::string edited = currentText;
 
 				ImGui::PushID("EntityName");
-				bool changed = ImGui::InputText("##Name", edited.data(),
-					ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
+				bool changed = ImGui::InputText(
+					"##Name",
+					&edited,
+					ImGuiInputTextFlags_AutoSelectAll
+				);
 				bool activated = ImGui::IsItemActivated();
 				bool active = ImGui::IsItemActive();
 				bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
@@ -339,14 +374,27 @@ namespace Editor {
 					if (it != g_activeCommands.end()) {
 						if (auto* c = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
 							if (c->Before() == c->After()) {
+								// No net change: just drop the command
 								g_activeCommands.erase(it);
-								return;
+							} else {
+								// There *was* a change: commit it
+								Editor::CommandHistory::GetInstance()
+									.ExecuteCommand(std::move(it->second));
+								g_activeCommands.erase(it);
 							}
+						} else {
+							// Fallback: if not a SetFieldCommand, just execute & erase
+							Editor::CommandHistory::GetInstance()
+								.ExecuteCommand(std::move(it->second));
+							g_activeCommands.erase(it);
 						}
-						Editor::CommandHistory::GetInstance()
-							.ExecuteCommand(std::move(it->second));
-						g_activeCommands.erase(it);
 					}
+				}
+
+				if (metaRO.prefabID != "") {
+					ImGui::Text("Prefab");
+					ImGui::SameLine();
+					ImGui::Text(metaRO.prefabID.c_str());
 				}
 			}
 
@@ -354,46 +402,6 @@ namespace Editor {
 			for (const auto& [typeIdx, compType] : componentTypeRegistry) {
 				if (!sig.test(compType)) continue;
 
-				//if (typeIdx == typeid(NE::ECS::Component::EntityMeta)) {
-				//	// EntityMeta component - show isActive with proper handling
-				//	auto& comp = NE::ECS::Command::GetEntityMeta(entity);
-				//	ImGui::SeparatorText("Entity Properties");
-
-				//	// Manually render isActive field with immediate updates
-				//	{
-				//		bool isActiveValue = comp.isActive;
-				//		if (ImGui::Checkbox("isActive", &isActiveValue)) {
-				//			comp.isActive = isActiveValue;
-				//			NE::MarkSceneDirty();
-				//			SPD_DEBUG("[DirtyFlag] Entity isActive changed to {} - Scene marked DIRTY", isActiveValue);
-				//		}
-				//	}
-
-				//	// Render other EntityMeta fields (skip name and isActive)
-				//	NE::Core::ForEachFieldView<NE::ECS::Component::EntityMeta>(comp,
-				//		[&](auto const& desc, auto const& currentValue) {
-				//			using Owner = NE::ECS::Component::EntityMeta;
-				//			using FieldT = std::decay_t<decltype(currentValue)>;
-
-				//			// Skip name and isActive (already handled above)
-				//			if (std::string(desc.name) == "name" || std::string(desc.name) == "isActive") {
-				//				return;
-				//			}
-
-				//			FieldT edited = currentValue;
-
-				//			ImGui::PushID(desc.name.data());
-				//			const bool changed = DrawField(desc, edited);
-				//			ImGui::PopID();
-
-				//			// Handle other EntityMeta fields if any are added in the future
-				//			if (changed) {
-				//				// Apply change immediately  
-				//				NE::MarkSceneDirty();
-				//			}
-				//		});
-				//}
-				//else 
 				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
 					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 					ImGui::SeparatorText("Transform");
@@ -1147,6 +1155,56 @@ namespace Editor {
 													elemChanged = true;
 												}
 											}
+											else if (elementType == "entity") {
+												// Entity reference support for vector<entity>
+												std::string entityIdStr = elemValue;
+												std::string displayName = "None";
+												uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+												std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+												if (!entityIdStr.empty() && entityIdStr != noEntityStr) {
+													try {
+														assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+
+														// Verify entity still exists
+														if (assignedEntityId != NE::ECS::NO_ENTITY) {
+															const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+															displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+														}
+													}
+													catch (...) {
+														displayName = "[Error]";
+													}
+												}
+
+												// Button shows entity name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept entity drops from hierarchy
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
+													if (payload && payload->DataSize == sizeof(uint32_t)) {
+														uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+														SPD_DEBUG("[Entity Vector] Dropped entity: {}", droppedEntity);
+
+														bool success = comp.Instance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+														if (success) {
+															elemChanged = true;
+															SPD_DEBUG("[Entity Vector] Successfully assigned entity to vector element");
+														} else {
+															SPD_ERROR("[Entity Vector] Failed to set array element");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, noEntityStr);
+													elemChanged = true;
+												}
+											}
 											else {
 												// Unknown type fallback - treat as string
 												char buf[256];
@@ -1288,13 +1346,13 @@ namespace Editor {
 					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					ImGui::SeparatorText("Camera");
 
-					//auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
 						[&](auto const& desc, auto const& currentValue) {
 							using Owner = NE::ECS::Component::Camera;
 							using FieldT = std::decay_t<decltype(currentValue)>;
 
 							FieldT edited = currentValue;
+
 							// --- draw widget, track edit lifecycle ---
 							ImGui::PushID(desc.name.data());
 							const bool changed = DrawField(desc, edited);  // your field drawer
@@ -1305,9 +1363,9 @@ namespace Editor {
 
 							// Key to coalesce continuous edits (dragging slider, etc.)
 							FieldKey key{
-								  entity,
-								  &typeid(Owner),
-								  MemberPointerHasher<Owner, FieldT>{}(desc.member)
+								entity,
+								&typeid(Owner),
+								MemberPointerHasher<Owner, FieldT>{}(desc.member)
 							};
 
 							// 1) Begin an active command when editing starts
@@ -1318,7 +1376,7 @@ namespace Editor {
 									std::string("Set Camera ") + desc.name.data(),
 									desc.member,
 									currentValue,  // before
-									currentValue,  // after (will change while dragging)
+									currentValue,  // after (will change while dragging / on release)
 									&NE::ECS::Command::GetEntityCamera
 								);
 								g_activeCommands[key] = std::move(cmd);
@@ -1345,8 +1403,24 @@ namespace Editor {
 							if (deactivated) {
 								auto it = g_activeCommands.find(key);
 								if (it != g_activeCommands.end()) {
+									// Ensure final 'edited' value is applied at the end,
+									// even if no coalescing happened while active (e.g. checkboxes).
+									if (changed) {
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},    // no label
+											desc.member,
+											currentValue,     // before (ignored by CoalesceFrom)
+											edited,           // final value
+											&NE::ECS::Command::GetEntityCamera
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+
 									// If no net change, drop it; else execute & mark camera dirty
-									if (auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (auto* asSet =
+										dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
 										asSet && Equal(asSet->Before(), asSet->After())) {
 										g_activeCommands.erase(it);
 									}
@@ -1355,14 +1429,13 @@ namespace Editor {
 										g_activeCommands.erase(it);
 
 										// Ensure projection is rebuilt after param changes
-										// (Either handle in SetFieldCommand::Apply, or do it here.)
 										auto& cam = NE::ECS::Command::GetEntityCamera(entity);
 										cam.isDirty = true;  // projection rebuild flag
 									}
 								}
 							}
 						});
-				}
+}
 				else if (typeIdx == typeid(NE::ECS::Component::Animator)) {
 					auto& comp = NE::ECS::Command::GetEntityAnimator(entity);
 					ImGui::SeparatorText("Animator");

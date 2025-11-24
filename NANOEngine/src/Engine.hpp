@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "NANOEngineAPI.hpp"
 #include "Graphics/Core/Material.hpp"
 #include "Math/Vec3.hpp"
@@ -23,8 +24,9 @@ namespace NE {
 
 	NANOENGINE_API void* GetNativeWindowHandle();
 	NANOENGINE_API bool WindowShouldClose();
-	NANOENGINE_API uint32_t GetSceneFrameBuffer();
-	NANOENGINE_API uint32_t GetGameFrameBuffer();
+	NANOENGINE_API uint32_t GetSceneColorAttachment();
+	NANOENGINE_API uint32_t GetGameColorAttachment();
+	NANOENGINE_API void UpdateEditorCameraData();
 	NANOENGINE_API void SetEditorCamera(void* camera);
 
 	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y);
@@ -35,7 +37,18 @@ namespace NE {
 	NANOENGINE_API void MarkSceneDirty();
 	NANOENGINE_API void LoadTargetScene(std::string targetPath);
 
-	NANOENGINE_API size_t GetNumEntities();
+	NANOENGINE_API const std::vector<uint32_t>& GetNumEntities();
+	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);
+	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid); // Deprecated
+	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos);
+	NANOENGINE_API void LoadPrefabScene(std::string prefabPath);
+	NANOENGINE_API void SavePrefabScene(std::string prefabPath);
+	NANOENGINE_API void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath);
+	NANOENGINE_API void ClosePrefabScene();
+
+	NANOENGINE_API std::vector<uint32_t> DuplicateEntity(uint32_t entity);
+	NANOENGINE_API std::vector<uint8_t> CopyEntity(uint32_t entity);
+	NANOENGINE_API std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard, Math::Vec3 pos);
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
