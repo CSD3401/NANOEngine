@@ -15,6 +15,7 @@ namespace NE::SceneManagement {
 		NE::Serialization::JsonSceneSerializer::Deserialize(*m_editor, path);
 		m_editor->Init();
 		Prefab::PrefabManager::Init(m_editor.get());
+		Prefab::PrefabManager::RebuildFromScene();
 		m_isPlaying = false;
 		m_runtime.reset();
 
@@ -126,6 +127,8 @@ namespace NE::SceneManagement {
 			m_editor = std::make_unique<Scene>();
 			NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_editor, m_editorBackup);
 			m_editor->Init();
+			Prefab::PrefabManager::Init(m_editor.get());
+			Prefab::PrefabManager::RebuildFromScene();
 		}
 
 	}

@@ -10,30 +10,29 @@
 #include <imgui/imgui_internal.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include "../AssetManagement/AssetManager.hpp"
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
-		EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
+		//EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
 
 		auto numEntt = NE::GetNumEntities();
-		for (unsigned int i = 0; i < numEntt; ++i) {
-			EditorScene::s_entities.push_back(EditorEntity{ i });
+		EditorScene::s_entities.reserve(numEntt.size());
+		for (auto e : numEntt) {
+			EditorScene::s_entities.push_back(EditorEntity{ e });
 		}
 	}
 
-	void HierarchyPanel::OnImGuiRender()
-	{
+	void HierarchyPanel::OnImGuiRender() {
 		ImGui::Begin("Hierarchy", nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
 			| ImGuiWindowFlags_MenuBar);
-
-		//ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
-		//ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
 
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 			ImGui::OpenPopup("HierarchyContextMenu");
 		}
 
+		bool canEditHierarchy = EditorScene::s_selectedEntity && EditorScene::selectedPrefab.empty();
 		if (ImGui::BeginPopupContextWindow("HierarchyContextMenu")) {
 			if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
 			}
@@ -47,7 +46,7 @@ namespace Editor {
 			}
 			if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, false)) {
 			}
-			if (ImGui::MenuItem("Delete", "Del", false, EditorScene::s_selectedEntity)) {
+			if (ImGui::MenuItem("Delete", "Del", false, canEditHierarchy)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
 			}
 			ImGui::Separator();
@@ -68,13 +67,10 @@ namespace Editor {
 			}
 			ImGui::Separator();
 
-			if (ImGui::MenuItem("Create Entity")) {
+			if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
 				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
-				//NE::
-				//Editor::EditorScene::BuildFlatHierarchy();
-				// need to add into display list also currently creates but not shown in hierarchy
 			}
-			if (ImGui::BeginMenu("3D Object")) { // Creates a submenu with an arrow
+			if (ImGui::BeginMenu("3D Object")) {
 				if (ImGui::MenuItem("Cube")) {
 				}
 				if (ImGui::MenuItem("Sphere")) {
@@ -110,31 +106,40 @@ namespace Editor {
 		// === Entity Tree ===
 		//static bool s_built = false;
 		//if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
-		//static bool s_built = false;
-		//if (!s_built) {
-		//	Editor::EditorScene::BuildHierarchyFromECS();
-		//	s_built = true;
-		//}
 
 		if (EditorScene::selectedPrefab != "") {
 			if (ImGui::Button("<")) {
 				NE::ClosePrefabScene();
+				EditorScene::s_selectedEntity = nullptr;
 				EditorScene::RebuildFromActiveScene();
 				EditorScene::selectedPrefab = "";
 			}
 
 			ImGui::SameLine();
 			ImGui::Text(EditorScene::selectedPrefab.c_str());
+			ImGui::SameLine();
+
+			if (ImGui::Button("Save")) {
+				NE::SavePrefabScene(EditorScene::selectedPrefab);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(EditorScene::selectedPrefab);
+				NE::ReloadAllInstancesOfPrefab(uuid, EditorScene::selectedPrefab);
+			}
+
 			ImGui::Separator();
 		}
 
-		static int s_lastEntityCount = -1;
-		int currentCount = (int)NE::GetNumEntities();
-
-		if (currentCount != s_lastEntityCount) {
-			Editor::EditorScene::RebuildFromActiveScene();
-			s_lastEntityCount = currentCount;
+		static bool s_built = false;
+		if (!s_built) {
+			Editor::EditorScene::BuildHierarchyFromECS();
+			s_built = true;
 		}
+		//static int s_lastEntityCount = -1;
+		//int currentCount = static_cast<int>(NE::GetNumEntities().size());
+
+		//if (currentCount != s_lastEntityCount) {
+		//	Editor::EditorScene::RebuildFromActiveScene();
+		//	s_lastEntityCount = currentCount;
+		//}
 
 		// ---- Drag state ----
 		static uint32_t draggingId = NE::ECS::NO_ENTITY;

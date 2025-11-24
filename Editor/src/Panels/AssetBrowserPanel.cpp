@@ -68,12 +68,20 @@ namespace Editor {
             if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_DRAG_ID")) {
                 if (p->DataSize == sizeof(uint32_t)) {
                     uint32_t dropped = *static_cast<const uint32_t*>(p->Data);
-                    std::string filePath = NE::SerializePrefab(dropped, m_currentDirectory.string());
-                    if (filePath != "")
-                        AssetManager::GetInstance().GenerateMetadata(filePath);
+                    
+                    std::string prefabName = "Prefab";
+                    auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
+                    if (!meta.name.empty())
+                        prefabName = meta.name;
 
+                    std::string filePath = m_currentDirectory.string() + prefabName + ".nfab";
+                    SPD_INFO("Prefab created at: " << filePath);
+                    std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
+                    AssetManager::GetInstance().GenerateMetadata(filePath);
                     std::string prefabID = AssetManager::GetInstance().RetrieveUUID(filePath);
-                    NE::ECS::Command::GetEntityMeta(dropped).prefabID = prefabID;
+                    meta.prefabID = prefabID;
+
+                    NE::SerializePrefab(dropped, filePath);
                 }
             }
             ImGui::EndDragDropTarget();
@@ -301,6 +309,10 @@ namespace Editor {
                         ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
                         hasSpecialPayload = true;
                     }
+                    else if (entryPath.extension() == ".nfab") {
+                        ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+                        hasSpecialPayload = true;
+                    }
                 }
 
                 // If no special payload was set, use the generic ASSET_MOVE
@@ -327,20 +339,12 @@ namespace Editor {
                         //     EditorScene::s_entities.push_back({ entt });
                         // }
                     } else if (entryPath.extension() == ".nfab") {
-                        if (ImGui::BeginDragDropSource()) {
-                            std::string prefabPath = entry.path().string();
-                            ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", prefabPath.c_str(), prefabPath.size() + 1);
-                            ImGui::TextUnformatted(name.c_str());
-                            ImGui::EndDragDropSource();
-                        } 
-                        else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                            EditorScene::s_selectedEntity = nullptr;
-                            EditorScene::selectedAsset = "";
-                            NE::LoadPrefabScene(entryPath.string());
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = "";
+                        NE::LoadPrefabScene(entryPath.string());
 
-                            Editor::EditorScene::selectedPrefab = entryPath.string();
-                            Editor::EditorScene::RebuildFromActiveScene();
-                        }
+                        Editor::EditorScene::selectedPrefab = entryPath.string();
+                        Editor::EditorScene::RebuildFromActiveScene();
                     }
                 }
             }

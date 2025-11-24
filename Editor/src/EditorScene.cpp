@@ -40,11 +40,10 @@ namespace Editor {
         s_children.clear();
         s_roots.clear();
 
-        // Fill s_entities based on active scene�s ECS
-        auto numEntt = NE::GetNumEntities(); // this uses SceneManager::GetActive()
-        s_entities.reserve(numEntt);
-        for (unsigned int i = 0; i < numEntt; ++i) {
-            s_entities.push_back(EditorEntity{ i });
+        auto numEntt = NE::GetNumEntities();
+        s_entities.reserve(numEntt.size());
+        for (auto e : numEntt) {
+            s_entities.push_back(EditorEntity{ e });
         }
 
         BuildHierarchyFromECS();
@@ -161,22 +160,19 @@ namespace Editor {
 
         s_roots.reserve(s_entities.size());
 
-        // --- First pass: create nodes with parent taken from ECS ---
         for (const auto& e : s_entities) {
             uint32_t id = e.linkedEntity;
 
-            // Ask ECS what the parent is (this should reflect Transform.parent)
-            uint32_t parent = NE::ECS::Command::GetParent(id); // NO_ENTITY if root
+            uint32_t parent = NE::ECS::Command::GetParent(id);
 
             Node node;
             node.id = id;
-            node.parent = parent;  // NE::ECS::NO_ENTITY means root for us too
-            node.orderKey = 0.0f;  // we'll fill this in per-sibling
+            node.parent = parent;
+            node.orderKey = 0.0f;
 
             s_nodes[id] = node;
         }
 
-        // --- Second pass: fill children and roots ---
         for (auto& [id, node] : s_nodes) {
             if (node.parent == NE::ECS::NO_ENTITY) {
                 s_roots.push_back(id);
@@ -185,16 +181,13 @@ namespace Editor {
             }
         }
 
-        // --- Third pass: assign simple orderKey for each sibling list ---
         {
-            // roots
             float k = 0.f;
             for (uint32_t id : s_roots) {
                 s_nodes[id].orderKey = k;
                 k += 1.f;
             }
 
-            // children
             for (auto& [parent, vec] : s_children) {
                 float kk = 0.f;
                 for (uint32_t id : vec) {

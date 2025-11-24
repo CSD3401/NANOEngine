@@ -63,7 +63,8 @@ namespace Editor {
 			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
-				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid);
+				Vec3 camForwardPos = m_editorCamera.GetPosition() + m_editorCamera.GetForward() * 8.0f;
+				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
 
 				if (newEntities.empty()) {
 					ImGui::EndDragDropTarget();
@@ -164,8 +165,9 @@ namespace Editor {
 					NE::EditorEdit();
 
 					auto numEntt = NE::GetNumEntities();
-					for (unsigned int i = 0; i < numEntt; ++i) {
-						EditorScene::s_entities.push_back(EditorEntity{ i });
+					EditorScene::s_entities.reserve(numEntt.size());
+					for (auto e : numEntt) {
+						EditorScene::s_entities.push_back(EditorEntity{ e });
 					}
 				}
 			}

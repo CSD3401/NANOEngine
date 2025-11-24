@@ -1,9 +1,12 @@
 #include "PrefabManager.hpp"
 #include <unordered_set>
+#include <fstream>
+#include <rapidjson/document.h>
 #include "SceneManagement/Scene.hpp"
 #include "ECS/Core/ECSCoordinator.hpp"
 #include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Transform.hpp"
+#include "Serialisation/JsonSceneSerializer.hpp"
 
 namespace NE::Prefab {
 
@@ -84,6 +87,124 @@ namespace NE::Prefab {
     const PrefabManager::InstanceInfo* PrefabManager::GetInstance(uint64_t instanceId) {
         auto it = s_instances.find(instanceId);
         return (it == s_instances.end()) ? nullptr : &it->second;
+    }
+
+    void PrefabManager::ReloadAllInstancesOfPrefab(const UUID& prefabAsset, const std::string& prefabPath) {
+        if (!s_scene) return;
+        auto& ecs = s_scene->GetECSCoordinator();
+
+        // Load prefab JSON
+        std::ifstream in(prefabPath, std::ios::binary);
+        if (!in) return;
+
+        std::string data((std::istreambuf_iterator<char>(in)), {});
+        rapidjson::Document doc; 
+        doc.Parse(data.c_str());
+        if (!doc.IsObject() || !doc.HasMember("Entities")) return;
+
+        auto entitiesJson = doc["Entities"].GetArray();
+
+        // Build localId -> JSON* map
+        std::unordered_map<uint64_t, const rapidjson::Value*> localToJson;
+        for (auto& entVal : entitiesJson) {
+            const auto& tJson = entVal["Transform"];
+            uint64_t lid = tJson["luid"].GetUint64();
+            localToJson[lid] = &entVal;
+        }
+
+        using NE::ECS::Component::Transform;
+
+        for (auto& [instId, inst] : s_instances) {
+            if (inst.prefabAsset != prefabAsset)
+                continue;
+
+            for (uint32_t e : inst.entities) {
+                auto& meta = ecs.GetComponent<ECS::Component::EntityMeta>(e);
+                uint64_t localId = meta.prefabLocalID;
+                auto it = localToJson.find(localId);
+                if (it == localToJson.end())
+                    continue;
+
+                const auto& entVal = *it->second;
+
+                Serialization::JsonSceneSerializer::ReloadComponentsForEntity(*s_scene,
+                    e,
+                    inst.rootEntity,
+                    entVal);
+
+                //if (ecs.HasComponent<Transform>(e) && e != inst.rootEntity) {
+                //    auto& t = ecs.GetComponent<Transform>(e);
+                //    t.isDirty = true;
+                //}
+            }
+        }
+    }
+
+    void PrefabManager::RebuildFromScene() {
+        if (!s_scene)
+            return;
+
+        s_instances.clear();
+        s_entityToInstance.clear();
+        s_nextInstanceId = 1;
+
+        auto& ecs = s_scene->GetECSCoordinator();
+        const auto& allEntities = ecs.GetUsedEntities();
+
+        using NE::ECS::Component::EntityMeta;
+        using NE::ECS::Component::Transform;
+
+        std::unordered_set<uint32_t> visited;
+        visited.reserve(allEntities.size());
+
+        for (uint32_t e : allEntities) {
+            auto& metaRoot = ecs.GetComponent<EntityMeta>(e);
+            if (metaRoot.prefabID.empty() || !metaRoot.isPrefabRoot)
+                continue;
+
+            InstanceInfo info{};
+            info.instanceId = s_nextInstanceId++;
+            info.prefabAsset = metaRoot.prefabID;
+            info.rootEntity = e;
+
+            std::vector<uint32_t> stack;
+            stack.push_back(e);
+
+            while (!stack.empty()) {
+                uint32_t cur = stack.back();
+                stack.pop_back();
+
+                if (!visited.insert(cur).second)
+                    continue;
+
+                info.entities.push_back(cur);
+                s_entityToInstance[cur] = info.instanceId;
+
+                if (!ecs.HasComponent<EntityMeta>(cur))
+                    continue;
+
+                auto& meta = ecs.GetComponent<EntityMeta>(cur);
+
+                meta.prefabID = metaRoot.prefabID;
+                meta.prefabInstanceID = info.instanceId;
+                meta.isPrefabRoot = (cur == e);
+
+                if (!ecs.HasComponent<Transform>(cur))
+                    continue;
+
+                auto& t = ecs.GetComponent<Transform>(cur);
+                for (uint32_t child : t.children) {
+                    if (!ecs.HasComponent<EntityMeta>(child))
+                        continue;
+
+                    auto& childMeta = ecs.GetComponent<EntityMeta>(child);
+                    if (childMeta.prefabID == metaRoot.prefabID)
+                        stack.push_back(child);
+                }
+            }
+
+            s_instances[info.instanceId] = std::move(info);
+        }
     }
 
     uint64_t PrefabManager::GetInstanceId(uint32_t entity) {

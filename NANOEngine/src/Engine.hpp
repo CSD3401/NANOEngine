@@ -36,10 +36,13 @@ namespace NE {
 	NANOENGINE_API void MarkSceneDirty();
 	NANOENGINE_API void LoadTargetScene(std::string targetPath);
 
-	NANOENGINE_API size_t GetNumEntities();
+	NANOENGINE_API const std::vector<uint32_t>& GetNumEntities();
 	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);
 	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid);
+	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos);
 	NANOENGINE_API void LoadPrefabScene(std::string prefabPath);
+	NANOENGINE_API void SavePrefabScene(std::string prefabPath);
+	NANOENGINE_API void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath);
 	NANOENGINE_API void ClosePrefabScene();
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();

@@ -22,12 +22,15 @@ namespace NE::Prefab {
         };
 
         static void Init(SceneManagement::Scene* scene);
-
         static InstanceInfo Instantiate(const UUID& prefabAsset, 
             std::vector<uint32_t>& newEntities);
 
         static void DestroyInstance(uint64_t instanceId);
         static const InstanceInfo* GetInstance(uint64_t instanceId);
+
+        static void ReloadAllInstancesOfPrefab(const UUID& prefabAsset,
+            const std::string& prefabPath);
+        static void RebuildFromScene();
 
         // Optional helpers:
         static uint64_t GetInstanceId(uint32_t entity);

@@ -81,7 +81,7 @@ namespace NE {
 	static std::unique_ptr<Graphics::Window> s_window;
 	static std::unique_ptr<Graphics::IRenderContext> s_renderContext;
 
-	static SceneManagement::SceneManager gSceneManager;
+	SceneManagement::SceneManager gSceneManager;
 
 	void Initialize() {
 		NE_PROFILE_FUNCTION();
@@ -213,8 +213,8 @@ namespace NE {
 		Serialization::JsonSceneSerializer::Deserialize(*gSceneManager.GetActive(), targetPath);
 	}
 
-	size_t GetNumEntities() {
-		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities().size();
+	const std::vector<uint32_t>& GetNumEntities() {
+		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities();
 	}
 
 	std::string SerializePrefab(uint32_t entt, std::string targetPath) {
@@ -227,8 +227,22 @@ namespace NE {
 		return newEntities;
 	}
 
+	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos) {
+		auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath, pos);
+		Prefab::PrefabManager::Instantiate(uuid, newEntities);
+		return newEntities;
+	}
+
 	void LoadPrefabScene(std::string prefabPath) {
 		gSceneManager.LoadPrefabScene(prefabPath);
+	}
+
+	void SavePrefabScene(std::string prefabPath) {
+		Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), prefabPath);
+	}
+
+	void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath) {
+		NE::Prefab::PrefabManager::ReloadAllInstancesOfPrefab(prefabUUID, prefabPath);
 	}
 
 	void ClosePrefabScene() {

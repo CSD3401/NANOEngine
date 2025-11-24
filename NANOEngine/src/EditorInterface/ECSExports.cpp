@@ -15,12 +15,14 @@
 #include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "ECS/Systems/TransformSystem.hpp"
+#include "SceneManagement/SceneManager.hpp"
 
 
 
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
+	extern SceneManagement::SceneManager gSceneManager;
 }
 
 namespace NE::ECS {
@@ -121,9 +123,19 @@ namespace NE::ECS {
 				newEntity, 
 				Component::EntityMeta{ .name = "Unnamed Entity", .luid = Core::LUIDGenerator::Generate("en") });
 
-			GetScene().GetECSCoordinator().AddComponent(
-				newEntity, 
-				Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
+			if (gSceneManager.GetCurrentPrefabPath().empty()) {
+				GetScene().GetECSCoordinator().AddComponent(
+					newEntity, 
+					Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
+			} else {
+				auto& rootT = GetScene().GetECSCoordinator().GetComponent<Component::Transform>(0);
+
+				GetScene().GetECSCoordinator().AddComponent(
+					newEntity,
+					Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr"), .parent = 0, .parentLuid = rootT.luid });
+
+				rootT.children.push_back(newEntity);
+			}
 
 			return newEntity;
 		}
