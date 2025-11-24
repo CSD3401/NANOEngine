@@ -4,7 +4,6 @@
 #include <wtypes.h>
 #include "Panels/AssetBrowserPanel.hpp"
 #include "Engine.hpp"
-#include "../src/EditorScene.hpp"
 #include "EditorScene.hpp"
 #include <glfw/glfw3.h>
 #include "Command/CommandHistory.hpp"
@@ -13,6 +12,7 @@
 #include "Panels/AnimationRuntimePanel.hpp"
 #include "Panels/AnimationGraphPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
+#include "Panels/LightingPanel.hpp"
 #include <Core/SpdLogger.hpp>  // For SPD_INFO, SPD_DEBUG logging
 #include "EngineState.hpp"  // Add this include
 
@@ -222,6 +222,12 @@ namespace Editor {
 			if (ImGui::BeginMenu("Analysis")) {
 				if (ImGui::MenuItem("Profiler", nullptr, false)) {
 					AddPanel<ProfilerPanel>();
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Rendering")) {
+				if (ImGui::MenuItem("Lighting", nullptr, false)) {
+					AddPanel<LightingPanel>();
 				}
 				ImGui::EndMenu();
 			}
