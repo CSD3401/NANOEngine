@@ -1695,32 +1695,6 @@ namespace Editor {
 					m_materialEditor->RenderSettings();
 			}
 		}
-		//FOG
-		else {
-			// <--- add the Fog UI here
-			if (ImGui::CollapsingHeader("RenderSettings / Fog")) {
-				bool enabled = NE::Renderer::Query::GetFogEnabled();
-				if (ImGui::Checkbox("Enable Fog", &enabled))
-					NE::Renderer::Command::SetFogEnabled(enabled);
-
-				static const char* modes[] = { "Linear","Exponential","Exp2" };
-				int mode = NE::Renderer::Query::GetFogMode();
-				if (ImGui::Combo("Mode", &mode, modes, IM_ARRAYSIZE(modes)))
-					NE::Renderer::Command::SetFogMode(mode);
-
-				float color[3]; NE::Renderer::Query::GetFogColor(color);
-				if (ImGui::ColorEdit3("Color", color))
-					NE::Renderer::Command::SetFogColor(color[0], color[1], color[2]);
-
-				float dens = NE::Renderer::Query::GetFogDensity();
-				if (ImGui::DragFloat("Density", &dens, 0.001f, 0.0f, 1.0f))
-					NE::Renderer::Command::SetFogDensity(dens);
-
-				float s, e; NE::Renderer::Query::GetFogRange(s, e);
-				if (ImGui::DragFloatRange2("Linear Range", &s, &e, 0.1f, 0.0f, 5000.0f))
-					NE::Renderer::Command::SetFogRange(s, e);
-			}
-}		//FOG
 		ImGui::End();
 	}
 

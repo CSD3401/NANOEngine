@@ -179,6 +179,7 @@
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
+    <ClCompile Include="src\Panels\LightingPanel.cpp" />
     <ClCompile Include="src\Panels\LoggerPanel.cpp" />
     <ClCompile Include="src\Panels\ProfilerPanel.cpp" />
     <ClCompile Include="src\Panels\SceneCameraTweener.cpp" />
@@ -225,6 +226,7 @@
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />
     <ClInclude Include="src\Panels\InspectorPanel.hpp" />
+    <ClInclude Include="src\Panels\LightingPanel.hpp" />
     <ClInclude Include="src\Panels\LoggerPanel.hpp" />
     <ClInclude Include="src\Panels\ProfilerPanel.hpp" />
     <ClInclude Include="src\Panels\SceneCameraTweener.hpp" />
