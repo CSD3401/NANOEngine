@@ -3,8 +3,11 @@
         {
             "EntityMeta": {
                 "name": "Point Light",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -48,8 +51,11 @@
         {
             "EntityMeta": {
                 "name": "Level",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -78,8 +84,11 @@
         {
             "EntityMeta": {
                 "name": "Sphere",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -108,8 +117,11 @@
         {
             "EntityMeta": {
                 "name": "Light",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -134,8 +146,11 @@
         {
             "EntityMeta": {
                 "name": "Sunlight",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -179,8 +194,11 @@
         {
             "EntityMeta": {
                 "name": "Elevator",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -205,8 +223,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -235,8 +256,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -265,8 +289,11 @@
         {
             "EntityMeta": {
                 "name": "Door Left",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -291,8 +318,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -321,8 +351,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -351,8 +384,11 @@
         {
             "EntityMeta": {
                 "name": "Door Right",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -377,8 +413,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -407,8 +446,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -437,8 +479,11 @@
         {
             "EntityMeta": {
                 "name": "Lever",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -463,8 +508,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -493,8 +541,11 @@
         {
             "EntityMeta": {
                 "name": "cs_parent",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -526,8 +577,11 @@
         {
             "EntityMeta": {
                 "name": "cs_switch01",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -580,8 +634,11 @@
         {
             "EntityMeta": {
                 "name": "cs_colour01",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -610,8 +667,11 @@
         {
             "EntityMeta": {
                 "name": "cs_colour02",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -640,8 +700,11 @@
         {
             "EntityMeta": {
                 "name": "cs_switch02",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -673,8 +736,11 @@
         {
             "EntityMeta": {
                 "name": "cs_colour03",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -703,8 +769,11 @@
         {
             "EntityMeta": {
                 "name": "Box",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -729,8 +798,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -759,8 +831,11 @@
         {
             "EntityMeta": {
                 "name": "Button",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -785,8 +860,11 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -811,8 +889,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -841,8 +922,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -871,8 +955,11 @@
         {
             "EntityMeta": {
                 "name": "Clicker",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -897,8 +984,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -927,8 +1017,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -957,8 +1050,11 @@
         {
             "EntityMeta": {
                 "name": "Button (Coloured)",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -983,8 +1079,11 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1009,8 +1108,11 @@
         {
             "EntityMeta": {
                 "name": "Clicker",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1035,8 +1137,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1065,8 +1170,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1095,8 +1203,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1125,8 +1236,11 @@
         {
             "EntityMeta": {
                 "name": "CordReel",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1151,8 +1265,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1181,8 +1298,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1211,8 +1331,11 @@
         {
             "EntityMeta": {
                 "name": "Crate",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1237,8 +1360,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1267,8 +1393,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1297,8 +1426,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1327,8 +1459,11 @@
         {
             "EntityMeta": {
                 "name": "Extinguisher",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1353,8 +1488,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1383,8 +1521,11 @@
         {
             "EntityMeta": {
                 "name": "Gantry",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1409,8 +1550,11 @@
         {
             "EntityMeta": {
                 "name": "Divider",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1435,8 +1579,11 @@
         {
             "EntityMeta": {
                 "name": "Left",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1461,8 +1608,11 @@
         {
             "EntityMeta": {
                 "name": "Right",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1487,8 +1637,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1517,8 +1670,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1547,8 +1703,11 @@
         {
             "EntityMeta": {
                 "name": "Door",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1573,8 +1732,11 @@
         {
             "EntityMeta": {
                 "name": "Left",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1599,8 +1761,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1629,8 +1794,11 @@
         {
             "EntityMeta": {
                 "name": "Right",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1655,8 +1823,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1685,8 +1856,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1715,8 +1889,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1745,8 +1922,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1775,8 +1955,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1805,8 +1988,11 @@
         {
             "EntityMeta": {
                 "name": "Handle",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1831,8 +2017,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1861,8 +2050,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1891,8 +2083,11 @@
         {
             "EntityMeta": {
                 "name": "Key",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1917,8 +2112,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1947,8 +2145,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -1977,8 +2178,11 @@
         {
             "EntityMeta": {
                 "name": "Key (Coloured)",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2003,8 +2207,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2033,8 +2240,11 @@
         {
             "EntityMeta": {
                 "name": "Lever",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2059,8 +2269,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2089,8 +2302,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2119,8 +2335,11 @@
         {
             "EntityMeta": {
                 "name": "IndicatorLight",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2145,8 +2364,11 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2171,8 +2393,11 @@
         {
             "EntityMeta": {
                 "name": "Dome",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2197,8 +2422,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2227,8 +2455,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2257,8 +2488,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2287,8 +2521,11 @@
         {
             "EntityMeta": {
                 "name": "Lock",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2313,8 +2550,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2343,8 +2583,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2373,8 +2616,11 @@
         {
             "EntityMeta": {
                 "name": "Lock (Coloured)",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2399,8 +2645,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2429,8 +2678,11 @@
         {
             "EntityMeta": {
                 "name": "MirrorPathTile",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2455,8 +2707,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2485,8 +2740,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2515,8 +2773,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2545,8 +2806,11 @@
         {
             "EntityMeta": {
                 "name": "Numpad",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2571,8 +2835,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2601,8 +2868,11 @@
         {
             "EntityMeta": {
                 "name": "Phonebooth",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2627,8 +2897,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2657,8 +2930,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2687,8 +2963,11 @@
         {
             "EntityMeta": {
                 "name": "Switch",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2713,8 +2992,11 @@
         {
             "EntityMeta": {
                 "name": "Base",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2739,8 +3021,11 @@
         {
             "EntityMeta": {
                 "name": "Flipper",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2765,8 +3050,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2795,8 +3083,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2825,8 +3116,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
-                "isActive": 0
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2855,8 +3149,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh Present",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2885,8 +3182,11 @@
         {
             "EntityMeta": {
                 "name": "Right Hand",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2911,8 +3211,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2941,8 +3244,11 @@
         {
             "EntityMeta": {
                 "name": "Watch",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2967,8 +3273,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -2997,8 +3306,11 @@
         {
             "EntityMeta": {
                 "name": "Player",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3023,8 +3335,11 @@
         {
             "EntityMeta": {
                 "name": "Mesh",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3053,8 +3368,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 0,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3082,8 +3400,11 @@
         {
             "EntityMeta": {
                 "name": "MirrorPuzzleScript",
+                "isActive": 1,
                 "luid": 7308894850290548736,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3122,8 +3443,11 @@
         {
             "EntityMeta": {
                 "name": "OriginalGridParent",
+                "isActive": 1,
                 "luid": 7308894850291728387,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3148,8 +3472,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850293760005,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3178,8 +3505,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850296119304,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3208,8 +3538,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850301624331,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3238,8 +3571,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850307391502,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3268,8 +3604,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850323578897,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3298,8 +3637,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850327511060,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3328,8 +3670,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850327707670,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3358,8 +3703,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850327838744,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3388,8 +3736,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850332622877,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3418,8 +3769,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850332753951,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3448,8 +3802,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850332819489,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3478,8 +3835,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850332885027,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3508,8 +3868,11 @@
         {
             "EntityMeta": {
                 "name": "",
+                "isActive": 1,
                 "luid": 7308894850339569705,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3534,8 +3897,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850347368491,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3564,8 +3930,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850347499565,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3594,8 +3963,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850347630639,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3624,8 +3996,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850349465649,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3654,8 +4029,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850355953719,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3684,8 +4062,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850356084793,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3714,8 +4095,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850356150331,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3744,8 +4128,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850356215869,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3774,8 +4161,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850362114115,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3804,8 +4194,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850362376261,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3834,8 +4227,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850362441799,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3864,8 +4260,11 @@
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
+                "isActive": 1,
                 "luid": 7308894850362507337,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3894,8 +4293,11 @@
         {
             "EntityMeta": {
                 "name": "Target",
+                "isActive": 1,
                 "luid": 7308894850426273792,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -3924,8 +4326,11 @@
         {
             "EntityMeta": {
                 "name": "MirrorTarget",
+                "isActive": 1,
                 "luid": 7308894850437545987,
-                "isActive": 1
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
