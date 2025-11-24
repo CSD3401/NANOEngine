@@ -3428,11 +3428,11 @@
             "NativeScript": {
                 "ScriptName": "MirrorPuzzle",
                 "SerializedFields": {
-                    "targetTransform": "133",
-                    "gridParent": "107",
+                    "targetTransform": "0",
+                    "gridParent": "0",
                     "startRow": "2",
-                    "mirrorTargetTransform": "134",
-                    "mirrorGridParent": "120",
+                    "mirrorTargetTransform": "0",
+                    "mirrorGridParent": "0",
                     "startCol": "0",
                     "endRow": "0",
                     "endCol": "3",
