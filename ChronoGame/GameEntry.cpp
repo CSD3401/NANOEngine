@@ -19,6 +19,8 @@
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
 #include "Scripts/MirrorPuzzle.hpp"
+#include "Scripts/PressurePlate.hpp"
+#include "Scripts/Door.hpp"
 #include "Scripts/TweenExampleScript.hpp"
 #include "Scripts/ParentControllerScript.hpp"
 #include "Scripts/MaterialSequencer.hpp"
@@ -97,6 +99,10 @@ extern "C" {
 
         registrar->RegisterScript("MirrorPuzzle", []() -> NE::Scripting::IScript* {
             return new MirrorPuzzle();
+            });
+
+        registrar->RegisterScript("PressurePlate", []() -> NE::Scripting::IScript* {
+            return new PressurePlate();
             });
 
           registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
