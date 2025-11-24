@@ -12,17 +12,15 @@ namespace Editor {
 
         ImGui::PushID(id);
 
-        // Optional title bar inside the window
         ImGui::TextUnformatted("HDR Color");
         ImGui::Separator();
 
-        // Big color picker (Hue wheel + SV square)
         ImGuiColorEditFlags picker_flags =
             ImGuiColorEditFlags_Float |
             ImGuiColorEditFlags_HDR |
             ImGuiColorEditFlags_DisplayRGB |
             ImGuiColorEditFlags_InputRGB |
-            ImGuiColorEditFlags_PickerHueWheel |   // wheel instead of bar
+            ImGuiColorEditFlags_PickerHueWheel |
             ImGuiColorEditFlags_NoSidePreview |
             ImGuiColorEditFlags_NoSmallPreview;
 
@@ -33,7 +31,6 @@ namespace Editor {
             changed = true;
         ImGui::EndGroup();
 
-        // Current color preview (with intensity applied)
         ImGui::Spacing();
         ImGui::TextUnformatted("Result");
         ImVec4 preview = hdr.color;
@@ -46,7 +43,6 @@ namespace Editor {
 
         ImGui::Separator();
 
-        // --- RGB 0-255 inputs ---------------------------------------------------
         ImGui::TextUnformatted("RGB 0-255");
         int rgb[3] = {
             (int)ImClamp(hdr.color.x * 255.0f, 0.0f, 255.0f),
@@ -62,11 +58,9 @@ namespace Editor {
             changed = true;
         }
 
-        // --- Intensity slider & field -------------------------------------------
         ImGui::Spacing();
         ImGui::TextUnformatted("Intensity");
 
-        // Slider
         ImGui::SetNextItemWidth(150.0f);
         if (ImGui::SliderFloat("##intensity_slider", &hdr.intensity, 0.0f, 5.0f))
             changed = true;
@@ -76,7 +70,6 @@ namespace Editor {
         if (ImGui::DragFloat("##intensity_value", &hdr.intensity, 0.01f, 0.0f, 20.0f, "%.5f"))
             changed = true;
 
-        // --- EV buttons (-2, -1, +1, +2) ---------------------------------------
         ImGui::Spacing();
         static const float ev_values[] = { -2.0f, -1.0f, 1.0f, 2.0f };
         const char* ev_labels[] = { "-2", "-1", "+1", "+2" };
@@ -91,16 +84,13 @@ namespace Editor {
 
         ImGui::Separator();
 
-        // --- Default swatches ---------------------------------------------------
         ImGui::TextUnformatted("Defaults");
 
-        // Persist swatches across frames
         static bool   swatches_initialized = false;
         static ImVec4 swatches[8 * 8];
 
         if (!swatches_initialized) {
             swatches_initialized = true;
-            // Simple gradient defaults; you can hardcode Unity-like colors here
             int idx = 0;
             for (int y = 0; y < 8; ++y) {
                 for (int x = 0; x < 8; ++x) {
@@ -123,7 +113,6 @@ namespace Editor {
                 ImGuiColorEditFlags_NoTooltip |
                 ImGuiColorEditFlags_NoDragDrop,
                 ImVec2(cell, cell))) {
-                // Apply swatch (base color only)
                 hdr.color = swatches[i];
                 changed = true;
             }
@@ -358,17 +347,14 @@ namespace Editor {
         ImGui::TextUnformatted(label);
         ImGui::SameLine();
 
-        // Compute the preview color (color * intensity)
         ImVec4 preview = hdr.color;
         preview.x *= hdr.intensity;
         preview.y *= hdr.intensity;
         preview.z *= hdr.intensity;
 
-        // Long bar size
         float fullWidth = ImGui::GetContentRegionAvail().x;
         ImVec2 barSize(fullWidth, ImGui::GetFrameHeight());
 
-        // Draw color bar
         ImVec2 popupPos(0, 0);
         if (ImGui::ColorButton("##hdr_bar", preview,
             ImGuiColorEditFlags_HDR |
@@ -377,14 +363,11 @@ namespace Editor {
             ImGui::OpenPopup("HDRPickerPopup");
         }
 
-        // Position the popup just under the bar
         popupPos = ImVec2(ImGui::GetItemRectMin().x,
             ImGui::GetItemRectMax().y + 4.0f);
         ImGui::SetNextWindowPos(popupPos, ImGuiCond_Appearing);
 
-        // Popup with the full HDR picker
         if (ImGui::BeginPopup("HDRPickerPopup", ImGuiWindowFlags_AlwaysAutoResize)) {
-            // Reuse your existing picker
             if (DrawHDRColorPicker("##HDRPickerContent", hdr))
                 changed = true;
 
