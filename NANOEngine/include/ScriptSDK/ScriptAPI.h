@@ -336,6 +336,90 @@ namespace Scripting {
         // Loop control
         void SetAudioLoop(bool loop, Entity entity = DEFAULT_ENTITY_PARAM);
 
+
+     //=====================================================================
+     // CAMERA OPERATIONS
+     //=====================================================================
+
+     /**
+      * Check if the entity has a camera component.
+      * @return true if the entity has a camera component, false otherwise
+      */
+        bool HasCamera() const;
+
+        /**
+         * Get the field of view of the camera.
+         * @return Field of view in degrees
+         */
+        float GetCameraFOV() const;
+
+        /**
+         * Set the field of view of the camera.
+         * @param fov New field of view in degrees
+         */
+        void SetCameraFOV(float fov);
+
+        /**
+         * Get the aspect ratio of the camera.
+         * @return Aspect ratio (width / height)
+         */
+        float GetCameraAspectRatio() const;
+
+        /**
+         * Set the aspect ratio of the camera.
+         * @param aspectRatio New aspect ratio (width / height)
+         */
+        void SetCameraAspectRatio(float aspectRatio);
+
+        /**
+         * Get the near clipping plane distance of the camera.
+         * @return Near plane distance
+         */
+        float GetCameraNearPlane() const;
+
+        /**
+         * Set the near clipping plane distance of the camera.
+         * @param nearPlane New near plane distance
+         */
+        void SetCameraNearPlane(float nearPlane);
+
+        /**
+         * Get the far clipping plane distance of the camera.
+         * @return Far plane distance
+         */
+        float GetCameraFarPlane() const;
+
+        /**
+         * Set the far clipping plane distance of the camera.
+         * @param farPlane New far plane distance
+         */
+        void SetCameraFarPlane(float farPlane);
+
+        /**
+         * Check if this camera is the main camera.
+         * @return true if this is the main camera, false otherwise
+         */
+        bool IsCameraMain() const;
+
+        /**
+         * Set this camera as the main camera.
+         * @param isMain New main camera state
+         */
+        void SetCameraMain(bool isMain);
+
+        /**
+         * Check if the camera is currently active.
+         * @return true if the camera is active, false otherwise
+         */
+        bool IsCameraActive() const;
+
+        /**
+         * Set the active state of the camera.
+         * @param isActive New active state
+         */
+        void SetCameraActive(bool isActive);
+
+
         //=====================================================================
         // COMPONENT ACCESS (Type-safe opaque handles)
         //=====================================================================
