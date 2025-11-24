@@ -8,7 +8,6 @@
 #include "DrawCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
-#include "RenderSettings.hpp"
 
 // Forward declarations
 namespace NE::ECS::Component {
@@ -91,8 +90,21 @@ namespace NE::Graphics {
         static RenderViewHandle s_SceneViewHandle;
         static RenderViewHandle s_GameViewHandle;
 
-        static RenderSettings renderSettings;
+        //FOG
+        enum class FogMode : int { Linear = 0, Exp = 1, Exp2 = 2 };
 
+        struct FogSettings {
+            bool        enabled = false;
+            Math::Vec3  color = { 0.5f, 0.6f, 0.7f };
+            float       density = 0.01f;   // used by Exp / Exp2
+            float       start = 10.0f;   // used by Linear
+            float       end = 100.0f;  // used by Linear
+            FogMode     mode = FogMode::Linear;
+        };
+
+        static void         SetFog(const FogSettings& s);
+        static FogSettings  GetFog();
+// END FOG
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;
@@ -122,6 +134,9 @@ namespace NE::Graphics {
 		// Framebuffer Manager
 		static std::unique_ptr<RenderViewManager> s_RenderViewManager;
 		static RenderViewHandle s_ActiveViewHandle;
+
+        //FOG
+        static FogSettings  s_Fog;  
     };
 
 }

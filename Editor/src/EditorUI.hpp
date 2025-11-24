@@ -10,11 +10,6 @@ namespace NE::Math {
 }
 
 namespace Editor {
-    struct HDRColor {
-        ImVec4 color;    // base color (0-1)
-        float  intensity; // HDR intensity multiplier
-    };
-
     // A pretty Vec3 control with color coding and reset buttons
     bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f);
 
@@ -37,8 +32,6 @@ namespace Editor {
         float previewSize,
         std::function<void(const std::string&)> assignById);
 
-    bool DrawHDRColorField(const char* label, HDRColor& hdr);
-
     // Enum Combo
     template<typename EnumType>
     bool DrawEnumCombo(const std::string& label, EnumType& value, const char* const* items, int itemsCount)
@@ -48,6 +41,5 @@ namespace Editor {
         if (changed) value = static_cast<EnumType>(val);
         return changed;
     }
-
 
 }

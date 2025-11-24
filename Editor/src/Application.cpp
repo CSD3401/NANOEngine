@@ -22,8 +22,11 @@
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image/stb_image.h>
+#include <stb_image\stb_image.h>
 #include <Input/InputManager.hpp>
+#include "Panels/AnimationPanel.hpp"
+#include "Panels/AnimationRuntimePanel.hpp"
+#include "Panels/AnimationGraphPanel.hpp"
 #include "EditorScene.hpp"
 
 namespace Editor {
@@ -106,6 +109,9 @@ namespace Editor {
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
+		//editorLayer.AddPanel<AnimationPanel>();
+		//editorLayer.AddPanel<AnimatorRuntimePanel>();
+		//editorLayer.AddPanel<AnimatorGraphPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
 

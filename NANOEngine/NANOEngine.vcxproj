@@ -28,7 +28,6 @@
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
     <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
-    <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
     <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />

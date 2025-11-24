@@ -16,7 +16,6 @@ public:
         SCRIPT_FIELD(delayBetween, Float);
         SCRIPT_COMPONENT_REF(materialA, MaterialRef);
         SCRIPT_COMPONENT_REF(materialB, MaterialRef);
-        SCRIPT_COMPONENT_REF(successMaterial, MaterialRef);
 
         SCRIPT_COMPONENT_REF(target1, TransformRef);
         SCRIPT_COMPONENT_REF(target2, TransformRef);
@@ -86,7 +85,6 @@ private:
     float delayBetween = 0.25f;
     MaterialRef materialA{};
     MaterialRef materialB{};
-    MaterialRef successMaterial{};
 
     TransformRef target1{}, target2{}, target3{}, target4{}, target5{};
     TransformRef attached1{}, attached2{}, attached3{}, attached4{}, attached5{};
@@ -101,8 +99,6 @@ private:
     int  m_clickIndex = 0;
     std::array<int, 5> m_order{};
     std::vector<Entity> m_targetsCache;
-    std::array<Vec3, 5> m_attachedOriginalRot{};
-    std::array<bool, 5> m_attachedIsRotated{};
 
     // debug look-at throttling
     bool   m_debugPrintAim = true;
@@ -227,20 +223,7 @@ private:
         }
         if (m_targetsCache.empty()) { m_hasQueued = false; return; }
 
-        
-        // Cache original rotations of attached switches and clear rotation flags
-        {
-            auto attached = GetAttached();
-            for (int i = 0; i < 5; ++i) {
-                if (attached[i].IsValid()) {
-                    m_attachedOriginalRot[i] = GetRotation(attached[i]);
-                } else {
-                    m_attachedOriginalRot[i] = Vec3(0.f,0.f,0.f);
-                }
-                m_attachedIsRotated[i] = false;
-            }
-        }
-std::vector<int> idx;
+        std::vector<int> idx;
         for (int i = 0; i < 5; ++i)
             if (trefs[i].IsValid() && trefs[i].GetEntity() != 0) idx.push_back(i);
 
@@ -319,26 +302,8 @@ std::vector<int> idx;
             << "  idx=" << expectedIdx);
 
         if (hit.entity == expected) {
-            // Rotate the clicked attached switch by +180 degrees around Y to indicate activation
-            if (attached[expectedIdx].IsValid()) {
-                if (!m_attachedIsRotated[expectedIdx]) {
-                    Vec3 r = GetRotation(attached[expectedIdx]);
-                    SetRotation(attached[expectedIdx], Vec3(r.x, r.y + 180.f, r.z));
-                    m_attachedIsRotated[expectedIdx] = true;
-                }
-            }
             m_clickIndex++;
             if (m_clickIndex >= CountOrder()) {
-                // Apply succeed material to all targets
-                if (successMaterial.IsValid()) {
-                    auto trefs = GetTargets();
-                    for (const auto& ref : trefs) {
-                        if (ref.IsValid()) {
-                            Entity e2 = ref.GetEntity();
-                            if (e2 != 0) NE::Renderer::Command::AssignMaterial(e2, successMaterial);
-                        }
-                    }
-                }
                 LOG_INFO("i pass");
                 m_waitingForClicks = false;
                 m_hasQueued = false;
@@ -367,16 +332,6 @@ std::vector<int> idx;
         if (pressedIdx0 == expectedIdx) {
             m_clickIndex++;
             if (m_clickIndex >= CountOrder()) {
-                // Apply succeed material to all targets
-                if (successMaterial.IsValid()) {
-                    auto trefs = GetTargets();
-                    for (const auto& ref : trefs) {
-                        if (ref.IsValid()) {
-                            Entity e2 = ref.GetEntity();
-                            if (e2 != 0) NE::Renderer::Command::AssignMaterial(e2, successMaterial);
-                        }
-                    }
-                }
                 LOG_INFO("i pass");
                 m_waitingForClicks = false;
                 m_hasQueued = false;
@@ -392,16 +347,6 @@ std::vector<int> idx;
     }
 
     void FailAndReset() {
-        // Revert all attached switches back to original rotation
-        {
-            auto attached = GetAttached();
-            for (int i = 0; i < 5; ++i) {
-                if (attached[i].IsValid()) {
-                    SetRotation(attached[i], m_attachedOriginalRot[i]);
-                }
-                m_attachedIsRotated[i] = false;
-            }
-        }
         LOG_INFO("fail");
         auto trefs = GetTargets();
         for (const auto& ref : trefs) {
