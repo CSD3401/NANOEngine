@@ -11,9 +11,8 @@ namespace NE::SceneManagement {
 		~SceneManager() = default;
 
 		void LoadScene(const std::string& scenePath);
-		void ReloadScene();
 		void Update(double dt);
-		void Render(RenderPass pass);
+		void Render();
 		void ExitScene();
 		void SaveScene();
 		void SaveSceneIfDirty(const std::string& path = "");

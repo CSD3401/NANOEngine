@@ -173,6 +173,7 @@
     <ClCompile Include="src\EditorScene.cpp" />
     <ClCompile Include="src\Command\CommandHistory.cpp" />
     <ClCompile Include="src\Command\EditorCommands.cpp" />
+    <ClCompile Include="src\Panels\AssetBrowserPanel.cpp" />
     <ClCompile Include="src\Panels\ConsolePanel.cpp" />
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
@@ -182,7 +183,6 @@
     <ClCompile Include="src\Panels\SceneCameraTweener.cpp" />
     <ClCompile Include="src\Panels\ScenePanel.cpp" />
     <ClCompile Include="src\Application.cpp" />
-    <ClCompile Include="src\Panels\AssetBrowserPanel.cpp" />
     <ClCompile Include="src\Panels\ScriptsPanel.cpp" />
     <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="main.cpp" />

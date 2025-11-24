@@ -4,13 +4,12 @@
 #include "Core/LUIDRegistry.hpp"
 
 namespace NE::SceneManagement {
-	enum class RenderPass { SCENE, SCENE_PICKING, GAME };
 
 	class Scene {
 	public:
 		void Init();
 		void Update(double dt);
-		void Render(RenderPass pass);
+		void Render();
 		void Exit();
 
 		void ScriptStart();

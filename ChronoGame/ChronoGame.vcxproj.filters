@@ -69,6 +69,9 @@
     <ClInclude Include="Scripts\MaterialSequencer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Scripts\ExampleMaterialScript.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Scripts\MirrorPuzzle.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

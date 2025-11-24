@@ -18,11 +18,11 @@
 #include "Scripts/PlayerController.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
-#include "Scripts/MatchingPuzzle.hpp"
 #include "Scripts/MirrorPuzzle.hpp"
 #include "Scripts/TweenExampleScript.hpp"
 #include "Scripts/ParentControllerScript.hpp"
 #include "Scripts/MaterialSequencer.hpp"
+#include "Scripts/ExampleMaterialScript.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -87,12 +87,12 @@ extern "C" {
               return new TweenExampleScript();
               });
 
-        registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
-              return new ParentControllerScript();
+          registrar->RegisterScript("ExampleMaterialScript", []() -> NE::Scripting::IScript* {
+              return new ExampleMaterialScript();
               });
-              
-        registrar->RegisterScript("MatchingPuzzle", []() -> NE::Scripting::IScript* {
-              return new MatchingPuzzle();
+
+          registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
+              return new ParentControllerScript();
               });
 
         registrar->RegisterScript("MirrorPuzzle", []() -> NE::Scripting::IScript* {

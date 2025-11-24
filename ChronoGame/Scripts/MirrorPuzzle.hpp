@@ -59,20 +59,19 @@ public:
 	};
 
 	MirrorPuzzle() {
-		// Component references (use SCRIPT_COMPONENT_REF)
-		SCRIPT_COMPONENT_REF(targetTransform, Transform);
-		SCRIPT_COMPONENT_REF(gridParent, Transform);
-		SCRIPT_COMPONENT_REF(mirrorTargetTransform, Transform);
-		SCRIPT_COMPONENT_REF(mirrorGridParent, Transform);
+		// Component references (use SCRIPT_COMPONENT_REF in constructor)
+		SCRIPT_COMPONENT_REF(targetTransform, TransformRef);
+		SCRIPT_COMPONENT_REF(gridParent, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTargetTransform, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorGridParent, TransformRef);
+	}
 
-		// Primitive fields (use SCRIPT_FIELD)
-		//REGISTER_FIELD(startRow);
-		//REGISTER_FIELD(startCol);
-		//REGISTER_FIELD(endRow);
-		//REGISTER_FIELD(endCol);
-		//REGISTER_FIELD(tileSpacingX);
-		//REGISTER_FIELD(tileSpacingY);
+	~MirrorPuzzle() override = default;
 
+	void Awake() override {}
+
+	void Initialize(Entity entity) override {
+		// Primitive fields (use SCRIPT_FIELD in Initialize)
 		SCRIPT_FIELD(startRow, Int);
 		SCRIPT_FIELD(startCol, Int);
 		SCRIPT_FIELD(endRow, Int);
@@ -80,15 +79,14 @@ public:
 		SCRIPT_FIELD(tileSpacingX, Float);
 		SCRIPT_FIELD(tileSpacingY, Float);
 
-		// Vectors of structs (use REGISTER_VECTOR with NE_REFLECT_BEGIN/END in struct)
-		REGISTER_VECTOR(tileRestrictions);
-		REGISTER_VECTOR(mirrorTileRestrictions);
+		// TODO: Uncomment these when engine adds support for std::vector<CustomStruct>
+		// SCRIPT_FIELD_STRUCT(tileRestrictions);
+		// SCRIPT_FIELD_STRUCT(mirrorTileRestrictions);
+
+		// NOTE: The tileRestrictions and mirrorTileRestrictions vectors work in code
+		// but aren't currently editable in the editor. For now, configure them
+		// programmatically in Start() or use the alternative flat int vector approach.
 	}
-
-	~MirrorPuzzle() override = default;
-
-	void Awake() override {}
-	void Initialize(Entity entity) override {}
 
 	void Start() override {
 		LOG_INFO("=== MirrorPuzzle Started ===");
@@ -231,110 +229,47 @@ public:
 
 		// Check win condition
 		if (HasReachedEnd() && HasMirrorReachedEnd()) {
-			puzzleSolved = true;
-			LOG_INFO("*** PUZZLE SOLVED! Both targets reached their goals! ***");
+			if (!puzzleSolved) {
+				puzzleSolved = true;
+				LOG_INFO("\n=== PUZZLE SOLVED! ===");
+			}
 		}
 	}
-
-	void OnDestroy() override {}
-	void OnEnable() override {}
-	void OnDisable() override {}
-	void OnValidate() override {}
-
-	const char* GetTypeName() const override { return "MirrorPuzzle"; }
 
 	void OnCollisionEnter(Entity other) override {}
 	void OnCollisionExit(Entity other) override {}
 	void OnTriggerEnter(Entity other) override {}
 	void OnTriggerExit(Entity other) override {}
 
-	// === Exposed editable fields ===
-	// Merge fields from both IScript's built-in system (component refs) and ExposedFieldRegistry (primitives/vectors)
-	std::vector<std::string> GetExposedFieldNames() const override { 
-		// Get built-in SDK fields (component references)
-		auto sdkFields = IScript::GetExposedFieldNames();
-		
-		// Get ExposedFieldRegistry fields (primitives, vectors)
-		auto customFields = m_fields.GetNames();
-		
-		// Merge both lists
-		std::vector<std::string> allFields;
-		allFields.reserve(sdkFields.size() + customFields.size());
-		allFields.insert(allFields.end(), sdkFields.begin(), sdkFields.end());
-		allFields.insert(allFields.end(), customFields.begin(), customFields.end());
-		
-		return allFields;
-	}
-	
-	std::string GetFieldType(const std::string& name) const override { 
-		// Check ExposedFieldRegistry first
-		std::string type = m_fields.GetType(name);
-		if (!type.empty()) return type;
-		
-		// Fall back to SDK built-in system
-		return IScript::GetFieldType(name);
-	}
-	
-	std::string GetFieldValueAsString(const std::string& name) const override { 
-		// Check ExposedFieldRegistry first
-		std::string value = m_fields.GetValue(name);
-		if (!value.empty()) return value;
-		
-		// Fall back to SDK built-in system
-		return IScript::GetFieldValueAsString(name);
-	}
-	
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { 
-		// Try ExposedFieldRegistry first
-		if (m_fields.SetValue(name, value)) return true;
-		
-		// Fall back to SDK built-in system
-		return IScript::SetFieldValueFromString(name, value);
+	const char* GetTypeName() const override {
+		return "MirrorPuzzle";
 	}
 
-	// Array/Vector support for tile restrictions
-	size_t GetArraySize(const std::string& fieldName) const override {
-		return m_fields.GetArraySize(fieldName);
-	}
-
-	std::string GetArrayElement(const std::string& fieldName, size_t index) const override {
-		return m_fields.GetArrayElement(fieldName, index);
-	}
-
-	bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) override {
-		return m_fields.SetArrayElement(fieldName, index, value);
-	}
-
-	void AddArrayElement(const std::string& fieldName) override {
-		m_fields.AddArrayElement(fieldName);
-	}
-
-	void RemoveArrayElement(const std::string& fieldName, size_t index) override {
-		m_fields.RemoveArrayElement(fieldName, index);
-	}
-
-private:
+	// === DIRECTION ENUM ===
 	enum Direction : uint8_t {
-		NONE = 0b0000,
-		UP = 0b0001,
-		RIGHT = 0b0010,
-		DOWN = 0b0100,
-		LEFT = 0b1000,
-		ALL = 0b1111
+		NONE = 0,
+		UP = 1 << 0,
+		DOWN = 1 << 1,
+		LEFT = 1 << 2,
+		RIGHT = 1 << 3,
+		ALL = UP | DOWN | LEFT | RIGHT
 	};
 
-	// === UTILITY ===
+	// === HELPER FUNCTIONS ===
 
-	int Clamp(int value, int minVal, int maxVal) const {
-		if (value < minVal) return minVal;
-		if (value > maxVal) return maxVal;
-		return value;
+	int Clamp(int val, int min, int max) const {
+		if (val < min) return min;
+		if (val > max) return max;
+		return val;
 	}
 
-	Vec3 GetTileWorldPosition(TransformRef& tile, TransformRef& parent) {
-		Vec3 localPos = GetPosition(tile);
-		Vec3 parentPos = GetPosition(parent);
-		return Vec3(localPos.x + parentPos.x, localPos.y + parentPos.y, localPos.z + parentPos.z);
+	Vec3 GetTileWorldPosition(const TransformRef& tileRef, const TransformRef& parentRef) const {
+		if (!tileRef.IsValid() || !parentRef.IsValid()) {
+			return Vec3(0, 0, 0);
+		}
+		Vec3 localPos = GetPosition(tileRef);
+		Vec3 parentPos = GetPosition(parentRef);
+		return parentPos + localPos;
 	}
 
 	// === MOVEMENT ===
@@ -570,7 +505,4 @@ private:
 	// Tile transforms (populated from GetChildOf in Start)
 	std::array<TransformRef, 12> tileTransforms;
 	std::array<TransformRef, 12> mirrorTileTransforms;
-
-	// Field registry for editor integration
-	ExposedFieldRegistry m_fields;
 };
