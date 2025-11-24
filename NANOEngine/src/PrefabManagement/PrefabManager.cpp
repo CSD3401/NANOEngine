@@ -93,7 +93,6 @@ namespace NE::Prefab {
         if (!s_scene) return;
         auto& ecs = s_scene->GetECSCoordinator();
 
-        // Load prefab JSON
         std::ifstream in(prefabPath, std::ios::binary);
         if (!in) return;
 
@@ -104,7 +103,6 @@ namespace NE::Prefab {
 
         auto entitiesJson = doc["Entities"].GetArray();
 
-        // Build localId -> JSON* map
         std::unordered_map<uint64_t, const rapidjson::Value*> localToJson;
         for (auto& entVal : entitiesJson) {
             const auto& tJson = entVal["Transform"];

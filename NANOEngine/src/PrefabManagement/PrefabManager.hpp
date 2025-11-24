@@ -32,7 +32,6 @@ namespace NE::Prefab {
             const std::string& prefabPath);
         static void RebuildFromScene();
 
-        // Optional helpers:
         static uint64_t GetInstanceId(uint32_t entity);
         static uint32_t GetRootOfInstance(uint64_t instanceId);
 
