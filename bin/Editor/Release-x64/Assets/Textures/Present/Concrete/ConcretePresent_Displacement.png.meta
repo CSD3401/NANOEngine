@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "68eb42f7-d15d-4e93-ba1e-7f9a7e392e32",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Concrete\\ConcretePresent_Displacement.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

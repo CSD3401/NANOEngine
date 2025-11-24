@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "25e123d8-6b26-4abe-96c5-c49cca862c25",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\BarricadeBody\\BarricadeBodyPast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
