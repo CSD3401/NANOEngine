@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include "EditorEntity.hpp"
+#include "Graphics/Core/EditorCamera.hpp"
 
 namespace Editor {
 
@@ -21,6 +22,8 @@ namespace Editor {
         static std::string selectedAsset;
         static std::string currentScenePath;
         static std::string selectedPrefab;
+
+        static NE::Graphics::EditorCamera m_editorCamera;
 
         // NEW: hierarchy index
         static std::unordered_map<uint32_t, Node> s_nodes;                // id -> node

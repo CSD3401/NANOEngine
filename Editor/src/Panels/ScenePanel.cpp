@@ -34,12 +34,12 @@ namespace Editor {
 		float nearPlane = 0.1f;
 		float farPlane = 1000.0f;
 
-		m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
-		m_editorCamera.SetPosition(position);
-		m_editorCamera.LookAt(target, up);
+		EditorScene::m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
+		EditorScene::m_editorCamera.SetPosition(position);
+		EditorScene::m_editorCamera.LookAt(target, up);
 
 		// Give address of the editor camera to the scene camera tweener
-		sceneCameraTweener.SetSceneCamera(GetCamera());
+		sceneCameraTweener.SetSceneCamera(&EditorScene::m_editorCamera);
 
 		//NE::UpdateEditorCameraData();
 	}
@@ -67,7 +67,7 @@ namespace Editor {
 			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
-				Vec3 camForwardPos = m_editorCamera.GetPosition() + m_editorCamera.GetForward() * 8.0f;
+				Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
 				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
 
 				if (newEntities.empty()) {
@@ -202,11 +202,11 @@ namespace Editor {
 				if (move.LengthSquared() > 0.0f) {
 					move.Normalize();
 					// Calculate direction vectors
-					Vec3 forward = m_editorCamera.GetForward();
+					Vec3 forward = EditorScene::m_editorCamera.GetForward();
 					Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
 
 					Vec3 offset = (right * move.x + forward * move.z + Vec3(0, 1, 0) * move.y) * m_cameraSpeed * deltaTime;
-					m_editorCamera.SetPosition(m_editorCamera.GetPosition() + offset);
+					EditorScene::m_editorCamera.SetPosition(EditorScene::m_editorCamera.GetPosition() + offset);
 				}
 
 				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
@@ -297,8 +297,8 @@ namespace Editor {
 			memcpy(worldMatrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
 
 			bool editedThisFrame = ImGuizmo::Manipulate(
-				m_editorCamera.GetViewMatrix().Data(),
-				m_editorCamera.GetProjectionMatrix().Data(),
+				EditorScene::m_editorCamera.GetViewMatrix().Data(),
+				EditorScene::m_editorCamera.GetProjectionMatrix().Data(),
 				currentOperation, ImGuizmo::LOCAL, worldMatrix
 			);
 			bool isUsing = ImGuizmo::IsUsing();
@@ -399,15 +399,10 @@ namespace Editor {
 		dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
 		dir.y = sinf(Radians(m_cameraPitch));
 		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
-		m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
+		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
 		NE::UpdateEditorCameraData();
 
 		ImGui::End();
-	}
-
-	NE::Graphics::EditorCamera* ScenePanel::GetCamera()
-	{
-		return &m_editorCamera;
 	}
 }
