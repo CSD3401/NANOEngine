@@ -37,6 +37,9 @@ namespace Scripting {
     /// Invalid entity constant
     constexpr Entity INVALID_ENTITY = 0;
 
+    /// Default entity parameter (sentinel value meaning "use current entity")
+    constexpr Entity DEFAULT_ENTITY_PARAM = UINT32_MAX - 1;
+
     //=========================================================================
     // MATH TYPES (Self-contained, no engine dependencies)
     //=========================================================================

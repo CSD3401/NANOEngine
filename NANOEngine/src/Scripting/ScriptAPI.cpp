@@ -174,100 +174,116 @@ namespace Scripting {
     // Transform Operations
     //=========================================================================
 
-    Vec3 IScript::GetPosition() const {
+    Vec3 IScript::GetPosition(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+        // Use m_entity if entity is DEFAULT_ENTITY_PARAM
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
             return Vec3::Zero();
 
-        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
         return ToSDKVec3(transform.localPosition);
     }
 
-    void IScript::SetPosition(const Vec3& pos) {
+    void IScript::SetPosition(const Vec3& pos, Entity entity) {
         CHECK_CONTEXT_OR_RETURN();
 
-        if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
-            auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity)) {
+            auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
             transform.localPosition = ToEngineVec3(pos);
             transform.isDirty = true;
         }
     }
 
-    void IScript::SetPosition(float x, float y, float z) {
-        SetPosition(Vec3(x, y, z));
+    void IScript::SetPosition(float x, float y, float z, Entity entity) {
+        SetPosition(Vec3(x, y, z), entity);
     }
 
-    Vec3 IScript::GetRotation() const {
+    Vec3 IScript::GetRotation(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
             return Vec3::Zero();
 
-        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
         return ToSDKVec3(transform.localRotationEuler);
     }
 
-    void IScript::SetRotation(const Vec3& rot) {
+    void IScript::SetRotation(const Vec3& rot, Entity entity) {
         CHECK_CONTEXT_OR_RETURN();
 
-        if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
-            auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity)) {
+            auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
             transform.localRotationEuler = ToEngineVec3(rot);
             transform.isDirty = true;
         }
     }
 
-    void IScript::SetRotation(float x, float y, float z) {
-        SetRotation(Vec3(x, y, z));
+    void IScript::SetRotation(float x, float y, float z, Entity entity) {
+        SetRotation(Vec3(x, y, z), entity);
     }
 
-    Vec3 IScript::GetScale() const {
+    Vec3 IScript::GetScale(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(Vec3::One());
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
             return Vec3::One();
 
-        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
         return ToSDKVec3(transform.localScale);
     }
 
-    void IScript::SetScale(const Vec3& scale) {
+    void IScript::SetScale(const Vec3& scale, Entity entity) {
         CHECK_CONTEXT_OR_RETURN();
 
-        if (m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity)) {
-            auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity)) {
+            auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
             transform.localScale = ToEngineVec3(scale);
             transform.isDirty = true;
         }
     }
 
-    void IScript::SetScale(float x, float y, float z) {
-        SetScale(Vec3(x, y, z));
+    void IScript::SetScale(float x, float y, float z, Entity entity) {
+        SetScale(Vec3(x, y, z), entity);
     }
 
-    void IScript::SetScale(float uniformScale) {
-        SetScale(Vec3(uniformScale, uniformScale, uniformScale));
+    void IScript::SetScale(float uniformScale, Entity entity) {
+        SetScale(Vec3(uniformScale, uniformScale, uniformScale), entity);
     }
 
-    void IScript::Translate(const Vec3& translation) {
-        SetPosition(GetPosition() + translation);
+    void IScript::Translate(const Vec3& translation, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        SetPosition(GetPosition(targetEntity) + translation, targetEntity);
     }
 
-    void IScript::Translate(float x, float y, float z) {
-        Translate(Vec3(x, y, z));
+    void IScript::Translate(float x, float y, float z, Entity entity) {
+        Translate(Vec3(x, y, z), entity);
     }
 
-    void IScript::Rotate(const Vec3& rotation) {
-        SetRotation(GetRotation() + rotation);
+    void IScript::Rotate(const Vec3& rotation, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        SetRotation(GetRotation(targetEntity) + rotation, targetEntity);
     }
 
-    void IScript::Rotate(float x, float y, float z) {
-        Rotate(Vec3(x, y, z));
+    void IScript::Rotate(float x, float y, float z, Entity entity) {
+        Rotate(Vec3(x, y, z), entity);
     }
 
-    Vec3 IScript::GetForward() const {
-        Vec3 rotation = GetRotation(); // (pitch, yaw, roll) in degrees
+    Vec3 IScript::GetForward(Entity entity) const {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
         // Convert degrees to radians
         float pitch = rotation.x * (3.14159265f / 180.0f);
@@ -282,8 +298,9 @@ namespace Scripting {
         return Normalize(forward);
     }
 
-    Vec3 IScript::GetRight() const {
-        Vec3 rotation = GetRotation(); // (pitch, yaw, roll) in degrees
+    Vec3 IScript::GetRight(Entity entity) const {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
         // Convert degrees to radians
         float yaw = rotation.y * (3.14159265f / 180.0f);
@@ -297,7 +314,7 @@ namespace Scripting {
         return Normalize(right);
     }
 
-    Vec3 IScript::GetUp() const {
+    Vec3 IScript::GetUp(Entity entity) const {
         // Up is always world up in this simple implementation
         // For more complex scenarios, you might want to calculate it from forward and right
         return Vec3(0.0f, 1.0f, 0.0f);
@@ -307,33 +324,39 @@ namespace Scripting {
     // Hierarchy Operations
     //=========================================================================
 
-    Entity IScript::GetParent() const {
+    Entity IScript::GetParent(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
             return INVALID_ENTITY;
 
-        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
         return transform.parent;
     }
 
-    size_t IScript::GetChildCount() const {
+    size_t IScript::GetChildCount(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(0);
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
             return 0;
 
-        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
         return transform.children.size();
     }
 
-    Entity IScript::GetChild(size_t index) const {
+    Entity IScript::GetChild(size_t index, Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
             return INVALID_ENTITY;
 
-        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
 
         if (index >= transform.children.size())
             return INVALID_ENTITY;
@@ -341,13 +364,15 @@ namespace Scripting {
         return transform.children[index];
     }
 
-    std::vector<Entity> IScript::GetChildren() const {
+    std::vector<Entity> IScript::GetChildren(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(std::vector<Entity>());
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
             return std::vector<Entity>();
 
-        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(m_entity);
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
         return transform.children;
     }
 
@@ -355,117 +380,139 @@ namespace Scripting {
     // Rigidbody Physics
     //=========================================================================
 
-    bool IScript::HasRigidbody() const {
-        // Check if entity has a physics body registered with PhysicsManager
-        return Physics::PhysicsManager::EntityHasPhysicsBody(m_entity);
+    bool IScript::HasRigidbody(Entity entity) const {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        return Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity);
     }
 
-    float IScript::GetMass() const {
+    float IScript::GetMass(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(0.0f);
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
             return 0.0f;
 
-        return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(m_entity).mass;
+        return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).mass;
     }
 
-    void IScript::SetMass(float mass) {
+    void IScript::SetMass(float mass, Entity entity) {
         CHECK_CONTEXT_OR_RETURN();
 
-        if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity)) {
-            auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(m_entity);
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
+            auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
             rigidbody.mass = mass;
         }
     }
 
-    bool IScript::GetUseGravity() const {
+    bool IScript::GetUseGravity(Entity entity) const {
         CHECK_CONTEXT_OR_RETURN(false);
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
             return false;
 
-        return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(m_entity).useGravity;
+        return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).useGravity;
     }
 
-    void IScript::SetUseGravity(bool use) {
-        if (!Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+    void IScript::SetUseGravity(bool use, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(m_entity);
+        if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+
+        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
         Physics::PhysicsManager::SetGravityEnabled(bodyID, use);
 
         // Also update Rigidbody component if it exists
         if (m_context && m_context->componentManager &&
-            m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity)) {
-            auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(m_entity);
+            m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
+            auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
             rigidbody.useGravity = use;
         }
     }
 
-    bool IScript::IsStatic() const {
+    bool IScript::IsStatic(Entity entity) const {
         if (!m_context || !m_context->componentManager) return false;
 
-        if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity))
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
             return false;
 
-        return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(m_entity).isStatic;
+        return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).isStatic;
     }
 
-    void IScript::SetStatic(bool isStatic) {
+    void IScript::SetStatic(bool isStatic, Entity entity) {
         if (!m_context || !m_context->componentManager) return;
 
-        if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(m_entity)) {
-            auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(m_entity);
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
+            auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
             rigidbody.isStatic = isStatic;
         }
     }
 
-    void IScript::LockRotation(bool lockX, bool lockY, bool lockZ) {
-        if (!Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+    void IScript::LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(m_entity);
+        if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+
+        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
         Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);
     }
 
-    Vec3 IScript::GetVelocity() const {
-        if (!Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
+    Vec3 IScript::GetVelocity(Entity entity) const {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) {
             return Vec3::Zero();
         }
 
-        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(m_entity);
+        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
         return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));
     }
 
-    void IScript::SetVelocity(const Vec3& velocity) {
-        if (!Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+    void IScript::SetVelocity(const Vec3& velocity, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(m_entity);
+        if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+
+        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
         Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));
     }
 
-    void IScript::SetVelocity(float x, float y, float z) {
-        SetVelocity(Vec3(x, y, z));
+    void IScript::SetVelocity(float x, float y, float z, Entity entity) {
+        SetVelocity(Vec3(x, y, z), entity);
     }
 
-    void IScript::AddForce(const Vec3& force) {
-        if (!Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+    void IScript::AddForce(const Vec3& force, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(m_entity);
+        if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+
+        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
         Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));
     }
 
-    void IScript::AddForce(float x, float y, float z) {
-        AddForce(Vec3(x, y, z));
+    void IScript::AddForce(float x, float y, float z, Entity entity) {
+        AddForce(Vec3(x, y, z), entity);
     }
 
-    void IScript::AddImpulse(const Vec3& impulse) {
-        if (!Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) return;
+    void IScript::AddImpulse(const Vec3& impulse, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(m_entity);
+        if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+
+        uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
         Physics::PhysicsManager::AddImpulse(bodyID, ToEngineVec3(impulse));
     }
 
-    void IScript::AddImpulse(float x, float y, float z) {
-        AddImpulse(Vec3(x, y, z));
+    void IScript::AddImpulse(float x, float y, float z, Entity entity) {
+        AddImpulse(Vec3(x, y, z), entity);
     }
 
     //=========================================================================
@@ -541,14 +588,16 @@ namespace Scripting {
     // Audio Source
     //=========================================================================
 
-    bool IScript::HasAudioSource() const {
+    bool IScript::HasAudioSource(Entity entity) const {
         if (!m_context || !m_context->componentManager) return false;
-        return m_context->componentManager->HasComponent<ECS::Component::AudioSource>(m_entity);
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        return m_context->componentManager->HasComponent<ECS::Component::AudioSource>(targetEntity);
     }
 
-    void IScript::PlayAudio() {
-        if (!HasAudioSource()) return;
-        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    void IScript::PlayAudio(Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return;
+        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
 
         // If already playing and not paused, stop first
         if (audioSource.m_channel && audioSource.isPlaying && !audioSource.isPaused) {
@@ -561,9 +610,10 @@ namespace Scripting {
         audioSource.m_hasPlayed = false; // Trigger playback in AudioSystem
     }
 
-    void IScript::StopAudio() {
-        if (!HasAudioSource()) return;
-        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    void IScript::StopAudio(Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return;
+        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
 
         if (audioSource.m_channel) {
             audioSource.m_channel->stop();
@@ -573,9 +623,10 @@ namespace Scripting {
         audioSource.isPaused = false;
     }
 
-    void IScript::PauseAudio() {
-        if (!HasAudioSource()) return;
-        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    void IScript::PauseAudio(Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return;
+        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
 
         if (audioSource.m_channel && audioSource.isPlaying) {
             audioSource.m_channel->setPaused(true);
@@ -583,9 +634,10 @@ namespace Scripting {
         }
     }
 
-    void IScript::ResumeAudio() {
-        if (!HasAudioSource()) return;
-        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    void IScript::ResumeAudio(Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return;
+        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
 
         if (audioSource.m_channel && audioSource.isPaused) {
             audioSource.m_channel->setPaused(false);
@@ -593,21 +645,24 @@ namespace Scripting {
         }
     }
 
-    bool IScript::IsAudioPlaying() const {
-        if (!HasAudioSource()) return false;
-        const auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    bool IScript::IsAudioPlaying(Entity entity) const {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return false;
+        const auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
         return audioSource.isPlaying && !audioSource.isPaused;
     }
 
-    float IScript::GetVolume() const {
-        if (!HasAudioSource()) return 0.0f;
-        auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    float IScript::GetVolume(Entity entity) const {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return 0.0f;
+        auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
         return audio.volume;
     }
 
-    void IScript::SetVolume(float volume) {
-        if (!HasAudioSource()) return;
-        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    void IScript::SetVolume(float volume, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return;
+        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
         audioSource.volume = volume;
 
         // Apply immediately if playing
@@ -616,15 +671,17 @@ namespace Scripting {
         }
     }
 
-    float IScript::GetPitch() const {
-        if (!HasAudioSource()) return 1.0f;
-        auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    float IScript::GetPitch(Entity entity) const {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return 1.0f;
+        auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
         return audio.pitch;
     }
 
-    void IScript::SetPitch(float pitch) {
-        if (!HasAudioSource()) return;
-        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    void IScript::SetPitch(float pitch, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return;
+        auto& audioSource = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
         audioSource.pitch = pitch;
 
         // Apply immediately if playing
@@ -633,9 +690,10 @@ namespace Scripting {
         }
     }
 
-    void IScript::SetAudioLoop(bool loop) {
-        if (!HasAudioSource()) return;
-        auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(m_entity);
+    void IScript::SetAudioLoop(bool loop, Entity entity) {
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+        if (!HasAudioSource(targetEntity)) return;
+        auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
         audio.loop = loop;
     }
 
@@ -1661,34 +1719,36 @@ namespace Scripting {
 
     // === Entity Active State Functions ===
 
-    bool IScript::IsActive() const {
+    bool IScript::IsActive(Entity e) const {
         if (!m_context->componentManager) return false;
 
-        if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity))
+        if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
             return true; // Default to active if no EntityMeta
 
-        return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity).isActive;
+        return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
     }
 
-    void IScript::SetActive(bool active) {
+    void IScript::SetActive(bool active, Entity entity) {
         if (!m_context->componentManager) return;
 
-    if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
-            auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
+        Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+    if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+            auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
 
     // Only update if changed
     if (meta.isActive != active) {
          meta.isActive = active;
 
  // 1. Update rendering visibility
-    if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(m_entity)) {
-        auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(m_entity);
+    if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
+        auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
  renderer.visible = active && IsActiveInHierarchy();
       }
 
      // 2. Update physics state
-      if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(m_entity)) {
-        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(m_entity);
+      if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
+        uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
 
     if (active && IsActiveInHierarchy()) {
                // Reactivate physics body only if parent hierarchy is also active
@@ -1705,8 +1765,8 @@ namespace Scripting {
        // No need to manually disable here - the hierarchy check in ScriptSystem handles it
 
                 // 4. Recursively propagate to all children (Unity-style)
-                if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
-         auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
+                if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(e)) {
+         auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(e);
       PropagateActiveStateToChildren(transform.children, active);
    }
 
