@@ -287,11 +287,14 @@ namespace Editor {
 
 						EditorScene::s_selectedEntity = nullptr;
 						EditorScene::selectedAsset = "";
-						// probably need to change this looks terrible when we have alot of entities
-						for (auto& ent : EditorScene::s_entities) { 
-							if (ent.linkedEntity == id) {
-								EditorScene::s_selectedEntity = &ent;
-								break;
+
+						if (id != NE::ECS::NO_ENTITY) {
+							// probably need to change this looks terrible when we have alot of entities
+							for (auto& ent : EditorScene::s_entities) { 
+								if (ent.linkedEntity == id) {
+									EditorScene::s_selectedEntity = &ent;
+									break;
+								}
 							}
 						}
 					}
