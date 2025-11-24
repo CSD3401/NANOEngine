@@ -35,6 +35,35 @@ namespace NE::ECS::Systems {
 
 			nsc.Instance->SetEnabled(false); // Start disabled
 			SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+		} else {
+			auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
+
+			if (factory) {
+				// Clean up existing script if any
+				if (nsc.Instance && nsc.DestroyScript) {
+					nsc.DestroyScript(nsc.Instance);
+				} else if (nsc.Instance) {
+					delete nsc.Instance;
+				}
+
+				nsc.CreateScript = factory;
+				nsc.DestroyScript = [](IScript* instance) { delete instance; };
+				nsc.Instance = nsc.CreateScript();
+				Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager); // Link to engine systems via new API
+				nsc.Instance->_SetEntity(entity);
+
+				// Call Awake() first (even if disabled)
+				nsc.Instance->Awake();
+
+				// Then Initialize()
+				nsc.Instance->Initialize(entity);
+
+				// Restore serialized field values if they exist
+				Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
+
+				nsc.Instance->SetEnabled(false); // Start disabled
+				SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+			}
 		}
 	}
 
