@@ -260,17 +260,6 @@ namespace NE::Serialization {
         if (entities.empty())
             return "";
 
-        //std::string prefabName = "Prefab";
-        //if (ecs.HasComponent<EntityMeta>(rootEnt)) {
-        //    const auto& meta = ecs.GetComponent<EntityMeta>(rootEnt);
-        //    if (!meta.name.empty())
-        //        prefabName = meta.name;
-        //}
-
-        //std::string filePath = directoryPath + "/" + prefabName + ".nfab";
-
-        //std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
-
         std::ofstream out;
         
         std::unordered_map<uint32_t, uint64_t> entityToLocalId;
