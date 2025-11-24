@@ -17,7 +17,7 @@ namespace Editor {
 
     struct EditorScene {
     public:
-        static std::vector<EditorEntity> s_entities;
+        static std::vector<EditorEntity> s_entities; // to be removed soon
         static EditorEntity* s_selectedEntity;
         static std::string selectedAsset;
         static std::string currentScenePath;

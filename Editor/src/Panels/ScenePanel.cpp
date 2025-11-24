@@ -12,6 +12,7 @@
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <ECS/Components/EntityMeta.hpp>
+#include <EditorInterface/RendererExports.hpp>
 
 namespace Editor {
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
@@ -64,8 +65,8 @@ namespace Editor {
 		);
 
 		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
-				std::string dropped((const char*)p->Data, p->DataSize - 1);
+			if (const ImGuiPayload* prefabPayload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
+				std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
 				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
 				Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
 				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
@@ -128,6 +129,52 @@ namespace Editor {
 
 				// Clear asset selection since we just selected an entity
 				Editor::EditorScene::selectedAsset.clear();
+			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
+				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					ImVec2 mousePos = ImGui::GetMousePos();
+					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+
+						float localX = mousePos.x - panelPos.x;
+						float localY = mousePos.y - panelPos.y;
+						float spMouseX = localX / panelSize.x;
+						float spMouseY = localY / panelSize.y;
+
+						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
+						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
+
+						uint32_t id = NE::GetPickedEntity(x, y);
+
+						if (id != NE::ECS::NO_ENTITY)
+							NE::Renderer::Command::AssignMaterial(id, uuid);
+					}
+				}
+			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+				std::string dropped((const char*)modalPayload->Data, modalPayload->DataSize - 1);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+
+				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					ImVec2 mousePos = ImGui::GetMousePos();
+					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+
+						float localX = mousePos.x - panelPos.x;
+						float localY = mousePos.y - panelPos.y;
+						float spMouseX = localX / panelSize.x;
+						float spMouseY = localY / panelSize.y;
+
+						uint32_t x = static_cast<int>(spMouseX * 1920.f);
+						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
+
+						uint32_t id = NE::GetPickedEntity(x, y);
+
+						if (id != NE::ECS::NO_ENTITY)
+							NE::Renderer::Command::AssignModel(id, uuid);
+					}
+				}
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -240,7 +287,8 @@ namespace Editor {
 
 						EditorScene::s_selectedEntity = nullptr;
 						EditorScene::selectedAsset = "";
-						for (auto& ent : EditorScene::s_entities) {
+						// probably need to change this looks terrible when we have alot of entities
+						for (auto& ent : EditorScene::s_entities) { 
 							if (ent.linkedEntity == id) {
 								EditorScene::s_selectedEntity = &ent;
 								break;
@@ -253,9 +301,9 @@ namespace Editor {
 
 		if (EditorScene::s_selectedEntity) {
 			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
-			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::TRANSLATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::ROTATE;
+			if (ImGui::IsKeyPressed(ImGuiKey_R)) currentOperation = ImGuizmo::SCALE;
 
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
