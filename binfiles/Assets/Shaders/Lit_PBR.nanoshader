@@ -228,10 +228,15 @@ void main() {
     vec3 N = normalize(v_Normal);
 
     // Albedo (sRGB to linear)
-    vec3 albedo = srgb_to_linear(clamp(u_BaseColor, 0.0, 1.0));
-    if (u_HasAlbedoMap != 0){
-        albedo *= srgb_to_linear(texture(u_AlbedoMap, uv).rgb);
-    }
+    //vec3 albedo = srgb_to_linear(clamp(u_BaseColor, 0.0, 1.0));
+    //if (u_HasAlbedoMap != 0){
+    //    albedo *= srgb_to_linear(texture(u_AlbedoMap, uv).rgb);
+    //}
+	vec3 albedo = clamp(u_BaseColor, 0.0, 1.0);
+
+	if (u_HasAlbedoMap != 0){
+		albedo *= texture(u_AlbedoMap, uv).rgb;
+	}
 
     // Normal map (BC5 XY)
     if (u_HasNormalMap != 0){
