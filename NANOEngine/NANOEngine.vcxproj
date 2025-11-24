@@ -28,6 +28,7 @@
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
     <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
+    <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
@@ -156,6 +157,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
+    <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
