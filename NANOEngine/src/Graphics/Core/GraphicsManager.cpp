@@ -45,7 +45,9 @@ namespace NE::Graphics {
     int GraphicsManager::s_DebugProjLoc;
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
-
+    //FOG
+    NE::Graphics::GraphicsManager::FogSettings GraphicsManager::s_Fog{};   
+    //END FOG 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
@@ -149,7 +151,18 @@ namespace NE::Graphics {
                 shader->SetUniformMat4("u_View", camView);
                 shader->SetUniformMat4("u_Projection", camProj);
                 shader->SetUniformVec3("u_CameraPos", camPos);
-
+//FOG
+                // quick local helper; no interface changes
+                const GLuint prog = shader->GetProgramID();
+                auto has = [&](const char* n) { return glGetUniformLocation(prog, n) != -1; };
+                // Fog (only if present in the current shader)
+                if (has("u_FogEnabled")) shader->SetUniformInt("u_FogEnabled", s_Fog.enabled ? 1 : 0);
+                if (has("u_FogColor"))   shader->SetUniformVec3("u_FogColor", s_Fog.color);
+                if (has("u_FogMode"))    shader->SetUniformInt("u_FogMode", static_cast<int>(s_Fog.mode));
+                if (has("u_FogDensity")) shader->SetUniformFloat("u_FogDensity", s_Fog.density);
+                if (has("u_FogStart"))   shader->SetUniformFloat("u_FogStart", s_Fog.start);
+                if (has("u_FogEnd"))     shader->SetUniformFloat("u_FogEnd", s_Fog.end);
+//END FOG
                 // Set lights
                 shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
                 for (size_t i = 0; i < m_lights.size(); ++i) {
@@ -649,5 +662,8 @@ namespace NE::Graphics {
         s_DebugLines.clear();
         s_DebugTriangles.clear();
     }
-
+    //FOG
+    void GraphicsManager::SetFog(const FogSettings& s) { s_Fog = s; }
+    GraphicsManager::FogSettings GraphicsManager::GetFog() { return s_Fog; }
+    //END FOG
 }

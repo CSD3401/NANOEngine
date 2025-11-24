@@ -9,6 +9,8 @@
 #include <fstream>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
+#include <EditorInterface/ECSExports.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
@@ -31,9 +33,8 @@ namespace Editor {
         m_thumbnailManager.Shutdown();
     }
 
-    void AssetBrowserPanel::OnImGuiRender()
-    {
-        ImGui::Begin("Asset Browser", nullptr, ImGuiWindowFlags_MenuBar);
+	void AssetBrowserPanel::OnImGuiRender() {
+		ImGui::Begin("Asset Browser", nullptr, ImGuiWindowFlags_MenuBar);
 
         // Search bar
         ImGui::BeginMenuBar();
@@ -55,14 +56,44 @@ namespace Editor {
 
         ImGui::BeginChild("DirectoryContents", ImVec2(0, 0), false);
         RenderDirectoryContents(m_currentDirectory);
+
+        ImGuiWindow* child = ImGui::GetCurrentWindow();
+        ImRect drop_rect = child->InnerRect;      // or child->ContentRegionRect depending on what you want
+
+        if (ImGui::BeginDragDropTargetCustom(drop_rect, child->ID)) {
+            auto* draw = child->DrawList;
+            draw->AddRect(drop_rect.Min, drop_rect.Max,
+                ImGui::GetColorU32(ImVec4(1, 1, 0, 0.3f)),
+                0.0f, 0, 2.0f);
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_DRAG_ID")) {
+                if (p->DataSize == sizeof(uint32_t)) {
+                    uint32_t dropped = *static_cast<const uint32_t*>(p->Data);
+                    
+                    std::string prefabName = "Prefab";
+                    auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
+                    if (!meta.name.empty())
+                        prefabName = meta.name;
+
+                    std::string filePath = m_currentDirectory.string() + prefabName + ".nfab";
+                    SPD_INFO("Prefab created at: " << filePath);
+                    std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
+                    AssetManager::GetInstance().GenerateMetadata(filePath);
+                    std::string prefabID = AssetManager::GetInstance().RetrieveUUID(filePath);
+                    meta.prefabID = prefabID;
+
+                    NE::SerializePrefab(dropped, filePath);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         RenderPopups();
         ImGui::EndChild();
 
         ImGui::EndChild();
 
-        ImGui::End();
+		ImGui::End();
 
-        // Confirm delete popup
         if (m_confirmDeletePopupOpen) {
             ImGui::OpenPopup("Confirm Delete");
             m_confirmDeletePopupOpen = false;
@@ -278,6 +309,10 @@ namespace Editor {
                         ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
                         hasSpecialPayload = true;
                     }
+                    else if (entryPath.extension() == ".nfab") {
+                        ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+                        hasSpecialPayload = true;
+                    }
                 }
 
                 // If no special payload was set, use the generic ASSET_MOVE
@@ -298,12 +333,18 @@ namespace Editor {
                         entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
                         EditorScene::s_selectedEntity = nullptr;
                         EditorScene::selectedAsset = entryPath.string();
-                    }
-                    else if (entryPath.extension() == ".scene") {
-                        NE::LoadTargetScene(entryPath.string());
-                        for (const auto& entt : NE::GetEntities()) {
-                            EditorScene::s_entities.push_back({ entt });
-                        }
+                    } else if (entryPath.extension() == ".scene") {
+                        // NE::LoadTargetScene(entryPath.string());
+                        // for (const auto& entt : NE::GetEntities()) {
+                        //     EditorScene::s_entities.push_back({ entt });
+                        // }
+                    } else if (entryPath.extension() == ".nfab") {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = "";
+                        NE::LoadPrefabScene(entryPath.string());
+
+                        Editor::EditorScene::selectedPrefab = entryPath.string();
+                        Editor::EditorScene::RebuildFromActiveScene();
                     }
                 }
             }
@@ -532,42 +573,31 @@ namespace Editor {
     void AssetBrowserPanel::CreateNewMaterial() {
         namespace fs = std::filesystem;
 
-        // 1) decide where to put it — assuming you have a "current folder" in the browser
-        fs::path targetDir = m_currentDirectory;   // adjust to whatever your panel uses
+        fs::path targetDir = m_currentDirectory;
         if (!fs::exists(targetDir))
             return;
 
-        // 2) make a unique name
         static int s_MatCounter = 1;
         fs::path matPath;
         do {
             matPath = targetDir / ("NewMaterial_" + std::to_string(s_MatCounter++) + ".nanomat");
         } while (fs::exists(matPath));
 
-        // 3) build the JSON in the exact format your Material::LoadFromFile expects
         rapidjson::Document doc;
         doc.SetObject();
         auto& alloc = doc.GetAllocator();
 
-        // default shader — you can change this to "Basic" or whatever your engine ships with
         doc.AddMember("Shader", rapidjson::Value("Unlit", alloc), alloc);
 
-        // pipeline settings (these match what your material save/load uses)
         doc.AddMember("DepthTest", true, alloc);
         doc.AddMember("BlendMode", true, alloc);
 
-        // these numbers are exactly the ones your material code saved earlier:
-        // 1029  -> GL_BACK
-        // 6914  -> GL_FILL
         doc.AddMember("CullMode", 1029, alloc);
         doc.AddMember("PolygonMode", 6914, alloc);
 
-        // empty properties for now — when the material is opened in inspector,
-        // and user changes values, you can overwrite this.
         rapidjson::Value props(rapidjson::kObjectType);
         doc.AddMember("Properties", props, alloc);
 
-        // 4) write to disk
         rapidjson::StringBuffer buffer;
         rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
         doc.Accept(writer);

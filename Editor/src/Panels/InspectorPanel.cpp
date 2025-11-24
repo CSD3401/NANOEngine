@@ -1,5 +1,6 @@
 #include "InspectorPanel.hpp"
 #include <imgui/imgui.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <EditorInterface/PhysicsExports.hpp>
@@ -39,7 +40,6 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
-#include <EditorInterface/PhysicsExports.hpp>
 
 namespace {
 	template<typename Owner, typename T>
@@ -234,6 +234,38 @@ namespace {
 
 		return true;
 	}
+
+	//static void ApplyPrefabOverridesForEntity(uint32_t entity) {
+	//	using NE::ECS::Component::EntityMeta;
+
+	//	auto& meta = NE::ECS::Command::GetEntityMeta(entity);
+	//	if (meta.prefabID.empty())
+	//		return;
+
+	//	// 1) Decide which entity is the prefab root for the instance
+	//	uint32_t rootEntity = entity;
+	//	if (!meta.isPrefabRoot && meta.prefabInstanceID != 0) {
+	//		if (auto* inst = NE::Prefab::PrefabManager::GetInstance(meta.prefabInstanceID)) {
+	//			if (inst->rootEntity != NE::ECS::NO_ENTITY)
+	//				rootEntity = inst->rootEntity;
+	//		}
+	//	}
+
+	//	// 2) Get prefab asset path from UUID
+	//	auto& assetMgr = Editor::AssetManager::GetInstance();
+	//	std::string prefabPath = assetMgr.RetrieveFileName(meta.prefabID);
+
+	//	// 3) Re-serialize the current root hierarchy over that prefab file
+	//	//    NE::SerializePrefab(scene, entt, targetPath) already exists. :contentReference[oaicite:5]{index=5}
+	//	NE::SerializePrefab(rootEntity, prefabPath);
+
+	//	// 4) Optional: ask AssetManager to reimport/update any cached data
+	//	// assetMgr.ReimportAsset(prefabPath);
+
+	//	// Optional: mark scene clean/dirty as you like
+	//	NE::MarkSceneDirty(); // or maybe not, depends on your workflow
+	//}
+
 }
 
 namespace Editor {
@@ -289,8 +321,11 @@ namespace Editor {
 				std::string edited = currentText;
 
 				ImGui::PushID("EntityName");
-				bool changed = ImGui::InputText("##Name", edited.data(),
-					ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
+				bool changed = ImGui::InputText(
+					"##Name",
+					&edited,
+					ImGuiInputTextFlags_AutoSelectAll
+				);
 				bool activated = ImGui::IsItemActivated();
 				bool active = ImGui::IsItemActive();
 				bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
@@ -339,14 +374,27 @@ namespace Editor {
 					if (it != g_activeCommands.end()) {
 						if (auto* c = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
 							if (c->Before() == c->After()) {
+								// No net change: just drop the command
 								g_activeCommands.erase(it);
-								return;
+							} else {
+								// There *was* a change: commit it
+								Editor::CommandHistory::GetInstance()
+									.ExecuteCommand(std::move(it->second));
+								g_activeCommands.erase(it);
 							}
+						} else {
+							// Fallback: if not a SetFieldCommand, just execute & erase
+							Editor::CommandHistory::GetInstance()
+								.ExecuteCommand(std::move(it->second));
+							g_activeCommands.erase(it);
 						}
-						Editor::CommandHistory::GetInstance()
-							.ExecuteCommand(std::move(it->second));
-						g_activeCommands.erase(it);
 					}
+				}
+
+				if (metaRO.prefabID != "") {
+					ImGui::Text("Prefab");
+					ImGui::SameLine();
+					ImGui::Text(metaRO.prefabID.c_str());
 				}
 			}
 
@@ -354,46 +402,6 @@ namespace Editor {
 			for (const auto& [typeIdx, compType] : componentTypeRegistry) {
 				if (!sig.test(compType)) continue;
 
-				//if (typeIdx == typeid(NE::ECS::Component::EntityMeta)) {
-				//	// EntityMeta component - show isActive with proper handling
-				//	auto& comp = NE::ECS::Command::GetEntityMeta(entity);
-				//	ImGui::SeparatorText("Entity Properties");
-
-				//	// Manually render isActive field with immediate updates
-				//	{
-				//		bool isActiveValue = comp.isActive;
-				//		if (ImGui::Checkbox("isActive", &isActiveValue)) {
-				//			comp.isActive = isActiveValue;
-				//			NE::MarkSceneDirty();
-				//			SPD_DEBUG("[DirtyFlag] Entity isActive changed to {} - Scene marked DIRTY", isActiveValue);
-				//		}
-				//	}
-
-				//	// Render other EntityMeta fields (skip name and isActive)
-				//	NE::Core::ForEachFieldView<NE::ECS::Component::EntityMeta>(comp,
-				//		[&](auto const& desc, auto const& currentValue) {
-				//			using Owner = NE::ECS::Component::EntityMeta;
-				//			using FieldT = std::decay_t<decltype(currentValue)>;
-
-				//			// Skip name and isActive (already handled above)
-				//			if (std::string(desc.name) == "name" || std::string(desc.name) == "isActive") {
-				//				return;
-				//			}
-
-				//			FieldT edited = currentValue;
-
-				//			ImGui::PushID(desc.name.data());
-				//			const bool changed = DrawField(desc, edited);
-				//			ImGui::PopID();
-
-				//			// Handle other EntityMeta fields if any are added in the future
-				//			if (changed) {
-				//				// Apply change immediately  
-				//				NE::MarkSceneDirty();
-				//			}
-				//		});
-				//}
-				//else 
 				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
 					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 					ImGui::SeparatorText("Transform");
@@ -1571,7 +1579,32 @@ namespace Editor {
 					m_materialEditor->RenderSettings();
 			}
 		}
+		//FOG
+		else {
+			// <--- add the Fog UI here
+			if (ImGui::CollapsingHeader("RenderSettings / Fog")) {
+				bool enabled = NE::Renderer::Query::GetFogEnabled();
+				if (ImGui::Checkbox("Enable Fog", &enabled))
+					NE::Renderer::Command::SetFogEnabled(enabled);
 
+				static const char* modes[] = { "Linear","Exponential","Exp2" };
+				int mode = NE::Renderer::Query::GetFogMode();
+				if (ImGui::Combo("Mode", &mode, modes, IM_ARRAYSIZE(modes)))
+					NE::Renderer::Command::SetFogMode(mode);
+
+				float color[3]; NE::Renderer::Query::GetFogColor(color);
+				if (ImGui::ColorEdit3("Color", color))
+					NE::Renderer::Command::SetFogColor(color[0], color[1], color[2]);
+
+				float dens = NE::Renderer::Query::GetFogDensity();
+				if (ImGui::DragFloat("Density", &dens, 0.001f, 0.0f, 1.0f))
+					NE::Renderer::Command::SetFogDensity(dens);
+
+				float s, e; NE::Renderer::Query::GetFogRange(s, e);
+				if (ImGui::DragFloatRange2("Linear Range", &s, &e, 0.1f, 0.0f, 5000.0f))
+					NE::Renderer::Command::SetFogRange(s, e);
+			}
+}		//FOG
 		ImGui::End();
 	}
 

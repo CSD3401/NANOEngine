@@ -17,8 +17,8 @@
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "Core/Couroutine.hpp"
-#include <iostream>
 #include "Core/SpdLogger.hpp"  // For console logging
+#include "PrefabManagement/PrefabManager.hpp"
 
 static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
 	namespace fs = std::filesystem;
@@ -49,7 +49,6 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_animatorSystem->Init();
 		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
-
 	}
 
 	void Scene::Update(double dt)
