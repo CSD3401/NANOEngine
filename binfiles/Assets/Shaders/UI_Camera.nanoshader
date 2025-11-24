@@ -12,14 +12,20 @@ uniform float uPlaneDistance;
 out vec2 vUV;
 
 void main() {
-    // Convert pixel coords to NDC
+    // Convert pixel coordinates to NDC (-1 to 1)
     float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
     float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
     
-    // Place at distance from camera in view space
-    vec4 viewPos = vec4(ndcX * uPlaneDistance, ndcY * uPlaneDistance, 
-                        -uPlaneDistance, 1.0);
+    // Position UI at planeDistance from camera in view space
+    // The UI sits on a plane at -planeDistance (negative Z in view space)
+    vec4 viewPos = vec4(
+        ndcX * uPlaneDistance,  // Scale X by distance to maintain size
+        ndcY * uPlaneDistance,  // Scale Y by distance to maintain size
+        -uPlaneDistance,         // Z position (distance from camera)
+        1.0
+    );
     
+    // Project to clip space
     gl_Position = uProj * viewPos;
     vUV = aUV;
 }

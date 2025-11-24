@@ -11,7 +11,6 @@ namespace NE::Graphics {
     class UIRenderer {
     public:
         static void Init(uint32_t width, uint32_t height);
-        static void SetWindowSize(uint32_t width, uint32_t height);
 
         static void BeginFrame();
         static void Submit(const UIDrawCommand& cmd);

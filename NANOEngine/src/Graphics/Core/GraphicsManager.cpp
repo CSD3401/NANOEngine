@@ -660,7 +660,7 @@ namespace NE::Graphics {
 
         UIRenderer::BeginFrame();
         UIRenderer::DrawFrame();
-        UIRenderer::DrawTestQuad();
+        //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
         UIRenderer::Composite(s_SceneFrameBuffer->GetFramebuffer());
         UIRenderer::ClearCommands();

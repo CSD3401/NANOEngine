@@ -48,61 +48,20 @@ namespace NE::ECS::Systems {
         result.y = rect.y;
         result.width = rect.width;
         result.height = rect.height;
-        result.z = 0.0f;
+        result.z = rect.z;
 
-        // accumulate parent positions
-        if (rect.parent != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(rect.parent)) 
+        // Apply transformations based on render mode
+        if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY || canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
         {
-            auto& parentRect = m_cm->GetComponent<UIRectTransform>(rect.parent);
-            result.x += parentRect.x;
-            result.y += parentRect.y;
-        }
-
-        // apply transformations based on render mode
-        switch (canvas.renderMode) {
-        case UICanvas::RenderMode::SCREEN_SPACE_OVERLAY:
-        {
-            // pixel perfect snapping
-            if (canvas.pixelPerfect) 
+            // Accumulate parent positions for overlay
+            if (rect.parent != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(rect.parent))
             {
-                result.x = std::round(result.x);
-                result.y = std::round(result.y);
-                result.width = std::round(result.width);
-                result.height = std::round(result.height);
-            }
-            break;
-        }
-
-        case UICanvas::RenderMode::SCREEN_SPACE_CAMERA:
-        {
-            // render UI in front of camera at a fixed distance
-            if (viewMatrix && projMatrix) 
-            {
-                // get screen dimensions (temp)
-                float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-                float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
-
-                // convert UI position to NDC (-1 to 1)
-                float ndcX = (result.x / screenWidth) * 2.0f - 1.0f;
-                float ndcY = (result.y / screenHeight) * 2.0f - 1.0f;
-
-                // place at plane distance from camera
-                result.z = canvas.planeDistance;
-
-                // Scale based on distance (perspective scaling)
-                float scale = canvas.planeDistance / 100.0f;  // adjust based on your scale
-                result.x = ndcX * screenWidth * scale;
-                result.y = ndcY * screenHeight * scale;
-                result.width *= canvas.scaleFactor * scale;
-                result.height *= canvas.scaleFactor * scale;
-            }
-            else 
-            {
-                // fallback to overlay mode if no camera
-                // keep raw coordinates
+                auto& parentRect = m_cm->GetComponent<UIRectTransform>(rect.parent);
+                result.x += parentRect.x;
+                result.y += parentRect.y;
             }
 
-            // pixel perfect snapping
+            // Pixel perfect snapping
             if (canvas.pixelPerfect)
             {
                 result.x = std::round(result.x);
@@ -110,27 +69,22 @@ namespace NE::ECS::Systems {
                 result.width = std::round(result.width);
                 result.height = std::round(result.height);
             }
-
-            // plane dist
-            // order in layer
-
-            break;
         }
-
-        case UICanvas::RenderMode::WORLD_SPACE:
+        else if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE)
         {
-            // Treat UI as 3D object in world space
-            // UI elements have world coordinates and can be occluded by 3D objects
+            // In world space, x/y/z are already world coordinates
+            // Accumulate parent transforms if in hierarchy
+            if (rect.parent != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(rect.parent))
+            {
+                auto& parentRect = m_cm->GetComponent<UIRectTransform>(rect.parent);
+                result.x += parentRect.x;
+                result.y += parentRect.y;
+                result.z += parentRect.z;
+            }
 
-            // Z-depth is preserved (can be set via UIRectTransform.z if you add it)
-            // result.z = rect.z;  // If you add Z to UIRectTransform
-
-            // Note: In world space, x/y are world coordinates, not screen pixels
-            // The renderer will need to transform these using view-projection matrices
-
-            // order in layer
-            break;
-        }
+            // World space uses the rect's width/height directly (in world units)
+            // No pixel-to-screen conversion needed
+            // Transformation is handled by the model matrix in rendering
         }
 
         return result;
@@ -148,7 +102,7 @@ namespace NE::ECS::Systems {
             float heightScale = screenHeight / canvas.referenceHeight;
 
             // use minimum scale to fit content
-            // (You could add a "match" parameter: 0=width, 1=height, 0.5=average) // kiv
+            // (add a "match" parameter: 0=width, 1=height, 0.5=average) // kiv
             return std::min(widthScale, heightScale);
         }
 
@@ -207,26 +161,44 @@ namespace NE::ECS::Systems {
             }
         }
 
-        //// kiv: sort by Z-order if needed (for world space or layering)
-        //if (canvasChildren.size() > 1) {
-        //    std::sort(canvasChildren.begin(), canvasChildren.end(),
-        //        [this](Entity a, Entity b) {
-        //            auto& rectA = m_cm->GetComponent<UIRectTransform>(a);
-        //            auto& rectB = m_cm->GetComponent<UIRectTransform>(b);
-        //            // Lower Z-index renders first (behind)
-        //            return rectA.zIndex < rectB.zIndex;
-        //        });
-        //}
+        // sort by Z-order for proper layering in world space
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && canvasChildren.size() > 1) {
+            std::sort(canvasChildren.begin(), canvasChildren.end(),
+                [this](Entity a, Entity b) {
+                    auto& rectA = m_cm->GetComponent<UIRectTransform>(a);
+                    auto& rectB = m_cm->GetComponent<UIRectTransform>(b);
+                    return rectA.z < rectB.z; // render back-to-front (higher Z renders later, on top)
+                });
+        }
 
         // render all children
         for (Entity e : canvasChildren) 
         {
             auto& img = m_cm->GetComponent<UIImage>(e);
+            auto& rect = m_cm->GetComponent<UIRectTransform>(e);
             WorldTransform worldTransform = CalculateWorldTransform(e, canvas, viewMatrix, projMatrix);
 
             // generate mesh based on UIImage's image type
-            std::vector<NE::Graphics::UIVertex> vertices = 
-                NE::Graphics::UIImageMeshGenerator::GenerateVertices(
+            std::vector<NE::Graphics::UIVertex> vertices;
+
+            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) 
+            {
+                // for world space, generate unit quad vertices (0-1 range)
+                // The model matrix will scale/position them correctly
+                vertices = NE::Graphics::UIImageMeshGenerator::GenerateVertices(
+                    img,
+                    0.0f,  // Unit quad origin
+                    0.0f,
+                    0.0f,
+                    1.0f,  // Unit size
+                    1.0f,
+                    img.color
+                );
+            }
+            else 
+            {
+                // for screen space, use pixel coordinates
+                vertices = NE::Graphics::UIImageMeshGenerator::GenerateVertices(
                     img,
                     worldTransform.x,
                     worldTransform.y,
@@ -235,6 +207,7 @@ namespace NE::ECS::Systems {
                     worldTransform.height,
                     img.color
                 );
+            }
 
             // if no vertices (e.g. fillAmount = 0), skip rendering
             if (vertices.empty()) continue;
@@ -264,10 +237,64 @@ namespace NE::ECS::Systems {
             if (projMatrix) cmd.projMatrix = *projMatrix;
 
             // build model matrix for world space
-            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                cmd.modelMatrix = Math::Mat4::BuildTranslation(cmd.x, cmd.y, cmd.z);
-                cmd.modelMatrix = cmd.modelMatrix *
-                    Math::Mat4::BuildScaling(cmd.width, cmd.height, 1.0f);
+            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) 
+            {
+                // Get transform components
+                Math::Vec3 position = rect.GetPosition();
+                Math::Vec3 scale = rect.GetScale();
+                Math::Vec2 pivot = rect.GetPivot();
+
+                // Calculate pivot offset in world units
+                // Pivot determines where the element rotates/scales around
+                float pivotOffsetX = -rect.width * pivot.x * scale.x;
+                float pivotOffsetY = -rect.height * pivot.y * scale.y;
+
+                // Build transformation matrix: T * R * S * PivotOffset
+                // 1. Scale (apply both rect size and scale factors)
+                Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
+                    rect.width * scale.x,
+                    rect.height * scale.y,
+                    scale.z
+                );
+
+                // 2. Apply pivot offset (translate to pivot point before rotation)
+                Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(
+                    pivotOffsetX,
+                    pivotOffsetY,
+                    0.0f
+                );
+
+                // 3. Rotation (from Euler angles)
+                Math::Mat4 rotationMatrix = rect.GetRotationMatrix();
+
+                // 4. Translation to world position
+                Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(
+                    position.x,
+                    position.y,
+                    position.z
+                );
+
+                // Combine: Translation * Rotation * Pivot * Scale
+                // This order ensures the UI rotates around its pivot point
+                cmd.modelMatrix = translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
+
+                // DEBUG: Print first world space UI element
+                static bool debugPrinted = false;
+                if (!debugPrinted) {
+                    std::cout << "[World Space UI Debug]" << std::endl;
+                    std::cout << "  Position: " << position.x << ", " << position.y << ", " << position.z << std::endl;
+                    std::cout << "  Scale: " << scale.x << ", " << scale.y << ", " << scale.z << std::endl;
+                    std::cout << "  Rect Size: " << rect.width << "x" << rect.height << std::endl;
+                    std::cout << "  Pivot: " << pivot.x << ", " << pivot.y << std::endl;
+                    std::cout << "  Model Matrix: " << std::endl;
+                    for (int row = 0; row < 4; row++) {
+                        std::cout << "    [" << cmd.modelMatrix.GetElement(row, 0) << ", "
+                            << cmd.modelMatrix.GetElement(row, 1) << ", "
+                            << cmd.modelMatrix.GetElement(row, 2) << ", "
+                            << cmd.modelMatrix.GetElement(row, 3) << "]" << std::endl;
+                    }
+                    debugPrinted = true;
+                }
             }
 
             NE::Graphics::UIRenderer::Submit(cmd);
@@ -313,6 +340,15 @@ namespace NE::ECS::Systems {
                 {
                     pView = &viewMatrix;
                     pProj = &projMatrix;
+
+                    // DEBUG
+                    static bool cameraPrinted = false;
+                    if (!cameraPrinted) {
+                        std::cout << "[World Space Camera Debug]" << std::endl;
+                        std::cout << "  View Matrix valid: " << (pView != nullptr) << std::endl;
+                        std::cout << "  Proj Matrix valid: " << (pProj != nullptr) << std::endl;
+                        cameraPrinted = true;
+                    }
                 }
                 else 
                 {

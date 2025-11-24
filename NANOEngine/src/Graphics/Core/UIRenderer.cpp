@@ -134,18 +134,40 @@ namespace NE::Graphics {
         glGenBuffers(1, &s_VBO);
         glGenBuffers(1, &s_EBO);
 
-        // setup VBO (4 vertices, each with pos(2) + uv(2) = 4 floats)
-        glBindVertexArray(s_VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 5, nullptr, GL_DYNAMIC_DRAW);
+        // for testing
+        {
+            //// setup VBO (4 vertices, each with pos(2) + uv(2) = 4 floats)
+            //glBindVertexArray(s_VAO);
+            //glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
+            //glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 5, nullptr, GL_DYNAMIC_DRAW);
 
-        // position attribute (location 0) (2D for overlay/camera, 3D for world)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
+            //// position attribute (location 0) (2D for overlay/camera, 3D for world)
+            //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+            //glEnableVertexAttribArray(0);
 
-        // UV attribute (location 1)
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
+            //// UV attribute (location 1)
+            //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+            //glEnableVertexAttribArray(1);
+        }
+
+        // with world space support 
+        {
+            // setup vbo for ui vertices
+            glBindVertexArray(s_VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
+
+            // allocate buffer for dynamic vertex data
+            // format: pos(3) + uv(2) = 5 floats per vertex (no vertex color)
+            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 1000 * 5, nullptr, GL_DYNAMIC_DRAW);
+
+            // position attribute (location 0) - 3d for world space
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+
+            // UV attribute (location 1)
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+            glEnableVertexAttribArray(1);
+        }
 
         // setup EBO (indices for 2 triangles = 1 quad)
         unsigned int indices[6] = { 0, 1, 2, 0, 2, 3 };
@@ -161,34 +183,72 @@ namespace NE::Graphics {
 
     void UIRenderer::BuildQuadVertices(const UIDrawCommand& cmd, float* verts) {
         switch (cmd.renderMode) {
-        case 0: // overlay - screen space 2D
-        case 1: // camera - screen space 2D (shader handles transform)
-            verts[0] = cmd.x; verts[1] = cmd.y; verts[2] = cmd.z;
-            verts[3] = 0.0f; verts[4] = 0.0f; // uv
+        case 0: // overlay - screen space 2d (pixel coordinates)
+        case 1: // camera - screen space 2d (shader handles transform)
+        {
+            // format: x, y, z, u, v (5 floats per vertex)
+            // bottom-left
+            verts[0] = cmd.x;
+            verts[1] = cmd.y;
+            verts[2] = cmd.z;
+            verts[3] = 0.0f; // u
+            verts[4] = 1.0f; // v (flip V for OpenGL)
 
-            verts[5] = cmd.x + cmd.width; verts[6] = cmd.y; verts[7] = cmd.z;
-            verts[8] = 1.0f; verts[9] = 0.0f;
+            // bottom-right
+            verts[5] = cmd.x + cmd.width;
+            verts[6] = cmd.y;
+            verts[7] = cmd.z;
+            verts[8] = 1.0f;
+            verts[9] = 1.0f;
 
-            verts[10] = cmd.x + cmd.width; verts[11] = cmd.y + cmd.height; verts[12] = cmd.z;
-            verts[13] = 1.0f; verts[14] = 1.0f;
+            // top-right
+            verts[10] = cmd.x + cmd.width;
+            verts[11] = cmd.y + cmd.height;
+            verts[12] = cmd.z;
+            verts[13] = 1.0f;
+            verts[14] = 0.0f;
 
-            verts[15] = cmd.x; verts[16] = cmd.y + cmd.height; verts[17] = cmd.z;
-            verts[18] = 0.0f; verts[19] = 1.0f;
+            // top-left
+            verts[15] = cmd.x;
+            verts[16] = cmd.y + cmd.height;
+            verts[17] = cmd.z;
+            verts[18] = 0.0f;
+            verts[19] = 0.0f;
             break;
+        }
 
-        case 2: // world - unit quad (model matrix scales it)
-            verts[0] = 0.0f; verts[1] = 0.0f; verts[2] = 0.0f;
-            verts[3] = 0.0f; verts[4] = 0.0f;
+        case 2: // world - unit quad (0-1, model matrix scales it)
+        {
+            // unit quad for world space
+            // bottom-left
+            verts[0] = 0.0f;
+            verts[1] = 0.0f;
+            verts[2] = 0.0f;
+            verts[3] = 0.0f;
+            verts[4] = 1.0f;
 
-            verts[5] = 1.0f; verts[6] = 0.0f; verts[7] = 0.0f;
-            verts[8] = 1.0f; verts[9] = 0.0f;
+            // bottom-right
+            verts[5] = 1.0f;
+            verts[6] = 0.0f;
+            verts[7] = 0.0f;
+            verts[8] = 1.0f;
+            verts[9] = 1.0f;
 
-            verts[10] = 1.0f; verts[11] = 1.0f; verts[12] = 0.0f;
-            verts[13] = 1.0f; verts[14] = 1.0f;
+            // top-right
+            verts[10] = 1.0f;
+            verts[11] = 1.0f;
+            verts[12] = 0.0f;
+            verts[13] = 1.0f;
+            verts[14] = 0.0f;
 
-            verts[15] = 0.0f; verts[16] = 1.0f; verts[17] = 0.0f;
-            verts[18] = 0.0f; verts[19] = 1.0f;
+            // top-left
+            verts[15] = 0.0f;
+            verts[16] = 1.0f;
+            verts[17] = 0.0f;
+            verts[18] = 0.0f;
+            verts[19] = 0.0f;
             break;
+        }
         }
     }
 
@@ -268,17 +328,6 @@ namespace NE::Graphics {
         glBindVertexArray(0);
     }
 
-    // kiv
-    void UIRenderer::SetWindowSize(uint32_t width, uint32_t height) {
-        s_ScreenW = width;
-        s_ScreenH = height;
-
-        if (s_FBO)
-        {
-            s_FBO->Resize(width, height);
-        }
-    }
-
     void UIRenderer::BeginFrame() {
         // prepare UI render target before drawing
         if (s_FBO)
@@ -291,7 +340,7 @@ namespace NE::Graphics {
             // clear the framebuffer
             //glClearColor(1, 0, 1, 1); // magenta - for debug
             glClearColor(0, 0, 0, 0); // balck transparent
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
         // check
@@ -384,9 +433,16 @@ namespace NE::Graphics {
             printed = true;
         }
 
-        // sort commands by order (lower renders first)
+        // sort commands by render mode and order
+        // world space elements need depth testing, overlay elements render last
         std::sort(s_Commands.begin(), s_Commands.end(),
             [](const UIDrawCommand& a, const UIDrawCommand& b) {
+                // first sort by render mode (world < camera < overlay)
+                if (a.renderMode != b.renderMode) 
+                {
+                    return a.renderMode > b.renderMode; // higher mode = later (overlay last)
+                }
+                // then by sorting order
                 return a.order < b.order;
             });
 
@@ -404,76 +460,41 @@ namespace NE::Graphics {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        // get StateCache for efficient pipeline binding
-        auto* stateCache = NE::Graphics::GraphicsManager::GetStateCache();
-
         // render each command based on mode
         for (const auto& cmd : s_Commands)
         {
-            // Use material from the command (set by UIImage component)
-            if (!cmd.material)
-            {
-                //std::cerr << "[UIRenderer] Warning: Command has no material!" << std::endl;
-                continue;
-            }
+            if (!cmd.material) continue;
 
             auto pipeline = cmd.material->GetPipeline();
-            if (!pipeline) {
-                std::cerr << "[UIRenderer] Warning: Command material has no pipeline!" << std::endl;
-                continue;
-            }
+            if (!pipeline) continue;
 
             auto shader = pipeline->GetSpecification().shader;
-            if (!shader) {
-                std::cerr << "[UIRenderer] Warning: Material has no shader!" << std::endl;
-                continue;
-            }
+            if (!shader) continue;
 
             shader->Bind();
             cmd.material->Bind();
 
-            //// build vertex data for this quad
-            //float verts[20];
-            //BuildQuadVertices(cmd, verts);
-
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-            //glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
 
-            // check if using custom vertices (for filled/sliced/tiled images)
-            if (cmd.useCustomVertices && !cmd.vertices.empty()) {
-                // Upload custom vertex data
+            // handle custom vertices (for filled/sliced/tiled images)
+            if (cmd.useCustomVertices && !cmd.vertices.empty())
+            {
+                // upload custom vertex data
                 glBufferData(GL_ARRAY_BUFFER,
                     cmd.vertices.size() * sizeof(UIVertex),
                     cmd.vertices.data(),
                     GL_DYNAMIC_DRAW);
-
-                // set vertex attribute pointers
-                glEnableVertexAttribArray(0);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
-                glEnableVertexAttribArray(1);
-                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
-                glEnableVertexAttribArray(2);
-                glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(5 * sizeof(float)));
             }
-            else
+            else 
             {
-                // Build standard quad
-                float verts[20];
+                // build standard quad
+                float verts[20]; // 4 vertices * 5 floats
                 BuildQuadVertices(cmd, verts);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-
-                // set vertex attribute pointers
-                glEnableVertexAttribArray(0);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-                glEnableVertexAttribArray(1);
-                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-                glDisableVertexAttribArray(2);
-
-                // Set uniform color
-                shader->SetUniformVec4("uColor", cmd.color);
             }
 
+            // set uniforms based on render mode
             shader->SetUniformVec4("uColor", cmd.color);
 
             switch (cmd.renderMode) {
@@ -483,15 +504,19 @@ namespace NE::Graphics {
                     NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
                 break;
             case 1: // camera mode
-                glDisable(GL_DEPTH_TEST);
+                glEnable(GL_DEPTH_TEST);      // Enable depth test!
+                glDepthFunc(GL_LEQUAL);       // Standard depth function
+                glDepthMask(GL_TRUE);         // Allow depth writes!
                 shader->SetUniformVec2("uScreenSize",
-                    NE::Math::Vec2(s_ScreenW, s_ScreenH));
-                shader->SetUniformMat4("uView", cmd.viewMatrix);
+                    NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                //shader->SetUniformMat4("uView", cmd.viewMatrix);
                 shader->SetUniformMat4("uProj", cmd.projMatrix);
                 shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
                 break;
             case 2: // world mode
                 glEnable(GL_DEPTH_TEST);
+                glDepthFunc(GL_LEQUAL);
+                glDepthMask(GL_TRUE);
                 shader->SetUniformMat4("uModel", cmd.modelMatrix);
                 shader->SetUniformMat4("uView", cmd.viewMatrix);
                 shader->SetUniformMat4("uProj", cmd.projMatrix);
@@ -501,7 +526,7 @@ namespace NE::Graphics {
             // draw
             if (cmd.useCustomVertices && !cmd.vertices.empty())
             {
-                glDrawArrays(GL_TRIANGLES, 0, cmd.vertices.size());
+                glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(cmd.vertices.size()));
             }
             else 
             {

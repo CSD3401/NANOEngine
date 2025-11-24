@@ -17,6 +17,7 @@
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
+#include <ECSInternals.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -249,6 +250,65 @@ namespace {
 		from_json(jSettings, settings);
 
 		return true;
+	}
+
+	// helpers for UI
+	// get the correct material path based on canvas render mode
+	std::string GetUIMaterialPathForRenderMode(NE::ECS::Component::UICanvas::RenderMode mode) {
+		switch (mode) {
+		case NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY:
+			return "Assets/UI_Overlay.nanomat";
+		case NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA:
+			return "Assets/UI_Camera.nanomat";
+		case NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE:
+			return "Assets/UI_World.nanomat";
+		default:
+			return "Assets/UI_Overlay.nanomat";
+		}
+	}
+
+	// check if an entity is a child of a specific canvas
+	bool IsChildOfCanvas(uint32_t entity, uint32_t canvasEntity) {
+		if (!NE::ECS::Query::HasUIRectTransform(entity)) return false;
+
+		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
+		uint32_t current = rect.parent;
+
+		// Walk up hierarchy
+		while (current != NE::ECS::NO_ENTITY) {
+			if (current == canvasEntity) return true;
+
+			if (!NE::ECS::Query::HasUIRectTransform(current)) break;
+			current = NE::ECS::Query::GetUIRectTransform(current).parent;
+		}
+
+		// Direct child check
+		return (rect.parent == canvasEntity);
+	}
+
+	// rebuild materials for all children of a canvas
+	void RebuildChildMaterials(uint32_t canvasEntity, const std::string& materialUUID) {
+		// Get all entities in the scene
+		auto allEntities = NE::GetEntities();
+
+		for (uint32_t entity : allEntities) {
+			// Skip if not a UI element
+			if (!NE::ECS::Query::HasUIRectTransform(entity)) continue;
+			if (!NE::ECS::Query::HasUIImage(entity)) continue;
+
+			// Check if this entity is a child of the canvas
+			if (IsChildOfCanvas(entity, canvasEntity)) {
+				auto& img = NE::ECS::Command::GetUIImage(entity);
+
+				// Only reassign if the entity has a texture
+				if (!img.textureUUID.empty()) {
+					NE::Renderer::Command::AssignUITexture(entity, img.textureUUID, materialUUID);
+
+					SPD_DEBUG("[InspectorPanel] Rebuilt material for entity {} with new render mode material",
+						entity);
+				}
+			}
+		}
 	}
 }
 
@@ -1355,200 +1415,261 @@ namespace Editor {
                 {
                     auto& comp = NE::ECS::Command::GetUIRectTransform(entity);
 
-                    if (ImGui::CollapsingHeader("Rect Transform", ImGuiTreeNodeFlags_DefaultOpen))
-                    {
-                        ImGui::Indent();
+					if (ImGui::CollapsingHeader("Rect Transform", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::Indent();
 
-                        // Parent (read-only display)
-                        if (comp.parent == NE::ECS::NO_ENTITY)
-                        {
-                            ImGui::Text("Parent: Root (Canvas)");
-                        }
-                        else
-                        {
-                            ImGui::Text("Parent: Entity %u", comp.parent);
-                        }
+						//// Parent (read-only display)
+						//if (comp.parent == NE::ECS::NO_ENTITY)
+						//{
+						//	ImGui::Text("Parent: Root (Canvas)");
+						//}
+						//else
+						//{
+						//	ImGui::Text("Parent: Entity %u", comp.parent);
+						//}
 
-                        ImGui::Spacing();
+						//ImGui::Spacing();
 
-                        // position section
-                        bool isOverlay = false;
-                        if (NE::ECS::Query::HasUICanvas(entity))
-                        {
-                            auto& compCanvas = NE::ECS::Command::GetUICanvas(entity);
-                            isOverlay = compCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY;
-                        }
+						// check render mode
+						bool isOverlay = false;
+						if (NE::ECS::Query::HasUICanvas(entity))
+						{
+							auto& compCanvas = NE::ECS::Command::GetUICanvas(entity);
+							isOverlay = compCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY;
+						}
 
-                        ImGui::BeginGroup();
-                        {
-                            // set up column based on render mode
-                            int columnCount = isOverlay ? 3 : 4; // // Label + X + Y (+ Z if not overlay)
-                            ImGui::Columns(columnCount, "PosColumns", false);
+						float itemWidth = 70.0f;
+						float spacing = 10.0f;
 
-                            // column widths
-                            ImGui::SetColumnWidth(0, 80.0f);  // label column
-                            ImGui::SetColumnWidth(1, 80.0f);  // X column
-                            ImGui::SetColumnWidth(2, 80.0f);  // Y column
-          
-                            // Pos Z disabled for render mode - screen space overlay
-                            if (!isOverlay) ImGui::SetColumnWidth(3, 80.0f);
+						// Position section
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Position");
+							ImGui::SameLine(100);
 
-                            // header row
-                            ImGui::NextColumn(); // skip label column
-                            ImGui::TextDisabled("Pos X");
-                            ImGui::NextColumn();
-                            ImGui::TextDisabled("Pos Y");
-                            ImGui::NextColumn();
-                            if (!isOverlay) 
-                            {
-                                ImGui::TextDisabled("Pos Z");
-                                ImGui::NextColumn();
-                            }
+							// Position X
+							ImGui::BeginGroup();
+							ImGui::TextDisabled("Pos X");
+							ImGui::SetNextItemWidth(itemWidth);
+							if (ImGui::DragFloat("##PosX", &comp.x, 0.1f)) NE::MarkSceneDirty();
+							ImGui::EndGroup();
 
-                            // position row
-                            ImGui::Text("Position");
-                            ImGui::NextColumn();
+							ImGui::SameLine(0, spacing);
 
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##PosX", &comp.x, 1.0f);
-                            ImGui::NextColumn();
+							// Position Y
+							ImGui::BeginGroup();
+							ImGui::TextDisabled("Pos Y");
+							ImGui::SetNextItemWidth(itemWidth);
+							if (ImGui::DragFloat("##PosY", &comp.y, 0.1f)) NE::MarkSceneDirty();
+							ImGui::EndGroup();
 
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##PosY", &comp.y, 1.0f);
-                            ImGui::NextColumn();
+							if (!isOverlay)
+							{
+								ImGui::SameLine(0, spacing);
 
-                            if (!isOverlay) 
-                            {
-                                ImGui::SetNextItemWidth(-1);
-                                ImGui::DragFloat("##PosZ", &comp.z, 1.0f);
-                                ImGui::NextColumn();
-                            }
+								// Position Z
+								ImGui::BeginGroup();
+								ImGui::TextDisabled("Pos Z");
+								ImGui::SetNextItemWidth(itemWidth);
+								if (ImGui::DragFloat("##PosZ", &comp.z, 0.1f)) NE::MarkSceneDirty();
+								ImGui::EndGroup();
+							}
+						}
 
-                            ImGui::Columns(1); // end columns
-                        }
-                        ImGui::EndGroup();
+						ImGui::Spacing();
 
-                        ImGui::Spacing();
+						// size section
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Size");
+							ImGui::SameLine(100);
 
-                        // width & height section
-                        ImGui::BeginGroup();
-                        {
-                            // column widths
-                            ImGui::Columns(3, "SizeColumns", false);
-                            ImGui::SetColumnWidth(0, 80.0f);
-                            ImGui::SetColumnWidth(1, 80.0f);
-                            ImGui::SetColumnWidth(2, 80.0f);
+							ImGui::BeginGroup();
+							ImGui::TextDisabled("Width");
+							ImGui::SetNextItemWidth(itemWidth);
+							if (ImGui::DragFloat("##Width", &comp.width, 1.0f, 1.0f, 10000.0f)) NE::MarkSceneDirty();
+							ImGui::EndGroup();
 
-                            // header row
-                            ImGui::NextColumn();
-                            ImGui::TextDisabled("Width"); ImGui::NextColumn();
-                            ImGui::TextDisabled("Height"); ImGui::NextColumn();
+							ImGui::SameLine(0, spacing);
 
-                            // size row
-                            ImGui::Text("Size"); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##Width", &comp.width, 1.0f, 1.0f, 10000.0f); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##Height", &comp.height, 1.0f, 1.0f, 10000.0f); ImGui::NextColumn();
+							ImGui::BeginGroup();
+							ImGui::TextDisabled("Height");
+							ImGui::SetNextItemWidth(itemWidth);
+							if (ImGui::DragFloat("##Height", &comp.height, 1.0f, 1.0f, 10000.0f)) NE::MarkSceneDirty();
+							ImGui::EndGroup();
+						}
 
-                            ImGui::Columns(1);
-                        }
-                        ImGui::EndGroup();
+						// anchor section (with preset button)
+						{
+							ImGui::Text("Anchors");
+							ImGui::SameLine(100);
 
-                        ImGui::Unindent();
-                    }
-#pragma region kiv
-                    // --- Anchors Section (if you implement them) ---
-                    // Uncomment and modify when you add anchor support to your UIRectTransform component
-                    /*
-                    if (ImGui::CollapsingHeader("Anchors", ImGuiTreeNodeFlags_DefaultOpen)) {
-                        ImGui::Indent();
+							const char* presetNames[] = {
+								"Top Left", "Top Center", "Top Right",
+								"Middle Left", "Center", "Middle Right",
+								"Bottom Left", "Bottom Center", "Bottom Right",
+								"Stretch Horizontal", "Stretch Vertical", "Stretch Both"
+							};
 
-                        ImGui::BeginGroup();
-                        {
-                            ImGui::Columns(3, "AnchorColumns", false);
-                            ImGui::SetColumnWidth(0, 80.0f);
-                            ImGui::SetColumnWidth(1, 80.0f);
-                            ImGui::SetColumnWidth(2, 80.0f);
+							static int currentPreset = 5; // default to "Center"
 
-                            // Min anchors
-                            ImGui::Text("Min"); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##MinX", &comp.anchorMin.x, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##MinY", &comp.anchorMin.y, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+							ImGui::SetNextItemWidth(150);
+							if (ImGui::Combo("##AnchorPresets", &currentPreset, presetNames, IM_ARRAYSIZE(presetNames)))
+							{
+								switch (currentPreset)
+								{
+								case 0: // Top Left
+									comp.anchorMinX = comp.anchorMaxX = 0.0f;
+									comp.anchorMinY = comp.anchorMaxY = 1.0f;
+									break;
+								case 1: // Top Center
+									comp.anchorMinX = comp.anchorMaxX = 0.5f;
+									comp.anchorMinY = comp.anchorMaxY = 1.0f;
+									break;
+								case 2: // Top Right
+									comp.anchorMinX = comp.anchorMaxX = 1.0f;
+									comp.anchorMinY = comp.anchorMaxY = 1.0f;
+									break;
+								case 4: // Middle Left
+									comp.anchorMinX = comp.anchorMaxX = 0.0f;
+									comp.anchorMinY = comp.anchorMaxY = 0.5f;
+									break;
+								case 5: // Center
+									comp.anchorMinX = comp.anchorMaxX = 0.5f;
+									comp.anchorMinY = comp.anchorMaxY = 0.5f;
+									break;
+								case 6: // Middle Right
+									comp.anchorMinX = comp.anchorMaxX = 1.0f;
+									comp.anchorMinY = comp.anchorMaxY = 0.5f;
+									break;
+								case 8: // Bottom Left
+									comp.anchorMinX = comp.anchorMaxX = 0.0f;
+									comp.anchorMinY = comp.anchorMaxY = 0.0f;
+									break;
+								case 9: // Bottom Center
+									comp.anchorMinX = comp.anchorMaxX = 0.5f;
+									comp.anchorMinY = comp.anchorMaxY = 0.0f;
+									break;
+								case 10: // Bottom Right
+									comp.anchorMinX = comp.anchorMaxX = 1.0f;
+									comp.anchorMinY = comp.anchorMaxY = 0.0f;
+									break;
+								case 12: // Stretch Horizontal
+									comp.anchorMinX = 0.0f;
+									comp.anchorMaxX = 1.0f;
+									comp.anchorMinY = comp.anchorMaxY = 0.5f;
+									break;
+								case 13: // Stretch Vertical
+									comp.anchorMinX = comp.anchorMaxX = 0.5f;
+									comp.anchorMinY = 0.0f;
+									comp.anchorMaxY = 1.0f;
+									break;
+								case 14: // Stretch Both
+									comp.anchorMinX = 0.0f;
+									comp.anchorMaxX = 1.0f;
+									comp.anchorMinY = 0.0f;
+									comp.anchorMaxY = 1.0f;
+									break;
+								}
+								NE::MarkSceneDirty();
+							}
 
-                            // Max anchors
-                            ImGui::Text("Max"); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##MaxX", &comp.anchorMax.x, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##MaxY", &comp.anchorMax.y, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+							// Anchor Min
+							ImGui::Indent(16.0f);
 
-                            ImGui::Columns(1);
-                        }
-                        ImGui::EndGroup();
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Min");
+							ImGui::SameLine(100);
 
-                        ImGui::Unindent();
-                    }
-                    */
+							ImGui::PushItemWidth(70);
+							ImGui::Text("X");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##AnchorMinX", &comp.anchorMinX, 0.01f, 0.0f, 1.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##AnchorMinY", &comp.anchorMinY, 0.01f, 0.0f, 1.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::PopItemWidth();
 
-                    // --- Pivot Section ---
-                    // Uncomment when you add pivot support
-                    /*
-                    if (ImGui::CollapsingHeader("Pivot", ImGuiTreeNodeFlags_DefaultOpen)) {
-                        ImGui::Indent();
+							// Anchor Max
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Max");
+							ImGui::SameLine(100);
 
-                        ImGui::BeginGroup();
-                        {
-                            ImGui::Columns(3, "PivotColumns", false);
-                            ImGui::SetColumnWidth(0, 80.0f);
-                            ImGui::SetColumnWidth(1, 80.0f);
-                            ImGui::SetColumnWidth(2, 80.0f);
+							ImGui::PushItemWidth(70);
+							ImGui::Text("X");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##AnchorMaxX", &comp.anchorMaxX, 0.01f, 0.0f, 1.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##AnchorMaxY", &comp.anchorMaxY, 0.01f, 0.0f, 1.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::PopItemWidth();
+							ImGui::Unindent(16.0f);
+						}
 
-                            ImGui::Text("Pivot"); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##PivotX", &comp.pivot.x, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
-                            ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##PivotY", &comp.pivot.y, 0.01f, 0.0f, 1.0f); ImGui::NextColumn();
+						// Pivot section
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Pivot");
+							ImGui::SameLine(100);
 
-                            ImGui::Columns(1);
-                        }
-                        ImGui::EndGroup();
+							ImGui::PushItemWidth(70);
+							ImGui::Text("X");
+							ImGui::SameLine();
+							if (ImGui::SliderFloat("##PivotX", &comp.pivotX, 0.0f, 1.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							if (ImGui::SliderFloat("##PivotY", &comp.pivotY, 0.0f, 1.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::PopItemWidth();
+						}
 
-                        ImGui::Unindent();
-                    }
-                    */
+						// rotation section
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Rotation");
+							ImGui::SameLine(100);
 
-                    // --- Rotation (if you add it) ---
-                    /*
-                    ImGui::Spacing();
-                    ImGui::BeginGroup();
-                    {
-                        ImGui::Columns(4, "RotColumns", false);
-                        ImGui::SetColumnWidth(0, 80.0f);
-                        ImGui::SetColumnWidth(1, 80.0f);
-                        ImGui::SetColumnWidth(2, 80.0f);
-                        ImGui::SetColumnWidth(3, 80.0f);
+							ImGui::PushItemWidth(70);
+							ImGui::Text("X");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##RotX", &comp.rotationX, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##RotY", &comp.rotationY, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Z");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##RotZ", &comp.rotationZ, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
+							ImGui::PopItemWidth();
+						}
 
-                        ImGui::NextColumn();
-                        ImGui::TextDisabled("X"); ImGui::NextColumn();
-                        ImGui::TextDisabled("Y"); ImGui::NextColumn();
-                        ImGui::TextDisabled("Z"); ImGui::NextColumn();
+						// scale section
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Scale");
+							ImGui::SameLine(100);
 
-                        ImGui::Text("Rotation"); ImGui::NextColumn();
-                        ImGui::SetNextItemWidth(-1);
-                        ImGui::DragFloat("##RotX", &comp.rotation.x, 1.0f); ImGui::NextColumn();
-                        ImGui::SetNextItemWidth(-1);
-                        ImGui::DragFloat("##RotY", &comp.rotation.y, 1.0f); ImGui::NextColumn();
-                        ImGui::SetNextItemWidth(-1);
-                        ImGui::DragFloat("##RotZ", &comp.rotation.z, 1.0f); ImGui::NextColumn();
+							ImGui::PushItemWidth(70);
+							ImGui::Text("X");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##ScaleX", &comp.scaleX, 0.01f, 0.01f, 10.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##ScaleY", &comp.scaleY, 0.01f, 0.01f, 10.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Z");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##ScaleZ", &comp.scaleZ, 0.01f, 0.01f, 10.0f, "%.2f")) NE::MarkSceneDirty();
+							ImGui::PopItemWidth();
+						}
 
-                        ImGui::Columns(1);
-                    }
-                    ImGui::EndGroup();
-                    */
-#pragma endregion
+						ImGui::Unindent();
+					}
                 }
                 else if (typeIdx == typeid(NE::ECS::Component::UICanvas))
                 {
@@ -1571,9 +1692,27 @@ namespace Editor {
                             "World Space"
                         };
                         int currentMode = static_cast<int>(comp.renderMode);
-                        if (ImGui::Combo("##RenderMode", &currentMode, RenderModes, IM_ARRAYSIZE(RenderModes))) {
+                        if (ImGui::Combo("##RenderMode", &currentMode, RenderModes, IM_ARRAYSIZE(RenderModes))) 
+						{
+							auto oldMode = comp.renderMode;
                             comp.renderMode = static_cast<decltype(comp.renderMode)>(currentMode);
-							NE::MarkSceneDirty(); // rebuild child materials when mode changes
+							std::string materialPath = GetUIMaterialPathForRenderMode(comp.renderMode);
+							std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+
+							if (materialUUID.empty()) {
+								SPD_ERROR("[InspectorPanel] Failed to find material for render mode: {}", materialPath);
+								SPD_ERROR("Make sure UI_Overlay.nanomat, UI_Camera.nanomat, and UI_World.nanomat exist in Assets/");
+							}
+							else {
+								// Rebuild all child materials with the new shader
+								RebuildChildMaterials(entity, materialUUID);
+
+								SPD_INFO("[InspectorPanel] Canvas render mode changed: {} -> {}",
+									static_cast<int>(oldMode), currentMode);
+								SPD_INFO("Assigned material: {}", materialPath);
+							}
+
+							NE::MarkSceneDirty();
                         }
 
                         // pixel perfect toggle (if in overlay mode or camera mode)
@@ -1584,7 +1723,10 @@ namespace Editor {
                             ImGui::Text("Pixel Perfect");
                             ImGui::SameLine(labelWidth);
                             ImGui::SetNextItemWidth(-1);
-                            ImGui::Checkbox("##Pixel Perfect", &comp.pixelPerfect);
+							if (ImGui::Checkbox("##PixelPerfect", &comp.pixelPerfect)) 
+							{
+								NE::MarkSceneDirty();
+							}
                         }
 
                         // show plane distqance for camera mode only
@@ -1593,13 +1735,10 @@ namespace Editor {
                             ImGui::Text("Plane Distance");
                             ImGui::SameLine(labelWidth);
                             ImGui::SetNextItemWidth(-1);
-                            ImGui::DragFloat("##PlaneDistance", &comp.planeDistance, 1.0f, 0.1f, 1000.0f);
-
-                            // helpful tooltip
-                            if (ImGui::IsItemHovered())
-                            {
-                                ImGui::SetTooltip("Distance from camera where UI is rendered");
-                            }
+							if (ImGui::DragFloat("##PlaneDistance", &comp.planeDistance, 1.0f, 0.1f, 1000.0f)) 
+							{
+								NE::MarkSceneDirty();
+							}
                         }
 
                         // Sort Order
@@ -1607,7 +1746,10 @@ namespace Editor {
                         ImGui::Text("Sort Order");
                         ImGui::SameLine(labelWidth);
                         ImGui::SetNextItemWidth(-1);
-                        ImGui::DragInt("##SortOrder", &comp.sortingOrder);
+						if (ImGui::DragInt("##SortOrder", &comp.sortingOrder))
+						{
+							NE::MarkSceneDirty();
+						}
 
                         ImGui::Unindent();
                     }
