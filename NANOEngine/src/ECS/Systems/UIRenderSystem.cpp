@@ -5,6 +5,7 @@
 #include "../../Graphics/Core/UIRenderer.hpp" 
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
+#include "../../Graphics/Core/UIImageMeshGenerator.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -223,7 +224,22 @@ namespace NE::ECS::Systems {
             auto& img = m_cm->GetComponent<UIImage>(e);
             WorldTransform worldTransform = CalculateWorldTransform(e, canvas, viewMatrix, projMatrix);
 
-            // create draw command with material
+            // generate mesh based on UIImage's image type
+            std::vector<NE::Graphics::UIVertex> vertices = 
+                NE::Graphics::UIImageMeshGenerator::GenerateVertices(
+                    img,
+                    worldTransform.x,
+                    worldTransform.y,
+                    worldTransform.z,
+                    worldTransform.width,
+                    worldTransform.height,
+                    img.color
+                );
+
+            // if no vertices (e.g. fillAmount = 0), skip rendering
+            if (vertices.empty()) continue;
+
+            // create draw command
             NE::Graphics::UIDrawCommand cmd;
             cmd.x = worldTransform.x;
             cmd.y = worldTransform.y;
@@ -238,6 +254,10 @@ namespace NE::ECS::Systems {
 
             // pass the material that contains the texture
             cmd.material = img.material;
+
+            // pass vertex data
+            cmd.vertices = vertices;
+            cmd.useCustomVertices = !vertices.empty() && (img.imageType != UIImage::ImageType::SIMPLE || img.fillAmount < 1.0f);
 
             // include matrices for all modes
             if (viewMatrix) cmd.viewMatrix = *viewMatrix;

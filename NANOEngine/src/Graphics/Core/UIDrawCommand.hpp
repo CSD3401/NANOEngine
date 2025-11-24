@@ -3,6 +3,7 @@
 
 #include "../../Math/Vec4.hpp"
 #include "Material.hpp"
+#include "UIImageMeshGenerator.hpp"
 #include <memory>
 
 namespace NE::Graphics {
@@ -30,6 +31,10 @@ namespace NE::Graphics {
         Math::Mat4 viewMatrix{};
         Math::Mat4 projMatrix{};
         Math::Mat4 modelMatrix{}; // for world mode
+
+        // custom vertex data for complex fills
+        std::vector<UIVertex> vertices;
+        bool useCustomVertices = false;
     };
 
 } // namespace NE::Graphics

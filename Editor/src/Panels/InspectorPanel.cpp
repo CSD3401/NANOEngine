@@ -267,7 +267,8 @@ namespace Editor {
 	{
 		ImGui::Begin("Inspector", nullptr);
 
-		if (EditorScene::s_selectedEntity) {
+		if (EditorScene::s_selectedEntity) 
+		{
 			uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
 
 			// Entity name field only (isActive is now handled by EntityMeta component)
@@ -364,7 +365,8 @@ namespace Editor {
 			}
 
 			NE::ECS::Signature sig(NE::ECS::Query::GetEntitySignature(entity));
-			for (const auto& [typeIdx, compType] : componentTypeRegistry) {
+			for (const auto& [typeIdx, compType] : componentTypeRegistry) 
+			{
 				if (!sig.test(compType)) continue;
 
 				//if (typeIdx == typeid(NE::ECS::Component::EntityMeta)) {
@@ -407,7 +409,8 @@ namespace Editor {
 				//		});
 				//}
 				//else 
-				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
+				if (typeIdx == typeid(NE::ECS::Component::Transform)) 
+				{
 					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 					ImGui::SeparatorText("Transform");
 					//NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
@@ -486,7 +489,8 @@ namespace Editor {
 							}
 						});
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
+				else if (typeIdx == typeid(NE::ECS::Component::Renderer)) 
+				{
 					auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
 					ImGui::SeparatorText("Renderer");
 					// Model field
@@ -542,7 +546,8 @@ namespace Editor {
 						ImGui::EndDragDropTarget();
 					}
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Light)) {
+				else if (typeIdx == typeid(NE::ECS::Component::Light)) 
+				{
 					auto& comp = NE::ECS::Query::GetEntityLight(entity);
 					ImGui::SeparatorText("Light");
 
@@ -570,7 +575,8 @@ namespace Editor {
 							}
 						});
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
+				else if (typeIdx == typeid(NE::ECS::Component::Collider)) 
+				{
 					auto& comp = NE::ECS::Command::GetEntityCollider(entity);
 					ImGui::SeparatorText("Collider");
 
@@ -617,7 +623,8 @@ namespace Editor {
 						});
 
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
+				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) 
+				{
 					auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
 					ImGui::SeparatorText("Rigidbody");
 
@@ -690,7 +697,9 @@ namespace Editor {
 						ImGui::TreePop();
 					}
 
-				} else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) {
+				} 
+				else if (typeIdx == typeid(NE::ECS::Component::AudioSource)) 
+				{
                     auto& comp = NE::ECS::Query::GetEntityAudioSource(entity);
                     ImGui::SeparatorText("AudioSource");
 
@@ -741,7 +750,8 @@ namespace Editor {
 					//        }
 					//    });
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) {
+				else if (typeIdx == typeid(NE::ECS::Component::NativeScript)) 
+				{
 					auto& comp = NE::ECS::Query::GetEntityScript(entity);
 					ImGui::SeparatorText("Script");
 
@@ -1191,7 +1201,8 @@ namespace Editor {
 						}
 					}
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Camera)) {
+				else if (typeIdx == typeid(NE::ECS::Component::Camera)) 
+				{
 					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					ImGui::SeparatorText("Camera");
 
@@ -1270,7 +1281,8 @@ namespace Editor {
 							}
 						});
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Animator)) {
+				else if (typeIdx == typeid(NE::ECS::Component::Animator)) 
+				{
 					auto& comp = NE::ECS::Command::GetEntityAnimator(entity);
 					ImGui::SeparatorText("Animator");
 
@@ -1338,7 +1350,8 @@ namespace Editor {
 								}
 							}
 						});
-				}                else if (typeIdx == typeid(NE::ECS::Component::UIRectTransform)) 
+				}  
+				else if (typeIdx == typeid(NE::ECS::Component::UIRectTransform)) 
                 {
                     auto& comp = NE::ECS::Command::GetUIRectTransform(entity);
 
@@ -1596,13 +1609,6 @@ namespace Editor {
                         ImGui::SetNextItemWidth(-1);
                         ImGui::DragInt("##SortOrder", &comp.sortingOrder);
 
-                        //// Target Display dropdown
-                        //static const char* Displays[] = { "Display 1", "Display 2", "Display 3", "Display 4" };
-                        //int currentDisplay = comp.targetDisplay;
-                        //if (ImGui::Combo("Target Display", &currentDisplay, Displays, IM_ARRAYSIZE(Displays))) {
-                        //    comp.targetDisplay = currentDisplay;
-                        //}
-
                         ImGui::Unindent();
                     }
 
@@ -1713,380 +1719,416 @@ namespace Editor {
 
                     if (ImGui::CollapsingHeader("UI Image", ImGuiTreeNodeFlags_DefaultOpen)) 
                     {
-                        ImGui::Indent();
+						ImGui::Indent();
 
-                        const float labelWidth = 140.0f;
+						const float labelWidth = 160.0f;
 
-                        // source image
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::Text("Source Image");
-                        ImGui::SameLine(labelWidth);
-
-						ImGui::SetNextItemWidth(-1);
-
-						std::string texLabel = comp.textureUUID.empty()
-							? ""
-							: AssetManager::GetInstance().RetrieveFileName(comp.textureUUID);
-
-						char bufTex[256];
-						strncpy_s(bufTex, texLabel.c_str(), sizeof(bufTex));
-						ImGui::InputText("Source Image", bufTex, sizeof(bufTex));
-
-						if (ImGui::BeginDragDropTarget())
+						// texture assignment
 						{
-							if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH"))
-							{
-								std::string dropped((const char*)p->Data, p->DataSize - 1); // dropped = "Assets/Textures/MyTexture.jpg"
-								auto textureUUID = AssetManager::GetInstance().RetrieveUUID(dropped); // convert file path to UUID --> uuid = "abc123def456" (from MyTexture.jpg.meta file)
-								
-								// find parent canvas to determine render mode
-								auto& rectTransform = NE::ECS::Command::GetUIRectTransform(entity);
-								uint32_t canvasEntity = entity;
-								uint32_t current = rectTransform.parent;
+							// source image
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Source Image");
+							ImGui::SameLine(labelWidth);
 
-								// walk up hierarchy to find canvas
-								while (current != NE::ECS::NO_ENTITY)
+							ImGui::SetNextItemWidth(-1);
+
+							std::string texLabel = comp.textureUUID.empty()
+								? ""
+								: AssetManager::GetInstance().RetrieveFileName(comp.textureUUID);
+
+							char bufTex[256];
+							strncpy_s(bufTex, texLabel.c_str(), sizeof(bufTex));
+							ImGui::InputText("Source Image", bufTex, sizeof(bufTex));
+
+							if (ImGui::BeginDragDropTarget())
+							{
+								if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH"))
 								{
-									if (NE::ECS::Query::HasUICanvas(current))
+									std::string dropped((const char*)p->Data, p->DataSize - 1); // dropped = "Assets/Textures/MyTexture.jpg"
+									auto textureUUID = AssetManager::GetInstance().RetrieveUUID(dropped); // convert file path to UUID --> uuid = "abc123def456" (from MyTexture.jpg.meta file)
+
+									// find parent canvas to determine render mode
+									auto& rectTransform = NE::ECS::Command::GetUIRectTransform(entity);
+									uint32_t canvasEntity = entity;
+									uint32_t current = rectTransform.parent;
+
+									// walk up hierarchy to find canvas
+									while (current != NE::ECS::NO_ENTITY)
 									{
-										canvasEntity = current;
-										break;
+										if (NE::ECS::Query::HasUICanvas(current))
+										{
+											canvasEntity = current;
+											break;
+										}
+										if (NE::ECS::Query::HasUIRectTransform(current))
+										{
+											current = NE::ECS::Query::GetUIRectTransform(current).parent;
+										}
+										else
+										{
+											break;
+										}
 									}
-									if (NE::ECS::Query::HasUIRectTransform(current))
+
+									// get render mode from canvas
+									int renderMode = 0;
+									if (NE::ECS::Query::HasUICanvas(canvasEntity))
 									{
-										current = NE::ECS::Query::GetUIRectTransform(current).parent;
+										auto& canvas = NE::ECS::Command::GetUICanvas(canvasEntity);
+										renderMode = static_cast<int>(canvas.renderMode);
+									}
+
+									// determine material file path based on render mode
+									std::string materialPath;
+									switch (renderMode) {
+									case 0: materialPath = "Assets/UI_Overlay.nanomat"; break;
+									case 1: materialPath = "Assets/UI_Camera.nanomat"; break;
+									case 2: materialPath = "Assets/UI_World.nanomat"; break;
+									default: materialPath = "Assets/UI_Overlay.nanomat"; break;
+									}
+
+									// convert material path to UUID
+									std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+
+									if (materialUUID.empty())
+									{
+										SPD_ERROR("[InspectorPanel] Failed to retrieve material UUID for: " << materialPath);
+									}
+									else if (textureUUID.empty())
+									{
+										SPD_ERROR("[InspectorPanel] Failed to retrieve texture UUID for: " << dropped);
 									}
 									else
 									{
-										break;
+										// call assignment function with both UUIDs
+										NE::Renderer::Command::AssignUITexture(entity, textureUUID, materialUUID);
 									}
 								}
-
-								// get render mode from canvas
-								int renderMode = 0;
-								if (NE::ECS::Query::HasUICanvas(canvasEntity))
-								{
-									auto& canvas = NE::ECS::Command::GetUICanvas(canvasEntity);
-									renderMode = static_cast<int>(canvas.renderMode);
-								}
-
-								// determine material file path based on render mode
-								std::string materialPath;
-								switch (renderMode) {
-								case 0: materialPath = "Assets/UI_Overlay.nanomat"; break;
-								case 1: materialPath = "Assets/UI_Camera.nanomat"; break;
-								case 2: materialPath = "Assets/UI_World.nanomat"; break;
-								default: materialPath = "Assets/UI_Overlay.nanomat"; break;
-								}
-
-								// convert material path to UUID
-								std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
-
-								if (materialUUID.empty()) 
-								{
-									SPD_ERROR("[InspectorPanel] Failed to retrieve material UUID for: " << materialPath);
-								}
-								else if (textureUUID.empty()) 
-								{
-									SPD_ERROR("[InspectorPanel] Failed to retrieve texture UUID for: " << dropped);
-								}
-								else
-								{
-									// call assignment function with both UUIDs
-									NE::Renderer::Command::AssignUITexture(entity, textureUUID, materialUUID);
-								}
+								ImGui::EndDragDropTarget();
 							}
-							ImGui::EndDragDropTarget();
-						}
 
-						// Right-click to clear texture
-						if (ImGui::BeginPopupContextItem("##TextureContext"))
-						{
-							if (ImGui::MenuItem("Clear")) {
-								comp.textureUUID.clear();
-								comp.material.reset();  // Clear material
-
-								// Mark dirty
-								if (NE::GetEngineState() == NE::EngineState::Edit) 
+							// Right-click to clear texture
+							if (ImGui::BeginPopupContextItem("##TextureContext"))
+							{
+								if (ImGui::MenuItem("Clear"))
 								{
-									if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
-									NE::MarkSceneDirty();
+									comp.textureUUID.clear();
+									comp.material.reset();  // Clear material
+
+									// Mark dirty
+									if (NE::GetEngineState() == NE::EngineState::Edit)
+									{
+										if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
+										NE::MarkSceneDirty();
+									}
 								}
+								ImGui::EndPopup();
 							}
-							ImGui::EndPopup();
 						}
 
                         // color
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::Text("Color");
-                        ImGui::SameLine(labelWidth);
-                        ImGui::SetNextItemWidth(-1);
-                        float color[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
-                        if (ImGui::ColorEdit4("##Color", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
-                            comp.color.x = color[0];
-                            comp.color.y = color[1];
-                            comp.color.z = color[2];
-                            comp.color.w = color[3];
-                        }
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Color");
+							ImGui::SameLine(labelWidth);
+							ImGui::SetNextItemWidth(-1);
+							float color[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
 
-						//// Optional: Show texture preview if available
-						//if (comp.material) {
-						//	ImGui::Separator();
-						//	ImGui::Text("Preview:");
-
-						//	// Get texture from material (you'll need to add GetTextures() to Material)
-						//	auto& textures = comp.material->GetTextures();
-						//	if (!textures.empty()) {
-						//		auto firstTex = textures.begin()->second;
-						//		if (firstTex) {
-						//			uint64_t handle = firstTex->GetBindlessHandle();
-
-						//			// Display texture preview (convert bindless handle to ImTextureID)
-						//			ImGui::Image((ImTextureID)(intptr_t)handle, ImVec2(100, 100));
-						//		}
-						//	}
-						//}
-
-                        // material
-                        //ImGui::AlignTextToFramePadding();
-                        //ImGui::Text("Material");
-                        //ImGui::SameLine(labelWidth);
-
-  /*                      std::string matDisplayName = comp.materialPath.empty() ? "None (Material)" : comp.materialPath.filename().string();
-                        ImGui::Button(matDisplayName.c_str(), ImVec2(-1, 0));*/
-
-                        //// Drag and drop for material
-                        //if (ImGui::BeginDragDropTarget()) 
-                        //{
-                        //    if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
-                        //        std::string dropped((const char*)p->Data, p->DataSize - 1);
-                        //        comp.materialPath = dropped;
-                        //    }
-                        //    ImGui::EndDragDropTarget();
-                        //}
-
-                        //// Right-click to clear
-                        //if (ImGui::BeginPopupContextItem("##MaterialContext")) 
-                        //{
-                        //    if (ImGui::MenuItem("Clear")) {
-                        //        comp.materialPath.clear();
-                        //    }
-                        //    ImGui::EndPopup();
-                        //}
-
-                        //// --- Raycast Target ---
-                        //ImGui::Checkbox("Raycast Target", &comp.raycastTarget);
-
-                        //// --- Raycast Padding ---
-                        //if (ImGui::TreeNode("Raycast Padding")) {
-                        //    ImGui::DragFloat("Left", &comp.raycastPadding.left, 1.0f);
-                        //    ImGui::DragFloat("Right", &comp.raycastPadding.right, 1.0f);
-                        //    ImGui::DragFloat("Top", &comp.raycastPadding.top, 1.0f);
-                        //    ImGui::DragFloat("Bottom", &comp.raycastPadding.bottom, 1.0f);
-                        //    ImGui::TreePop();
-                        //}
-
-                        //// --- Maskable ---
-                        //ImGui::Checkbox("Maskable", &comp.maskable);
+							if (ImGui::ColorEdit4("##Color", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+								comp.color.x = color[0];
+								comp.color.y = color[1];
+								comp.color.z = color[2];
+								comp.color.w = color[3];
+							}
+						}
 
                         // image type
-                        //ImGui::AlignTextToFramePadding();
-                        //ImGui::Text("Image Type");
-                        //ImGui::SameLine(labelWidth);
-                        //ImGui::SetNextItemWidth(-1);
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Image Type");
+							ImGui::SameLine(labelWidth);
+							ImGui::SetNextItemWidth(-1);
 
-                        //static const char* ImageTypes[] = {
-                        //    "Simple",
-                        //    "Sliced",
-                        //    "Tiled",
-                        //    "Filled"
-                        //};
-                        //int currentImageType = static_cast<int>(comp.imageType);
-                        //if (ImGui::Combo("##ImageType", &currentImageType, ImageTypes, IM_ARRAYSIZE(ImageTypes))) {
-                        //    comp.imageType = static_cast<decltype(comp.imageType)>(currentImageType);
-                        //}
+							static const char* ImageTypes[] = { "Simple", "Sliced", "Tiled", "Filled" };
+							int currentImageType = static_cast<int>(comp.imageType);
+							if (ImGui::Combo("##ImageType", &currentImageType, ImageTypes, IM_ARRAYSIZE(ImageTypes))) {
+								comp.imageType = static_cast<NE::ECS::Component::UIImage::ImageType>(currentImageType);
+								comp.isDirty = true;
+								NE::MarkSceneDirty();
+							}
 
-                        // image type specific options
-                        ImGui::Indent();
+							// type specific options
+							ImGui::Indent(16.0f);
 
-                        //switch (comp.imageType) {
-                        //case 0: // Simple
-                        //{
-                        //    ImGui::Checkbox("Use Sprite Mesh", &comp.useSpriteMesh);
-                        //    ImGui::Checkbox("Preserve Aspect", &comp.preserveAspect);
-                        //    break;
-                        //}
+							switch (comp.imageType)
+							{
+							case NE::ECS::Component::UIImage::ImageType::SIMPLE:
+							{
+								// simple image options
+								ImGui::Text("Preserve Aspect");
+								ImGui::SameLine(labelWidth); // adjust for indent
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::Checkbox("##PreserveAspect", &comp.preserveAspect)) {
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
 
-                        //case 1: // Sliced
-                        //{
-                        //    ImGui::Checkbox("Fill Center", &comp.fillCenter);
-                        //    ImGui::DragFloat("Pixels Per Unit Multiplier", &comp.pixelsPerUnitMultiplier, 0.1f, 0.01f, 100.0f);
-                        //    break;
-                        //}
+								// reset fill amount when switching to simple mode
+								if (comp.fillAmount < 1.0f) 
+								{
+									comp.fillAmount = 1.0f;
+									comp.isDirty = true;
+								}
+								break;
+							}
 
-                        //case 2: // Tiled
-                        //{
-                        //    ImGui::Checkbox("Fill Center", &comp.fillCenter);
-                        //    ImGui::DragFloat("Pixels Per Unit Multiplier", &comp.pixelsPerUnitMultiplier, 0.1f, 0.01f, 100.0f);
-                        //    break;
-                        //}
+							case NE::ECS::Component::UIImage::ImageType::SLICED:
+							{
+								// 9-slice borders
+								//ImGui::Text("Border Left");
+								//ImGui::SameLine(labelWidth);
+								//ImGui::SetNextItemWidth(-1);
+								//if (ImGui::DragFloat("##BorderLeft", &comp.borderLeft, 1.0f, 0.0f, 1000.0f)) {
+								//	comp.isDirty = true;
+								//	NE::MarkSceneDirty();
+								//}
 
-                        //case 3: // Filled
-                        //{
-                        //    // Fill Method
-                        //    ImGui::AlignTextToFramePadding();
-                        //    ImGui::Text("Fill Method");
-                        //    ImGui::SameLine(100.0f);
-                        //    ImGui::SetNextItemWidth(-1);
+								//ImGui::Text("Border Right");
+								//ImGui::SameLine(labelWidth);
+								//ImGui::SetNextItemWidth(-1);
+								//if (ImGui::DragFloat("##BorderRight", &comp.borderRight, 1.0f, 0.0f, 1000.0f)) {
+								//	comp.isDirty = true;
+								//	NE::MarkSceneDirty();
+								//}
 
-                        //    static const char* FillMethods[] = {
-                        //        "Horizontal",
-                        //        "Vertical",
-                        //        "Radial 90",
-                        //        "Radial 180",
-                        //        "Radial 360"
-                        //    };
-                        //    int currentFillMethod = static_cast<int>(comp.fillMethod);
-                        //    if (ImGui::Combo("##FillMethod", &currentFillMethod, FillMethods, IM_ARRAYSIZE(FillMethods))) {
-                        //        comp.fillMethod = static_cast<decltype(comp.fillMethod)>(currentFillMethod);
-                        //    }
+								//ImGui::Text("Border Top");
+								//ImGui::SameLine(labelWidth);
+								//ImGui::SetNextItemWidth(-1);
+								//if (ImGui::DragFloat("##BorderTop", &comp.borderTop, 1.0f, 0.0f, 1000.0f)) {
+								//	comp.isDirty = true;
+								//	NE::MarkSceneDirty();
+								//}
 
-                        //    // Fill Origin (depends on fill method)
-                        //    if (comp.fillMethod <= 1) { // Horizontal or Vertical
-                        //        ImGui::AlignTextToFramePadding();
-                        //        ImGui::Text("Fill Origin");
-                        //        ImGui::SameLine(100.0f);
-                        //        ImGui::SetNextItemWidth(-1);
+								//ImGui::Text("Border Bottom");
+								//ImGui::SameLine(labelWidth);
+								//ImGui::SetNextItemWidth(-1);
+								//if (ImGui::DragFloat("##BorderBottom", &comp.borderBottom, 1.0f, 0.0f, 1000.0f)) {
+								//	comp.isDirty = true;
+								//	NE::MarkSceneDirty();
+								//}
 
-                        //        if (comp.fillMethod == 0) { // Horizontal
-                        //            static const char* HOrigins[] = { "Left", "Right" };
-                        //            int origin = comp.fillOrigin;
-                        //            if (ImGui::Combo("##FillOrigin", &origin, HOrigins, IM_ARRAYSIZE(HOrigins))) {
-                        //                comp.fillOrigin = origin;
-                        //            }
-                        //        }
-                        //        else { // Vertical
-                        //            static const char* VOrigins[] = { "Bottom", "Top" };
-                        //            int origin = comp.fillOrigin;
-                        //            if (ImGui::Combo("##FillOrigin", &origin, VOrigins, IM_ARRAYSIZE(VOrigins))) {
-                        //                comp.fillOrigin = origin;
-                        //            }
-                        //        }
-                        //    }
-                        //    else { // Radial
-                        //        ImGui::AlignTextToFramePadding();
-                        //        ImGui::Text("Fill Origin");
-                        //        ImGui::SameLine(100.0f);
-                        //        ImGui::SetNextItemWidth(-1);
+								// reset fill amount when switching to simple mode
+								if (comp.fillAmount < 1.0f)
+								{
+									comp.fillAmount = 1.0f;
+									comp.isDirty = true;
+								}
+								break;
+							}
 
-                        //        static const char* RadialOrigins[] = {
-                        //            "Bottom",
-                        //            "Right",
-                        //            "Top",
-                        //            "Left"
-                        //        };
-                        //        int origin = comp.fillOrigin;
-                        //        if (ImGui::Combo("##FillOrigin", &origin, RadialOrigins, IM_ARRAYSIZE(RadialOrigins))) {
-                        //            comp.fillOrigin = origin;
-                        //        }
-                        //    }
+							case NE::ECS::Component::UIImage::ImageType::TILED:
+							{
+								// tiled options
+								ImGui::Text("Pixels Per Unit Multiplier");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::DragFloat("##PixelsPerUnitMultiplier", &comp.pixelsPerUnitMultiplier, 0.1f, 0.1f, 10.0f)) {
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
 
-                        //    // Fill Amount
-                        //    ImGui::AlignTextToFramePadding();
-                        //    ImGui::Text("Fill Amount");
-                        //    ImGui::SameLine(100.0f);
-                        //    ImGui::SetNextItemWidth(-1);
-                        //    ImGui::SliderFloat("##FillAmount", &comp.fillAmount, 0.0f, 1.0f);
+								// reset fill amount when switching to simple mode
+								if (comp.fillAmount < 1.0f)
+								{
+									comp.fillAmount = 1.0f;
+									comp.isDirty = true;
+								}
+								break;
+							}
 
-                        //    // Clockwise (for radial only)
-                        //    if (comp.fillMethod >= 2) {
-                        //        ImGui::Checkbox("Clockwise", &comp.fillClockwise);
-                        //    }
+							case NE::ECS::Component::UIImage::ImageType::FILLED:
+							{
+								// fill Method dropdown
+								ImGui::Text("Fill Method");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
 
-                        //    // Preserve Aspect
-                        //    ImGui::Checkbox("Preserve Aspect", &comp.preserveAspect);
-                        //    break;
-                        //}
-                        }
+								static const char* FillMethods[] = {
+									"Horizontal",
+									"Vertical",
+									"Radial 90",
+									"Radial 180",
+									"Radial 360"
+								};
 
-                        ImGui::Unindent();
+								int currentFillMethod = static_cast<int>(comp.fillMethod);
+								if (ImGui::Combo("##FillMethod", &currentFillMethod, FillMethods, IM_ARRAYSIZE(FillMethods))) {
+									comp.fillMethod = static_cast<NE::ECS::Component::UIImage::FillMethod>(currentFillMethod);
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
 
-                        ImGui::Unindent();
+								// fill Origin (context-dependent)
+								ImGui::Text("Fill Origin");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+
+								if (comp.fillMethod == NE::ECS::Component::UIImage::FillMethod::HORIZONTAL)
+								{
+									static const char* HOrigins[] = { "Left", "Right" };
+									int origin = static_cast<int>(comp.fillOrigin);
+									if (ImGui::Combo("##FillOrigin", &origin, HOrigins, IM_ARRAYSIZE(HOrigins))) {
+										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
+										comp.isDirty = true;
+										NE::MarkSceneDirty();
+									}
+								}
+								else if (comp.fillMethod == NE::ECS::Component::UIImage::FillMethod::VERTICAL)
+								{
+									static const char* VOrigins[] = { "Bottom", "Top" };
+									int origin = static_cast<int>(comp.fillOrigin);
+									if (ImGui::Combo("##FillOrigin", &origin, VOrigins, IM_ARRAYSIZE(VOrigins))) {
+										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
+										comp.isDirty = true;
+										NE::MarkSceneDirty();
+									}
+								}
+								else // radial fills
+								{
+									static const char* RadialOrigins[] = {
+										"Bottom",
+										"Right",
+										"Top",
+										"Left"
+									};
+
+									int origin = static_cast<int>(comp.fillOrigin);
+									if (ImGui::Combo("##FillOrigin", &origin, RadialOrigins, IM_ARRAYSIZE(RadialOrigins))) {
+										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
+										comp.isDirty = true;
+										NE::MarkSceneDirty();
+									}
+								}
+
+								// fill Amount slider
+								ImGui::Text("Fill Amount");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::SliderFloat("##FillAmount", &comp.fillAmount, 0.0f, 1.0f))
+								{
+									comp.ClampFillAmount();
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
+
+								// clockwise toggle 
+								if (comp.fillMethod == NE::ECS::Component::UIImage::FillMethod::RADIAL_90 ||
+									comp.fillMethod == NE::ECS::Component::UIImage::FillMethod::RADIAL_180 ||
+									comp.fillMethod == NE::ECS::Component::UIImage::FillMethod::RADIAL_360)
+								{
+									ImGui::Text("Clockwise");
+									ImGui::SameLine(labelWidth);
+									ImGui::SetNextItemWidth(-1);
+									if (ImGui::Checkbox("##Clockwise", &comp.fillClockwise))
+									{
+										comp.isDirty = true;
+										NE::MarkSceneDirty();
+									}
+								}
+
+								// preserve aspect
+								ImGui::Text("Preserve Aspect");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::Checkbox("##PreserveAspect", &comp.preserveAspect))
+								{
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
+								break;
+							}
+							}
+
+							ImGui::Unindent(16.0f);
+							ImGui::Unindent();
+						}
                     }
 				}
-
-				if (ImGui::Button("Add Component")) {
-					ImGui::OpenPopup("ComponentList");
-				}
-
-				if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
-					if (ImGui::MenuItem("Renderer")) {
-						NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added Renderer component - Scene marked DIRTY");
-					}
-					if (ImGui::MenuItem("Rigidbody")) {
-						NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added Rigidbody/Collider components - Scene marked DIRTY");
-					}
-					if (ImGui::MenuItem("Collider")) {
-						NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added Collider component - Scene marked DIRTY");
-					}
-					if (ImGui::MenuItem("Light")) {
-						NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added Light component - Scene marked DIRTY");
-					}
-					if (ImGui::MenuItem("AudioSource")) {
-						NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added AudioSource component - Scene marked DIRTY");
-					}
-					if (ImGui::MenuItem("Script")) {
-						NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added Script component - Scene marked DIRTY");
-					}
-					if (ImGui::MenuItem("Camera")) {
-						NE::ECS::Command::AddCameraComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added Camera component - Scene marked DIRTY");
-					}
-					if (ImGui::MenuItem("Animator")) {
-						NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selectedEntity->linkedEntity);
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Added Animator component - Scene marked DIRTY");
-					}
-
-					ImGui::EndPopup();
-				}
-
-			} else if (EditorScene::selectedAsset != "") {
-
-				std::filesystem::path assetPath = EditorScene::selectedAsset;
-
-				if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
-					RenderTextureImportSettings(assetPath.string() + ".meta");
-				} else if (assetPath.extension() == ".obj" || assetPath.extension() == ".fbx") {
-					RenderModelImportSettings(assetPath.string() + ".meta");
-				} else if (assetPath.extension() == ".nanomat") {
-					//RenderMaterialSettings();
-					if (!m_materialEditor || m_lastPath != assetPath.string()) {
-						m_materialEditor = std::make_unique<MaterialEditor>();
-						if (m_materialEditor->LoadMaterial(assetPath.string(), AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
-							m_lastPath = assetPath.string();
-						else
-							m_materialEditor.reset();
-					}
-
-					if (m_materialEditor)
-						m_materialEditor->RenderSettings();
-				}
 			}
+
+			if (ImGui::Button("Add Component")) 
+			{
+				ImGui::OpenPopup("ComponentList");
+			}
+
+			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
+				if (ImGui::MenuItem("Renderer")) {
+					NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Renderer component - Scene marked DIRTY");
+				}
+				if (ImGui::MenuItem("Rigidbody")) {
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Rigidbody/Collider components - Scene marked DIRTY");
+				}
+				if (ImGui::MenuItem("Collider")) {
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Collider component - Scene marked DIRTY");
+				}
+				if (ImGui::MenuItem("Light")) {
+					NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Light component - Scene marked DIRTY");
+				}
+				if (ImGui::MenuItem("AudioSource")) {
+					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added AudioSource component - Scene marked DIRTY");
+				}
+				if (ImGui::MenuItem("Script")) {
+					NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Script component - Scene marked DIRTY");
+				}
+				if (ImGui::MenuItem("Camera")) {
+					NE::ECS::Command::AddCameraComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Camera component - Scene marked DIRTY");
+				}
+				if (ImGui::MenuItem("Animator")) {
+					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::MarkSceneDirty();
+					SPD_DEBUG("[DirtyFlag] Added Animator component - Scene marked DIRTY");
+				}
+
+				ImGui::EndPopup();
+			} 
+		}
+		else if (EditorScene::selectedAsset != "")
+		{
+			std::filesystem::path assetPath = EditorScene::selectedAsset;
+
+			if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
+				RenderTextureImportSettings(assetPath.string() + ".meta");
+			} else if (assetPath.extension() == ".obj" || assetPath.extension() == ".fbx") {
+				RenderModelImportSettings(assetPath.string() + ".meta");
+			} else if (assetPath.extension() == ".nanomat") {
+				//RenderMaterialSettings();
+				if (!m_materialEditor || m_lastPath != assetPath.string()) {
+					m_materialEditor = std::make_unique<MaterialEditor>();
+					if (m_materialEditor->LoadMaterial(assetPath.string(), AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
+						m_lastPath = assetPath.string();
+					else
+						m_materialEditor.reset();
+				}
+
+				if (m_materialEditor)
+					m_materialEditor->RenderSettings();
+			}
+		}
 
 		ImGui::End();
 	}

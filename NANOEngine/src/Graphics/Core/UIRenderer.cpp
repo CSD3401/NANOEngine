@@ -4,6 +4,7 @@
 #include "../src/Graphics/Core/PipelineCache.hpp"
 #include "../src/ResourceManagement/ResourceManager.hpp"
 #include "../src/Graphics/Core/GraphicsManager.hpp"
+#include "UIImageMeshGenerator.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include <glad/glad.h>
 #include <iostream>
@@ -429,19 +430,50 @@ namespace NE::Graphics {
             }
 
             shader->Bind();
+            cmd.material->Bind();
 
-            // build vertex data for this quad
-            float verts[20];
-            BuildQuadVertices(cmd, verts);
+            //// build vertex data for this quad
+            //float verts[20];
+            //BuildQuadVertices(cmd, verts);
 
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+            //glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
 
-            // bind material uniforms
-            cmd.material->Bind();
+            // check if using custom vertices (for filled/sliced/tiled images)
+            if (cmd.useCustomVertices && !cmd.vertices.empty()) {
+                // Upload custom vertex data
+                glBufferData(GL_ARRAY_BUFFER,
+                    cmd.vertices.size() * sizeof(UIVertex),
+                    cmd.vertices.data(),
+                    GL_DYNAMIC_DRAW);
 
-            // set UI-specific uniforms
+                // set vertex attribute pointers
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(1);
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
+                glEnableVertexAttribArray(2);
+                glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(5 * sizeof(float)));
+            }
+            else
+            {
+                // Build standard quad
+                float verts[20];
+                BuildQuadVertices(cmd, verts);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
+                // set vertex attribute pointers
+                glEnableVertexAttribArray(0);
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+                glEnableVertexAttribArray(1);
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+                glDisableVertexAttribArray(2);
+
+                // Set uniform color
+                shader->SetUniformVec4("uColor", cmd.color);
+            }
+
             shader->SetUniformVec4("uColor", cmd.color);
 
             switch (cmd.renderMode) {
@@ -450,7 +482,6 @@ namespace NE::Graphics {
                 shader->SetUniformVec2("uScreenSize",
                     NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
                 break;
-
             case 1: // camera mode
                 glDisable(GL_DEPTH_TEST);
                 shader->SetUniformVec2("uScreenSize",
@@ -459,7 +490,6 @@ namespace NE::Graphics {
                 shader->SetUniformMat4("uProj", cmd.projMatrix);
                 shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
                 break;
-
             case 2: // world mode
                 glEnable(GL_DEPTH_TEST);
                 shader->SetUniformMat4("uModel", cmd.modelMatrix);
@@ -468,9 +498,15 @@ namespace NE::Graphics {
                 break;
             }
 
-                // draw the quad
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+            // draw
+            if (cmd.useCustomVertices && !cmd.vertices.empty())
+            {
+                glDrawArrays(GL_TRIANGLES, 0, cmd.vertices.size());
+            }
+            else 
+            {
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
         }
 
         // restore state

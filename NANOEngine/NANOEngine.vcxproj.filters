@@ -76,6 +76,7 @@
     <ClCompile Include="src\Scripting\ScriptAPI.cpp" />
     <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\UIRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -218,6 +219,7 @@
     <ClInclude Include="include\ScriptSDK\Math.h" />
     <ClInclude Include="include\ScriptSDK\ECS.h" />
     <ClInclude Include="include\ScriptSDK\Components.h" />
+    <ClInclude Include="src\Graphics\Core\UIImageMeshGenerator.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
