@@ -47,6 +47,50 @@ namespace Scripting {
         return Vec3(v.x, v.y, v.z);
     }
 
+    //=========================================================================
+    // LUID ↔ ENTITY CONVERSION UTILITIES
+    //=========================================================================
+
+    /**
+     * Get LUID from Entity ID.
+     * Returns 0 if entity doesn't exist or has no EntityMeta component.
+     */
+    inline uint64_t GetLUIDFromEntity(Entity entity, ECS::ComponentManager* componentManager) {
+        if (!componentManager || entity == INVALID_ENTITY) {
+            return 0;
+        }
+
+        if (!componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+            return 0;
+        }
+
+        return componentManager->GetComponent<ECS::Component::EntityMeta>(entity).luid;
+    }
+
+    /**
+     * Get Entity ID from LUID.
+     * Returns INVALID_ENTITY if LUID not found.
+     * This iterates through all entities, so it's not super fast - use sparingly.
+     */
+    inline Entity GetEntityFromLUID(uint64_t luid, ECS::ComponentManager* componentManager, ECS::EntityManager* entityManager) {
+        if (!componentManager || !entityManager || luid == 0) {
+            return INVALID_ENTITY;
+        }
+
+        // Iterate through all active entities to find matching LUID
+        const auto& usedEntities = entityManager->GetUsedEntities();
+        for (Entity entity : usedEntities) {
+            if (componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+                const auto& meta = componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+                if (meta.luid == luid) {
+                    return entity;
+                }
+            }
+        }
+
+        return INVALID_ENTITY;
+    }
+
     // Vector normalization helper
     inline Vec3 Normalize(const Vec3& v) {
         float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -1273,6 +1317,158 @@ namespace Scripting {
 
         entry.addElement = [memberPtr]() -> void {
             memberPtr->push_back(false);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterStringVectorField(const std::string& name, std::vector<std::string>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<string>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        // Strings are encoded with length prefix to handle spaces: "2 5:hello 5:world"
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& str : *memberPtr) {
+                oss << " " << str.length() << ":" << str;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    size_t len;
+                    char colon;
+                    if (!(iss >> len >> colon) || colon != ':') return false;
+
+                    // Read the exact number of characters (including spaces)
+                    iss.ignore(1); // Skip the space after colon
+                    std::string str(len, '\0');
+                    if (len > 0) {
+                        iss.read(&str[0], len);
+                        if (iss.gcount() != static_cast<std::streamsize>(len)) return false;
+                    }
+                    memberPtr->push_back(str);
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return (*memberPtr)[index];
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            (*memberPtr)[index] = value;
+            return true;
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back("");
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<entity>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size id1 id2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& entity : *memberPtr) {
+                oss << " " << entity;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector from "size id1 id2 ..."
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    uint32_t entityId;
+                    if (!(iss >> entityId)) return false;
+                    memberPtr->push_back(static_cast<Entity>(entityId));
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return std::to_string((*memberPtr)[index]);
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            try {
+                (*memberPtr)[index] = static_cast<Entity>(std::stoul(value));
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(NO_ENTITY);
         };
 
         entry.removeElement = [memberPtr](size_t index) -> void {

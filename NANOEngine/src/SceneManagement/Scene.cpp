@@ -71,8 +71,7 @@ namespace NE::SceneManagement {
 		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
 	}
 
-	void Scene::Render(RenderPass pass) {
-		Graphics::GraphicsManager::SetRenderPass(pass);
+	void Scene::Render() {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawFrame();
 		Graphics::GraphicsManager::EndFrame();

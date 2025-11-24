@@ -27,6 +27,19 @@
 #include <functional>
 
 namespace {
+    // RAII helper to automatically set and restore serialization context
+    class SerializationContextGuard {
+    public:
+        SerializationContextGuard(NE::ECS::ECSCoordinator& ecs) {
+            NE::Serialization::g_serializationContext.componentManager = &ecs.GetComponentManager();
+            NE::Serialization::g_serializationContext.entityManager = &ecs.GetEntityManager();
+        }
+        ~SerializationContextGuard() {
+            NE::Serialization::g_serializationContext.componentManager = nullptr;
+            NE::Serialization::g_serializationContext.entityManager = nullptr;
+        }
+    };
+
     template <typename C>
     void WriteComponentIfPresent(NE::ECS::ECSCoordinator& ecs, NE::ECS::Entity e,
         rapidjson::Value& ent, rapidjson::Document::AllocatorType& a) {
@@ -160,11 +173,13 @@ namespace NE::Serialization {
 
     // phase out next time
     void JsonSceneSerializer::Serialize(SceneManagement::Scene& scene, const std::string& path) {
+        SerializationContextGuard guard(scene.GetECSCoordinator());
+
         Document doc; doc.SetObject(); auto& a = doc.GetAllocator();
         Value entities(kArrayType);
 
         const auto& ids = scene.GetECSCoordinator().GetUsedEntities();
-        for (ECS::Entity e : ids) {
+        for (NE::ECS::Entity e : ids) {
             Value ent(kObjectType);
 
             // Iterate the registered component types
@@ -184,11 +199,13 @@ namespace NE::Serialization {
     }
 
     void JsonSceneSerializer::Serialize(SceneManagement::Scene& scene, std::vector<uint32_t>& hierarchy, const std::string& path) {
+        SerializationContextGuard guard(scene.GetECSCoordinator());
+
         Document doc; doc.SetObject(); auto& a = doc.GetAllocator();
         Value entities(kArrayType);
 
         //const auto& ids = hierarchy;
-        for (ECS::Entity e : hierarchy) {
+        for (NE::ECS::Entity e : hierarchy) {
             Value ent(kObjectType);
 
             // Iterate the registered component types
@@ -208,6 +225,8 @@ namespace NE::Serialization {
     }
 
     void JsonSceneSerializer::Deserialize(SceneManagement::Scene& scene, const std::string& path) {
+        SerializationContextGuard guard(scene.GetECSCoordinator());
+
         std::ifstream in(path, std::ios::binary);
         if (!in) return;
 
@@ -216,7 +235,7 @@ namespace NE::Serialization {
         if (!doc.IsObject() || !doc.HasMember("Entities")) return;
 
         for (auto& entVal : doc["Entities"].GetArray()) {
-            ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
+            NE::ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
 
             ForEachComponentType([&]<typename C>() {
                 ReadComponentIfPresent<C>(scene.GetECSCoordinator(), e, entVal);
@@ -576,13 +595,15 @@ namespace NE::Serialization {
 
 
     void JsonSceneSerializer::SerializeToMemory(SceneManagement::Scene& scene, std::vector<uint8_t>& outBuffer) {
+        SerializationContextGuard guard(scene.GetECSCoordinator());
+
         Document doc;
         doc.SetObject();
         auto& a = doc.GetAllocator();
         Value entities(kArrayType);
 
         const auto& ids = scene.GetECSCoordinator().GetUsedEntities();
-        for (ECS::Entity e : ids) {
+        for (NE::ECS::Entity e : ids) {
             Value ent(kObjectType);
 
             ForEachComponentType([&]<typename C>() {
@@ -603,6 +624,8 @@ namespace NE::Serialization {
     }
 
     void JsonSceneSerializer::DeserializeFromMemory(SceneManagement::Scene& scene, const uint8_t* data, size_t size) {
+        SerializationContextGuard guard(scene.GetECSCoordinator());
+
         if (!data || size == 0) return;
 
         std::string jsonStr(reinterpret_cast<const char*>(data), size);
@@ -613,7 +636,7 @@ namespace NE::Serialization {
             return;
 
         for (auto& entVal : doc["Entities"].GetArray()) {
-            ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
+            NE::ECS::Entity e = scene.GetECSCoordinator().CreateEntity();
 
             ForEachComponentType([&]<typename C>() {
                 ReadComponentIfPresent<C>(scene.GetECSCoordinator(), e, entVal);

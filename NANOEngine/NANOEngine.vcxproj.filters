@@ -75,6 +75,7 @@
     <ClCompile Include="src\Scripting\ScriptContextFactory.cpp" />
     <ClCompile Include="src\Scripting\ScriptAPI.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
+    <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -211,6 +212,7 @@
     <ClInclude Include="include\ScriptSDK\Components.h" />
     <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

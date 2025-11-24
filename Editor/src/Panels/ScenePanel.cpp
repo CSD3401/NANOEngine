@@ -14,7 +14,6 @@
 #include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
-	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
 
@@ -23,8 +22,7 @@ namespace Editor {
 		return deg * 3.14159265358979323846f / 180.0f;
 	}
 
-	ScenePanel::ScenePanel(uint32_t sceneFrameBuffer) {
-		temp = sceneFrameBuffer;
+	ScenePanel::ScenePanel() {
 
 		NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
 		NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
@@ -42,6 +40,8 @@ namespace Editor {
 
 		// Give address of the editor camera to the scene camera tweener
 		sceneCameraTweener.SetSceneCamera(GetCamera());
+
+		//NE::UpdateEditorCameraData();
 	}
 
 	void ScenePanel::OnImGuiRender()
@@ -54,10 +54,14 @@ namespace Editor {
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
-
+		
 		float deltaTime = ImGui::GetIO().DeltaTime;
-
-		ImGui::Image((ImTextureID)(uintptr_t)temp, panelSize, ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::Image(
+			(ImTextureID)(uintptr_t)NE::GetSceneColorAttachment(), 
+			panelSize, 
+			ImVec2(0, 1), 
+			ImVec2(1, 0)
+		);
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
@@ -396,6 +400,8 @@ namespace Editor {
 		dir.y = sinf(Radians(m_cameraPitch));
 		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
 		m_editorCamera.LookAt(m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
+
+		NE::UpdateEditorCameraData();
 
 		ImGui::End();
 	}

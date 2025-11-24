@@ -116,13 +116,12 @@ namespace NE {
 
 		Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
 
-		gSceneManager.Render(NE::SceneManagement::RenderPass::SCENE);
-		gSceneManager.Render(NE::SceneManagement::RenderPass::GAME);
+		gSceneManager.Render();
 
 		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
 
 		TweenManager::Get().Update(static_cast<float>(dt));
-		Graphics::GraphicsManager::EndFrame();
+		//Graphics::GraphicsManager::EndFrame();
 
 		if (InputManager::WasKeyPressed('L')) {
 			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -156,12 +155,16 @@ namespace NE {
 		return s_window->ShouldClose();
 	}
 
-	uint32_t GetSceneFrameBuffer() {
-		return Graphics::GraphicsManager::s_SceneFrameBuffer->GetColorAttachment(); // temp
+	uint32_t GetSceneColorAttachment() {
+		return Graphics::GraphicsManager::GetSceneColorAttachment();
 	}
 
-	uint32_t GetGameFrameBuffer() {
-		return Graphics::GraphicsManager::s_GameFrameBuffer->GetColorAttachment(); // temp
+	uint32_t GetGameColorAttachment() {
+		return Graphics::GraphicsManager::GetGameColorAttachment();
+	}
+
+	void UpdateEditorCameraData() {
+		Graphics::GraphicsManager::UpdateEditorCameraData();
 	}
 
 	void SetEditorCamera(void* camera) {

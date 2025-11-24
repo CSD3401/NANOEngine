@@ -153,13 +153,13 @@ namespace NE::SceneManagement {
 		}
 	}
 
-	void SceneManager::Render(NE::SceneManagement::RenderPass pass) {
+	void SceneManager::Render() {
 		if (m_isPlaying) {
-			if (m_runtime) m_runtime->Render(pass);
+			if (m_runtime) m_runtime->Render();
 		} else if (m_isEditingPrefab) {
-			if (m_prefabScene) m_prefabScene->Render(pass);
+			if (m_prefabScene) m_prefabScene->Render();
 		} else {
-			if (m_editor) m_editor->Render(pass);
+			if (m_editor) m_editor->Render();
 		}
 	}
 

@@ -24,9 +24,7 @@ namespace Editor {
 	}
 
 	void HierarchyPanel::OnImGuiRender() {
-		ImGui::Begin("Hierarchy", nullptr,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
-			| ImGuiWindowFlags_MenuBar);
+		ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
 
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 			ImGui::OpenPopup("HierarchyContextMenu");
@@ -148,7 +146,7 @@ namespace Editor {
 		static uint32_t previewParent = NE::ECS::NO_ENTITY;
 
 		static uint32_t previewParentForInsert = NE::ECS::NO_ENTITY; // parent whose sibling list will get the line
-		static int      previewInsert = -1;         // index within that parent’s children
+		static int      previewInsert = -1;         // index within that parentï¿½s children
 		static float    previewLineY = -1.0f;       // cached Y for the line
 		static float    previewLineX1 = 0.f, previewLineX2 = 0.f;
 

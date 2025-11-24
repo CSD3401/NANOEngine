@@ -24,8 +24,9 @@ namespace NE {
 
 	NANOENGINE_API void* GetNativeWindowHandle();
 	NANOENGINE_API bool WindowShouldClose();
-	NANOENGINE_API uint32_t GetSceneFrameBuffer();
-	NANOENGINE_API uint32_t GetGameFrameBuffer();
+	NANOENGINE_API uint32_t GetSceneColorAttachment();
+	NANOENGINE_API uint32_t GetGameColorAttachment();
+	NANOENGINE_API void UpdateEditorCameraData();
 	NANOENGINE_API void SetEditorCamera(void* camera);
 
 	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y);

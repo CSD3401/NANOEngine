@@ -12,7 +12,7 @@ namespace NE::SceneManagement {
 
 		void LoadScene(const std::string& scenePath);
 		void Update(double dt);
-		void Render(RenderPass pass);
+		void Render();
 		void ExitScene();
 		void SaveScene();
 		void SaveSceneIfDirty(const std::string& path = "");
