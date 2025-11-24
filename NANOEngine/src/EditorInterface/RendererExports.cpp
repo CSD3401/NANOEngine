@@ -4,10 +4,16 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "../EngineState.hpp"  // For GetEngineState
 #include "../Engine.hpp"  // For MarkSceneDirty
-#include <Core/SpdLogger.hpp>  
+#include <Core/SpdLogger.hpp>
+#include "../../include/ScriptSDK/ScriptTypes.h"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
+
+	namespace Scripting {
+		// Forward declaration of helper function from ScriptAPI.cpp
+		std::string GetMaterialUUIDFromRef(const MaterialRef& materialRef);
+	}
 }
 
 namespace NE::Renderer {
@@ -24,6 +30,11 @@ namespace NE::Renderer {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			if (r.materialUUID.empty()) return "empty uuid";
 			else return r.materialUUID;
+		}
+
+		NANOENGINE_API std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef)
+		{
+			return NE::Scripting::GetMaterialUUIDFromRef(materialRef);
 		}
 	}
 

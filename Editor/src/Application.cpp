@@ -1,4 +1,4 @@
-	#include "Application.hpp"
+#include "Application.hpp"
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
@@ -27,6 +27,7 @@
 #include "Panels/AnimationPanel.hpp"
 #include "Panels/AnimationRuntimePanel.hpp"
 #include "Panels/AnimationGraphPanel.hpp"
+#include "EditorScene.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -102,8 +103,8 @@ namespace Editor {
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
 		NE::LoadStartupScene();
-		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
-		editorLayer.AddPanel<GamePanel>(NE::GetGameFrameBuffer());
+		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>();
+		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
@@ -112,8 +113,7 @@ namespace Editor {
 		//editorLayer.AddPanel<AnimatorRuntimePanel>();
 		//editorLayer.AddPanel<AnimatorGraphPanel>();
 
-
-		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
+		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
 
 		SPD_INFO("=== Application initialization complete ===");
 		SPD_DEBUG("All panels loaded successfully");

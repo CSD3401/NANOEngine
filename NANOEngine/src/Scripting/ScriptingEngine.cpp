@@ -574,6 +574,7 @@ namespace NE::Scripting {
 
         for (auto const& [entity, state] : stateToRestore) {
             auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
+            auto& entityMgr = GetScene().GetECSCoordinator().GetEntityManager();
 
             if (!componentMgr.HasComponent<ECS::Component::NativeScript>(entity)) {
                 SPD_WARNING("Entity " << (int)entity << " no longer exists, skipping");
@@ -598,7 +599,7 @@ namespace NE::Scripting {
                     continue;
                 }
 
-                Scripting::LinkScriptToEngine(nsc.Instance, &componentMgr);
+                Scripting::LinkScriptToEngine(nsc.Instance, &componentMgr, &entityMgr);
                 nsc.Instance->_SetEntity(entity);
                 nsc.Instance->Awake();
                 nsc.Instance->Initialize(entity);

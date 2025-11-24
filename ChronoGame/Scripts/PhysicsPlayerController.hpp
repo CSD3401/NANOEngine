@@ -34,33 +34,49 @@
  */
 class PhysicsPlayerController : public IScript {
 public:
-	PhysicsPlayerController() {
-		// Register editable fields
-		REGISTER_FIELD(moveSpeed);
-		REGISTER_FIELD(jumpForce);
-		REGISTER_FIELD(manualGravity);
-		REGISTER_FIELD(frictionCoefficient);
-		REGISTER_FIELD(maxSlopeAngle);
-		REGISTER_FIELD(groundCheckThreshold);
-		REGISTER_FIELD(useRaycastGroundCheck);
-
-		// Forward raycast fields
-		REGISTER_FIELD(enableForwardRaycast);
-		REGISTER_FIELD(forwardRaycastDistance);
-		REGISTER_FIELD(forwardRaycastHeightOffset);
-		REGISTER_FIELD(forwardRaycastStartOffset);
-		REGISTER_FIELD(targetHeightOffset);
-		REGISTER_FIELD(continuousForwardCheck);
-		REGISTER_FIELD(highlightScaleMultiplier);
-		REGISTER_FIELD(debugRaycastInfo);
-	}
-
+	PhysicsPlayerController() = default;
 	~PhysicsPlayerController() override = default;
 
 	void Awake() override {}
 
 	void Initialize(Entity entity) override {
-		// Entity is automatically set by the base class
+		// Register editable fields
+		/*SCRIPT_FIELD(moveSpeed, Float);
+		SCRIPT_FIELD(jumpForce, Float);
+		SCRIPT_FIELD(manualGravity, Float);
+		SCRIPT_FIELD(frictionCoefficient, Float);
+		SCRIPT_FIELD(maxSlopeAngle, Float);
+		SCRIPT_FIELD(groundCheckThreshold, Float);
+		SCRIPT_FIELD(useRaycastGroundCheck, Bool);*/
+
+		RegisterFloatField("moveSpeed", &moveSpeed);
+		RegisterFloatField("jumpForce", &jumpForce);
+		RegisterFloatField("manualGravity", &manualGravity);
+		RegisterFloatField("frictionCoefficient", &frictionCoefficient);
+		RegisterFloatField("maxSlopeAngle", &maxSlopeAngle);
+		RegisterFloatField("groundCheckThreshold", &groundCheckThreshold);
+		RegisterBoolField("useRaycastGroundCheck", &useRaycastGroundCheck);
+
+
+		// Forward raycast fields
+		/*SCRIPT_FIELD(enableForwardRaycast, Bool);
+		SCRIPT_FIELD(forwardRaycastDistance, Float);
+		SCRIPT_FIELD(forwardRaycastHeightOffset, Float);
+		SCRIPT_FIELD(forwardRaycastStartOffset, Float);
+		SCRIPT_FIELD(targetHeightOffset, Float);
+		SCRIPT_FIELD(continuousForwardCheck, Bool);
+		SCRIPT_FIELD(highlightScaleMultiplier, Float);
+		SCRIPT_FIELD(debugRaycastInfo, Bool);*/
+
+		RegisterBoolField("enableForwardRaycast", &enableForwardRaycast);
+		RegisterFloatField("forwardRaycastDistance", &forwardRaycastDistance);
+		RegisterFloatField("forwardRaycastHeightOffset", &forwardRaycastHeightOffset);
+		RegisterFloatField("forwardRaycastStartOffset", &forwardRaycastStartOffset);
+		RegisterFloatField("targetHeightOffset", &targetHeightOffset);
+		RegisterBoolField("continuousForwardCheck", &continuousForwardCheck);
+		RegisterFloatField("highlightScaleMultiplier", &highlightScaleMultiplier);
+		RegisterBoolField("debugRaycastInfo", &debugRaycastInfo);
+
 	}
 
 	void Start() override {
@@ -170,14 +186,6 @@ public:
 
 	void OnTriggerEnter(Entity other) override {}
 	void OnTriggerExit(Entity other) override {}
-
-	// Exposed fields
-	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
-	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
-	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override {
-		return m_fields.SetValue(name, value);
-	}
 
 private:
 
@@ -601,7 +609,4 @@ private:
 	// Pending collisions (queued during physics callbacks, processed in Update)
 	std::vector<Entity> m_pendingCollisionEnters;
 	std::vector<Entity> m_pendingCollisionExits;
-
-	// Field registry for editor
-	ExposedFieldRegistry m_fields;
 };
