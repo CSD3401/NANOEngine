@@ -784,6 +784,116 @@ namespace Scripting {
         return GetMaterialRegistry().GetUUID(materialRef.GetEntity());
     }
 
+    //=========================================================================
+    // Prefab UUID Registry (Maps prefab IDs to UUIDs)
+    //=========================================================================
+
+    namespace {
+        struct PrefabRegistry {
+            std::unordered_map<uint32_t, std::string> idToPath;
+            std::unordered_map<std::string, uint32_t> PathToID;
+            uint32_t nextID = 1; // Start from 1, 0 is reserved for invalid
+
+            uint32_t GetOrCreateID(const std::string& path) {
+                if (path.empty()) return 0;
+
+                auto it = PathToID.find(path);
+                if (it != PathToID.end()) {
+                    return it->second;
+                }
+
+                // Create new ID
+                uint32_t id = nextID++;
+                idToPath[id] = path;
+                PathToID[path] = id;
+                return id;
+            }
+
+            std::string GetPath(uint32_t id) const {
+                if (id == 0) return "";
+                auto it = idToPath.find(id);
+                return (it != idToPath.end()) ? it->second : "";
+            }
+        };
+
+        PrefabRegistry& GetPrefabRegistry() {
+            static PrefabRegistry registry;
+            return registry;
+        }
+    }
+
+    PrefabRef IScript::GetPrefabRef(const std::string& prefabPath) const {
+        if (prefabPath.empty()) return PrefabRef();
+
+        // Get or create an ID for this prefab Path
+        uint32_t prefabID = GetPrefabRegistry().GetOrCreateID(prefabPath);
+        return PrefabRef(prefabID);
+    }
+
+    /// Get prefab Path from PrefabRef (accessible from other modules)
+    SCRIPT_API std::string GetPrefabPathFromRef(const PrefabRef& prefabRef) {
+        if (!prefabRef.IsValid()) return "";
+        return GetPrefabRegistry().GetPath(prefabRef.GetEntity());
+    }
+
+    //=========================================================================
+    // Prefab Instantiation
+    //=========================================================================
+
+    Entity IScript::InstantiatePrefab(const PrefabRef& prefabRef, const Vec3& position, const Vec3& rotation) {
+        if (!prefabRef.IsValid()) {
+            SPD_ERROR("[PrefabRef] Cannot instantiate: Invalid prefab reference");
+            return INVALID_ENTITY;
+        }
+
+        std::string prefabPath = GetPrefabRegistry().GetPath(prefabRef.GetEntity());
+        return InstantiatePrefab(prefabPath, position, rotation);
+    }
+
+    Entity IScript::InstantiatePrefab(const std::string& prefabPath, const Vec3& position, const Vec3& rotation) {
+        if (prefabPath.empty()) {
+            SPD_ERROR("[PrefabRef] Cannot instantiate: Empty prefab path");
+            return INVALID_ENTITY;
+        }
+
+        if (!m_context || !m_context->componentManager) {
+            SPD_ERROR("[PrefabRef] Cannot instantiate: Invalid script context");
+            return INVALID_ENTITY;
+        }
+
+        try {
+            // Check if this is a UUID or a file path
+            std::vector<uint32_t> newEntities;
+            newEntities = DeserializePrefab(prefabPath);
+
+            if (newEntities.empty()) {
+                SPD_ERROR("[PrefabRef] Failed to instantiate prefab: " << prefabPath);
+                return INVALID_ENTITY;
+            }
+
+            // The root entity is the first entity in the list
+            Entity rootEntity = newEntities[0];
+            if (m_context->componentManager->HasComponent<ECS::Component::Transform>(rootEntity)) {
+                auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(rootEntity);
+                transform.localPosition = ToEngineVec3(position);
+                transform.localRotationEuler = ToEngineVec3(rotation);
+                transform.isDirty = true;
+            }
+
+            SPD_INFO("[PrefabRef] Successfully instantiated prefab {} at position ({}, {}, {})",
+                prefabPath, position.x, position.y, position.z);
+
+            return rootEntity;
+
+        } catch (const std::exception& e) {
+            SPD_ERROR("[PrefabRef] Exception during instantiation: {}", e.what());
+            return INVALID_ENTITY;
+        } catch (...) {
+            SPD_ERROR("[PrefabRef] Unknown exception during prefab instantiation");
+            return INVALID_ENTITY;
+        }
+    }
+
     // Component ref operations (for stored references)
     Vec3 IScript::GetPosition(const TransformRef& ref) const {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
@@ -1055,7 +1165,7 @@ namespace Scripting {
             },
             [this, memberPtr, name](const std::string& value) -> bool {
                 try {
-                    SPD_DEBUG("[MaterialRef] Setting field '{}' to '{}'", name, value.empty() ? "<empty>" : value);
+                    SPD_DEBUG("[MaterialRef] Setting field " << name);
 
                     // Empty string means no material
                     if (value.empty()) {
@@ -1078,6 +1188,50 @@ namespace Scripting {
                     return false;
                 } catch (...) {
                     SPD_ERROR("[MaterialRef] setValue unknown exception for field '{}'", name);
+                    return false;
+                }
+            }
+        );
+    }
+
+    void IScript::RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr) {
+        RegisterFieldInternal(
+            name,
+            "prefabref",
+            memberPtr,
+            [memberPtr]() -> std::string {
+                // For PrefabRef, the ownerEntity field stores a prefab ID
+                // Use the prefab registry to convert ID back to UUID
+                if (!memberPtr->IsValid()) {
+                    return "";
+                }
+                return GetPrefabRegistry().GetPath(memberPtr->GetEntity());
+            },
+            [this, memberPtr, name](const std::string& value) -> bool {
+                try {
+                    SPD_DEBUG("[PrefabRef] Setting field '{}' to '{}'", name, value.empty() ? "<empty>" : value);
+
+                    // Empty string means no prefab
+                    if (value.empty()) {
+                        *memberPtr = PrefabRef();
+                        return true;
+                    }
+
+                    // Create PrefabRef from Path
+                    PrefabRef newRef = GetPrefabRef(value);
+                    if (!newRef.IsValid()) {
+                        SPD_ERROR("[PrefabRef] Failed to create valid PrefabRef from Path: " << value);
+                        return false;
+                    }
+
+                    *memberPtr = newRef;
+                    SPD_DEBUG("[PrefabRef] Successfully assigned prefab to field " << name);
+                    return true;
+                } catch (const std::exception& e) {
+                    SPD_ERROR("[PrefabRef] setValue exception for field " << name << ": " << e.what());
+                    return false;
+                } catch (...) {
+                    SPD_ERROR("[PrefabRef] setValue unknown exception for field " << name);
                     return false;
                 }
             }
@@ -1160,6 +1314,93 @@ namespace Scripting {
 
         entry.addElement = [memberPtr]() -> void {
             memberPtr->push_back(MaterialRef());
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterPrefabRefVectorField(const std::string& name, std::vector<PrefabRef>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<prefabref>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector
+        entry.getValue = [this, memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& ref : *memberPtr) {
+                oss << " ";
+                if (ref.IsValid()) {
+                    oss << GetPrefabRegistry().GetPath(ref.GetEntity());
+                }
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector from "size uuid1 uuid2 ..."
+        entry.setValue = [this, memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    std::string path;
+                    iss >> path;
+                    if (path.empty()) {
+                        memberPtr->push_back(PrefabRef());
+                    } else {
+                        memberPtr->push_back(GetPrefabRef(path));
+                    }
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [this, memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            const auto& prefabRef = (*memberPtr)[index];
+            if (!prefabRef.IsValid()) return "";
+            // Return Path for display in editor
+            return GetPrefabRegistry().GetPath(prefabRef.GetEntity());
+        };
+
+        entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+
+            if (value.empty()) {
+                (*memberPtr)[index] = PrefabRef();
+                return true;
+            }
+
+            // Convert Path to PrefabRef
+            PrefabRef newRef = GetPrefabRef(value);
+            (*memberPtr)[index] = newRef;
+            return newRef.IsValid();
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(PrefabRef());
         };
 
         entry.removeElement = [memberPtr](size_t index) -> void {

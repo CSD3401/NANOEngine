@@ -132,6 +132,9 @@ namespace Scripting {
     /// Opaque handle to Material asset (internal use only)
     struct MaterialHandle { void* _internal; };
 
+    /// Opaque handle to Prefab asset (internal use only)
+    struct PrefabHandle { void* _internal; };
+
     //=========================================================================
     // COMPONENT REFERENCE (Type-safe opaque reference)
     //=========================================================================
@@ -161,6 +164,7 @@ namespace Scripting {
     using RigidbodyRef = ComponentRef<RigidbodyHandle>;
     using AudioSourceRef = ComponentRef<AudioSourceHandle>;
     using MaterialRef = ComponentRef<MaterialHandle>;
+    using PrefabRef = ComponentRef<PrefabHandle>;
 
 } // namespace Scripting
 } // namespace NE

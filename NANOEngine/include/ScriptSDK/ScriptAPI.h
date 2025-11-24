@@ -377,6 +377,36 @@ namespace Scripting {
          */
         MaterialRef GetMaterialRef(const std::string& materialUUID) const;
 
+        /**
+         * Get a reference to a prefab asset by UUID.
+         * Use this to store references to prefabs that can be instantiated at runtime.
+         * @param prefabUUID Prefab asset UUID string
+         * @return Prefab reference (check IsValid() before use)
+         */
+        PrefabRef GetPrefabRef(const std::string& prefabUUID) const;
+
+        //=====================================================================
+        // PREFAB INSTANTIATION
+        //=====================================================================
+
+        /**
+         * Instantiate a prefab at a specific position and rotation.
+         * @param prefabRef The prefab reference to instantiate
+         * @param position World position for the instantiated prefab
+         * @param rotation World rotation (Euler angles in degrees) for the instantiated prefab
+         * @return Root entity of the instantiated prefab, or INVALID_ENTITY if failed
+         */
+        Entity InstantiatePrefab(const PrefabRef& prefabRef, const Vec3& position = Vec3::Zero(), const Vec3& rotation = Vec3::Zero());
+
+        /**
+         * Instantiate a prefab by UUID at a specific position and rotation.
+         * @param prefabUUID The prefab asset UUID string
+         * @param position World position for the instantiated prefab
+         * @param rotation World rotation (Euler angles in degrees) for the instantiated prefab
+         * @return Root entity of the instantiated prefab, or INVALID_ENTITY if failed
+         */
+        Entity InstantiatePrefab(const std::string& prefabUUID, const Vec3& position = Vec3::Zero(), const Vec3& rotation = Vec3::Zero());
+
         //=====================================================================
         // COMPONENT REF OPERATIONS (For stored references)
         //=====================================================================
@@ -412,6 +442,7 @@ namespace Scripting {
         void RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr);
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
+        void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);
 
         // Vector field registration (native support - no override boilerplate needed!)
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
@@ -420,6 +451,7 @@ namespace Scripting {
         void RegisterStringVectorField(const std::string& name, std::vector<std::string>* memberPtr);
         void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
+        void RegisterPrefabRefVectorField(const std::string& name, std::vector<PrefabRef>* memberPtr);
 
         // Enum field registration (with automatic enum options)
         template<typename EnumType>

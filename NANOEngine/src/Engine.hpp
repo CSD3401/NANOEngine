@@ -39,6 +39,7 @@ namespace NE {
 
 	NANOENGINE_API const std::vector<uint32_t>& GetNumEntities();
 	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);
+	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath);
 	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid);
 	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos);
 	NANOENGINE_API void LoadPrefabScene(std::string prefabPath);

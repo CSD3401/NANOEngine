@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <fstream>
+#include <filesystem>
 #include "Graphics/Core/Window.hpp"
 #include "Graphics/OpenGL/GLContext.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
@@ -224,6 +225,11 @@ namespace NE {
 		return Serialization::JsonSceneSerializer::SerializePrefab(*gSceneManager.GetActive(), entt, targetPath);
 	}
 
+	 std::vector<uint32_t> DeserializePrefab(std::string prefabPath) {
+		 auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
+		 return newEntities;
+	}
+
 	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid) {
 		auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
 		Prefab::PrefabManager::Instantiate(uuid, newEntities);
@@ -250,6 +256,11 @@ namespace NE {
 
 	void ClosePrefabScene() {
 		gSceneManager.ClosePrefabScene();
+	}
+
+	namespace {
+		// Runtime prefab UUID to path registry
+		std::unordered_map<std::string, std::string> g_prefabRegistry;
 	}
 
 	// Internal use only
