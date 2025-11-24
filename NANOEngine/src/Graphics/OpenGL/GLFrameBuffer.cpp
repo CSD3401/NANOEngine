@@ -1,6 +1,7 @@
 #include "GLFrameBuffer.hpp"
 #include <glad/glad.h>
 #include "../../src/Core/Logger.hpp"
+#include "ECS/Core/Entity.hpp"
 
 namespace NE::Graphics::OpenGL {
 
@@ -109,6 +110,9 @@ namespace NE::Graphics::OpenGL {
         glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         uint32_t id = data[0] | (data[1] << 8) | (data[2] << 16);
+
+        if (id > ECS::MAX_ENTITIES) return ECS::NO_ENTITY;
+
         return id;
 	}
 
