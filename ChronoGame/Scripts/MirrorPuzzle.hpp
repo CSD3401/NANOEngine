@@ -76,8 +76,9 @@ public:
 		SCRIPT_FIELD(startCol, Int);
 		SCRIPT_FIELD(endRow, Int);
 		SCRIPT_FIELD(endCol, Int);
-		SCRIPT_FIELD(tileSpacingX, Float);
-		SCRIPT_FIELD(tileSpacingY, Float);
+		//SCRIPT_FIELD(tileSpacingX, Float);
+		//SCRIPT_FIELD(tileSpacingY, Float);
+		SCRIPT_FIELD(zOffset, Float);
 
 		// TODO: Uncomment these when engine adds support for std::vector<CustomStruct>
 		// SCRIPT_FIELD_STRUCT(tileRestrictions);
@@ -195,7 +196,7 @@ public:
 			int startTileIndex = startRow * 4 + startCol;
 			if (tileTransforms[startTileIndex].IsValid()) {
 				Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex], gridParent);
-				startPos.z += 1.0f;
+				startPos.z += zOffset;
 				SetPosition(targetTransform, startPos);
 				LOG_INFO("Original target placed at (" << currentRow << "," << currentCol << ")");
 			}
@@ -206,7 +207,7 @@ public:
 			int mirrorStartTileIndex = mirrorStartRow * 4 + mirrorStartCol;
 			if (mirrorTileTransforms[mirrorStartTileIndex].IsValid()) {
 				Vec3 mirrorStartPos = GetTileWorldPosition(mirrorTileTransforms[mirrorStartTileIndex], mirrorGridParent);
-				mirrorStartPos.z += 1.0f;
+				mirrorStartPos.z += zOffset;
 				SetPosition(mirrorTargetTransform, mirrorStartPos);
 				LOG_INFO("Mirror target placed at (" << mirrorRow << "," << mirrorCol << ")");
 			}
@@ -373,7 +374,7 @@ public:
 	void MoveOriginalTargetToTile(int tileIndex) {
 		if (tileTransforms[tileIndex].IsValid() && targetTransform.IsValid()) {
 			Vec3 tilePos = GetTileWorldPosition(tileTransforms[tileIndex], gridParent);
-			tilePos.z += 1.0f;
+			tilePos.z += zOffset;
 			SetPosition(targetTransform, tilePos);
 		}
 	}
@@ -381,7 +382,7 @@ public:
 	void MoveMirrorTargetToTile(int tileIndex) {
 		if (mirrorTileTransforms[tileIndex].IsValid() && mirrorTargetTransform.IsValid()) {
 			Vec3 tilePos = GetTileWorldPosition(mirrorTileTransforms[tileIndex], mirrorGridParent);
-			tilePos.z += 1.0f;
+			tilePos.z += zOffset;
 			SetPosition(mirrorTargetTransform, tilePos);
 		}
 	}
@@ -475,8 +476,10 @@ public:
 	int endRow = 0;    // Default: top-right
 	int endCol = 3;
 
-	float tileSpacingX = 1.5f;
-	float tileSpacingY = 1.5f;
+	//float tileSpacingX = 1.5f;
+	//float tileSpacingY = 1.5f;
+
+	float zOffset = 1.0f;  // Height offset above tile
 
 	// Tile movement restrictions (configurable in editor)
 	std::vector<TileConfig> tileRestrictions;        // Original grid restrictions

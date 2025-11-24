@@ -281,7 +281,7 @@ private:
 		}
 
 		// Move toward target
-		float moveAmount = openSpeed * deltaTime;
+		float moveAmount = openSpeed * (float)deltaTime;
 		if (moveAmount > distance) moveAmount = distance;
 
 		Vec3 normalizedDir = Vec3(

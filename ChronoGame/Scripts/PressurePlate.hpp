@@ -3,6 +3,7 @@
 
 using namespace NE::Scripting;
 
+// I wanted to jus default set all floating point to double but SCRIPT_FIELD macro only supports Float (float)
 /**
  * PressurePlate - Activates when object is placed on it
  *
@@ -55,7 +56,7 @@ public:
 	void Update(double deltaTime) override {
 		// Handle activation delay
 		if (objectsOnPlate > 0 && !isActivated) {
-			activationTimer += deltaTime;
+			activationTimer += (float)deltaTime;
 
 			if (activationTimer >= activationDelay) {
 				Activate();
@@ -148,7 +149,7 @@ private:
 
 		// Smooth interpolation
 		float lerpSpeed = 5.0f;
-		float t = 1.0f - std::exp(-lerpSpeed * deltaTime);
+		float t = 1.0f - std::exp(-lerpSpeed * (float)deltaTime);
 
 		Vec3 newPos = Vec3(
 			currentPos.x + (targetPos.x - currentPos.x) * t,
