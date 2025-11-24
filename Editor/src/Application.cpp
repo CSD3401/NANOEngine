@@ -1,4 +1,4 @@
-	#include "Application.hpp"
+#include "Application.hpp"
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
@@ -102,8 +102,8 @@ namespace Editor {
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
 		NE::LoadStartupScene();
-		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>(NE::GetSceneFrameBuffer());
-		editorLayer.AddPanel<GamePanel>(NE::GetGameFrameBuffer());
+		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>();
+		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
@@ -111,7 +111,6 @@ namespace Editor {
 		//editorLayer.AddPanel<AnimationPanel>();
 		//editorLayer.AddPanel<AnimatorRuntimePanel>();
 		//editorLayer.AddPanel<AnimatorGraphPanel>();
-
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(sp->GetCamera()));
 
