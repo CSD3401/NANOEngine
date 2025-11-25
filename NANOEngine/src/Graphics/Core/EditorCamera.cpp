@@ -12,9 +12,10 @@ namespace NE::Graphics {
         RecalculateView();
     }
 
-    void EditorCamera::SetPerspective(float fovYRadians, float aspectRatio, float nearPlane, float farPlane,
+    void EditorCamera::SetPerspective(float fov, float aspectRatio, float nearPlane, float farPlane,
         bool, bool) 
     {
+        float fovYRadians = fov * (NE::Math::PI / 180.0f);
         float f = 1.0f / std::tan(fovYRadians * 0.5f);
         float zn = nearPlane;
         float zf = farPlane;
@@ -67,5 +68,4 @@ namespace NE::Graphics {
     Vec3 EditorCamera::GetForward() const {
         return (m_target - m_position).Normalized();
     }
-
 }

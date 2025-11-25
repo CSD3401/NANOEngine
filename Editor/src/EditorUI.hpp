@@ -20,7 +20,6 @@ namespace Editor {
 
     // Generic float
     bool DrawFloatControl(const std::string& label, float& value, float step = 0.1f);
-
     // Generic int
     bool DrawIntControl(const std::string& label, int& value);
     // Checkbox (bool)
@@ -49,5 +48,8 @@ namespace Editor {
         return changed;
     }
 
-
+    // New Styling
+    bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned);
+    bool DrawFloatField(const char* label, float& value, float step, bool rightAligned);
+    bool DrawIntField(const char* label, int& value, bool rightAligned);
 }

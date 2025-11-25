@@ -196,6 +196,91 @@ namespace Editor {
         return changed;
     }
 
+    // New Styling
+    bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned) {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        // Label
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        float fullWidth = ImGui::GetContentRegionAvail().x;
+        float sliderWidth = fullWidth * 0.70f;
+        float inputWidth = 60.0f;
+        float spacing = style.ItemInnerSpacing.x;
+        float totalWidth = sliderWidth + spacing + inputWidth;
+
+        if (rightAligned) {
+            float startX = ImGui::GetCursorPosX() + (fullWidth - totalWidth);
+            if (startX < ImGui::GetCursorPosX())
+                startX = ImGui::GetCursorPosX();
+            ImGui::SetCursorPosX(startX);
+        }
+
+        ImGui::SetNextItemWidth(sliderWidth);
+        changed |= ImGui::SliderFloat("##slider", &value, min, max, " ");
+
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(inputWidth);
+        changed |= ImGui::DragFloat("##input", &value, step, min, max, "%.2f");
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawFloatField(const char* label, float& value, float step, bool rightAligned) {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        //ImGuiStyle& style = ImGui::GetStyle();
+        float fullWidth = ImGui::GetContentRegionAvail().x;
+        float fieldWidth = 150.f;
+
+        if (rightAligned) {
+            float startX = ImGui::GetCursorPosX() + (fullWidth - fieldWidth);
+            ImGui::SetCursorPosX(startX);
+        }
+
+        ImGui::SetNextItemWidth(fieldWidth);
+        changed |= ImGui::DragFloat("##input", &value, step, -FLT_MAX, FLT_MAX, "%.3f");
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawIntField(const char* label, int& value, bool rightAligned) {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        //ImGuiStyle& style = ImGui::GetStyle();
+        float fullWidth = ImGui::GetContentRegionAvail().x;
+        float fieldWidth = 150.f;
+
+        if (rightAligned) {
+            float startX = ImGui::GetCursorPosX() + (fullWidth - fieldWidth);
+            ImGui::SetCursorPosX(startX);
+        }
+
+        ImGui::SetNextItemWidth(fieldWidth);
+        changed |= ImGui::DragInt("##input", &value, 1);
+
+        ImGui::PopID();
+        return changed;
+    }
+
     // Generic int
     bool DrawIntControl(const std::string& label, int& value)
     {
