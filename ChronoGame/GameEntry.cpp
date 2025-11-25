@@ -15,6 +15,7 @@
 #include "Scripts/Gears.hpp"
 #include "Scripts/k1bswitch.hpp"
 #include "Scripts/k2bswitch.hpp"
+#include "Scripts/Pickable.hpp"
 #include "Scripts/PlayerController.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
@@ -110,10 +111,15 @@ extern "C" {
         registrar->RegisterScript("BulletShooterScript", []() -> NE::Scripting::IScript* {
             return new BulletShooterScript();
             });
-            registrar->RegisterScript("CameraController", []() -> NE::Scripting::IScript* {
-                return new CameraController();
-                });
 
-            }
+        registrar->RegisterScript("CameraController", []() -> NE::Scripting::IScript* {
+            return new CameraController();
+            });
+
+        registrar->RegisterScript("Pickable", []() -> NE::Scripting::IScript* {
+            return new Pickable();
+            });
+
+        }
     
 }

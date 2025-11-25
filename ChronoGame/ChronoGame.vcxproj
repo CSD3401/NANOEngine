@@ -170,6 +170,7 @@
     <ClInclude Include="Scripts\MaterialSequencer.hpp" />
     <ClInclude Include="Scripts\ParentControllerScript.hpp" />
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
+    <ClInclude Include="Scripts\Pickable.hpp" />
     <ClInclude Include="Scripts\PlayerCamera.hpp" />
     <ClInclude Include="Scripts\PlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerScript.hpp" />
