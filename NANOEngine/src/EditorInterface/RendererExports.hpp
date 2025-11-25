@@ -13,18 +13,11 @@ namespace NE::Graphics {
 	struct RenderSettings;
 }
 
-namespace NE::Scripting {
-	template<typename THandle> struct ComponentRef;
-	struct MaterialHandle;
-	using MaterialRef = ComponentRef<MaterialHandle>;
-}
-
 namespace NE::Renderer {
 
 	namespace Query {
 		NANOENGINE_API std::string GetModel(uint32_t e);
 		NANOENGINE_API std::string GetMaterial(uint32_t e);
-		NANOENGINE_API std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef);
 	}
 
 	namespace Command {

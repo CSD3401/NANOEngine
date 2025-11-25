@@ -78,11 +78,11 @@ namespace NE::Serialization {
             return out;
         }
 
-        uint64_t luid = GetLUIDFromEntity(entity);
+        //uint64_t luid = GetLUIDFromEntity(entity); use entity for now
 
         // Warning: Entity without valid LUID will serialize as 0 and fail to deserialize!
         // All scene entities should have valid LUIDs assigned in their EntityMeta component
-        out.SetUint64(luid);
+        out.SetUint64(entity);
         return out;
     }
 
@@ -96,7 +96,8 @@ namespace NE::Serialization {
             return;
         }
 
-        out = GetEntityFromLUID(luid);
+        //out = GetEntityFromLUID(luid);
+        out = (uint32_t)luid;
     }
 
     // ----------- std::vector serialization -----------
@@ -211,35 +212,36 @@ namespace NE::Serialization {
                     // Check if it's a vector (contains commas) or single entity
                     if (value.find(',') != std::string::npos) {
                         // Vector<Entity> - parse comma-separated entity IDs
-                        RJson luidsArray(rapidjson::kArrayType);
+                        //RJson luidsArray(rapidjson::kArrayType);
+                        RJson eidArray(rapidjson::kArrayType);
                         std::stringstream ss(value);
                         std::string entityIdStr;
 
                         while (std::getline(ss, entityIdStr, ',')) {
                             try {
                                 NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(entityIdStr));
-                                uint64_t luid = GetLUIDFromEntity(entityId);
-                                luidsArray.PushBack(luid, a);
+                                //uint64_t luid = GetLUIDFromEntity(entityId);
+                                eidArray.PushBack(entityId, a);
                             } catch (...) {
                                 // Failed to parse - skip this entry
                             }
                         }
 
-                        fieldsObj.AddMember(keyJson, luidsArray, a);
+                        fieldsObj.AddMember(keyJson, eidArray, a);
                     } else {
                         // Single entity reference
                         try {
                             NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(value));
-                            uint64_t luid = GetLUIDFromEntity(entityId);
+                            //uint64_t luid = GetLUIDFromEntity(entityId);
 
                             // DEBUG: Log the conversion
-                            if (name == "tref0") {
-                                SPD_DEBUG("[LUID Serialize] Field " << name << ": Entity ID " << entityId << " -> LUID " << luid);
-                            }
+                            //if (name == "tref0") {
+                            //    SPD_DEBUG("[LUID Serialize] Field " << name << ": Entity ID " << entityId << " -> LUID " << luid);
+                            //}
 
-                            RJson luidJson;
-                            luidJson.SetUint64(luid);
-                            fieldsObj.AddMember(keyJson, luidJson, a);
+                            RJson eidJson;
+                            eidJson.SetUint64(entityId);
+                            fieldsObj.AddMember(keyJson, eidJson, a);
                         } catch (...) {
                             // Failed to parse - store as string
                             fieldsObj.AddMember(keyJson, to_json(value, a), a);
@@ -271,13 +273,14 @@ namespace NE::Serialization {
                 // Check the JSON value type to determine if it's an entity reference
                 if (it->value.IsUint64()) {
                     // Single entity LUID - convert to entity ID string
-                    uint64_t luid = it->value.GetUint64();
-                    NE::ECS::Entity entityId = GetEntityFromLUID(luid);
+                    uint64_t eid = it->value.GetUint64();
+                   // uint64_t luid = it->value.GetUint64();
+                    NE::ECS::Entity entityId = (uint32_t)eid;
 
                     // DEBUG: Log the conversion
-                    if (fieldName == "tref0") {
-                        SPD_DEBUG("[LUID Deserialize] Field "<< fieldName << ": LUID " << luid << " ->Entity ID " << entityId);
-                    }
+                    //if (fieldName == "tref0") {
+                    //    SPD_DEBUG("[LUID Deserialize] Field "<< fieldName << ": LUID " << luid << " ->Entity ID " << entityId);
+                    //}
 
                     out.SerializedFields[fieldName] = std::to_string(entityId);
                 } else if (it->value.IsArray()) {
@@ -289,7 +292,8 @@ namespace NE::Serialization {
                         first = false;
 
                         uint64_t luid = luidValue.GetUint64();
-                        NE::ECS::Entity entityId = GetEntityFromLUID(luid);
+                        //NE::ECS::Entity entityId = GetEntityFromLUID(luid);
+                        NE::ECS::Entity entityId = (uint32_t)luid;
                         ss << entityId;
                     }
                     out.SerializedFields[fieldName] = ss.str();
