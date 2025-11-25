@@ -11,6 +11,34 @@
 #include "../Command/CommandHistory.hpp"
 #include "Graphics/Core/UIRenderer.hpp"
 #include <iostream>
+#include <limits>
+
+namespace {
+	// helper function for ui
+	// calculate world position by walking up parent hierarchy
+	ImVec2 CalculateUIWorldPosition(uint32_t entity) {
+		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
+
+		float worldX = rect.x;
+		float worldY = rect.y;
+
+		// Walk up parent chain
+		uint32_t currentParent = rect.parent;
+		while (currentParent != std::numeric_limits<uint32_t>::max()) {
+			if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
+				break;
+			}
+
+			auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
+			worldX += parentRect.x;
+			worldY += parentRect.y;
+
+			currentParent = parentRect.parent;
+		}
+
+		return ImVec2(worldX, worldY);
+	}
+}
 
 namespace Editor {
 	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
@@ -333,6 +361,9 @@ namespace Editor {
 			{
 				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
 
+				// Calculate world position for display
+				ImVec2 worldPos = CalculateUIWorldPosition(eid);
+
 				// draw in pixel space
 				float fbWidth = 1920.f;  // temp hardcoded
 				float fbHeight = 1080.f; // temp hardcoded
@@ -342,12 +373,12 @@ namespace Editor {
 				float scaleY = panelSize.y / fbHeight;
 
 				ImVec2 topLeft(
-					panelPos.x + rectTransform.x * scaleX,
-					panelPos.y + rectTransform.y * scaleY
+					panelPos.x + worldPos.x * scaleX,
+					panelPos.y + worldPos.y * scaleY
 				);
 				ImVec2 bottomRight(
-					panelPos.x + (rectTransform.x + rectTransform.width) * scaleX,
-					panelPos.y + (rectTransform.y + rectTransform.height) * scaleY
+					panelPos.x + (worldPos.x + rectTransform.width) * scaleX,
+					panelPos.y + (worldPos.y + rectTransform.height) * scaleY
 				);
 				ImVec2 center(
 					(topLeft.x + bottomRight.x) * 0.5f,
@@ -404,6 +435,7 @@ namespace Editor {
 				static int  draggingEdge = -1;   // -1 = none, 0..3 = which edge
 				static ImVec2 dragStart;         // mouse start (pixels)
 				static NE::ECS::Component::UIRectTransform originalTransform;
+				static ImVec2 originalWorldPos; // world position at drag start
 
 				// helper
 				auto mouseInPanel = [&](ImVec2 p) {
@@ -505,6 +537,7 @@ namespace Editor {
 							draggingCorner = i;
 							dragStart = mousePos;
 							originalTransform = rectTransform;
+							originalWorldPos = worldPos;
 							s_usingUIGizmo = true;
 							handleClicked = true;
 							break; // to avoid checking other corners
@@ -527,6 +560,7 @@ namespace Editor {
 								dragStart = mousePos;
 								originalTransform = rectTransform;
 								s_usingUIGizmo = true;
+								originalWorldPos = worldPos;
 								handleClicked = true;
 								break;
 							}
@@ -547,6 +581,7 @@ namespace Editor {
 							dragStart = mousePos;
 							originalTransform = rectTransform;
 							s_usingUIGizmo = true;
+							originalWorldPos = worldPos;
 						}
 					}
 				}
@@ -559,9 +594,25 @@ namespace Editor {
 					{
 						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
 						// Convert panel deltas back to framebuffer deltas
-						rectTransform.x = originalTransform.x + (deltaPixels.x / scaleX);
-						rectTransform.y = originalTransform.y + (deltaPixels.y / scaleY);
+						float deltaFBX = deltaPixels.x / scaleX;
+						float deltaFBY = deltaPixels.y / scaleY;
+
+						// Calculate new world position
+						float newWorldX = originalWorldPos.x + deltaFBX;
+						float newWorldY = originalWorldPos.y + deltaFBY;
+
+						// Calculate parent world position
+						ImVec2 parentWorldPos(0.0f, 0.0f);
+						if (rectTransform.parent != std::numeric_limits<uint32_t>::max() &&
+							NE::ECS::Query::HasUIRectTransform(rectTransform.parent)) {
+							parentWorldPos = CalculateUIWorldPosition(rectTransform.parent);
+						}
+
+						// Set local position (world position - parent world position)
+						rectTransform.x = newWorldX - parentWorldPos.x;
+						rectTransform.y = newWorldY - parentWorldPos.y;
 					}
+
 					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 					{
 						isDraggingUI = false;
@@ -586,28 +637,45 @@ namespace Editor {
 						float deltaFBX = deltaPixels.x / scaleX;
 						float deltaFBY = deltaPixels.y / scaleY;
 
+						// Calculate parent world position once
+						ImVec2 parentWorldPos(0.0f, 0.0f);
+						if (rectTransform.parent != std::numeric_limits<uint32_t>::max() &&
+							NE::ECS::Query::HasUIRectTransform(rectTransform.parent)) {
+							parentWorldPos = CalculateUIWorldPosition(rectTransform.parent);
+						}
+
 						// Anchor logic: adjust position to keep the dragged corner under the mouse
 						switch (draggingCorner) {
 						case 0: // Top-left
-							rectTransform.x = originalTransform.x + deltaFBX;
-							rectTransform.y = originalTransform.y + deltaFBY;
+						{
+							float newWorldX = originalWorldPos.x + deltaFBX;
+							float newWorldY = originalWorldPos.y + deltaFBY;
+							rectTransform.x = newWorldX - parentWorldPos.x;
+							rectTransform.y = newWorldY - parentWorldPos.y;
 							rectTransform.width = originalTransform.width - deltaFBX;
 							rectTransform.height = originalTransform.height - deltaFBY;
-							break;
+						}
+						break;
 						case 1: // Top-right
-							rectTransform.y = originalTransform.y + deltaFBY;
+						{
+							float newWorldY = originalWorldPos.y + deltaFBY;
+							rectTransform.y = newWorldY - parentWorldPos.y;
 							rectTransform.width = originalTransform.width + deltaFBX;
 							rectTransform.height = originalTransform.height - deltaFBY;
-							break;
+						}
+						break;
 						case 2: // Bottom-right
 							rectTransform.width = originalTransform.width + deltaFBX;
 							rectTransform.height = originalTransform.height + deltaFBY;
 							break;
 						case 3: // Bottom-left
-							rectTransform.x = originalTransform.x + deltaFBX;
+						{
+							float newWorldX = originalWorldPos.x + deltaFBX;
+							rectTransform.x = newWorldX - parentWorldPos.x;
 							rectTransform.width = originalTransform.width - deltaFBX;
 							rectTransform.height = originalTransform.height + deltaFBY;
-							break;
+						}
+						break;
 						}
 
 						// Clamp size (>= 1px)
@@ -643,11 +711,21 @@ namespace Editor {
 						float deltaFBX = deltaPixels.x / scaleX;
 						float deltaFBY = deltaPixels.y / scaleY;
 
+						// Calculate parent world position once
+						ImVec2 parentWorldPos(0.0f, 0.0f);
+						if (rectTransform.parent != std::numeric_limits<uint32_t>::max() &&
+							NE::ECS::Query::HasUIRectTransform(rectTransform.parent)) {
+							parentWorldPos = CalculateUIWorldPosition(rectTransform.parent);
+						}
+
 						switch (draggingEdge) {
 						case 0: // Top edge
-							rectTransform.y = originalTransform.y + deltaFBY;
+						{
+							float newWorldY = originalWorldPos.y + deltaFBY;
+							rectTransform.y = newWorldY - parentWorldPos.y;
 							rectTransform.height = originalTransform.height - deltaFBY;
-							break;
+						}
+						break;
 						case 1: // Right edge
 							rectTransform.width = originalTransform.width + deltaFBX;
 							break;
@@ -655,9 +733,12 @@ namespace Editor {
 							rectTransform.height = originalTransform.height + deltaFBY;
 							break;
 						case 3: // Left edge
-							rectTransform.x = originalTransform.x + deltaFBX;
+						{
+							float newWorldX = originalWorldPos.x + deltaFBX;
+							rectTransform.x = newWorldX - parentWorldPos.x;
 							rectTransform.width = originalTransform.width - deltaFBX;
-							break;
+						}
+						break;
 						}
 
 						// Clamp size

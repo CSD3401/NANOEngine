@@ -286,6 +286,7 @@ namespace NE::Graphics {
         }
         }
     }
+
     // fullscreen quad vertex shader
     const char* compositeVertexShader = R"(#version 330 core
         layout (location = 0) in vec2 aPos;
