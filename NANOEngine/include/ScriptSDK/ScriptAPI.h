@@ -568,6 +568,8 @@ namespace Scripting {
         virtual void AddArrayElement(const std::string& fieldName);
         virtual void RemoveArrayElement(const std::string& fieldName, size_t index);
 
+        void MarkFieldAsEntityReference(const std::string& name);
+
         //=====================================================================
         // INTERNAL ENGINE INTERFACE (Do not call from scripts)
         //=====================================================================

@@ -18,6 +18,7 @@
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Renderer.hpp"
 #include "../ECS/Components/Camera.hpp"
+#include "../ECS/Components/NativeScript.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
@@ -1083,6 +1084,17 @@ namespace Scripting {
         m_fieldRegistry->fields[name] = std::move(entry);
     }
 
+    // Helper to mark a field as containing entity references (needs LUID conversion)
+    void IScript::MarkFieldAsEntityReference(const std::string& name) {
+        if (!m_context || !m_context->componentManager) return;
+
+        // Access the NativeScript component and mark this field as an entity reference
+        if (m_context->componentManager->HasComponent<NE::ECS::Component::NativeScript>(m_entity)) {
+            auto& scriptComp = m_context->componentManager->GetComponent<NE::ECS::Component::NativeScript>(m_entity);
+            scriptComp.EntityReferenceFields.insert(name);
+        }
+    }
+
     void IScript::RegisterFloatField(const std::string& name, float* memberPtr) {
         RegisterFieldInternal(
             name,
@@ -1198,6 +1210,7 @@ namespace Scripting {
                 }
             }
         );
+        MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
     }
 
     void IScript::RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr) {
@@ -1216,6 +1229,7 @@ namespace Scripting {
                 }
             }
         );
+        MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
     }
 
     void IScript::RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr) {
@@ -1234,6 +1248,7 @@ namespace Scripting {
                 }
             }
         );
+        MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
     }
 
     void IScript::RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr) {
@@ -1863,6 +1878,7 @@ namespace Scripting {
         };
 
         m_fieldRegistry->fields[name] = std::move(entry);
+        MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
     }
 
     //=========================================================================

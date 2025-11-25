@@ -1,11 +1,13 @@
 #pragma once
 #include <string>
+#include <sstream>
 #include <type_traits>
 #include <filesystem>
 #include <vector>
 #include <rapidjson/document.h>
 #include "../../src/Math/Vec3.hpp"
 #include "../Core/Reflection.hpp"
+#include "../Core/SpdLogger.hpp"
 #include "ECS/Components/Light.hpp" //temp
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Components/EntityMeta.hpp"
@@ -69,7 +71,17 @@ namespace NE::Serialization {
     // Serialize Entity as LUID
     inline RJson to_json(const NE::ECS::Entity& entity, Alloc&) {
         RJson out;
+
+        // Special case: NO_ENTITY serializes as 0
+        if (entity == NE::ECS::NO_ENTITY) {
+            out.SetUint64(0);
+            return out;
+        }
+
         uint64_t luid = GetLUIDFromEntity(entity);
+
+        // Warning: Entity without valid LUID will serialize as 0 and fail to deserialize!
+        // All scene entities should have valid LUIDs assigned in their EntityMeta component
         out.SetUint64(luid);
         return out;
     }
@@ -77,6 +89,13 @@ namespace NE::Serialization {
     // Deserialize LUID to Entity
     inline void from_json(const RJson& v, NE::ECS::Entity& out) {
         uint64_t luid = v.GetUint64();
+
+        // LUID of 0 means NO_ENTITY
+        if (luid == 0) {
+            out = NE::ECS::NO_ENTITY;
+            return;
+        }
+
         out = GetEntityFromLUID(luid);
     }
 
@@ -172,41 +191,116 @@ namespace NE::Serialization {
 
     // ----------- NativeScript serialization -----------
     // Custom serialization to handle ScriptName and SerializedFields
+    // Converts entity ID <-> LUID for entity reference fields during scene save/load
     inline RJson to_json(const NE::ECS::Component::NativeScript& script, Alloc& a) {
         RJson obj(rapidjson::kObjectType);
-  
-     // Serialize script name
+
+        // Serialize script name
         obj.AddMember("ScriptName", to_json(script.ScriptName, a), a);
-     
+
         // Serialize field values as a nested object
         if (!script.SerializedFields.empty()) {
-          RJson fieldsObj(rapidjson::kObjectType);
-       for (const auto& [name, value] : script.SerializedFields) {
-   RJson keyJson(name.c_str(), a);
-     fieldsObj.AddMember(keyJson, to_json(value, a), a);
+            RJson fieldsObj(rapidjson::kObjectType);
+            for (const auto& [name, value] : script.SerializedFields) {
+                RJson keyJson(name.c_str(), a);
+
+                // Check if this field contains entity references (needs LUID conversion)
+                if (script.EntityReferenceFields.count(name) > 0) {
+                    // This is an entity reference field - convert entity ID(s) to LUID(s)
+
+                    // Check if it's a vector (contains commas) or single entity
+                    if (value.find(',') != std::string::npos) {
+                        // Vector<Entity> - parse comma-separated entity IDs
+                        RJson luidsArray(rapidjson::kArrayType);
+                        std::stringstream ss(value);
+                        std::string entityIdStr;
+
+                        while (std::getline(ss, entityIdStr, ',')) {
+                            try {
+                                NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(entityIdStr));
+                                uint64_t luid = GetLUIDFromEntity(entityId);
+                                luidsArray.PushBack(luid, a);
+                            } catch (...) {
+                                // Failed to parse - skip this entry
+                            }
+                        }
+
+                        fieldsObj.AddMember(keyJson, luidsArray, a);
+                    } else {
+                        // Single entity reference
+                        try {
+                            NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(value));
+                            uint64_t luid = GetLUIDFromEntity(entityId);
+
+                            // DEBUG: Log the conversion
+                            if (name == "tref0") {
+                                SPD_DEBUG("[LUID Serialize] Field " << name << ": Entity ID " << entityId << " -> LUID " << luid);
+                            }
+
+                            RJson luidJson;
+                            luidJson.SetUint64(luid);
+                            fieldsObj.AddMember(keyJson, luidJson, a);
+                        } catch (...) {
+                            // Failed to parse - store as string
+                            fieldsObj.AddMember(keyJson, to_json(value, a), a);
+                        }
+                    }
+                } else {
+                    // Normal field - store as string
+                    fieldsObj.AddMember(keyJson, to_json(value, a), a);
+                }
             }
-   obj.AddMember("SerializedFields", fieldsObj, a);
+            obj.AddMember("SerializedFields", fieldsObj, a);
         }
-        
+
         return obj;
     }
 
     inline void from_json(const RJson& v, NE::ECS::Component::NativeScript& out) {
-   // Deserialize script name
-     if (v.HasMember("ScriptName")) {
-   from_json(v["ScriptName"], out.ScriptName);
-     }
+        // Deserialize script name
+        if (v.HasMember("ScriptName")) {
+            from_json(v["ScriptName"], out.ScriptName);
+        }
 
         // Deserialize field values
-   if (v.HasMember("SerializedFields")) {
- const auto& fieldsObj = v["SerializedFields"];
+        if (v.HasMember("SerializedFields")) {
+            const auto& fieldsObj = v["SerializedFields"];
             for (auto it = fieldsObj.MemberBegin(); it != fieldsObj.MemberEnd(); ++it) {
-     std::string fieldName = it->name.GetString();
-    std::string fieldValue;
-                from_json(it->value, fieldValue);
-     out.SerializedFields[fieldName] = fieldValue;
-      }
-    }
+                std::string fieldName = it->name.GetString();
+
+                // Check the JSON value type to determine if it's an entity reference
+                if (it->value.IsUint64()) {
+                    // Single entity LUID - convert to entity ID string
+                    uint64_t luid = it->value.GetUint64();
+                    NE::ECS::Entity entityId = GetEntityFromLUID(luid);
+
+                    // DEBUG: Log the conversion
+                    if (fieldName == "tref0") {
+                        SPD_DEBUG("[LUID Deserialize] Field "<< fieldName << ": LUID " << luid << " ->Entity ID " << entityId);
+                    }
+
+                    out.SerializedFields[fieldName] = std::to_string(entityId);
+                } else if (it->value.IsArray()) {
+                    // Vector<Entity> LUIDs - convert to comma-separated entity IDs
+                    std::stringstream ss;
+                    bool first = true;
+                    for (const auto& luidValue : it->value.GetArray()) {
+                        if (!first) ss << ",";
+                        first = false;
+
+                        uint64_t luid = luidValue.GetUint64();
+                        NE::ECS::Entity entityId = GetEntityFromLUID(luid);
+                        ss << entityId;
+                    }
+                    out.SerializedFields[fieldName] = ss.str();
+                } else if (it->value.IsString()) {
+                    // Normal string field
+                    std::string fieldValue;
+                    from_json(it->value, fieldValue);
+                    out.SerializedFields[fieldName] = fieldValue;
+                }
+            }
+        }
     }
 
     // ----------- Entity <-> LUID conversion implementation -----------
