@@ -162,8 +162,8 @@
     <ClInclude Include="Scripts\ColourSwapManager.hpp" />
     <ClInclude Include="Scripts\Door.hpp" />
     <ClInclude Include="Scripts\BulletShooterScript.hpp" />
+    <ClInclude Include="Scripts\CameraController.hpp" />
     <ClInclude Include="Scripts\EngineAPI.hpp" />
-    <ClInclude Include="Scripts\ExampleMaterialScript.hpp" />
     <ClInclude Include="Scripts\FollowerScript.hpp" />
     <ClInclude Include="Scripts\Gears.hpp" />
     <ClInclude Include="Scripts\k1bswitch.hpp" />

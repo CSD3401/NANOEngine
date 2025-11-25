@@ -17,6 +17,7 @@
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/Camera.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
@@ -730,6 +731,91 @@ namespace Scripting {
         if (!HasAudioSource(targetEntity)) return;
         auto& audio = m_context->componentManager->GetComponent<ECS::Component::AudioSource>(targetEntity);
         audio.loop = loop;
+    }
+
+    //=========================================================================
+    // CAMERA OPERATIONS
+    //=========================================================================
+
+    bool IScript::HasCamera() const {
+        if (!m_context || !m_context->componentManager) return false;
+        return m_context->componentManager->HasComponent<ECS::Component::Camera>(m_entity);
+    }
+
+    float IScript::GetCameraFOV() const {
+        if (!HasCamera()) return 45.0f;
+        const auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        return camera.fovY;
+    }
+
+    void IScript::SetCameraFOV(float fov) {
+        if (!HasCamera()) return;
+        auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        camera.fovY = fov;
+        camera.isDirty = true; // Mark camera projection as needing rebuild
+    }
+
+    float IScript::GetCameraAspectRatio() const {
+        if (!HasCamera()) return 16.0f / 9.0f;
+        const auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        return camera.aspectRatio;
+    }
+
+    void IScript::SetCameraAspectRatio(float aspectRatio) {
+        if (!HasCamera()) return;
+        auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        camera.aspectRatio = aspectRatio;
+        camera.isDirty = true;
+    }
+
+    float IScript::GetCameraNearPlane() const {
+        if (!HasCamera()) return 0.1f;
+        const auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        return camera.nearPlane;
+    }
+
+    void IScript::SetCameraNearPlane(float nearPlane) {
+        if (!HasCamera()) return;
+        auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        camera.nearPlane = nearPlane;
+        camera.isDirty = true;
+    }
+
+    float IScript::GetCameraFarPlane() const {
+        if (!HasCamera()) return 1000.0f;
+        const auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        return camera.farPlane;
+    }
+
+    void IScript::SetCameraFarPlane(float farPlane) {
+        if (!HasCamera()) return;
+        auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        camera.farPlane = farPlane;
+        camera.isDirty = true;
+    }
+
+    bool IScript::IsCameraMain() const {
+        if (!HasCamera()) return false;
+        const auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        return camera.isMain;
+    }
+
+    void IScript::SetCameraMain(bool isMain) {
+        if (!HasCamera()) return;
+        auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        camera.isMain = isMain;
+    }
+
+    bool IScript::IsCameraActive() const {
+        if (!HasCamera()) return false;
+        const auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        return camera.isActive;
+    }
+
+    void IScript::SetCameraActive(bool isActive) {
+        if (!HasCamera()) return;
+        auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
+        camera.isActive = isActive;
     }
 
     //=========================================================================

@@ -45,8 +45,9 @@ namespace NE::Graphics {
     int GraphicsManager::s_DebugProjLoc;
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
-    //FOG
-    NE::Graphics::GraphicsManager::FogSettings GraphicsManager::s_Fog{};   
+
+    RenderSettings GraphicsManager::renderSettings;
+
     //END FOG 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
@@ -151,18 +152,17 @@ namespace NE::Graphics {
                 shader->SetUniformMat4("u_View", camView);
                 shader->SetUniformMat4("u_Projection", camProj);
                 shader->SetUniformVec3("u_CameraPos", camPos);
-//FOG
-                // quick local helper; no interface changes
-                const GLuint prog = shader->GetProgramID();
-                auto has = [&](const char* n) { return glGetUniformLocation(prog, n) != -1; };
-                // Fog (only if present in the current shader)
-                if (has("u_FogEnabled")) shader->SetUniformInt("u_FogEnabled", s_Fog.enabled ? 1 : 0);
-                if (has("u_FogColor"))   shader->SetUniformVec3("u_FogColor", s_Fog.color);
-                if (has("u_FogMode"))    shader->SetUniformInt("u_FogMode", static_cast<int>(s_Fog.mode));
-                if (has("u_FogDensity")) shader->SetUniformFloat("u_FogDensity", s_Fog.density);
-                if (has("u_FogStart"))   shader->SetUniformFloat("u_FogStart", s_Fog.start);
-                if (has("u_FogEnd"))     shader->SetUniformFloat("u_FogEnd", s_Fog.end);
-//END FOG
+
+                shader->SetUniformVec3("i_GlobalAmbientColor", renderSettings.ambientColour);
+                shader->SetUniformFloat("i_GlobalAmbientIntensity", renderSettings.ambientIntensity);
+
+                shader->SetUniformInt("i_FogEnabled", renderSettings.fogEnabled ? 1 : 0);
+                shader->SetUniformVec3("i_FogColor", renderSettings.fogColour);
+                shader->SetUniformInt("i_FogMode", static_cast<int>(renderSettings.fogMode));
+                shader->SetUniformFloat("i_FogDensity", renderSettings.fogDensity);
+                shader->SetUniformFloat("i_FogStart", renderSettings.fogStart);
+                shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
+
                 // Set lights
                 shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
                 for (size_t i = 0; i < m_lights.size(); ++i) {
@@ -179,8 +179,6 @@ namespace NE::Graphics {
                     shader->SetUniformFloat(base + ".linear", light->linear);
                     shader->SetUniformFloat(base + ".quadratic", light->quadratic);
                 }
-
-                shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
                 // Draw mesh with instancing
                 currentMesh->DrawInstanced(instanceData.size());
@@ -662,8 +660,4 @@ namespace NE::Graphics {
         s_DebugLines.clear();
         s_DebugTriangles.clear();
     }
-    //FOG
-    void GraphicsManager::SetFog(const FogSettings& s) { s_Fog = s; }
-    GraphicsManager::FogSettings GraphicsManager::GetFog() { return s_Fog; }
-    //END FOG
 }
