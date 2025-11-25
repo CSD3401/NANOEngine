@@ -10,14 +10,5 @@ namespace Editor {
 		HierarchyPanel();
 
 		virtual void OnImGuiRender() override;
-
-
-	private:
-		void DuplicateSelected();
-		void CopySelected();
-		void PasteSelected();
-
-		// here for now
-		std::vector<uint8_t> clipboard;
 	};
 }
