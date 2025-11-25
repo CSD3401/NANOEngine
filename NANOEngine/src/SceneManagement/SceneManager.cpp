@@ -7,6 +7,8 @@
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
 
+namespace hack { bool sceneRdy = false; }
+
 namespace NE::SceneManagement {
 
 	void SceneManager::LoadScene(const std::string& path) {
@@ -14,6 +16,7 @@ namespace NE::SceneManagement {
 		m_editor = std::make_unique<Scene>();
 		NE::Serialization::JsonSceneSerializer::Deserialize(*m_editor, path);
 		m_editor->Init();
+		hack::sceneRdy = true;
 		Prefab::PrefabManager::Init(m_editor.get());
 		Prefab::PrefabManager::RebuildFromScene();
 		m_isPlaying = false;
@@ -80,11 +83,12 @@ namespace NE::SceneManagement {
 			nsc.CreateScript = nullptr;
 			nsc.DestroyScript = nullptr;
 		}
-
+		hack::sceneRdy = false;
 		// 3) create runtime scene and load from the same data
 		m_runtime = std::make_unique<Scene>();
 		NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_runtime, m_editorBackup);
 		m_runtime->Init();
+		hack::sceneRdy = true;
 
 		m_isPlaying = true;
 
@@ -99,6 +103,7 @@ namespace NE::SceneManagement {
 		if (m_runtime) {
 			m_runtime->ScriptStop();
 			m_runtime->Exit();
+			hack::sceneRdy = false;
 		}
 
 		// destroy runtime scene

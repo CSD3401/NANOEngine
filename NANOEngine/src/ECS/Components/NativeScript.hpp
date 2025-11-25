@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace NE::ECS::Component {
     struct NativeScript {
@@ -19,6 +20,10 @@ namespace NE::ECS::Component {
         // Serialized field values (field name -> string value)
         // Populated when saving scene, restored when loading scene
         std::unordered_map<std::string, std::string> SerializedFields;
+
+        // Track which fields contain entity references (need LUID conversion during serialization)
+        // Includes: transformref, rigidbodyref, audiosourceref, vector<entity>
+        std::unordered_set<std::string> EntityReferenceFields;
 
         // Binds the functions from the ScriptingEngine to this component.
         // This is called by the user when adding the component.

@@ -51,9 +51,11 @@ namespace NANOEngine::Events {
         std::function<void(void* data)> callback)
     {
         using namespace NANOEngine::Events;
-        EventBus::Get().Subscribe<ScriptEvent>(EventDomain::Script, [=](const ScriptEvent& e) {
-            if (e.name == eventName)
+        std::string eventNameCopy = eventName;  // Make a copy to avoid dangling pointer
+        EventBus::Get().Subscribe<ScriptEvent>(EventDomain::Script, [eventNameCopy, callback](const ScriptEvent& e) {
+            if (e.name == eventNameCopy) {
                 callback(e.data);
+            }
             });
     }
 
