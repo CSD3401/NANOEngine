@@ -52,12 +52,26 @@ namespace Editor {
 
 		// === SHORTCUTS (Must be at window level to work) ===
 		// Save shortcut (Ctrl+S) - Check globally, not just when window focused
-		if (ImGui::IsKeyPressed(ImGuiKey_S, false) && (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)) {
-			if (NE::IsSceneDirty()) {
-				SPD_INFO("[DirtyFlag] Ctrl+S pressed - Saving scene");
-				NE::SaveCurrentScene(EditorScene::currentScenePath);
-			} else {
-				SPD_DEBUG("[DirtyFlag] Ctrl+S pressed - No changes to save");
+		if ((ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)) {
+			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
+				if (NE::IsSceneDirty()) {
+					SPD_INFO("[DirtyFlag] Ctrl+S pressed - Saving scene");
+					NE::SaveCurrentScene(EditorScene::currentScenePath);
+				} else {
+					SPD_DEBUG("[DirtyFlag] Ctrl+S pressed - No changes to save");
+				}
+			}
+
+			if (!ImGui::IsAnyItemActive() &&
+				!ImGui::IsAnyItemFocused()) {
+				bool canEditHierarchy = EditorScene::selectedPrefab.empty();
+				if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
+					EditorScene::DuplicateSelected();
+				} else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
+					EditorScene::CopySelected();
+				} else if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
+					EditorScene::PasteSelected();
+				}
 			}
 		}
 
