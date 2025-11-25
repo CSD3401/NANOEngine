@@ -5,10 +5,12 @@
 #include <string>
 
 namespace Editor {
-	class HierarchyPanel : public IPanel {
+	class LightingPanel : public IPanel {
 	public:
-		HierarchyPanel();
+		LightingPanel() = default;
 
 		virtual void OnImGuiRender() override;
+
+	private:
 	};
 }

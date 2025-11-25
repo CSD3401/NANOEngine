@@ -160,8 +160,8 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Scripts\BulletShooterScript.hpp" />
+    <ClInclude Include="Scripts\CameraController.hpp" />
     <ClInclude Include="Scripts\EngineAPI.hpp" />
-    <ClInclude Include="Scripts\ExampleMaterialScript.hpp" />
     <ClInclude Include="Scripts\FollowerScript.hpp" />
     <ClInclude Include="Scripts\Gears.hpp" />
     <ClInclude Include="Scripts\k1bswitch.hpp" />
