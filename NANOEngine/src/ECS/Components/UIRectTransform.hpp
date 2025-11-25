@@ -13,7 +13,7 @@ namespace NE::ECS::Component {
         // top-left position in pixels
         float x = 0.0f;
         float y = 0.0f;
-        float z = -300.0f;
+        float z = 0.0f;
 
         // size in pixels
         float width = 100.0f;

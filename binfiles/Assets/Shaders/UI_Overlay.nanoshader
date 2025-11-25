@@ -3,10 +3,12 @@
 
 layout (location = 0) in vec3 aPos;      // 3D for consistency
 layout (location = 1) in vec2 aUV;
+layout(location = 2) in vec4 aColor; 
 
 uniform vec2 uScreenSize;
 
 out vec2 vUV;
+out vec4 vColor;
 
 void main() {
     // Convert pixel coordinates to NDC (-1 to 1)
@@ -15,6 +17,7 @@ void main() {
     
     gl_Position = vec4(x, y, aPos.z, 1.0);
     vUV = aUV;
+    vColor = aColor;
 }
 
 #type fragment
@@ -22,6 +25,7 @@ void main() {
 #extension GL_ARB_bindless_texture : require
 
 in vec2 vUV;
+in vec4 vColor; 
 out vec4 FragColor;
 
 uniform vec4 uColor;
@@ -35,5 +39,5 @@ void main() {
         color *= texture(u_BaseMap, vUV);
     }
     
-    FragColor = color;
+    FragColor = color * vColor;
 }

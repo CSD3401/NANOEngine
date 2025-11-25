@@ -157,16 +157,19 @@ namespace NE::Graphics {
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
 
             // allocate buffer for dynamic vertex data
-            // format: pos(3) + uv(2) = 5 floats per vertex (no vertex color)
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 1000 * 5, nullptr, GL_DYNAMIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(UIVertex) * 1000, nullptr, GL_DYNAMIC_DRAW);
 
-            // position attribute (location 0) - 3d for world space
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+            // Position (location 0)
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(UIVertex), (void*)0);
             glEnableVertexAttribArray(0);
 
-            // UV attribute (location 1)
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+            // UV (location 1)
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(UIVertex), (void*)(3 * sizeof(float)));
             glEnableVertexAttribArray(1);
+
+            // Color (location 2)
+            glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(UIVertex), (void*)(5 * sizeof(float)));
+            glEnableVertexAttribArray(2);
         }
 
         // setup EBO (indices for 2 triangles = 1 quad)
@@ -186,34 +189,50 @@ namespace NE::Graphics {
         case 0: // overlay - screen space 2d (pixel coordinates)
         case 1: // camera - screen space 2d (shader handles transform)
         {
-            // format: x, y, z, u, v (5 floats per vertex)
+            // format: x, y, z, u, v, r, g, b, a (9 floats per vertex)
             // bottom-left
             verts[0] = cmd.x;
             verts[1] = cmd.y;
             verts[2] = cmd.z;
             verts[3] = 0.0f; // u
             verts[4] = 1.0f; // v (flip V for OpenGL)
+            verts[5] = cmd.color.x; // r
+            verts[6] = cmd.color.y; // g
+            verts[7] = cmd.color.z; // b
+            verts[8] = cmd.color.w; // a
 
             // bottom-right
-            verts[5] = cmd.x + cmd.width;
-            verts[6] = cmd.y;
-            verts[7] = cmd.z;
-            verts[8] = 1.0f;
-            verts[9] = 1.0f;
+            verts[9] = cmd.x + cmd.width;
+            verts[10] = cmd.y;
+            verts[11] = cmd.z;
+            verts[12] = 1.0f;
+            verts[13] = 1.0f;
+            verts[14] = cmd.color.x;
+            verts[15] = cmd.color.y;
+            verts[16] = cmd.color.z;
+            verts[17] = cmd.color.w;
 
             // top-right
-            verts[10] = cmd.x + cmd.width;
-            verts[11] = cmd.y + cmd.height;
-            verts[12] = cmd.z;
-            verts[13] = 1.0f;
-            verts[14] = 0.0f;
+            verts[18] = cmd.x + cmd.width;
+            verts[19] = cmd.y + cmd.height;
+            verts[20] = cmd.z;
+            verts[21] = 1.0f;
+            verts[22] = 0.0f;
+            verts[23] = cmd.color.x;
+            verts[24] = cmd.color.y;
+            verts[25] = cmd.color.z;
+            verts[26] = cmd.color.w;
 
             // top-left
-            verts[15] = cmd.x;
-            verts[16] = cmd.y + cmd.height;
-            verts[17] = cmd.z;
-            verts[18] = 0.0f;
-            verts[19] = 0.0f;
+            verts[27] = cmd.x;
+            verts[28] = cmd.y + cmd.height;
+            verts[29] = cmd.z;
+            verts[30] = 0.0f;
+            verts[31] = 0.0f;
+            verts[32] = cmd.color.x;
+            verts[33] = cmd.color.y;
+            verts[34] = cmd.color.z;
+            verts[35] = cmd.color.w;
             break;
         }
 
@@ -226,32 +245,47 @@ namespace NE::Graphics {
             verts[2] = 0.0f;
             verts[3] = 0.0f;
             verts[4] = 1.0f;
+            verts[5] = cmd.color.x;
+            verts[6] = cmd.color.y;
+            verts[7] = cmd.color.z;
+            verts[8] = cmd.color.w;
 
             // bottom-right
-            verts[5] = 1.0f;
-            verts[6] = 0.0f;
-            verts[7] = 0.0f;
-            verts[8] = 1.0f;
             verts[9] = 1.0f;
+            verts[10] = 0.0f;
+            verts[11] = 0.0f;
+            verts[12] = 1.0f;
+            verts[13] = 1.0f;
+            verts[14] = cmd.color.x;
+            verts[15] = cmd.color.y;
+            verts[16] = cmd.color.z;
+            verts[17] = cmd.color.w;
 
             // top-right
-            verts[10] = 1.0f;
-            verts[11] = 1.0f;
-            verts[12] = 0.0f;
-            verts[13] = 1.0f;
-            verts[14] = 0.0f;
+            verts[18] = 1.0f;
+            verts[19] = 1.0f;
+            verts[20] = 0.0f;
+            verts[21] = 1.0f;
+            verts[22] = 0.0f;
+            verts[23] = cmd.color.x;
+            verts[24] = cmd.color.y;
+            verts[25] = cmd.color.z;
+            verts[26] = cmd.color.w;
 
             // top-left
-            verts[15] = 0.0f;
-            verts[16] = 1.0f;
-            verts[17] = 0.0f;
-            verts[18] = 0.0f;
-            verts[19] = 0.0f;
+            verts[27] = 0.0f;
+            verts[28] = 1.0f;
+            verts[29] = 0.0f;
+            verts[30] = 0.0f;
+            verts[31] = 0.0f;
+            verts[32] = cmd.color.x;
+            verts[33] = cmd.color.y;
+            verts[34] = cmd.color.z;
+            verts[35] = cmd.color.w;
             break;
         }
         }
     }
-
     // fullscreen quad vertex shader
     const char* compositeVertexShader = R"(#version 330 core
         layout (location = 0) in vec2 aPos;
@@ -489,7 +523,7 @@ namespace NE::Graphics {
             else 
             {
                 // build standard quad
-                float verts[20]; // 4 vertices * 5 floats
+                float verts[36];
                 BuildQuadVertices(cmd, verts);
                 glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
             }

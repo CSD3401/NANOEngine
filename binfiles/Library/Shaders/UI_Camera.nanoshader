@@ -3,6 +3,7 @@
 
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aUV;
+layout(location = 2) in vec4 aColor; 
 
 uniform vec2 uScreenSize;
 uniform mat4 uView;
@@ -10,6 +11,7 @@ uniform mat4 uProj;
 uniform float uPlaneDistance;
 
 out vec2 vUV;
+out vec4 vColor;
 
 void main() {
     // Convert pixel coordinates to NDC (-1 to 1)
@@ -28,6 +30,7 @@ void main() {
     // Project to clip space
     gl_Position = uProj * viewPos;
     vUV = aUV;
+    vColor = aColor;
 }
 
 #type fragment
@@ -35,6 +38,7 @@ void main() {
 #extension GL_ARB_bindless_texture : require
 
 in vec2 vUV;
+in vec4 vColor; 
 out vec4 FragColor;
 
 uniform vec4 uColor;
@@ -48,5 +52,5 @@ void main() {
         color *= texture(u_BaseMap, vUV);
     }
     
-    FragColor = color;
+    FragColor = color * vColor;
 }
