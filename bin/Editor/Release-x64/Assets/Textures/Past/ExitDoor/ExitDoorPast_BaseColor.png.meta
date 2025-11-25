@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "81c5061f-aee3-4d8c-bb34-8fa6e0d2b89d",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\ExitDoor\\ExitDoorPast_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

@@ -19,10 +19,17 @@
 #include "Scripts/ColourSwapManager.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
+#include "Scripts/MirrorPuzzle.hpp"
+#include "Scripts/PressurePlate.hpp"
+#include "Scripts/Door.hpp"
 #include "Scripts/TweenExampleScript.hpp"
 #include "Scripts/ParentControllerScript.hpp"
 #include "Scripts/MaterialSequencer.hpp"
-#include "Scripts/ExampleMaterialScript.hpp"
+#include "Scripts/PrefabSpawnerScript.hpp"
+#include "Scripts/BulletShooterScript.hpp"
+#include "Scripts/CameraController.hpp"
+
+
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -35,7 +42,7 @@ extern "C" {
             return;
         }
 
-      
+
         // Register all your game-specific scripts here
         registrar->RegisterScript("PlayerScript", []() -> NE::Scripting::IScript* {
             return new PlayerScript();
@@ -74,34 +81,57 @@ extern "C" {
             return new k2bswitch();
             });
 
-        registrar->RegisterScript("ColourSwapManager", []() -> NE::Scripting::IScript* {
-            return new ColourSwapManager();
+        //registrar->RegisterScript("ColourSwapManager", []() -> NE::Scripting::IScript* {
+        //    return new ColourSwapManager();
+        //    });
+
+        registrar->RegisterScript("MirrorPuzzle", []() -> NE::Scripting::IScript* {
+            return new MirrorPuzzle();
+            });
+
+        registrar->RegisterScript("PressurePlate", []() -> NE::Scripting::IScript* {
+            return new PressurePlate();
+            });
+
+        registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
+            return new MaterialSequencer();
             });
 
         // Component Reference Example Scripts
           registrar->RegisterScript("FollowerScript", []() -> NE::Scripting::IScript* {
           return new FollowerScript();
-     });
+        });
 
-          registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
-             return new PlayerController();
-           });
+        registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
+            return new PlayerController();
+            });
 
-          registrar->RegisterScript("TweenExampleScript", []() -> NE::Scripting::IScript* {
-              return new TweenExampleScript();
-              });
+        registrar->RegisterScript("TweenExampleScript", []() -> NE::Scripting::IScript* {
+            return new TweenExampleScript();
+            });
 
-          registrar->RegisterScript("ExampleMaterialScript", []() -> NE::Scripting::IScript* {
-              return new ExampleMaterialScript();
-              });
+        //registrar->RegisterScript("ExampleMaterialScript", []() -> NE::Scripting::IScript* {
+        //    return new ExampleMaterialScript();
+        //    });
 
-          registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
-              return new ParentControllerScript();
-              });
+        registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
+            return new ParentControllerScript();
+            });
 
-          registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
-              return new MaterialSequencer();
-              });
+        //registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
+        //    return new MaterialSequencer();
+        //    });
 
-    }
+        registrar->RegisterScript("PrefabSpawnerScript", []() -> NE::Scripting::IScript* {
+            return new PrefabSpawnerScript();
+            });
+
+        registrar->RegisterScript("BulletShooterScript", []() -> NE::Scripting::IScript* {
+            return new BulletShooterScript();
+            });
+
+        registrar->RegisterScript("CameraController", []() -> NE::Scripting::IScript* {
+            return new CameraController();
+            });
+        }
 }

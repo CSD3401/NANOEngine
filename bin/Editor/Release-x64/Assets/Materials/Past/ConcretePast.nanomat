@@ -1,0 +1,47 @@
+{
+    "Shader": "50f92895-66cc-459d-ad25-0fd250c91f3c",
+    "DepthTest": true,
+    "BlendMode": true,
+    "CullMode": 1029,
+    "PolygonMode": 6914,
+    "Properties": {
+        "u_HasAlbedoMap": 1,
+        "u_HasMetallicMap": 1,
+        "u_HasAmbientOcclusionMap": 1,
+        "u_HasNormalMap": 1,
+        "u_HasRoughnessMap": 1,
+        "u_AmbientOcclusion": 0.20000000298023224,
+        "u_Metallic": 0.20000000298023224,
+        "u_Roughness": 0.8000000715255737,
+        "u_Tiling": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "u_Offset": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "u_AmbientColor": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "u_BaseColor": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "u_Emissive": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "u_MetallicMap": "7a987e6b-1355-47b9-9493-30fa38f3235c",
+        "u_AlbedoMap": "13114ca7-816e-46b3-8407-4f475c796b0f",
+        "u_AmbientOcclusionMap": "a15eec00-92f1-4e8f-8748-f9171936eb6e",
+        "u_NormalMap": "6b44976a-c09e-471c-b426-ad0c9272d1d6",
+        "u_RoughnessMap": "ba6abade-36a9-46f6-b4fc-d9bf656a3fc6"
+    }
+}

@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "9565e886-dccb-430f-9663-67c2bced299d",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\ExitDoor\\ExitDoorPresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

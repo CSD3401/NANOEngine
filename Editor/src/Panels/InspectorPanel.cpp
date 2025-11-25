@@ -1044,6 +1044,73 @@ namespace Editor {
 
 									ImGui::PopID();
 								}
+								else if (ftype == "prefabref") {
+									// Prefab reference field
+									// Get current prefab UUID
+									std::string prefabName = fval;
+									//std::string displayName = prefabUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(prefabUUID);
+
+									// Display the prefab reference field
+									ImGui::Text("%s (Prefab)", fname.c_str());
+
+									ImGui::PushID((fname + "_prefabref").c_str());
+
+									// Button shows prefab name or "None" - make it a drop target
+									ImGui::Button(prefabName.c_str(), ImVec2(200, 0));
+
+									// Drag-drop support - accept prefab drops from asset browser
+									// NOTE: Must be called right after the button, while it's still the active item
+									if (ImGui::BeginDragDropTarget()) {
+										const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
+										if (payload && payload->DataSize > 0) {
+											std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+											SPD_DEBUG("[PrefabRef] Dropped path: {}", droppedPath);
+
+											/*std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+											SPD_DEBUG("[PrefabRef] Retrieved UUID: {}", droppedUUID);*/
+
+											bool success = comp.Instance->SetFieldValueFromString(fname, droppedPath);
+											SPD_DEBUG("[PrefabRef] SetFieldValueFromString returned: {}", success);
+											if (success) {
+												fieldChanged = true;
+												SPD_DEBUG("[PrefabRef] Prefab " << droppedPath <<" assigned to " << fname);
+											}
+											else {
+												SPD_ERROR("[PrefabRef] Fail to get Prefab " << droppedPath << " assigned to " << fname);
+											}
+
+											/*if (!droppedUUID.empty()) {
+												SPD_DEBUG("[PrefabRef] Calling SetFieldValueFromString for field '{}' with UUID '{}'", fname, droppedUUID);
+												bool success = comp.Instance->SetFieldValueFromString(fname, droppedPath);
+												SPD_DEBUG("[PrefabRef] SetFieldValueFromString returned: {}", success);
+												if (success) {
+													fieldChanged = true;
+													SPD_DEBUG("[PrefabRef] Prefab {} assigned to field {}", droppedUUID, fname);
+												} else {
+													SPD_ERROR("[PrefabRef] Failed to assign prefab {} to field {}", droppedUUID, fname);
+												}
+											} else {
+												SPD_ERROR("[PrefabRef] Empty UUID retrieved from path: {}", droppedPath);
+											}*/
+										} else {
+											if (payload) {
+												SPD_DEBUG("[PrefabRef] Payload received but DataSize is: {}", payload->DataSize);
+											} else {
+												SPD_DEBUG("[PrefabRef] No PREFAB_ASSET_PATH payload accepted");
+											}
+										}
+										ImGui::EndDragDropTarget();
+									}
+
+									// Clear button
+									ImGui::SameLine();
+									if (ImGui::Button("X")) {
+										comp.Instance->SetFieldValueFromString(fname, "");
+										fieldChanged = true;
+									}
+
+									ImGui::PopID();
+								}
 								else if (ftype.starts_with("vector<")) {
 									// Array/Vector support (int, float, bool, string)
 									// NOTE: Nested struct vectors not yet supported - will be added in future commit
@@ -1143,6 +1210,55 @@ namespace Editor {
 															SPD_DEBUG("[MaterialRef Vector] Payload received but DataSize is: {}", payload->DataSize);
 														} else {
 															SPD_DEBUG("[MaterialRef Vector] No MATERIAL_PATH payload accepted");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, "");
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "prefabref") {
+												// Prefab reference support for vector<prefabref>
+												std::string prefabUUID = elemValue;
+												std::string displayName = prefabUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(prefabUUID);
+
+												// Button shows prefab name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept prefab drops
+												// NOTE: Must be called right after the button, while it's still the active item
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
+													if (payload && payload->DataSize > 0) {
+														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+														SPD_DEBUG("[PrefabRef Vector] Dropped path: {}", droppedPath);
+
+														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														SPD_DEBUG("[PrefabRef Vector] Retrieved UUID: {}", droppedUUID);
+
+														if (!droppedUUID.empty()) {
+															SPD_DEBUG("[PrefabRef Vector] Setting element {} of field '{}' to UUID '{}'", i, fname, droppedUUID);
+															bool success = comp.Instance->SetArrayElement(fname, i, droppedUUID);
+															SPD_DEBUG("[PrefabRef Vector] SetArrayElement returned: {}", success);
+															if (success) {
+																elemChanged = true;
+																SPD_DEBUG("[PrefabRef Vector] Successfully assigned prefab to vector element");
+															} else {
+																SPD_ERROR("[PrefabRef Vector] Failed to set array element");
+															}
+														} else {
+															SPD_ERROR("[PrefabRef Vector] Empty UUID retrieved from path: {}", droppedPath);
+														}
+													} else {
+														if (payload) {
+															SPD_DEBUG("[PrefabRef Vector] Payload received but DataSize is: {}", payload->DataSize);
+														} else {
+															SPD_DEBUG("[PrefabRef Vector] No PREFAB_ASSET_PATH payload accepted");
 														}
 													}
 													ImGui::EndDragDropTarget();
@@ -1579,7 +1695,6 @@ namespace Editor {
 					m_materialEditor->RenderSettings();
 			}
 		}
-
 		ImGui::End();
 	}
 

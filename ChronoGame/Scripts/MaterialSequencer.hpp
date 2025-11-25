@@ -14,8 +14,9 @@ public:
         SCRIPT_FIELD(isActive, Bool);
         SCRIPT_FIELD(autoRun, Bool);
         SCRIPT_FIELD(delayBetween, Float);
-        SCRIPT_FIELD(materialA_UUID, String);
-        SCRIPT_FIELD(materialB_UUID, String);
+        SCRIPT_COMPONENT_REF(materialA, MaterialRef);
+        SCRIPT_COMPONENT_REF(materialB, MaterialRef);
+        SCRIPT_COMPONENT_REF(successMaterial, MaterialRef);
 
         SCRIPT_COMPONENT_REF(target1, TransformRef);
         SCRIPT_COMPONENT_REF(target2, TransformRef);
@@ -83,8 +84,9 @@ private:
     bool isActive = true;
     bool autoRun = false;
     float delayBetween = 0.25f;
-    std::string materialA_UUID = "";
-    std::string materialB_UUID = "";
+    MaterialRef materialA{};
+    MaterialRef materialB{};
+    MaterialRef successMaterial{};
 
     TransformRef target1{}, target2{}, target3{}, target4{}, target5{};
     TransformRef attached1{}, attached2{}, attached3{}, attached4{}, attached5{};
@@ -99,6 +101,8 @@ private:
     int  m_clickIndex = 0;
     std::array<int, 5> m_order{};
     std::vector<Entity> m_targetsCache;
+    std::array<Vec3, 5> m_attachedOriginalRot{};
+    std::array<bool, 5> m_attachedIsRotated{};
 
     // debug look-at throttling
     bool   m_debugPrintAim = true;
@@ -145,7 +149,7 @@ private:
     }
 
     // Compose a world origin when camera is a child:
-    // worldOrigin ≈ parentPos + RotY(parentYaw) * cameraLocalPos
+    // worldOrigin = parentPos + RotY(parentYaw) * cameraLocalPos
     // (Assumes parent has no parent and no non-uniform scale; fits common player/camera rigs)
     Vec3 ComputeRayOrigin() {
         if (!clickRayOrigin.IsValid())
@@ -223,7 +227,20 @@ private:
         }
         if (m_targetsCache.empty()) { m_hasQueued = false; return; }
 
-        std::vector<int> idx;
+        
+        // Cache original rotations of attached switches and clear rotation flags
+        {
+            auto attached = GetAttached();
+            for (int i = 0; i < 5; ++i) {
+                if (attached[i].IsValid()) {
+                    m_attachedOriginalRot[i] = GetRotation(attached[i]);
+                } else {
+                    m_attachedOriginalRot[i] = Vec3(0.f,0.f,0.f);
+                }
+                m_attachedIsRotated[i] = false;
+            }
+        }
+std::vector<int> idx;
         for (int i = 0; i < 5; ++i)
             if (trefs[i].IsValid() && trefs[i].GetEntity() != 0) idx.push_back(i);
 
@@ -238,13 +255,11 @@ private:
         for (size_t step = 0; step < idx.size(); ++step) {
             int i = m_order[step];
             Entity e = trefs[i].GetEntity();
-            Coroutines::AddAction(h, [e, b = materialB_UUID]() {
-                NE::Renderer::Command::AssignMaterial(e, b);
-                });
+            Coroutines::AddAction(h, [e, b = materialB]() { NE::Renderer::Command::AssignMaterial(e, b); });
             Coroutines::AddWait(h, delayBetween);
         }
 
-        Coroutines::AddAction(h, [trefs, a = materialA_UUID]() {
+        Coroutines::AddAction(h, [trefs, a = materialA]() {
             for (const auto& ref : trefs) {
                 if (ref.IsValid()) {
                     Entity e = ref.GetEntity();
@@ -304,8 +319,26 @@ private:
             << "  idx=" << expectedIdx);
 
         if (hit.entity == expected) {
+            // Rotate the clicked attached switch by +180 degrees around Y to indicate activation
+            if (attached[expectedIdx].IsValid()) {
+                if (!m_attachedIsRotated[expectedIdx]) {
+                    Vec3 r = GetRotation(attached[expectedIdx]);
+                    SetRotation(attached[expectedIdx], Vec3(r.x, r.y + 180.f, r.z));
+                    m_attachedIsRotated[expectedIdx] = true;
+                }
+            }
             m_clickIndex++;
             if (m_clickIndex >= CountOrder()) {
+                // Apply succeed material to all targets
+                if (successMaterial.IsValid()) {
+                    auto trefs = GetTargets();
+                    for (const auto& ref : trefs) {
+                        if (ref.IsValid()) {
+                            Entity e2 = ref.GetEntity();
+                            if (e2 != 0) NE::Renderer::Command::AssignMaterial(e2, successMaterial);
+                        }
+                    }
+                }
                 LOG_INFO("i pass");
                 m_waitingForClicks = false;
                 m_hasQueued = false;
@@ -334,6 +367,16 @@ private:
         if (pressedIdx0 == expectedIdx) {
             m_clickIndex++;
             if (m_clickIndex >= CountOrder()) {
+                // Apply succeed material to all targets
+                if (successMaterial.IsValid()) {
+                    auto trefs = GetTargets();
+                    for (const auto& ref : trefs) {
+                        if (ref.IsValid()) {
+                            Entity e2 = ref.GetEntity();
+                            if (e2 != 0) NE::Renderer::Command::AssignMaterial(e2, successMaterial);
+                        }
+                    }
+                }
                 LOG_INFO("i pass");
                 m_waitingForClicks = false;
                 m_hasQueued = false;
@@ -349,12 +392,22 @@ private:
     }
 
     void FailAndReset() {
+        // Revert all attached switches back to original rotation
+        {
+            auto attached = GetAttached();
+            for (int i = 0; i < 5; ++i) {
+                if (attached[i].IsValid()) {
+                    SetRotation(attached[i], m_attachedOriginalRot[i]);
+                }
+                m_attachedIsRotated[i] = false;
+            }
+        }
         LOG_INFO("fail");
         auto trefs = GetTargets();
         for (const auto& ref : trefs) {
             if (ref.IsValid()) {
                 Entity e = ref.GetEntity();
-                if (e != 0) NE::Renderer::Command::AssignMaterial(e, materialA_UUID);
+                if (e != 0) NE::Renderer::Command::AssignMaterial(e, materialA);
             }
         }
         m_waitingForClicks = false;

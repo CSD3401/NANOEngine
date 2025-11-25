@@ -105,7 +105,7 @@ public:
 	void Start() override {
 		//LOG_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
 
-		tref0 = GetTransformRef(eDDDD[0]);
+		//tref0 = GetTransformRef(eDDDD[0]);
 	}
 
 	void OnValidate() override {

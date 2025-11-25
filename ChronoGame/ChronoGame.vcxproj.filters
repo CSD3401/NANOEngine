@@ -72,6 +72,16 @@
     <ClInclude Include="Scripts\ExampleMaterialScript.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Scripts\MirrorPuzzle.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\PrefabSpawnerScript.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\BulletShooterScript.hpp">
+    <ClInclude Include="Scripts\CameraController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

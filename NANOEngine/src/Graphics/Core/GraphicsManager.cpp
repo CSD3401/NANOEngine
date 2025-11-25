@@ -46,6 +46,9 @@ namespace NE::Graphics {
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
 
+    RenderSettings GraphicsManager::renderSettings;
+
+    //END FOG 
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
@@ -150,6 +153,16 @@ namespace NE::Graphics {
                 shader->SetUniformMat4("u_Projection", camProj);
                 shader->SetUniformVec3("u_CameraPos", camPos);
 
+                shader->SetUniformVec3("i_GlobalAmbientColor", renderSettings.ambientColour);
+                shader->SetUniformFloat("i_GlobalAmbientIntensity", renderSettings.ambientIntensity);
+
+                shader->SetUniformInt("i_FogEnabled", renderSettings.fogEnabled ? 1 : 0);
+                shader->SetUniformVec3("i_FogColor", renderSettings.fogColour);
+                shader->SetUniformInt("i_FogMode", static_cast<int>(renderSettings.fogMode));
+                shader->SetUniformFloat("i_FogDensity", renderSettings.fogDensity);
+                shader->SetUniformFloat("i_FogStart", renderSettings.fogStart);
+                shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
+
                 // Set lights
                 shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
                 for (size_t i = 0; i < m_lights.size(); ++i) {
@@ -166,8 +179,6 @@ namespace NE::Graphics {
                     shader->SetUniformFloat(base + ".linear", light->linear);
                     shader->SetUniformFloat(base + ".quadratic", light->quadratic);
                 }
-
-                shader->SetUniformInt("u_ShadingModel", 1); // 0 = Phong, 1 = PBR
 
                 // Draw mesh with instancing
                 currentMesh->DrawInstanced(instanceData.size());
@@ -649,5 +660,4 @@ namespace NE::Graphics {
         s_DebugLines.clear();
         s_DebugTriangles.clear();
     }
-
 }

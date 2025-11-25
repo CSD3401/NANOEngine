@@ -11,10 +11,17 @@
 
 namespace {
     static bool IsEngineUniform(std::string_view n) {
-        return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
+        // Built-in engine uniforms
+        if (n == "u_Model" || n == "u_View" || n == "u_Projection" ||
             n == "u_NormalMatrix" || n == "u_CameraPos" ||
             n == "u_numLights" || n.rfind("u_lights", 0) == 0 ||
-            n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0;
+            n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0)
+            return true;
+
+        if (n.rfind("i_", 0) == 0)
+            return true;
+
+        return false;
     }
 
     static bool IsSampler(GLenum t) {
