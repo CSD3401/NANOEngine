@@ -290,16 +290,16 @@ namespace NE {
 		return buffer;
 	}
 
-	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard, Math::Vec3 pos) {
+	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard) {
 		auto newEntities =
 			NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
 
-		auto& transform = gSceneManager.
-			GetActive()->GetECSCoordinator().
-			GetComponent<ECS::Component::Transform>(newEntities[0]);
+		//auto& transform = gSceneManager.
+		//	GetActive()->GetECSCoordinator().
+		//	GetComponent<ECS::Component::Transform>(newEntities[0]);
 
-		transform.localPosition = pos;
-		transform.isDirty = true;
+		//transform.localPosition = pos;
+		//transform.isDirty = true;
 
 		return newEntities;
 	}
