@@ -192,8 +192,9 @@ namespace NE::ECS {
 			// setup RectTransform with parent linkage
 			Component::UIRectTransform rect;
 			rect.luid = Core::LUIDGenerator::Generate("rect");
-			rect.x = 100.0f;
-			rect.y = 100.0f;
+			rect.x = 0.0f;
+			rect.y = 0.0f; 
+			rect.z = 0.0f;
 			rect.width = 100.0f;
 			rect.height = 100.0f;
 			rect.parent = parentCanvas;  // Link to parent canvas

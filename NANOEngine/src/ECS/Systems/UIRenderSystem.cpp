@@ -244,17 +244,31 @@ namespace NE::ECS::Systems {
                 Math::Vec3 scale = rect.GetScale();
                 Math::Vec2 pivot = rect.GetPivot();
 
+                // === accumulate scale from parent hierarchy ===
+                // Calculate effective scale by multiplying parent scales
+                Math::Vec3 effectiveScale = scale;
+
+                uint32_t parentEntity = rect.parent;
+                while (parentEntity != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(parentEntity)) {
+                    auto& parentRect = m_cm->GetComponent<UIRectTransform>(parentEntity);
+                    effectiveScale.x *= parentRect.scaleX;
+                    effectiveScale.y *= parentRect.scaleY;
+                    effectiveScale.z *= parentRect.scaleZ;
+                    parentEntity = parentRect.parent;
+                }
+
+
                 // Calculate pivot offset in world units
                 // Pivot determines where the element rotates/scales around
-                float pivotOffsetX = -rect.width * pivot.x * scale.x;
-                float pivotOffsetY = -rect.height * pivot.y * scale.y;
+                float pivotOffsetX = -rect.width * pivot.x * effectiveScale.x;
+                float pivotOffsetY = -rect.height * pivot.y * effectiveScale.y;
 
                 // Build transformation matrix: T * R * S * PivotOffset
-                // 1. Scale (apply both rect size and scale factors)
+                // 1. Scale (apply both rect size and EFFECTIVE scale factors)
                 Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
-                    rect.width * scale.x,
-                    rect.height * scale.y,
-                    scale.z
+                    rect.width * effectiveScale.x,
+                    rect.height * effectiveScale.y,
+                    effectiveScale.z
                 );
 
                 // 2. Apply pivot offset (translate to pivot point before rotation)
