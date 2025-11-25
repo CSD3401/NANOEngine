@@ -110,17 +110,17 @@ extern "C" {
             return new TweenExampleScript();
             });
 
-        registrar->RegisterScript("ExampleMaterialScript", []() -> NE::Scripting::IScript* {
-            return new ExampleMaterialScript();
-            });
+        //registrar->RegisterScript("ExampleMaterialScript", []() -> NE::Scripting::IScript* {
+        //    return new ExampleMaterialScript();
+        //    });
 
         registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
             return new ParentControllerScript();
             });
 
-        registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
-            return new MaterialSequencer();
-            });
+        //registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
+        //    return new MaterialSequencer();
+        //    });
 
         registrar->RegisterScript("PrefabSpawnerScript", []() -> NE::Scripting::IScript* {
             return new PrefabSpawnerScript();
