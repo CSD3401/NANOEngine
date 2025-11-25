@@ -50,8 +50,8 @@
         },
         {
             "EntityMeta": {
-                "name": "Level",
-                "isActive": 1,
+                "name": "Mesh Past",
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 0,
@@ -69,16 +69,16 @@
                     "z": 1.0
                 },
                 "Rotation": {
-                    "x": 0.0,
+                    "x": -0.0,
                     "y": 0.0,
-                    "z": 0.0
+                    "z": -0.0
                 },
                 "luid": 8390769055744655363,
-                "parentLuid": 0
+                "parentLuid": 8390884663439654913
             },
             "Renderer": {
                 "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
-                "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
+                "materialUUID": "ccfbd4c2-7490-44c3-8eac-bc514cd339b0"
             }
         },
         {
@@ -4949,6 +4949,68 @@
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
                 "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Demo Terrain",
+                "isActive": 1,
+                "luid": 7308894852963893248,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663439654913,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663440965634,
+                "parentLuid": 8390884663439654913
+            },
+            "Renderer": {
+                "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
+                "materialUUID": "12f30fc0-9c26-4ac0-ac89-a80464d685b5"
             }
         }
     ]
