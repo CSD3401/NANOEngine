@@ -357,3 +357,6 @@ FodyWeavers.xsd
 Editor/imgui.ini
 !/NANOEngine/Editor/vendor/lib/compressonator/[dD]ebug/
 !/NANOEngine/Editor/vendor/lib/compressonator/[rR]elease/
+/bin/NANOEngine/Debug-x64
+/bin/ChronoGame/Debug-x64
+/bin/Editor/Debug-x64
