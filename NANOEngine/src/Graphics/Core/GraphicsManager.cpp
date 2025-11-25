@@ -203,6 +203,8 @@ namespace NE::Graphics {
 
             glBindVertexArray(0);
 		}
+
+        UIRenderer::Draw3DUIFrame(s_ActiveFrameBuffer->GetFramebuffer());
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) 
@@ -659,9 +661,10 @@ namespace NE::Graphics {
         }
 
         UIRenderer::BeginFrame();
-        UIRenderer::DrawFrame();
+        UIRenderer::DrawUIFrame();
         //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
+
         UIRenderer::Composite(s_SceneFrameBuffer->GetFramebuffer());
         UIRenderer::ClearCommands();
 

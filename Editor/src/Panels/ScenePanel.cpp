@@ -7,9 +7,11 @@
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/UIRectTransform.hpp>
+#include <ECS/Components/UICanvas.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
 #include "Graphics/Core/UIRenderer.hpp"
+#include "../UIGizmoHandler.hpp"
 #include <iostream>
 #include <limits>
 
@@ -277,7 +279,7 @@ namespace Editor {
 					case ImGuizmo::SCALE:     return Cmd::Scl;
 					default:                  return Cmd::Pos;
 					}
-				};
+					};
 
 				if (!s_gizmoActive && isUsing) {
 					s_gizmoActive = true;
@@ -350,425 +352,190 @@ namespace Editor {
 
 						if (changed) {
 							Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
-						} else {
+						}
+						else {
 							s_gizmoCmd.reset();
 						}
 					}
 					s_gizmoActive = false;
 				}
-			} 
-			else if (hasUIRectTransform) 
+			}
+			else if (hasUIRectTransform)
 			{
 				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
 
-				// Calculate world position for display
-				ImVec2 worldPos = CalculateUIWorldPosition(eid);
+				// Get the canvas parent to check render mode
+				uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
+				NE::ECS::Component::UICanvas* canvas = nullptr;
 
-				// draw in pixel space
-				float fbWidth = 1920.f;  // temp hardcoded
-				float fbHeight = 1080.f; // temp hardcoded
-
-				// Convert UI rect from framebuffer coords to panel coords
-				float scaleX = panelSize.x / fbWidth;
-				float scaleY = panelSize.y / fbHeight;
-
-				ImVec2 topLeft(
-					panelPos.x + worldPos.x * scaleX,
-					panelPos.y + worldPos.y * scaleY
-				);
-				ImVec2 bottomRight(
-					panelPos.x + (worldPos.x + rectTransform.width) * scaleX,
-					panelPos.y + (worldPos.y + rectTransform.height) * scaleY
-				);
-				ImVec2 center(
-					(topLeft.x + bottomRight.x) * 0.5f,
-					(topLeft.y + bottomRight.y) * 0.5f
-				);
-
-				// outline (white)
-				ImDrawList* drawList = ImGui::GetWindowDrawList();
-				drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 255, 255, 255), 0.0f, 0, 2.0f);
-
-				// corner handles (blue)
-				const float handleSize = 8.0f;
-				ImVec2 corners[4] = {
-					topLeft,
-					ImVec2(bottomRight.x, topLeft.y),
-					bottomRight,
-					ImVec2(topLeft.x, bottomRight.y)
-				};
-
-				// edge center positions
-				ImVec2 edges[4] = {
-					ImVec2(center.x, topLeft.y),           // Top edge (index 0)
-					ImVec2(bottomRight.x, center.y),       // Right edge (index 1)
-					ImVec2(center.x, bottomRight.y),       // Bottom edge (index 2)
-					ImVec2(topLeft.x, center.y)            // Left edge (index 3)
-				};
-
-				// draw corner handles
-				for (int i = 0; i < 4; i++) 
-				{
-					drawList->AddRectFilled(
-						ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
-						ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
-						IM_COL32(0, 0, 255, 255)
-					);
+				// Walk up parent chain to find canvas
+				uint32_t currentParent = rectTransform.parent;
+				while (currentParent != std::numeric_limits<uint32_t>::max()) {
+					if (NE::ECS::Query::HasUICanvas(currentParent)) {
+						canvasEntityId = currentParent;
+						canvas = &NE::ECS::Command::GetUICanvas(currentParent);
+						break;
+					}
+					if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
+					currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
 				}
 
-				// draw edge handles
-				for (int i = 0; i < 4; i++)
-				{
-					drawList->AddRectFilled(
-						ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
-						ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
-						IM_COL32(0, 0, 255, 255)
-					);
+				if (!canvas) {
+					// No canvas parent found, skip
+					ImGui::End();
+					return;
 				}
 
-				// center handle (blue)
-				drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(0, 0, 255, 255));
+				// Setup operation keys for 3D gizmo
+				static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
+				if (ImGui::IsKeyPressed(ImGuiKey_Q)) currentOperation = ImGuizmo::TRANSLATE;
+				if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::ROTATE;
+				if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
+				UIGizmoHandler::SetOperation(currentOperation);
 
-				// --- Interaction state (static so it persists across frames) ---
-				static bool isDraggingUI = false;
-				static int  draggingCorner = -1; // -1 = none, 0..3 = which corner
-				static int  draggingEdge = -1;   // -1 = none, 0..3 = which edge
-				static ImVec2 dragStart;         // mouse start (pixels)
-				static NE::ECS::Component::UIRectTransform originalTransform;
-				static ImVec2 originalWorldPos; // world position at drag start
+				// World space canvas (3D gizmo)
+				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE)
+				{
+					ImGuizmo::BeginFrame();
+					ImGuizmo::SetOrthographic(false);
+					ImGuizmo::SetDrawlist();
+					ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
-				// helper
-				auto mouseInPanel = [&](ImVec2 p) {
-					return p.x >= panelPos.x && p.x <= panelPos.x + panelSize.x &&
-						   p.y >= panelPos.y && p.y <= panelPos.y + panelSize.y;
+					// build world matrix
+					NE::Math::Vec3 position = rectTransform.GetPosition();
+					NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(position.x, position.y, position.z);
+
+					NE::Math::Mat4 R = rectTransform.GetRotationMatrix();
+
+					NE::Math::Vec3 scale = rectTransform.GetScale();
+					NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
+
+					// multiply in correct order
+					NE::Math::Mat4 worldMatrix = T * R * S;
+
+					float matrix[16];
+					memcpy(matrix, worldMatrix.Data(), sizeof(float) * 16);
+
+					bool editedThisFrame = ImGuizmo::Manipulate(
+						m_editorCamera.GetViewMatrix().Data(),
+						m_editorCamera.GetProjectionMatrix().Data(),
+						currentOperation,
+						ImGuizmo::LOCAL,
+						matrix
+					);
+					bool isUsing = ImGuizmo::IsUsing();
+
+					if (!UIGizmoHandler::IsGizmoActive() && isUsing) {
+						UIGizmoHandler::Begin3DGizmo(eid, panelPos, panelSize);
+						s_usingUIGizmo = true;
+					}
+
+					if (UIGizmoHandler::IsGizmoActive() && isUsing && editedThisFrame) {
+						// Convert matrix back to UIRectTransform
+						float tr[3], rotDeg[3], sc[3];
+						ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+
+						rectTransform.x = tr[0];
+						rectTransform.y = tr[1];
+						rectTransform.z = tr[2];
+
+						rectTransform.rotationX = rotDeg[0];
+						rectTransform.rotationY = rotDeg[1];
+						rectTransform.rotationZ = rotDeg[2];
+
+						rectTransform.scaleX = sc[0];
+						rectTransform.scaleY = sc[1];
+						rectTransform.scaleZ = sc[2];
+					}
+
+					if (UIGizmoHandler::IsGizmoActive() && !isUsing) {
+						UIGizmoHandler::End3DGizmo(eid);
+						s_usingUIGizmo = false;
+						// TODO: Push command for undo/redo
+					}
+				}
+				// Screen space canvas (2D gizmo with corner/edge handles)
+				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
+				{
+					// Begin 2D gizmo if not already active
+					if (!UIGizmoHandler::IsGizmoActive() && ImGui::IsWindowFocused()) {
+						UIGizmoHandler::Begin2DGizmo(eid);
+						s_usingUIGizmo = true;
+					}
+
+					// Update 2D gizmo
+					if (UIGizmoHandler::IsGizmoActive()) {
+						UIGizmoHandler::Update2DGizmo(eid, panelPos, panelSize, 1920.f, 1080.f);
+					}
+
+					// Draw corner/edge handles
+					ImVec2 worldPos = CalculateUIWorldPosition(eid);
+					float fbWidth = 1920.f;
+					float fbHeight = 1080.f;
+					float scaleX = panelSize.x / fbWidth;
+					float scaleY = panelSize.y / fbHeight;
+
+					ImVec2 topLeft(
+						panelPos.x + worldPos.x * scaleX,
+						panelPos.y + worldPos.y * scaleY
+					);
+					ImVec2 bottomRight(
+						panelPos.x + (worldPos.x + rectTransform.width) * scaleX,
+						panelPos.y + (worldPos.y + rectTransform.height) * scaleY
+					);
+					ImVec2 center(
+						(topLeft.x + bottomRight.x) * 0.5f,
+						(topLeft.y + bottomRight.y) * 0.5f
+					);
+
+					ImDrawList* drawList = ImGui::GetWindowDrawList();
+					drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 255, 255, 255), 0.0f, 0, 2.0f);
+
+					const float handleSize = 8.0f;
+
+					// Corner handles
+					ImVec2 corners[4] = {
+						topLeft,
+						ImVec2(bottomRight.x, topLeft.y),
+						bottomRight,
+						ImVec2(topLeft.x, bottomRight.y)
 					};
 
-				ImVec2 mousePos = ImGui::GetMousePos();
-				bool mouseInThisPanel = mouseInPanel(mousePos);
-
-				// hovering detection
-				if (!isDraggingUI && draggingCorner < 0 && draggingEdge < 0 && mouseInThisPanel)
-				{
-					bool hoveringHandle = false;
-
-					// check corner hover
-					for (int i = 0; i < 4; ++i)
-					{
-						float dx = mousePos.x - corners[i].x;
-						float dy = mousePos.y - corners[i].y;
-						float dist2 = dx * dx + dy * dy;
-						float cornerRadius = handleSize * 0.5f;
-
-						if (dist2 <= cornerRadius * cornerRadius)
-						{
-							// set cursor based on corner
-							switch (i) {
-							case 0: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break; // Top-left
-							case 1: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break; // Top-right
-							case 2: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break; // Bottom-right
-							case 3: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break; // Bottom-left
-							}
-
-							hoveringHandle = true;
-							break;
-						}
+					for (int i = 0; i < 4; i++) {
+						drawList->AddRectFilled(
+							ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
+							ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
+							IM_COL32(0, 0, 255, 255)
+						);
 					}
 
-					//cCheck edge hover if not hovering a corner
-					if (!hoveringHandle)
-					{
-						for (int i = 0; i < 4; ++i)
-						{
-							float dx = mousePos.x - edges[i].x;
-							float dy = mousePos.y - edges[i].y;
-							float dist2 = dx * dx + dy * dy;
-							float edgeRadius = handleSize * 0.5f;
+					// Edge handles
+					ImVec2 edges[4] = {
+						ImVec2(center.x, topLeft.y),
+						ImVec2(bottomRight.x, center.y),
+						ImVec2(center.x, bottomRight.y),
+						ImVec2(topLeft.x, center.y)
+					};
 
-							if (dist2 <= edgeRadius * edgeRadius)
-							{
-								// Set cursor based on edge orientation
-								switch (i) {
-								case 0: // Top
-								case 2: // Bottom
-									ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-									break;
-								case 1: // Right
-								case 3: // Left
-									ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-									break;
-								}
-								hoveringHandle = true;
-								break;
-							}
-						}
+					for (int i = 0; i < 4; i++) {
+						drawList->AddRectFilled(
+							ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
+							ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
+							IM_COL32(0, 0, 255, 255)
+						);
 					}
 
-					// check center hover if not hovering a corner
-					if (!hoveringHandle)
-					{
-						float dx = mousePos.x - center.x;
-						float dy = mousePos.y - center.y;
-						float dist2 = dx * dx + dy * dy;
-						float radius = handleSize * 0.5f;
+					// Center handle
+					drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(0, 0, 255, 255));
 
-						if (dist2 <= radius * radius)
-						{
-							ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-							hoveringHandle = true;
-						}
-					}
-				}
-
-				// handle moving of gizmos
-				if (!isDraggingUI && draggingCorner < 0 && mouseInThisPanel && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-				{
-					bool handleClicked = false;
-
-					// check corners first
-					for (int i = 0; i < 4; ++i) 
-					{
-						float dx = mousePos.x - corners[i].x;
-						float dy = mousePos.y - corners[i].y;
-						float dist2 = dx * dx + dy * dy;
-						float cornerRadius = handleSize * 0.5f;
-
-						if (dist2 <= cornerRadius * cornerRadius)
-						{
-							draggingCorner = i;
-							dragStart = mousePos;
-							originalTransform = rectTransform;
-							originalWorldPos = worldPos;
-							s_usingUIGizmo = true;
-							handleClicked = true;
-							break; // to avoid checking other corners
-						}
-					}
-
-					// Check edges if no corner was clicked
-					if (!handleClicked)
-					{
-						for (int i = 0; i < 4; ++i)
-						{
-							float dx = mousePos.x - edges[i].x;
-							float dy = mousePos.y - edges[i].y;
-							float dist2 = dx * dx + dy * dy;
-							float edgeRadius = handleSize * 0.5f;
-
-							if (dist2 <= edgeRadius * edgeRadius)
-							{
-								draggingEdge = i;
-								dragStart = mousePos;
-								originalTransform = rectTransform;
-								s_usingUIGizmo = true;
-								originalWorldPos = worldPos;
-								handleClicked = true;
-								break;
-							}
-						}
-					}
-
-					// check center if no corner were clicked
-					if (!handleClicked)
-					{
-						float dx = mousePos.x - center.x;
-						float dy = mousePos.y - center.y;
-						float dist2 = dx * dx + dy * dy;
-						float radius = handleSize * 0.5f;
-
-						if (dist2 <= radius * radius) 
-						{
-							isDraggingUI = true;
-							dragStart = mousePos;
-							originalTransform = rectTransform;
-							s_usingUIGizmo = true;
-							originalWorldPos = worldPos;
-						}
-					}
-				}
-
-				// perform move
-				if (isDraggingUI) 
-				{
-					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) 
-					{
-						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
-						// Convert panel deltas back to framebuffer deltas
-						float deltaFBX = deltaPixels.x / scaleX;
-						float deltaFBY = deltaPixels.y / scaleY;
-
-						// Calculate new world position
-						float newWorldX = originalWorldPos.x + deltaFBX;
-						float newWorldY = originalWorldPos.y + deltaFBY;
-
-						// Calculate parent world position
-						ImVec2 parentWorldPos(0.0f, 0.0f);
-						if (rectTransform.parent != std::numeric_limits<uint32_t>::max() &&
-							NE::ECS::Query::HasUIRectTransform(rectTransform.parent)) {
-							parentWorldPos = CalculateUIWorldPosition(rectTransform.parent);
-						}
-
-						// Set local position (world position - parent world position)
-						rectTransform.x = newWorldX - parentWorldPos.x;
-						rectTransform.y = newWorldY - parentWorldPos.y;
-					}
-
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-					{
-						isDraggingUI = false;
-						// TODO: push command for undo/redo
-					}
-				}
-
-				// perform resize
-				if (draggingCorner >= 0)
-				{
-					// set cursor during drag based on corner
-					switch (draggingCorner) {
-					case 0: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break;
-					case 1: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break;
-					case 2: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE); break;
-					case 3: ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNESW); break;
-					}
-
-					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
-					{
-						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
-						float deltaFBX = deltaPixels.x / scaleX;
-						float deltaFBY = deltaPixels.y / scaleY;
-
-						// Calculate parent world position once
-						ImVec2 parentWorldPos(0.0f, 0.0f);
-						if (rectTransform.parent != std::numeric_limits<uint32_t>::max() &&
-							NE::ECS::Query::HasUIRectTransform(rectTransform.parent)) {
-							parentWorldPos = CalculateUIWorldPosition(rectTransform.parent);
-						}
-
-						// Anchor logic: adjust position to keep the dragged corner under the mouse
-						switch (draggingCorner) {
-						case 0: // Top-left
-						{
-							float newWorldX = originalWorldPos.x + deltaFBX;
-							float newWorldY = originalWorldPos.y + deltaFBY;
-							rectTransform.x = newWorldX - parentWorldPos.x;
-							rectTransform.y = newWorldY - parentWorldPos.y;
-							rectTransform.width = originalTransform.width - deltaFBX;
-							rectTransform.height = originalTransform.height - deltaFBY;
-						}
-						break;
-						case 1: // Top-right
-						{
-							float newWorldY = originalWorldPos.y + deltaFBY;
-							rectTransform.y = newWorldY - parentWorldPos.y;
-							rectTransform.width = originalTransform.width + deltaFBX;
-							rectTransform.height = originalTransform.height - deltaFBY;
-						}
-						break;
-						case 2: // Bottom-right
-							rectTransform.width = originalTransform.width + deltaFBX;
-							rectTransform.height = originalTransform.height + deltaFBY;
-							break;
-						case 3: // Bottom-left
-						{
-							float newWorldX = originalWorldPos.x + deltaFBX;
-							rectTransform.x = newWorldX - parentWorldPos.x;
-							rectTransform.width = originalTransform.width - deltaFBX;
-							rectTransform.height = originalTransform.height + deltaFBY;
-						}
-						break;
-						}
-
-						// Clamp size (>= 1px)
-						rectTransform.width = std::max(1.0f, rectTransform.width);
-						rectTransform.height = std::max(1.0f, rectTransform.height);
-					}
-
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-					{
-						draggingCorner = -1;
-						// TODO: push command for undo/redo
-					}
-				}
-
-				// perform edge stretch
-				if (draggingEdge >= 0)
-				{
-					// Set cursor during drag
-					switch (draggingEdge) {
-					case 0: // Top
-					case 2: // Bottom
-						ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-						break;
-					case 1: // Right
-					case 3: // Left
-						ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-						break;
-					}
-
-					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
-					{
-						ImVec2 deltaPixels(mousePos.x - dragStart.x, mousePos.y - dragStart.y);
-						float deltaFBX = deltaPixels.x / scaleX;
-						float deltaFBY = deltaPixels.y / scaleY;
-
-						// Calculate parent world position once
-						ImVec2 parentWorldPos(0.0f, 0.0f);
-						if (rectTransform.parent != std::numeric_limits<uint32_t>::max() &&
-							NE::ECS::Query::HasUIRectTransform(rectTransform.parent)) {
-							parentWorldPos = CalculateUIWorldPosition(rectTransform.parent);
-						}
-
-						switch (draggingEdge) {
-						case 0: // Top edge
-						{
-							float newWorldY = originalWorldPos.y + deltaFBY;
-							rectTransform.y = newWorldY - parentWorldPos.y;
-							rectTransform.height = originalTransform.height - deltaFBY;
-						}
-						break;
-						case 1: // Right edge
-							rectTransform.width = originalTransform.width + deltaFBX;
-							break;
-						case 2: // Bottom edge
-							rectTransform.height = originalTransform.height + deltaFBY;
-							break;
-						case 3: // Left edge
-						{
-							float newWorldX = originalWorldPos.x + deltaFBX;
-							rectTransform.x = newWorldX - parentWorldPos.x;
-							rectTransform.width = originalTransform.width - deltaFBX;
-						}
-						break;
-						}
-
-						// Clamp size
-						rectTransform.width = std::max(1.0f, rectTransform.width);
-						rectTransform.height = std::max(1.0f, rectTransform.height);
-					}
-
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-					{
-						draggingEdge = -1;
-						// TODO: push command for undo/redo
-					}
-				}
-
-				// reset states
-				if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
-				{
-					if (isDraggingUI || draggingCorner >= 0)
-					{
-						isDraggingUI = false;
-						draggingCorner = -1;
-						draggingEdge = -1;
-						s_usingUIGizmo = false;
-					}
-					else if (s_usingUIGizmo)
-					{
+					// End 2D gizmo on mouse release
+					if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && UIGizmoHandler::IsGizmoActive()) {
+						UIGizmoHandler::End2DGizmo(eid);
 						s_usingUIGizmo = false;
 					}
 				}
-			}
+				}
 		}
 
 		// Calculate camera's look direction regardless of input

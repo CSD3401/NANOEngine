@@ -5,18 +5,20 @@
 #include <memory>
 #include "UIDrawCommand.hpp"
 #include "../Interfaces/IFrameBuffer.hpp"
+#include <glad/glad.h>
 
 namespace NE::Graphics {
 
     class UIRenderer {
     public:
         static void Init(uint32_t width, uint32_t height);
+        static void Submit(const UIDrawCommand& cmd);
+        static void ClearCommands();
 
         static void BeginFrame();
-        static void Submit(const UIDrawCommand& cmd);
-        static void DrawFrame();
         static void EndFrame();
-        static void ClearCommands();
+        static void DrawUIFrame();
+        static void Draw3DUIFrame(GLuint targetFBO);
         static void Composite(uint32_t targetFBO = 0);
         static void Shutdown();
 

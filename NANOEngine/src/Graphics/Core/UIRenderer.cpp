@@ -6,7 +6,6 @@
 #include "../src/Graphics/Core/GraphicsManager.hpp"
 #include "UIImageMeshGenerator.hpp"
 #include "../OpenGL/GLStateCache.hpp"
-#include <glad/glad.h>
 #include <iostream>
 #include <algorithm>
 
@@ -363,6 +362,14 @@ namespace NE::Graphics {
         glBindVertexArray(0);
     }
 
+    void UIRenderer::Submit(const UIDrawCommand& cmd) {
+        s_Commands.push_back(cmd);
+    }
+
+    void UIRenderer::ClearCommands() {
+        s_Commands.clear();
+    }
+
     void UIRenderer::BeginFrame() {
         // prepare UI render target before drawing
         if (s_FBO)
@@ -374,7 +381,7 @@ namespace NE::Graphics {
 
             // clear the framebuffer
             //glClearColor(1, 0, 1, 1); // magenta - for debug
-            glClearColor(0, 0, 0, 0); // balck transparent
+            glClearColor(0, 0, 0, 0); // black transparent
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
@@ -385,10 +392,6 @@ namespace NE::Graphics {
             std::cout << "[Begin Frame} UI FBO binded" << std::endl;
             printed = true;
         }
-    }
-
-    void UIRenderer::Submit(const UIDrawCommand& cmd) {
-        s_Commands.push_back(cmd);
     }
 
     void UIRenderer::EndFrame() {
@@ -451,8 +454,18 @@ namespace NE::Graphics {
         }
     }
 
-    void UIRenderer::DrawFrame() {
+    void UIRenderer::DrawUIFrame() {
         if (s_Commands.empty()) return;
+
+        // filter to only overlay mode (rendermode 0)
+        std::vector<UIDrawCommand> overlayCommands;
+        for (const auto& cmd : s_Commands)
+        {
+            if (cmd.renderMode == 0)  // Overlay only
+                overlayCommands.push_back(cmd);
+        }
+
+        if (overlayCommands.empty()) return;
 
         static bool printed = false;
         if (!printed) {
@@ -468,16 +481,9 @@ namespace NE::Graphics {
             printed = true;
         }
 
-        // sort commands by render mode and order
-        // world space elements need depth testing, overlay elements render last
-        std::sort(s_Commands.begin(), s_Commands.end(),
+        // sort overlay commands by order
+        std::sort(overlayCommands.begin(), overlayCommands.end(),
             [](const UIDrawCommand& a, const UIDrawCommand& b) {
-                // first sort by render mode (world < camera < overlay)
-                if (a.renderMode != b.renderMode) 
-                {
-                    return a.renderMode > b.renderMode; // higher mode = later (overlay last)
-                }
-                // then by sorting order
                 return a.order < b.order;
             });
 
@@ -494,6 +500,7 @@ namespace NE::Graphics {
         glDisable(GL_CULL_FACE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
 
         // render each command based on mode
         for (const auto& cmd : s_Commands)
@@ -532,31 +539,8 @@ namespace NE::Graphics {
             // set uniforms based on render mode
             shader->SetUniformVec4("uColor", cmd.color);
 
-            switch (cmd.renderMode) {
-            case 0: // overlay mode
-                glDisable(GL_DEPTH_TEST);
-                shader->SetUniformVec2("uScreenSize",
-                    NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
-                break;
-            case 1: // camera mode
-                glEnable(GL_DEPTH_TEST);      // Enable depth test!
-                glDepthFunc(GL_LEQUAL);       // Standard depth function
-                glDepthMask(GL_TRUE);         // Allow depth writes!
-                shader->SetUniformVec2("uScreenSize",
-                    NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
-                //shader->SetUniformMat4("uView", cmd.viewMatrix);
-                shader->SetUniformMat4("uProj", cmd.projMatrix);
-                shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
-                break;
-            case 2: // world mode
-                glEnable(GL_DEPTH_TEST);
-                glDepthFunc(GL_LEQUAL);
-                glDepthMask(GL_TRUE);
-                shader->SetUniformMat4("uModel", cmd.modelMatrix);
-                shader->SetUniformMat4("uView", cmd.viewMatrix);
-                shader->SetUniformMat4("uProj", cmd.projMatrix);
-                break;
-            }
+            shader->SetUniformVec4("uColor", cmd.color);
+            shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
 
             // draw
             if (cmd.useCustomVertices && !cmd.vertices.empty())
@@ -576,8 +560,113 @@ namespace NE::Graphics {
         if (cullFace) glEnable(GL_CULL_FACE);
     }
 
-    void UIRenderer::ClearCommands() {
-        s_Commands.clear();
+    void UIRenderer::Draw3DUIFrame(GLuint targetFBO) {
+        // filter to camera mode (1) and world space (2) only
+        std::vector<UIDrawCommand> commands;
+        for (const auto& cmd : s_Commands)
+        {
+            if (cmd.renderMode == 1 || cmd.renderMode == 2)
+                commands.push_back(cmd);
+        }
+
+        if (commands.empty()) return;
+
+        // Sort by render mode first (camera before world), then by order
+        std::sort(commands.begin(), commands.end(),
+            [](const UIDrawCommand& a, const UIDrawCommand& b) {
+                // Camera mode (1) renders before world space (2)
+                if (a.renderMode != b.renderMode) {
+                    return a.renderMode < b.renderMode;
+                }
+                // Same mode: sort by order
+                return a.order < b.order;
+            });
+
+        // bind to 3D entities' FBO
+        glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
+
+        // Save current OpenGL state
+        GLboolean depthTest, blend, cullFace;
+        GLint blendSrc, blendDst;
+        glGetBooleanv(GL_DEPTH_TEST, &depthTest);
+        glGetBooleanv(GL_BLEND, &blend);
+        glGetBooleanv(GL_CULL_FACE, &cullFace);
+        glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrc);
+        glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
+
+        // setup UI rendering state for world space
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+        glDepthMask(GL_TRUE);
+
+        // Render each world space UI command
+        for (const auto& cmd : commands)
+        {
+            if (!cmd.material) continue;
+
+            auto pipeline = cmd.material->GetPipeline();
+            if (!pipeline) continue;
+
+            auto shader = pipeline->GetSpecification().shader;
+            if (!shader) continue;
+
+            shader->Bind();
+            cmd.material->Bind();
+
+            glBindVertexArray(s_VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
+
+            // Handle custom vertices (for filled/sliced/tiled images)
+            if (cmd.useCustomVertices && !cmd.vertices.empty())
+            {
+                glBufferData(GL_ARRAY_BUFFER,
+                    cmd.vertices.size() * sizeof(UIVertex),
+                    cmd.vertices.data(),
+                    GL_DYNAMIC_DRAW);
+            }
+            else
+            {
+                float verts[36];
+                BuildQuadVertices(cmd, verts);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+            }
+
+            // set world space uniforms
+            shader->SetUniformVec4("uColor", cmd.color);
+
+            // set uniforms based on render mode
+            if (cmd.renderMode == 1)  // camera mode
+            {
+                shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                shader->SetUniformMat4("uProj", cmd.projMatrix);
+                shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
+            }
+            else if (cmd.renderMode == 2)  // world space
+            {
+                shader->SetUniformMat4("uModel", cmd.modelMatrix);
+                shader->SetUniformMat4("uView", cmd.viewMatrix);
+                shader->SetUniformMat4("uProj", cmd.projMatrix);
+            }
+
+            // draw
+            if (cmd.useCustomVertices && !cmd.vertices.empty())
+            {
+                glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(cmd.vertices.size()));
+            }
+            else
+            {
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
+        }
+
+        // Restore state
+        glBindVertexArray(0);
+        if (depthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        if (!blend) glDisable(GL_BLEND); else glBlendFunc(blendSrc, blendDst);
+        if (cullFace) glEnable(GL_CULL_FACE);
     }
 
     IFrameBuffer* UIRenderer::GetFramebuffer() {
@@ -586,6 +675,20 @@ namespace NE::Graphics {
 
     void UIRenderer::Composite(GLuint targetFBO) {
         if (!s_FBO) return;
+
+        // only need to composite overlay and camera UI (modes 0 and 1)
+        // world space UI (mode 2) is already in the scene FBO from Draw3DUIFrame
+        bool hasScreenSpaceUI = false;
+        for (const auto& cmd : s_Commands)
+        {
+            if (cmd.renderMode < 2) // 0 or 1
+            {
+                hasScreenSpaceUI = true;
+                break;
+            }
+        }
+
+        if (!hasScreenSpaceUI) return; // nothing to composite
 
         static bool printed = false;
         if (!printed)
@@ -613,8 +716,8 @@ namespace NE::Graphics {
         glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDst);
 
         // setup for alpha blending
-        glDisable(GL_DEPTH_TEST); // UI has no depth
-        glEnable(GL_BLEND); // blend transparency for smoth edges
+        glDisable(GL_DEPTH_TEST); // screen space ui has no depth
+        glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         // use composite shader
