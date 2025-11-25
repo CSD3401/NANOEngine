@@ -33,7 +33,7 @@ namespace NE::Renderer {
 			else return r.materialUUID;
 		}
 
-		std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef)
+		NANOENGINE_API std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef)
 		{
 			return NE::Scripting::GetMaterialUUIDFromRef(materialRef);
 		}
