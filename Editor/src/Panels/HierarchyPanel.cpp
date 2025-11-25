@@ -31,6 +31,8 @@ namespace Editor {
 		if (ImGui::IsWindowHovered()) {
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
 				ImGui::OpenPopup("HierarchyContextMenu");
+			} else if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && EditorScene::s_selectedEntity != nullptr && canEditHierarchy) {
+				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
 			}
 		}
 

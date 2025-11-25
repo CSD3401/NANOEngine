@@ -60,6 +60,10 @@ namespace Editor {
 				} else {
 					SPD_DEBUG("[DirtyFlag] Ctrl+S pressed - No changes to save");
 				}
+			} else if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
+				CommandHistory::GetInstance().Undo();
+			} else if (ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
+				CommandHistory::GetInstance().Redo();
 			}
 
 			if (!ImGui::IsAnyItemActive() &&
