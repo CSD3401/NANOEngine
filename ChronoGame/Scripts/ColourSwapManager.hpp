@@ -58,7 +58,7 @@ public:
 		{
 			if (!changedToSolved)
 			{
-				turnTimer -= deltaTime;
+				turnTimer -= (float)deltaTime;
 				if (turnTimer <= 0.0f)
 				{
 					changedToSolved = true;
@@ -163,7 +163,7 @@ private:
 		}
 	}
 
-	void SwapColours(size_t leftIndex, size_t rightIndex)
+	void SwapColours(int leftIndex, int rightIndex)
 	{
 		//LOG_DEBUG("SWAPPING COLOURS");
 		// Get the children to swap
@@ -194,7 +194,7 @@ private:
 
 	bool CheckPuzzle()
 	{
-		for (size_t i = 0; i < swappableChildren.size(); ++i)
+		for (int i = 0; i < swappableChildren.size(); ++i)
 		{
 			//LOG_DEBUG("SWAPCHILD[" << i << "]: " << currentPuzzle[i].GetEntity());
 			//LOG_DEBUG("SOLUTION[" << i << "]: " << correctSol[i].GetEntity());

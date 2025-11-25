@@ -4803,6 +4803,312 @@
                 "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
                 "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
             }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_parent01",
+                "isActive": 1,
+                "luid": 7308894853340463104,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -6.280357360839844,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884663816224769,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "ColourSwapManager",
+                "SerializedFields": {
+                    "isActive": "1",
+                    "numColourChildren": "0",
+                    "turnTimer": "1.000000",
+                    "correctColour": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                    "swappableChildren": "3 151 152 153",
+                    "correctSol": "3 ea32e122-a8ba-4672-ab60-705fd79b9086 c57f74a5-e22a-40fe-bc56-f02aaaa494c8 c427718b-41d1-465f-a21f-99ac1981e4e9",
+                    "startingColours": "3 c57f74a5-e22a-40fe-bc56-f02aaaa494c8 c427718b-41d1-465f-a21f-99ac1981e4e9 ea32e122-a8ba-4672-ab60-705fd79b9086",
+                    "childSolution": "3 154 155 156"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_swap01",
+                "isActive": 1,
+                "luid": 7308894853342101506,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663817863171,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_swap02",
+                "isActive": 1,
+                "luid": 7308894853342101506,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.5,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663820353541,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_swap03",
+                "isActive": 1,
+                "luid": 7308894853342101506,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 3.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663820484614,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_solution01",
+                "isActive": 1,
+                "luid": 7308894853342101506,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663822712839,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_solution02",
+                "isActive": 1,
+                "luid": 7308894853342101506,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.5,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663822778376,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_solution03",
+                "isActive": 1,
+                "luid": 7308894853342101506,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 3.0,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663822843913,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_button01",
+                "isActive": 1,
+                "luid": 7308894853352849418,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.75,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663828611083,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cs_button02",
+                "isActive": 1,
+                "luid": 7308894853352849418,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.25,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884663830970381,
+                "parentLuid": 8390884663816224769
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            }
         }
     ]
 }

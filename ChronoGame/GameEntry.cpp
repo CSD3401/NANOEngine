@@ -81,9 +81,9 @@ extern "C" {
             return new k2bswitch();
             });
 
-        //registrar->RegisterScript("ColourSwapManager", []() -> NE::Scripting::IScript* {
-        //    return new ColourSwapManager();
-        //    });
+        registrar->RegisterScript("ColourSwapManager", []() -> NE::Scripting::IScript* {
+            return new ColourSwapManager();
+            });
 
         registrar->RegisterScript("MirrorPuzzle", []() -> NE::Scripting::IScript* {
             return new MirrorPuzzle();
