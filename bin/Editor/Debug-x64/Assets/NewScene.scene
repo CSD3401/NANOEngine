@@ -1,9 +1,32 @@
 {
+    "RenderSettings": {
+        "envSource": 2,
+        "ambientColour": {
+            "x": 0.5,
+            "y": 0.5,
+            "z": 0.5
+        },
+        "ambientIntensity": 0.0,
+        "fogEnabled": 0,
+        "fogMode": 0,
+        "fogColour": {
+            "x": 0.5,
+            "y": 0.5,
+            "z": 0.5
+        },
+        "fogStart": 0.0,
+        "fogEnd": 100.0,
+        "fogDensity": 0.10000000149011612
+    },
     "Entities": [
         {
             "EntityMeta": {
                 "name": "Unnamed Entity",
-                "isActive": 1
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -27,13 +50,13 @@
             "NativeScript": {
                 "ScriptName": "MaterialSwapperExample",
                 "SerializedFields": {
-                    "materialA_UUID": "",
-                    "autoRun": "0",
-                    "rayParent": "0",
                     "isActive": "1",
-                    "materialB_UUID": "",
-                    "delayBetween": "0.250000",
+                    "rayParent": "0",
+                    "autoRun": "0",
+                    "materialA_UUID": "",
                     "rayDistance": "100.000000",
+                    "delayBetween": "0.250000",
+                    "materialB_UUID": "",
                     "target1": "0",
                     "target2": "0",
                     "target3": "0",

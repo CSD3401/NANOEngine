@@ -159,6 +159,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Scripts\ColourSwapButton.hpp" />
     <ClInclude Include="Scripts\ColourSwapManager.hpp" />
     <ClInclude Include="Scripts\Door.hpp" />
     <ClInclude Include="Scripts\BulletShooterScript.hpp" />

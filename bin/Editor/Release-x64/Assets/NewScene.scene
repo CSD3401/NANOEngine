@@ -4838,8 +4838,9 @@
                     "isActive": "1",
                     "numColourChildren": "0",
                     "turnTimer": "1.000000",
-                    "correctColour": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                    "puzzleIndex": "0",
                     "swappableChildren": "3 151 152 153",
+                    "correctColour": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
                     "correctSol": "3 ea32e122-a8ba-4672-ab60-705fd79b9086 c57f74a5-e22a-40fe-bc56-f02aaaa494c8 c427718b-41d1-465f-a21f-99ac1981e4e9",
                     "startingColours": "3 c57f74a5-e22a-40fe-bc56-f02aaaa494c8 c427718b-41d1-465f-a21f-99ac1981e4e9 ea32e122-a8ba-4672-ab60-705fd79b9086",
                     "childSolution": "3 154 155 156"
@@ -5075,6 +5076,13 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cube",
                 "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            },
+            "NativeScript": {
+                "ScriptName": "ColourSwapButton",
+                "SerializedFields": {
+                    "puzzleIndex": "0",
+                    "leftIndex": "0"
+                }
             }
         },
         {

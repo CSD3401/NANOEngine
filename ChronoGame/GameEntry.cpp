@@ -17,6 +17,7 @@
 #include "Scripts/k2bswitch.hpp"
 #include "Scripts/PlayerController.hpp"
 #include "Scripts/ColourSwapManager.hpp"
+#include "Scripts/ColourSwapButton.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
 #include "Scripts/MirrorPuzzle.hpp"
@@ -132,6 +133,10 @@ extern "C" {
 
         registrar->RegisterScript("CameraController", []() -> NE::Scripting::IScript* {
             return new CameraController();
+            });
+
+        registrar->RegisterScript("ColourSwapButton", []() -> NE::Scripting::IScript* {
+            return new ColourSwapButton();
             });
         }
 }

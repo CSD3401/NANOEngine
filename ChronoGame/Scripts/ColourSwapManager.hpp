@@ -1,6 +1,9 @@
 #pragma once
 #include "EngineAPI.hpp"
 
+
+
+
 /**
  * ColourSwapManager - Auto-generated script template
  * Implement your game logic in the lifecycle methods below.
@@ -12,6 +15,7 @@ public:
 		// Example: SCRIPT_FIELD(speed, Float);
 		SCRIPT_FIELD(isActive, Bool);
 		SCRIPT_FIELD(numColourChildren, Int);
+		SCRIPT_FIELD(puzzleIndex, Int);
 		SCRIPT_FIELD(turnTimer, Float);
 		//SCRIPT_FIELD_VECTOR(colours, Material);  // Now uncommented - will work!
 		SCRIPT_FIELD(correctColour, MaterialRef);
@@ -46,13 +50,6 @@ public:
 
 		if (!isSolved)
 		{
-			// need to change this
-			if (Input::WasKeyPressed('N')) {
-				SwapColours(0, 1);
-			}
-			if (Input::WasKeyPressed('M')) {
-				SwapColours(1, 2);
-			}
 		}
 		else
 		{
@@ -108,6 +105,8 @@ public:
 		// Called when this entity exits a trigger
 	}
 
+	
+
 private:
 	// Add your private member variables here
 	// Example: float speed = 5.0f;
@@ -117,6 +116,7 @@ private:
 	bool isSolved = false;
 	bool changedToSolved = false;
 	float turnTimer = 1.0f;
+	int puzzleIndex = 0;
 	// green, red, blue
 	MaterialRef correctColour;
 	// Make sure the size of each of the vectors are the SAME
@@ -161,11 +161,19 @@ private:
 			//LOG_DEBUG("SOLUTION[" << childIndex << "]: " << correctSol[childIndex].GetEntity());
 			childIndex++;
 		}
+
+		std::string listenEvent = "ColourSwapPuzzle" + std::to_string(puzzleIndex);
+		Events::Listen(listenEvent.c_str(), [this](void* data) {
+			this->SwapColours(data);
+		});
+		LOG_DEBUG("LISTENING TO EVENT: " + listenEvent);
 	}
 
-	void SwapColours(int leftIndex, int rightIndex)
+	void SwapColours(void* indexData)
 	{
-		//LOG_DEBUG("SWAPPING COLOURS");
+		int leftIndex = *reinterpret_cast<int*>(indexData);
+		int rightIndex = leftIndex + 1;
+		LOG_DEBUG("SWAPPING COLOURS");
 		// Get the children to swap
 		Entity leftChild = swappableChildren[leftIndex];
 		Entity rightChild = swappableChildren[rightIndex];
@@ -190,6 +198,8 @@ private:
 			isSolved = true;
 		}
 	}
+
+	
 
 
 	bool CheckPuzzle()
