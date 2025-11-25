@@ -2,21 +2,21 @@
     "RenderSettings": {
         "envSource": 2,
         "ambientColour": {
-            "x": 0.5779759883880615,
-            "y": 0.5779181718826294,
-            "z": 0.5779181718826294
+            "x": 0.04274372383952141,
+            "y": 0.04637948423624039,
+            "z": 0.07096230983734131
         },
-        "ambientIntensity": 0.0,
-        "fogEnabled": 0,
-        "fogMode": 0,
+        "ambientIntensity": 1.0,
+        "fogEnabled": 1,
+        "fogMode": 1,
         "fogColour": {
-            "x": 0.5,
-            "y": 0.5,
-            "z": 0.5
+            "x": 0.37324073910713196,
+            "y": 0.4025987982749939,
+            "z": 0.4833333492279053
         },
         "fogStart": 0.0,
         "fogEnd": 100.0,
-        "fogDensity": 0.10000000149011612
+        "fogDensity": 0.0020000000949949026
     },
     "Entities": [
         {
@@ -4753,7 +4753,7 @@
             },
             "Renderer": {
                 "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
-                "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
+                "materialUUID": "12f30fc0-9c26-4ac0-ac89-a80464d685b5"
             }
         },
         {
@@ -5068,6 +5068,666 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cube",
                 "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 4.739259719848633,
+                    "y": -23.593557357788086,
+                    "z": -5.9911675453186035
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665014485001,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665014485002,
+                "parentLuid": 8390884665014485001
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 6.599999904632568,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665014485003,
+                "parentLuid": 8390884665014485001
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 5.189271450042725,
+                    "y": -23.586130142211914,
+                    "z": -16.050886154174805
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665018351628,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665018351629,
+                "parentLuid": 8390884665018351628
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 5.400000095367432,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665018351630,
+                "parentLuid": 8390884665018351628
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.623173713684082,
+                    "y": -23.559406280517578,
+                    "z": -30.969701766967773
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665028247567,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665028247568,
+                "parentLuid": 8390884665028247567
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 5.5,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665028247569,
+                "parentLuid": 8390884665028247567
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 16.934188842773438,
+                    "y": -23.826683044433594,
+                    "z": -32.88628387451172
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665029623826,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665029623827,
+                "parentLuid": 8390884665029623826
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 5.5,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665029623828,
+                "parentLuid": 8390884665029623826
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 4.935543537139893,
+                    "y": -23.564016342163086,
+                    "z": -54.08063507080078
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665032441877,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665032441878,
+                "parentLuid": 8390884665032441877
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 5.5,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665032441879,
+                "parentLuid": 8390884665032441877
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.4188055992126465,
+                    "y": -23.837337493896484,
+                    "z": 4.242573261260986
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665035194392,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665035194393,
+                "parentLuid": 8390884665035194392
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 5.5,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884665035194394,
+                "parentLuid": 8390884665035194392
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
             }
         }
     ]

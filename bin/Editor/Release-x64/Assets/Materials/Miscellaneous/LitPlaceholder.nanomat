@@ -6,8 +6,8 @@
     "PolygonMode": 6914,
     "Properties": {
         "u_HasAlbedoMap": 0,
-        "u_HasMetallicMap": 0,
         "u_HasAmbientOcclusionMap": 0,
+        "u_HasMetallicMap": 0,
         "u_HasNormalMap": 0,
         "u_HasRoughnessMap": 0,
         "u_AmbientOcclusion": 0.0,
@@ -28,8 +28,8 @@
             0.0,
             0.0
         ],
-        "u_MetallicMap": "",
         "u_AlbedoMap": "",
+        "u_MetallicMap": "",
         "u_AmbientOcclusionMap": "",
         "u_NormalMap": "",
         "u_RoughnessMap": ""
