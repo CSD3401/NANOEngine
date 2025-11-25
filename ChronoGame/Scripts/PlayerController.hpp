@@ -12,10 +12,13 @@
  * - Requires: Transform + Collider (for getting size and doing raycasts vs world).
  * - Maintains its own velocity (m_velocity) and moves by directly setting Transform.
  * - Uses raycast-based ground detection & simple raycast-based wall blocking.
+ * - Movement is now synced with camera direction (camera-relative movement).
+ * - Player rotation directly follows camera yaw.
  *
  * NOTE:
  * - jumpForce is now effectively "jumpSpeed" (initial upward velocity).
  * - manualGravity should be NEGATIVE (e.g. -18.81f).
+ * - Set cameraTransform in the editor to link the camera for relative movement.
  */
 class PlayerController : public IScript {
 public:
@@ -32,6 +35,9 @@ public:
         SCRIPT_FIELD(frictionCoefficient, Float);
         SCRIPT_FIELD(maxSlopeAngle, Float);
         SCRIPT_FIELD(groundRaycastDistance, Float);
+
+        // Register camera transform reference
+        SCRIPT_COMPONENT_REF(cameraTransform, TransformRef);
     }
 
     void Start() override {
@@ -41,9 +47,18 @@ public:
             auto& col = Command::GetComponent<Component::Collider>(GetEntity());
             m_colliderHalfHeight = col.halfExtents.y;
             LOG_INFO("Kinematic PlayerController: collider half-height = " << m_colliderHalfHeight);
-        } else {
+        }
+        else {
             LOG_WARNING("Kinematic PlayerController: no Collider found on entity "
-                << GetEntity() << " � ground checks may be inaccurate.");
+                << GetEntity() << " – ground checks may be inaccurate.");
+        }
+
+        // Validate camera transform reference
+        if (cameraTransform.IsValid()) {
+            LOG_INFO("PlayerController: Using camera transform reference");
+        }
+        else {
+            LOG_WARNING("PlayerController: No camera transform set. Movement will be in world space.");
         }
 
         m_velocity = { 0.0f, 0.0f, 0.0f };
@@ -56,16 +71,19 @@ public:
         // 1. Update grounded state via raycast (from current position)
         UpdateGroundedState();
 
-        // 2. Handle horizontal movement input (world-space XZ)
+        // 2. Sync player rotation with camera yaw
+        SyncRotationWithCamera();
+
+        // 3. Handle horizontal movement input (world-space XZ)
         UpdateHorizontalVelocity(dt);
 
-        // 3. Handle jump input
+        // 4. Handle jump input
         HandleJump(dt);
 
-        // 4. Apply gravity (when not grounded)
+        // 5. Apply gravity (when not grounded)
         ApplyGravity(dt);
 
-        // 5. Move character kinematically, with simple wall collision using raycast
+        // 6. Move character kinematically, with simple wall collision using raycast
         MoveKinematic(dt);
     }
 
@@ -84,6 +102,36 @@ public:
     void OnTriggerExit(Entity other) override {}
 
 private:
+    // =========================
+    // CAMERA YAW QUERY
+    // =========================
+    float GetCameraYaw() {
+        // Use the camera transform reference
+        if (cameraTransform.IsValid()) {
+            Vec3 rotation = GetRotation(cameraTransform);
+            return rotation.y; // Y is yaw (in degrees)
+        }
+        return 0.0f; // fallback if no camera set
+    }
+
+    // =========================
+    // SYNC PLAYER ROTATION WITH CAMERA
+    // =========================
+    void SyncRotationWithCamera() {
+        if (cameraTransform.IsValid()) {
+            // Get camera's yaw rotation
+            Vec3 cameraRotation = GetRotation(cameraTransform);
+
+            // Get current player rotation
+            Vec3 playerRotation = GetRotation();
+
+            // Set player's yaw to match camera's yaw (keep player's pitch and roll)
+            playerRotation.y = cameraRotation.y;
+
+            SetRotation(playerRotation);
+        }
+    }
+
     // =========================
     // GROUND CHECK
     // =========================
@@ -129,62 +177,70 @@ private:
             if (m_velocity.y < 0.0f) {
                 m_velocity.y = 0.0f;
             }
-        } else {
+        }
+        else {
             m_isGrounded = false;
         }
-
-        // Optional debug
-        //SPD_DEBUG("Grounded: " << m_isGrounded
-        //    << " centerY=" << GetPosition().y
-        //    << " feetY=" << (GetPosition().y - m_colliderHalfHeight)
-        //    << " velY=" << m_velocity.y);
     }
 
     // =========================
-    // HORIZONTAL MOVEMENT
+    // HORIZONTAL MOVEMENT (CAMERA-RELATIVE)
     // =========================
     void UpdateHorizontalVelocity(float dt) {
         Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
 
         if (Input::IsKeyDown('W')) {
-            inputDir.z -= 1.0f;
+            inputDir.x += 1.0f;  // W affects X (forward)
         }
         if (Input::IsKeyDown('S')) {
-            inputDir.z += 1.0f;
+            inputDir.x -= 1.0f;  // S affects X (backward)
         }
         if (Input::IsKeyDown('A')) {
-            inputDir.x -= 1.0f;
+            inputDir.z -= 1.0f;  // A affects Z (left)
         }
         if (Input::IsKeyDown('D')) {
-            inputDir.x += 1.0f;
+            inputDir.z += 1.0f;  // D affects Z (right)
         }
 
         float mag = std::sqrt(inputDir.x * inputDir.x + inputDir.z * inputDir.z);
         if (mag > 0.01f) {
             inputDir.x /= mag;
             inputDir.z /= mag;
-        } else {
+        }
+        else {
             inputDir.x = 0.0f;
             inputDir.z = 0.0f;
         }
+
+        // *** ROTATE INPUT BY CAMERA YAW ***
+        float cameraYaw = GetCameraYaw();
+        float yawRad = cameraYaw * (3.14159265f / 180.0f);  // Note the negative sign
+        float cosYaw = std::cos(yawRad);
+        float sinYaw = std::sin(yawRad);
+
+        Vec3 rotatedInput;
+        rotatedInput.x = inputDir.x * cosYaw - inputDir.z * sinYaw;
+        rotatedInput.z = inputDir.x * sinYaw + inputDir.z * cosYaw;
+        rotatedInput.y = 0.0f;
 
         // Current horizontal velocity
         Vec3 horizVel = m_velocity;
         horizVel.y = 0.0f;
 
         if (mag > 0.0f) {
-            // Target horizontal velocity
+            // Target horizontal velocity (now using rotated input)
             Vec3 targetVel{
-                inputDir.x * moveSpeed,
+                rotatedInput.x * moveSpeed,
                 0.0f,
-                inputDir.z * moveSpeed
+                rotatedInput.z * moveSpeed
             };
 
             // If grounded, snap quickly; if in air, lerp slowly (air control)
             float accel = m_isGrounded ? 1.0f : m_airControl;
             horizVel.x = Lerp(horizVel.x, targetVel.x, accel * dt);
             horizVel.z = Lerp(horizVel.z, targetVel.z, accel * dt);
-        } else if (m_isGrounded) {
+        }
+        else if (m_isGrounded) {
             // Apply friction when grounded and no input
             float speed = std::sqrt(horizVel.x * horizVel.x + horizVel.z * horizVel.z);
             if (speed > 0.01f) {
@@ -194,7 +250,8 @@ private:
 
                 horizVel.x *= factor;
                 horizVel.z *= factor;
-            } else {
+            }
+            else {
                 horizVel.x = 0.0f;
                 horizVel.z = 0.0f;
             }
@@ -232,7 +289,8 @@ private:
             if (m_velocity.y < m_maxFallSpeed) {
                 m_velocity.y = m_maxFallSpeed;
             }
-        } else {
+        }
+        else {
             if (m_velocity.y < 0.0f) {
                 m_velocity.y = 0.0f;
             }
@@ -308,6 +366,9 @@ private:
 
     // Fall limit
     float m_maxFallSpeed = -50.0f;
+
+    // Camera transform reference (set this in the editor inspector!)
+    TransformRef cameraTransform;
 
     // Internal state
     bool m_hasJumpedThisFrame = false;
