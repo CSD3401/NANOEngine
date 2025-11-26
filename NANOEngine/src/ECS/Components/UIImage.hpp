@@ -11,6 +11,7 @@ namespace NE::ECS::Component {
     struct UIImage {
         std::string luid;
         std::string textureUUID;
+        uint64_t bindlessHandle = 0;
         std::shared_ptr<NE::Graphics::Material> material;
         NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 1.f }; // tint
         int renderMode = 0;

@@ -253,8 +253,9 @@ namespace NE::ECS::Systems {
             cmd.renderMode = static_cast<int>(canvas.renderMode);
             cmd.planeDistance = canvas.planeDistance;
 
-            // pass the material that contains the texture
+            // pass the material & bindless text handle that contains the texture
             cmd.material = img.material;
+            cmd.bindlessTextureHandle = img.bindlessHandle;
 
             // pass vertex data
             cmd.vertices = vertices;

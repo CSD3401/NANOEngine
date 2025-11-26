@@ -493,8 +493,16 @@ namespace NE::Graphics {
                 glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
             }
 
-            // set uniforms based on render mode
-            shader->SetUniformVec4("uColor", cmd.color);
+            // set uniforms
+            if (cmd.bindlessTextureHandle != 0) 
+            {
+                shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
+                shader->SetUniformInt("u_HasBaseMap", 1);
+            }
+            else 
+            {
+                shader->SetUniformInt("u_HasBaseMap", 0);
+            }
 
             shader->SetUniformVec4("uColor", cmd.color);
             shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));

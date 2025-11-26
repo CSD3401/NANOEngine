@@ -20,6 +20,7 @@ namespace NE::Graphics {
         // rendering
         Math::Vec4 color{ 1.0f ,1.0f ,1.0f ,1.0f }; // white
         std::shared_ptr<Material> material;  // Contains shader + texture + uniforms
+        uint64_t bindlessTextureHandle = 0;
 
         // layering
         int order = 0; // kiv
