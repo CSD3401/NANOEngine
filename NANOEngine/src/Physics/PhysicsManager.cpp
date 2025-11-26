@@ -1092,33 +1092,57 @@ namespace NE::Physics {
 		);
 
 		// Check if we hit something
-		if (hasHit && !result.mBodyID.IsInvalid()) {
-			hit.hasHit = true;
-			hit.distance = result.mFraction * maxDistance;
+		//if (hasHit && !result.mBodyID.IsInvalid()) {
+		//	hit.hasHit = true;
+		//	hit.distance = result.mFraction * maxDistance;
 
-			// Calculate hit point
-			JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
-			hit.point = Math::Vec3(
-				static_cast<float>(hitPoint.GetX()),
-				static_cast<float>(hitPoint.GetY()),
-				static_cast<float>(hitPoint.GetZ())
-			);
+		//	// Calculate hit point
+		//	JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
+		//	hit.point = Math::Vec3(
+		//		static_cast<float>(hitPoint.GetX()),
+		//		static_cast<float>(hitPoint.GetY()),
+		//		static_cast<float>(hitPoint.GetZ())
+		//	);
 
-			// Get surface normal
-			JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
-			if (lock.Succeeded()) {
-				const JPH::Body& body = lock.GetBody();
-				JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
-				hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
-			}
+		//	// Get surface normal
+		//	JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
+		//	if (lock.Succeeded()) {
+		//		const JPH::Body& body = lock.GetBody();
+		//		JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+		//		hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
+		//	}
 
-			// Store body ID and find associated entity
-			hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
-			//hit.entity = GetBodyEntity(hit.bodyID);
-            hit.entity = static_cast<Entity>(s_PhysicsSystem->GetBodyInterface().GetUserData(result.mBodyID));
+		//	// Store body ID and find associated entity
+		//	hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
+		//	//hit.entity = GetBodyEntity(hit.bodyID);
+  //          hit.entity = static_cast<Entity>(s_PhysicsSystem->GetBodyInterface().GetUserData(result.mBodyID));
+
+  //          SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
+		//}
+        if (hasHit && !result.mBodyID.IsInvalid()) {
+            hit.hasHit = true;
+            hit.distance = result.mFraction * maxDistance;
+
+            JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
+            hit.point = Math::Vec3(
+                (float)hitPoint.GetX(),
+                (float)hitPoint.GetY(),
+                (float)hitPoint.GetZ()
+            );
+
+            JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
+            if (lock.Succeeded()) {
+                const JPH::Body& body = lock.GetBody();
+
+                JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+                hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
+
+                hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
+                hit.entity = static_cast<Entity>(body.GetUserData());
+            }
 
             SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
-		}
+        }
 
 		return hit;
 	}

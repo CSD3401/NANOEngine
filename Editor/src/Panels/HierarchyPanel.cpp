@@ -2,6 +2,7 @@
 #include <imgui/imgui.h>
 #include "../Command/CommandHistory.hpp"
 #include "../Command/EditorCommands.hpp"
+#include "EditorInterface/ECSExports.hpp"
 #include "../EditorScene.hpp"
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
@@ -96,11 +97,14 @@ namespace Editor {
 			ImGui::Separator();
 
 			if (ImGui::BeginMenu("UI")) { // Creates a submenu with an arrow
-				if (ImGui::MenuItem("Create Textbox")) {
-					//CreateTextboxUIEntity();
-				}
-				if (ImGui::MenuItem("Create Image")) {
-					//CreateQuadUIEntity();
+				//if (ImGui::MenuItem("Create Textbox")) {
+				//	//CreateTextboxUIEntity();
+				//}
+				//if (ImGui::MenuItem("Create Image")) {
+				//	//CreateQuadUIEntity();
+				//}
+				if (ImGui::MenuItem("Canvas")) {
+					NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUICanvasEntityEvent{});
 				}
 				ImGui::EndMenu();
 			}
@@ -225,6 +229,27 @@ namespace Editor {
 
 				// -------------------------------------------------------------------
 				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
+
+				if (ImGui::BeginPopupContextItem()) {
+					// check if this entity is a UI Canvas
+					bool isCanvas = NE::ECS::Query::HasUICanvas(id);
+
+					if (isCanvas) 
+					{
+						if (ImGui::MenuItem("Image")) {
+							NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateUIImageEntityEvent{ id }); // pass canvas ID as parent;
+						}
+						if (ImGui::MenuItem("Text")) {
+
+						}
+						if (ImGui::MenuItem("Button")) {
+
+						}
+					}
+
+					ImGui::EndPopup();
+				}
+
 
 				if (useCustomColor)
 					ImGui::PopStyleColor();

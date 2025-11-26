@@ -189,6 +189,20 @@ namespace Scripting {
         return ToSDKVec3(transform.localPosition);
     }
 
+    Vec3 IScript::GetWorldPosition(Entity entity) const {
+        CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+            return Vec3::Zero();
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+        Math::Mat4 m = transform.worldMatrix;
+        Math::Vec3 worldPos = m.GetTranslation();
+        return ToSDKVec3(worldPos);
+    }
+
     void IScript::SetPosition(const Vec3& pos, Entity entity) {
         CHECK_CONTEXT_OR_RETURN();
 

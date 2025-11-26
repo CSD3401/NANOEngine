@@ -8,8 +8,12 @@
 #include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/NativeScript.hpp"
+#include "../ECS/Components/UIRectTransform.hpp"
+#include "../ECS/Components/UIImage.hpp"
+#include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
+#include "../ECS/Systems/UIRenderSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
@@ -69,9 +73,32 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
 
-		// Component existence checks
+		const Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectTransform>(e);
+		}
+
+		const Component::UIImage& GetUIImage(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		const Component::UICanvas& GetUICanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
+		}
+
 		bool HasTransform(uint32_t e) {
-			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Transform>(e);
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Transform>(e);
+		}
+
+		bool HasUIRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIRectTransform>(e);
+		}
+
+		bool HasUICanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UICanvas>(e);
+		}
+
+		bool HasUIImage(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
 		}
 
 		bool HasRenderer(uint32_t e) {
@@ -140,6 +167,68 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		//uint32_t CreateUIEntity() {
+		//	return GetScene().GetECSCoordinator().CreateUIEntity();
+		//}
+
+		uint32_t CreateUICanvasEntity() {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("en") });
+
+			// set up canvas component
+			Component::UICanvas canvas;
+			canvas.luid = Core::LUIDGenerator::Generate("canvas");
+			GetScene().GetECSCoordinator().AddComponent(newEntity, canvas);
+
+			// setup RectTransform for canvas (fullscreen by default)
+			Component::UIRectTransform rectTransform;
+			rectTransform.luid = Core::LUIDGenerator::Generate("rect");
+
+			float screenW = 1920.0f; // temp
+			float screenH = 1080.0f;
+
+			rectTransform.width = screenW;   // fullscreen canvas
+			rectTransform.height = screenH;
+
+			rectTransform.x = screenW * 0.5f;
+			rectTransform.y = screenH * 0.5f;
+			rectTransform.z = 0.0f;
+
+			rectTransform.parent = NE::ECS::NO_ENTITY;  // Canvas has no parent - it's the root
+			GetScene().GetECSCoordinator().AddComponent(newEntity, rectTransform);
+
+			return newEntity;
+		}
+
+		uint32_t CreateUIImageEntity(uint32_t parentCanvas) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("en") });
+
+			// setup RectTransform with parent linkage
+			Component::UIRectTransform rect;
+			rect.luid = Core::LUIDGenerator::Generate("rect");
+			rect.x = 0.0f;
+			rect.y = 0.0f; 
+			rect.z = 0.0f;
+			rect.width = 100.0f;
+			rect.height = 100.0f;
+			rect.parent = parentCanvas;  // Link to parent canvas
+			GetScene().GetECSCoordinator().AddComponent(newEntity, rect);
+
+			// setup UIImage with default white color
+			Component::UIImage img;
+			img.luid = Core::LUIDGenerator::Generate("image");
+			img.color = Math::Vec4{ 1.f, 1.f, 1.f, 1.f };
+			img.material = nullptr;  // start with solid color
+			GetScene().GetECSCoordinator().AddComponent(newEntity, img);
+
+			return newEntity;
+		}
+
 		void DestroyEntity(uint32_t e) {
 			GetScene().GetECSCoordinator().DestroyEntity(e);
 		}
@@ -171,6 +260,18 @@ namespace NE::ECS {
 		void AddCameraComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Core::LUIDGenerator::Generate("ca") });
 		}
+
+		//void AddUIRectTransformComponent(uint32_t e) {
+		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIRectTransform{});
+		//}
+
+		//void AddUIImageComponent(uint32_t e) {
+		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIImage{});
+		//}
+
+		//void AddUICanvasComponent(uint32_t e) {
+		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UICanvas{});
+		//}
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
@@ -204,6 +305,17 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
 
+		Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectTransform>(e);
+		}
+
+		Component::UIImage& GetUIImage(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		Component::UICanvas& GetUICanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
+		}
 		Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}

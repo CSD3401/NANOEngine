@@ -55,6 +55,12 @@ namespace NE::Graphics {
         static EditorCamera* GetEditorCamera();
         static void UpdateEditorCameraData();
 
+        static uint32_t GetScreenWidth();
+        static uint32_t GetScreenHeight();
+        static IStateCache* GetStateCache();
+
+		static void SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
+        
 		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);
         static void SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain, uint16_t order);
 		static void EnableCamera(RenderViewHandle viewHandle);
@@ -79,6 +85,10 @@ namespace NE::Graphics {
         static void AddDebugTrianglesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);
         static void DrawAllDebugGeometry();
 
+        // UI
+        static void DrawUI();
+
+        // lights
         static std::vector<ECS::Component::Light*> m_lights;
 
         // Draw Count Profiling
@@ -94,6 +104,12 @@ namespace NE::Graphics {
         static RenderSettings renderSettings;
 
     private:
+        static uint32_t s_ScreenWidth;
+        static uint32_t s_ScreenHeight;
+
+		static SceneManagement::RenderPass s_CurrentRenderPass; // TEMP?
+
+        
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
         static std::unique_ptr<Skybox> s_skybox;
         static EditorCamera* s_EditorCamera;
@@ -123,5 +139,4 @@ namespace NE::Graphics {
 		static std::unique_ptr<RenderViewManager> s_RenderViewManager;
 		static RenderViewHandle s_ActiveViewHandle;
     };
-
 }
