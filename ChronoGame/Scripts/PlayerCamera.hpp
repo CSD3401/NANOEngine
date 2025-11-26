@@ -9,7 +9,6 @@ public:
     }
 
     void Initialize(Entity entity) override {
-        thisEntity = entity;
     }
 
     void Update(double deltaTime) override {
@@ -42,13 +41,13 @@ public:
         SetRotation(m_pitch, m_yaw, 0.0f);
         
         if (Input::WasMousePressed(0)) {
-            auto forward = GetForward(thisEntity);
-            auto hit = Raycast(GetPosition(thisEntity), forward, 5.f);
-            LOG_DEBUG("Position: " << GetPosition(thisEntity).x << " : " << GetPosition(thisEntity).y << " : " << GetPosition(thisEntity).z);
+            auto forward = GetForward();
+            auto hit = Raycast(GetWorldPosition(), forward, 5.f);
+            LOG_DEBUG("Position: " << GetPosition().x << " : " << GetPosition().y << " : " << GetPosition().z);
             LOG_DEBUG("Forward: " << forward.x << " : " << forward.y << " : " << forward.z);
             
             LOG_DEBUG("Entity Hit: " << hit.entity);
-            std::pair<uint32_t, uint32_t> data = { hit.entity, thisEntity };
+            std::pair<uint32_t, uint32_t> data = { hit.entity, GetEntity() };
 
             if (hit.entity != NE::Scripting::INVALID_ENTITY) {
                 Events::Send("OnCameraRaycastHit", &data);
@@ -71,8 +70,6 @@ public:
     void OnTriggerExit(Entity other) override {}
 
 private:
-    Entity thisEntity;
-
     bool isActive = true;
 
     bool switched = false;

@@ -23,6 +23,7 @@ namespace NE::Graphics::OpenGL {
         uint32_t GetColorAttachment() const override { return m_ColorAttachment; }
         uint32_t GetWidth() const override { return m_Width; }
         uint32_t GetHeight() const override { return m_Height; }
+        uint32_t GetFramebuffer() const override { return m_FBO; }
 
 		// Read pixel data from the picking attachment
 		uint32_t ReadPixel(uint32_t x, uint32_t y);
@@ -39,5 +40,4 @@ namespace NE::Graphics::OpenGL {
 
         uint32_t m_Width = 0, m_Height = 0;
     };
-
 }

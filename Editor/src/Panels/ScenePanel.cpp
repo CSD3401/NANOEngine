@@ -1,23 +1,56 @@
 ﻿#include "ScenePanel.hpp"
 #include "Math/Vec3.hpp"
 #include <imgui/imgui.h>
-#include "../EditorScene.hpp"
-#include "Engine.hpp"
-#include <imgui/widgets/imguizmo/ImGuizmo.h>
-#include <EditorInterface/ECSExports.hpp>
-#include <ECS/Components/Transform.hpp>
-#include "../Command/EditorSetTransformCommand.hpp"
-#include "../Command/CommandHistory.hpp"
 #include <unordered_set>
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <ECS/Components/EntityMeta.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
+#include "../EditorScene.hpp"
+#include "Engine.hpp"
+#include <imgui/widgets/imguizmo/ImGuizmo.h>
+#include <EditorInterface/ECSExports.hpp>
+#include <ECS/Components/Transform.hpp>
+#include <ECS/Components/UIRectTransform.hpp>
+#include <ECS/Components/UICanvas.hpp>
+#include "../Command/EditorSetTransformCommand.hpp"
+#include "../Command/CommandHistory.hpp"
+#include "Graphics/Core/UIRenderer.hpp"
+#include "../UIGizmoHandler.hpp"
+#include <limits>
+
+namespace {
+	// helper function for ui
+	// calculate world position by walking up parent hierarchy
+	ImVec2 CalculateUIWorldPosition(uint32_t entity) {
+		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
+
+		float worldX = rect.x;
+		float worldY = rect.y;
+
+		// Walk up parent chain
+		uint32_t currentParent = rect.parent;
+		while (currentParent != std::numeric_limits<uint32_t>::max()) {
+			if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
+				break;
+			}
+
+			auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
+			worldX += parentRect.x;
+			worldY += parentRect.y;
+
+			currentParent = parentRect.parent;
+		}
+
+		return ImVec2(worldX, worldY);
+	}
+}
 
 namespace Editor {
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
+	static bool s_usingUIGizmo = false;
 
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
@@ -363,7 +396,6 @@ namespace Editor {
 					}
 				}
 
-
 				// Mouse wheel controls next time
 				//if (io.MouseWheel != 0.0f) {
 				//	m_cameraSpeed += io.MouseWheel * 2.0f;
@@ -384,7 +416,6 @@ namespace Editor {
 					);
 				}
 
-
 				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
 				m_lastMousePos = io.MousePos;
 
@@ -399,7 +430,7 @@ namespace Editor {
 				m_lastMoveDir = Vec3(0.0f);
 			}
 
-			if (!ImGuizmo::IsUsingAny()) {
+			if (!ImGuizmo::IsUsingAny() && !s_usingUIGizmo) {
 				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					ImVec2 mousePos = ImGui::GetMousePos();
 					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
@@ -412,6 +443,7 @@ namespace Editor {
 						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
 						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
+						// object picking
 						uint32_t id = NE::GetPickedEntity(x, y);
 
 						EditorScene::s_selectedEntity = nullptr;
@@ -431,6 +463,7 @@ namespace Editor {
 			}
 		}
 
+		// transform gizmos
 		if (EditorScene::s_selectedEntity) {
 			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::TRANSLATE;
@@ -457,119 +490,234 @@ namespace Editor {
 
 			using Owner = NE::ECS::Component::Transform;
 			const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
-			const auto& tRO = NE::ECS::Query::GetEntityTransform(eid);
 
-			// Get parent world matrix
-			NE::Math::Mat4 parentWorld;
-			parentWorld.SetToIdentity();
+			// check which type of entity this is
+			bool hasTransform = NE::ECS::Query::HasTransform(eid);
+			bool hasUIRectTransform = NE::ECS::Query::HasUIRectTransform(eid);
 
-			{
-				// However you get parent; adjust to your API
-				// Example: if Transform has a 'parent' entity id:
-				auto& t = NE::ECS::Query::GetEntityTransform(eid); // or Command::GetEntityTransform
-				if (t.parent != NE::ECS::Component::INVALID_PARENT) {
-					const auto& parentT = NE::ECS::Query::GetEntityTransform(t.parent);
+			if (hasTransform) {
+				// Get parent world matrix
+				NE::Math::Mat4 parentWorld;
+				parentWorld.SetToIdentity();
+
+				auto& tRO = NE::ECS::Query::GetEntityTransform(eid); // or Command::GetEntityTransform
+				if (tRO.parent != NE::ECS::Component::INVALID_PARENT) {
+					const auto& parentT = NE::ECS::Query::GetEntityTransform(tRO.parent);
 					parentWorld = parentT.worldMatrix;
 				}
-			}
 
-			float worldMatrix[16];
-			memcpy(worldMatrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
+				float worldMatrix[16];
+				memcpy(worldMatrix, tRO.worldMatrix.Data(), sizeof(float) * 16);
 
-			bool editedThisFrame = ImGuizmo::Manipulate(
-				EditorScene::m_editorCamera.GetViewMatrix().Data(),
-				EditorScene::m_editorCamera.GetProjectionMatrix().Data(),
-				currentOperation, ImGuizmo::LOCAL, worldMatrix
-			);
-			bool isUsing = ImGuizmo::IsUsing();
-
-			static uint8_t s_gizmoMask = 0;
-			auto opToMask = [](ImGuizmo::OPERATION op) {
-				using Cmd = Editor::SetTransformCommand;
-				switch (op) {
-				case ImGuizmo::TRANSLATE: return Cmd::Pos;
-				case ImGuizmo::ROTATE:    return Cmd::Rot;
-				case ImGuizmo::SCALE:     return Cmd::Scl;
-				default:                  return Cmd::Pos;
-				}
-				};
-
-			if (!s_gizmoActive && isUsing) {
-				s_gizmoActive = true;
-				s_gizmoMask = opToMask(currentOperation);
-				auto before = NE::ECS::Query::GetEntityTransform(eid);
-				s_gizmoCmd = std::make_unique<Editor::SetTransformCommand>(
-					eid, "Gizmo: Transform", before, before,
-					&NE::ECS::Command::GetEntityTransform, s_gizmoMask
+				bool editedThisFrame = ImGuizmo::Manipulate(
+					EditorScene::m_editorCamera.GetViewMatrix().Data(),
+					EditorScene::m_editorCamera.GetProjectionMatrix().Data(),
+					currentOperation, ImGuizmo::LOCAL, worldMatrix
 				);
-			}
+				bool isUsing = ImGuizmo::IsUsing();
 
-			//if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
-			//	float tr[3], rotDeg[3], sc[3];
-			//	ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+				static uint8_t s_gizmoMask = 0;
+				auto opToMask = [](ImGuizmo::OPERATION op) {
+					using Cmd = Editor::SetTransformCommand;
+					switch (op) {
+					case ImGuizmo::TRANSLATE: return Cmd::Pos;
+					case ImGuizmo::ROTATE:    return Cmd::Rot;
+					case ImGuizmo::SCALE:     return Cmd::Scl;
+					default:                  return Cmd::Pos;
+					}
+					};
 
-			//	auto current = NE::ECS::Query::GetEntityTransform(eid);
-			//	auto after = current;
+				if (!s_gizmoActive && isUsing) {
+					s_gizmoActive = true;
+					s_gizmoMask = opToMask(currentOperation);
+					auto before = NE::ECS::Query::GetEntityTransform(eid);
+					s_gizmoCmd = std::make_unique<Editor::SetTransformCommand>(
+						eid, "Gizmo: Transform", before, before,
+						&NE::ECS::Command::GetEntityTransform, s_gizmoMask
+					);
+				}
 
-			//	if (s_gizmoMask & Editor::SetTransformCommand::Pos)
-			//		after.localPosition = { tr[0], tr[1], tr[2] };
-			//	if (s_gizmoMask & Editor::SetTransformCommand::Rot)
-			//		after.localRotationEuler = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
-			//	if (s_gizmoMask & Editor::SetTransformCommand::Scl)
-			//		after.localScale = { sc[0], sc[1], sc[2] };
+				//if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+				//	float tr[3], rotDeg[3], sc[3];
+				//	ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
 
-			//	s_gizmoCmd->SetAfter(after);
-			//}
-			if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
-				// Convert worldMatrix[16] back to Mat4
-				NE::Math::Mat4 newWorld;
-				memcpy(newWorld.Data(), worldMatrix, sizeof(float) * 16);
+				//	auto current = NE::ECS::Query::GetEntityTransform(eid);
+				//	auto after = current;
 
-				// local = parent^-1 * world
-				NE::Math::Mat4 invParent = parentWorld.Inverse(); // or your InverseTRS(parentWorld)
-				NE::Math::Mat4 newLocal = invParent * newWorld;
+				//	if (s_gizmoMask & Editor::SetTransformCommand::Pos)
+				//		after.localPosition = { tr[0], tr[1], tr[2] };
+				//	if (s_gizmoMask & Editor::SetTransformCommand::Rot)
+				//		after.localRotationEuler = { Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2]) };
+				//	if (s_gizmoMask & Editor::SetTransformCommand::Scl)
+				//		after.localScale = { sc[0], sc[1], sc[2] };
 
-				// Now decompose *local* matrix, not world
-				float tr[3], rotDeg[3], sc[3];
-				float localMatrix[16];
-				memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
+				//	s_gizmoCmd->SetAfter(after);
+				//}
+				if (s_gizmoActive && isUsing && editedThisFrame && s_gizmoCmd) {
+					// Convert worldMatrix[16] back to Mat4
+					NE::Math::Mat4 newWorld;
+					memcpy(newWorld.Data(), worldMatrix, sizeof(float) * 16);
 
-				ImGuizmo::DecomposeMatrixToComponents(localMatrix, tr, rotDeg, sc);
+					// local = parent^-1 * world
+					NE::Math::Mat4 invParent = parentWorld.Inverse(); // or your InverseTRS(parentWorld)
+					NE::Math::Mat4 newLocal = invParent * newWorld;
 
-				auto current = NE::ECS::Query::GetEntityTransform(eid);
-				auto after = current;
+					// Now decompose *local* matrix, not world
+					float tr[3], rotDeg[3], sc[3];
+					float localMatrix[16];
+					memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
 
-				if (s_gizmoMask & Editor::SetTransformCommand::Pos)
-					after.localPosition = { tr[0], tr[1], tr[2] };
-				if (s_gizmoMask & Editor::SetTransformCommand::Rot)
-					after.localRotationEuler = {
-						Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2])
-				};
-				if (s_gizmoMask & Editor::SetTransformCommand::Scl)
-					after.localScale = { sc[0], sc[1], sc[2] };
+					ImGuizmo::DecomposeMatrixToComponents(localMatrix, tr, rotDeg, sc);
 
-				s_gizmoCmd->SetAfter(after);
-			}
+					auto current = NE::ECS::Query::GetEntityTransform(eid);
+					auto after = current;
 
-			if (s_gizmoActive && !isUsing) {
-				if (s_gizmoCmd) {
-					const auto& B = s_gizmoCmd->Before();
-					const auto& A = s_gizmoCmd->After();
-					auto eq = [](auto a, auto b) {
-						return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
-						};
-					bool changed = false;
-					if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.localPosition, A.localPosition);
-					if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.localRotationEuler, A.localRotationEuler);
-					if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.localScale, A.localScale);
+					if (s_gizmoMask & Editor::SetTransformCommand::Pos)
+						after.localPosition = { tr[0], tr[1], tr[2] };
+					if (s_gizmoMask & Editor::SetTransformCommand::Rot)
+						after.localRotationEuler = {
+							Radians(rotDeg[0]), Radians(rotDeg[1]), Radians(rotDeg[2])
+					};
+					if (s_gizmoMask & Editor::SetTransformCommand::Scl)
+						after.localScale = { sc[0], sc[1], sc[2] };
 
-					if (changed) {
-						Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
-					} else {
-						s_gizmoCmd.reset();
+					s_gizmoCmd->SetAfter(after);
+				}
+
+				if (s_gizmoActive && !isUsing) {
+					if (s_gizmoCmd) {
+						const auto& B = s_gizmoCmd->Before();
+						const auto& A = s_gizmoCmd->After();
+						auto eq = [](auto a, auto b) {
+							return std::fabs(a.x - b.x) <= 1e-6f && std::fabs(a.y - b.y) <= 1e-6f && std::fabs(a.z - b.z) <= 1e-6f;
+							};
+						bool changed = false;
+						if (s_gizmoMask & Editor::SetTransformCommand::Pos) changed |= !eq(B.localPosition, A.localPosition);
+						if (s_gizmoMask & Editor::SetTransformCommand::Rot) changed |= !eq(B.localRotationEuler, A.localRotationEuler);
+						if (s_gizmoMask & Editor::SetTransformCommand::Scl) changed |= !eq(B.localScale, A.localScale);
+
+						if (changed) {
+							Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_gizmoCmd));
+						} else {
+							s_gizmoCmd.reset();
+						}
+					}
+					s_gizmoActive = false;
+				}
+			} else if (hasUIRectTransform) {
+				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(eid);
+
+				// Get the canvas parent to check render mode
+				uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
+				NE::ECS::Component::UICanvas* canvas = nullptr;
+
+				// First check if this entity itself is a canvas
+				if (NE::ECS::Query::HasUICanvas(eid)) {
+					canvasEntityId = eid;
+					canvas = &NE::ECS::Command::GetUICanvas(eid);
+				} else {
+					// Walk up parent chain to find canvas
+					uint32_t currentParent = rectTransform.parent;
+					while (currentParent != std::numeric_limits<uint32_t>::max()) {
+						if (NE::ECS::Query::HasUICanvas(currentParent)) {
+							canvasEntityId = currentParent;
+							canvas = &NE::ECS::Command::GetUICanvas(currentParent);
+							break;
+						}
+						if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
+						currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
 					}
 				}
-				s_gizmoActive = false;
+
+				if (!canvas) {
+					// No canvas parent found, skip
+					ImGui::End();
+					return;
+				}
+
+				// Setup operation keys for 3D gizmo
+				UIGizmoHandler::SetOperation(currentOperation);
+
+				// World space canvas (3D gizmo)
+				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
+					ImGuizmo::BeginFrame();
+					ImGuizmo::SetOrthographic(false);
+					ImGuizmo::SetDrawlist();
+					ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
+
+					// build world matrix
+					NE::Math::Vec3 position = rectTransform.GetPosition();
+					NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(position.x, position.y, position.z);
+
+					NE::Math::Mat4 R = rectTransform.GetRotationMatrix();
+
+					NE::Math::Vec3 scale = rectTransform.GetScale();
+					NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
+
+					// multiply in correct order
+					NE::Math::Mat4 worldMatrix = T * R * S;
+
+					float matrix[16];
+					memcpy(matrix, worldMatrix.Data(), sizeof(float) * 16);
+
+					bool editedThisFrame = ImGuizmo::Manipulate(
+						EditorScene::m_editorCamera.GetViewMatrix().Data(),
+						EditorScene::m_editorCamera.GetProjectionMatrix().Data(),
+						currentOperation,
+						ImGuizmo::LOCAL,
+						matrix
+					);
+					bool isUsing = ImGuizmo::IsUsing();
+
+					if (!UIGizmoHandler::IsGizmoActive() && isUsing) {
+						UIGizmoHandler::Begin3DGizmo(eid, panelPos, panelSize);
+						s_usingUIGizmo = true;
+					}
+
+					if (UIGizmoHandler::IsGizmoActive() && isUsing && editedThisFrame) {
+						// Convert matrix back to UIRectTransform
+						float tr[3], rotDeg[3], sc[3];
+						ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+
+						rectTransform.x = tr[0];
+						rectTransform.y = tr[1];
+						rectTransform.z = tr[2];
+
+						rectTransform.rotationX = rotDeg[0];
+						rectTransform.rotationY = rotDeg[1];
+						rectTransform.rotationZ = rotDeg[2];
+
+						rectTransform.scaleX = sc[0];
+						rectTransform.scaleY = sc[1];
+						rectTransform.scaleZ = sc[2];
+					}
+
+					if (UIGizmoHandler::IsGizmoActive() && !isUsing) {
+						UIGizmoHandler::End3DGizmo(eid);
+						s_usingUIGizmo = false;
+						// TODO: Push command for undo/redo
+					}
+				}
+				// Screen space canvas (2D gizmo with corner/edge handles)
+				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+					// Begin 2D gizmo if not already active
+					if (!UIGizmoHandler::IsGizmoActive()) {
+						UIGizmoHandler::Begin2DGizmo(eid);
+						s_usingUIGizmo = true;
+					}
+
+					// Update 2D gizmo
+					if (UIGizmoHandler::IsGizmoActive()) {
+						UIGizmoHandler::Update2DGizmo(eid, panelPos, panelSize, 1920.f, 1080.f);
+					}
+
+					// End 2D gizmo on mouse release
+					if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && UIGizmoHandler::IsGizmoActive()) {
+						UIGizmoHandler::End2DGizmo(eid);
+						s_usingUIGizmo = false;
+					}
+				}
 			}
 		}
 
