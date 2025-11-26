@@ -14,6 +14,7 @@ namespace NE::ECS::Component {
 
         NE_REFLECT_BEGIN(EntityMeta)
             NE_REFLECT_FIELD(name),
+            NE_REFLECT_FIELD(luid),
             NE_REFLECT_FIELD(isActive)
         NE_REFLECT_END()
     };

@@ -47,6 +47,50 @@ namespace Scripting {
         return Vec3(v.x, v.y, v.z);
     }
 
+    //=========================================================================
+    // LUID ↔ ENTITY CONVERSION UTILITIES
+    //=========================================================================
+
+    /**
+     * Get LUID from Entity ID.
+     * Returns 0 if entity doesn't exist or has no EntityMeta component.
+     */
+    inline uint64_t GetLUIDFromEntity(Entity entity, ECS::ComponentManager* componentManager) {
+        if (!componentManager || entity == INVALID_ENTITY) {
+            return 0;
+        }
+
+        if (!componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+            return 0;
+        }
+
+        return componentManager->GetComponent<ECS::Component::EntityMeta>(entity).luid;
+    }
+
+    /**
+     * Get Entity ID from LUID.
+     * Returns INVALID_ENTITY if LUID not found.
+     * This iterates through all entities, so it's not super fast - use sparingly.
+     */
+    inline Entity GetEntityFromLUID(uint64_t luid, ECS::ComponentManager* componentManager, ECS::EntityManager* entityManager) {
+        if (!componentManager || !entityManager || luid == 0) {
+            return INVALID_ENTITY;
+        }
+
+        // Iterate through all active entities to find matching LUID
+        const auto& usedEntities = entityManager->GetUsedEntities();
+        for (Entity entity : usedEntities) {
+            if (componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+                const auto& meta = componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+                if (meta.luid == luid) {
+                    return entity;
+                }
+            }
+        }
+
+        return INVALID_ENTITY;
+    }
+
     // Vector normalization helper
     inline Vec3 Normalize(const Vec3& v) {
         float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -71,6 +115,18 @@ namespace Scripting {
             void* memberPtr;
             std::function<std::string()> getValue;
             std::function<bool(const std::string&)> setValue;
+
+            // Array operation callbacks for vector fields
+            std::function<size_t()> getSize;
+            std::function<std::string(size_t)> getElement;
+            std::function<bool(size_t, const std::string&)> setElement;
+            std::function<void()> addElement;
+            std::function<void(size_t)> removeElement;
+
+            // Enum support
+            std::vector<std::string> enumOptions;
+            std::function<int()> getEnumValue;
+            std::function<void(int)> setEnumValue;
         };
 
         std::unordered_map<std::string, FieldEntry> fields;
@@ -614,6 +670,62 @@ namespace Scripting {
         return AudioSourceRef();
     }
 
+    //=========================================================================
+    // Material UUID Registry (Maps material IDs to UUIDs)
+    //=========================================================================
+
+    namespace {
+        struct MaterialRegistry {
+            std::unordered_map<uint32_t, std::string> idToUUID;
+            std::unordered_map<std::string, uint32_t> uuidToID;
+            uint32_t nextID = 1; // Start from 1, 0 is reserved for invalid
+
+            uint32_t GetOrCreateID(const std::string& uuid) {
+                if (uuid.empty()) return 0;
+
+                auto it = uuidToID.find(uuid);
+                if (it != uuidToID.end()) {
+                    return it->second;
+                }
+
+                // Create new ID
+                uint32_t id = nextID++;
+                idToUUID[id] = uuid;
+                uuidToID[uuid] = id;
+                return id;
+            }
+
+            std::string GetUUID(uint32_t id) const {
+                if (id == 0) return "";
+                auto it = idToUUID.find(id);
+                return (it != idToUUID.end()) ? it->second : "";
+            }
+        };
+
+        MaterialRegistry& GetMaterialRegistry() {
+            static MaterialRegistry registry;
+            return registry;
+        }
+    }
+
+    MaterialRef IScript::GetMaterialRef(const std::string& materialUUID) const {
+        if (materialUUID.empty()) return MaterialRef();
+
+        // Get or create an ID for this material UUID
+        uint32_t materialID = GetMaterialRegistry().GetOrCreateID(materialUUID);
+        return MaterialRef(materialID);
+    }
+
+    //=========================================================================
+    // Global helper function for material UUID conversion (exported for SDK)
+    //=========================================================================
+
+    /// Get material UUID from MaterialRef (accessible from other modules)
+    SCRIPT_API std::string GetMaterialUUIDFromRef(const MaterialRef& materialRef) {
+        if (!materialRef.IsValid()) return "";
+        return GetMaterialRegistry().GetUUID(materialRef.GetEntity());
+    }
+
     // Component ref operations (for stored references)
     Vec3 IScript::GetPosition(const TransformRef& ref) const {
         if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
@@ -870,6 +982,533 @@ namespace Scripting {
         );
     }
 
+    void IScript::RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr) {
+        RegisterFieldInternal(
+            name,
+            "materialref",
+            memberPtr,
+            [memberPtr]() -> std::string {
+                // For MaterialRef, the ownerEntity field stores a material ID
+                // Use the material registry to convert ID back to UUID
+                if (!memberPtr->IsValid()) {
+                    return "";
+                }
+                return GetMaterialRegistry().GetUUID(memberPtr->GetEntity());
+            },
+            [this, memberPtr, name](const std::string& value) -> bool {
+                try {
+                    SPD_DEBUG("[MaterialRef] Setting field '{}' to '{}'", name, value.empty() ? "<empty>" : value);
+
+                    // Empty string means no material
+                    if (value.empty()) {
+                        *memberPtr = MaterialRef();
+                        return true;
+                    }
+
+                    // Create MaterialRef from UUID
+                    MaterialRef newRef = GetMaterialRef(value);
+                    if (!newRef.IsValid()) {
+                        SPD_ERROR("[MaterialRef] Failed to create valid MaterialRef from UUID: {}", value);
+                        return false;
+                    }
+
+                    *memberPtr = newRef;
+                    SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
+                    return true;
+                } catch (const std::exception& e) {
+                    SPD_ERROR("[MaterialRef] setValue exception for field '{}': {}", name, e.what());
+                    return false;
+                } catch (...) {
+                    SPD_ERROR("[MaterialRef] setValue unknown exception for field '{}'", name);
+                    return false;
+                }
+            }
+        );
+    }
+
+    void IScript::RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<materialref>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size uuid1 uuid2 ..."
+        entry.getValue = [this, memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& ref : *memberPtr) {
+                oss << " ";
+                if (ref.IsValid()) {
+                    oss << GetMaterialRegistry().GetUUID(ref.GetEntity());
+                }
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector from "size uuid1 uuid2 ..."
+        entry.setValue = [this, memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    std::string uuid;
+                    iss >> uuid;
+                    if (uuid.empty()) {
+                        memberPtr->push_back(MaterialRef());
+                    } else {
+                        memberPtr->push_back(GetMaterialRef(uuid));
+                    }
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [this, memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            const auto& materialRef = (*memberPtr)[index];
+            if (!materialRef.IsValid()) return "";
+            // Return UUID for display in editor
+            return GetMaterialRegistry().GetUUID(materialRef.GetEntity());
+        };
+
+        entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+
+            if (value.empty()) {
+                (*memberPtr)[index] = MaterialRef();
+                return true;
+            }
+
+            // Convert UUID to MaterialRef
+            MaterialRef newRef = GetMaterialRef(value);
+            (*memberPtr)[index] = newRef;
+            return newRef.IsValid();
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(MaterialRef());
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<int>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& val : *memberPtr) {
+                oss << " " << val;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    int val;
+                    if (!(iss >> val)) return false;
+                    memberPtr->push_back(val);
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return std::to_string((*memberPtr)[index]);
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            try {
+                (*memberPtr)[index] = std::stoi(value);
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(0);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterFloatVectorField(const std::string& name, std::vector<float>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<float>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& val : *memberPtr) {
+                oss << " " << val;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    float val;
+                    if (!(iss >> val)) return false;
+                    memberPtr->push_back(val);
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return std::to_string((*memberPtr)[index]);
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            try {
+                (*memberPtr)[index] = std::stof(value);
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(0.0f);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterBoolVectorField(const std::string& name, std::vector<bool>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<bool>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (size_t i = 0; i < memberPtr->size(); ++i) {
+                oss << " " << ((*memberPtr)[i] ? "1" : "0");
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    std::string val;
+                    if (!(iss >> val)) return false;
+                    memberPtr->push_back(val == "1" || val == "true");
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return (*memberPtr)[index] ? "1" : "0";
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            (*memberPtr)[index] = (value == "1" || value == "true");
+            return true;
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(false);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterStringVectorField(const std::string& name, std::vector<std::string>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<string>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size val1 val2 ..."
+        // Strings are encoded with length prefix to handle spaces: "2 5:hello 5:world"
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& str : *memberPtr) {
+                oss << " " << str.length() << ":" << str;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    size_t len;
+                    char colon;
+                    if (!(iss >> len >> colon) || colon != ':') return false;
+
+                    // Read the exact number of characters (including spaces)
+                    iss.ignore(1); // Skip the space after colon
+                    std::string str(len, '\0');
+                    if (len > 0) {
+                        iss.read(&str[0], len);
+                        if (iss.gcount() != static_cast<std::streamsize>(len)) return false;
+                    }
+                    memberPtr->push_back(str);
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return (*memberPtr)[index];
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            (*memberPtr)[index] = value;
+            return true;
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back("");
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    void IScript::RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        FieldRegistry::FieldEntry entry;
+        entry.typeToken = "vector<entity>";
+        entry.memberPtr = memberPtr;
+
+        // getValue: Serialize entire vector as "size id1 id2 ..."
+        entry.getValue = [memberPtr]() -> std::string {
+            std::ostringstream oss;
+            oss << memberPtr->size();
+            for (const auto& entity : *memberPtr) {
+                oss << " " << entity;
+            }
+            return oss.str();
+        };
+
+        // setValue: Deserialize entire vector from "size id1 id2 ..."
+        entry.setValue = [memberPtr](const std::string& value) -> bool {
+            try {
+                std::istringstream iss(value);
+                size_t size;
+                iss >> size;
+
+                memberPtr->clear();
+                memberPtr->reserve(size);
+
+                for (size_t i = 0; i < size; ++i) {
+                    uint32_t entityId;
+                    if (!(iss >> entityId)) return false;
+                    memberPtr->push_back(static_cast<Entity>(entityId));
+                }
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        // Array operations
+        entry.getSize = [memberPtr]() -> size_t {
+            return memberPtr->size();
+        };
+
+        entry.getElement = [memberPtr](size_t index) -> std::string {
+            if (index >= memberPtr->size()) return "";
+            return std::to_string((*memberPtr)[index]);
+        };
+
+        entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+            if (index >= memberPtr->size()) return false;
+            try {
+                (*memberPtr)[index] = static_cast<Entity>(std::stoul(value));
+                return true;
+            } catch (...) {
+                return false;
+            }
+        };
+
+        entry.addElement = [memberPtr]() -> void {
+            memberPtr->push_back(NO_ENTITY);
+        };
+
+        entry.removeElement = [memberPtr](size_t index) -> void {
+            if (index < memberPtr->size()) {
+                memberPtr->erase(memberPtr->begin() + index);
+            }
+        };
+
+        m_fieldRegistry->fields[name] = std::move(entry);
+    }
+
+    //=========================================================================
+    // Helper Methods for Template Functions
+    //=========================================================================
+
+    void IScript::SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        auto it = m_fieldRegistry->fields.find(name);
+        if (it != m_fieldRegistry->fields.end()) {
+            it->second.enumOptions = options;
+        }
+    }
+
+    void IScript::SetFieldEnumCallbacks(const std::string& name,
+        std::function<int()> getEnumValue,
+        std::function<void(int)> setEnumValue) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        auto it = m_fieldRegistry->fields.find(name);
+        if (it != m_fieldRegistry->fields.end()) {
+            it->second.getEnumValue = getEnumValue;
+            it->second.setEnumValue = setEnumValue;
+        }
+    }
+
     //=========================================================================
     // Field Query Interface
     //=========================================================================
@@ -925,45 +1564,80 @@ namespace Scripting {
 
     // Virtual methods with default implementations for optional override
     std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return {};
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && !it->second.enumOptions.empty()) {
+            return it->second.enumOptions;
+        }
         return {};
     }
 
     int IScript::GetEnumValue(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return 0;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getEnumValue) {
+            return it->second.getEnumValue();
+        }
         return 0;
     }
 
     void IScript::SetEnumValue(const std::string& fieldName, int value) {
-        (void)fieldName;
-        (void)value;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.setEnumValue) {
+            it->second.setEnumValue(value);
+        }
     }
 
     size_t IScript::GetArraySize(const std::string& fieldName) const {
-        (void)fieldName;
+        if (!m_fieldRegistry) return 0;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getSize) {
+            return it->second.getSize();
+        }
         return 0;
     }
 
     std::string IScript::GetArrayElement(const std::string& fieldName, size_t index) const {
-        (void)fieldName;
-        (void)index;
+        if (!m_fieldRegistry) return "";
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getElement) {
+            return it->second.getElement(index);
+        }
         return "";
     }
 
     bool IScript::SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) {
-        (void)fieldName;
-        (void)index;
-        (void)value;
+        if (!m_fieldRegistry) return false;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.setElement) {
+            return it->second.setElement(index, value);
+        }
         return false;
     }
 
     void IScript::AddArrayElement(const std::string& fieldName) {
-        (void)fieldName;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.addElement) {
+            it->second.addElement();
+        }
     }
 
     void IScript::RemoveArrayElement(const std::string& fieldName, size_t index) {
-        (void)fieldName;
-        (void)index;
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.removeElement) {
+            it->second.removeElement(index);
+        }
     }
 
     template<typename T>

@@ -263,7 +263,10 @@ namespace Editor {
 
 				bool isActiveValue = metaRO.isActive;
 				if (ImGui::Checkbox("isActive", &isActiveValue)) {
-					metaRO.isActive = isActiveValue;
+					//metaRO.isActive = isActiveValue;
+
+					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
+					EditorScene::SetAllDescendantsActive(entity, isActiveValue);
 					NE::MarkSceneDirty();
 				}
 
@@ -976,6 +979,63 @@ namespace Editor {
 
 									ImGui::PopID();
 								}
+								else if (ftype == "materialref") {
+									// Material reference field
+									// Get current material UUID
+									std::string materialUUID = fval;
+									std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+
+									// Display the material reference field
+									ImGui::Text("%s (Material)", fname.c_str());
+
+									ImGui::PushID((fname + "_matref").c_str());
+
+									// Button shows material name or "None" - make it a drop target
+									ImGui::Button(displayName.c_str(), ImVec2(200, 0));
+
+									// Drag-drop support - accept material drops from asset browser
+									// NOTE: Must be called right after the button, while it's still the active item
+									if (ImGui::BeginDragDropTarget()) {
+										const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+										if (payload && payload->DataSize > 0) {
+											std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+											SPD_DEBUG("[MaterialRef] Dropped path: {}", droppedPath);
+
+											std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+											SPD_DEBUG("[MaterialRef] Retrieved UUID: {}", droppedUUID);
+
+											if (!droppedUUID.empty()) {
+												SPD_DEBUG("[MaterialRef] Calling SetFieldValueFromString for field '{}' with UUID '{}'", fname, droppedUUID);
+												bool success = comp.Instance->SetFieldValueFromString(fname, droppedUUID);
+												SPD_DEBUG("[MaterialRef] SetFieldValueFromString returned: {}", success);
+												if (success) {
+													fieldChanged = true;
+													SPD_DEBUG("[MaterialRef] Material {} assigned to field {}", droppedUUID, fname);
+												} else {
+													SPD_ERROR("[MaterialRef] Failed to assign material {} to field {}", droppedUUID, fname);
+												}
+											} else {
+												SPD_ERROR("[MaterialRef] Empty UUID retrieved from path: {}", droppedPath);
+											}
+										} else {
+											if (payload) {
+												SPD_DEBUG("[MaterialRef] Payload received but DataSize is: {}", payload->DataSize);
+											} else {
+												SPD_DEBUG("[MaterialRef] No MATERIAL_PATH payload accepted");
+											}
+										}
+										ImGui::EndDragDropTarget();
+									}
+
+									// Clear button
+									ImGui::SameLine();
+									if (ImGui::Button("X")) {
+										comp.Instance->SetFieldValueFromString(fname, "");
+										fieldChanged = true;
+									}
+
+									ImGui::PopID();
+								}
 								else if (ftype.starts_with("vector<")) {
 									// Array/Vector support (int, float, bool, string)
 									// NOTE: Nested struct vectors not yet supported - will be added in future commit
@@ -1035,6 +1095,105 @@ namespace Editor {
 												buf[sizeof(buf) - 1] = '\0';
 												if (ImGui::InputText("##elem", buf, sizeof(buf))) {
 													comp.Instance->SetArrayElement(fname, i, std::string(buf));
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "materialref") {
+												// Material reference support for vector<materialref>
+												std::string materialUUID = elemValue;
+												std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+
+												// Button shows material name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept material drops
+												// NOTE: Must be called right after the button, while it's still the active item
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+													if (payload && payload->DataSize > 0) {
+														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+														SPD_DEBUG("[MaterialRef Vector] Dropped path: {}", droppedPath);
+
+														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														SPD_DEBUG("[MaterialRef Vector] Retrieved UUID: {}", droppedUUID);
+
+														if (!droppedUUID.empty()) {
+															SPD_DEBUG("[MaterialRef Vector] Setting element {} of field '{}' to UUID '{}'", i, fname, droppedUUID);
+															bool success = comp.Instance->SetArrayElement(fname, i, droppedUUID);
+															SPD_DEBUG("[MaterialRef Vector] SetArrayElement returned: {}", success);
+															if (success) {
+																elemChanged = true;
+																SPD_DEBUG("[MaterialRef Vector] Successfully assigned material to vector element");
+															} else {
+																SPD_ERROR("[MaterialRef Vector] Failed to set array element");
+															}
+														} else {
+															SPD_ERROR("[MaterialRef Vector] Empty UUID retrieved from path: {}", droppedPath);
+														}
+													} else {
+														if (payload) {
+															SPD_DEBUG("[MaterialRef Vector] Payload received but DataSize is: {}", payload->DataSize);
+														} else {
+															SPD_DEBUG("[MaterialRef Vector] No MATERIAL_PATH payload accepted");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, "");
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "entity") {
+												// Entity reference support for vector<entity>
+												std::string entityIdStr = elemValue;
+												std::string displayName = "None";
+												uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+												std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+												if (!entityIdStr.empty() && entityIdStr != noEntityStr) {
+													try {
+														assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+
+														// Verify entity still exists
+														if (assignedEntityId != NE::ECS::NO_ENTITY) {
+															const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+															displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+														}
+													}
+													catch (...) {
+														displayName = "[Error]";
+													}
+												}
+
+												// Button shows entity name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept entity drops from hierarchy
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
+													if (payload && payload->DataSize == sizeof(uint32_t)) {
+														uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+														SPD_DEBUG("[Entity Vector] Dropped entity: {}", droppedEntity);
+
+														bool success = comp.Instance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+														if (success) {
+															elemChanged = true;
+															SPD_DEBUG("[Entity Vector] Successfully assigned entity to vector element");
+														} else {
+															SPD_ERROR("[Entity Vector] Failed to set array element");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, noEntityStr);
 													elemChanged = true;
 												}
 											}
