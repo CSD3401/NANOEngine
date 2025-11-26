@@ -5,7 +5,6 @@
 #include "../../Graphics/Core/UIRenderer.hpp" 
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
-#include "../../Graphics/Core/UIImageMeshGenerator.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -19,6 +18,27 @@ namespace NE::ECS::Systems {
     void UIRenderSystem::OnEntityAdded(Entity) {}
     void UIRenderSystem::OnEntityRemoved(Entity) {}
     void UIRenderSystem::Init() {}
+
+    void UIRenderSystem::RotateVertices2D(
+        std::vector<NE::Graphics::UIVertex>& vertices,
+        float pivotX, float pivotY,
+        float rotationDegrees)
+    {
+        if (std::abs(rotationDegrees) < 0.001f) return;
+
+        const float PI = 3.14159265358979f;
+        float radians = rotationDegrees * PI / 180.0f;
+        float cosR = std::cos(radians);
+        float sinR = std::sin(radians);
+
+        for (auto& v : vertices) {
+            float localX = v.x - pivotX;
+            float localY = v.y - pivotY;
+
+            v.x = pivotX + localX * cosR - localY * sinR;
+            v.y = pivotY + localX * sinR + localY * cosR;
+        }
+    }
 
     bool UIRenderSystem::GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj) {
         auto* cam = NE::Graphics::GraphicsManager::GetEditorCamera();
@@ -44,8 +64,8 @@ namespace NE::ECS::Systems {
         auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
 
         WorldTransform result;
-        result.x = rect.x;
-        result.y = rect.y;
+        result.x = rect.x - rect.width * rect.pivotX;
+        result.y = rect.y - rect.height * rect.pivotY;
         result.width = rect.width;
         result.height = rect.height;
         result.z = rect.z;
@@ -207,6 +227,14 @@ namespace NE::ECS::Systems {
                     worldTransform.height,
                     img.color
                 );
+
+                // ADD THIS: Apply rotation for overlay mode
+                if (!vertices.empty() && std::abs(rect.rotationZ) > 0.001f)
+                {
+                    float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
+                    float pivotY = worldTransform.y + worldTransform.height * rect.pivotY;
+                    RotateVertices2D(vertices, pivotX, pivotY, rect.rotationZ);
+                }
             }
 
             // if no vertices (e.g. fillAmount = 0), skip rendering
@@ -230,7 +258,7 @@ namespace NE::ECS::Systems {
 
             // pass vertex data
             cmd.vertices = vertices;
-            cmd.useCustomVertices = !vertices.empty() && (img.imageType != UIImage::ImageType::SIMPLE || img.fillAmount < 1.0f);
+            cmd.useCustomVertices = !vertices.empty() && (img.imageType != UIImage::ImageType::SIMPLE || img.fillAmount < 1.0f || std::abs(rect.rotationZ) > 0.001f);
 
             // include matrices for all modes
             if (viewMatrix) cmd.viewMatrix = *viewMatrix;

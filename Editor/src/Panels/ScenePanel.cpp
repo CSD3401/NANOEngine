@@ -368,16 +368,23 @@ namespace Editor {
 				uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
 				NE::ECS::Component::UICanvas* canvas = nullptr;
 
-				// Walk up parent chain to find canvas
-				uint32_t currentParent = rectTransform.parent;
-				while (currentParent != std::numeric_limits<uint32_t>::max()) {
-					if (NE::ECS::Query::HasUICanvas(currentParent)) {
-						canvasEntityId = currentParent;
-						canvas = &NE::ECS::Command::GetUICanvas(currentParent);
-						break;
+				// First check if this entity itself is a canvas
+				if (NE::ECS::Query::HasUICanvas(eid)) {
+					canvasEntityId = eid;
+					canvas = &NE::ECS::Command::GetUICanvas(eid);
+				}
+				else {
+					// Walk up parent chain to find canvas
+					uint32_t currentParent = rectTransform.parent;
+					while (currentParent != std::numeric_limits<uint32_t>::max()) {
+						if (NE::ECS::Query::HasUICanvas(currentParent)) {
+							canvasEntityId = currentParent;
+							canvas = &NE::ECS::Command::GetUICanvas(currentParent);
+							break;
+						}
+						if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
+						currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
 					}
-					if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-					currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
 				}
 
 				if (!canvas) {
@@ -459,7 +466,7 @@ namespace Editor {
 					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
 				{
 					// Begin 2D gizmo if not already active
-					if (!UIGizmoHandler::IsGizmoActive() && ImGui::IsWindowFocused()) {
+					if (!UIGizmoHandler::IsGizmoActive()) {
 						UIGizmoHandler::Begin2DGizmo(eid);
 						s_usingUIGizmo = true;
 					}
@@ -468,66 +475,6 @@ namespace Editor {
 					if (UIGizmoHandler::IsGizmoActive()) {
 						UIGizmoHandler::Update2DGizmo(eid, panelPos, panelSize, 1920.f, 1080.f);
 					}
-
-					// Draw corner/edge handles
-					ImVec2 worldPos = CalculateUIWorldPosition(eid);
-					float fbWidth = 1920.f;
-					float fbHeight = 1080.f;
-					float scaleX = panelSize.x / fbWidth;
-					float scaleY = panelSize.y / fbHeight;
-
-					ImVec2 topLeft(
-						panelPos.x + worldPos.x * scaleX,
-						panelPos.y + worldPos.y * scaleY
-					);
-					ImVec2 bottomRight(
-						panelPos.x + (worldPos.x + rectTransform.width) * scaleX,
-						panelPos.y + (worldPos.y + rectTransform.height) * scaleY
-					);
-					ImVec2 center(
-						(topLeft.x + bottomRight.x) * 0.5f,
-						(topLeft.y + bottomRight.y) * 0.5f
-					);
-
-					ImDrawList* drawList = ImGui::GetWindowDrawList();
-					drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 255, 255, 255), 0.0f, 0, 2.0f);
-
-					const float handleSize = 8.0f;
-
-					// Corner handles
-					ImVec2 corners[4] = {
-						topLeft,
-						ImVec2(bottomRight.x, topLeft.y),
-						bottomRight,
-						ImVec2(topLeft.x, bottomRight.y)
-					};
-
-					for (int i = 0; i < 4; i++) {
-						drawList->AddRectFilled(
-							ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
-							ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
-							IM_COL32(0, 0, 255, 255)
-						);
-					}
-
-					// Edge handles
-					ImVec2 edges[4] = {
-						ImVec2(center.x, topLeft.y),
-						ImVec2(bottomRight.x, center.y),
-						ImVec2(center.x, bottomRight.y),
-						ImVec2(topLeft.x, center.y)
-					};
-
-					for (int i = 0; i < 4; i++) {
-						drawList->AddRectFilled(
-							ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
-							ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
-							IM_COL32(0, 0, 255, 255)
-						);
-					}
-
-					// Center handle
-					drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(0, 0, 255, 255));
 
 					// End 2D gizmo on mouse release
 					if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && UIGizmoHandler::IsGizmoActive()) {

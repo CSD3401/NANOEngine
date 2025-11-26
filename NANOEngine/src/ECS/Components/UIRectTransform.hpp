@@ -10,7 +10,7 @@ namespace NE::ECS::Component {
     struct UIRectTransform {
         std::string luid;
 
-        // top-left position in pixels
+        // position of pivot point
         float x = 0.0f;
         float y = 0.0f;
         float z = 0.0f;
@@ -41,6 +41,15 @@ namespace NE::ECS::Component {
         float pivotY = 0.5f;
 
         uint32_t parent = 0;
+
+        // Helper: get top-left corner position (calculated from pivot position)
+        float GetTopLeftX() const {
+            return x - width * pivotX;
+        }
+
+        float GetTopLeftY() const {
+            return y - height * pivotY;
+        }
 
         // helper function: get rotation matrix from euler angles
         NE::Math::Mat4 GetRotationMatrix() const {

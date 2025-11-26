@@ -5,6 +5,7 @@
 #include "../Core/ComponentManager.hpp"
 #include "../Components/UICanvas.hpp"
 #include "../src/Math/Mat4.hpp"
+#include "../../Graphics/Core/UIImageMeshGenerator.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -28,6 +29,7 @@ namespace NE::ECS::Systems {
     private:
         ComponentManager* m_cm = nullptr;
 
+        // helper functions
         // calculate world transforms based on render mode
         WorldTransform CalculateWorldTransform(
             Entity entity,
@@ -49,6 +51,12 @@ namespace NE::ECS::Systems {
 
         // helper:: get camera matrices
         bool GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj);
+
+        // Helper to rotate 2D UI vertices around a pivot point
+        void RotateVertices2D(
+            std::vector<NE::Graphics::UIVertex>& vertices,
+            float pivotX, float pivotY,
+            float rotationDegrees);
     };
 
 } // namespace NE::ECS::Systems
