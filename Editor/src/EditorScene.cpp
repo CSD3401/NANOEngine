@@ -243,8 +243,7 @@ namespace Editor {
     void EditorScene::PasteSelected() {
         if (clipboard.empty()) return;
 
-        NE::Math::Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
-        std::vector<uint32_t> newEntities = NE::PasteEntity(clipboard, camForwardPos);
+        std::vector<uint32_t> newEntities = NE::PasteEntity(clipboard);
 
         if (newEntities.empty()) return;
 

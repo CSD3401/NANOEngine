@@ -49,7 +49,7 @@ namespace NE {
 
 	NANOENGINE_API std::vector<uint32_t> DuplicateEntity(uint32_t entity);
 	NANOENGINE_API std::vector<uint8_t> CopyEntity(uint32_t entity);
-	NANOENGINE_API std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard, Math::Vec3 pos);
+	NANOENGINE_API std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard);
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 

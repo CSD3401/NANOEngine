@@ -17,6 +17,7 @@ public:
         SCRIPT_COMPONENT_REF(materialA, MaterialRef);
         SCRIPT_COMPONENT_REF(materialB, MaterialRef);
         SCRIPT_COMPONENT_REF(successMaterial, MaterialRef);
+        SCRIPT_FIELD(solvedEventName, String);
 
         SCRIPT_COMPONENT_REF(target1, TransformRef);
         SCRIPT_COMPONENT_REF(target2, TransformRef);
@@ -94,7 +95,7 @@ private:
     TransformRef rayParent{};                 // <-- NEW
     float rayDistance = 100.f;
     int   layerMask = -1; // -1 => 0xFFFFFFFF
-
+    std::string solvedEventName = "MaterialSequencerSolved";
     // === Internal ===
     bool m_hasQueued = false;
     bool m_waitingForClicks = false;
@@ -340,6 +341,7 @@ std::vector<int> idx;
                     }
                 }
                 LOG_INFO("i pass");
+                Events::Send(solvedEventName.c_str(), nullptr);
                 m_waitingForClicks = false;
                 m_hasQueued = false;
             }
@@ -377,6 +379,7 @@ std::vector<int> idx;
                         }
                     }
                 }
+                Events::Send(solvedEventName.c_str(), nullptr); 
                 LOG_INFO("i pass");
                 m_waitingForClicks = false;
                 m_hasQueued = false;
