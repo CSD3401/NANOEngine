@@ -33,6 +33,8 @@
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />
     <ClInclude Include="Scripts\TimeSwapListener.hpp" />
     <ClInclude Include="Scripts\TimeSwapManager.hpp" />
+    <ClInclude Include="Scripts\ColourSwapButton.hpp" />
+    <ClInclude Include="Scripts\ElevatorMove.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />

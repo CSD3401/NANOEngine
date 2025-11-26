@@ -21,6 +21,7 @@
 #include "Scripts/ColourSwapButton.hpp"
 #include "Scripts/TimeSwapManager.hpp"
 #include "Scripts/TimeSwapListener.hpp"
+#include "Scripts/ElevatorMove.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
 #include "Scripts/MirrorPuzzle.hpp"
@@ -108,6 +109,10 @@ extern "C" {
 
         registrar->RegisterScript("TimeSwapListener", []() -> NE::Scripting::IScript* {
             return new TimeSwapListener();
+            });
+
+        registrar->RegisterScript("ElevatorMove", []() -> NE::Scripting::IScript* {
+            return new ElevatorMove();
             });
 
         // Component Reference Example Scripts

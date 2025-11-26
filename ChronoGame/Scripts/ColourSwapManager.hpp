@@ -173,7 +173,12 @@ private:
 	{
 		int leftIndex = *reinterpret_cast<int*>(indexData);
 		int rightIndex = leftIndex + 1;
-		LOG_DEBUG("SWAPPING COLOURS");
+		if (leftIndex > swappableChildren.size())
+		{
+			LOG_ERROR("IndexData out of range!");
+			return;
+		}
+		//LOG_DEBUG("SWAPPING COLOURS");
 		// Get the children to swap
 		Entity leftChild = swappableChildren[leftIndex];
 		Entity rightChild = swappableChildren[rightIndex];

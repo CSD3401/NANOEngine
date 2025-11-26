@@ -36,7 +36,8 @@ public:
 			Interact();
 		}
 		else if (Input::WasKeyReleased('M')) {
-			Interact();
+			//Interact();
+			Events::Send("Lever0");
 		}
 	}
 
@@ -82,9 +83,7 @@ public:
 
 	void Interact() {
 		// Event bus
-		LOG_DEBUG("BUTTON INTERACTED");
 		std::string event = eventSend + std::to_string(puzzleIndex);
-		LOG_DEBUG("EVENT SENT: " + event);
 		Events::Send(event.c_str(), &leftIndex);
 	}
 
