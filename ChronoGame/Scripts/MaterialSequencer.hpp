@@ -3,10 +3,16 @@
 #include <array>
 #include <vector>
 #include <random>
-#include <algorithm>
-#include <cmath>
 #include "EngineAPI.hpp"
 
+/**
+ * MaterialSequencer (Event-driven, no attached transforms)
+ * - Uses explicit entity IDs for 5 buttons
+ * - Listens to "OnCameraRaycastHit" OR number keys 1..5
+ * - Correct press: set that button's X rotation to the NEGATIVE of current X (e.g., 45 -> -45)
+ * - Fail: set ALL button X back to +45 and targets to materialA
+ * - Success: APPLY successMaterial to targets AND set ALL buttons to -45, then PERMANENTLY LOCK (no further resets)
+ */
 class MaterialSequencer : public IScript {
 public:
     MaterialSequencer() {
@@ -19,240 +25,145 @@ public:
         SCRIPT_COMPONENT_REF(successMaterial, MaterialRef);
         SCRIPT_FIELD(solvedEventName, String);
 
+        // Targets that get flashed
         SCRIPT_COMPONENT_REF(target1, TransformRef);
         SCRIPT_COMPONENT_REF(target2, TransformRef);
         SCRIPT_COMPONENT_REF(target3, TransformRef);
         SCRIPT_COMPONENT_REF(target4, TransformRef);
         SCRIPT_COMPONENT_REF(target5, TransformRef);
 
-        SCRIPT_COMPONENT_REF(attached1, TransformRef);
-        SCRIPT_COMPONENT_REF(attached2, TransformRef);
-        SCRIPT_COMPONENT_REF(attached3, TransformRef);
-        SCRIPT_COMPONENT_REF(attached4, TransformRef);
-        SCRIPT_COMPONENT_REF(attached5, TransformRef);
-
-        // Ray setup
-        SCRIPT_COMPONENT_REF(clickRayOrigin, TransformRef);  // usually the Camera
-        SCRIPT_COMPONENT_REF(rayParent, TransformRef);       // set to Player if camera is a child
-        SCRIPT_FIELD(rayDistance, Float);
-        SCRIPT_FIELD(layerMask, Int);
+        // Buttons (entity IDs) that are pressed in sequence
+        SCRIPT_FIELD(button1Entity, Int);
+        SCRIPT_FIELD(button2Entity, Int);
+        SCRIPT_FIELD(button3Entity, Int);
+        SCRIPT_FIELD(button4Entity, Int);
+        SCRIPT_FIELD(button5Entity, Int);
     }
 
+    // === IScript required ===
     void Initialize(Entity) override {
-        if (rayDistance <= 0.f) rayDistance = 100.f;
-        if (layerMask == 0) layerMask = -1; // default to "all"
-        if (autoRun && !m_hasQueued) QueueSequence();
+        if (delayBetween <= 0.f) delayBetween = 0.25f;
+        if (autoRun && !m_hasQueued && !m_solved) QueueSequence();
+
+        // Listen to camera raycast hit
+        Events::Listen("OnCameraRaycastHit", [this](void* payload) {
+            if (!isActive || m_solved || !m_waitingForClicks || !payload) return;
+            auto* data = static_cast<std::pair<uint32_t, uint32_t>*>(payload);
+            uint32_t hit = data->first;
+            int pressed = MapEntityToButtonIndex(hit); // 1..5, 0 if not ours
+            if (pressed > 0) HandleKey(pressed);
+            });
     }
 
-    void Update(double deltaTime) override {
-        if (!isActive) return;
+    void Update(double) override {
+        if (!isActive || m_solved) return;
+        // Number keys for test input
+        if (Input::WasKeyPressed('1')) HandleKey(1);
+        if (Input::WasKeyPressed('2')) HandleKey(2);
+        if (Input::WasKeyPressed('3')) HandleKey(3);
+        if (Input::WasKeyPressed('4')) HandleKey(4);
+        if (Input::WasKeyPressed('5')) HandleKey(5);
 
-        // what am I looking at debug
-        DebugPrintLook(deltaTime);
-
-        // Start a round
-        if (!m_hasQueued && !m_waitingForClicks && Input::WasKeyPressed('M')) {
-            QueueSequence();
-        }
-
-        // Click validation
-        if (m_waitingForClicks && Input::WasMousePressed(0)) {
-            HandleClick();
-        }
-
-        // Keys 1..5 (optional)
-        if (m_waitingForClicks) {
-            if (Input::WasKeyPressed('1')) HandleKey(1);
-            else if (Input::WasKeyPressed('2')) HandleKey(2);
-            else if (Input::WasKeyPressed('3')) HandleKey(3);
-            else if (Input::WasKeyPressed('4')) HandleKey(4);
-            else if (Input::WasKeyPressed('5')) HandleKey(5);
-        }
+        if (!m_hasQueued && !m_waitingForClicks && autoRun && !m_solved) QueueSequence();
     }
 
-    void Activate() {
-        if (!m_hasQueued && !m_waitingForClicks) QueueSequence();
-    }
-
-    // Unused events
+    // Satisfy pure virtuals (unused here)
     void OnCollisionEnter(Entity) override {}
     void OnCollisionExit(Entity) override {}
     void OnTriggerEnter(Entity) override {}
     void OnTriggerExit(Entity) override {}
+    void OnDestroy() override {}
+    void OnEnable() override {}
+    void OnDisable() override {}
 
-private:
-    // === Exposed Fields ===
+    // === Designer-set fields ===
     bool isActive = true;
     bool autoRun = false;
     float delayBetween = 0.25f;
     MaterialRef materialA{};
     MaterialRef materialB{};
     MaterialRef successMaterial{};
+    std::string solvedEventName = "MaterialSequencerSolved";
 
     TransformRef target1{}, target2{}, target3{}, target4{}, target5{};
-    TransformRef attached1{}, attached2{}, attached3{}, attached4{}, attached5{};
-    TransformRef clickRayOrigin{};
-    TransformRef rayParent{};                 // <-- NEW
-    float rayDistance = 100.f;
-    int   layerMask = -1; // -1 => 0xFFFFFFFF
-    std::string solvedEventName = "MaterialSequencerSolved";
-    // === Internal ===
+
+    // Button entity IDs
+    int button1Entity = 0;
+    int button2Entity = 0;
+    int button3Entity = 0;
+    int button4Entity = 0;
+    int button5Entity = 0;
+
+private:
+    // Internal state
     bool m_hasQueued = false;
     bool m_waitingForClicks = false;
+    bool m_solved = false;              // <-- lock flag after success
     int  m_clickIndex = 0;
-    std::array<int, 5> m_order{};
-    std::vector<Entity> m_targetsCache;
-    std::array<Vec3, 5> m_attachedOriginalRot{};
-    std::array<bool, 5> m_attachedIsRotated{};
-
-    // debug look-at throttling
-    bool   m_debugPrintAim = true;
-    double m_lookTimer = 0.0;
-    double m_lookPrintEvery = 0.15; // seconds
-    int    m_lastLookEntity = -2;   // -2 uninitialized, -1 no-hit, >=0 entity id
+    std::array<int, 5> m_order{ -1, -1, -1, -1, -1 };
 
     std::array<TransformRef, 5> GetTargets() const {
         return { target1, target2, target3, target4, target5 };
     }
-    std::array<TransformRef, 5> GetAttached() const {
-        return { attached1, attached2, attached3, attached4, attached5 };
+    std::array<int, 5> GetButtons() const {
+        return { button1Entity, button2Entity, button3Entity, button4Entity, button5Entity };
     }
 
-    // --- helpers: build WORLD ray when camera is parented ---
-    static inline float DegToRad(float v) { return v * 0.017453292519943295f; }
-
-    // Engine's own GetForward() uses: y = -sin(pitch), z = -cos(pitch)*cos(yaw)
-    Vec3 ForwardFromEuler(float pitchDeg, float yawDeg) {
-        float pitch = DegToRad(pitchDeg);
-        float yaw = DegToRad(yawDeg);
-        Vec3 fwd;
-        fwd.x = std::cos(pitch) * std::sin(yaw);
-        fwd.y = -std::sin(pitch);
-        fwd.z = -std::cos(pitch) * std::cos(yaw);
-        return fwd.Normalized();
+    int MapEntityToButtonIndex(uint32_t entity) const {
+        auto ids = GetButtons();
+        for (int i = 0; i < 5; ++i) if (ids[i] != 0 && (uint32_t)ids[i] == entity) return i + 1; // 1-based
+        return 0;
     }
 
-    // Compose a world forward when camera is a child:
-    // - yaw = parent.yaw + camera.localYaw (covers both styles)
-    // - pitch = camera.localPitch (typical FPS)
-    Vec3 ComputeRayDir() {
-        if (!clickRayOrigin.IsValid()) return GetForward().Normalized();
-
-        Vec3 camEuler = GetRotation(clickRayOrigin); // LOCAL from SDK
-        float pitch = camEuler.x;
-        float yaw = camEuler.y;
-
-        if (rayParent.IsValid()) {
-            Vec3 parentEuler = GetRotation(rayParent); // LOCAL for parent (often == world if parent has no parent)
-            yaw = parentEuler.y + yaw;                 // combine
-        }
-        return ForwardFromEuler(pitch, yaw);
+    // Helpers for button rotations
+    void SetButtonXDeg(int idx0, float xDeg) {
+        auto ids = GetButtons();
+        if (idx0 < 0 || idx0 >= 5) return;
+        uint32_t e = (uint32_t)ids[idx0];
+        if (e == 0) return;
+        Vec3 r = GetRotation((Entity)e);
+        SetRotation(Vec3(xDeg, r.y, r.z), (Entity)e);
     }
-
-    // Compose a world origin when camera is a child:
-    // worldOrigin = parentPos + RotY(parentYaw) * cameraLocalPos
-    // (Assumes parent has no parent and no non-uniform scale; fits common player/camera rigs)
-    Vec3 ComputeRayOrigin() {
-        if (!clickRayOrigin.IsValid())
-            return GetPosition();
-
-        Vec3 camLocalPos = GetPosition(clickRayOrigin); // LOCAL
-        if (!rayParent.IsValid())
-            return camLocalPos; // if camera is root, local == world
-
-        Vec3 parentPos = GetPosition(rayParent);      // LOCAL for parent (root => world)
-        Vec3 parentEuler = GetRotation(rayParent);
-        float yaw = DegToRad(parentEuler.y);
-
-        // rotate local offset by parent yaw around Y
-        float sx = std::sin(yaw), cx = std::cos(yaw);
-        Vec3 rotated(
-            camLocalPos.x * cx + camLocalPos.z * sx,
-            camLocalPos.y,
-            -camLocalPos.x * sx + camLocalPos.z * cx
-        );
-        return parentPos + rotated;
+    void NegateButtonX(int idx0) {
+        auto ids = GetButtons();
+        if (idx0 < 0 || idx0 >= 5) return;
+        uint32_t e = (uint32_t)ids[idx0];
+        if (e == 0) return;
+        Vec3 r = GetRotation((Entity)e);
+        SetRotation(Vec3(-std::abs(r.x), r.y, r.z), (Entity)e); // 45->-45, -30 stays -30
     }
-
-    // “what am I looking at” debug
-    void DebugPrintLook(double dt) {
-        if (!m_debugPrintAim) return;
-        m_lookTimer += dt;
-        if (m_lookTimer < m_lookPrintEvery) return;
-        m_lookTimer = 0.0;
-
-        if (!clickRayOrigin.IsValid()) {
-            LOG_WARNING("LOOK: clickRayOrigin is invalid (assign Camera Transform)");
-            return;
-        }
-
-        Vec3 origin = ComputeRayOrigin();
-        Vec3 fwd = ComputeRayDir();
-
-        // small bias to avoid starting inside player collider
-        origin = origin + fwd * 0.1f;
-
-        uint32_t mask = (layerMask < 0) ? 0xFFFFFFFFu : static_cast<uint32_t>(layerMask);
-        float dist = (rayDistance > 0 ? rayDistance : 100.f);
-        RaycastHit hit = Raycast(origin, fwd, dist, mask);
-
-        int id = hit.hasHit ? static_cast<int>(hit.entity) : -1;
-        if (id != m_lastLookEntity) {
-            if (hit.hasHit) {
-                LOG_INFO("LOOK: entity=" << id
-                    << "  origin=(" << origin.x << "," << origin.y << "," << origin.z << ")"
-                    << "  dir=(" << fwd.x << "," << fwd.y << "," << fwd.z << ")"
-                    << "  dist=" << dist << "  mask=" << (unsigned)mask);
+    void SetAllButtonsXTo(float xDeg) {
+        auto ids = GetButtons();
+        for (int i = 0; i < 5; ++i) {
+            if (ids[i] != 0) {
+                uint32_t e = (uint32_t)ids[i];
+                Vec3 r = GetRotation((Entity)e);
+                SetRotation(Vec3(xDeg, r.y, r.z), (Entity)e);
             }
-            else {
-                LOG_INFO("LOOK: no hit  origin=(" << origin.x << "," << origin.y << "," << origin.z << ")"
-                    << "  dir=(" << fwd.x << "," << fwd.y << "," << fwd.z << ")"
-                    << "  dist=" << dist << "  mask=" << (unsigned)mask);
-            }
-            m_lastLookEntity = id;
         }
     }
+    void SetAllButtonsXToNeg45() { SetAllButtonsXTo(-45.0f); }
 
     void QueueSequence() {
         m_hasQueued = true;
         m_waitingForClicks = false;
         m_clickIndex = 0;
-        m_targetsCache.clear();
 
+        // Build list of valid target indices
         auto trefs = GetTargets();
-        for (const auto& r : trefs) {
-            if (r.IsValid()) {
-                Entity e = r.GetEntity();
-                if (e != 0) m_targetsCache.push_back(e);
-            }
-        }
-        if (m_targetsCache.empty()) { m_hasQueued = false; return; }
+        std::vector<int> idx;
+        idx.reserve(5);
+        for (int i = 0; i < 5; ++i) if (trefs[i].IsValid() && trefs[i].GetEntity() != 0) idx.push_back(i);
+        if (idx.empty()) { m_hasQueued = false; return; }
 
-        
-        // Cache original rotations of attached switches and clear rotation flags
-        {
-            auto attached = GetAttached();
-            for (int i = 0; i < 5; ++i) {
-                if (attached[i].IsValid()) {
-                    m_attachedOriginalRot[i] = GetRotation(attached[i]);
-                } else {
-                    m_attachedOriginalRot[i] = Vec3(0.f,0.f,0.f);
-                }
-                m_attachedIsRotated[i] = false;
-            }
-        }
-std::vector<int> idx;
-        for (int i = 0; i < 5; ++i)
-            if (trefs[i].IsValid() && trefs[i].GetEntity() != 0) idx.push_back(i);
-
+        // Shuffle the order
         std::random_device rd; std::mt19937 gen(rd());
         std::shuffle(idx.begin(), idx.end(), gen);
-
         m_order.fill(-1);
         for (size_t i = 0; i < idx.size(); ++i) m_order[i] = idx[i];
 
+        // Flash B one-by-one
         Coroutines::Handle h = Coroutines::Create();
-
         for (size_t step = 0; step < idx.size(); ++step) {
             int i = m_order[step];
             Entity e = trefs[i].GetEntity();
@@ -260,6 +171,7 @@ std::vector<int> idx;
             Coroutines::AddWait(h, delayBetween);
         }
 
+        // Reset all targets to A
         Coroutines::AddAction(h, [trefs, a = materialA]() {
             for (const auto& ref : trefs) {
                 if (ref.IsValid()) {
@@ -269,68 +181,33 @@ std::vector<int> idx;
             }
             });
 
-        Coroutines::AddAction(h, [this]() {
-            m_waitingForClicks = true;
-            m_clickIndex = 0;
-            });
+        // Begin input
+        Coroutines::AddAction(h, [this]() { if (!m_solved) { m_waitingForClicks = true; m_clickIndex = 0; } });
     }
 
-    // ====== SINGLE-RAYCAST CLICK CHECK ======
-    void HandleClick() {
-        if (!clickRayOrigin.IsValid() || clickRayOrigin.GetEntity() == 0) {
-            LOG_WARNING("MaterialSequencer: clickRayOrigin not set/invalid");
-            FailAndReset(); return;
-        }
+    int CountOrder() const { int n = 0; for (int i = 0; i < 5; ++i) if (m_order[i] >= 0) ++n; return n; }
 
-        Vec3 origin = ComputeRayOrigin();
-        Vec3 fwd = ComputeRayDir();
-        origin = origin + fwd * 0.1f; // bias out of player
+    // Handle 1..5 press (from event or keyboard)
+    void HandleKey(int pressedIdx1Based) {
+        if (m_solved) return;
+        if (!m_waitingForClicks) return;
+        if (m_clickIndex < 0 || m_clickIndex >= 5 || m_order[m_clickIndex] < 0) { FailAndReset(); return; }
 
-        uint32_t mask = (layerMask < 0) ? 0xFFFFFFFFu : static_cast<uint32_t>(layerMask);
-        float dist = (rayDistance > 0 ? rayDistance : 100.f);
+        int expectedIdx = m_order[m_clickIndex];  // 0..4
+        int pressedIdx0 = pressedIdx1Based - 1;   // 0..4
 
-        RaycastHit hit = Raycast(origin, fwd, dist, mask);
-        if (!hit.hasHit) {
-            LOG_INFO("Raycast: no hit (origin=" << origin.x << "," << origin.y << "," << origin.z
-                << "  dir=" << fwd.x << "," << fwd.y << "," << fwd.z
-                << "  dist=" << dist << "  mask=" << (unsigned)mask << ")");
-            FailAndReset(); return;
-        }
+        // Ensure pressed index is one of the randomized valid ones
+        bool valid = false;
+        for (int i = 0; i < 5; ++i) if (m_order[i] == pressedIdx0) { valid = true; break; }
+        if (!valid) { FailAndReset(); return; }
 
-        // Validate order index
-        if (m_clickIndex < 0 || m_clickIndex >= 5 || m_order[m_clickIndex] < 0) {
-            LOG_WARNING("Click phase: invalid m_clickIndex=" << m_clickIndex
-                << "  order=" << m_order[0] << "," << m_order[1] << ","
-                << m_order[2] << "," << m_order[3] << "," << m_order[4]);
-            FailAndReset(); return;
-        }
+        if (pressedIdx0 == expectedIdx) {
+            // Rotate the BUTTON entity's X to negative of its current X
+            NegateButtonX(pressedIdx0);
 
-        // Expected attached entity for this step
-        auto attached = GetAttached();
-        int expectedIdx = m_order[m_clickIndex];
-        Entity expected = (attached[expectedIdx].IsValid()) ? attached[expectedIdx].GetEntity() : 0;
-        if (expected == 0) {
-            LOG_WARNING("Attached block not set/valid for expectedIdx=" << expectedIdx);
-            FailAndReset(); return;
-        }
-
-        LOG_INFO("Raycast hit entity=" << (int)hit.entity
-            << "  expected=" << (int)expected
-            << "  step=" << m_clickIndex
-            << "  idx=" << expectedIdx);
-
-        if (hit.entity == expected) {
-            // Rotate the clicked attached switch by +180 degrees around Y to indicate activation
-            if (attached[expectedIdx].IsValid()) {
-                if (!m_attachedIsRotated[expectedIdx]) {
-                    Vec3 r = GetRotation(attached[expectedIdx]);
-                    SetRotation(attached[expectedIdx], Vec3(r.x, r.y + 180.f, r.z));
-                    m_attachedIsRotated[expectedIdx] = true;
-                }
-            }
             m_clickIndex++;
             if (m_clickIndex >= CountOrder()) {
-                // Apply succeed material to all targets
+                // Success: paint success material and lock state
                 if (successMaterial.IsValid()) {
                     auto trefs = GetTargets();
                     for (const auto& ref : trefs) {
@@ -340,72 +217,25 @@ std::vector<int> idx;
                         }
                     }
                 }
-                LOG_INFO("i pass");
+                // Force all buttons to -45 and lock
+                SetAllButtonsXToNeg45();
                 Events::Send(solvedEventName.c_str(), nullptr);
                 m_waitingForClicks = false;
                 m_hasQueued = false;
+                m_solved = true; // <-- LOCK
             }
         }
         else {
             FailAndReset();
         }
-    }
-    // =======================================
-
-    void HandleKey(int pressedIdx1Based) {
-        if (!m_waitingForClicks) return;
-        if (pressedIdx1Based < 1 || pressedIdx1Based > 5) return;
-
-        if (m_clickIndex < 0 || m_clickIndex >= 5 || m_order[m_clickIndex] < 0) {
-            FailAndReset(); return;
-        }
-        int expectedIdx = m_order[m_clickIndex];
-        int pressedIdx0 = pressedIdx1Based - 1;
-
-        bool isValidIndex = false;
-        for (int i = 0;i < 5;++i) if (m_order[i] == pressedIdx0) { isValidIndex = true; break; }
-        if (!isValidIndex) { FailAndReset(); return; }
-
-        if (pressedIdx0 == expectedIdx) {
-            m_clickIndex++;
-            if (m_clickIndex >= CountOrder()) {
-                // Apply succeed material to all targets
-                if (successMaterial.IsValid()) {
-                    auto trefs = GetTargets();
-                    for (const auto& ref : trefs) {
-                        if (ref.IsValid()) {
-                            Entity e2 = ref.GetEntity();
-                            if (e2 != 0) NE::Renderer::Command::AssignMaterial(e2, successMaterial);
-                        }
-                    }
-                }
-                Events::Send(solvedEventName.c_str(), nullptr); 
-                LOG_INFO("i pass");
-                m_waitingForClicks = false;
-                m_hasQueued = false;
-            }
-        }
-        else {
-            FailAndReset();
-        }
-    }
-
-    int CountOrder() const {
-        int n = 0; for (int i = 0;i < 5;++i) if (m_order[i] >= 0) ++n; return n;
     }
 
     void FailAndReset() {
-        // Revert all attached switches back to original rotation
-        {
-            auto attached = GetAttached();
-            for (int i = 0; i < 5; ++i) {
-                if (attached[i].IsValid()) {
-                    SetRotation(attached[i], m_attachedOriginalRot[i]);
-                }
-                m_attachedIsRotated[i] = false;
-            }
-        }
-        LOG_INFO("fail");
+        if (m_solved) return; // Do nothing after solved
+        // Reset ALL button X rotations to +45, keep Y/Z as-is
+        SetAllButtonsXTo(45.0f);
+
+        // Reset target materials to A
         auto trefs = GetTargets();
         for (const auto& ref : trefs) {
             if (ref.IsValid()) {
