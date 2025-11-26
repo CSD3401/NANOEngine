@@ -99,6 +99,8 @@ public:
 		SCRIPT_FIELD_STRUCT(stats);
 		SCRIPT_FIELD_STRUCT(playerFlags);
 
+		SCRIPT_COMPONENT_REF(tref0, TransformRef);
+
 		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
 	}
 

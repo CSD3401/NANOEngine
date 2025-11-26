@@ -1,101 +1,40 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="GameEntry.cpp" />
+    <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\Gears.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\k1bswitch.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\k2bswitch.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\LightSwitch.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\PhysicsPlayerController.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\PlayerCamera.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\PlayerScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\TestScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\TextureSwitch.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\FollowerScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\PlayerController.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\EngineAPI.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\TweenExampleScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\ParentControllerScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\MaterialSequencer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\ColourSwapManager.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\ExampleMaterialScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\MirrorPuzzle.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\PrefabSpawnerScript.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\BulletShooterScript.hpp">
-    <ClInclude Include="Scripts\CameraController.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Scripts\ColourSwapManager.hpp" />
+    <ClInclude Include="Scripts\Door.hpp" />
+    <ClInclude Include="Scripts\BulletShooterScript.hpp" />
+    <ClInclude Include="Scripts\CameraController.hpp" />
+    <ClInclude Include="Scripts\EngineAPI.hpp" />
+    <ClInclude Include="Scripts\FollowerScript.hpp" />
+    <ClInclude Include="Scripts\Gears.hpp" />
+    <ClInclude Include="Scripts\k1bswitch.hpp" />
+    <ClInclude Include="Scripts\k2bswitch.hpp" />
+    <ClInclude Include="Scripts\LightSwitch.hpp" />
+    <ClInclude Include="Scripts\MaterialSequencer.hpp" />
+    <ClInclude Include="Scripts\MirrorPuzzle.hpp" />
+    <ClInclude Include="Scripts\ParentControllerScript.hpp" />
+    <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
+    <ClInclude Include="Scripts\Pickable.hpp" />
+    <ClInclude Include="Scripts\PlayerCamera.hpp" />
+    <ClInclude Include="Scripts\PlayerController.hpp" />
+    <ClInclude Include="Scripts\PlayerScript.hpp" />
+    <ClInclude Include="Scripts\PressurePlate.hpp" />
+    <ClInclude Include="Scripts\PrefabSpawnerScript.hpp" />
+    <ClInclude Include="Scripts\TestScript.hpp" />
+    <ClInclude Include="Scripts\TextureSwitch.hpp" />
+    <ClInclude Include="Scripts\TweenExampleScript.hpp" />
+    <ClInclude Include="Scripts\TimeSwapListener.hpp" />
+    <ClInclude Include="Scripts\TimeSwapManager.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameEntry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Scripts\INSPECTOR_SYSTEM_SUMMARY.md" />
     <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />
   </ItemGroup>
 </Project>

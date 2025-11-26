@@ -25,6 +25,8 @@ namespace Editor {
 
         static NE::Graphics::EditorCamera m_editorCamera;
 
+        static std::vector<uint8_t> clipboard;
+
         // NEW: hierarchy index
         static std::unordered_map<uint32_t, Node> s_nodes;                // id -> node
         static std::unordered_map<uint32_t, std::vector<uint32_t>> s_children; // parent -> children ids
@@ -39,6 +41,11 @@ namespace Editor {
         // Helpers
         static void RebuildFromActiveScene();
         static const std::vector<uint32_t>& ChildrenOf(uint32_t parent);
+
+
+        static void DuplicateSelected();
+        static void CopySelected();
+        static void PasteSelected();
     };
 
 }

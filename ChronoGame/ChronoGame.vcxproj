@@ -173,6 +173,7 @@
     <ClInclude Include="Scripts\MirrorPuzzle.hpp" />
     <ClInclude Include="Scripts\ParentControllerScript.hpp" />
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
+    <ClInclude Include="Scripts\Pickable.hpp" />
     <ClInclude Include="Scripts\PlayerCamera.hpp" />
     <ClInclude Include="Scripts\PlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerScript.hpp" />
@@ -180,6 +181,8 @@
     <ClInclude Include="Scripts\PrefabSpawnerScript.hpp" />
     <ClInclude Include="Scripts\TestScript.hpp" />
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
+    <ClInclude Include="Scripts\TimeSwapListener.hpp" />
+    <ClInclude Include="Scripts\TimeSwapManager.hpp" />
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -193,7 +196,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Scripts\INSPECTOR_SYSTEM_SUMMARY.md" />
     <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

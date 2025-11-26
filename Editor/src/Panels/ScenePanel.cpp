@@ -13,6 +13,7 @@
 #include "../AssetManagement/AssetManager.hpp"
 #include <ECS/Components/EntityMeta.hpp>
 #include <EditorInterface/RendererExports.hpp>
+#include "../EditorUI.hpp"
 
 namespace Editor {
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
@@ -24,18 +25,16 @@ namespace Editor {
 	}
 
 	ScenePanel::ScenePanel() {
-
 		NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
 		NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
 		NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
 
+		m_fov = 60;
+		m_aspectRatio = 1920.f / 1080.f;
+		m_nearPlane = 0.1f;
+		m_farPlane = 1000.0f;
 
-		float fovYRadians = 45.0f * (NE::Math::PI / 180.0f); // 45 degrees fov
-		float aspectRatio = 1920.f / 1080.f;
-		float nearPlane = 0.1f;
-		float farPlane = 1000.0f;
-
-		EditorScene::m_editorCamera.SetPerspective(fovYRadians, aspectRatio, nearPlane, farPlane);
+		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
 		EditorScene::m_editorCamera.SetPosition(position);
 		EditorScene::m_editorCamera.LookAt(target, up);
 
@@ -50,17 +49,116 @@ namespace Editor {
 		using namespace NE::Math;
 
 		ImGui::Begin("Scene", nullptr,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse 
+			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
 			| ImGuiWindowFlags_MenuBar);
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
-		
+
 		float deltaTime = ImGui::GetIO().DeltaTime;
+
+		if (ImGui::BeginMenuBar()) {
+			//if (ImGui::BeginMenu("Toggle Grid")) {
+			//	ImGui::Text("[Under Development]");
+
+			//	ImGui::EndMenu();
+			//}
+
+			//if (ImGui::BeginMenu("Camera Settings")) {
+			//	bool changed = false;
+			//	ImGui::Text("Scene Camera");
+			//	changed |= Editor::DrawFloatSliderWithValue("Field of View", m_fov, 4.f, 120.f, 0.01f);
+			//	ImGui::Text("Clipping Planes");
+			//	ImGui::SameLine();
+			//	changed |= Editor::DrawFloatControl("Near", m_nearPlane);
+			//	changed |= Editor::DrawFloatControl("Far", m_farPlane);
+
+			//	if (changed) {
+			//		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
+			//	}
+
+			//	ImGui::EndMenu();
+			//}
+
+			ImGuiStyle& style = ImGui::GetStyle();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, style.ItemSpacing.y));
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.f, 2.f));
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 1, 1, 0.10f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1, 1, 1, 0.20f));
+
+			bool openGrid = ImGui::Button("Toggle Grid");
+			ImVec2 gridMin = ImGui::GetItemRectMin();
+			ImVec2 gridMax = ImGui::GetItemRectMax();
+
+			ImGui::SameLine();
+
+			bool openCamera = ImGui::Button("Camera Settings");
+			ImVec2 camMin = ImGui::GetItemRectMin();
+			ImVec2 camMax = ImGui::GetItemRectMax();
+
+			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
+			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
+
+			ImGui::SetNextWindowPos(ImVec2(gridMin.x, gridMax.y), ImGuiCond_Appearing);
+			if (ImGui::BeginPopup("ToggleGridPopup")) {
+				ImGui::Text("[Under Development]");
+				ImGui::EndPopup();
+			}
+
+			ImGui::SetNextWindowPos(ImVec2(camMin.x, camMax.y), ImGuiCond_Appearing);
+			ImGui::SetNextWindowSize(ImVec2(400.f, 240.f));
+			if (ImGui::BeginPopup("CameraSettingsPopup")) {
+				bool changed = false;
+
+				ImGui::Text("Scene Camera");
+				changed |= Editor::DrawFloatSliderWithField(
+					"Field of View", m_fov, 4.f, 120.f, 0.01f, true
+				);
+
+				ImGui::Spacing();
+				ImGui::Text("Clipping Planes");
+				ImGui::Indent(50.f);
+				changed |= Editor::DrawFloatField("Near", m_nearPlane, 0.01f, true);
+				changed |= Editor::DrawFloatField("Far", m_farPlane, 0.01f, true);
+				ImGui::Unindent(50.f);
+
+				if (changed) {
+					EditorScene::m_editorCamera.SetPerspective(
+						m_fov, m_aspectRatio, m_nearPlane, m_farPlane
+					);
+				}
+
+				ImGui::Text("Navigation");
+				Editor::DrawCheckbox("Camera Easing", m_cameraUseEasing);
+				Editor::DrawCheckbox("Camera Acceleration", m_cameraUseAcceleration);
+				Editor::DrawFloatSliderWithField(
+					"Camera Speed", m_cameraSpeed, m_cameraMinSpeed, m_cameraMaxSpeed, 0.01f, true
+				);
+				ImGui::Indent(50.f);
+				Editor::DrawFloatField("Min", m_cameraMinSpeed, 0.01f, true);
+				Editor::DrawFloatField("Max", m_cameraMaxSpeed, 0.01f, true);
+				ImGui::Unindent(50.f);
+
+				ImGui::EndPopup();
+			}
+
+			ImGui::PopStyleVar(3);
+			ImGui::PopStyleColor(3);
+			ImGui::PopStyleVar(2);
+
+			ImGui::EndMenuBar();
+		}
+
 		ImGui::Image(
-			(ImTextureID)(uintptr_t)NE::GetSceneColorAttachment(), 
-			panelSize, 
-			ImVec2(0, 1), 
+			(ImTextureID)(uintptr_t)NE::GetSceneColorAttachment(),
+			panelSize,
+			ImVec2(0, 1),
 			ImVec2(1, 0)
 		);
 
@@ -76,27 +174,21 @@ namespace Editor {
 					return;
 				}
 
-				// For convenience in root-detection
 				std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
 
-				// 3) Register new entities into editor structures (like CreateEntity, but with parents)
 				for (uint32_t entt : newEntities) {
-					// EditorEntity list
 					Editor::EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
 
-					// Build node from ECS parent info
 					Editor::Node node{};
 					node.id = entt;
 
-					uint32_t parent = NE::ECS::Command::GetParent(entt); // NO_ENTITY if root
+					uint32_t parent = NE::ECS::Command::GetParent(entt);
 					node.parent = parent;
 
 					if (parent == NE::ECS::NO_ENTITY) {
-						// New root in hierarchy
 						node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
 						Editor::EditorScene::s_roots.push_back(entt);
 					} else {
-						// Child of existing or newly created entity
 						auto& childrenVec = Editor::EditorScene::s_children[parent];
 						node.orderKey = static_cast<float>(childrenVec.size());
 						childrenVec.push_back(entt);
@@ -105,11 +197,9 @@ namespace Editor {
 					Editor::EditorScene::s_nodes[entt] = node;
 				}
 
-				// 4) Choose a prefab root among the new entities and select it
 				uint32_t prefabRoot = NE::ECS::NO_ENTITY;
 				for (uint32_t entt : newEntities) {
 					uint32_t parent = NE::ECS::Command::GetParent(entt);
-					// Root of this prefab instance = parent is NO_ENTITY OR parent is not in this batch
 					if (parent == NE::ECS::NO_ENTITY || !newSet.count(parent)) {
 						prefabRoot = entt;
 						NE::ECS::Command::GetEntityMeta(entt).prefabID = AssetManager::GetInstance().RetrieveUUID(dropped);
@@ -132,12 +222,11 @@ namespace Editor {
 			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
 				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
-				
+
 				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					ImVec2 mousePos = ImGui::GetMousePos();
 					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
-
 						float localX = mousePos.x - panelPos.x;
 						float localY = mousePos.y - panelPos.y;
 						float spMouseX = localX / panelSize.x;
@@ -160,7 +249,6 @@ namespace Editor {
 					ImVec2 mousePos = ImGui::GetMousePos();
 					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
-
 						float localX = mousePos.x - panelPos.x;
 						float localY = mousePos.y - panelPos.y;
 						float spMouseX = localX / panelSize.x;
@@ -231,30 +319,71 @@ namespace Editor {
 		if (ImGui::IsWindowFocused()) {
 			ImGuiIO& io = ImGui::GetIO();
 
-			// Mouse look
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				if (!m_rightMouseHeld) {
 					m_lastMousePos = io.MousePos;
 					m_rightMouseHeld = true;
+					m_currentMoveSpeed = 0.0f;
+					m_lastMoveDir = Vec3(0.0f);
 				}
 
 				Vec3 move(0.0f);
-				if (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::IsKeyDown(ImGuiKey_UpArrow))    move.z += 1.0f;
-				if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow))  move.z -= 1.0f;
-				if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))  move.x -= 1.0f;
-				if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow)) move.x += 1.0f;
-				if (ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftBracket)) move.y += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::IsKeyDown(ImGuiKey_UpArrow))      move.z += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::IsKeyDown(ImGuiKey_DownArrow))    move.z -= 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_A) || ImGui::IsKeyDown(ImGuiKey_LeftArrow))    move.x -= 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_D) || ImGui::IsKeyDown(ImGuiKey_RightArrow))   move.x += 1.0f;
+				if (ImGui::IsKeyDown(ImGuiKey_Q) || ImGui::IsKeyDown(ImGuiKey_LeftBracket))  move.y += 1.0f;
 				if (ImGui::IsKeyDown(ImGuiKey_E) || ImGui::IsKeyDown(ImGuiKey_RightBracket)) move.y -= 1.0f;
 
-				if (move.LengthSquared() > 0.0f) {
+				bool hasInput = (move.LengthSquared() > 0.0f);
+				bool boost = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
+
+				if (hasInput) {
+					if (m_cameraUseAcceleration) {
+						if (m_currentMoveSpeed <= 0.0f) {
+							m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraMinSpeed;
+						}
+
+						m_currentMoveSpeed += m_cameraAcceleration * deltaTime;
+
+						if (!boost && m_currentMoveSpeed > m_cameraMaxSpeed) {
+							m_currentMoveSpeed = m_cameraMaxSpeed;
+						}
+					} else {
+						m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraSpeed;
+					}
+				} else {
+					// No input but RMB still held
+					if (m_cameraUseEasing) {
+						m_currentMoveSpeed -= m_cameraDeceleration * deltaTime;
+						if (m_currentMoveSpeed < 0.0f)
+							m_currentMoveSpeed = 0.0f;
+					} else {
+						m_currentMoveSpeed = 0.0f;
+					}
+				}
+
+
+				// Mouse wheel controls next time
+				//if (io.MouseWheel != 0.0f) {
+				//	m_cameraSpeed += io.MouseWheel * 2.0f;
+				//	m_cameraSpeed = std::clamp(m_cameraSpeed, m_cameraMinSpeed, m_cameraMaxSpeed);
+				//}
+
+				if (hasInput) {
 					move.Normalize();
-					// Calculate direction vectors
 					Vec3 forward = EditorScene::m_editorCamera.GetForward();
 					Vec3 right = forward.Cross(Vec3(0, 1, 0)).Normalized();
-
-					Vec3 offset = (right * move.x + forward * move.z + Vec3(0, 1, 0) * move.y) * m_cameraSpeed * deltaTime;
-					EditorScene::m_editorCamera.SetPosition(EditorScene::m_editorCamera.GetPosition() + offset);
+					m_lastMoveDir = right * move.x + forward * move.z + Vec3(0, 1, 0) * move.y;
 				}
+
+				if (m_currentMoveSpeed > 0.0f && m_lastMoveDir.LengthSquared() > 0.0f) {
+					Vec3 offset = m_lastMoveDir.Normalized() * m_currentMoveSpeed * deltaTime;
+					EditorScene::m_editorCamera.SetPosition(
+						EditorScene::m_editorCamera.GetPosition() + offset
+					);
+				}
+
 
 				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
 				m_lastMousePos = io.MousePos;
@@ -262,11 +391,12 @@ namespace Editor {
 				m_cameraYaw += delta.x * m_mouseSensitivity;
 				m_cameraPitch -= delta.y * m_mouseSensitivity;
 
-				// Clamp pitch
 				if (m_cameraPitch > 89.0f) m_cameraPitch = 89.0f;
 				if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
 			} else {
 				m_rightMouseHeld = false;
+				m_currentMoveSpeed = 0.0f;
+				m_lastMoveDir = Vec3(0.0f);
 			}
 
 			if (!ImGuizmo::IsUsingAny()) {
@@ -274,7 +404,6 @@ namespace Editor {
 					ImVec2 mousePos = ImGui::GetMousePos();
 					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
-
 						float localX = mousePos.x - panelPos.x;
 						float localY = mousePos.y - panelPos.y;
 						float spMouseX = localX / panelSize.x;
@@ -290,7 +419,7 @@ namespace Editor {
 
 						if (id != NE::ECS::NO_ENTITY) {
 							// probably need to change this looks terrible when we have alot of entities
-							for (auto& ent : EditorScene::s_entities) { 
+							for (auto& ent : EditorScene::s_entities) {
 								if (ent.linkedEntity == id) {
 									EditorScene::s_selectedEntity = &ent;
 									break;
@@ -363,7 +492,7 @@ namespace Editor {
 				case ImGuizmo::SCALE:     return Cmd::Scl;
 				default:                  return Cmd::Pos;
 				}
-			};
+				};
 
 			if (!s_gizmoActive && isUsing) {
 				s_gizmoActive = true;
@@ -421,7 +550,6 @@ namespace Editor {
 
 				s_gizmoCmd->SetAfter(after);
 			}
-
 
 			if (s_gizmoActive && !isUsing) {
 				if (s_gizmoCmd) {
