@@ -11,8 +11,8 @@ void DelayedPrintUpdate() {
 }
 
 /**
- * Example player script demonstrating how to implement IScript.
- * Now uses the built-in field system from IScript base class.
+ * Example player script demonstrating standardized field registration.
+ * Now uses ONLY IScript's built-in FieldRegistry - no ExposedFieldRegistry needed!
  */
 class PlayerScript : public IScript {
 public:
@@ -55,31 +55,13 @@ public:
 	};
 
 	PlayerScript() {
-		// Register primitive fields
-		REGISTER_FIELD(speed);
-		REGISTER_FIELD(color);
-		REGISTER_FIELD(lives);
-		REGISTER_FIELD(godMode);
-		REGISTER_FIELD(label);
-
-		// Register enum field
-		REGISTER_ENUM(state, "Idle", "Walking", "Running", "Jumping");
-
-		// Register vector fields
-		REGISTER_VECTOR(enemyIDs);
-		REGISTER_VECTOR(waypoints);
-		REGISTER_VECTOR(flags);
-
-		// Register struct fields
-		REGISTER_REFLECTABLE_STRUCT(stats);
-		REGISTER_REFLECTABLE_STRUCT(playerFlags);  //  4 bool struct
-
-		//  PRE-FILL TEST DATA  working
+		//  PRE-FILL TEST DATA
 		enemyIDs = { 42, 57, 103, 999 };  // 4 enemy IDs to test remove
 		waypoints = { 10.5f, 25.0f, 42.3f, 58.7f };  // 4 waypoint positions
 		flags = { true, false, true, false, true };// 5 quest flags
 
-		//LOG_DEBUG("PlayerScript created");
+		SCRIPT_FIELD_VECTOR(blingstring, String);
+		SCRIPT_FIELD_VECTOR(eDDDD,Entity);
 	}
 
 	~PlayerScript() override {
@@ -89,31 +71,47 @@ public:
 	// === IScript Interface ===
 	void Awake() override {
 		//LOG_DEBUG("PlayerScript::Awake() called for entity {}", GetEntity());
-
 		Coroutines::Create();
 	}
 
 	void Initialize(Entity entity) override {
+		// Register primitive fields
+		SCRIPT_FIELD(speed, Float);
+		SCRIPT_FIELD(color, Vec3);
+		SCRIPT_FIELD(lives, Int);
+		SCRIPT_FIELD(godMode, Bool);
+		SCRIPT_FIELD(label, String);
+
+		// Register enum field - provide enum option names
+		RegisterEnumField("state", &state, {
+			"Idle",
+			"Walking",
+			"Running",
+			"Jumping"
+		});
+
+		// Register vector fields
+		SCRIPT_FIELD_VECTOR(enemyIDs, Int);
+		SCRIPT_FIELD_VECTOR(waypoints, Float);
+		SCRIPT_FIELD_VECTOR(flags, Bool);
+
+		// Register struct fields using reflection
+		SCRIPT_FIELD_STRUCT(stats);
+		SCRIPT_FIELD_STRUCT(playerFlags);
+
+		SCRIPT_COMPONENT_REF(tref0, TransformRef);
+
 		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
 	}
 
 	void Start() override {
 		//LOG_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
+
+		//tref0 = GetTransformRef(eDDDD[0]);
 	}
 
 	void OnValidate() override {
 		//LOG_DEBUG(" PlayerScript::OnValidate() called!");
-		//LOG_DEBUG("  speed={}, lives={}, state={}", speed, lives, static_cast<int>(state));
-		//LOG_DEBUG("  flags vector size: {}", flags.size());
-		//for (size_t i = 0; i < flags.size(); ++i) {
-		//	LOG_DEBUG("    flags[{}] = {}", i, flags[i] ? "true" : "false");
-		//}
-		//LOG_DEBUG("  playerFlags: canJump={}, canDoubleJump={}, hasKey={}, questComplete={}",
-		//	playerFlags.canJump ? "true" : "false",
-		//	playerFlags.canDoubleJump ? "true" : "false",
-		//	playerFlags.hasKey ? "true" : "false",
-		//	playerFlags.questComplete ? "true" : "false");
-
 		// Validate field values when changed in editor
 		if (speed < 0) speed = 0;
 		if (lives < 0) lives = 0;
@@ -124,9 +122,6 @@ public:
 
 		if (m_timeSinceLastLog >= LOG_INTERVAL) {
 			//LOG_DEBUG("PlayerScript updating - Entity: {}, DeltaTime: {}", GetEntity(), deltaTime);
-			//LOG_DEBUG("  State: {}", static_cast<int>(state));
-			//LOG_DEBUG("  Health: {}/{}, Stamina: {}", stats.health, stats.maxHealth, stats.stamina);
-			//LOG_DEBUG("  Tracking {} enemies, {} waypoints", enemyIDs.size(), waypoints.size());
 			m_timeSinceLastLog = 0.0;
 		}
 
@@ -154,6 +149,8 @@ public:
 			state = PlayerState::Idle;
 		}
 
+		SetPosition(tref0, GetPosition() + Vec3(1.0,1.0,0));
+
 		if (Input::WasKeyPressed('K')) {
 			int dmg = 20;
 			Events::Send("OnPlayerHit", &dmg);
@@ -175,15 +172,8 @@ public:
 			// Start the coroutine
 			Coroutines::Start(h);
 
-			LOG_DEBUG("Timer started no way josed!");
+			LOG_DEBUG("Timer start macdonaldo!");
 		}
-
-		//Courutine Test
-		// if (ctimer != 0 && !Engine_IsCoroutineRunning(ctimer)) {
-        // LOG_DEBUG("hi 3 seconds over player");
-        // std::cout << "santa clause" << std::endl;
-        // ctimer = 0;  // Reset so we don't print every frame
-    	// }
 
 		//  EXAMPLE: Use the bool flags
 		if (Input::IsKeyDown(VK_SPACE) && playerFlags.canJump) {
@@ -205,9 +195,6 @@ public:
 		//  EXAMPLE: Chase enemies if we have any tracked
 		if (!enemyIDs.empty()) {
 			// Chase first enemy in list
-			// Entity enemyEntity = enemyIDs[0];
-			// Vec3 enemyPos = GetEntityPosition(enemyEntity);
-			// MoveTowards(enemyPos, speed * deltaTime);
 		}
 	}
 
@@ -244,38 +231,6 @@ public:
 		//LOG_DEBUG("PlayerScript trigger exit with entity {}", other);
 	}
 
-	// === Exposed editable fields via registry ===
-	std::vector<std::string> GetExposedFieldNames() const override { return m_fields.GetNames(); }
-	std::string GetFieldType(const std::string& name) const override { return m_fields.GetType(name); }
-	std::string GetFieldValueAsString(const std::string& name) const override { return m_fields.GetValue(name); }
-	bool SetFieldValueFromString(const std::string& name, const std::string& value) override { return m_fields.SetValue(name, value); }
-
-	// Enum support
-	std::vector<std::string> GetEnumOptions(const std::string& fieldName) const override {
-		return m_fields.GetEnumOptions(fieldName);
-	}
-
-	// Array/Vector support
-	size_t GetArraySize(const std::string& fieldName) const override {
-		return m_fields.GetArraySize(fieldName);
-	}
-
-	std::string GetArrayElement(const std::string& fieldName, size_t index) const override {
-		return m_fields.GetArrayElement(fieldName, index);
-	}
-
-	bool SetArrayElement(const std::string& fieldName, size_t index, const std::string& value) override {
-		return m_fields.SetArrayElement(fieldName, index, value);
-	}
-
-	void AddArrayElement(const std::string& fieldName) override {
-		m_fields.AddArrayElement(fieldName);
-	}
-
-	void RemoveArrayElement(const std::string& fieldName, size_t index) override {
-		m_fields.RemoveArrayElement(fieldName, index);
-	}
-
 private:
 	double m_timeSinceLastLog = 0.0;
 	static constexpr double LOG_INTERVAL = 2.0;
@@ -292,15 +247,15 @@ private:
 	std::vector<int> enemyIDs;
 	std::vector<float> waypoints;
 	std::vector<bool> flags;
+	std::vector<std::string> blingstring;
+	std::vector<Entity> eDDDD;
+
+	TransformRef tref0;
 
 	// Struct fields
 	PlayerStats stats;
-	PlayerFlags playerFlags;  //  4 bool struct
+	PlayerFlags playerFlags;
 
 	// Coroutine
 	CoroutineHandle chandle;
-
-	// Field registry
-	ExposedFieldRegistry m_fields;
 };
-

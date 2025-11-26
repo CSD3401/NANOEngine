@@ -21,8 +21,8 @@
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
 #include "Core/Couroutine.hpp"
-#include <iostream>
 #include "Core/SpdLogger.hpp"  // For console logging
+#include "PrefabManagement/PrefabManager.hpp"
 
 static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
 	namespace fs = std::filesystem;
@@ -84,7 +84,6 @@ namespace NE::SceneManagement {
 		//CreateTestUI();
 		m_ecsCoordinator.m_animatorSystem->Init();
 		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
-
 	}
 
 	void Scene::Update(double dt)
@@ -108,25 +107,10 @@ namespace NE::SceneManagement {
 		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
 	}
 
-	void Scene::Render(RenderPass pass) {
-		switch (pass) {
-		case RenderPass::SCENE:
-			Graphics::GraphicsManager::DrawFrame();
-
-			Graphics::GraphicsManager::DrawUI();
-			break;
-		case RenderPass::GAME:
-			Graphics::GraphicsManager::DrawFrame();
-			break;
-		case RenderPass::SCENE_PICKING:
-			Graphics::GraphicsManager::UpdatePicking();
-			Graphics::GraphicsManager::enableSorting = false; // disable sorting only for picking pass
-
-			Graphics::GraphicsManager::DrawFrame();
-			Graphics::GraphicsManager::s_PickingCommands.clear();
-			Graphics::GraphicsManager::enableSorting = true; // re-enable sorting
-			break;
-		}
+	void Scene::Render() {
+		Graphics::GraphicsManager::BeginFrame();
+		Graphics::GraphicsManager::DrawFrame();
+		Graphics::GraphicsManager::EndFrame();
 	}
 
 	void Scene::Exit() {

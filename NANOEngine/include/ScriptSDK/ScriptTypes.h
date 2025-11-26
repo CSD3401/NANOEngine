@@ -37,6 +37,9 @@ namespace Scripting {
     /// Invalid entity constant
     constexpr Entity INVALID_ENTITY = 0;
 
+    /// Default entity parameter (sentinel value meaning "use current entity")
+    constexpr Entity DEFAULT_ENTITY_PARAM = UINT32_MAX - 1;
+
     //=========================================================================
     // MATH TYPES (Self-contained, no engine dependencies)
     //=========================================================================
@@ -126,6 +129,12 @@ namespace Scripting {
     /// Opaque handle to AudioSource component (internal use only)
     struct AudioSourceHandle { void* _internal; };
 
+    /// Opaque handle to Material asset (internal use only)
+    struct MaterialHandle { void* _internal; };
+
+    /// Opaque handle to Prefab asset (internal use only)
+    struct PrefabHandle { void* _internal; };
+
     //=========================================================================
     // COMPONENT REFERENCE (Type-safe opaque reference)
     //=========================================================================
@@ -154,6 +163,8 @@ namespace Scripting {
     using TransformRef = ComponentRef<TransformHandle>;
     using RigidbodyRef = ComponentRef<RigidbodyHandle>;
     using AudioSourceRef = ComponentRef<AudioSourceHandle>;
+    using MaterialRef = ComponentRef<MaterialHandle>;
+    using PrefabRef = ComponentRef<PrefabHandle>;
 
 } // namespace Scripting
 } // namespace NE

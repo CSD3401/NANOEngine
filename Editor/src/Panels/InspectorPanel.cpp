@@ -1,5 +1,6 @@
 #include "InspectorPanel.hpp"
 #include <imgui/imgui.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <EditorInterface/PhysicsExports.hpp>
@@ -44,7 +45,6 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
-#include <EditorInterface/PhysicsExports.hpp>
 
 namespace {
     // the widget maker
@@ -340,7 +340,10 @@ namespace Editor {
 
 				bool isActiveValue = metaRO.isActive;
 				if (ImGui::Checkbox("isActive", &isActiveValue)) {
-					metaRO.isActive = isActiveValue;
+					//metaRO.isActive = isActiveValue;
+
+					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
+					EditorScene::SetAllDescendantsActive(entity, isActiveValue);
 					NE::MarkSceneDirty();
 				}
 
@@ -363,8 +366,11 @@ namespace Editor {
 				std::string edited = currentText;
 
 				ImGui::PushID("EntityName");
-				bool changed = ImGui::InputText("##Name", edited.data(),
-					ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
+				bool changed = ImGui::InputText(
+					"##Name",
+					&edited,
+					ImGuiInputTextFlags_AutoSelectAll
+				);
 				bool activated = ImGui::IsItemActivated();
 				bool active = ImGui::IsItemActive();
 				bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
@@ -413,14 +419,27 @@ namespace Editor {
 					if (it != g_activeCommands.end()) {
 						if (auto* c = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get())) {
 							if (c->Before() == c->After()) {
+								// No net change: just drop the command
 								g_activeCommands.erase(it);
-								return;
+							} else {
+								// There *was* a change: commit it
+								Editor::CommandHistory::GetInstance()
+									.ExecuteCommand(std::move(it->second));
+								g_activeCommands.erase(it);
 							}
+						} else {
+							// Fallback: if not a SetFieldCommand, just execute & erase
+							Editor::CommandHistory::GetInstance()
+								.ExecuteCommand(std::move(it->second));
+							g_activeCommands.erase(it);
 						}
-						Editor::CommandHistory::GetInstance()
-							.ExecuteCommand(std::move(it->second));
-						g_activeCommands.erase(it);
 					}
+				}
+
+				if (metaRO.prefabID != "") {
+					ImGui::Text("Prefab");
+					ImGui::SameLine();
+					ImGui::Text(metaRO.prefabID.c_str());
 				}
 			}
 
@@ -429,48 +448,7 @@ namespace Editor {
 			{
 				if (!sig.test(compType)) continue;
 
-				//if (typeIdx == typeid(NE::ECS::Component::EntityMeta)) {
-				//	// EntityMeta component - show isActive with proper handling
-				//	auto& comp = NE::ECS::Command::GetEntityMeta(entity);
-				//	ImGui::SeparatorText("Entity Properties");
-
-				//	// Manually render isActive field with immediate updates
-				//	{
-				//		bool isActiveValue = comp.isActive;
-				//		if (ImGui::Checkbox("isActive", &isActiveValue)) {
-				//			comp.isActive = isActiveValue;
-				//			NE::MarkSceneDirty();
-				//			SPD_DEBUG("[DirtyFlag] Entity isActive changed to {} - Scene marked DIRTY", isActiveValue);
-				//		}
-				//	}
-
-				//	// Render other EntityMeta fields (skip name and isActive)
-				//	NE::Core::ForEachFieldView<NE::ECS::Component::EntityMeta>(comp,
-				//		[&](auto const& desc, auto const& currentValue) {
-				//			using Owner = NE::ECS::Component::EntityMeta;
-				//			using FieldT = std::decay_t<decltype(currentValue)>;
-
-				//			// Skip name and isActive (already handled above)
-				//			if (std::string(desc.name) == "name" || std::string(desc.name) == "isActive") {
-				//				return;
-				//			}
-
-				//			FieldT edited = currentValue;
-
-				//			ImGui::PushID(desc.name.data());
-				//			const bool changed = DrawField(desc, edited);
-				//			ImGui::PopID();
-
-				//			// Handle other EntityMeta fields if any are added in the future
-				//			if (changed) {
-				//				// Apply change immediately  
-				//				NE::MarkSceneDirty();
-				//			}
-				//		});
-				//}
-				//else 
-				if (typeIdx == typeid(NE::ECS::Component::Transform)) 
-				{
+				if (typeIdx == typeid(NE::ECS::Component::Transform)) {
 					auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 					ImGui::SeparatorText("Transform");
 					//NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
@@ -594,7 +572,7 @@ namespace Editor {
 
 					// Material field
 					char bufMat[256];
-					strncpy_s(bufMat, comp.materialUUID.c_str(), sizeof(bufMat));
+					strncpy_s(bufMat, AssetManager::GetInstance().RetrieveFileName(comp.materialUUID).c_str(), sizeof(bufMat));
 					ImGui::InputText("Material", bufMat, sizeof(bufMat));
 
 					if (ImGui::BeginDragDropTarget()) {
@@ -1062,6 +1040,130 @@ namespace Editor {
 
 									ImGui::PopID();
 								}
+								else if (ftype == "materialref") {
+									// Material reference field
+									// Get current material UUID
+									std::string materialUUID = fval;
+									std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+
+									// Display the material reference field
+									ImGui::Text("%s (Material)", fname.c_str());
+
+									ImGui::PushID((fname + "_matref").c_str());
+
+									// Button shows material name or "None" - make it a drop target
+									ImGui::Button(displayName.c_str(), ImVec2(200, 0));
+
+									// Drag-drop support - accept material drops from asset browser
+									// NOTE: Must be called right after the button, while it's still the active item
+									if (ImGui::BeginDragDropTarget()) {
+										const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+										if (payload && payload->DataSize > 0) {
+											std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+											SPD_DEBUG("[MaterialRef] Dropped path: {}", droppedPath);
+
+											std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+											SPD_DEBUG("[MaterialRef] Retrieved UUID: {}", droppedUUID);
+
+											if (!droppedUUID.empty()) {
+												SPD_DEBUG("[MaterialRef] Calling SetFieldValueFromString for field '{}' with UUID '{}'", fname, droppedUUID);
+												bool success = comp.Instance->SetFieldValueFromString(fname, droppedUUID);
+												SPD_DEBUG("[MaterialRef] SetFieldValueFromString returned: {}", success);
+												if (success) {
+													fieldChanged = true;
+													SPD_DEBUG("[MaterialRef] Material {} assigned to field {}", droppedUUID, fname);
+												} else {
+													SPD_ERROR("[MaterialRef] Failed to assign material {} to field {}", droppedUUID, fname);
+												}
+											} else {
+												SPD_ERROR("[MaterialRef] Empty UUID retrieved from path: {}", droppedPath);
+											}
+										} else {
+											if (payload) {
+												SPD_DEBUG("[MaterialRef] Payload received but DataSize is: {}", payload->DataSize);
+											} else {
+												SPD_DEBUG("[MaterialRef] No MATERIAL_PATH payload accepted");
+											}
+										}
+										ImGui::EndDragDropTarget();
+									}
+
+									// Clear button
+									ImGui::SameLine();
+									if (ImGui::Button("X")) {
+										comp.Instance->SetFieldValueFromString(fname, "");
+										fieldChanged = true;
+									}
+
+									ImGui::PopID();
+								}
+								else if (ftype == "prefabref") {
+									// Prefab reference field
+									// Get current prefab UUID
+									std::string prefabName = fval;
+									//std::string displayName = prefabUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(prefabUUID);
+
+									// Display the prefab reference field
+									ImGui::Text("%s (Prefab)", fname.c_str());
+
+									ImGui::PushID((fname + "_prefabref").c_str());
+
+									// Button shows prefab name or "None" - make it a drop target
+									ImGui::Button(prefabName.c_str(), ImVec2(200, 0));
+
+									// Drag-drop support - accept prefab drops from asset browser
+									// NOTE: Must be called right after the button, while it's still the active item
+									if (ImGui::BeginDragDropTarget()) {
+										const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
+										if (payload && payload->DataSize > 0) {
+											std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+											SPD_DEBUG("[PrefabRef] Dropped path: {}", droppedPath);
+
+											/*std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+											SPD_DEBUG("[PrefabRef] Retrieved UUID: {}", droppedUUID);*/
+
+											bool success = comp.Instance->SetFieldValueFromString(fname, droppedPath);
+											SPD_DEBUG("[PrefabRef] SetFieldValueFromString returned: {}", success);
+											if (success) {
+												fieldChanged = true;
+												SPD_DEBUG("[PrefabRef] Prefab " << droppedPath <<" assigned to " << fname);
+											}
+											else {
+												SPD_ERROR("[PrefabRef] Fail to get Prefab " << droppedPath << " assigned to " << fname);
+											}
+
+											/*if (!droppedUUID.empty()) {
+												SPD_DEBUG("[PrefabRef] Calling SetFieldValueFromString for field '{}' with UUID '{}'", fname, droppedUUID);
+												bool success = comp.Instance->SetFieldValueFromString(fname, droppedPath);
+												SPD_DEBUG("[PrefabRef] SetFieldValueFromString returned: {}", success);
+												if (success) {
+													fieldChanged = true;
+													SPD_DEBUG("[PrefabRef] Prefab {} assigned to field {}", droppedUUID, fname);
+												} else {
+													SPD_ERROR("[PrefabRef] Failed to assign prefab {} to field {}", droppedUUID, fname);
+												}
+											} else {
+												SPD_ERROR("[PrefabRef] Empty UUID retrieved from path: {}", droppedPath);
+											}*/
+										} else {
+											if (payload) {
+												SPD_DEBUG("[PrefabRef] Payload received but DataSize is: {}", payload->DataSize);
+											} else {
+												SPD_DEBUG("[PrefabRef] No PREFAB_ASSET_PATH payload accepted");
+											}
+										}
+										ImGui::EndDragDropTarget();
+									}
+
+									// Clear button
+									ImGui::SameLine();
+									if (ImGui::Button("X")) {
+										comp.Instance->SetFieldValueFromString(fname, "");
+										fieldChanged = true;
+									}
+
+									ImGui::PopID();
+								}
 								else if (ftype.starts_with("vector<")) {
 									// Array/Vector support (int, float, bool, string)
 									// NOTE: Nested struct vectors not yet supported - will be added in future commit
@@ -1121,6 +1223,154 @@ namespace Editor {
 												buf[sizeof(buf) - 1] = '\0';
 												if (ImGui::InputText("##elem", buf, sizeof(buf))) {
 													comp.Instance->SetArrayElement(fname, i, std::string(buf));
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "materialref") {
+												// Material reference support for vector<materialref>
+												std::string materialUUID = elemValue;
+												std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+
+												// Button shows material name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept material drops
+												// NOTE: Must be called right after the button, while it's still the active item
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+													if (payload && payload->DataSize > 0) {
+														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+														SPD_DEBUG("[MaterialRef Vector] Dropped path: {}", droppedPath);
+
+														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														SPD_DEBUG("[MaterialRef Vector] Retrieved UUID: {}", droppedUUID);
+
+														if (!droppedUUID.empty()) {
+															SPD_DEBUG("[MaterialRef Vector] Setting element {} of field '{}' to UUID '{}'", i, fname, droppedUUID);
+															bool success = comp.Instance->SetArrayElement(fname, i, droppedUUID);
+															SPD_DEBUG("[MaterialRef Vector] SetArrayElement returned: {}", success);
+															if (success) {
+																elemChanged = true;
+																SPD_DEBUG("[MaterialRef Vector] Successfully assigned material to vector element");
+															} else {
+																SPD_ERROR("[MaterialRef Vector] Failed to set array element");
+															}
+														} else {
+															SPD_ERROR("[MaterialRef Vector] Empty UUID retrieved from path: {}", droppedPath);
+														}
+													} else {
+														if (payload) {
+															SPD_DEBUG("[MaterialRef Vector] Payload received but DataSize is: {}", payload->DataSize);
+														} else {
+															SPD_DEBUG("[MaterialRef Vector] No MATERIAL_PATH payload accepted");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, "");
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "prefabref") {
+												// Prefab reference support for vector<prefabref>
+												std::string prefabUUID = elemValue;
+												std::string displayName = prefabUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(prefabUUID);
+
+												// Button shows prefab name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept prefab drops
+												// NOTE: Must be called right after the button, while it's still the active item
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
+													if (payload && payload->DataSize > 0) {
+														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+														SPD_DEBUG("[PrefabRef Vector] Dropped path: {}", droppedPath);
+
+														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														SPD_DEBUG("[PrefabRef Vector] Retrieved UUID: {}", droppedUUID);
+
+														if (!droppedUUID.empty()) {
+															SPD_DEBUG("[PrefabRef Vector] Setting element {} of field '{}' to UUID '{}'", i, fname, droppedUUID);
+															bool success = comp.Instance->SetArrayElement(fname, i, droppedUUID);
+															SPD_DEBUG("[PrefabRef Vector] SetArrayElement returned: {}", success);
+															if (success) {
+																elemChanged = true;
+																SPD_DEBUG("[PrefabRef Vector] Successfully assigned prefab to vector element");
+															} else {
+																SPD_ERROR("[PrefabRef Vector] Failed to set array element");
+															}
+														} else {
+															SPD_ERROR("[PrefabRef Vector] Empty UUID retrieved from path: {}", droppedPath);
+														}
+													} else {
+														if (payload) {
+															SPD_DEBUG("[PrefabRef Vector] Payload received but DataSize is: {}", payload->DataSize);
+														} else {
+															SPD_DEBUG("[PrefabRef Vector] No PREFAB_ASSET_PATH payload accepted");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, "");
+													elemChanged = true;
+												}
+											}
+											else if (elementType == "entity") {
+												// Entity reference support for vector<entity>
+												std::string entityIdStr = elemValue;
+												std::string displayName = "None";
+												uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+												std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+												if (!entityIdStr.empty() && entityIdStr != noEntityStr) {
+													try {
+														assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+
+														// Verify entity still exists
+														if (assignedEntityId != NE::ECS::NO_ENTITY) {
+															const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+															displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+														}
+													}
+													catch (...) {
+														displayName = "[Error]";
+													}
+												}
+
+												// Button shows entity name or "None" - make it a drop target
+												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+												// Drag-drop support - accept entity drops from hierarchy
+												if (ImGui::BeginDragDropTarget()) {
+													const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
+													if (payload && payload->DataSize == sizeof(uint32_t)) {
+														uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+														SPD_DEBUG("[Entity Vector] Dropped entity: {}", droppedEntity);
+
+														bool success = comp.Instance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+														if (success) {
+															elemChanged = true;
+															SPD_DEBUG("[Entity Vector] Successfully assigned entity to vector element");
+														} else {
+															SPD_ERROR("[Entity Vector] Failed to set array element");
+														}
+													}
+													ImGui::EndDragDropTarget();
+												}
+
+												// Clear button
+												ImGui::SameLine();
+												if (ImGui::Button("X##clear")) {
+													comp.Instance->SetArrayElement(fname, i, noEntityStr);
 													elemChanged = true;
 												}
 											}
@@ -1266,13 +1516,13 @@ namespace Editor {
 					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					ImGui::SeparatorText("Camera");
 
-					//auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
 						[&](auto const& desc, auto const& currentValue) {
 							using Owner = NE::ECS::Component::Camera;
 							using FieldT = std::decay_t<decltype(currentValue)>;
 
 							FieldT edited = currentValue;
+
 							// --- draw widget, track edit lifecycle ---
 							ImGui::PushID(desc.name.data());
 							const bool changed = DrawField(desc, edited);  // your field drawer
@@ -1283,9 +1533,9 @@ namespace Editor {
 
 							// Key to coalesce continuous edits (dragging slider, etc.)
 							FieldKey key{
-								  entity,
-								  &typeid(Owner),
-								  MemberPointerHasher<Owner, FieldT>{}(desc.member)
+								entity,
+								&typeid(Owner),
+								MemberPointerHasher<Owner, FieldT>{}(desc.member)
 							};
 
 							// 1) Begin an active command when editing starts
@@ -1296,7 +1546,7 @@ namespace Editor {
 									std::string("Set Camera ") + desc.name.data(),
 									desc.member,
 									currentValue,  // before
-									currentValue,  // after (will change while dragging)
+									currentValue,  // after (will change while dragging / on release)
 									&NE::ECS::Command::GetEntityCamera
 								);
 								g_activeCommands[key] = std::move(cmd);
@@ -1323,8 +1573,24 @@ namespace Editor {
 							if (deactivated) {
 								auto it = g_activeCommands.find(key);
 								if (it != g_activeCommands.end()) {
+									// Ensure final 'edited' value is applied at the end,
+									// even if no coalescing happened while active (e.g. checkboxes).
+									if (changed) {
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},    // no label
+											desc.member,
+											currentValue,     // before (ignored by CoalesceFrom)
+											edited,           // final value
+											&NE::ECS::Command::GetEntityCamera
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+
 									// If no net change, drop it; else execute & mark camera dirty
-									if (auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (auto* asSet =
+										dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
 										asSet && Equal(asSet->Before(), asSet->After())) {
 										g_activeCommands.erase(it);
 									}
@@ -1333,16 +1599,13 @@ namespace Editor {
 										g_activeCommands.erase(it);
 
 										// Ensure projection is rebuilt after param changes
-										// (Either handle in SetFieldCommand::Apply, or do it here.)
 										auto& cam = NE::ECS::Command::GetEntityCamera(entity);
 										cam.isDirty = true;  // projection rebuild flag
 									}
 								}
 							}
 						});
-				}
-				else if (typeIdx == typeid(NE::ECS::Component::Animator)) 
-				{
+				} else if (typeIdx == typeid(NE::ECS::Component::Animator)) {
 					auto& comp = NE::ECS::Command::GetEntityAnimator(entity);
 					ImGui::SeparatorText("Animator");
 
@@ -2271,7 +2534,6 @@ namespace Editor {
 					m_materialEditor->RenderSettings();
 			}
 		}
-
 		ImGui::End();
 	}
 

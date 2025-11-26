@@ -10,16 +10,38 @@
 #include "../EngineState.hpp"  // For GetEngineState
 #include "../Engine.hpp"  // For MarkSceneDirty
 #include <Core/SpdLogger.hpp>
-#include <iostream>
+#include "../../include/ScriptSDK/ScriptTypes.h"
+#include <Graphics/Core/GraphicsManager.hpp>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
+
+	namespace Scripting {
+		// Forward declaration of helper function from ScriptAPI.cpp
+		std::string GetMaterialUUIDFromRef(const MaterialRef& materialRef);
+	}
 }
 
 namespace NE::Renderer {
 
 	namespace Query {
+		std::string GetModel(uint32_t e)
+		{
+			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+			if (r.modelUUID.empty()) return "empty uuid";
+			else return r.modelUUID;
+		}
+		std::string GetMaterial(uint32_t e)
+		{
+			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+			if (r.materialUUID.empty()) return "empty uuid";
+			else return r.materialUUID;
+		}
 
+		NANOENGINE_API std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef)
+		{
+			return NE::Scripting::GetMaterialUUIDFromRef(materialRef);
+		}
 	}
 
 	namespace Command {
@@ -53,6 +75,8 @@ namespace NE::Renderer {
 				SPD_DEBUG("[DirtyFlag] Material changed - Scene marked DIRTY");
 			}
 		}
+
+		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }
 
         void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID) {
             auto& img = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);

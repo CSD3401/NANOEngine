@@ -9,11 +9,13 @@
 #include <fstream>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
+#include <EditorInterface/ECSExports.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 
 namespace Editor {
-	AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root) 
-		: m_rootDirectory(root), m_currentDirectory(root)
-	{
+    AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
+        : m_rootDirectory(root), m_currentDirectory(root)
+    {
         m_thumbnailManager.Init();
         //m_DirectoryIcon = m_thumbnailManager.GetThumbnail("Resources/Icons/icon_folder.png");
         //m_FileIcon = m_thumbnailManager.GetThumbnail("Resources/Icons/icon_file.png");
@@ -25,14 +27,13 @@ namespace Editor {
 
             AssetManager::GetInstance().GenerateMetadata(entry.path().string());
         }
-	}
+    }
 
     AssetBrowserPanel::~AssetBrowserPanel() {
         m_thumbnailManager.Shutdown();
     }
 
-	void AssetBrowserPanel::OnImGuiRender()
-	{
+	void AssetBrowserPanel::OnImGuiRender() {
 		ImGui::Begin("Asset Browser", nullptr, ImGuiWindowFlags_MenuBar);
 
         // Search bar
@@ -41,11 +42,11 @@ namespace Editor {
         ImGui::EndMenuBar();
 
         // Directory Tree
-		ImGui::BeginChild("DirectoryTree", ImVec2(200, 0), false);
-		RenderDirectoryTree(m_rootDirectory);
-		ImGui::EndChild();
+        ImGui::BeginChild("DirectoryTree", ImVec2(200, 0), false);
+        RenderDirectoryTree(m_rootDirectory);
+        ImGui::EndChild();
 
-		ImGui::SameLine();
+        ImGui::SameLine();
 
         // Directory Contents
         ImGui::BeginChild("Breadcrumbs", ImVec2(0, 0), true);
@@ -55,38 +56,43 @@ namespace Editor {
 
         ImGui::BeginChild("DirectoryContents", ImVec2(0, 0), false);
         RenderDirectoryContents(m_currentDirectory);
+
+        ImGuiWindow* child = ImGui::GetCurrentWindow();
+        ImRect drop_rect = child->InnerRect;      // or child->ContentRegionRect depending on what you want
+
+        if (ImGui::BeginDragDropTargetCustom(drop_rect, child->ID)) {
+            auto* draw = child->DrawList;
+            draw->AddRect(drop_rect.Min, drop_rect.Max,
+                ImGui::GetColorU32(ImVec4(1, 1, 0, 0.3f)),
+                0.0f, 0, 2.0f);
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_DRAG_ID")) {
+                if (p->DataSize == sizeof(uint32_t)) {
+                    uint32_t dropped = *static_cast<const uint32_t*>(p->Data);
+                    
+                    std::string prefabName = "Prefab";
+                    auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
+                    if (!meta.name.empty())
+                        prefabName = meta.name;
+
+                    std::string filePath = m_currentDirectory.string() + prefabName + ".nfab";
+                    SPD_INFO("Prefab created at: " << filePath);
+                    std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
+                    AssetManager::GetInstance().GenerateMetadata(filePath);
+                    std::string prefabID = AssetManager::GetInstance().RetrieveUUID(filePath);
+                    meta.prefabID = prefabID;
+
+                    NE::SerializePrefab(dropped, filePath);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
         RenderPopups();
         ImGui::EndChild();
 
         ImGui::EndChild();
 
 		ImGui::End();
-
-
-        // Popup utils
-        //if (m_renamePopupOpen) {
-        //    ImGui::OpenPopup("Rename Asset");
-        //    m_renamePopupOpen = false;
-        //}
-        //if (ImGui::BeginPopupModal("Rename Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        //    ImGui::InputText("##NewName", m_renameBuffer, sizeof(m_renameBuffer));
-
-        //    if (ImGui::Button("Rename")) {
-        //        std::filesystem::path newPath = m_selectedPath.parent_path() / m_renameBuffer;
-        //        std::error_code ec;
-        //        std::filesystem::rename(m_selectedPath, newPath, ec);
-        //        if (!ec) {
-        //            m_selectedPath.clear();
-        //        }
-        //        ImGui::CloseCurrentPopup();
-        //    }
-        //    ImGui::SameLine();
-        //    if (ImGui::Button("Cancel")) {
-        //        ImGui::CloseCurrentPopup();
-        //    }
-
-        //    ImGui::EndPopup();
-        //}
 
         if (m_confirmDeletePopupOpen) {
             ImGui::OpenPopup("Confirm Delete");
@@ -97,12 +103,7 @@ namespace Editor {
             ImGui::Separator();
 
             if (ImGui::Button("Delete")) {
-                std::error_code ec;
-                if (std::filesystem::is_directory(m_selectedPath))
-                    std::filesystem::remove_all(m_selectedPath, ec);
-                else
-                    std::filesystem::remove(m_selectedPath, ec);
-
+                DeleteAssetWithMeta(m_selectedPath);
                 m_selectedPath.clear();
                 ImGui::CloseCurrentPopup();
             }
@@ -113,7 +114,7 @@ namespace Editor {
 
             ImGui::EndPopup();
         }
-	}
+    }
 
     void AssetBrowserPanel::RenderBreadcrumbs() {
         std::filesystem::path pathWalk = m_rootDirectory;
@@ -121,40 +122,61 @@ namespace Editor {
         auto drawClickableText = [&](const std::string& label, const std::filesystem::path& pathToSet) {
             ImGui::PushID(label.c_str());
 
-            // Get mouse hover
-            //ImVec2 min = ImGui::GetCursorScreenPos(); // warning unused var - RF
-            ImGui::TextUnformatted(label.c_str());
-            //ImVec2 max = ImGui::GetCursorScreenPos(); // warning unused var - RF
+            // Use a button with transparent background
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.7f, 1.0f, 0.3f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.7f, 1.0f, 0.5f));
 
-            ImVec2 textMin = ImGui::GetItemRectMin();
-            ImVec2 textMax = ImGui::GetItemRectMax();
+            bool clicked = ImGui::Button(label.c_str());
 
-            bool hovered = ImGui::IsMouseHoveringRect(textMin, textMax);
+            ImGui::PopStyleColor(3);
 
+            bool hovered = ImGui::IsItemHovered();
             if (hovered) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             }
 
-            ImU32 color = hovered
-                ? ImGui::GetColorU32(ImVec4(0.3f, 0.7f, 1.0f, 1.0f))
-                : ImGui::GetColorU32(ImGui::GetStyleColorVec4(ImGuiCol_Text));
-
-            ImDrawList* drawList = ImGui::GetWindowDrawList();
-            drawList->AddText(textMin, color, label.c_str());
-
-            if (hovered && ImGui::IsMouseClicked(0)) {
+            if (clicked) {
                 m_currentDirectory = pathToSet;
             }
 
+            // Accept drag-and-drop for moving files into breadcrumb directories
+            if (ImGui::BeginDragDropTarget()) {
+                // Visual feedback during drag
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                ImVec2 rectMin = ImGui::GetItemRectMin();
+                ImVec2 rectMax = ImGui::GetItemRectMax();
+                drawList->AddRect(rectMin, rectMax, IM_COL32(100, 200, 255, 255), 0.0f, 0, 2.0f);
+
+                // Accept multiple payload types
+                const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MOVE");
+                if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
+                if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+                if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+
+                if (payload) {
+                    const char* pathStr = static_cast<const char*>(payload->Data);
+                    std::filesystem::path sourcePath(pathStr);
+                    std::filesystem::path destPath = pathToSet / sourcePath.filename();
+
+                    if (sourcePath != destPath && sourcePath.parent_path() != pathToSet) {
+                        MoveAssetWithMeta(sourcePath, destPath);
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
             ImGui::PopID();
-        };
+            };
 
         std::string rootName;
         if (!m_rootDirectory.filename().empty()) {
             rootName = m_rootDirectory.filename().string();
-        } else if (!m_rootDirectory.has_parent_path()) {
+        }
+        else if (!m_rootDirectory.has_parent_path()) {
             rootName = m_rootDirectory.string();
-        } else {
+        }
+        else {
             rootName = m_rootDirectory.parent_path().filename().string();
         }
 
@@ -189,6 +211,32 @@ namespace Editor {
                     m_currentDirectory = entry.path();
                 }
 
+                // Accept drag-and-drop for moving files into directories
+                if (ImGui::BeginDragDropTarget()) {
+                    // Visual feedback during drag
+                    ImDrawList* drawList = ImGui::GetWindowDrawList();
+                    ImVec2 rectMin = ImGui::GetItemRectMin();
+                    ImVec2 rectMax = ImGui::GetItemRectMax();
+                    drawList->AddRect(rectMin, rectMax, IM_COL32(100, 200, 255, 255), 0.0f, 0, 2.0f);
+
+                    // Accept multiple payload types
+                    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MOVE");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+
+                    if (payload) {
+                        const char* pathStr = static_cast<const char*>(payload->Data);
+                        std::filesystem::path sourcePath(pathStr);
+                        std::filesystem::path destPath = entry.path() / sourcePath.filename();
+
+                        if (sourcePath != destPath && sourcePath.parent_path() != entry.path()) {
+                            MoveAssetWithMeta(sourcePath, destPath);
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
                 if (opened) {
                     RenderDirectoryTree(entry.path());
                     ImGui::TreePop();
@@ -211,7 +259,7 @@ namespace Editor {
         for (auto& entry : std::filesystem::directory_iterator(path)) {
             const auto& name = entry.path().filename().string();
 
-			if (entry.path().extension() == ".meta") continue; // Skip metadata files
+            if (entry.path().extension() == ".meta") continue; // Skip metadata files
 
             // Search filter
             if (strlen(m_searchBuffer) > 0) {
@@ -238,47 +286,88 @@ namespace Editor {
                 ImVec2(1, 0), ImVec2(0, 1)
             );
 
-            // Drag and drop assets
+            // Universal drag source for moving files/folders
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+                // Store path in member variable to ensure it persists
+                m_draggedAssetPath = entry.path();
+                std::string dragPathStr = m_draggedAssetPath.string();
+
+                // Set the appropriate payload based on file type
+                const auto& entryPath = entry.path();
+                bool hasSpecialPayload = false;
+
+                if (!entry.is_directory()) {
+                    if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx") {
+                        ImGui::SetDragDropPayload("ASSET_MESH_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+                        hasSpecialPayload = true;
+                    }
+                    else if (entryPath.extension() == ".nanomat") {
+                        ImGui::SetDragDropPayload("MATERIAL_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+                        hasSpecialPayload = true;
+                    }
+                    else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
+                        ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+                        hasSpecialPayload = true;
+                    }
+                    else if (entryPath.extension() == ".nfab") {
+                        ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+                        hasSpecialPayload = true;
+                    }
+                }
+
+                // If no special payload was set, use the generic ASSET_MOVE
+                if (!hasSpecialPayload) {
+                    ImGui::SetDragDropPayload("ASSET_MOVE", dragPathStr.c_str(), dragPathStr.size() + 1);
+                }
+
+                ImGui::Text("Move: %s", name.c_str());
+                ImGui::EndDragDropSource();
+            }
+
+            // Handle double-click for file types
             if (!entry.is_directory()) {
                 const auto& entryPath = entry.path();
-                if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx") {
-                    if (ImGui::BeginDragDropSource()) {
-                        std::string assetPath = entry.path().string();
-                        ImGui::SetDragDropPayload("ASSET_MESH_PATH", assetPath.c_str(), assetPath.size() + 1);
-                        ImGui::TextUnformatted(name.c_str());
-                        ImGui::EndDragDropSource();
-                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                    if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx" ||
+                        entryPath.extension() == ".nanomat" ||
+                        entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
                         EditorScene::s_selectedEntity = nullptr;
                         EditorScene::selectedAsset = entryPath.string();
-                    }
-                } else if (entryPath.extension() == ".scene") {    
-                    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        NE::LoadTargetScene(entryPath.string());
+                    } else if (entryPath.extension() == ".scene") {
+                        // NE::LoadTargetScene(entryPath.string());
+                        // for (const auto& entt : NE::GetEntities()) {
+                        //     EditorScene::s_entities.push_back({ entt });
+                        // }
+                    } else if (entryPath.extension() == ".nfab") {
+                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::selectedAsset = "";
+                        NE::LoadPrefabScene(entryPath.string());
 
-                        for (const auto& entt : NE::GetEntities()) {
-                            EditorScene::s_entities.push_back({ entt });
+                        Editor::EditorScene::selectedPrefab = entryPath.string();
+                        Editor::EditorScene::RebuildFromActiveScene();
+                    }
+                }
+            }
+
+            // Accept drops onto folders
+            if (entry.is_directory()) {
+                if (ImGui::BeginDragDropTarget()) {
+                    // Accept multiple payload types
+                    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MOVE");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+
+                    if (payload) {
+                        const char* pathStr = static_cast<const char*>(payload->Data);
+                        std::filesystem::path sourcePath(pathStr);
+                        std::filesystem::path destPath = entry.path() / sourcePath.filename();
+
+                        if (sourcePath != destPath && sourcePath.parent_path() != entry.path()) {
+                            MoveAssetWithMeta(sourcePath, destPath);
                         }
                     }
-                } else if (entryPath.extension() == ".nanomat") {
-                    if (ImGui::BeginDragDropSource()) {
-                        std::string assetPath = entry.path().string();
-                        ImGui::SetDragDropPayload("MATERIAL_PATH", assetPath.c_str(), assetPath.size() + 1);
-                        ImGui::TextUnformatted(name.c_str());
-                        ImGui::EndDragDropSource();
-                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        EditorScene::s_selectedEntity = nullptr;
-                        EditorScene::selectedAsset = entryPath.string();
-                    }
-                } else if (entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
-                    if (ImGui::BeginDragDropSource()) {
-                        std::string texturePath = entry.path().string();
-                        ImGui::SetDragDropPayload("TEXTURE_ASSET_PATH", texturePath.c_str(), texturePath.size() + 1);
-                        ImGui::TextUnformatted(name.c_str());
-                        ImGui::EndDragDropSource();
-                    } else if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        EditorScene::s_selectedEntity = nullptr;
-                        EditorScene::selectedAsset = entryPath.string();
-                    }
+                    ImGui::EndDragDropTarget();
                 }
             }
 
@@ -311,27 +400,10 @@ namespace Editor {
                     std::filesystem::path oldAssetPath = entry.path();
                     std::filesystem::path newAssetPath = oldAssetPath.parent_path() / m_renameBuffer;
 
-                    // 1) Rename the main asset
-                    std::filesystem::rename(oldAssetPath, newAssetPath, ec);
-                    if (ec) {
-                        // TODO: log error somewhere if you have logging
-                        m_isRenaming = false;
-                        return;
-                    }
+                    // Use the move function to handle both asset and meta
+                    MoveAssetWithMeta(oldAssetPath, newAssetPath);
 
-                    // 2) Rename the .meta sidecar if it exists
-                    std::filesystem::path oldMetaPath = oldAssetPath;
-                    oldMetaPath += ".meta";               // e.g. "MyTex.png" -> "MyTex.png.meta"
-
-                    if (std::filesystem::exists(oldMetaPath)) {
-                        std::filesystem::path newMetaPath = newAssetPath;
-                        newMetaPath += ".meta";           // e.g. "NewName.png" -> "NewName.png.meta"
-
-                        std::filesystem::rename(oldMetaPath, newMetaPath, ec);
-                        // Optional: handle ec here if you care
-                    }
-
-                    // Keep selection pointing at the new asset path (optional but nice)
+                    // Keep selection pointing at the new asset path
                     m_selectedPath = newAssetPath;
                     m_renamingPath = newAssetPath;
 
@@ -359,6 +431,32 @@ namespace Editor {
         }
 
         ImGui::Columns();
+
+        // Accept drops onto empty space in current directory
+        // Draw an invisible button covering the remaining space
+        ImVec2 availSpace = ImGui::GetContentRegionAvail();
+        if (availSpace.y > 0) {
+            ImGui::InvisibleButton("##DragDropArea", availSpace);
+
+            if (ImGui::BeginDragDropTarget()) {
+                // Accept multiple payload types
+                const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_MOVE");
+                if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
+                if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+                if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+
+                if (payload) {
+                    const char* pathStr = static_cast<const char*>(payload->Data);
+                    std::filesystem::path sourcePath(pathStr);
+                    std::filesystem::path destPath = m_currentDirectory / sourcePath.filename();
+
+                    if (sourcePath != destPath && sourcePath.parent_path() != m_currentDirectory) {
+                        MoveAssetWithMeta(sourcePath, destPath);
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+        }
 
         if (m_triggerRenameNextFrame) {
             m_triggerRenameNextFrame = false;
@@ -475,42 +573,31 @@ namespace Editor {
     void AssetBrowserPanel::CreateNewMaterial() {
         namespace fs = std::filesystem;
 
-        // 1) decide where to put it — assuming you have a "current folder" in the browser
-        fs::path targetDir = m_currentDirectory;   // adjust to whatever your panel uses
+        fs::path targetDir = m_currentDirectory;
         if (!fs::exists(targetDir))
             return;
 
-        // 2) make a unique name
         static int s_MatCounter = 1;
         fs::path matPath;
         do {
             matPath = targetDir / ("NewMaterial_" + std::to_string(s_MatCounter++) + ".nanomat");
         } while (fs::exists(matPath));
 
-        // 3) build the JSON in the exact format your Material::LoadFromFile expects
         rapidjson::Document doc;
         doc.SetObject();
         auto& alloc = doc.GetAllocator();
 
-        // default shader — you can change this to "Basic" or whatever your engine ships with
         doc.AddMember("Shader", rapidjson::Value("Unlit", alloc), alloc);
 
-        // pipeline settings (these match what your material save/load uses)
         doc.AddMember("DepthTest", true, alloc);
         doc.AddMember("BlendMode", true, alloc);
 
-        // these numbers are exactly the ones your material code saved earlier:
-        // 1029  -> GL_BACK
-        // 6914  -> GL_FILL
         doc.AddMember("CullMode", 1029, alloc);
         doc.AddMember("PolygonMode", 6914, alloc);
 
-        // empty properties for now — when the material is opened in inspector,
-        // and user changes values, you can overwrite this.
         rapidjson::Value props(rapidjson::kObjectType);
         doc.AddMember("Properties", props, alloc);
 
-        // 4) write to disk
         rapidjson::StringBuffer buffer;
         rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
         doc.Accept(writer);
@@ -523,6 +610,53 @@ namespace Editor {
 
         AssetManager::GetInstance().GenerateMetadata(matPath.string());
     }
-    
-}
 
+    void AssetBrowserPanel::DeleteAssetWithMeta(const std::filesystem::path& assetPath) {
+        std::error_code ec;
+
+        // Delete the main asset
+        if (std::filesystem::is_directory(assetPath)) {
+            std::filesystem::remove_all(assetPath, ec);
+        }
+        else {
+            std::filesystem::remove(assetPath, ec);
+        }
+
+        if (ec) {
+            // Log error if deletion failed
+            return;
+        }
+
+        // Delete the .meta file if it exists
+        std::filesystem::path metaPath = assetPath;
+        metaPath += ".meta";
+
+        if (std::filesystem::exists(metaPath)) {
+            std::filesystem::remove(metaPath, ec);
+        }
+    }
+
+    void AssetBrowserPanel::MoveAssetWithMeta(const std::filesystem::path& source, const std::filesystem::path& destination) {
+        std::error_code ec;
+
+        // Move the main asset
+        std::filesystem::rename(source, destination, ec);
+        if (ec) {
+            // Log error if move failed
+            return;
+        }
+
+        // Move the .meta file if it exists
+        std::filesystem::path sourceMetaPath = source;
+        sourceMetaPath += ".meta";
+
+        if (std::filesystem::exists(sourceMetaPath)) {
+            std::filesystem::path destMetaPath = destination;
+            destMetaPath += ".meta";
+
+            std::filesystem::rename(sourceMetaPath, destMetaPath, ec);
+            // Optional: handle ec here if you care about meta file move failures
+        }
+    }
+
+}

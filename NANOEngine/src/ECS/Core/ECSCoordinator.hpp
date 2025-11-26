@@ -94,6 +94,10 @@ namespace NE::ECS {
         //        sysPtr->Update(deltaTime);
         //}
 
+        EntityManager& GetEntityManager() {
+            return *m_entityManager;
+        }
+
         ComponentManager& GetComponentManager() {
             return *m_componentManager;
         }

@@ -19,7 +19,9 @@
 #pragma once
 
 #include "ScriptTypes.h"
+#include "Reflection.h"
 #include <functional>
+#include <sstream>
 
 namespace NE {
 namespace Scripting {
@@ -114,15 +116,24 @@ namespace Scripting {
         * Inactive entities don't update scripts or render.
         * @return true if active, false otherwise
         */
-        bool IsActive() const;
+        bool IsActive(Entity e) const;
+
+        /**
+         * Check if the entity is active in the hierarchy.
+         * An entity is active in hierarchy if both it and all its parents are active.
+         * This is Unity-style behavior where parent active state affects children.
+         * @return true if active in hierarchy, false otherwise
+         */
+        bool IsActiveInHierarchy() const;
 
         /**
          * Set the active state of the entity.
          * Inactive entities stop updating scripts and rendering.
          * Useful for hiding/disabling game objects.
          * @param active New active state
+         * @param entity Target entity (default: this entity)
          */
-        void SetActive(bool active);
+        void SetActive(bool active, Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
         // COLLISION/TRIGGER EVENTS
@@ -184,58 +195,108 @@ namespace Scripting {
 
         //=====================================================================
         // TRANSFORM OPERATIONS (Unity-style)
+        // All functions support optional Entity parameter:
+        // - If not specified, operates on this script's entity (m_entity)
+        // - If specified, operates on the target entity
         //=====================================================================
 
-        Vec3 GetPosition() const;
-        void SetPosition(const Vec3& pos);
-        void SetPosition(float x, float y, float z);
+        // Position
+        Vec3 GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetWorldPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        Vec3 GetRotation() const;
-        void SetRotation(const Vec3& rot);
-        void SetRotation(float x, float y, float z);
+        // Rotation (Euler angles in degrees)
+        Vec3 GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        Vec3 GetScale() const;
-        void SetScale(const Vec3& scale);
-        void SetScale(float x, float y, float z);
-        void SetScale(float uniformScale);
+        // Scale
+        Vec3 GetScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetScale(const Vec3& scale, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetScale(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetScale(float uniformScale, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void Translate(const Vec3& translation);
-        void Translate(float x, float y, float z);
+        // Relative transforms
+        void Translate(const Vec3& translation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void Translate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void Rotate(const Vec3& rotation);
-        void Rotate(float x, float y, float z);
+        void Rotate(const Vec3& rotation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void Rotate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        // Transform direction vectors
-        Vec3 GetForward() const;
-        Vec3 GetRight() const;
-        Vec3 GetUp() const;
+        // Direction vectors (based on rotation)
+        Vec3 GetForward(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetRight(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetUp(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        //=====================================================================
+        // HIERARCHY OPERATIONS
+        // All functions support optional Entity parameter
+        //=====================================================================
+
+        /**
+         * Get the parent entity.
+         * @param entity Target entity (default: this entity)
+         * @return Parent entity ID, or INVALID_ENTITY if no parent
+         */
+        Entity GetParent(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Get the number of child entities.
+         * @param entity Target entity (default: this entity)
+         * @return Number of children
+         */
+        size_t GetChildCount(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Get a child entity by index.
+         * @param index The index of the child (0-based)
+         * @param entity Target entity (default: this entity)
+         * @return Child entity ID, or INVALID_ENTITY if index out of range
+         */
+        Entity GetChild(size_t index, Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Get all child entities.
+         * @param entity Target entity (default: this entity)
+         * @return Vector of child entity IDs
+         */
+        std::vector<Entity> GetChildren(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
         // RIGIDBODY PHYSICS (Unity-style)
+        // All functions support optional Entity parameter
         //=====================================================================
 
-        bool HasRigidbody() const;
+        bool HasRigidbody(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
-        float GetMass() const;
-        void SetMass(float mass);
+        // Mass
+        float GetMass(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetMass(float mass, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        bool GetUseGravity() const;
-        void SetUseGravity(bool use);
+        // Gravity
+        bool GetUseGravity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetUseGravity(bool use, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        bool IsStatic() const;
-        void SetStatic(bool isStatic);
+        // Static/Dynamic
+        bool IsStatic(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetStatic(bool isStatic, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void LockRotation(bool lockX, bool lockY, bool lockZ);
+        // Rotation locking
+        void LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        Vec3 GetVelocity() const;
-        void SetVelocity(const Vec3& velocity);
-        void SetVelocity(float x, float y, float z);
+        // Velocity
+        Vec3 GetVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetVelocity(const Vec3& velocity, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void AddForce(const Vec3& force);
-        void AddForce(float x, float y, float z);
+        // Forces
+        void AddForce(const Vec3& force, Entity entity = DEFAULT_ENTITY_PARAM);
+        void AddForce(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void AddImpulse(const Vec3& impulse);
-        void AddImpulse(float x, float y, float z);
+        // Impulses
+        void AddImpulse(const Vec3& impulse, Entity entity = DEFAULT_ENTITY_PARAM);
+        void AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
         // PHYSICS RAYCASTING
@@ -253,23 +314,112 @@ namespace Scripting {
 
         //=====================================================================
         // AUDIO SOURCE
+        // All functions support optional Entity parameter
         //=====================================================================
 
-        bool HasAudioSource() const;
+        bool HasAudioSource(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
-        void PlayAudio();
-        void StopAudio();
-        void PauseAudio();
-        void ResumeAudio();
-        bool IsAudioPlaying() const;
+        // Playback control
+        void PlayAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        void StopAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        void PauseAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        void ResumeAudio(Entity entity = DEFAULT_ENTITY_PARAM);
+        bool IsAudioPlaying(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
-        float GetVolume() const;
-        void SetVolume(float volume);
+        // Volume control
+        float GetVolume(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetVolume(float volume, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        float GetPitch() const;
-        void SetPitch(float pitch);
+        // Pitch control
+        float GetPitch(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetPitch(float pitch, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void SetAudioLoop(bool loop);
+        // Loop control
+        void SetAudioLoop(bool loop, Entity entity = DEFAULT_ENTITY_PARAM);
+
+
+     //=====================================================================
+     // CAMERA OPERATIONS
+     //=====================================================================
+
+     /**
+      * Check if the entity has a camera component.
+      * @return true if the entity has a camera component, false otherwise
+      */
+        bool HasCamera() const;
+
+        /**
+         * Get the field of view of the camera.
+         * @return Field of view in degrees
+         */
+        float GetCameraFOV() const;
+
+        /**
+         * Set the field of view of the camera.
+         * @param fov New field of view in degrees
+         */
+        void SetCameraFOV(float fov);
+
+        /**
+         * Get the aspect ratio of the camera.
+         * @return Aspect ratio (width / height)
+         */
+        float GetCameraAspectRatio() const;
+
+        /**
+         * Set the aspect ratio of the camera.
+         * @param aspectRatio New aspect ratio (width / height)
+         */
+        void SetCameraAspectRatio(float aspectRatio);
+
+        /**
+         * Get the near clipping plane distance of the camera.
+         * @return Near plane distance
+         */
+        float GetCameraNearPlane() const;
+
+        /**
+         * Set the near clipping plane distance of the camera.
+         * @param nearPlane New near plane distance
+         */
+        void SetCameraNearPlane(float nearPlane);
+
+        /**
+         * Get the far clipping plane distance of the camera.
+         * @return Far plane distance
+         */
+        float GetCameraFarPlane() const;
+
+        /**
+         * Set the far clipping plane distance of the camera.
+         * @param farPlane New far plane distance
+         */
+        void SetCameraFarPlane(float farPlane);
+
+        /**
+         * Check if this camera is the main camera.
+         * @return true if this is the main camera, false otherwise
+         */
+        bool IsCameraMain() const;
+
+        /**
+         * Set this camera as the main camera.
+         * @param isMain New main camera state
+         */
+        void SetCameraMain(bool isMain);
+
+        /**
+         * Check if the camera is currently active.
+         * @return true if the camera is active, false otherwise
+         */
+        bool IsCameraActive() const;
+
+        /**
+         * Set the active state of the camera.
+         * @param isActive New active state
+         */
+        void SetCameraActive(bool isActive);
+
 
         //=====================================================================
         // COMPONENT ACCESS (Type-safe opaque handles)
@@ -305,6 +455,43 @@ namespace Scripting {
          */
         AudioSourceRef GetAudioSourceRef(Entity entity) const;
 
+        /**
+         * Get a reference to a material asset by UUID.
+         * @param materialUUID Material asset UUID string
+         * @return Material reference (check IsValid() before use)
+         */
+        MaterialRef GetMaterialRef(const std::string& materialUUID) const;
+
+        /**
+         * Get a reference to a prefab asset by UUID.
+         * Use this to store references to prefabs that can be instantiated at runtime.
+         * @param prefabUUID Prefab asset UUID string
+         * @return Prefab reference (check IsValid() before use)
+         */
+        PrefabRef GetPrefabRef(const std::string& prefabUUID) const;
+
+        //=====================================================================
+        // PREFAB INSTANTIATION
+        //=====================================================================
+
+        /**
+         * Instantiate a prefab at a specific position and rotation.
+         * @param prefabRef The prefab reference to instantiate
+         * @param position World position for the instantiated prefab
+         * @param rotation World rotation (Euler angles in degrees) for the instantiated prefab
+         * @return Root entity of the instantiated prefab, or INVALID_ENTITY if failed
+         */
+        Entity InstantiatePrefab(const PrefabRef& prefabRef, const Vec3& position = Vec3::Zero(), const Vec3& rotation = Vec3::Zero());
+
+        /**
+         * Instantiate a prefab by UUID at a specific position and rotation.
+         * @param prefabUUID The prefab asset UUID string
+         * @param position World position for the instantiated prefab
+         * @param rotation World rotation (Euler angles in degrees) for the instantiated prefab
+         * @return Root entity of the instantiated prefab, or INVALID_ENTITY if failed
+         */
+        Entity InstantiatePrefab(const std::string& prefabUUID, const Vec3& position = Vec3::Zero(), const Vec3& rotation = Vec3::Zero());
+
         //=====================================================================
         // COMPONENT REF OPERATIONS (For stored references)
         //=====================================================================
@@ -339,6 +526,26 @@ namespace Scripting {
         void RegisterTransformRefField(const std::string& name, TransformRef* memberPtr);
         void RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr);
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
+        void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
+        void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);
+
+        // Vector field registration (native support - no override boilerplate needed!)
+        void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
+        void RegisterFloatVectorField(const std::string& name, std::vector<float>* memberPtr);
+        void RegisterBoolVectorField(const std::string& name, std::vector<bool>* memberPtr);
+        void RegisterStringVectorField(const std::string& name, std::vector<std::string>* memberPtr);
+        void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
+        void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
+        void RegisterPrefabRefVectorField(const std::string& name, std::vector<PrefabRef>* memberPtr);
+
+        // Enum field registration (with automatic enum options)
+        template<typename EnumType>
+        void RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions);
+
+        // Struct field registration (with reflection support)
+        // NOTE: StructType must have NE_REFLECT macros. Include "Reflection.h" in your script.
+        template<typename StructType>
+        void RegisterStructField(const std::string& structName, StructType* memberPtr);
 
         //=====================================================================
         // EDITOR FIELD QUERY INTERFACE (Virtual - for advanced use)
@@ -362,6 +569,8 @@ namespace Scripting {
         virtual void AddArrayElement(const std::string& fieldName);
         virtual void RemoveArrayElement(const std::string& fieldName, size_t index);
 
+        void MarkFieldAsEntityReference(const std::string& name);
+
         //=====================================================================
         // INTERNAL ENGINE INTERFACE (Do not call from scripts)
         //=====================================================================
@@ -384,11 +593,20 @@ namespace Scripting {
             std::function<std::string()> getValue,
             std::function<bool(const std::string&)> setValue);
 
-        Entity m_entity = INVALID_ENTITY;
-        bool m_enabled = true;
-        bool m_hasStarted = false;
+        // Helper function for Unity-style hierarchy active state propagation
+        void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
 
-        ScriptContext* m_context = nullptr;  // Opaque pointer to engine internals
+        // Helper methods for template functions to access FieldRegistry
+        void SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options);
+        void SetFieldEnumCallbacks(const std::string& name,
+            std::function<int()> getEnumValue,
+            std::function<void(int)> setEnumValue);
+
+     Entity m_entity = INVALID_ENTITY;
+        bool m_enabled = true;
+  bool m_hasStarted = false;
+
+     ScriptContext* m_context = nullptr;  // Opaque pointer to engine internals
         FieldRegistry* m_fieldRegistry = nullptr;  // Opaque pointer to field storage
     };
 
@@ -597,6 +815,116 @@ namespace Scripting {
      */
     SCRIPT_API void ClearScriptEventListeners();
 
+    //=========================================================================
+    // TWEEN API (SDK-level tween/animation functions)
+    //=========================================================================
+
+    /// Tween type enumeration for different interpolation curves
+    enum class TweenType {
+        LINEAR = 0,
+        EASE_IN,
+        EASE_OUT,
+        EASE_BOTH,
+        CUBIC_EASE_IN,
+        CUBIC_EASE_OUT,
+        CUBIC_EASE_BOTH
+    };
+
+    /// Opaque handle to a tween animation
+    using TweenHandle = unsigned int;
+
+    /**
+     * @brief Start a tween animation using a lambda/callback function
+     * @param updateFunc Callback function that receives the interpolated value (0.0 to 1.0)
+     * @param duration Duration of the tween in seconds
+     * @param type The interpolation curve type
+     * @param entity Optional entity to associate with this tween (for CheckTween)
+     * @return Handle to the created tween
+     *
+     * Example:
+     * @code
+     * Vec3 startPos = GetPosition();
+     * Vec3 targetPos = Vec3(10, 0, 0);
+     * StartTweenLambda([this, startPos, targetPos](float t) {
+     *     SetPosition(startPos + (targetPos - startPos) * t);
+     * }, 2.0f, TweenType::LINEAR, GetEntity());
+     * @endcode
+     */
+    SCRIPT_API TweenHandle StartTweenLambda(
+        std::function<void(float)> updateFunc,
+        float duration,
+        TweenType type = TweenType::CUBIC_EASE_IN,
+        Entity entity = 0
+    );
+
+    /**
+     * @brief Start a tween for Vec3 values (position, rotation, scale)
+     * @param setter Function to call with interpolated Vec3 value
+     * @param start Starting Vec3 value
+     * @param end Ending Vec3 value
+     * @param duration Duration of the tween in seconds
+     * @param type The interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the created tween
+     *
+     * Example:
+     * @code
+     * StartTweenVec3([this](const Vec3& pos) { SetPosition(pos); },
+     *                GetPosition(), Vec3(10, 0, 0), 2.0f, TweenType::LINEAR, GetEntity());
+     * @endcode
+     */
+    SCRIPT_API TweenHandle StartTweenVec3(
+        std::function<void(const Vec3&)> setter,
+        const Vec3& start,
+        const Vec3& end,
+        float duration,
+        TweenType type = TweenType::CUBIC_EASE_IN,
+        Entity entity = 0
+    );
+
+    /**
+     * @brief Start a tween for float values
+     * @param setter Function to call with interpolated float value
+     * @param start Starting float value
+     * @param end Ending float value
+     * @param duration Duration of the tween in seconds
+     * @param type The interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the created tween
+     */
+    SCRIPT_API TweenHandle StartTweenFloat(
+        std::function<void(float)> setter,
+        float start,
+        float end,
+        float duration,
+        TweenType type = TweenType::CUBIC_EASE_IN,
+        Entity entity = 0
+    );
+
+    /**
+     * @brief Check if an entity has any active tweens
+     * @param entity The entity to check
+     * @return true if the entity has active tweens, false otherwise
+     */
+    SCRIPT_API bool CheckEntityTween(Entity entity);
+
+    /**
+     * @brief Stop a specific tween by handle
+     * @param handle The tween handle to stop
+     */
+    SCRIPT_API void StopTween(TweenHandle handle);
+
+    /**
+     * @brief Stop all tweens associated with an entity
+     * @param entity The entity whose tweens should be stopped
+     */
+    SCRIPT_API void StopEntityTweens(Entity entity);
+
+    /**
+     * @brief Clear all active tweens
+     */
+    SCRIPT_API void ClearAllTweens();
+
 } // namespace Scripting
 } // namespace NE
 
@@ -670,6 +998,103 @@ namespace Log {
     }
 }
 
+/// Tween system namespace - animation and interpolation
+namespace Tweener {
+    using Handle = NE::Scripting::TweenHandle;
+    using Type = NE::Scripting::TweenType;
+
+    /**
+     * @brief Start a tween using a lambda function that receives normalized time (0.0 to 1.0)
+     * @param updateFunc Callback that receives interpolated value from 0.0 to 1.0
+     * @param duration Duration in seconds
+     * @param type Interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the tween
+     */
+    inline Handle StartLambda(
+        std::function<void(float)> updateFunc,
+        float duration,
+        Type type = Type::CUBIC_EASE_IN,
+        NE::Scripting::Entity entity = 0)
+    {
+        return NE::Scripting::StartTweenLambda(updateFunc, duration, type, entity);
+    }
+
+    /**
+     * @brief Start a tween for Vec3 values
+     * @param setter Function to call with interpolated Vec3
+     * @param start Starting value
+     * @param end Ending value
+     * @param duration Duration in seconds
+     * @param type Interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the tween
+     */
+    inline Handle StartVec3(
+        std::function<void(const NE::Scripting::Vec3&)> setter,
+        const NE::Scripting::Vec3& start,
+        const NE::Scripting::Vec3& end,
+        float duration,
+        Type type = Type::CUBIC_EASE_IN,
+        NE::Scripting::Entity entity = 0)
+    {
+        return NE::Scripting::StartTweenVec3(setter, start, end, duration, type, entity);
+    }
+
+    /**
+     * @brief Start a tween for float values
+     * @param setter Function to call with interpolated float
+     * @param start Starting value
+     * @param end Ending value
+     * @param duration Duration in seconds
+     * @param type Interpolation curve type
+     * @param entity Optional entity to associate with this tween
+     * @return Handle to the tween
+     */
+    inline Handle StartFloat(
+        std::function<void(float)> setter,
+        float start,
+        float end,
+        float duration,
+        Type type = Type::CUBIC_EASE_IN,
+        NE::Scripting::Entity entity = 0)
+    {
+        return NE::Scripting::StartTweenFloat(setter, start, end, duration, type, entity);
+    }
+
+    /**
+     * @brief Check if an entity has any active tweens
+     * @param entity The entity to check
+     * @return true if entity has active tweens
+     */
+    inline bool CheckEntity(NE::Scripting::Entity entity) {
+        return NE::Scripting::CheckEntityTween(entity);
+    }
+
+    /**
+     * @brief Stop a specific tween
+     * @param handle The tween handle to stop
+     */
+    inline void Stop(Handle handle) {
+        NE::Scripting::StopTween(handle);
+    }
+
+    /**
+     * @brief Stop all tweens associated with an entity
+     * @param entity The entity whose tweens to stop
+     */
+    inline void StopEntity(NE::Scripting::Entity entity) {
+        NE::Scripting::StopEntityTweens(entity);
+    }
+
+    /**
+     * @brief Clear all active tweens
+     */
+    inline void Clear() {
+        NE::Scripting::ClearAllTweens();
+    }
+}
+
 //=============================================================================
 // LOGGING MACROS (Convenience macros for stream-style logging)
 //=============================================================================
@@ -700,6 +1125,104 @@ namespace Log {
 #define SCRIPT_LOG_WARNING LOG_WARNING
 #define SCRIPT_LOG_ERROR LOG_ERROR
 #define SCRIPT_LOG_CRITICAL LOG_CRITICAL
+
+//=============================================================================
+// TEMPLATE METHOD IMPLEMENTATIONS (Enum and Struct Registration)
+//=============================================================================
+
+namespace NE::Scripting {
+
+    /**
+     * Register an enum field with automatic dropdown support in editor
+     * @param name Field name
+     * @param memberPtr Pointer to enum member variable
+     * @param enumOptions List of enum value names (in order)
+     */
+    template<typename EnumType>
+    inline void IScript::RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions) {
+        RegisterFieldInternal(
+            name,
+            "enum",
+            memberPtr,
+            // getValue: Return enum as string index
+            [memberPtr]() -> std::string {
+                return std::to_string(static_cast<int>(*memberPtr));
+            },
+            // setValue: Set enum from string index
+            [memberPtr, enumOptions](const std::string& value) -> bool {
+                try {
+                    int idx = std::stoi(value);
+                    if (idx >= 0 && idx < static_cast<int>(enumOptions.size())) {
+                        *memberPtr = static_cast<EnumType>(idx);
+                        return true;
+                    }
+                    return false;
+                } catch (...) {
+                    return false;
+                }
+            }
+        );
+
+        // Store enum options and accessor functions using helper methods
+        SetFieldEnumOptions(name, enumOptions);
+        SetFieldEnumCallbacks(name,
+            [memberPtr]() -> int {
+                return static_cast<int>(*memberPtr);
+            },
+            [memberPtr](int value) {
+                *memberPtr = static_cast<EnumType>(value);
+            }
+        );
+    }
+
+    /**
+     * Register a struct field using reflection system
+     * All reflected fields will be registered as "structName.fieldName"
+     * @param structName Prefix for nested fields
+     * @param memberPtr Pointer to struct member variable
+     *
+     * NOTE: This requires StructType to have NE_REFLECT macros defined.
+     *       Include "Reflection.h" in your game script file before using this.
+     */
+    template<typename StructType>
+    inline void IScript::RegisterStructField(const std::string& structName, StructType* memberPtr)
+    {
+        // Use reflection system to iterate over all struct fields
+        NE::Core::ForEachField(*memberPtr, [&](auto const& desc, auto& fieldValue) {
+            std::string fullName = structName + "." + std::string(desc.name);
+
+            using FieldT = std::remove_reference_t<decltype(fieldValue)>;
+
+            if constexpr (std::is_same_v<FieldT, int>) {
+                RegisterIntField(fullName,
+                    reinterpret_cast<int*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, float>) {
+                RegisterFloatField(fullName,
+                    reinterpret_cast<float*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, bool>) {
+                RegisterBoolField(fullName,
+                    reinterpret_cast<bool*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, std::string>) {
+                RegisterStringField(fullName,
+                    reinterpret_cast<std::string*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+            else if constexpr (std::is_same_v<FieldT, Vec3>) {
+                RegisterVec3Field(fullName,
+                    reinterpret_cast<Vec3*>(reinterpret_cast<char*>(memberPtr) +
+                        (reinterpret_cast<char*>(&fieldValue) - reinterpret_cast<char*>(memberPtr))));
+            }
+        });
+    }
+
+} // namespace Scripting
+
 
 //=============================================================================
 // DLL ENTRY POINT SIGNATURE

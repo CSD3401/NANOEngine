@@ -47,7 +47,7 @@ public:
 			
 			if (m_respawnTimer <= 0.0f) {
 				// Respawn complete - reactivate entity
-				SetActive(true);
+				SetActive(GetEntity(), true);
 				m_isRespawning = false;
 				std::cout << "[TestScript] Entity '" << objectName << "' respawned!" << std::endl;
 				std::cout << "  - Scripts: ENABLED" << std::endl;
@@ -123,7 +123,7 @@ private:
 		std::cout << "  Will respawn in " << respawnDelay << " seconds" << std::endl;
 		
 		// Deactivate entity
-		SetActive(false);
+		SetActive(GetEntity(),false);
 		
 		// Start respawn countdown
 		m_isRespawning = true;

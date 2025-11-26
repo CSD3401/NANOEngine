@@ -12,10 +12,17 @@
 
 namespace {
     static bool IsEngineUniform(std::string_view n) {
-        return n == "u_Model" || n == "u_View" || n == "u_Projection" ||
+        // Built-in engine uniforms
+        if (n == "u_Model" || n == "u_View" || n == "u_Projection" ||
             n == "u_NormalMatrix" || n == "u_CameraPos" ||
             n == "u_numLights" || n.rfind("u_lights", 0) == 0 ||
-            n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0;
+            n == "u_ShadingModel" || n.rfind("u_Has", 0) == 0)
+            return true;
+
+        if (n.rfind("i_", 0) == 0)
+            return true;
+
+        return false;
     }
 
     static bool IsSampler(GLenum t) {
@@ -58,7 +65,8 @@ namespace NE::Graphics {
 
     void Material::SetTexture(const std::string& uName, const std::string& uuid) {
         m_Textures[uName] = Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
-        m_Textures[uName]->MakeResident();
+        if (uuid != "")
+            m_Textures[uName]->MakeResident();
     }
 
     void Material::SetQueueBase(RenderQueue queue) {
@@ -136,7 +144,10 @@ namespace NE::Graphics {
             case GL_FLOAT_VEC3:
                 if (u.name.find("Color") != std::string::npos ||
                     u.name.find("color") != std::string::npos ||
-                    u.name.find("albedo") != std::string::npos)
+                    u.name.find("albedo") != std::string::npos ||
+					u.name.find("Tiling") != std::string::npos ||
+					u.name.find("tiling") != std::string::npos
+                    )
                     m_Vec3Uniforms.emplace(u.name, Vec3{ 1,1,1 });
                 else
                     m_Vec3Uniforms.emplace(u.name, Vec3{ 0,0,0 });

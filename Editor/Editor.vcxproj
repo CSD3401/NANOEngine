@@ -78,6 +78,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir).tmp\$(ProjectName)\$(Configuration)-$(Platform)\</IntDir>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -173,16 +174,17 @@
     <ClCompile Include="src\EditorScene.cpp" />
     <ClCompile Include="src\Command\CommandHistory.cpp" />
     <ClCompile Include="src\Command\EditorCommands.cpp" />
+    <ClCompile Include="src\Panels\AssetBrowserPanel.cpp" />
     <ClCompile Include="src\Panels\ConsolePanel.cpp" />
     <ClCompile Include="src\Panels\GamePanel.cpp" />
     <ClCompile Include="src\Panels\HierarchyPanel.cpp" />
     <ClCompile Include="src\Panels\InspectorPanel.cpp" />
+    <ClCompile Include="src\Panels\LightingPanel.cpp" />
     <ClCompile Include="src\Panels\LoggerPanel.cpp" />
     <ClCompile Include="src\Panels\ProfilerPanel.cpp" />
     <ClCompile Include="src\Panels\SceneCameraTweener.cpp" />
     <ClCompile Include="src\Panels\ScenePanel.cpp" />
     <ClCompile Include="src\Application.cpp" />
-    <ClCompile Include="src\Panels\AssetBrowserPanel.cpp" />
     <ClCompile Include="src\Panels\ScriptsPanel.cpp" />
     <ClCompile Include="src\EditorLayer.cpp" />
     <ClCompile Include="main.cpp" />
@@ -195,6 +197,7 @@
     <ClCompile Include="vendor\include\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui_tables.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="vendor\include\imgui\misc\cpp\imgui_stdlib.cpp" />
     <ClCompile Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.cpp" />
     <ClCompile Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp" />
     <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch.cpp" />
@@ -224,6 +227,7 @@
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />
     <ClInclude Include="src\Panels\InspectorPanel.hpp" />
+    <ClInclude Include="src\Panels\LightingPanel.hpp" />
     <ClInclude Include="src\Panels\LoggerPanel.hpp" />
     <ClInclude Include="src\Panels\ProfilerPanel.hpp" />
     <ClInclude Include="src\Panels\SceneCameraTweener.hpp" />
@@ -246,6 +250,7 @@
     <ClInclude Include="vendor\include\imgui\imstb_rectpack.h" />
     <ClInclude Include="vendor\include\imgui\imstb_textedit.h" />
     <ClInclude Include="vendor\include\imgui\imstb_truetype.h" />
+    <ClInclude Include="vendor\include\imgui\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="vendor\include\imgui\widgets\imguizmo\ImGuizmo.h" />
     <ClInclude Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h" />
     <ClInclude Include="vendor\include\imgui\widgets\imsearch\imsearch.h" />

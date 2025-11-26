@@ -10,6 +10,6 @@ namespace NE::Graphics {
         std::shared_ptr<IGeometryBuffer> mesh;
         std::shared_ptr<Material> material;
         Math::Mat4 transform;
-		std::optional<uint32_t> entity; // The caller entity ID. Only used for object picking.
+		Math::Vec3 idRGB = Math::Vec3{ -1.0f, -1.0f, -1.0f }; // for object picking
     };
 }

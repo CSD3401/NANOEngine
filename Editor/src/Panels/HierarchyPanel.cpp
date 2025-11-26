@@ -11,47 +11,47 @@
 #include <imgui/imgui_internal.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include "../AssetManagement/AssetManager.hpp"
+#include <Math/Vec3.hpp>
 
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
-		EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
+		//EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
 
 		auto numEntt = NE::GetNumEntities();
-		for (unsigned int i = 0; i < numEntt; ++i) {
-			EditorScene::s_entities.push_back(EditorEntity{ i });
+		EditorScene::s_entities.reserve(numEntt.size());
+		for (auto e : numEntt) {
+			EditorScene::s_entities.push_back(EditorEntity{ e });
 		}
 	}
 
-	void HierarchyPanel::OnImGuiRender()
-	{
-        // create the hierarchy window
-		ImGui::Begin("Hierarchy", nullptr,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
-			| ImGuiWindowFlags_MenuBar);
+	void HierarchyPanel::OnImGuiRender() {
+		ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
 
-		//ImVec2 panelPos = ImGui::GetCursorScreenPos(); // warning unused var - RF
-		//ImVec2 panelSize = ImGui::GetContentRegionAvail(); // warning unused var - RF
-
-        // right click to trigger menu pop ups, with options to,
-        // create entity, cut/copy/paste, delete, 3d object submenu, UI submenu
-		if (ImGui::IsWindowHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
-			ImGui::OpenPopup("HierarchyContextMenu");
+		bool canEditHierarchy = EditorScene::selectedPrefab.empty();
+		if (ImGui::IsWindowHovered()) {
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+				ImGui::OpenPopup("HierarchyContextMenu");
+			} else if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && EditorScene::s_selectedEntity != nullptr && canEditHierarchy) {
+				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
+			}
 		}
 
 		if (ImGui::BeginPopupContextWindow("HierarchyContextMenu")) {
 			if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
 			}
-			if (ImGui::MenuItem("Copy", "Ctrl+C", false, false)) {
+			if (ImGui::MenuItem("Copy", "Ctrl+C", false, canEditHierarchy)) {
+				EditorScene::CopySelected();
 			}
-			if (ImGui::MenuItem("Paste", "Ctrl+V", false, false)) {
-			}
-			if (ImGui::MenuItem("Paste Special", "", false, false)) {
+			if (ImGui::MenuItem("Paste", "Ctrl+V", false, canEditHierarchy)) {
+				EditorScene::PasteSelected();
 			}
 			if (ImGui::MenuItem("Rename", "", false, false)) {
 			}
-			if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, false)) {
+			if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, canEditHierarchy)) {
+				EditorScene::DuplicateSelected();
 			}
-			if (ImGui::MenuItem("Delete", "Del", false, EditorScene::s_selectedEntity)) {
+			if (ImGui::MenuItem("Delete", "Del", false, canEditHierarchy)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, DeleteEntityEvent{ EditorScene::s_selectedEntity->linkedEntity });
 			}
 			ImGui::Separator();
@@ -72,28 +72,25 @@ namespace Editor {
 			}
 			ImGui::Separator();
 
-			if (ImGui::MenuItem("Create Entity")) {
+			if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
 				NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, CreateEntityEvent{});
-				//NE::
-				//Editor::EditorScene::BuildFlatHierarchy();
-				// need to add into display list also currently creates but not shown in hierarchy
 			}
-			if (ImGui::BeginMenu("3D Object")) { // Creates a submenu with an arrow
-				if (ImGui::MenuItem("Cube")) {
+			if (ImGui::BeginMenu("3D Object")) {
+				if (ImGui::MenuItem("Cube", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Sphere")) {
+				if (ImGui::MenuItem("Sphere", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Capsule")) {
+				if (ImGui::MenuItem("Capsule", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Cylinder")) {
+				if (ImGui::MenuItem("Cylinder", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Plane")) {
+				if (ImGui::MenuItem("Plane", "", false, false)) {
 				}
-				if (ImGui::MenuItem("Quad")) {
+				if (ImGui::MenuItem("Quad", "", false, false)) {
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGui::MenuItem("Camera")) {
+			if (ImGui::MenuItem("Camera", "", false, false)) {
 				//CreateCameraEntity();
 			}
 
@@ -117,11 +114,40 @@ namespace Editor {
 		// === Entity Tree ===
 		//static bool s_built = false;
 		//if (!s_built) { Editor::EditorScene::BuildFlatHierarchy(); s_built = true; }
+
+		if (EditorScene::selectedPrefab != "") {
+			if (ImGui::Button("<")) {
+				NE::ClosePrefabScene();
+				EditorScene::s_selectedEntity = nullptr;
+				EditorScene::RebuildFromActiveScene();
+				EditorScene::selectedPrefab = "";
+			}
+
+			ImGui::SameLine();
+			ImGui::Text(EditorScene::selectedPrefab.c_str());
+			ImGui::SameLine();
+
+			if (ImGui::Button("Save")) {
+				NE::SavePrefabScene(EditorScene::selectedPrefab);
+				std::string uuid = AssetManager::GetInstance().RetrieveUUID(EditorScene::selectedPrefab);
+				NE::ReloadAllInstancesOfPrefab(uuid, EditorScene::selectedPrefab);
+			}
+
+			ImGui::Separator();
+		}
+
 		static bool s_built = false;
 		if (!s_built) {
 			Editor::EditorScene::BuildHierarchyFromECS();
 			s_built = true;
 		}
+		//static int s_lastEntityCount = -1;
+		//int currentCount = static_cast<int>(NE::GetNumEntities().size());
+
+		//if (currentCount != s_lastEntityCount) {
+		//	Editor::EditorScene::RebuildFromActiveScene();
+		//	s_lastEntityCount = currentCount;
+		//}
 
 		// ---- Drag state ----
 		static uint32_t draggingId = NE::ECS::NO_ENTITY;
@@ -169,9 +195,39 @@ namespace Editor {
 				if (Editor::EditorScene::s_selectedEntity && ent == Editor::EditorScene::s_selectedEntity)
 					flags |= ImGuiTreeNodeFlags_Selected;
 
-				// Optional: auto-open non-leaf by default
-				// if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+				// --- Color logic ---------------------------------------------------
+				bool isActive = meta.isActive;
+				bool isPrefab = !meta.prefabID.empty();
 
+				ImVec4 baseText = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+				ImVec4 disabled = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+				ImVec4 prefabBlue = ImVec4(0.35f, 0.65f, 1.0f, 1.0f); // tweak to taste
+
+				ImVec4 finalColor = baseText;
+				bool useCustomColor = false;
+
+				if (isPrefab && isActive) {
+					// Active prefab -> blue
+					finalColor = prefabBlue;
+					useCustomColor = true;
+				} else if (!isActive && !isPrefab) {
+					// Inactive non-prefab -> gray
+					finalColor = disabled;
+					useCustomColor = true;
+				} else if (!isActive && isPrefab) {
+					// Inactive prefab -> "grayed-out blue" (blend disabled + blue)
+					const float t = 0.4f; // 0 = fully gray, 1 = fully blue
+					finalColor.x = disabled.x * (1.0f - t) + prefabBlue.x * t;
+					finalColor.y = disabled.y * (1.0f - t) + prefabBlue.y * t;
+					finalColor.z = disabled.z * (1.0f - t) + prefabBlue.z * t;
+					finalColor.w = 1.0f;
+					useCustomColor = true;
+				}
+
+				if (useCustomColor)
+					ImGui::PushStyleColor(ImGuiCol_Text, finalColor);
+
+				// -------------------------------------------------------------------
 				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
 
 				if (ImGui::BeginPopupContextItem()) {
@@ -193,7 +249,14 @@ namespace Editor {
 
 					ImGui::EndPopup();
 				}
-			 
+
+
+				if (useCustomColor)
+					ImGui::PopStyleColor();
+
+				// Optional: auto-open non-leaf by default
+				// if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+
 				// Delay selection logic - only select if not starting a drag
 				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
 					clickedEntityId = id;
@@ -310,9 +373,9 @@ namespace Editor {
 		if (draggingId != NE::ECS::NO_ENTITY && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			if (hierHovered) {
 				if (previewAsChild && previewParent != NE::ECS::NO_ENTITY) {
-					Editor::EditorScene::AttachAsChild(previewParent, draggingId, /*insertIndex*/ -1);
+					EditorScene::AttachAsChild(previewParent, draggingId, /*insertIndex*/ -1);
 				} else if (previewInsert >= 0) {
-					Editor::EditorScene::AttachAsChild(previewParentForInsert, draggingId, previewInsert);
+					EditorScene::AttachAsChild(previewParentForInsert, draggingId, previewInsert);
 				}
 			}
 
@@ -327,7 +390,7 @@ namespace Editor {
 		if (clickedThisFrame && !ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
 			ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			if (hierHovered) {
-				Editor::EditorScene::s_selectedEntity = clickedEntity;
+				EditorScene::s_selectedEntity = clickedEntity;
 				EditorScene::selectedAsset = "";
 			}
 
@@ -340,4 +403,5 @@ namespace Editor {
 
 		ImGui::End();
 	}
+
 }

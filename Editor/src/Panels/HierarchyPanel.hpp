@@ -10,7 +10,5 @@ namespace Editor {
 		HierarchyPanel();
 
 		virtual void OnImGuiRender() override;
-
-	private:
 	};
 }

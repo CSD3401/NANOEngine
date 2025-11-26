@@ -3,6 +3,9 @@
 #include <ECS/Core/Entity.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include "../src/ECS/Components/UIRectTransform.hpp"
+#include <Engine.hpp>
+#include <ECS/Components/EntityMeta.hpp>
+#include <unordered_set>
 
 namespace {
     // helper function: remove an entity ID from a vector if it exist
@@ -17,71 +20,16 @@ namespace Editor {
     std::vector<EditorEntity> EditorScene::s_entities;
     EditorEntity* EditorScene::s_selectedEntity;
 
-    //std::string EditorScene::selectedMaterial;
     std::string EditorScene::selectedAsset;
-
+    std::string EditorScene::selectedPrefab;
+    std::vector<uint8_t> EditorScene::clipboard;
     std::string EditorScene::currentScenePath("Assets/NewScene.scene");
 
     std::unordered_map<uint32_t, Node> EditorScene::s_nodes;
     std::unordered_map<uint32_t, std::vector<uint32_t>> EditorScene::s_children;
     std::vector<uint32_t> EditorScene::s_roots;
 
-    // builds the hierarchy tree from the flat entity list
-    // void EditorScene::BuildFlatHierarchy() {
-    //     // clear old data
-    //     s_nodes.clear();
-    //     s_children.clear();
-    //     s_roots.clear();
-
-    //     s_roots.reserve(s_entities.size());
-
-    //     // first pass: loop through all entities in the scene and determine its parent
-    //     float k = 0.f;
-    //     for (const auto& e : s_entities) {                    // s_entities exists already
-    //         uint32_t id = e.linkedEntity;                    // (see your struct) 
-    //         //s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
-    //         //s_roots.push_back(id);
-
-    //         uint32_t parentId = NE::ECS::NO_ENTITY;
-    //         if (NE::ECS::Query::HasUIRectTransform(id)) 
-    //         {
-    //             auto& rect = NE::ECS::Query::GetUIRectTransform(id);
-    //             parentId = rect.parent; 
-    //         } 
-    //         // 3D entities: parentId stays NO_ENTITY --> they are all root
-
-    //         // create node with correct parent
-    //         s_nodes[id] = Node{ id, parentId, k };
-
-    //         k += 1.f; // order key
-    //     }
-
-    //     // second pass: build hierarchy relationships (build s_roots and s_children)
-    //     for (const auto& [id, node] : s_nodes) {
-    //         if (node.parent == NE::ECS::NO_ENTITY) 
-    //         {
-    //             s_roots.push_back(id); // this entity is a parent
-    //         }
-    //         else 
-    //         {
-    //             s_children[node.parent].push_back(id); // this entity is a child
-    //         }
-    //     }
-    // }
-    //void EditorScene::BuildFlatHierarchy() {
-    //    s_nodes.clear();
-    //    s_children.clear();
-    //    s_roots.clear();
-
-    //    s_roots.reserve(s_entities.size());
-    //    float k = 0.f;
-    //    for (const auto& e : s_entities) {                    // s_entities exists already
-    //        uint32_t id = e.linkedEntity;                    // (see your struct) 
-    //        s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
-    //        s_roots.push_back(id);
-    //        k += 1.f;
-    //    }
-    //}
+    NE::Graphics::EditorCamera EditorScene::m_editorCamera;
 
     // reassigns order keys to preveent precision issues
     static void RenormalizeKeys(std::vector<uint32_t>& ids, uint32_t) {
@@ -92,7 +40,21 @@ namespace Editor {
         }
     }
 
-    // returns the children of a given parent
+    void EditorScene::RebuildFromActiveScene() {
+        s_entities.clear();
+        s_nodes.clear();
+        s_children.clear();
+        s_roots.clear();
+
+        auto numEntt = NE::GetNumEntities();
+        s_entities.reserve(numEntt.size());
+        for (auto e : numEntt) {
+            s_entities.push_back(EditorEntity{ e });
+        }
+
+        BuildHierarchyFromECS();
+    }
+
     const std::vector<uint32_t>& EditorScene::ChildrenOf(uint32_t parent) {
         if (parent == NE::ECS::NO_ENTITY) return s_roots;
         return s_children[parent];
@@ -182,6 +144,29 @@ namespace Editor {
         return AttachAsChild(NE::ECS::NO_ENTITY, child, insertIndex);
     }
 
+    void EditorScene::GetAllDescendants(uint32_t id, std::vector<uint32_t>& out) {
+        out.push_back(id);
+
+        auto it = s_children.find(id);
+        if (it != s_children.end()) {
+            for (uint32_t child : it->second) {
+                GetAllDescendants(child, out);
+            }
+        }
+    }
+
+    void EditorScene::SetAllDescendantsActive(uint32_t id, bool& active) {
+        auto& enttMeta = NE::ECS::Command::GetEntityMeta(id);
+        enttMeta.isActive = active;
+
+        auto it = s_children.find(id);
+        if (it != s_children.end()) {
+            for (uint32_t child : it->second) {
+                SetAllDescendantsActive(child, active);
+            }
+        }
+    }
+
     void EditorScene::BuildHierarchyFromECS() {
         s_nodes.clear();
         s_children.clear();
@@ -189,22 +174,19 @@ namespace Editor {
 
         s_roots.reserve(s_entities.size());
 
-        // --- First pass: create nodes with parent taken from ECS ---
         for (const auto& e : s_entities) {
             uint32_t id = e.linkedEntity;
 
-            // Ask ECS what the parent is (this should reflect Transform.parent)
-            uint32_t parent = NE::ECS::Command::GetParent(id); // NO_ENTITY if root
+            uint32_t parent = NE::ECS::Command::GetParent(id);
 
             Node node;
             node.id = id;
-            node.parent = parent;  // NE::ECS::NO_ENTITY means root for us too
-            node.orderKey = 0.0f;  // we'll fill this in per-sibling
+            node.parent = parent;
+            node.orderKey = 0.0f;
 
             s_nodes[id] = node;
         }
 
-        // --- Second pass: fill children and roots ---
         for (auto& [id, node] : s_nodes) {
             if (node.parent == NE::ECS::NO_ENTITY) {
                 s_roots.push_back(id);
@@ -213,16 +195,13 @@ namespace Editor {
             }
         }
 
-        // --- Third pass: assign simple orderKey for each sibling list ---
         {
-            // roots
             float k = 0.f;
             for (uint32_t id : s_roots) {
                 s_nodes[id].orderKey = k;
                 k += 1.f;
             }
 
-            // children
             for (auto& [parent, vec] : s_children) {
                 float kk = 0.f;
                 for (uint32_t id : vec) {
@@ -231,5 +210,77 @@ namespace Editor {
                 }
             }
         }
+    }
+
+    void EditorScene::DuplicateSelected() {
+        if (!s_selectedEntity) return;
+
+        std::vector<uint32_t> newEntities = NE::DuplicateEntity(EditorScene::s_selectedEntity->linkedEntity);
+
+        if (newEntities.empty()) return;
+
+        std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+        for (uint32_t entt : newEntities) {
+            EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+            Node node{};
+            node.id = entt;
+
+            uint32_t parent = NE::ECS::Command::GetParent(entt);
+            node.parent = parent;
+
+            if (parent == NE::ECS::NO_ENTITY) {
+                node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+                EditorScene::s_roots.push_back(entt);
+            } else {
+                auto& childrenVec = Editor::EditorScene::s_children[parent];
+                node.orderKey = static_cast<float>(childrenVec.size());
+                childrenVec.push_back(entt);
+            }
+
+            EditorScene::s_nodes[entt] = node;
+        }
+
+        EditorScene::s_selectedEntity = nullptr;
+    }
+
+    void EditorScene::CopySelected() {
+        if (!s_selectedEntity) return;
+
+        clipboard = NE::CopyEntity(EditorScene::s_selectedEntity->linkedEntity);
+    }
+
+    void EditorScene::PasteSelected() {
+        if (clipboard.empty()) return;
+
+        std::vector<uint32_t> newEntities = NE::PasteEntity(clipboard);
+
+        if (newEntities.empty()) return;
+
+        std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+        for (uint32_t entt : newEntities) {
+            EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+            Node node{};
+            node.id = entt;
+
+            uint32_t parent = NE::ECS::Command::GetParent(entt);
+            node.parent = parent;
+
+            if (parent == NE::ECS::NO_ENTITY) {
+                node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+                EditorScene::s_roots.push_back(entt);
+            } else {
+                auto& childrenVec = Editor::EditorScene::s_children[parent];
+                node.orderKey = static_cast<float>(childrenVec.size());
+                childrenVec.push_back(entt);
+            }
+
+            EditorScene::s_nodes[entt] = node;
+        }
+
+        EditorScene::s_selectedEntity = nullptr;
     }
 }

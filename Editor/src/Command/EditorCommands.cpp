@@ -202,33 +202,39 @@ namespace Editor {
 
 	void DeleteEntityCommand::Execute()
 	{
-		const uint32_t id = m_entity;
+		const uint32_t rootId = m_entity;
 
-		// temp
-		auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
-			[id = m_entity](const EditorEntity& entt) {
-				return entt.linkedEntity == id;
-			});
+		std::vector<uint32_t> toDelete;
+		EditorScene::GetAllDescendants(rootId, toDelete);
 
-		if (it != EditorScene::s_entities.end()) {
-			EditorScene::s_entities.erase(it);
+		for (uint32_t id : toDelete) {
+			{
+				auto it = std::find_if(
+					EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
+					[id](const EditorEntity& e) { return e.linkedEntity == id; }
+				);
+				if (it != EditorScene::s_entities.end()) {
+					EditorScene::s_entities.erase(it);
+				}
+			}
+
+			EditorScene::s_nodes.erase(id);
+
+			auto& roots = EditorScene::s_roots;
+			roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
+
+			for (auto& [parent, vec] : EditorScene::s_children) {
+				vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
+			}
+
+			NE::ECS::Command::DestroyEntity(id);
 		}
 
-		EditorScene::s_nodes.erase(id);
-
-		auto& roots = EditorScene::s_roots;
-		roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
-
-		for (auto& [parent, vec] : EditorScene::s_children) {
-			vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
+		if (EditorScene::s_selectedEntity &&
+			std::find(toDelete.begin(), toDelete.end(),
+				EditorScene::s_selectedEntity->linkedEntity) != toDelete.end()) {
+			EditorScene::s_selectedEntity = nullptr;
 		}
-
-		if (Editor::EditorScene::s_selectedEntity &&
-			Editor::EditorScene::s_selectedEntity->linkedEntity == id) {
-			Editor::EditorScene::s_selectedEntity = nullptr;
-		}
-
-		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
 	void DeleteEntityCommand::Undo()
