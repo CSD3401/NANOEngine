@@ -287,17 +287,15 @@ namespace Scripting {
         Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
         Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
-        // Convert degrees to radians
         float pitch = rotation.x * (3.14159265f / 180.0f);
         float yaw = rotation.y * (3.14159265f / 180.0f);
 
-        // Calculate forward vector from Euler angles (Y-up, Z-forward, X-right)
         Vec3 forward;
-        forward.x = std::cos(pitch) * std::sin(yaw);
-        forward.y = -std::sin(pitch);
-        forward.z = -std::cos(pitch) * std::cos(yaw);
+        forward.x = std::cos(pitch) * std::cos(yaw);
+        forward.y = std::sin(pitch);
+        forward.z = std::cos(pitch) * std::sin(yaw);
 
-        return Normalize(forward);
+        return forward.Normalized();
     }
 
     Vec3 IScript::GetRight(Entity entity) const {

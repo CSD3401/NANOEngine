@@ -17,7 +17,7 @@ namespace NE::Graphics {
     public:
         EditorCamera();
 
-        void SetPerspective(float fovYRadians, float aspectRatio, float nearPlane, float farPlane,
+        void SetPerspective(float fov, float aspectRatio, float nearPlane, float farPlane,
             bool reverseZ = false, bool flipY = false);
 
         void SetOrthographic(float left, float right, float bottom, float top, float nearPlane, float farPlane);
@@ -29,7 +29,6 @@ namespace NE::Graphics {
         const Mat4& GetProjectionMatrix() const;
         const Vec3& GetPosition() const;
         Vec3 GetForward() const;
-
     private:
         Vec3 m_position;
         Vec3 m_target;
