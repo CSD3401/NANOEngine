@@ -696,7 +696,7 @@ namespace NE::Graphics {
         //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
 
-        UIRenderer::Composite(s_SceneFrameBuffer->GetFramebuffer());
+        UIRenderer::Composite(s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetFramebuffer());
         UIRenderer::ClearCommands();
 
         if (!printed) {

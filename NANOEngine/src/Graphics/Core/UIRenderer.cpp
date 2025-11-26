@@ -99,7 +99,7 @@ namespace NE::Graphics {
                 std::cout << "[UI FBO] Incomplete: 0x" << std::hex << st << std::dec << std::endl;
             }
 
-            s_FBO->Unbind(); // back to FBO 0 (default framebuffer)
+            OpenGL::GLFrameBuffer::Unbind();
         }
 
         // color UI shader
@@ -395,7 +395,7 @@ namespace NE::Graphics {
     }
 
     void UIRenderer::EndFrame() {
-        if (s_FBO) s_FBO->Unbind();
+        if (s_FBO) OpenGL::GLFrameBuffer::Unbind();
 
         // check
         static bool printed = false;
@@ -450,7 +450,7 @@ namespace NE::Graphics {
         glUseProgram(0);
 
         if (s_FBO) {
-            s_FBO->Unbind();
+            OpenGL::GLFrameBuffer::Unbind();
         }
     }
 
