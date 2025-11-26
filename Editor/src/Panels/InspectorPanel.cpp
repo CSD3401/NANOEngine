@@ -514,7 +514,7 @@ namespace Editor {
 
 					// Material field
 					char bufMat[256];
-					strncpy_s(bufMat, comp.materialUUID.c_str(), sizeof(bufMat));
+					strncpy_s(bufMat, AssetManager::GetInstance().RetrieveFileName(comp.materialUUID).c_str(), sizeof(bufMat));
 					ImGui::InputText("Material", bufMat, sizeof(bufMat));
 
 					if (ImGui::BeginDragDropTarget()) {
