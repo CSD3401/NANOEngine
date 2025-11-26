@@ -55,8 +55,7 @@ namespace NE::Graphics {
         bool Preload(Resource::BinaryView blob) override;
         void Finalize() override;
 
-        void SetUniformMat4Array(const std::string& name, const std::vector<NE::Math::Mat4>& values);
-
+        //void SetUniformMat4Array(const std::string& name, const std::vector<NE::Math::Mat4>& values); // warning: definition not found
 
         // public member vars for now
         std::shared_ptr<IPipeline> m_Pipeline;

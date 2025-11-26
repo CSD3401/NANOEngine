@@ -74,6 +74,9 @@
     <ClCompile Include="src\Scripting\ScriptTypes.cpp" />
     <ClCompile Include="src\Scripting\ScriptContextFactory.cpp" />
     <ClCompile Include="src\Scripting\ScriptAPI.cpp" />
+    <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\UIRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
   </ItemGroup>
@@ -186,6 +189,14 @@
     <ClInclude Include="src\Tween\Tween.hpp" />
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
+    <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
+    <ClInclude Include="src\ECS\Components\UIImage.hpp" />
+    <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIDrawCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIRenderer.hpp" />
+    <ClInclude Include="src\ECS\Components\UICanvas.hpp" />
+    <ClInclude Include="src\ECS\Components\UIText.hpp" />
+    <ClInclude Include="src\ECS\Components\UIButton.hpp" />
     <ClInclude Include="src\ECS\Components\Camera.hpp" />
     <ClInclude Include="src\ECS\Systems\CameraSystem.hpp" />
     <ClInclude Include="src\Animation\AnimatorController.hpp" />
@@ -210,6 +221,8 @@
     <ClInclude Include="include\ScriptSDK\Math.h" />
     <ClInclude Include="include\ScriptSDK\ECS.h" />
     <ClInclude Include="include\ScriptSDK\Components.h" />
+    <ClInclude Include="src\Graphics\Core\UIImageMeshGenerator.hpp" />
+    <ClInclude Include="src\Math\UILayoutCalculator.hpp" />
     <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />

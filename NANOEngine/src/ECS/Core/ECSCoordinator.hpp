@@ -11,6 +11,7 @@ namespace NE::ECS::Systems {
     class ColliderSystem; 
     class AudioSystem;
 	class ScriptSystem;
+    class UIRenderSystem;
     class AnimatorSystem;
 	class CameraSystem;
     class PhysicsSystem;
@@ -26,6 +27,11 @@ namespace NE::ECS {
         Entity CreateEntity();
 
         void DestroyEntity(Entity e);
+
+        // --- UI API ---
+        //Entity CreateUIEntity();
+        Entity CreateUICanvasEntity();
+        Entity CreateUIImageEntity(Entity parentCanvas);
 
         // --- Component API ---
         template<typename T>
@@ -112,6 +118,7 @@ namespace NE::ECS {
         std::shared_ptr<Systems::AudioSystem> m_audioSystem;
         std::shared_ptr<Systems::PhysicsSystem> m_physicsSystem;
 		std::shared_ptr<Systems::ScriptSystem> m_scriptSystem;
+		std::shared_ptr<Systems::UIRenderSystem> m_uiRenderSystem;
         std::shared_ptr<Systems::AnimatorSystem> m_animatorSystem;
         std::shared_ptr<Systems::CameraSystem> m_cameraSystem;
 

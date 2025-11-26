@@ -1,0 +1,12 @@
+{
+    "Shader": "neunlit",
+    "DepthTest": true,
+    "BlendMode": true,
+    "CullMode": 0,
+    "PolygonMode": 6914,
+    "Properties": {
+        "uColor": [1.0, 1.0, 1.0, 1.0],
+        "u_HasBaseMap": 0,
+        "u_BaseMap": ""
+    }
+}

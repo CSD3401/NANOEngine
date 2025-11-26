@@ -20,7 +20,9 @@ namespace NE::Graphics::OpenGL {
 
 		void SetUniformInt(const std::string& name, int value) override;
 		void SetUniformFloat(const std::string& name, float value) override;
+		void SetUniformVec2(const std::string& name, const NE::Math::Vec2& value) override;
 		void SetUniformVec3(const std::string& name, const Vec3& value) override;
+		void SetUniformVec4(const std::string& name, const NE::Math::Vec4& value) override;
 		void SetUniformMat4(const std::string& name, const Mat4& matrix) override;
 
 		void SetUniformHandle(const std::string& uName, uint64_t handle) override;
