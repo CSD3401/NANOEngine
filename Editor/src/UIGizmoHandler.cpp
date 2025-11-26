@@ -51,26 +51,6 @@ namespace Editor {
         return ImVec2(worldX, worldY);
     }
 
-    // Helper: Build matrix from UIRectTransform
-    static NE::Math::Mat4 BuildUIMatrix(const NE::ECS::Component::UIRectTransform& rect) {
-        NE::Math::Mat4 matrix;
-        matrix.SetToIdentity();
-
-        // Translation (position in 3D space)
-        matrix = NE::Math::Mat4::BuildTranslation(rect.GetPosition()) * matrix;
-
-        // Rotation
-        NE::Math::Mat4 rotMatrix = rect.GetRotationMatrix();
-        matrix = rotMatrix * matrix;
-
-        // Scale
-        NE::Math::Vec3 scale = rect.GetScale();
-        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
-        matrix = scaleMatrix * matrix;
-
-        return matrix;
-    }
-
     // ============ 3D GIZMO (World Space UI) ============
 
     void UIGizmoHandler::Begin3DGizmo(uint32_t uiEntityId, ImVec2 panelPos, ImVec2 panelSize) {
@@ -83,6 +63,9 @@ namespace Editor {
         s_gizmoEntityId = uiEntityId;
         s_gizmoActive = true;
         s_gizmoType = 2; // 3D gizmo
+
+        // Store original transform for undo/redo
+        s_originalTransform = rect;
 
         // Setup ImGuizmo
         ImGuizmo::SetOrthographic(false);
@@ -136,6 +119,13 @@ namespace Editor {
         s_gizmoEntityId = 0;
     }
 
+    NE::Math::Mat4 UIGizmoHandler::BuildUIMatrix(const NE::ECS::Component::UIRectTransform& rect) {
+        NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(rect.x, rect.y, rect.z);
+        NE::Math::Mat4 R = rect.GetRotationMatrix();  // Already handles degree?radian conversion
+        NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(rect.scaleX, rect.scaleY, rect.scaleZ);
+        return T * R * S;
+    }
+
     // ============ 2D GIZMO (Screen Space UI) ============
 
     void UIGizmoHandler::Begin2DGizmo(uint32_t uiEntityId) {
@@ -144,6 +134,10 @@ namespace Editor {
         s_gizmoEntityId = uiEntityId;
         s_gizmoActive = true;
         s_gizmoType = 1; // 2D gizmo
+
+        // Store original transform for undo/redo command
+        s_originalTransform = NE::ECS::Query::GetUIRectTransform(uiEntityId);
+        s_originalWorldPos = CalculateUIWorldPosition(uiEntityId);
 
         s_isDraggingUI = false;
         s_draggingCorner = -1;
@@ -348,7 +342,6 @@ namespace Editor {
         if (s_isDraggingUI && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_isDraggingUI = false;
-            // TODO: Push command for undo/redo
         }
 
         // Perform corner resize
@@ -404,7 +397,6 @@ namespace Editor {
         if (s_draggingCorner >= 0 && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_draggingCorner = -1;
-            // TODO: Push command for undo/redo
         }
 
         // Perform edge resize
@@ -450,7 +442,6 @@ namespace Editor {
         if (s_draggingEdge >= 0 && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_draggingEdge = -1;
-            // TODO: Push command for undo/redo
         }
 
         // Reset on mouse release
