@@ -2,6 +2,8 @@
 #include <glad/glad.h>
 #include "../Core/Vertex.hpp"
 #include "../Core/InstanceData.hpp"
+#include "../Interfaces/IVertexBuffer.hpp"
+#include "../Interfaces/IIndexBuffer.hpp"
 
 namespace NE::Graphics::OpenGL {
 
@@ -55,11 +57,13 @@ namespace NE::Graphics::OpenGL {
     {
     }
 
-    void GLGeometryBuffer::Bind() const {
+    void GLGeometryBuffer::Bind() const 
+    {
         glBindVertexArray(m_VAO);
     }
 
-    void GLGeometryBuffer::Draw() const {
+    void GLGeometryBuffer::Draw() const 
+    {
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_IndexBuffer->GetCount()), GL_UNSIGNED_INT, nullptr);
     }
 

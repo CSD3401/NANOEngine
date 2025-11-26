@@ -1,25 +1,44 @@
 #include "GraphicsManager.hpp"
-#include "../../Math/Mat4.hpp"
-#include "../OpenGL/GLCommandBuffer.hpp"
-#include "../Interfaces/IShader.hpp"
+
 #include "EditorCamera.hpp"
 #include "Skybox.hpp"
-#include <glad/glad.h>
-#include "../../Core/Logger.hpp"
-#include "../../Core/Profiler.hpp"
+#include "Material.hpp"
+#include "DrawCommand.hpp"
+#include "DrawQueue.hpp"
+#include "RenderViewManager.hpp"
+#include "RenderSettings.hpp"
+#include "InstanceData.hpp"
+#include "Primitives.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
+
+#include "../../Math/Mat4.hpp"
+#include "../../Math/Vec3.hpp"
+
 #include "../Interfaces/IFrameBuffer.hpp"
-#include "../../ECS/Components/Light.hpp"
+#include "../Interfaces/IShader.hpp"
+#include "../Interfaces/ICommandBuffer.hpp"
+#include "../Interfaces/IPipeline.hpp"
+#include "../Interfaces/IGeometryBuffer.hpp"
+#include "../Interfaces/IStateCache.hpp"
+#include "../Interfaces/IClusteredLighting.hpp"
+
+#include "../OpenGL/GLCommandBuffer.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
-#include "../Core/Primitives.hpp"
-#include "GizmosRenderer.hpp"
 #include "../OpenGL/GLStateCache.hpp"
-#include "Graphics/OpenGL/GLFrameBuffer.hpp"
-#include "../../SceneManagement/Scene.hpp"
-#include "Core/SpdLogger.hpp"
-#include "InstanceData.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
+#include "../OpenGL/GLFrameBuffer.hpp"
+#include "../OpenGL/GLClusteredLighting.hpp"
+
+#include "Core/SpdLogger.hpp"
+#include "GizmosRenderer.hpp"
+#include "../../Core/Logger.hpp"
+#include "../../Core/Profiler.hpp"
+#include "../../ECS/Components/Light.hpp"
+#include "../../SceneManagement/Scene.hpp"
+
+#include <glad/glad.h>
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 
@@ -34,9 +53,10 @@ namespace NE::Graphics {
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
-    RenderViewHandle GraphicsManager::s_ActiveViewHandle;
-    RenderViewHandle GraphicsManager::s_SceneViewHandle;
+	RenderViewHandle GraphicsManager::s_ActiveViewHandle; // This is private and used internally
+	RenderViewHandle GraphicsManager::s_SceneViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
+	std::shared_ptr<IClusteredLighting> GraphicsManager::clusteredLighting;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
     std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
@@ -44,11 +64,10 @@ namespace NE::Graphics {
     int GraphicsManager::s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
     int GraphicsManager::s_DebugProjLoc;
 
-    GLuint debugShaderProgram, debugVAO, debugVBO;
-
     RenderSettings GraphicsManager::renderSettings;
 
-    //END FOG 
+    GLuint debugShaderProgram, debugVAO, debugVBO;
+    
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
@@ -58,6 +77,8 @@ namespace NE::Graphics {
 
         s_SceneViewHandle = s_RenderViewManager->Create(1920, 1080, true);
         //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
+
+		clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
 
@@ -89,7 +110,6 @@ namespace NE::Graphics {
         //auto skinned = std::make_shared<OpenGL::GLShader>();
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
-
     }
 
     void GraphicsManager::BeginFrame() 

@@ -39,8 +39,11 @@ namespace NE::Graphics::OpenGL {
 		std::vector<UniformDesc> EnumerateActiveUniforms() const;
 		bool HasUniform(std::string_view name) const;
 
-
 		void SetUniformMat4Array(const std::string& uName, const NE::Math::Mat4* data, int count) override;
+
+		bool IsCompute() const override { return isCompute; }
+		bool IsValid() const override { return m_programID != 0; }
+
 	private:
 		const uint8_t* progBlob = nullptr;
 		size_t progSize = 0;
@@ -52,6 +55,9 @@ namespace NE::Graphics::OpenGL {
 		const char* fsSrc = nullptr;
 		size_t fsLen = 0;
 
+		bool isCompute = false;
+		const char* csSrc = nullptr;
+		size_t csLen = 0;
 
 		uint32_t m_programID;
 		std::unordered_map<std::string, int> m_uniformLocationCache;

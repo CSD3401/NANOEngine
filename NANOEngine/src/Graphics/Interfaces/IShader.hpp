@@ -30,6 +30,9 @@ namespace NE::Graphics {
 
 		virtual const std::string_view GetUUID() const = 0;
         virtual void SetUniformMat4Array(const std::string& name, const NE::Math::Mat4* data, int count) = 0;
+
+		virtual bool IsCompute() const = 0;
+		virtual bool IsValid() const = 0;
     };
 
 }

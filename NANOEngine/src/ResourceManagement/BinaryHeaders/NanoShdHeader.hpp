@@ -10,7 +10,7 @@ namespace NE::Resource {
 	struct NanoShdHeader {
 		uint32_t magic = NSHD_MAGIC;
 		uint16_t importerVersion = CURRENT_NANOSHD_FORMAT_VERSION;
-		uint8_t stagesMask = 0; // VS=1<<0, FS=1<<4 etc...
+		uint32_t stagesMask = 0; // VS=1<<0, FS=1<<4 etc...
 		uint8_t programFormat = 1; // 1 = GL program binary
 
 		uint64_t sourceHash = 0;
