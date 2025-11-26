@@ -164,7 +164,7 @@ namespace NE::Physics
 					transform.localPosition,
 					transform.localRotationEuler,
 					fullSize,
-					JPH::EMotionType::Dynamic
+					JPH::EMotionType::Dynamic, entity
 				);
 
 				printf("CreateBoxBody returned: %u\n", bodyId);

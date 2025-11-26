@@ -50,6 +50,21 @@ namespace NE::ECS::Systems {
 		if (t.parentLuid != 0) {
 			m_pendingParents.push_back({ e, t.parentLuid });
 		}
+
+		Math::Mat4 translation = Math::Mat4::BuildTranslation(t.localPosition);
+
+		Math::Mat4 rotation =
+			Math::Mat4::BuildXRotation(t.localRotationEuler.x) *
+			Math::Mat4::BuildYRotation(t.localRotationEuler.y) *
+			Math::Mat4::BuildZRotation(t.localRotationEuler.z);
+
+		Math::Mat4 scale =
+			Math::Mat4::BuildScaling(t.localScale.x,
+				t.localScale.y,
+				t.localScale.z);
+
+		t.localMatrix = translation * rotation * scale;
+		t.worldMatrix = t.localMatrix;
 	}
 
 	void TransformSystem::OnEntityRemoved(Entity) {

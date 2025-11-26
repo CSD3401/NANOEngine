@@ -189,6 +189,20 @@ namespace Scripting {
         return ToSDKVec3(transform.localPosition);
     }
 
+    Vec3 IScript::GetWorldPosition(Entity entity) const {
+        CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+            return Vec3::Zero();
+
+        auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+        Math::Mat4 m = transform.worldMatrix;
+        Math::Vec3 worldPos = m.GetTranslation();
+        return ToSDKVec3(worldPos);
+    }
+
     void IScript::SetPosition(const Vec3& pos, Entity entity) {
         CHECK_CONTEXT_OR_RETURN();
 
@@ -287,17 +301,15 @@ namespace Scripting {
         Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
         Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
-        // Convert degrees to radians
         float pitch = rotation.x * (3.14159265f / 180.0f);
         float yaw = rotation.y * (3.14159265f / 180.0f);
 
-        // Calculate forward vector from Euler angles (Y-up, Z-forward, X-right)
         Vec3 forward;
-        forward.x = std::cos(pitch) * std::sin(yaw);
-        forward.y = -std::sin(pitch);
-        forward.z = -std::cos(pitch) * std::cos(yaw);
+        forward.x = std::cos(pitch) * std::cos(yaw);
+        forward.y = std::sin(pitch);
+        forward.z = std::cos(pitch) * std::sin(yaw);
 
-        return Normalize(forward);
+        return forward.Normalized();
     }
 
     Vec3 IScript::GetRight(Entity entity) const {

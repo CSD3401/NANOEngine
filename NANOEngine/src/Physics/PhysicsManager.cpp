@@ -454,9 +454,11 @@ namespace NE::Physics {
         bodyInterface.DeactivateBody(id);
     }
 
-    uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings) {
+    uint32_t PhysicsManager::CreateBody(const JPH::BodyCreationSettings& settings, uint32_t entity) {
         JPH::BodyInterface& bodyInterface = s_PhysicsSystem->GetBodyInterface();
         JPH::BodyID bodyID = bodyInterface.CreateAndAddBody(settings, JPH::EActivation::DontActivate);
+        SPD_DEBUG("Created Body with ID: " << bodyID.GetIndexAndSequenceNumber() << " with Entity: " << (JPH::uint64)entity);
+        s_PhysicsSystem->GetBodyInterface().SetUserData(bodyID, (JPH::uint64)entity);
         return bodyID.GetIndexAndSequenceNumber();
     }
 
@@ -521,7 +523,7 @@ namespace NE::Physics {
         return s_PhysicsSystem.get();
     }
 
-    uint32_t PhysicsManager::CreateBoxBody(const Math::Vec3& pos, const Math::Vec3& rot, const Math::Vec3& size, JPH::EMotionType motionType)
+    uint32_t PhysicsManager::CreateBoxBody(const Math::Vec3& pos, const Math::Vec3& rot, const Math::Vec3& size, JPH::EMotionType motionType, uint32_t entity)
     {
         if (!s_PhysicsSystem)
             return 0;
@@ -555,7 +557,7 @@ namespace NE::Physics {
         bodySettings.mAllowDynamicOrKinematic = true;
 
         printf("CreateBoxBody successful\n");
-        uint32_t result = CreateBody(bodySettings);
+        uint32_t result = CreateBody(bodySettings, entity);
         return result;
     }
 
@@ -583,7 +585,7 @@ namespace NE::Physics {
     }
 
     uint32_t PhysicsManager::CreateSphereBody(const Math::Vec3& pos, const Math::Vec3& rot,
-        float radius, JPH::EMotionType motionType) {
+        float radius, JPH::EMotionType motionType, uint32_t entity) {
         if (!s_PhysicsSystem) return 0;
 
         printf("Creating sphere with radius: %.2f\n", radius);
@@ -615,10 +617,10 @@ namespace NE::Physics {
         bodySettings.mAllowDynamicOrKinematic = true;
 
         printf("CreateSphereBody successful\n");
-        return CreateBody(bodySettings);
+        return CreateBody(bodySettings, entity);
     }
 
-	uint32_t PhysicsManager::CreateMeshShape(std::string meshID, const std::vector<Math::Vec3>& vertices, const std::vector<uint32_t>& indices) {
+	uint32_t PhysicsManager::CreateMeshShape(std::string meshID, const std::vector<Math::Vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t entity) {
         if (!s_PhysicsSystem)
             return 0;
 
@@ -692,7 +694,7 @@ namespace NE::Physics {
         // Allow marking as kinematic later if you ever need that
         // bodySettings.mAllowDynamicOrKinematic = true;
 
-        uint32_t bodyID = CreateBody(bodySettings);
+        uint32_t bodyID = CreateBody(bodySettings, entity);
 
         printf("PhysicsManager::CreateMeshShape - created mesh body %u (%zu verts, %zu tris)\n",
             bodyID, vertices.size(), indices.size() / 3);
@@ -701,7 +703,7 @@ namespace NE::Physics {
 	}
 
     uint32_t PhysicsManager::CreateCapsuleBody(const Math::Vec3& pos, const Math::Vec3& rot,
-        float halfHeight, float radius, JPH::EMotionType motionType)
+        float halfHeight, float radius, JPH::EMotionType motionType, uint32_t entity)
     {
         if (!s_PhysicsSystem) return 0;
 
@@ -734,7 +736,7 @@ namespace NE::Physics {
         bodySettings.mAllowDynamicOrKinematic = true;
 
         printf("CreateCapsuleBody successful\n");
-        return CreateBody(bodySettings);
+        return CreateBody(bodySettings, entity);
     }
 
     void PhysicsManager::RegisterEntityBody(Entity entity, uint32_t bodyID)
@@ -1090,30 +1092,57 @@ namespace NE::Physics {
 		);
 
 		// Check if we hit something
-		if (hasHit && !result.mBodyID.IsInvalid()) {
-			hit.hasHit = true;
-			hit.distance = result.mFraction * maxDistance;
+		//if (hasHit && !result.mBodyID.IsInvalid()) {
+		//	hit.hasHit = true;
+		//	hit.distance = result.mFraction * maxDistance;
 
-			// Calculate hit point
-			JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
-			hit.point = Math::Vec3(
-				static_cast<float>(hitPoint.GetX()),
-				static_cast<float>(hitPoint.GetY()),
-				static_cast<float>(hitPoint.GetZ())
-			);
+		//	// Calculate hit point
+		//	JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
+		//	hit.point = Math::Vec3(
+		//		static_cast<float>(hitPoint.GetX()),
+		//		static_cast<float>(hitPoint.GetY()),
+		//		static_cast<float>(hitPoint.GetZ())
+		//	);
 
-			// Get surface normal
-			JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
-			if (lock.Succeeded()) {
-				const JPH::Body& body = lock.GetBody();
-				JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
-				hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
-			}
+		//	// Get surface normal
+		//	JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
+		//	if (lock.Succeeded()) {
+		//		const JPH::Body& body = lock.GetBody();
+		//		JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+		//		hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
+		//	}
 
-			// Store body ID and find associated entity
-			hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
-			hit.entity = GetBodyEntity(hit.bodyID);
-		}
+		//	// Store body ID and find associated entity
+		//	hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
+		//	//hit.entity = GetBodyEntity(hit.bodyID);
+  //          hit.entity = static_cast<Entity>(s_PhysicsSystem->GetBodyInterface().GetUserData(result.mBodyID));
+
+  //          SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
+		//}
+        if (hasHit && !result.mBodyID.IsInvalid()) {
+            hit.hasHit = true;
+            hit.distance = result.mFraction * maxDistance;
+
+            JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
+            hit.point = Math::Vec3(
+                (float)hitPoint.GetX(),
+                (float)hitPoint.GetY(),
+                (float)hitPoint.GetZ()
+            );
+
+            JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
+            if (lock.Succeeded()) {
+                const JPH::Body& body = lock.GetBody();
+
+                JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+                hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
+
+                hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
+                hit.entity = static_cast<Entity>(body.GetUserData());
+            }
+
+            SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
+        }
 
 		return hit;
 	}

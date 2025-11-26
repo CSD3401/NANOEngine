@@ -2,11 +2,13 @@
 #include <algorithm>
 #include <ECS/Core/Entity.hpp>
 #include <EditorInterface/ECSExports.hpp>
+#include "../src/ECS/Components/UIRectTransform.hpp"
 #include <Engine.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <unordered_set>
 
 namespace {
+    // helper function: remove an entity ID from a vector if it exist
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
         auto it = std::find(v.begin(), v.end(), id);
         if (it != v.end()) v.erase(it);
@@ -29,6 +31,7 @@ namespace Editor {
 
     NE::Graphics::EditorCamera EditorScene::m_editorCamera;
 
+    // reassigns order keys to preveent precision issues
     static void RenormalizeKeys(std::vector<uint32_t>& ids, uint32_t) {
         float k = 0.f;
         for (auto id : ids) {
@@ -57,7 +60,7 @@ namespace Editor {
         return s_children[parent];
     }
 
-    // Reorder within siblings by updating the dragged row's orderKey (constant work).
+    // reorder within siblings by updating the dragged row's orderKey (constant work).
     bool EditorScene::ReorderWithinSiblings(uint32_t parent, uint32_t child, int insertIndex) {
         auto& vec = (parent == NE::ECS::NO_ENTITY) ? s_roots : s_children[parent];
         if (vec.empty()) return false;
@@ -88,6 +91,7 @@ namespace Editor {
         return true;
     }
 
+    // moves an entity to become a child of a new parent
     bool EditorScene::AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex) {
         if (child == NE::ECS::NO_ENTITY || newParent == child) return false;
         // Ensure nodes exist
@@ -100,7 +104,13 @@ namespace Editor {
         auto& oldVec = (oldParent == NE::ECS::NO_ENTITY) ? s_roots : s_children[oldParent];
         RemoveFromVec(oldVec, child);
 
-        // Update parent
+        if (NE::ECS::Query::HasUIRectTransform(child)) 
+        {
+            auto& rect = NE::ECS::Command::GetUIRectTransform(child);
+            rect.parent = newParent;  // Update the parent in the component
+        }
+
+        // Update parent in node
         itChild->second.parent = newParent;
 
         // Insert into new parent's vector
@@ -128,6 +138,7 @@ namespace Editor {
         return true;
     }
 
+    // make an entity a root (remove parent)
     bool EditorScene::UnparentToRoot(uint32_t child, int insertIndex) {
         NE::ECS::Command::SetParent(child, NE::ECS::NO_ENTITY);
         return AttachAsChild(NE::ECS::NO_ENTITY, child, insertIndex);
@@ -243,8 +254,7 @@ namespace Editor {
     void EditorScene::PasteSelected() {
         if (clipboard.empty()) return;
 
-        NE::Math::Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
-        std::vector<uint32_t> newEntities = NE::PasteEntity(clipboard, camForwardPos);
+        std::vector<uint32_t> newEntities = NE::PasteEntity(clipboard);
 
         if (newEntities.empty()) return;
 
