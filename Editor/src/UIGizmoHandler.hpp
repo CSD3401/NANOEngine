@@ -3,11 +3,11 @@
 #include <imgui/imgui.h>
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <ECS/Components/UIRectTransform.hpp>
+#include "Command/EditorSetTransformCommand.hpp"
 #include "Math/Mat4.hpp"
 #include <cstdint>
 
 namespace Editor {
-
     /**
      * @brief Handles UI gizmo interactions for both 2D (screen space) and 3D (world space) UI elements
      */
@@ -28,6 +28,8 @@ namespace Editor {
         static void Update2DGizmo(uint32_t uiEntityId, ImVec2 panelPos, ImVec2 panelSize,
             float fbWidth, float fbHeight);
         static void End2DGizmo(uint32_t uiEntityId);
+
+        static void UpdateCommandAfter(const NE::ECS::Component::UIRectTransform& rect);
 
     private:
         // === Shared State ===
@@ -53,8 +55,13 @@ namespace Editor {
         static float s_originalRotation;
         static ImVec2 s_rotationCenter;
 
+        // === Undo/Redo Command State ===
+        static std::unique_ptr<SetUIRectTransformCommand> s_uiGizmoCmd;
+        static uint8_t s_uiGizmoMask;
+
         // === Helper Functions ===
         static float GetAngleFromCenter(ImVec2 center, ImVec2 point);
+        static void CommitCommand();
     };
 
 } // namespace Editor

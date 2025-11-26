@@ -1,11 +1,28 @@
 #include "UIGizmoHandler.hpp"
 #include "imgui/imgui_internal.h"
 #include "EditorInterface/ECSExports.hpp"
+#include "Command/CommandHistory.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cmath>
 #include <limits>
 #include <iostream>
+
+namespace {
+    static NE::Math::Mat4 BuildUIMatrix(const NE::ECS::Component::UIRectTransform& rect) {
+        NE::Math::Mat4 matrix;
+        matrix.SetToIdentity();
+
+        matrix = NE::Math::Mat4::BuildTranslation(rect.GetPosition()) * matrix;
+        NE::Math::Mat4 rotMatrix = rect.GetRotationMatrix();
+        matrix = rotMatrix * matrix;
+        NE::Math::Vec3 scale = rect.GetScale();
+        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
+        matrix = scaleMatrix * matrix;
+
+        return matrix;
+    }
+}
 
 namespace Editor {
 
@@ -30,46 +47,62 @@ namespace Editor {
     float UIGizmoHandler::s_originalRotation = 0.0f;
     ImVec2 UIGizmoHandler::s_rotationCenter = ImVec2(0, 0);
 
+    // Undo/Redo command state
+    std::unique_ptr<SetUIRectTransformCommand> UIGizmoHandler::s_uiGizmoCmd = nullptr;
+    uint8_t UIGizmoHandler::s_uiGizmoMask = 0;
+
     // ============ Helper Functions ============
-
-    //static ImVec2 CalculateUIWorldPosition(uint32_t entity) {
-    //    auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
-
-    //    float worldX = rect.x;
-    //    float worldY = rect.y;
-
-    //    uint32_t currentParent = rect.parent;
-    //    while (currentParent != std::numeric_limits<uint32_t>::max()) {
-    //        if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
-    //            break;
-    //        }
-
-    //        auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
-    //        worldX += parentRect.x;
-    //        worldY += parentRect.y;
-
-    //        currentParent = parentRect.parent;
-    //    }
-
-    //    return ImVec2(worldX, worldY);
-    //}
-
-    static NE::Math::Mat4 BuildUIMatrix(const NE::ECS::Component::UIRectTransform& rect) {
-        NE::Math::Mat4 matrix;
-        matrix.SetToIdentity();
-
-        matrix = NE::Math::Mat4::BuildTranslation(rect.GetPosition()) * matrix;
-        NE::Math::Mat4 rotMatrix = rect.GetRotationMatrix();
-        matrix = rotMatrix * matrix;
-        NE::Math::Vec3 scale = rect.GetScale();
-        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
-        matrix = scaleMatrix * matrix;
-
-        return matrix;
-    }
 
     float UIGizmoHandler::GetAngleFromCenter(ImVec2 center, ImVec2 point) {
         return std::atan2(point.y - center.y, point.x - center.x) * 180.0f / 3.14159265358979f;
+    }
+
+    void UIGizmoHandler::CommitCommand() {
+        if (!s_uiGizmoCmd) return;
+
+        const auto& before = s_uiGizmoCmd->Before();
+        const auto& after = s_uiGizmoCmd->After();
+
+        bool changed = false;
+
+        if (s_uiGizmoMask & SetUIRectTransformCommand::Pos) {
+            changed |= (std::fabs(before.x - after.x) > 1e-6f ||
+                std::fabs(before.y - after.y) > 1e-6f ||
+                std::fabs(before.z - after.z) > 1e-6f);
+        }
+        if (s_uiGizmoMask & SetUIRectTransformCommand::Rot) {
+            changed |= (std::fabs(before.rotationX - after.rotationX) > 1e-6f ||
+                std::fabs(before.rotationY - after.rotationY) > 1e-6f ||
+                std::fabs(before.rotationZ - after.rotationZ) > 1e-6f);
+        }
+        if (s_uiGizmoMask & SetUIRectTransformCommand::Scl) {
+            changed |= (std::fabs(before.scaleX - after.scaleX) > 1e-6f ||
+                std::fabs(before.scaleY - after.scaleY) > 1e-6f ||
+                std::fabs(before.scaleZ - after.scaleZ) > 1e-6f);
+        }
+        if (s_uiGizmoMask & SetUIRectTransformCommand::Size) {
+            changed |= (std::fabs(before.width - after.width) > 1e-6f ||
+                std::fabs(before.height - after.height) > 1e-6f);
+        }
+        if (s_uiGizmoMask & SetUIRectTransformCommand::Pivot) {
+            changed |= (std::fabs(before.pivotX - after.pivotX) > 1e-6f ||
+                std::fabs(before.pivotY - after.pivotY) > 1e-6f);
+        }
+
+        if (changed) {
+            CommandHistory::GetInstance().ExecuteCommand(std::move(s_uiGizmoCmd));
+        }
+        else {
+            s_uiGizmoCmd.reset();
+        }
+
+        s_uiGizmoMask = 0;
+    }
+
+    void UIGizmoHandler::UpdateCommandAfter(const NE::ECS::Component::UIRectTransform& rect) {
+        if (s_uiGizmoCmd) {
+            s_uiGizmoCmd->SetAfter(rect);
+        }
     }
 
     // ============ 3D Gizmo (World Space UI) ============
@@ -83,6 +116,30 @@ namespace Editor {
         s_gizmoEntityId = uiEntityId;
         s_gizmoActive = true;
         s_gizmoType = 2;
+        s_originalTransform = rect;
+
+        // Create command based on current operation
+        switch (s_currentOperation) {
+        case ImGuizmo::TRANSLATE:
+            s_uiGizmoMask = SetUIRectTransformCommand::Pos;
+            break;
+        case ImGuizmo::ROTATE:
+            s_uiGizmoMask = SetUIRectTransformCommand::Rot;
+            break;
+        case ImGuizmo::SCALE:
+            s_uiGizmoMask = SetUIRectTransformCommand::Scl;
+            break;
+        default:
+            s_uiGizmoMask = SetUIRectTransformCommand::All;
+            break;
+        }
+
+        s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+            uiEntityId, "UI Gizmo: Transform 3D",
+            s_originalTransform, s_originalTransform,
+            &NE::ECS::Command::GetUIRectTransform,
+            s_uiGizmoMask
+        );
 
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
@@ -121,11 +178,19 @@ namespace Editor {
             rect.scaleX = sc[0];
             rect.scaleY = sc[1];
             rect.scaleZ = sc[2];
+
+            // Update command
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rect);
+            }
         }
     }
 
     void UIGizmoHandler::End3DGizmo(uint32_t uiEntityId) {
         if (!s_gizmoActive || s_gizmoType != 2 || s_gizmoEntityId != uiEntityId) return;
+
+        // Commit command
+        CommitCommand();
 
         s_gizmoActive = false;
         s_gizmoType = 0;
@@ -145,6 +210,10 @@ namespace Editor {
         s_draggingCorner = -1;
         s_draggingEdge = -1;
         s_isDraggingRotation = false;
+
+        // Reset command state
+        s_uiGizmoCmd.reset();
+        s_uiGizmoMask = 0;
     }
 
     void UIGizmoHandler::Update2DGizmo(uint32_t uiEntityId, ImVec2 panelPos, ImVec2 panelSize,
@@ -371,15 +440,27 @@ namespace Editor {
         {
             bool handleClicked = false;
 
+            // Rotation handle
             if (hoveringRotation)
             {
                 s_isDraggingRotation = true;
                 s_rotationCenter = center;
                 s_rotationStartAngle = GetAngleFromCenter(center, mousePos);
                 s_originalRotation = rectTransform.rotationZ;
+                s_originalTransform = rectTransform;
                 handleClicked = true;
+
+                // Create command for rotation
+                s_uiGizmoMask = SetUIRectTransformCommand::Rot;
+                s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                    uiEntityId, "UI Gizmo: Rotate",
+                    s_originalTransform, s_originalTransform,
+                    &NE::ECS::Command::GetUIRectTransform,
+                    s_uiGizmoMask
+                );
             }
 
+            // Corner handles
             if (!handleClicked) {
                 for (int i = 0; i < 4; ++i)
                 {
@@ -393,11 +474,21 @@ namespace Editor {
                         s_dragStart = mousePos;
                         s_originalTransform = rectTransform;
                         handleClicked = true;
+
+                        // Create command for resize
+                        s_uiGizmoMask = SetUIRectTransformCommand::Size;
+                        s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                            uiEntityId, "UI Gizmo: Resize",
+                            s_originalTransform, s_originalTransform,
+                            &NE::ECS::Command::GetUIRectTransform,
+                            s_uiGizmoMask
+                        );
                         break;
                     }
                 }
             }
 
+            // Edge handles
             if (!handleClicked)
             {
                 for (int i = 0; i < 4; ++i)
@@ -412,11 +503,21 @@ namespace Editor {
                         s_dragStart = mousePos;
                         s_originalTransform = rectTransform;
                         handleClicked = true;
+
+                        // Create command for resize
+                        s_uiGizmoMask = SetUIRectTransformCommand::Size;
+                        s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                            uiEntityId, "UI Gizmo: Resize",
+                            s_originalTransform, s_originalTransform,
+                            &NE::ECS::Command::GetUIRectTransform,
+                            s_uiGizmoMask
+                        );
                         break;
                     }
                 }
             }
 
+            // Center/pivot handle (position drag)
             if (!handleClicked)
             {
                 float dx = mousePos.x - center.x;
@@ -428,6 +529,15 @@ namespace Editor {
                     s_isDraggingUI = true;
                     s_dragStart = mousePos;
                     s_originalTransform = rectTransform;
+
+                    // Create command for position
+                    s_uiGizmoMask = SetUIRectTransformCommand::Pos;
+                    s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                        uiEntityId, "UI Gizmo: Move",
+                        s_originalTransform, s_originalTransform,
+                        &NE::ECS::Command::GetUIRectTransform,
+                        s_uiGizmoMask
+                    );
                 }
             }
         }
@@ -451,11 +561,17 @@ namespace Editor {
                 !(ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))) {
                 rectTransform.rotationZ = 0.0f;
             }
+
+            // Update command
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rectTransform);
+            }
         }
 
         if (s_isDraggingRotation && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_isDraggingRotation = false;
+            CommitCommand();
         }
 
         // ========== POSITION DRAG (pivot moves) ==========
@@ -467,11 +583,17 @@ namespace Editor {
 
             rectTransform.x = s_originalTransform.x + deltaFBX;
             rectTransform.y = s_originalTransform.y + deltaFBY;
+
+            // Update command
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rectTransform);
+            }
         }
 
         if (s_isDraggingUI && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_isDraggingUI = false;
+            CommitCommand();
         }
 
         // ========== CORNER RESIZE (pivot stays fixed!) ==========
@@ -517,12 +639,17 @@ namespace Editor {
 
             rectTransform.width = std::max(1.0f, newWidth);
             rectTransform.height = std::max(1.0f, newHeight);
-            // Position (pivot) stays the same!
+
+            // Update command
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rectTransform);
+            }
         }
 
         if (s_draggingCorner >= 0 && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_draggingCorner = -1;
+            CommitCommand();
         }
 
         // ========== EDGE RESIZE (pivot stays fixed!) ==========
@@ -562,12 +689,17 @@ namespace Editor {
 
             rectTransform.width = std::max(1.0f, newWidth);
             rectTransform.height = std::max(1.0f, newHeight);
-            // Position (pivot) stays the same!
+
+            // Update command
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rectTransform);
+            }
         }
 
         if (s_draggingEdge >= 0 && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_draggingEdge = -1;
+            CommitCommand();
         }
 
         // ========== CLEANUP ==========
@@ -575,6 +707,9 @@ namespace Editor {
         {
             if (s_isDraggingUI || s_draggingCorner >= 0 || s_draggingEdge >= 0 || s_isDraggingRotation)
             {
+                // Commit any pending command before cleanup
+                CommitCommand();
+
                 s_isDraggingUI = false;
                 s_draggingCorner = -1;
                 s_draggingEdge = -1;
@@ -585,6 +720,9 @@ namespace Editor {
 
     void UIGizmoHandler::End2DGizmo(uint32_t uiEntityId) {
         if (!s_gizmoActive || s_gizmoType != 1 || s_gizmoEntityId != uiEntityId) return;
+
+        // Commit any pending command
+        CommitCommand();
 
         s_gizmoActive = false;
         s_gizmoType = 0;

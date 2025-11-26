@@ -525,7 +525,8 @@ namespace NE::Graphics {
         if (cullFace) glEnable(GL_CULL_FACE);
     }
 
-    void UIRenderer::Draw3DUIFrame(GLuint targetFBO) {
+    void UIRenderer::Draw3DUIFrame(RenderViewHandle targetView) {
+
         // filter to camera mode (1) and world space (2) only
         std::vector<UIDrawCommand> commands;
         for (const auto& cmd : s_Commands)
@@ -547,8 +548,10 @@ namespace NE::Graphics {
                 return a.order < b.order;
             });
 
-        // bind to 3D entities' FBO
-        glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
+        // Bind target using RenderViewManager
+        s_RenderViewManager->Bind(targetView);
+
+        glViewport(0, 0, s_ScreenW, s_ScreenH);
 
         // Save current OpenGL state
         GLboolean depthTest, blend, cullFace;
@@ -600,6 +603,15 @@ namespace NE::Graphics {
             }
 
             // set world space uniforms
+            if (cmd.bindlessTextureHandle != 0)
+            {
+                shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
+                shader->SetUniformInt("u_HasBaseMap", 1);
+            }
+            else
+            {
+                shader->SetUniformInt("u_HasBaseMap", 0);
+            }
             shader->SetUniformVec4("uColor", cmd.color);
 
             // set uniforms based on render mode
@@ -632,6 +644,8 @@ namespace NE::Graphics {
         if (depthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
         if (!blend) glDisable(GL_BLEND); else glBlendFunc(blendSrc, blendDst);
         if (cullFace) glEnable(GL_CULL_FACE);
+
+        s_RenderViewManager->Unbind();
     }
 
     void UIRenderer::Composite(RenderViewHandle targetView) {
@@ -675,7 +689,7 @@ namespace NE::Graphics {
 
         // bind UI framebuffer texture
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment());// FBO’s color attachment is a texture containing your rendered UI
+        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment()); // FBO’s color attachment is a texture containing your rendered UI
         glUniform1i(glGetUniformLocation(s_CompositeShader, "uUITexture"), 0); // bind to texture unit 0 (kiv to change to bindless)
 
         // draw fullscreen quad
