@@ -51,6 +51,13 @@ namespace NE {
 	NANOENGINE_API std::vector<uint8_t> CopyEntity(uint32_t entity);
 	NANOENGINE_API std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard);
 
+	NANOENGINE_API float& GetBrightThreshold();
+	NANOENGINE_API float& GetBrightScale();
+	NANOENGINE_API float& GetBrightSoftKnee();
+	NANOENGINE_API float& GetUpSampleIntensity();
+	NANOENGINE_API float& GetBloomStrength();
+	NANOENGINE_API float& GetToneMapExposure();
+
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
 	NANOENGINE_API std::shared_ptr<NE::Graphics::Material> LoadMaterial(std::string uuid);

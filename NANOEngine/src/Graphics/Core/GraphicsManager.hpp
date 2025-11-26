@@ -104,6 +104,16 @@ namespace NE::Graphics {
 
         static RenderSettings renderSettings;
 
+        // Experimental here for now
+        static float s_brightThreshold;
+        static float s_brightScale;
+        static float s_brightSoftKnee;
+
+        static float s_upSampleIntensity;
+
+        static float s_bloomStrength;
+        static float s_tonemapExposure;
+
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;

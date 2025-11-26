@@ -101,6 +101,7 @@ namespace NE {
 		Physics::PhysicsManager::Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
 		//Physics::PhysicsManager::TestPhysicsSetup();
+		//glDisable(GL_FRAMEBUFFER_SRGB);
 	}
 
 	void LoadStartupScene() {
@@ -302,6 +303,36 @@ namespace NE {
 		//transform.isDirty = true;
 
 		return newEntities;
+	}
+
+	float& GetBrightThreshold()
+	{
+		return NE::Graphics::GraphicsManager::s_brightThreshold;
+	}
+
+	float& GetBrightScale()
+	{
+		return NE::Graphics::GraphicsManager::s_brightScale;
+	}
+
+	float& GetBrightSoftKnee()
+	{
+		return NE::Graphics::GraphicsManager::s_brightSoftKnee;
+	}
+
+	float& GetUpSampleIntensity()
+	{
+		return NE::Graphics::GraphicsManager::s_upSampleIntensity;
+	}
+
+	float& GetBloomStrength()
+	{
+		return NE::Graphics::GraphicsManager::s_bloomStrength;
+	}
+
+	float& GetToneMapExposure()
+	{
+		return NE::Graphics::GraphicsManager::s_tonemapExposure;
 	}
 
 	// Internal use only

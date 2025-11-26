@@ -1,9 +1,10 @@
 #include "LightingPanel.hpp"
 #include <imgui/imgui.h>
-//#include "Engine.hpp"
+#include "Engine.hpp"
 #include <Graphics/Core/RenderSettings.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
+
 
 namespace Editor {
 
@@ -65,7 +66,12 @@ namespace Editor {
 
 		switch (s_currentSettingsTab) {
 		case 0: {
-
+			Editor::DrawFloatField("Bright Threshold", NE::GetBrightThreshold(), 0.1f, true);
+			Editor::DrawFloatField("Bright Scale", NE::GetBrightScale(), 0.1f, true);
+			Editor::DrawFloatField("Bright Soft Knee", NE::GetBrightSoftKnee(), 0.1f, true);
+			Editor::DrawFloatField("Up Sample Intensity", NE::GetUpSampleIntensity(), 0.1f, true);
+			Editor::DrawFloatField("Bloom Strength", NE::GetBloomStrength(), 0.1f, true);
+			Editor::DrawFloatField("Tonemap Exposure", NE::GetToneMapExposure(), 0.1f, true);
 		} break;
 		case 1: {
 			if (ImGui::CollapsingHeader("Environment##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
