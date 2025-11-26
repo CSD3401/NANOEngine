@@ -175,7 +175,7 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
-				Component::EntityMeta{ "Canvas", Core::LUIDGenerator::Generate("en") });
+				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("en") });
 
 			// set up canvas component
 			Component::UICanvas canvas;
@@ -206,7 +206,7 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
-				Component::EntityMeta{ "Image", Core::LUIDGenerator::Generate("en") });
+				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("en") });
 
 			// setup RectTransform with parent linkage
 			Component::UIRectTransform rect;
