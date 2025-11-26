@@ -289,7 +289,7 @@ namespace {
 	// rebuild materials for all children of a canvas
 	void RebuildChildMaterials(uint32_t canvasEntity, const std::string& materialUUID) {
 		// Get all entities in the scene
-		auto allEntities = NE::GetEntities();
+		auto allEntities = NE::GetNumEntities();
 
 		for (uint32_t entity : allEntities) {
 			// Skip if not a UI element
