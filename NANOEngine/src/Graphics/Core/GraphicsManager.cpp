@@ -22,6 +22,10 @@
 #include "../OpenGL/GLGeometryBuffer.hpp"
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
+// Experimental stuff
+#include "ResourceManagement/ResourceManager.hpp"
+#include "Input/InputManager.hpp"
+
 
 namespace NE::Graphics {
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
@@ -36,6 +40,7 @@ namespace NE::Graphics {
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
     RenderViewHandle GraphicsManager::s_ActiveViewHandle;
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
+    RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
@@ -48,7 +53,70 @@ namespace NE::Graphics {
 
     RenderSettings GraphicsManager::renderSettings;
 
-    //END FOG 
+    // Experimental
+    static GLuint s_QuadVAO = 0, s_QuadVBO = 0;
+    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BrightPassShader;
+    static uint32_t s_BrightPassTex = 0;
+    static uint32_t s_BrightPassFBO = 0;
+    static bool showBright = false;
+    
+    // Here for now i will shift it all to rendergraph next time
+    void InitFullscreenQuadAndBrightpass()
+    {
+        if (s_QuadVAO == 0) {
+            float quadVerts[] = {
+                // pos      // uv
+                -1.f, -1.f, 0.f, 0.f,
+                 1.f, -1.f, 1.f, 0.f,
+                -1.f,  1.f, 0.f, 1.f,
+                 1.f,  1.f, 1.f, 1.f,
+            };
+
+            glGenVertexArrays(1, &s_QuadVAO);
+            glGenBuffers(1, &s_QuadVBO);
+            glBindVertexArray(s_QuadVAO);
+            glBindBuffer(GL_ARRAY_BUFFER, s_QuadVBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(quadVerts), quadVerts, GL_STATIC_DRAW);
+
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+            glBindVertexArray(0);
+        }
+
+        // LDR target for bright-pass (RGBA8 is fine)
+        if (s_BrightPassFBO == 0) {
+            glGenFramebuffers(1, &s_BrightPassFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
+
+            glGenTextures(1, &s_BrightPassTex);
+            glBindTexture(GL_TEXTURE_2D, s_BrightPassTex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                1920, 1080, 0,
+                GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_2D, s_BrightPassTex, 0);
+
+            GLenum att = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &att);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        // load the bright-pass nanoshader
+        if (!s_BrightPassShader) {
+            s_BrightPassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebrightpass");
+        }
+    }
+
     void GraphicsManager::Init() {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
@@ -56,40 +124,16 @@ namespace NE::Graphics {
         s_DrawQueue = std::make_unique<DrawQueue>();
 		s_RenderViewManager = std::make_unique<RenderViewManager>();
 
-        s_SceneViewHandle = s_RenderViewManager->Create(1920, 1080, true);
+        s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
         //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
 
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
-
-        // Load Basic Shader
-        //Asset::AssetManager::GetInstance().AddToMap<Graphics::IShader>(std::make_shared<OpenGL::GLShader>("Library/Shaders/Basic.nanoshader"), "Basic");
-        //Asset::AssetManager::GetInstance().Load<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.nanoshader", false);
-
-        //auto whiteTex = std::make_shared<OpenGL::GLTexture>();
-        //whiteTex->LoadFromFile("Library/Textures/white.jpg");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLTexture>(whiteTex, "WhiteTex");
-
-        //auto basic = std::make_shared<OpenGL::GLShader>();
-        //basic->LoadFromFile("Library/Shaders/Basic.nanoshader");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(basic, "Basic");
-
-        //auto unlit = std::make_shared<OpenGL::GLShader>();
-        //unlit->LoadFromFile("Library/Shaders/Unlit.nanoshader");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(unlit, "Unlit");
-
-        //auto litPBR = std::make_shared<OpenGL::GLShader>();
-        //litPBR->LoadFromFile("Library/Shaders/Lit_PBR.nanoshader");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litPBR, "Lit_PBR");
-
-        //auto litBlinnPhong = std::make_shared<OpenGL::GLShader>();
-        //litBlinnPhong->LoadFromFile("Library/Shaders/Lit_BlinnPhong.nanoshader");
-        //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(litBlinnPhong, "Lit_BlinnPhong");
-
+        InitFullscreenQuadAndBrightpass();
         //// Load Primitives
         //auto skinned = std::make_shared<OpenGL::GLShader>();
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
+        //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
-
     }
 
     void GraphicsManager::BeginFrame() 
@@ -228,6 +272,39 @@ namespace NE::Graphics {
         if (renderedViews > 0) {
             drawCount /= renderedViews;
         }
+
+        // ---- Bright-pass pass ----
+        // Source: HDR scene color attachment
+        uint32_t sceneTex = 0;
+        auto fb = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (fb) {
+            sceneTex = fb->GetColorAttachment();  // bypass GetSceneColorAttachment()
+        }
+
+        if (sceneTex != 0 && s_BrightPassShader) {
+            glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
+
+            uint32_t w = fb ? fb->GetWidth() : 1920;
+            uint32_t h = fb ? fb->GetHeight() : 1080;
+
+            glViewport(0, 0, w, h);
+            glClearColor(0, 0, 0, 1);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            s_BrightPassShader->Bind();
+            s_BrightPassShader->SetUniformInt("u_SceneTex", 0);
+            s_BrightPassShader->SetUniformFloat("u_Threshold", 1.0f);
+            s_BrightPassShader->SetUniformFloat("u_Scale", 2.0f);
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sceneTex);
+
+            glBindVertexArray(s_QuadVAO);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            glBindVertexArray(0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) 
@@ -330,10 +407,19 @@ namespace NE::Graphics {
 
     uint32_t GraphicsManager::GetSceneColorAttachment() 
     {
-		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
-        if (framebuffer) {
-            return framebuffer->GetColorAttachment();
-		}
+        if (InputManager::WasKeyPressed('L')) 
+            showBright = true;
+        if (InputManager::WasKeyPressed('K'))
+            showBright = false;
+
+        if (!showBright) {
+		    auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+            if (framebuffer) {
+                return framebuffer->GetColorAttachment();
+		    }
+        } else {
+            return s_BrightPassTex;
+        }
 		return 0;
 	}
 

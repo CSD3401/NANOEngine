@@ -16,12 +16,43 @@ namespace NE::Graphics {
 		DestroyAll();
 	}
 
-	RenderViewHandle RenderViewManager::Create(uint32_t width, uint32_t height, bool enablePicking)
-	{
+	RenderViewHandle RenderViewManager::Create(uint32_t width, uint32_t height, bool enablePicking) {
 		RenderViewHandle handle = m_NextHandle++;
 
 		// Create OpenGL framebuffer
 		auto framebuffer = std::make_shared<OpenGL::GLFrameBuffer>(width, height);
+		framebuffer->SetPickingWrite(enablePicking);
+
+		// Store the render view
+		RenderView view;
+		view.framebuffer = framebuffer;
+		m_Views[handle] = view;
+
+		return handle;
+	}
+
+	RenderViewHandle RenderViewManager::CreateHDR(uint32_t width, uint32_t height, bool enablePicking) {
+		RenderViewHandle handle = m_NextHandle++;
+
+		// Create OpenGL framebuffer
+		auto framebuffer = std::make_shared<OpenGL::GLFrameBuffer>();
+		framebuffer->CreateAsHDR(width, height, enablePicking);
+		framebuffer->SetPickingWrite(enablePicking);
+
+		// Store the render view
+		RenderView view;
+		view.framebuffer = framebuffer;
+		m_Views[handle] = view;
+
+		return handle;
+	}
+
+	RenderViewHandle RenderViewManager::CreateLDR(uint32_t width, uint32_t height, bool enablePicking) {
+		RenderViewHandle handle = m_NextHandle++;
+
+		// Create OpenGL framebuffer
+		auto framebuffer = std::make_shared<OpenGL::GLFrameBuffer>(width, height);
+		framebuffer->CreateAsLDR(width, height, enablePicking);
 		framebuffer->SetPickingWrite(enablePicking);
 
 		// Store the render view

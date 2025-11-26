@@ -6,8 +6,12 @@ namespace NE::Graphics::OpenGL {
 
     class GLFrameBuffer final : public IFrameBuffer {
     public:
+        GLFrameBuffer();
         GLFrameBuffer(uint32_t width, uint32_t height);
         ~GLFrameBuffer();
+
+        void CreateAsHDR(uint32_t width, uint32_t height, bool enablePicking);
+        void CreateAsLDR(uint32_t width, uint32_t height, bool enablePicking);
 
         void Bind() const override;
         void Resize(uint32_t width, uint32_t height) override;
