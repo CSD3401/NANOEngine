@@ -220,6 +220,7 @@
     <ClInclude Include="include\ScriptSDK\ECS.h" />
     <ClInclude Include="include\ScriptSDK\Components.h" />
     <ClInclude Include="src\Graphics\Core\UIImageMeshGenerator.hpp" />
+    <ClInclude Include="src\Math\UILayoutCalculator.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

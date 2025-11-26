@@ -173,10 +173,17 @@ namespace NE::ECS {
 			// setup RectTransform for canvas (fullscreen by default)
 			Component::UIRectTransform rectTransform;
 			rectTransform.luid = Core::LUIDGenerator::Generate("rect");
-			rectTransform.x = 0.0f;
-			rectTransform.y = 0.0f;
-			rectTransform.width = 1920.0f;
-			rectTransform.height = 1080.0f;
+
+			float screenW = 1920.0f; // temp
+			float screenH = 1080.0f;
+
+			rectTransform.width = screenW;   // fullscreen canvas
+			rectTransform.height = screenH;
+
+			rectTransform.x = screenW * 0.5f;
+			rectTransform.y = screenH * 0.5f;
+			rectTransform.z = 0.0f;
+
 			rectTransform.parent = NE::ECS::NO_ENTITY;  // Canvas has no parent - it's the root
 			GetScene().GetECSCoordinator().AddComponent(newEntity, rectTransform);
 
