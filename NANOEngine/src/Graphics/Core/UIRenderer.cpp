@@ -12,7 +12,8 @@
 namespace NE::Graphics {
 
     std::vector<UIDrawCommand> UIRenderer::s_Commands;
-    std::unique_ptr<IFrameBuffer> UIRenderer::s_FBO;
+    RenderViewHandle UIRenderer::s_UIViewHandle;
+    RenderViewManager* UIRenderer::s_RenderViewManager; // pointer to GraphicsManager's instance
     unsigned int UIRenderer::s_VAO = 0;
     unsigned int UIRenderer::s_VBO = 0;
     unsigned int UIRenderer::s_EBO = 0;
@@ -73,34 +74,14 @@ namespace NE::Graphics {
         FragColor = uColor;
     })";
 
-    void UIRenderer::Init(uint32_t width, uint32_t height) {
+    void UIRenderer::Init(uint32_t width, uint32_t height, RenderViewManager* renderViewManager) {
         // saves screen size
         s_ScreenW = width;
         s_ScreenH = height;
+        s_RenderViewManager = renderViewManager;
 
-        // create UI frame buffer
-        s_FBO = std::make_unique<OpenGL::GLFrameBuffer>(width, height);
-
-        // check FBO
-        {
-            s_FBO->Bind(); // binds to its uniquely generated FBO handle
-
-            // which handle?
-            GLint currentFBO = 0;
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &currentFBO);
-
-            std::cout << "[UI FBO] Created FBO handle: " << s_FBO->GetFramebuffer()
-                << ", Currently bound FBO: " << currentFBO << std::endl;
-
-            // check
-            GLenum st = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-            if (st != GL_FRAMEBUFFER_COMPLETE)
-            {
-                std::cout << "[UI FBO] Incomplete: 0x" << std::hex << st << std::dec << std::endl;
-            }
-
-            OpenGL::GLFrameBuffer::Unbind();
-        }
+        // Create UI render view (no picking needed for UI)
+        s_UIViewHandle = s_RenderViewManager->Create(width, height, false);
 
         // color UI shader
         // compile overlay shader
@@ -133,21 +114,21 @@ namespace NE::Graphics {
         glGenBuffers(1, &s_VBO);
         glGenBuffers(1, &s_EBO);
 
-        // for testing
-        {
-            //// setup VBO (4 vertices, each with pos(2) + uv(2) = 4 floats)
-            //glBindVertexArray(s_VAO);
-            //glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
-            //glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 5, nullptr, GL_DYNAMIC_DRAW);
+        //// for testing
+        //{
+        //    // setup VBO (4 vertices, each with pos(2) + uv(2) = 4 floats)
+        //    glBindVertexArray(s_VAO);
+        //    glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
+        //    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * 5, nullptr, GL_DYNAMIC_DRAW);
 
-            //// position attribute (location 0) (2D for overlay/camera, 3D for world)
-            //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-            //glEnableVertexAttribArray(0);
+        //    // position attribute (location 0) (2D for overlay/camera, 3D for world)
+        //    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        //    glEnableVertexAttribArray(0);
 
-            //// UV attribute (location 1)
-            //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-            //glEnableVertexAttribArray(1);
-        }
+        //    // UV attribute (location 1)
+        //    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        //    glEnableVertexAttribArray(1);
+        //}
 
         // with world space support 
         {
@@ -372,45 +353,23 @@ namespace NE::Graphics {
 
     void UIRenderer::BeginFrame() {
         // prepare UI render target before drawing
-        if (s_FBO)
-        {
-            s_FBO->Bind();
+        s_RenderViewManager->Bind(s_UIViewHandle);
 
-            // set viewport to match UI framebuffer size
-            glViewport(0, 0, s_ScreenW, s_ScreenH);
+        // set viewport to match UI framebuffer size
+        glViewport(0, 0, s_ScreenW, s_ScreenH);
 
-            // clear the framebuffer
-            //glClearColor(1, 0, 1, 1); // magenta - for debug
-            glClearColor(0, 0, 0, 0); // black transparent
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        }
-
-        // check
-        static bool printed = false;
-        if (!printed)
-        {
-            std::cout << "[Begin Frame} UI FBO binded" << std::endl;
-            printed = true;
-        }
+        // clear the framebuffer
+        //glClearColor(1, 0, 1, 1); // magenta - for debug
+        glClearColor(0, 0, 0, 0); // black transparent
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
     void UIRenderer::EndFrame() {
-        if (s_FBO) OpenGL::GLFrameBuffer::Unbind();
-
-        // check
-        static bool printed = false;
-        if (!printed)
-        {
-            std::cout << "[End Frame} UI FBO unbinded" << std::endl;
-            printed = true;
-        }
+        s_RenderViewManager->Unbind();
     }
 
     void UIRenderer::DrawTestQuad() {
-
-        if (s_FBO) {
-            s_FBO->Bind();
-        }
+        s_RenderViewManager->Bind(s_UIViewHandle);
 
         static bool print = false;
         if (!print)
@@ -449,9 +408,7 @@ namespace NE::Graphics {
         glBindVertexArray(0);
         glUseProgram(0);
 
-        if (s_FBO) {
-            OpenGL::GLFrameBuffer::Unbind();
-        }
+        s_RenderViewManager->Unbind();
     }
 
     void UIRenderer::DrawUIFrame() {
@@ -503,7 +460,7 @@ namespace NE::Graphics {
         glDisable(GL_DEPTH_TEST);
 
         // render each command based on mode
-        for (const auto& cmd : s_Commands)
+        for (const auto& cmd : overlayCommands)
         {
             if (!cmd.material) continue;
 
@@ -669,12 +626,7 @@ namespace NE::Graphics {
         if (cullFace) glEnable(GL_CULL_FACE);
     }
 
-    IFrameBuffer* UIRenderer::GetFramebuffer() {
-        return s_FBO.get();
-    }
-
-    void UIRenderer::Composite(GLuint targetFBO) {
-        if (!s_FBO) return;
+    void UIRenderer::Composite(RenderViewHandle targetView) {
 
         // only need to composite overlay and camera UI (modes 0 and 1)
         // world space UI (mode 2) is already in the scene FBO from Draw3DUIFrame
@@ -690,18 +642,8 @@ namespace NE::Graphics {
 
         if (!hasScreenSpaceUI) return; // nothing to composite
 
-        static bool printed = false;
-        if (!printed)
-        {
-            std::cout << "[UIRenderer::Composite] Compositing UI to screen" << std::endl;
-            std::cout << "UI FBO handle: " << s_FBO->GetFramebuffer() << std::endl;
-            std::cout << "UI Color Texture: " << s_FBO->GetColorAttachment() << std::endl;
-            std::cout << "Target FBO: " << targetFBO << std::endl;
-            printed = true;
-        }
-
-        // bind default framebuffer (screen)
-        glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
+        // Bind target using RenderViewManager
+        s_RenderViewManager->Bind(targetView);
 
         // ensure viewport matches screen size
         glViewport(0, 0, s_ScreenW, s_ScreenH);
@@ -725,7 +667,7 @@ namespace NE::Graphics {
 
         // bind UI framebuffer texture
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, s_FBO->GetColorAttachment()); // FBO’s color attachment is a texture containing your rendered UI
+        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment());// FBO’s color attachment is a texture containing your rendered UI
         glUniform1i(glGetUniformLocation(s_CompositeShader, "uUITexture"), 0); // bind to texture unit 0 (kiv to change to bindless)
 
         // draw fullscreen quad
@@ -747,6 +689,8 @@ namespace NE::Graphics {
         {
             glBlendFunc(blendSrc, blendDst);
         }
+
+        s_RenderViewManager->Unbind();
     }
 
     void UIRenderer::Shutdown() {
@@ -781,6 +725,11 @@ namespace NE::Graphics {
             s_CompositeVAO = 0;
         }
 
+        if (s_Shader) {
+            glDeleteProgram(s_Shader);
+            s_Shader = 0;
+        }
+
         if (s_CompositeShader)
         {
             glDeleteProgram(s_CompositeShader);
@@ -789,6 +738,7 @@ namespace NE::Graphics {
 
         // clear containers
         s_Commands.clear();
-        s_FBO.reset();
+        s_UIViewHandle = {};  // Reset to invalid/default handle
+        s_RenderViewManager = nullptr;
     }
 }

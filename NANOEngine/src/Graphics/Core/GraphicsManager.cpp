@@ -100,7 +100,7 @@ namespace NE::Graphics {
         s_ScreenWidth = static_cast<uint32_t>(viewport[2]);
         s_ScreenHeight = static_cast<uint32_t>(viewport[3]);
 
-        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight);
+        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
     }
 
     void GraphicsManager::BeginFrame() 
@@ -686,22 +686,12 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::DrawUI() {
-        static bool printed = false;
-        if (!printed) {
-            std::cout << "GraphicsManager::DrawUI] start" << std::endl;
-        }
-
         UIRenderer::BeginFrame();
         UIRenderer::DrawUIFrame();
         //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
 
-        UIRenderer::Composite(s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetFramebuffer());
+        UIRenderer::Composite(s_SceneViewHandle);
         UIRenderer::ClearCommands();
-
-        if (!printed) {
-            std::cout << "[GraphicsManager::DrawUI] Complete" << std::endl;
-            printed = true;
-        }
     }
 }
