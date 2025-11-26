@@ -14,6 +14,7 @@
  * - Uses raycast-based ground detection & simple raycast-based wall blocking.
  * - Movement is now synced with camera direction (camera-relative movement).
  * - Player rotation directly follows camera yaw.
+ * - Subscribes to "OnCameraRaycastHit" event for interaction with Pickable objects.
  *
  * NOTE:
  * - jumpForce is now effectively "jumpSpeed" (initial upward velocity).
@@ -61,6 +62,13 @@ public:
             LOG_WARNING("PlayerController: No camera transform set. Movement will be in world space.");
         }
 
+        // Subscribe to camera raycast hit event for interaction
+        Events::Listen("OnCameraRaycastHit",
+            [this](void* data) {
+                OnCameraRaycastHit(data);
+            }
+        );
+
         m_velocity = { 0.0f, 0.0f, 0.0f };
         m_isGrounded = false;
     }
@@ -102,6 +110,21 @@ public:
     void OnTriggerExit(Entity other) override {}
 
 private:
+    // =========================
+    // CAMERA RAYCAST HIT HANDLER
+    // =========================
+    void OnCameraRaycastHit(void* data) {
+        auto* entityPtr = static_cast<std::pair<uint32_t, uint32_t>*>(data);
+        uint32_t hitEntity = entityPtr->first;
+        uint32_t cameraEntity = entityPtr->second;
+
+        LOG_INFO("PlayerController: Camera raycast hit entity " << hitEntity
+            << " from camera " << cameraEntity);
+
+        //  Can add custom interaction logic here
+        // For example, highlight the object or trigger an action
+    }
+
     // =========================
     // CAMERA YAW QUERY
     // =========================
