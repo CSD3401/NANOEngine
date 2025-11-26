@@ -1,28 +1,216 @@
 #include "GLClusteredLighting.hpp"
 
 #include "../Core/RenderViewManager.hpp"
+#include "../../ECS/Components/Light.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
+#include "../Interfaces/IShader.hpp"
+#include "../OpenGL/GLShader.hpp"
+#include "../OpenGL/GLFrameBuffer.hpp"
+#include <glad/glad.h>
 
 namespace NE::Graphics::OpenGL {
-	void GLClusteredLighting::Initialize() {
-		// Initialize SSBOs, UBOs, and compile compute shader
+
+    GLClusteredLighting::GLClusteredLighting(int cX, int cY, int cZ, int maxLights, int lightIndicesPerCluster)
+		: clustersX(cX), clustersY(cY), clustersZ(cZ),
+          maxLights(maxLights), maxClusterLightIndices(cX * cY * cZ * lightIndicesPerCluster)
+    {
+		m_computeShader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("necompute");
+
+        // Lights SSBO (binding = 0 in GLSL)
+        if (!m_lightSSBO) {
+            glGenBuffers(1, &m_lightSSBO);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lightSSBO);
+            glBufferData(GL_SHADER_STORAGE_BUFFER,
+                sizeof(GPULightCPU) * maxLights,
+                nullptr,
+                GL_DYNAMIC_DRAW);
+        }
+
+        // Clusters SSBO (binding = 1 in GLSL)
+        if (!m_clusterSSBO) {
+            glGenBuffers(1, &m_clusterSSBO);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_clusterSSBO);
+            // Simple placeholder size: 4 uints per cluster (offset, count, padding...)
+            const int numClusters = clustersX * clustersY * clustersZ;
+            glBufferData(GL_SHADER_STORAGE_BUFFER,
+                sizeof(uint32_t) * 4 * numClusters,
+                nullptr,
+                GL_DYNAMIC_DRAW);
+        }
+
+        // Cluster light indices SSBO (binding = 2 in GLSL)
+        if (!m_clusterLightIndicesSSBO) {
+            glGenBuffers(1, &m_clusterLightIndicesSSBO);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_clusterLightIndicesSSBO);
+            glBufferData(GL_SHADER_STORAGE_BUFFER,
+                sizeof(uint32_t) * maxClusterLightIndices,
+                nullptr,
+                GL_DYNAMIC_DRAW);
+        }
+
+        // Cluster params UBO (binding = 3 in GLSL)
+        if (!m_clusterParamsUBO) {
+            glGenBuffers(1, &m_clusterParamsUBO);
+            glBindBuffer(GL_UNIFORM_BUFFER, m_clusterParamsUBO);
+            glBufferData(GL_UNIFORM_BUFFER,
+                sizeof(ClusterParamsCPU),
+                nullptr,
+                GL_DYNAMIC_DRAW);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_clusterParamsUBO);
+        }
+
+        // Atomic counter (binding = 0 in GLSL atomic counter space)
+        if (!m_lightIndexCounterBuffer) {
+            glGenBuffers(1, &m_lightIndexCounterBuffer);
+            glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, m_lightIndexCounterBuffer);
+            GLuint zero = 0;
+            glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), &zero, GL_DYNAMIC_DRAW);
+            glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, m_lightIndexCounterBuffer);
+        }
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+    }
+
+    GLClusteredLighting::~GLClusteredLighting() 
+    {
+        m_computeShader.reset();
+        if (m_lightSSBO) {
+            glDeleteBuffers(1, &m_lightSSBO);
+            m_lightSSBO = 0;
+        }
+        if (m_clusterSSBO) {
+            glDeleteBuffers(1, &m_clusterSSBO);
+            m_clusterSSBO = 0;
+        }
+        if (m_clusterLightIndicesSSBO) {
+            glDeleteBuffers(1, &m_clusterLightIndicesSSBO);
+            m_clusterLightIndicesSSBO = 0;
+        }
+        if (m_clusterParamsUBO) {
+            glDeleteBuffers(1, &m_clusterParamsUBO);
+            m_clusterParamsUBO = 0;
+        }
+        if (m_lightIndexCounterBuffer) {
+            glDeleteBuffers(1, &m_lightIndexCounterBuffer);
+            m_lightIndexCounterBuffer = 0;
+        }
+    }
+
+	void GLClusteredLighting::BuildForView(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights)
+	{
+        if (!m_computeShader || !m_computeShader->GetProgramID()) {
+            return;
+        }
+
+        m_numLightsThisView = static_cast<int>(lights.size());
+        if (m_numLightsThisView > maxLights) {
+            SPD_WARNING("GLClusteredLighting::BuildForView: clamping lights from "
+                << m_numLightsThisView << " to " << maxLights);
+            m_numLightsThisView = maxLights;
+        }
+
+        UploadLights(view, lights);
+
+        // Reset atomic counter
+        glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, m_lightIndexCounterBuffer);
+        GLuint zero = 0;
+        glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
+
+        // Bind SSBOs
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightSSBO);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_clusterSSBO);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_clusterLightIndicesSSBO);
+        // UBO + atomic already bound at AllocateBuffers
+
+        m_computeShader->Bind();
+        DispatchCompute();
+
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
 	}
-	void GLClusteredLighting::Shutdown() {
-		// Clean up resources
+
+	void GLClusteredLighting::BindForDraw() 
+	{
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightSSBO);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_clusterSSBO);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_clusterLightIndicesSSBO);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_clusterParamsUBO);
 	}
-	void GLClusteredLighting::OnResize(int width, int height) {
-		// Handle resizing if necessary
+
+	void GLClusteredLighting::UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights)
+	{
+        using NE::Math::Mat4;
+        using NE::Math::Vec3;
+
+        // ---- Lights SSBO ----
+        std::vector<GPULightCPU> gpuLights;
+        gpuLights.resize(m_numLightsThisView);
+
+        for (int i = 0; i < m_numLightsThisView; ++i) {
+            const auto* src = lights[i];
+            auto& dst = gpuLights[i];
+
+            // position.xyz + type
+            dst.position[0] = src->position.x;
+            dst.position[1] = src->position.y;
+            dst.position[2] = src->position.z;
+            dst.position[3] = static_cast<float>(src->type);
+
+            // color.rgb + intensity
+            dst.color[0] = src->color.x;
+            dst.color[1] = src->color.y;
+            dst.color[2] = src->color.z;
+            dst.color[3] = src->intensity;
+
+            // params:  inner / outer / radius / padding
+            dst.params[0] = src->innerCutoff;
+            dst.params[1] = src->outerCutoff;
+			dst.params[2] = 0.0f; // radius not used for now
+            dst.params[3] = 0.0f;
+
+            // direction.xyz + padding
+            dst.direction[0] = src->direction.x;
+            dst.direction[1] = src->direction.y;
+            dst.direction[2] = src->direction.z;
+            dst.direction[3] = 0.0f;
+        }
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lightSSBO);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER,
+            0,
+            gpuLights.size() * sizeof(GPULightCPU),
+            gpuLights.data());
+
+        // ---- Cluster params UBO ----
+        ClusterParamsCPU params{};
+        params.view = view.view;
+        params.proj = view.projection;
+		params.zNear = view.nearPlane;
+		params.zFar = view.farPlane;
+
+        params.clustersX = clustersX;
+        params.clustersY = clustersY;
+        params.clustersZ = clustersZ;
+        params.numLights = m_numLightsThisView;
+        params.screenWidth = static_cast<int>(view.framebuffer->GetWidth());
+        params.screenHeight = static_cast<int>(view.framebuffer->GetHeight());
+
+        glBindBuffer(GL_UNIFORM_BUFFER, m_clusterParamsUBO);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(ClusterParamsCPU), &params);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
-	void GLClusteredLighting::BuildForView(const RenderView& view, const std::vector<Light*>& lights) {
-		UploadLights(lights, view);
-		DispatchCompute();
-	}
-	void GLClusteredLighting::BindForDraw() {
-		// Bind SSBOs for use in the rendering pipeline
-	}
-	void GLClusteredLighting::UploadLights(const std::vector<Light*>& lights, const RenderView& view) {
-		// Upload light data to GPU
-	}
-	void GLClusteredLighting::DispatchCompute() {
-		// Dispatch the compute shader to build clusters
+
+	void GLClusteredLighting::DispatchCompute() 
+	{
+        if (m_numLightsThisView <= 0) return;
+
+        // Assume compute shader is written with layout(local_size_x = 64)
+        constexpr GLuint localSizeX = 64;
+        GLuint groupsX = (static_cast<GLuint>(m_numLightsThisView) + (localSizeX - 1)) / localSizeX;
+
+        glDispatchCompute(groupsX, 1, 1);
 	}
 }

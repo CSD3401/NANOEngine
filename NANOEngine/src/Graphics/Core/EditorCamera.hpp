@@ -28,11 +28,15 @@ namespace NE::Graphics {
         const Mat4& GetViewMatrix() const;
         const Mat4& GetProjectionMatrix() const;
         const Vec3& GetPosition() const;
+        const float& GetNearPlane() const;
+		const float& GetFarPlane() const;
         Vec3 GetForward() const;
     private:
         Vec3 m_position;
         Vec3 m_target;
         Vec3 m_up;
+		float m_nearPlane;
+		float m_farPlane;
 
         mutable Mat4 m_viewMatrix;
         Mat4 m_projectionMatrix;

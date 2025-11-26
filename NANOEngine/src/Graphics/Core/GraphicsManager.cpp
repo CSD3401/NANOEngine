@@ -68,7 +68,8 @@ namespace NE::Graphics {
 
     GLuint debugShaderProgram, debugVAO, debugVBO;
     
-    void GraphicsManager::Init() {
+    void GraphicsManager::Init() 
+    {
         s_CommandBuffer = std::make_unique<OpenGL::GLCommandBuffer>();
         s_skybox = std::make_unique<Skybox>();
         s_StateCache = std::make_unique<OpenGL::GLStateCache>();
@@ -317,6 +318,8 @@ namespace NE::Graphics {
 			s_EditorCamera->GetProjectionMatrix(),
 			s_EditorCamera->GetViewMatrix(),
 			s_EditorCamera->GetPosition(),
+			s_EditorCamera->GetNearPlane(),
+			s_EditorCamera->GetFarPlane(),
             false,
             0
         );
@@ -327,9 +330,9 @@ namespace NE::Graphics {
         return s_RenderViewManager->Create(width, height, enablePicking);
 	}
 
-    void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain, uint16_t order)
+    void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, float nearPlane, float farPlane, bool isMain, uint16_t order)
     {
-		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, isMain, order);
+		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, nearPlane, farPlane, isMain, order);
     }
 
     void GraphicsManager::EnableCamera(RenderViewHandle viewHandle)

@@ -52,6 +52,8 @@ namespace NE::ECS::Systems {
 						camera.projectionMtx,
 						camera.viewMtx,
 						transform.localPosition,
+						camera.nearPlane,
+						camera.farPlane,
 						camera.isMain,
 						i
 					);
@@ -112,6 +114,8 @@ namespace NE::ECS::Systems {
 						camera.projectionMtx,
 						camera.viewMtx,
 						transform.localPosition,
+						camera.nearPlane,
+						camera.farPlane,
 						camera.isMain,
 						i
 					);
