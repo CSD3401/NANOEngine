@@ -45,11 +45,7 @@ namespace {
 namespace Editor {
 	static uint32_t temp; // Note: hi i copy pasted this code into game panel also
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
-	static std::unique_ptr<Editor::SetUITransformCommand> s_ui3DGizmoCmd;
-	static std::unique_ptr<Editor::SetUITransformCommand> s_ui2DGizmoCmd;
 	static bool s_gizmoActive = false;
-	static bool s_ui3DGizmoActive = false;
-	static bool s_ui2DGizmoActive = false;
 	static bool s_usingUIGizmo = false;
 
 	// TEMP TO BE MOVED TO SHARED MATH LIB
@@ -397,17 +393,6 @@ namespace Editor {
 				if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::SCALE;
 				UIGizmoHandler::SetOperation(currentOperation);
 
-				static uint8_t s_uiGizmoMask = 0;
-				auto opToMask = [](ImGuizmo::OPERATION op) {
-					using Cmd = Editor::SetUITransformCommand;
-					switch (op) {
-					case ImGuizmo::TRANSLATE: return Cmd::Pos;
-					case ImGuizmo::ROTATE:    return Cmd::Rot;
-					case ImGuizmo::SCALE:     return Cmd::Scl;
-					default:                  return Cmd::Pos;
-					}
-				};
-
 				// World space canvas (3D gizmo)
 				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE)
 				{
@@ -440,107 +425,48 @@ namespace Editor {
 					);
 					bool isUsing = ImGuizmo::IsUsing();
 
-					// begin
-					if (!s_ui3DGizmoActive && isUsing) {
-						s_ui3DGizmoActive = true;
-						s_uiGizmoMask = opToMask(currentOperation);
-						auto before = NE::ECS::Query::GetUIRectTransform(eid);
-						s_ui3DGizmoCmd = std::make_unique<Editor::SetUITransformCommand>(
-							eid, "Gizmo: UI Transform", before, before,
-							&NE::ECS::Command::GetUIRectTransform, s_uiGizmoMask
-						);
+					if (!UIGizmoHandler::IsGizmoActive() && isUsing) {
 						UIGizmoHandler::Begin3DGizmo(eid, panelPos, panelSize);
 						s_usingUIGizmo = true;
 					}
 
-					// update
-					if (s_ui3DGizmoActive && isUsing && editedThisFrame && s_ui3DGizmoCmd) {
-
-						// matrix alrdy in local space
-						// scale accumulation occurs in uiRenderSystem
+					if (UIGizmoHandler::IsGizmoActive() && isUsing && editedThisFrame) {
+						// Convert matrix back to UIRectTransform
 						float tr[3], rotDeg[3], sc[3];
 						ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
 
-						auto current = NE::ECS::Query::GetUIRectTransform(eid);
-						auto after = current;
+						rectTransform.x = tr[0];
+						rectTransform.y = tr[1];
+						rectTransform.z = tr[2];
 
-						if (s_uiGizmoMask & Editor::SetUITransformCommand::Pos) {
-							after.x = tr[0];
-							after.y = tr[1];
-							after.z = tr[2];
-						}
-						if (s_uiGizmoMask & Editor::SetUITransformCommand::Rot) {
-							after.rotationX = rotDeg[0];
-							after.rotationY = rotDeg[1];
-							after.rotationZ = rotDeg[2];
-						}
-						if (s_uiGizmoMask & Editor::SetUITransformCommand::Scl) {
-							after.scaleX = sc[0];
-							after.scaleY = sc[1];
-							after.scaleZ = sc[2];
-						}
+						rectTransform.rotationX = rotDeg[0];
+						rectTransform.rotationY = rotDeg[1];
+						rectTransform.rotationZ = rotDeg[2];
 
-						s_ui3DGizmoCmd->SetAfter(after);
+						rectTransform.scaleX = sc[0];
+						rectTransform.scaleY = sc[1];
+						rectTransform.scaleZ = sc[2];
 					}
 
-					// end
-					if (s_ui3DGizmoActive && !isUsing) {
-						if (s_ui3DGizmoCmd) {
-							const auto& B = s_ui3DGizmoCmd->Before();
-							const auto& A = s_ui3DGizmoCmd->After();
-
-							auto eq = [](float a, float b) {
-								return std::fabs(a - b) <= 1e-6f;
-								};
-
-							bool changed = false;
-							if (s_uiGizmoMask & Editor::SetUITransformCommand::Pos)
-								changed |= !eq(B.x, A.x) || !eq(B.y, A.y) || !eq(B.z, A.z);
-							if (s_uiGizmoMask & Editor::SetUITransformCommand::Rot)
-								changed |= !eq(B.rotationX, A.rotationX) || !eq(B.rotationY, A.rotationY) || !eq(B.rotationZ, A.rotationZ);
-							if (s_uiGizmoMask & Editor::SetUITransformCommand::Scl)
-								changed |= !eq(B.scaleX, A.scaleX) || !eq(B.scaleY, A.scaleY) || !eq(B.scaleZ, A.scaleZ);
-
-							if (changed) {
-								Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_ui3DGizmoCmd));
-							}
-							else {
-								s_ui3DGizmoCmd.reset();
-							}
-						}
-						s_ui3DGizmoActive = false;
+					if (UIGizmoHandler::IsGizmoActive() && !isUsing) {
 						UIGizmoHandler::End3DGizmo(eid);
 						s_usingUIGizmo = false;
+						// TODO: Push command for undo/redo
 					}
 				}
 				// Screen space canvas (2D gizmo with corner/edge handles)
 				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
 					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
 				{
-					// begin
+					// Begin 2D gizmo if not already active
 					if (!UIGizmoHandler::IsGizmoActive() && ImGui::IsWindowFocused()) {
 						UIGizmoHandler::Begin2DGizmo(eid);
-						s_ui2DGizmoActive = true;
 						s_usingUIGizmo = true;
-
-						// Capture before state NOW
-						auto before = NE::ECS::Query::GetUIRectTransform(eid);
-						s_ui2DGizmoCmd = std::make_unique<Editor::SetUITransformCommand>(
-							eid, "Gizmo: UI Transform", before, before,
-							&NE::ECS::Command::GetUIRectTransform,
-							static_cast<uint8_t>(Editor::SetUITransformCommand::Pos | Editor::SetUITransformCommand::Size)
-						);
 					}
 
-					// update
+					// Update 2D gizmo
 					if (UIGizmoHandler::IsGizmoActive()) {
 						UIGizmoHandler::Update2DGizmo(eid, panelPos, panelSize, 1920.f, 1080.f);
-
-						// Update command with current state during drag
-						if (s_ui2DGizmoActive && s_ui2DGizmoCmd) {
-							auto current = NE::ECS::Query::GetUIRectTransform(eid);
-							s_ui2DGizmoCmd->SetAfter(current);
-						}
 					}
 
 					// Draw corner/edge handles
@@ -608,30 +534,8 @@ namespace Editor {
 						UIGizmoHandler::End2DGizmo(eid);
 						s_usingUIGizmo = false;
 					}
-
-					// end
-					if (s_ui2DGizmoActive && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-						if (s_ui2DGizmoCmd) {
-							const auto& B = s_ui2DGizmoCmd->Before();
-							const auto& A = s_ui2DGizmoCmd->After();
-
-							auto eq = [](float a, float b) { return std::fabs(a - b) <= 1e-6f; };
-							bool changed = !eq(B.x, A.x) || !eq(B.y, A.y) ||
-								!eq(B.width, A.width) || !eq(B.height, A.height);
-
-							if (changed) {
-								Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_ui2DGizmoCmd));
-							}
-							else {
-								s_ui2DGizmoCmd.reset();
-							}
-						}
-						s_ui2DGizmoActive = false;
-						UIGizmoHandler::End2DGizmo(eid);
-						s_usingUIGizmo = false;
-					}
 				}
-			}
+				}
 		}
 
 		// Calculate camera's look direction regardless of input
