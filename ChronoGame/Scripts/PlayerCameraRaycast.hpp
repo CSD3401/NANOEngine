@@ -2,23 +2,21 @@
 #include "EngineAPI.hpp"
 
 /**
- * ElevatorMove - Auto-generated script template
+ * PlayerCameraRaycast - Auto-generated script template
  * Implement your game logic in the lifecycle methods below.
  */
-class ElevatorMove : public IScript {
+class PlayerCameraRaycast : public IScript {
 public:
-	ElevatorMove() {
+	PlayerCameraRaycast() {
 		// Register any editable fields here
 		// Example: REGISTER_FIELD(speed);
 		// Example: REGISTER_VECTOR(enemies);
-		SCRIPT_FIELD(startPos, Vec3);
-		SCRIPT_FIELD(targetPos, Vec3);
-		SCRIPT_FIELD_VECTOR(entityToMove, Entity); // why is there no singular inspector for entity xd
-		SCRIPT_FIELD(moveDuration, Float);
-		SCRIPT_FIELD(listenToMessage, String); 
+		SCRIPT_FIELD(interactableLayerMask, Int);
+		SCRIPT_FIELD(raycastDist, Float);
+		SCRIPT_FIELD(raycastCooldown, Float);
 	}
 
-	~ElevatorMove() override = default;
+	~PlayerCameraRaycast() override = default;
 
 	// === Lifecycle Methods ===
 
@@ -32,37 +30,43 @@ public:
 
 	void Start() override {
 		// Called when the script is enabled and play mode starts
-		if (entityToMove.size() == 0){
-			entityToMove.resize(1);
-			entityToMove[0] = GetEntity();
-			SetPosition(GetTransformRef(entityToMove[0]), startPos);
-		}
-
-		if (entityToMove[0]){
-			SetPosition(GetTransformRef(entityToMove[0]), startPos);
-
-			Events::Listen(listenToMessage.c_str(), [this](void* data) {
-				this->MoveToTargetPos();
-				});
-		}
-
-
-		isMoving = false;
-		moveTimer = moveDuration;
+		raycastTimer = raycastCooldown;
 	}
 
 	void Update(double deltaTime) override {
 		// Called every frame while the script is enabled
-		if (isMoving)
-		{
-			moveTimer -= deltaTime;
-			if (moveTimer <= 0.0f)
+		if (Input::WasKeyReleased('P')) { // <- WILL ONLY WORK FOR LEVERS
+			if (prevEntity != NULL)
 			{
-				isMoving = false;
-				std::swap(startPos, targetPos);
-				moveTimer = 2.0f;
+				Events::Send("Lever0");
 			}
+		}
 
+		raycastTimer -= deltaTime;
+		if (raycastTimer <= 0.0f)
+		{
+			TransformRef t = GetTransformRef(GetEntity());
+			Vec3 forward = GetForward(GetEntity());
+			RaycastHit h = Raycast(GetPosition(GetEntity()), forward, raycastDist);
+			std::string log = "FORWARD VEC = X:" + std::to_string(forward.x) + ", Y: " + std::to_string(forward.y) + ", Z: " + std::to_string(forward.z);
+			LOG_DEBUG(log.c_str());
+			Vec3 pos = GetPosition(t);
+			log = "POS VEC = X:" + std::to_string(pos.x) + ", Y: " + std::to_string(pos.y) + ", Z: " + std::to_string(pos.z);
+			LOG_DEBUG(log.c_str());
+			Vec3 combi = pos + forward;
+			log = "COMBI VEC = X:" + std::to_string(combi.x) + ", Y: " + std::to_string(combi.y) + ", Z: " + std::to_string(combi.z);
+			LOG_DEBUG(log.c_str());
+			if (h.hasHit)
+			{
+				prevEntity = h.entity;
+				LOG_DEBUG("ENTITY HIT BY RAYCAST");
+				
+			}
+			else
+			{
+				prevEntity = NULL;
+			}
+			raycastTimer = raycastCooldown;
 		}
 	}
 
@@ -85,7 +89,7 @@ public:
 	}
 
 	const char* GetTypeName() const override {
-		return "ElevatorMove";
+		return "PlayerCameraRaycast";
 	}
 
 	// === Collision Callbacks ===
@@ -109,23 +113,9 @@ public:
 private:
 	// Add your private member variables here
 	// Example: float speed = 5.0f;
-
-	Vec3 startPos;	// Starting position 
-	Vec3 targetPos;	// Ending position
-	std::vector<Entity> entityToMove;
-	std::string listenToMessage = "Lever0";
-	float moveDuration = 2.0f;
-	float moveTimer = 2.0f;
-	bool isMoving = false;
-
-	void MoveToTargetPos()
-	{
-		if (isMoving)
-			return;
-
-		isMoving = true;
-
-		Tweener::StartVec3([this](const Vec3& pos) { SetPosition(pos); },
-			startPos, targetPos, moveDuration, NE::Scripting::TweenType::EASE_BOTH, entityToMove[0]);
-	}
+	int interactableLayerMask = 69;
+	float raycastDist = 50.0f;
+	float raycastCooldown= 10.0f;
+	float raycastTimer = 0.1f;
+	Entity prevEntity;
 };

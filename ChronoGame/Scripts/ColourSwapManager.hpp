@@ -48,8 +48,8 @@ public:
 		// Called every frame while the script is enabled
 		if (!isActive) return;
 
-		if (!isSolved)
-		{
+		if (!isSolved) {
+
 		}
 		else
 		{
@@ -127,6 +127,8 @@ private:
 
 	std::unordered_map<int, MaterialRef> currentPuzzle;
 
+	std::string eventMessage = "colourPuzzle";
+
 	void InitPuzzle()
 	{
 		if (swappableChildren.size() != startingColours.size())
@@ -167,6 +169,8 @@ private:
 			this->SwapColours(data);
 		});
 		LOG_DEBUG("LISTENING TO EVENT: " + listenEvent);
+
+		eventMessage += std::to_string(puzzleIndex);
 	}
 
 	void SwapColours(void* indexData)
@@ -187,7 +191,6 @@ private:
 		//LOG_DEBUG("RIGHT CHILD MATERIAL: " << currentPuzzle[rightIndex].GetEntity());
 		// Swap the colours assigned to those entities
 		std::swap(currentPuzzle[leftIndex], currentPuzzle[rightIndex]);
-
 
 		//LOG_DEBUG("AFTER SWAPPING:");
 		//LOG_DEBUG("LEFT CHILD MATERIAL: " << currentPuzzle[leftIndex].GetEntity());
@@ -231,5 +234,7 @@ private:
 			NE::Renderer::Command::AssignMaterial(child, correctColour);
 
 		}
+
+		Events::Send(eventMessage.c_str());
 	}
 };

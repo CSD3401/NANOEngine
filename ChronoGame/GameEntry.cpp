@@ -22,6 +22,8 @@
 #include "Scripts/TimeSwapManager.hpp"
 #include "Scripts/TimeSwapListener.hpp"
 #include "Scripts/ElevatorMove.hpp"
+#include "Scripts/PlayerCameraRaycast.hpp"
+#include "Scripts/Interactable.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
 #include "Scripts/MirrorPuzzle.hpp"
@@ -113,6 +115,10 @@ extern "C" {
 
         registrar->RegisterScript("ElevatorMove", []() -> NE::Scripting::IScript* {
             return new ElevatorMove();
+            });
+
+        registrar->RegisterScript("PlayerCameraRaycast", []() -> NE::Scripting::IScript* {
+            return new PlayerCameraRaycast();
             });
 
         // Component Reference Example Scripts

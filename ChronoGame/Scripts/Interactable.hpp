@@ -2,23 +2,18 @@
 #include "EngineAPI.hpp"
 
 /**
- * ElevatorMove - Auto-generated script template
+ * Interactable - Auto-generated script template
  * Implement your game logic in the lifecycle methods below.
  */
-class ElevatorMove : public IScript {
+class Interactable : public IScript {
 public:
-	ElevatorMove() {
+	Interactable() {
 		// Register any editable fields here
 		// Example: REGISTER_FIELD(speed);
 		// Example: REGISTER_VECTOR(enemies);
-		SCRIPT_FIELD(startPos, Vec3);
-		SCRIPT_FIELD(targetPos, Vec3);
-		SCRIPT_FIELD_VECTOR(entityToMove, Entity); // why is there no singular inspector for entity xd
-		SCRIPT_FIELD(moveDuration, Float);
-		SCRIPT_FIELD(listenToMessage, String); 
 	}
 
-	~ElevatorMove() override = default;
+	~Interactable() override = default;
 
 	// === Lifecycle Methods ===
 
@@ -32,38 +27,10 @@ public:
 
 	void Start() override {
 		// Called when the script is enabled and play mode starts
-		if (entityToMove.size() == 0){
-			entityToMove.resize(1);
-			entityToMove[0] = GetEntity();
-			SetPosition(GetTransformRef(entityToMove[0]), startPos);
-		}
-
-		if (entityToMove[0]){
-			SetPosition(GetTransformRef(entityToMove[0]), startPos);
-
-			Events::Listen(listenToMessage.c_str(), [this](void* data) {
-				this->MoveToTargetPos();
-				});
-		}
-
-
-		isMoving = false;
-		moveTimer = moveDuration;
 	}
 
 	void Update(double deltaTime) override {
 		// Called every frame while the script is enabled
-		if (isMoving)
-		{
-			moveTimer -= deltaTime;
-			if (moveTimer <= 0.0f)
-			{
-				isMoving = false;
-				std::swap(startPos, targetPos);
-				moveTimer = 2.0f;
-			}
-
-		}
 	}
 
 	void OnDestroy() override {
@@ -85,7 +52,7 @@ public:
 	}
 
 	const char* GetTypeName() const override {
-		return "ElevatorMove";
+		return "Interactable";
 	}
 
 	// === Collision Callbacks ===
@@ -106,26 +73,10 @@ public:
 		// Called when this entity exits a trigger
 	}
 
+	virtual void Interact();
+
 private:
 	// Add your private member variables here
 	// Example: float speed = 5.0f;
 
-	Vec3 startPos;	// Starting position 
-	Vec3 targetPos;	// Ending position
-	std::vector<Entity> entityToMove;
-	std::string listenToMessage = "Lever0";
-	float moveDuration = 2.0f;
-	float moveTimer = 2.0f;
-	bool isMoving = false;
-
-	void MoveToTargetPos()
-	{
-		if (isMoving)
-			return;
-
-		isMoving = true;
-
-		Tweener::StartVec3([this](const Vec3& pos) { SetPosition(pos); },
-			startPos, targetPos, moveDuration, NE::Scripting::TweenType::EASE_BOTH, entityToMove[0]);
-	}
 };

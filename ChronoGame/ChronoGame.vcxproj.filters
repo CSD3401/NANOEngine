@@ -35,6 +35,8 @@
     <ClInclude Include="Scripts\TimeSwapManager.hpp" />
     <ClInclude Include="Scripts\ColourSwapButton.hpp" />
     <ClInclude Include="Scripts\ElevatorMove.hpp" />
+    <ClInclude Include="Scripts\Lever.hpp" />
+    <ClInclude Include="Scripts\PlayerCameraRaycast.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />
