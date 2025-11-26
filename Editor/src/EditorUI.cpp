@@ -3,7 +3,137 @@
 #include "AssetManagement/AssetManager.hpp"
 #include <imgui/widgets/imsearch/imsearch.h>
 
+
 namespace Editor {
+
+    bool DrawHDRColorPicker(const char* id, HDRColor& hdr)
+    {
+        bool changed = false;
+
+        ImGui::PushID(id);
+
+        ImGui::TextUnformatted("HDR Color");
+        ImGui::Separator();
+
+        ImGuiColorEditFlags picker_flags =
+            ImGuiColorEditFlags_Float |
+            ImGuiColorEditFlags_HDR |
+            ImGuiColorEditFlags_DisplayRGB |
+            ImGuiColorEditFlags_InputRGB |
+            ImGuiColorEditFlags_PickerHueWheel |
+            ImGuiColorEditFlags_NoSidePreview |
+            ImGuiColorEditFlags_NoSmallPreview;
+
+        ImVec2 picker_size(200.0f, 0.0f);
+        ImGui::BeginGroup();
+        ImGui::SetNextItemWidth(picker_size.x);
+        if (ImGui::ColorPicker4("##picker", (float*)&hdr.color, picker_flags))
+            changed = true;
+        ImGui::EndGroup();
+
+        ImGui::Spacing();
+        ImGui::TextUnformatted("Result");
+        ImVec4 preview = hdr.color;
+        preview.x *= hdr.intensity;
+        preview.y *= hdr.intensity;
+        preview.z *= hdr.intensity;
+        ImGui::ColorButton("##preview", preview,
+            ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_NoTooltip,
+            ImVec2(60, 20));
+
+        ImGui::Separator();
+
+        ImGui::TextUnformatted("RGB 0-255");
+        int rgb[3] = {
+            (int)ImClamp(hdr.color.x * 255.0f, 0.0f, 255.0f),
+            (int)ImClamp(hdr.color.y * 255.0f, 0.0f, 255.0f),
+            (int)ImClamp(hdr.color.z * 255.0f, 0.0f, 255.0f)
+        };
+
+        ImGui::SetNextItemWidth(210.0f);
+        if (ImGui::DragInt3("##rgb", rgb, 1.0f, 0, 255)) {
+            hdr.color.x = rgb[0] / 255.0f;
+            hdr.color.y = rgb[1] / 255.0f;
+            hdr.color.z = rgb[2] / 255.0f;
+            changed = true;
+        }
+
+        ImGui::Spacing();
+        ImGui::TextUnformatted("Intensity");
+
+        ImGui::SetNextItemWidth(150.0f);
+        if (ImGui::SliderFloat("##intensity_slider", &hdr.intensity, 0.0f, 5.0f))
+            changed = true;
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(70.0f);
+        if (ImGui::DragFloat("##intensity_value", &hdr.intensity, 0.01f, 0.0f, 20.0f, "%.5f"))
+            changed = true;
+
+        ImGui::Spacing();
+        static const float ev_values[] = { -2.0f, -1.0f, 1.0f, 2.0f };
+        const char* ev_labels[] = { "-2", "-1", "+1", "+2" };
+
+        for (int i = 0; i < IM_ARRAYSIZE(ev_values); ++i) {
+            if (i > 0) ImGui::SameLine();
+            if (ImGui::Button(ev_labels[i], ImVec2(40.0f, 30.0f))) {
+                hdr.intensity = powf(2.0f, ev_values[i]);
+                changed = true;
+            }
+        }
+
+        ImGui::Separator();
+
+        ImGui::TextUnformatted("Defaults");
+
+        static bool   swatches_initialized = false;
+        static ImVec4 swatches[8 * 8];
+
+        if (!swatches_initialized) {
+            swatches_initialized = true;
+            int idx = 0;
+            for (int y = 0; y < 8; ++y) {
+                for (int x = 0; x < 8; ++x) {
+                    float fx = (float)x / 7.0f;
+                    float fy = (float)y / 7.0f;
+                    swatches[idx++] = ImVec4(fx, fy, 1.0f - fx, 1.0f);
+                }
+            }
+        }
+
+        float cell = ImGui::GetFrameHeight(); // roughly square
+        int   cols = 8;
+
+        for (int i = 0; i < 64; ++i) {
+            if (i % cols != 0)
+                ImGui::SameLine();
+
+            ImGui::PushID(i);
+            if (ImGui::ColorButton("##swatch", swatches[i],
+                ImGuiColorEditFlags_NoTooltip |
+                ImGuiColorEditFlags_NoDragDrop,
+                ImVec2(cell, cell))) {
+                hdr.color = swatches[i];
+                changed = true;
+            }
+
+            // Right-click to save current color into this slot
+            if (ImGui::BeginPopupContextItem("swatch_ctx")) {
+                if (ImGui::MenuItem("Save current color here")) {
+                    swatches[i] = hdr.color;
+                }
+                ImGui::EndPopup();
+            }
+
+            ImGui::PopID();
+        }
+
+        ImGui::Spacing();
+        ImGui::TextDisabled("Click a swatch to apply.\nRight-click to overwrite.");
+
+        ImGui::PopID();
+        return changed;
+    }
 
     bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue, float columnWidth)
     {
@@ -63,6 +193,91 @@ namespace Editor {
         ImGui::Text("%s", label.c_str());
         ImGui::SameLine();
         changed = ImGui::InputFloat(("##" + label).c_str(), &value, step);
+        return changed;
+    }
+
+    // New Styling
+    bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned) {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        // Label
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        float fullWidth = ImGui::GetContentRegionAvail().x;
+        float sliderWidth = fullWidth * 0.70f;
+        float inputWidth = 60.0f;
+        float spacing = style.ItemInnerSpacing.x;
+        float totalWidth = sliderWidth + spacing + inputWidth;
+
+        if (rightAligned) {
+            float startX = ImGui::GetCursorPosX() + (fullWidth - totalWidth);
+            if (startX < ImGui::GetCursorPosX())
+                startX = ImGui::GetCursorPosX();
+            ImGui::SetCursorPosX(startX);
+        }
+
+        ImGui::SetNextItemWidth(sliderWidth);
+        changed |= ImGui::SliderFloat("##slider", &value, min, max, " ");
+
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(inputWidth);
+        changed |= ImGui::DragFloat("##input", &value, step, min, max, "%.2f");
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawFloatField(const char* label, float& value, float step, bool rightAligned) {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        //ImGuiStyle& style = ImGui::GetStyle();
+        float fullWidth = ImGui::GetContentRegionAvail().x;
+        float fieldWidth = 150.f;
+
+        if (rightAligned) {
+            float startX = ImGui::GetCursorPosX() + (fullWidth - fieldWidth);
+            ImGui::SetCursorPosX(startX);
+        }
+
+        ImGui::SetNextItemWidth(fieldWidth);
+        changed |= ImGui::DragFloat("##input", &value, step, -FLT_MAX, FLT_MAX, "%.3f");
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawIntField(const char* label, int& value, bool rightAligned) {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        //ImGuiStyle& style = ImGui::GetStyle();
+        float fullWidth = ImGui::GetContentRegionAvail().x;
+        float fieldWidth = 150.f;
+
+        if (rightAligned) {
+            float startX = ImGui::GetCursorPosX() + (fullWidth - fieldWidth);
+            ImGui::SetCursorPosX(startX);
+        }
+
+        ImGui::SetNextItemWidth(fieldWidth);
+        changed |= ImGui::DragInt("##input", &value, 1);
+
+        ImGui::PopID();
         return changed;
     }
 
@@ -152,18 +367,6 @@ namespace Editor {
                 changed = true;
             }
         } else {
-            //ImVec2 cursor = ImGui::GetCursorScreenPos();
-            //ImDrawList* dl = ImGui::GetWindowDrawList();
-            //ImVec2 rectMax = ImVec2(cursor.x + previewSize, cursor.y + previewSize);
-
-            //// Fill background
-            //dl->AddRectFilled(cursor, rectMax, IM_COL32(60, 60, 60, 255)); // dark gray
-            //// Outline
-            //dl->AddRect(cursor, rectMax, IM_COL32(100, 100, 100, 255)); // border
-
-            //ImGui::Dummy(ImVec2(previewSize, previewSize)); // Reserve space for layout
-            
-
             ImVec2 cursor = ImGui::GetCursorScreenPos();
             ImDrawList* dl = ImGui::GetWindowDrawList();
             ImVec2 rectMax = ImVec2(cursor.x + previewSize, cursor.y + previewSize);
@@ -185,15 +388,6 @@ namespace Editor {
             }
         }
 
-        //ImVec2 size(previewSize, previewSize);
-        //if (img) {
-        //    ImGui::Image(img, size);
-        //} else {
-        //    if (ImGui::Button("+ Assign Texture", size)) {
-        //        ImGui::OpenPopup("AssetPicker_Texture");
-        //    }
-        //}
-
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH")) {
                 std::string dropped((const char*)p->Data, p->DataSize - 1);
@@ -203,27 +397,6 @@ namespace Editor {
             }
             ImGui::EndDragDropTarget();
         }
-
-        // implement next time
-        //ImGui::SameLine();
-        //if (ImGui::SmallButton("Pick…")) ImGui::OpenPopup("AssetPicker_Texture");
-        //ImGui::SameLine();
-        //if (ImGui::SmallButton("Clear")) { slotTex.reset(); changed = true; }
-
-        //if (ImGui::BeginPopup("AssetPicker_Texture")) {
-        //    ImGui::TextUnformatted("Select a Texture"); ImGui::Separator();
-
-        //    // TODO: replace with your actual enumeration (e.g., NE::GetAllTextures()).
-        //    // Example skeleton:
-        //    for (const auto& [texId, meta] : NE::GetAllTextures()) {
-        //        if (ImGui::Selectable(texId.c_str())) {
-        //            assignById(texId);
-        //            changed = true;
-        //            ImGui::CloseCurrentPopup();
-        //        }
-        //    }
-        //    ImGui::EndPopup();
-        //}
 
         if (ImGui::BeginPopup("AssetPicker_Texture")) {
             ImGui::Text("Select a texture");
@@ -242,6 +415,47 @@ namespace Editor {
                 }
                 ImSearch::EndSearch();
             }
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawHDRColorField(const char* label, HDRColor& hdr) {
+        bool changed = false;
+
+        ImGui::PushID(label);
+
+        // Label
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        ImVec4 preview = hdr.color;
+        preview.x *= hdr.intensity;
+        preview.y *= hdr.intensity;
+        preview.z *= hdr.intensity;
+
+        float fullWidth = ImGui::GetContentRegionAvail().x;
+        ImVec2 barSize(fullWidth, ImGui::GetFrameHeight());
+
+        ImVec2 popupPos(0, 0);
+        if (ImGui::ColorButton("##hdr_bar", preview,
+            ImGuiColorEditFlags_HDR |
+            ImGuiColorEditFlags_NoTooltip,
+            barSize)) {
+            ImGui::OpenPopup("HDRPickerPopup");
+        }
+
+        popupPos = ImVec2(ImGui::GetItemRectMin().x,
+            ImGui::GetItemRectMax().y + 4.0f);
+        ImGui::SetNextWindowPos(popupPos, ImGuiCond_Appearing);
+
+        if (ImGui::BeginPopup("HDRPickerPopup", ImGuiWindowFlags_AlwaysAutoResize)) {
+            if (DrawHDRColorPicker("##HDRPickerContent", hdr))
+                changed = true;
+
             ImGui::EndPopup();
         }
 

@@ -6,6 +6,7 @@
 #include "../Engine.hpp"  // For MarkSceneDirty
 #include <Core/SpdLogger.hpp>
 #include "../../include/ScriptSDK/ScriptTypes.h"
+#include <Graphics/Core/GraphicsManager.hpp>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -19,13 +20,13 @@ namespace NE {
 namespace NE::Renderer {
 
 	namespace Query {
-		NANOENGINE_API std::string GetModel(uint32_t e)
+		std::string GetModel(uint32_t e)
 		{
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			if (r.modelUUID.empty()) return "empty uuid";
 			else return r.modelUUID;
 		}
-		NANOENGINE_API std::string GetMaterial(uint32_t e)
+		std::string GetMaterial(uint32_t e)
 		{
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			if (r.materialUUID.empty()) return "empty uuid";
@@ -69,6 +70,8 @@ namespace NE::Renderer {
 				SPD_DEBUG("[DirtyFlag] Material changed - Scene marked DIRTY");
 			}
 		}
+
+		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }
 	}
 
 }

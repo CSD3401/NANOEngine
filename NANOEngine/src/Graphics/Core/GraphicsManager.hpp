@@ -8,6 +8,7 @@
 #include "DrawCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
+#include "RenderSettings.hpp"
 
 // Forward declarations
 namespace NE::ECS::Component {
@@ -89,6 +90,8 @@ namespace NE::Graphics {
 		// Render View Handles
         static RenderViewHandle s_SceneViewHandle;
         static RenderViewHandle s_GameViewHandle;
+
+        static RenderSettings renderSettings;
 
     private:
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;

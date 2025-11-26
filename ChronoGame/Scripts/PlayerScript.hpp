@@ -99,13 +99,15 @@ public:
 		SCRIPT_FIELD_STRUCT(stats);
 		SCRIPT_FIELD_STRUCT(playerFlags);
 
+		SCRIPT_COMPONENT_REF(tref0, TransformRef);
+
 		//LOG_DEBUG("PlayerScript initialized for entity {}", entity);
 	}
 
 	void Start() override {
 		//LOG_DEBUG("PlayerScript::Start() called for entity {}", GetEntity());
 
-		tref0 = GetTransformRef(eDDDD[0]);
+		//tref0 = GetTransformRef(eDDDD[0]);
 	}
 
 	void OnValidate() override {

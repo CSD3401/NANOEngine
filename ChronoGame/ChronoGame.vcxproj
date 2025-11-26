@@ -159,8 +159,9 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Scripts\BulletShooterScript.hpp" />
+    <ClInclude Include="Scripts\CameraController.hpp" />
     <ClInclude Include="Scripts\EngineAPI.hpp" />
-    <ClInclude Include="Scripts\ExampleMaterialScript.hpp" />
     <ClInclude Include="Scripts\FollowerScript.hpp" />
     <ClInclude Include="Scripts\Gears.hpp" />
     <ClInclude Include="Scripts\k1bswitch.hpp" />
@@ -169,9 +170,11 @@
     <ClInclude Include="Scripts\MaterialSequencer.hpp" />
     <ClInclude Include="Scripts\ParentControllerScript.hpp" />
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
+    <ClInclude Include="Scripts\Pickable.hpp" />
     <ClInclude Include="Scripts\PlayerCamera.hpp" />
     <ClInclude Include="Scripts\PlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerScript.hpp" />
+    <ClInclude Include="Scripts\PrefabSpawnerScript.hpp" />
     <ClInclude Include="Scripts\TestScript.hpp" />
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />

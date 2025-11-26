@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include "EngineAPI.hpp"
+#include <ScriptSDK/ScriptTypes.h>
 
 class PlayerCamera : public IScript {
 public:
@@ -8,13 +9,11 @@ public:
     }
 
     void Initialize(Entity entity) override {
-        SetRotation(0.f, 180.f, 0.f);
     }
 
     void Update(double deltaTime) override {
         if (!isActive) return;
 
-        // --- mouse look ---
         auto [mouseX, mouseY] = Input::GetMousePosition();
 
         if (m_firstMouse) {
@@ -40,6 +39,20 @@ public:
         if (m_pitch < -89.0f) m_pitch = -89.0f;
 
         SetRotation(m_pitch, m_yaw, 0.0f);
+        
+        if (Input::WasMousePressed(0)) {
+            auto forward = GetForward();
+            auto hit = Raycast(GetWorldPosition(), forward, 5.f);
+            LOG_DEBUG("Position: " << GetPosition().x << " : " << GetPosition().y << " : " << GetPosition().z);
+            LOG_DEBUG("Forward: " << forward.x << " : " << forward.y << " : " << forward.z);
+            
+            LOG_DEBUG("Entity Hit: " << hit.entity);
+            std::pair<uint32_t, uint32_t> data = { hit.entity, GetEntity() };
+
+            if (hit.entity != NE::Scripting::INVALID_ENTITY) {
+                Events::Send("OnCameraRaycastHit", &data);
+            }
+        }
     }
 
     void OnDestroy() override {
@@ -57,10 +70,7 @@ public:
     void OnTriggerExit(Entity other) override {}
 
 private:
-    // === Exposed Fields ===
-    // These will automatically appear in the editor inspector
     bool isActive = true;
-    //std::string objectName = "TestObject";
 
     bool switched = false;
 
@@ -69,6 +79,4 @@ private:
     bool  m_firstMouse = true;
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
-
-    Entity pickedEntity = NE::ECS::NO_ENTITY;
 };

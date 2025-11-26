@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <fstream>
+#include <filesystem>
 #include "Graphics/Core/Window.hpp"
 #include "Graphics/OpenGL/GLContext.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
@@ -10,6 +11,7 @@
 //#include <glad/glad.h>
 #include "SceneManagement/Scene.hpp"
 #include "../../src/Serialisation/JsonSceneSerializer.hpp"
+#include "ECS/Components/Transform.hpp"
 //#include "AssetManager.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
@@ -25,6 +27,7 @@
 #include "Graphics/OpenGL/GLTexture.hpp"
 #include "Audio/AudioBank.hpp"
 #include "Scripting/ScriptingEngine.hpp"
+#include "PrefabManagement/PrefabManager.hpp"
 #include <glfw/glfw3.h>
 
 namespace {
@@ -80,7 +83,7 @@ namespace NE {
 	static std::unique_ptr<Graphics::Window> s_window;
 	static std::unique_ptr<Graphics::IRenderContext> s_renderContext;
 
-	static SceneManagement::SceneManager gSceneManager;
+	SceneManagement::SceneManager gSceneManager;
 
 	void Initialize() {
 		NE_PROFILE_FUNCTION();
@@ -215,8 +218,90 @@ namespace NE {
 		Serialization::JsonSceneSerializer::Deserialize(*gSceneManager.GetActive(), targetPath);
 	}
 
-	size_t GetNumEntities() {
-		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities().size();
+	const std::vector<uint32_t>& GetNumEntities() {
+		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities();
+	}
+
+	std::string SerializePrefab(uint32_t entt, std::string targetPath) {
+		return Serialization::JsonSceneSerializer::SerializePrefab(*gSceneManager.GetActive(), entt, targetPath);
+	}
+
+	 std::vector<uint32_t> DeserializePrefab(std::string prefabPath) {
+		 auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
+		 return newEntities;
+	}
+
+	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid) {
+		auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
+		Prefab::PrefabManager::Instantiate(uuid, newEntities);
+		return newEntities;
+	}
+
+	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos) {
+		auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath, pos);
+		Prefab::PrefabManager::Instantiate(uuid, newEntities);
+		return newEntities;
+	}
+
+	void LoadPrefabScene(std::string prefabPath) {
+		gSceneManager.LoadPrefabScene(prefabPath);
+	}
+
+	void SavePrefabScene(std::string prefabPath) {
+		Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), prefabPath);
+	}
+
+	void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath) {
+		NE::Prefab::PrefabManager::ReloadAllInstancesOfPrefab(prefabUUID, prefabPath);
+	}
+
+	void ClosePrefabScene() {
+		gSceneManager.ClosePrefabScene();
+	}
+
+	std::vector<uint32_t> DuplicateEntity(uint32_t entity) {
+		std::vector<uint8_t> buffer;
+		NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
+
+		if (buffer.empty())
+			return std::vector<uint32_t>{};
+
+		auto newEntities =
+			NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), buffer);
+
+		if (newEntities.empty())
+			return std::vector<uint32_t>{};
+
+		auto& transform = gSceneManager.
+			GetActive()->GetECSCoordinator().
+			GetComponent<ECS::Component::Transform>(newEntities[0]);
+
+		transform.localPosition.x += 0.5f;
+		transform.localPosition.y += 0.5f;
+		transform.localPosition.z += 0.5f;
+		transform.isDirty = true;
+
+		return newEntities;
+	}
+
+	std::vector<uint8_t> CopyEntity(uint32_t entity) {
+		std::vector<uint8_t> buffer;
+		NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
+		return buffer;
+	}
+
+	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard) {
+		auto newEntities =
+			NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
+
+		//auto& transform = gSceneManager.
+		//	GetActive()->GetECSCoordinator().
+		//	GetComponent<ECS::Component::Transform>(newEntities[0]);
+
+		//transform.localPosition = pos;
+		//transform.isDirty = true;
+
+		return newEntities;
 	}
 
 	// Internal use only

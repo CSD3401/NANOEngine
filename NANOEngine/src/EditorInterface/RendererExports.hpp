@@ -9,6 +9,10 @@ namespace NE::ECS::Component {
 	struct Renderer;
 }
 
+namespace NE::Graphics {
+	struct RenderSettings;
+}
+
 namespace NE::Renderer {
 
 	namespace Query {
@@ -19,6 +23,7 @@ namespace NE::Renderer {
 	namespace Command {
 		NANOENGINE_API void AssignModel(uint32_t e, const std::string& uuid);
 		NANOENGINE_API void AssignMaterial(uint32_t e, const std::string& uuid);
+		NANOENGINE_API Graphics::RenderSettings& GetRenderSettings();
 	}
 
 }

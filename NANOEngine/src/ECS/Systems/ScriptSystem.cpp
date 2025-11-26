@@ -11,31 +11,65 @@
 #include "../../Scripting/ScriptingEngine.hpp"
 #include "../../Scripting/ScriptContextFactory.hpp"
 
+namespace hack { extern bool sceneRdy; }
+
 namespace NE::ECS::Systems {
 	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em)
 		: m_componentManager(cm), m_entityManager(em) {
 	}
 
 	void ScriptSystem::OnEntityAdded(Entity entity) {
-		// Logic for when an entity relevant to the script system is added
-		auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-		if (nsc.CreateScript && !nsc.Instance) {
-			nsc.Instance = nsc.CreateScript();
-			Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager); // Link to engine systems via new API
-			nsc.Instance->_SetEntity(entity);
 
-			// Call Awake() first (even if disabled)
-			nsc.Instance->Awake();
+		if (hack::sceneRdy) {
+			// Logic for when an entity relevant to the script system is added
+			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+			if (nsc.CreateScript && !nsc.Instance) {
+				nsc.Instance = nsc.CreateScript();
+				Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager); // Link to engine systems via new API
+				nsc.Instance->_SetEntity(entity);
 
-			// Then Initialize()
-			nsc.Instance->Initialize(entity);
+				// Call Awake() first (even if disabled)
+				nsc.Instance->Awake();
 
-			// Restore serialized field values if they exist
-			Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
+				// Then Initialize()
+				nsc.Instance->Initialize(entity);
 
-			nsc.Instance->SetEnabled(false); // Start disabled
-			SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+				// Restore serialized field values if they exist
+				Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
+
+				nsc.Instance->SetEnabled(false); // Start disabled
+				SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+			}
+			else {
+				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
+
+				if (factory) {
+					if (nsc.Instance && nsc.DestroyScript) {
+						nsc.DestroyScript(nsc.Instance);
+					}
+					else if (nsc.Instance) {
+						delete nsc.Instance;
+					}
+
+					nsc.CreateScript = factory;
+					nsc.DestroyScript = [](IScript* instance) { delete instance; };
+					nsc.Instance = nsc.CreateScript();
+					Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager);
+					nsc.Instance->_SetEntity(entity);
+
+					nsc.Instance->Awake();
+
+					nsc.Instance->Initialize(entity);
+
+					Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
+
+					nsc.Instance->SetEnabled(false);
+					SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
+				}
+			}
 		}
+
+		
 	}
 
     void ScriptSystem::OnEntityRemoved(Entity entity) {

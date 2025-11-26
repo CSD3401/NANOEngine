@@ -2,7 +2,9 @@
 #include <algorithm>
 #include <ECS/Core/Entity.hpp>
 #include <EditorInterface/ECSExports.hpp>
+#include <Engine.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include <unordered_set>
 
 namespace {
     void RemoveFromVec(std::vector<uint32_t>& v, uint32_t id) {
@@ -16,29 +18,16 @@ namespace Editor {
     std::vector<EditorEntity> EditorScene::s_entities;
     EditorEntity* EditorScene::s_selectedEntity;
 
-    //std::string EditorScene::selectedMaterial;
     std::string EditorScene::selectedAsset;
-
+    std::string EditorScene::selectedPrefab;
+    std::vector<uint8_t> EditorScene::clipboard;
     std::string EditorScene::currentScenePath("Assets/NewScene.scene");
 
     std::unordered_map<uint32_t, Node> EditorScene::s_nodes;
     std::unordered_map<uint32_t, std::vector<uint32_t>> EditorScene::s_children;
     std::vector<uint32_t> EditorScene::s_roots;
 
-    //void EditorScene::BuildFlatHierarchy() {
-    //    s_nodes.clear();
-    //    s_children.clear();
-    //    s_roots.clear();
-
-    //    s_roots.reserve(s_entities.size());
-    //    float k = 0.f;
-    //    for (const auto& e : s_entities) {                    // s_entities exists already
-    //        uint32_t id = e.linkedEntity;                    // (see your struct) 
-    //        s_nodes[id] = Node{ id, NE::ECS::NO_ENTITY, k };                 // everyone root; keys 0..N-1
-    //        s_roots.push_back(id);
-    //        k += 1.f;
-    //    }
-    //}
+    NE::Graphics::EditorCamera EditorScene::m_editorCamera;
 
     static void RenormalizeKeys(std::vector<uint32_t>& ids, uint32_t) {
         float k = 0.f;
@@ -46,6 +35,21 @@ namespace Editor {
             auto it = EditorScene::s_nodes.find(id);
             if (it != EditorScene::s_nodes.end()) it->second.orderKey = k, k += 1.f;
         }
+    }
+
+    void EditorScene::RebuildFromActiveScene() {
+        s_entities.clear();
+        s_nodes.clear();
+        s_children.clear();
+        s_roots.clear();
+
+        auto numEntt = NE::GetNumEntities();
+        s_entities.reserve(numEntt.size());
+        for (auto e : numEntt) {
+            s_entities.push_back(EditorEntity{ e });
+        }
+
+        BuildHierarchyFromECS();
     }
 
     const std::vector<uint32_t>& EditorScene::ChildrenOf(uint32_t parent) {
@@ -159,22 +163,19 @@ namespace Editor {
 
         s_roots.reserve(s_entities.size());
 
-        // --- First pass: create nodes with parent taken from ECS ---
         for (const auto& e : s_entities) {
             uint32_t id = e.linkedEntity;
 
-            // Ask ECS what the parent is (this should reflect Transform.parent)
-            uint32_t parent = NE::ECS::Command::GetParent(id); // NO_ENTITY if root
+            uint32_t parent = NE::ECS::Command::GetParent(id);
 
             Node node;
             node.id = id;
-            node.parent = parent;  // NE::ECS::NO_ENTITY means root for us too
-            node.orderKey = 0.0f;  // we'll fill this in per-sibling
+            node.parent = parent;
+            node.orderKey = 0.0f;
 
             s_nodes[id] = node;
         }
 
-        // --- Second pass: fill children and roots ---
         for (auto& [id, node] : s_nodes) {
             if (node.parent == NE::ECS::NO_ENTITY) {
                 s_roots.push_back(id);
@@ -183,16 +184,13 @@ namespace Editor {
             }
         }
 
-        // --- Third pass: assign simple orderKey for each sibling list ---
         {
-            // roots
             float k = 0.f;
             for (uint32_t id : s_roots) {
                 s_nodes[id].orderKey = k;
                 k += 1.f;
             }
 
-            // children
             for (auto& [parent, vec] : s_children) {
                 float kk = 0.f;
                 for (uint32_t id : vec) {
@@ -201,5 +199,77 @@ namespace Editor {
                 }
             }
         }
+    }
+
+    void EditorScene::DuplicateSelected() {
+        if (!s_selectedEntity) return;
+
+        std::vector<uint32_t> newEntities = NE::DuplicateEntity(EditorScene::s_selectedEntity->linkedEntity);
+
+        if (newEntities.empty()) return;
+
+        std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+        for (uint32_t entt : newEntities) {
+            EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+            Node node{};
+            node.id = entt;
+
+            uint32_t parent = NE::ECS::Command::GetParent(entt);
+            node.parent = parent;
+
+            if (parent == NE::ECS::NO_ENTITY) {
+                node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+                EditorScene::s_roots.push_back(entt);
+            } else {
+                auto& childrenVec = Editor::EditorScene::s_children[parent];
+                node.orderKey = static_cast<float>(childrenVec.size());
+                childrenVec.push_back(entt);
+            }
+
+            EditorScene::s_nodes[entt] = node;
+        }
+
+        EditorScene::s_selectedEntity = nullptr;
+    }
+
+    void EditorScene::CopySelected() {
+        if (!s_selectedEntity) return;
+
+        clipboard = NE::CopyEntity(EditorScene::s_selectedEntity->linkedEntity);
+    }
+
+    void EditorScene::PasteSelected() {
+        if (clipboard.empty()) return;
+
+        std::vector<uint32_t> newEntities = NE::PasteEntity(clipboard);
+
+        if (newEntities.empty()) return;
+
+        std::unordered_set<uint32_t> newSet(newEntities.begin(), newEntities.end());
+
+        for (uint32_t entt : newEntities) {
+            EditorScene::s_entities.push_back(Editor::EditorEntity{ entt });
+
+            Node node{};
+            node.id = entt;
+
+            uint32_t parent = NE::ECS::Command::GetParent(entt);
+            node.parent = parent;
+
+            if (parent == NE::ECS::NO_ENTITY) {
+                node.orderKey = static_cast<float>(Editor::EditorScene::s_roots.size());
+                EditorScene::s_roots.push_back(entt);
+            } else {
+                auto& childrenVec = Editor::EditorScene::s_children[parent];
+                node.orderKey = static_cast<float>(childrenVec.size());
+                childrenVec.push_back(entt);
+            }
+
+            EditorScene::s_nodes[entt] = node;
+        }
+
+        EditorScene::s_selectedEntity = nullptr;
     }
 }

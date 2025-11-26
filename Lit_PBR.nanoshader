@@ -101,16 +101,12 @@ uniform int   u_numLights;
 uniform Light u_lights[MAX_LIGHTS];
 
 // ===== Fog (scene-wide) =====
-uniform int   i_FogEnabled;   // 0/1
-uniform vec3  i_FogColor;     // linear color!
-uniform int   i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
-uniform float i_FogDensity;   // Exp/Exp2
-uniform float i_FogStart;     // Linear
-uniform float i_FogEnd;       // Linear
-
-// Scene ambient
-uniform vec3 i_GlobalAmbientColor;
-uniform float i_GlobalAmbientIntensity;
+uniform int   u_FogEnabled;   // 0/1
+uniform vec3  u_FogColor;     // linear color!
+uniform int   u_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
+uniform float u_FogDensity;   // Exp/Exp2
+uniform float u_FogStart;     // Linear
+uniform float u_FogEnd;       // Linear
 
 const float PI = 3.14159265359;
 
@@ -173,13 +169,13 @@ vec3 BRDF_GGX_Smith(vec3 N, vec3 V, vec3 L, vec3 albedo, float metallic, float r
 }
 //fog
 float FogFactor(float d){
-    if (i_FogMode==0){ // Linear
-        float denom = max(i_FogEnd - i_FogStart, 1e-4);
-        return clamp((i_FogEnd - d) / denom, 0.0, 1.0);
-    } else if (i_FogMode==1){ // Exp
-        return clamp(exp(-i_FogDensity * d), 0.0, 1.0);
+    if (u_FogMode==0){ // Linear
+        float denom = max(u_FogEnd - u_FogStart, 1e-4);
+        return clamp((u_FogEnd - d) / denom, 0.0, 1.0);
+    } else if (u_FogMode==1){ // Exp
+        return clamp(exp(-u_FogDensity * d), 0.0, 1.0);
     } else { // Exp2
-        float x = i_FogDensity * d;
+        float x = u_FogDensity * d;
         return clamp(exp(-x*x), 0.0, 1.0);
     }
 }
@@ -190,7 +186,6 @@ vec3 EvalDirectional(in Light L, vec3 N, vec3 V, vec3 albedo, float metallic, fl
     vec3 brdf = BRDF_GGX_Smith(N,V,Ld,albedo,metallic,rough);
     return brdf * (L.color * L.intensity);
 }
-
 vec3 EvalPoint(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough){
     vec3  Ldir = L.position - P;
     float dist2 = dot(Ldir,Ldir);
@@ -201,7 +196,6 @@ vec3 EvalPoint(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, 
     vec3 brdf = BRDF_GGX_Smith(N,V,Ld,albedo,metallic,rough);
     return brdf * (L.color * L.intensity * atten);
 }
-
 vec3 EvalSpot(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, float rough){
     vec3  Ldir = L.position - P;
     float dist2 = dot(Ldir,Ldir);
@@ -228,15 +222,10 @@ void main() {
     vec3 N = normalize(v_Normal);
 
     // Albedo (sRGB to linear)
-    //vec3 albedo = srgb_to_linear(clamp(u_BaseColor, 0.0, 1.0));
-    //if (u_HasAlbedoMap != 0){
-    //    albedo *= srgb_to_linear(texture(u_AlbedoMap, uv).rgb);
-    //}
-	vec3 albedo = clamp(u_BaseColor, 0.0, 1.0);
-
-	if (u_HasAlbedoMap != 0){
-		albedo *= texture(u_AlbedoMap, uv).rgb;
-	}
+    vec3 albedo = srgb_to_linear(clamp(u_BaseColor, 0.0, 1.0));
+    if (u_HasAlbedoMap != 0){
+        albedo *= srgb_to_linear(texture(u_AlbedoMap, uv).rgb);
+    }
 
     // Normal map (BC5 XY)
     if (u_HasNormalMap != 0){
@@ -255,18 +244,12 @@ void main() {
     if (u_HasMetallicMap  != 0) metal  = clamp(texture(u_MetallicMap,  uv).r, 0.0, 1.0);
 
     // Ambient Occlusion
-    //float ao = clamp(u_AmbientOcclusion, 0.0, 1.0);
-    //if (u_HasAOMap != 0) ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
-	
-	float ao = 1.0;
-	if (u_HasAOMap != 0) {
-		ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
-	}
+    float ao = clamp(u_AmbientOcclusion, 0.0, 1.0);
+    if (u_HasAOMap != 0) ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
 
     // Lighting
-    //vec3 ambient = u_AmbientColor * albedo * ao;
-	vec3 ambient = i_GlobalAmbientColor * i_GlobalAmbientIntensity * albedo * ao;
-	
+    vec3 ambient = u_AmbientColor * albedo * ao;
+
     vec3 Lo = vec3(0.0);
     for (int i = 0; i < u_numLights; ++i){
         if (u_lights[i].type == LIGHT_TYPE_DIRECTIONAL) Lo += EvalDirectional(u_lights[i], N, V, albedo, metal, rough);
@@ -277,10 +260,10 @@ void main() {
     vec3 color_linear = max(ambient + Lo + u_Emissive, 0.0);
 
     // Fog (linear space)
-    if (i_FogEnabled == 1){
+    if (u_FogEnabled == 1){
         float d  = distance(u_CameraPos, v_FragPos);
         float ff = FogFactor(d);
-        color_linear = mix(i_FogColor, color_linear, ff);
+        color_linear = mix(u_FogColor, color_linear, ff);
     }
 
     vec3 color_srgb = linear_to_srgb(color_linear);
