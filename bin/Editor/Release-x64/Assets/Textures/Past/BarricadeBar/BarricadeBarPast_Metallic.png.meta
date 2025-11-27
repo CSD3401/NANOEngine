@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "9abb6bf5-c1fb-4d97-9b8e-66d87d336c53",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\BarricadeBar\\BarricadeBarPast_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

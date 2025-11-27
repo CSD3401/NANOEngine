@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "76b25208-821d-487f-9c4a-59c21a425060",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Handle\\HandlePresent_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

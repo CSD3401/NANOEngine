@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "b3443ed8-9a80-49a8-987e-b7203b39642c",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Watch\\Watch_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

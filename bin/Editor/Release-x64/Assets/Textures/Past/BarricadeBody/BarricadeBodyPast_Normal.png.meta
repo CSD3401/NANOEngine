@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "3fda4d8f-4c07-47ac-a5e4-e0b1a2ea0fe4",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\BarricadeBody\\BarricadeBodyPast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

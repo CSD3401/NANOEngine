@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "68ff0d43-5024-4785-8367-05a880ef91af",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\TunnelLightCase\\TunnelLightCase_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

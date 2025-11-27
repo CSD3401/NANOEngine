@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "4dc536ab-8b05-41ea-9208-c4c28f55fbe9",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\BarricadeBar\\BarricadeBarPresent_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

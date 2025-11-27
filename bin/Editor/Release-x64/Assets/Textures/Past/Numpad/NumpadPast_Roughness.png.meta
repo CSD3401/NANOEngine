@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "92b85f55-9627-4902-a32c-079b5466b38b",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Numpad\\NumpadPast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
