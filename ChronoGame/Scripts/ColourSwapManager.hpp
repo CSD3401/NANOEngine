@@ -25,6 +25,7 @@ public:
 		SCRIPT_FIELD_VECTOR(childSolution, Entity);
 
 		std::cout << "[ColourSwapManager] Created with fields registered" << std::endl;
+
 	}
 
 	~ColourSwapManager() override = default;
@@ -42,6 +43,8 @@ public:
 	void Start() override {
 		// Called when the script is enabled and play mode starts
 		InitPuzzle();
+		LOG_WARNING("ColourSwapManager Start :" << eventMessage.c_str());
+
 	}
 
 	void Update(double deltaTime) override {
@@ -238,6 +241,7 @@ private:
 
 		}
 
+		LOG_WARNING("PuzzleSolved :" << eventMessage.c_str());
 		Events::Send(eventMessage.c_str());
 	}
 };
