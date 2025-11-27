@@ -24,11 +24,18 @@ namespace NE {
 
 namespace NE::Graphics::OpenGL {
 
+	// Default clustered lighting settings
+	constexpr int MAX_LIGHTS_PER_VIEW = 1024;
+	constexpr int CLUSTERED_LIGHTING_SIZE_X = 16;
+	constexpr int CLUSTERED_LIGHTING_SIZE_Y = 9;
+	constexpr int CLUSTERED_LIGHTING_SIZE_Z = 24;
+	constexpr int MAX_LIGHTS_PER_CLUSTER = 64;
+
     class GLClusteredLighting final : public IClusteredLighting {
     public:
 		GLClusteredLighting(
-            int cX = 16, int cY = 9, int cZ = 24, 
-            int maxLights = 1024, int lightIndicesPerCluster = 64
+            int cX = CLUSTERED_LIGHTING_SIZE_X, int cY = CLUSTERED_LIGHTING_SIZE_Y, int cZ = CLUSTERED_LIGHTING_SIZE_Z,
+            int maxLights = MAX_LIGHTS_PER_VIEW, int lightIndicesPerCluster = MAX_LIGHTS_PER_CLUSTER
         );
 		~GLClusteredLighting();
 
@@ -70,6 +77,7 @@ namespace NE::Graphics::OpenGL {
         {
             NE::Math::Mat4 view;  
             NE::Math::Mat4 proj;  
+			NE::Math::Mat4 invProj;
 
             float zNear;
             float zFar;

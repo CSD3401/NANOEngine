@@ -113,6 +113,11 @@ namespace NE::Graphics::OpenGL {
 
         UploadLights(view, lights);
 
+		// Early out if no lights
+		// Note: we still call UploadLights so the fragment shaders know the light count
+        if (m_numLightsThisView <= 0) 
+            return;
+
         // Reset atomic counter
         glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, m_lightIndexCounterBuffer);
         GLuint zero = 0;
@@ -165,7 +170,7 @@ namespace NE::Graphics::OpenGL {
             // params:  inner / outer / radius / padding
             dst.params[0] = src->innerCutoff;
             dst.params[1] = src->outerCutoff;
-			dst.params[2] = 0.0f; // radius not used for now
+			dst.params[2] = src->radius;
             dst.params[3] = 0.0f;
 
             // direction.xyz + padding
@@ -185,6 +190,7 @@ namespace NE::Graphics::OpenGL {
         ClusterParamsCPU params{};
         params.view = view.view;
         params.proj = view.projection;
+		params.invProj = view.projection.Inverse();
 		params.zNear = view.nearPlane;
 		params.zFar = view.farPlane;
 

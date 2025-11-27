@@ -33,41 +33,180 @@ layout(std430, binding = 2) buffer ClusterLightIndices {
 
 // Must match ClusterParamsCPU in GLClusteredLighting
 layout(std140, binding = 3) uniform ClusterParams {
-    mat4 cp_View;
-    mat4 cp_Projection;
+    mat4 i_View;
+    mat4 i_Projection;
+	mat4 i_InvProjection;
+	
+    float i_zNear;
+    float i_zFar;
+    int   i_ClustersX;
+    int   i_ClustersY;
+    int   i_ClustersZ;
 
-    float u_zNear;
-    float u_zFar;
-    int   u_ClustersX;
-    int   u_ClustersY;
-    int   u_ClustersZ;
-
-    int   u_NumLights;
-    int   u_ScreenWidth;
-    int   u_ScreenHeight;
+    int   i_NumLights;
+    int   i_ScreenWidth;
+    int   i_ScreenHeight;
 };
+
+// Must match value in GLClusteredLighting
+const uint MAX_LIGHTS_PER_CLUSTER = 64u;
+
+bool SphereIntersectsAABB(vec3 center, float radius, vec3 bmin, vec3 bmax)
+{
+    float dist2 = 0.0;
+
+    // X
+    if (center.x < bmin.x) {
+        float d = bmin.x - center.x;
+        dist2 += d * d;
+    } else if (center.x > bmax.x) {
+        float d = center.x - bmax.x;
+        dist2 += d * d;
+    }
+
+    // Y
+    if (center.y < bmin.y) {
+        float d = bmin.y - center.y;
+        dist2 += d * d;
+    } else if (center.y > bmax.y) {
+        float d = center.y - bmax.y;
+        dist2 += d * d;
+    }
+
+    // Z
+    if (center.z < bmin.z) {
+        float d = bmin.z - center.z;
+        dist2 += d * d;
+    } else if (center.z > bmax.z) {
+        float d = center.z - bmax.z;
+        dist2 += d * d;
+    }
+
+    return dist2 <= radius * radius;
+}
+
+void ComputeClusterAABBVS(int cx, int cy, int cz, out vec3 bmin, out vec3 bmax)
+{
+    // Normalized tile extents [0,1] -> NDC [-1,1]
+    float x0 = float(cx)     / float(i_ClustersX);
+    float x1 = float(cx + 1) / float(i_ClustersX);
+    float y0 = float(cy)     / float(i_ClustersY);
+    float y1 = float(cy + 1) / float(i_ClustersY);
+
+    float ndcX[2] = float[2](mix(-1.0, 1.0, x0), mix(-1.0, 1.0, x1));
+    float ndcY[2] = float[2](mix(-1.0, 1.0, y0), mix(-1.0, 1.0, y1));
+
+    // Depth range of this slice in view space (positive distances along -Z)
+    float zRange  = max(i_zFar - i_zNear, 1e-6);
+    float sliceZ0 = i_zNear + zRange * (float(cz)     / float(i_ClustersZ));
+    float sliceZ1 = i_zNear + zRange * (float(cz + 1) / float(i_ClustersZ));
+
+    bmin = vec3( 1e30);
+    bmax = vec3(-1e30);
+
+    // 4 tile corners × 2 depths = 8 points
+    for (int iy = 0; iy < 2; ++iy) {
+        for (int ix = 0; ix < 2; ++ix) {
+            float xN = ndcX[ix];
+            float yN = ndcY[iy];
+
+            // Unproject this corner at NEAR PLANE (NDC z = -1)
+            vec4 pNearH = i_InvProjection * vec4(xN, yN, -1.0, 1.0);
+            vec3 pNear  = pNearH.xyz / pNearH.w;
+
+            // Distance from camera along -Z at near
+            float depthNear = -pNear.z;
+            if (depthNear <= 0.0) continue;
+
+            // Scale this ray to sliceZ0 and sliceZ1
+            float s0 = sliceZ0 / depthNear;
+            float s1 = sliceZ1 / depthNear;
+
+            vec3 p0 = pNear * s0;
+            vec3 p1 = pNear * s1;
+
+            bmin = min(bmin, p0);
+            bmin = min(bmin, p1);
+            bmax = max(bmax, p0);
+            bmax = max(bmax, p1);
+        }
+    }
+}
 
 void main()
 {
     uint clusterIndex = gl_GlobalInvocationID.x;
-    int numClusters = u_ClustersX * u_ClustersY * u_ClustersZ;
+    int numClusters = i_ClustersX * i_ClustersY * i_ClustersZ;
 
-    if (clusterIndex >= uint(numClusters))
+    if (clusterIndex >= uint(numClusters)) {
         return;
-
-    // For now: all clusters see all lights.
-    // We also share a single index list for all clusters:
-    // cluster[0] writes [0..u_NumLights-1] once,
-    // all clusters point to offset = 0, count = u_NumLights.
-
-    if (clusterIndex == 0u) {
-        for (uint i = 0u; i < uint(u_NumLights); ++i) {
-            g_ClusterLightIndices[i] = i;
-        }
     }
 
-    g_Clusters[clusterIndex].offset = 0u;
-    g_Clusters[clusterIndex].count  = uint(u_NumLights);
+    // If there are no lights this frame, clear this cluster and bail.
+    if (i_NumLights <= 0) {
+        g_Clusters[clusterIndex].offset = 0u;
+        g_Clusters[clusterIndex].count  = 0u;
+        g_Clusters[clusterIndex].pad0   = 0u;
+        g_Clusters[clusterIndex].pad1   = 0u;
+        return;
+    }
+
+    // Decompose flat clusterIndex -> (cx, cy, cz)
+    int clustersPerSlice = i_ClustersX * i_ClustersY;
+    int cz = int(clusterIndex) / clustersPerSlice;
+    int rem = int(clusterIndex) % clustersPerSlice;
+    int cy = rem / i_ClustersX;
+    int cx = rem % i_ClustersX;
+
+    // Reserve space in per-cluster region
+    uint baseOffset = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
+    uint count      = 0u;
+
+    // Compute this cluster’s AABB in view space
+    vec3 clusterMinVS;
+    vec3 clusterMaxVS;
+    ComputeClusterAABBVS(cx, cy, cz, clusterMinVS, clusterMaxVS);
+
+    // For each light, test sphere–AABB
+    for (int li = 0; li < i_NumLights; ++li) {
+
+        GPULight gL = g_Lights[li];
+        int lightType = int(gL.position.w);
+
+        // Directional affects all clusters
+        if (lightType == 0) {
+            if (count < MAX_LIGHTS_PER_CLUSTER) {
+                g_ClusterLightIndices[baseOffset + count] = uint(li);
+                count++;
+            }
+            continue;
+        }
+
+        // Point / spot as sphere in view space
+        vec3 lightWS = gL.position.xyz;
+        vec3 lightVS = (i_View * vec4(lightWS, 1.0)).xyz;
+        float radius = max(gL.params.z, 0.0);
+
+        // Quick reject: radius == 0 and center outside cluster?
+        if (radius <= 0.0) {
+            // Treat as a tiny sphere
+            radius = 0.001;
+        }
+
+        if (!SphereIntersectsAABB(lightVS, radius, clusterMinVS, clusterMaxVS)) {
+            continue;
+        }
+
+        // Append index if within capacity
+        if (count < MAX_LIGHTS_PER_CLUSTER) {
+            g_ClusterLightIndices[baseOffset + count] = uint(li);
+            count++;
+        }
+        // else: silently drop extra lights for this cluster
+    }
+
+    g_Clusters[clusterIndex].offset = baseOffset;
+    g_Clusters[clusterIndex].count  = count;
     g_Clusters[clusterIndex].pad0   = 0u;
     g_Clusters[clusterIndex].pad1   = 0u;
 }

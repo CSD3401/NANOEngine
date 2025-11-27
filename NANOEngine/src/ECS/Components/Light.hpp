@@ -26,6 +26,7 @@ namespace NE::ECS::Component {
         // Spot Light
         float innerCutoff{ 0.91f };
         float outerCutoff{ 0.82f };
+		float radius{ 10.f };
 
         float constant{ 1.f };
         float linear{ 0.f };
@@ -43,6 +44,7 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(intensity),
             NE_REFLECT_FIELD(innerCutoff),
             NE_REFLECT_FIELD(outerCutoff),
+			NE_REFLECT_FIELD(radius),
             NE_REFLECT_FIELD(constant),
             NE_REFLECT_FIELD(linear),
             NE_REFLECT_FIELD(quadratic)

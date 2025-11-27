@@ -119,18 +119,19 @@ layout(std430, binding = 2) buffer ClusterLightIndices {
 };
 // Must match ClusterParamsCPU in GLClusteredLighting
 layout(std140, binding = 3) uniform ClusterParams {
-    mat4 cp_View;
-    mat4 cp_Projection;
+    mat4 i_View;
+    mat4 i_Projection;
+	mat4 i_InvProjection;
 
-    float u_zNear;
-    float u_zFar;
-    int   u_ClustersX;
-    int   u_ClustersY;
-    int   u_ClustersZ;
+    float i_zNear;
+    float i_zFar;
+    int   i_ClustersX;
+    int   i_ClustersY;
+    int   i_ClustersZ;
 
-    int   u_NumLights;
-    int   u_ScreenWidth;
-    int   u_ScreenHeight;
+    int   i_NumLights;
+    int   i_ScreenWidth;
+    int   i_ScreenHeight;
 };
 struct Light {
     int   type; // 0 = directional, 1 = point, 2 = spot
@@ -140,12 +141,13 @@ struct Light {
     vec3  position;
     vec3  direction;
 
+	float innerCutoff; // cos(innerAngle)
+    float outerCutoff; // cos(outerAngle)
+	float radius;
+	
     float constant;
     float linear;
-    float quadratic;
-
-    float innerCutoff; // cos(innerAngle)
-    float outerCutoff; // cos(outerAngle)
+    float quadratic;  
 };
 
 const float PI = 3.14159265359;
@@ -232,8 +234,24 @@ vec3 EvalPoint(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, 
     float dist2 = dot(Ldir,Ldir);
     float d = sqrt(dist2);
     if (d<=0.0) return vec3(0.0);
+	
+	// Radius clamp
+    if (L.radius > 0.0 && d > L.radius) {
+        return vec3(0.0);
+    }
     vec3 Ld = Ldir / d;
-    float atten = 1.0 / max(L.constant + L.linear*d + L.quadratic*dist2, 1e-6);
+	
+	// Radius-based attenuation
+	float atten = 1.0;
+	if (L.radius > 0.0) {
+        float x = clamp(d / L.radius, 0.0, 1.0);
+        // smooth-ish falloff, stronger near the edge
+        atten = 1.0 - x * x;
+    } else {
+        // fallback if radius is zero/not set
+        atten = 1.0 / max(L.constant + L.linear * d + L.quadratic * dist2, 1e-6);
+    }
+	
     vec3 brdf = BRDF_GGX_Smith(N,V,Ld,albedo,metallic,rough);
     return brdf * (L.color * L.intensity * atten);
 }
@@ -243,14 +261,27 @@ vec3 EvalSpot(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, f
     float dist2 = dot(Ldir,Ldir);
     float d = sqrt(dist2);
     if (d<=0.0) return vec3(0.0);
+	
+	// Radius clamp
+    if (L.radius > 0.0 && d > L.radius) {
+        return vec3(0.0);
+    }
     vec3 Ld = Ldir / d;
-
+	
     float theta = dot(Ld, normalize(-L.direction));
     float eps = max(L.innerCutoff - L.outerCutoff, 1e-4);
     float spot = clamp((theta - L.outerCutoff) / eps, 0.0, 1.0);
     if (spot<=0.0) return vec3(0.0);
-
-    float atten = 1.0 / max(L.constant + L.linear*d + L.quadratic*dist2, 1e-6);
+	
+    // Radius-based attenuation
+    float atten = 1.0;
+    if (L.radius > 0.0) {
+        float x = clamp(d / L.radius, 0.0, 1.0);
+        atten = 1.0 - x * x;
+    } else {
+        atten = 1.0 / max(L.constant + L.linear * d + L.quadratic * dist2, 1e-6);
+    }
+	
     vec3 brdf = BRDF_GGX_Smith(N,V,Ld,albedo,metallic,rough);
     return brdf * (L.color * L.intensity * atten * spot);
 }
@@ -271,29 +302,30 @@ Light MakeLightFromGPULight(GPULight g) {
 
     L.innerCutoff = g.params.x;
     L.outerCutoff = g.params.y;
+	L.radius = g.params.z;
     return L;
 }
 
 int ComputeClusterIndex(vec3 worldPos)
 {
     // Screen X/Y from gl_FragCoord
-    int cx = int(gl_FragCoord.x * float(u_ClustersX) / float(u_ScreenWidth));
-    int cy = int(gl_FragCoord.y * float(u_ClustersY) / float(u_ScreenHeight));
+    int cx = int(gl_FragCoord.x * float(i_ClustersX) / float(i_ScreenWidth));
+    int cy = int(gl_FragCoord.y * float(i_ClustersY) / float(i_ScreenHeight));
 
-    cx = clamp(cx, 0, u_ClustersX - 1);
-    cy = clamp(cy, 0, u_ClustersY - 1);
+    cx = clamp(cx, 0, i_ClustersX - 1);
+    cy = clamp(cy, 0, i_ClustersY - 1);
 
     // Depth from view-space Z
-    vec3 posVS = (cp_View * vec4(worldPos, 1.0)).xyz;
+    vec3 posVS = (i_View * vec4(worldPos, 1.0)).xyz;
     float d = -posVS.z; // camera looks down -Z
 
-    float t = (d - u_zNear) / max(u_zFar - u_zNear, 1e-6);
+    float t = (d - i_zNear) / max(i_zFar - i_zNear, 1e-6);
     t = clamp(t, 0.0, 0.9999); // avoid hitting upper bound exactly
 
-    int cz = int(t * float(u_ClustersZ));
-    cz = clamp(cz, 0, u_ClustersZ - 1);
+    int cz = int(t * float(i_ClustersZ));
+    cz = clamp(cz, 0, i_ClustersZ - 1);
 
-    int idx = cx + cy * u_ClustersX + cz * (u_ClustersX * u_ClustersY);
+    int idx = cx + cy * i_ClustersX + cz * (i_ClustersX * i_ClustersY);
     return idx;
 }
 
@@ -347,24 +379,30 @@ void main() {
 	
     vec3 Lo = vec3(0.0);
 	
-	int clusterIndex = ComputeClusterIndex(v_FragPos);
-    Cluster c = g_Clusters[clusterIndex];
-    uint offset = c.offset;
-    uint count  = c.count;
-    for (uint i = 0u; i < count; ++i) {
-        uint lightIdx = g_ClusterLightIndices[offset + i];
-        if (lightIdx >= uint(u_NumLights)) continue;
+	if (i_NumLights > 0) {
+		int clusterIndex = ComputeClusterIndex(v_FragPos);
+		Cluster c = g_Clusters[clusterIndex];
 
-        GPULight gL = g_Lights[lightIdx];
-        Light L     = MakeLightFromGPULight(gL);
+		uint offset = c.offset;
+		uint count  = c.count;
 
-        if (L.type == LIGHT_TYPE_DIRECTIONAL)
-            Lo += EvalDirectional(L, N, V, albedo, metal, rough);
-        else if (L.type == LIGHT_TYPE_POINT)
-            Lo += EvalPoint      (L, N, V, v_FragPos, albedo, metal, rough);
-        else if (L.type == LIGHT_TYPE_SPOT)
-            Lo += EvalSpot       (L, N, V, v_FragPos, albedo, metal, rough);
-    }
+		for (uint i = 0u; i < count; ++i) {
+			uint lightIdx = g_ClusterLightIndices[offset + i];
+
+			// Safety: still clamp to [0, i_NumLights)
+			if (lightIdx >= uint(i_NumLights)) continue;
+
+			GPULight gL = g_Lights[lightIdx];
+			Light L     = MakeLightFromGPULight(gL);
+
+			if (L.type == LIGHT_TYPE_DIRECTIONAL)
+				Lo += EvalDirectional(L, N, V, albedo, metal, rough);
+			else if (L.type == LIGHT_TYPE_POINT)
+				Lo += EvalPoint      (L, N, V, v_FragPos, albedo, metal, rough);
+			else if (L.type == LIGHT_TYPE_SPOT)
+				Lo += EvalSpot       (L, N, V, v_FragPos, albedo, metal, rough);
+		}
+	}
 
     vec3 color_linear = max(ambient + Lo + u_Emissive, 0.0);
 
