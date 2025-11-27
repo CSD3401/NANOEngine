@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "84d54609-10c8-4be7-9a46-906eacaab1c3",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Handle\\HandlePast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

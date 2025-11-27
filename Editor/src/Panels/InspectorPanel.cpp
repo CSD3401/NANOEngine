@@ -1694,31 +1694,12 @@ namespace Editor {
 
 						//ImGui::Spacing();
 
-						// Check render mode - walk up hierarchy to find canvas
+						// check render mode
 						bool isOverlay = false;
+						if (NE::ECS::Query::HasUICanvas(entity))
 						{
-							// First check if this entity itself is a canvas
-							if (NE::ECS::Query::HasUICanvas(entity))
-							{
-								auto& compCanvas = NE::ECS::Command::GetUICanvas(entity);
-								isOverlay = (compCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY);
-							}
-							else
-							{
-								// Walk up parent chain to find canvas
-								uint32_t currentParent = comp.parent;
-								while (currentParent != NE::ECS::NO_ENTITY)
-								{
-									if (NE::ECS::Query::HasUICanvas(currentParent))
-									{
-										auto& parentCanvas = NE::ECS::Query::GetUICanvas(currentParent);
-										isOverlay = (parentCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY);
-										break;
-									}
-									if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-									currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
-								}
-							}
+							auto& compCanvas = NE::ECS::Command::GetUICanvas(entity);
+							isOverlay = compCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY;
 						}
 
 						float itemWidth = 70.0f;
@@ -1794,7 +1775,7 @@ namespace Editor {
 								"Stretch Horizontal", "Stretch Vertical", "Stretch Both"
 							};
 
-							static int currentPreset = 4; // default to "Center"
+							static int currentPreset = 5; // default to "Center"
 
 							ImGui::SetNextItemWidth(150);
 							if (ImGui::Combo("##AnchorPresets", &currentPreset, presetNames, IM_ARRAYSIZE(presetNames)))
@@ -1915,18 +1896,14 @@ namespace Editor {
 							ImGui::SameLine(100);
 
 							ImGui::PushItemWidth(70);
-							if (!isOverlay)
-							{
-								// World space / Camera mode - show all axes
-								ImGui::Text("X");
-								ImGui::SameLine();
-								if (ImGui::DragFloat("##RotX", &comp.rotationX, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
-								ImGui::SameLine();
-								ImGui::Text("Y");
-								ImGui::SameLine();
-								if (ImGui::DragFloat("##RotY", &comp.rotationY, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
-								ImGui::SameLine();
-							}
+							ImGui::Text("X");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##RotX", &comp.rotationX, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
+							ImGui::Text("Y");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##RotY", &comp.rotationY, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
+							ImGui::SameLine();
 							ImGui::Text("Z");
 							ImGui::SameLine();
 							if (ImGui::DragFloat("##RotZ", &comp.rotationZ, 1.0f, -360.0f, 360.0f, "%.1f")) NE::MarkSceneDirty();
@@ -1939,8 +1916,7 @@ namespace Editor {
 							ImGui::Text("Scale");
 							ImGui::SameLine(100);
 
-							ImGui::PushItemWidth(itemWidth);
-
+							ImGui::PushItemWidth(70);
 							ImGui::Text("X");
 							ImGui::SameLine();
 							if (ImGui::DragFloat("##ScaleX", &comp.scaleX, 0.01f, 0.01f, 10.0f, "%.2f")) NE::MarkSceneDirty();
@@ -1948,16 +1924,10 @@ namespace Editor {
 							ImGui::Text("Y");
 							ImGui::SameLine();
 							if (ImGui::DragFloat("##ScaleY", &comp.scaleY, 0.01f, 0.01f, 10.0f, "%.2f")) NE::MarkSceneDirty();
-
-							if (!isOverlay)
-							{
-								// Only show Z scale for 3D modes
-								ImGui::SameLine();
-								ImGui::Text("Z");
-								ImGui::SameLine();
-								if (ImGui::DragFloat("##ScaleZ", &comp.scaleZ, 0.01f, 0.01f, 10.0f, "%.2f")) NE::MarkSceneDirty();
-							}
-
+							ImGui::SameLine();
+							ImGui::Text("Z");
+							ImGui::SameLine();
+							if (ImGui::DragFloat("##ScaleZ", &comp.scaleZ, 0.01f, 0.01f, 10.0f, "%.2f")) NE::MarkSceneDirty();
 							ImGui::PopItemWidth();
 						}
 

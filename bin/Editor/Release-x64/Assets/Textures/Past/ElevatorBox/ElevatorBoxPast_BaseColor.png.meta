@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "39d02b3e-3292-43a3-ab5a-d710daf74494",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\ElevatorBox\\ElevatorBoxPast_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

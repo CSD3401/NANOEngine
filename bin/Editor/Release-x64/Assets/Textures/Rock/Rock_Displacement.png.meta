@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "0b0124cd-2c70-4814-b5d8-fb7657d943ce",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Rock\\Rock_Displacement.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

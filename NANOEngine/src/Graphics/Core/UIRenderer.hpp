@@ -19,7 +19,7 @@ namespace NE::Graphics {
         static void BeginFrame();
         static void EndFrame();
         static void DrawUIFrame();
-        static void Draw3DUIFrame(RenderViewHandle targetView);
+        static void Draw3DUIFrame(GLuint targetFBO);
         static void Composite(RenderViewHandle targetView);
         static void Shutdown();
 

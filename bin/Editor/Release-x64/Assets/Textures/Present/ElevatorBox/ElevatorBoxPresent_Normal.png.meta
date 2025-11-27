@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "8ae3a5e3-f556-41aa-8288-a66b6d8764fc",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\ElevatorBox\\ElevatorBoxPresent_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

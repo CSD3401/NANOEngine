@@ -10,8 +10,5 @@ namespace Editor {
 		HierarchyPanel();
 
 		virtual void OnImGuiRender() override;
-
-	private:
-		void DrawHierarchyContextMenuBody(bool canEditHierarchy, uint32_t contextEntityId);
 	};
 }

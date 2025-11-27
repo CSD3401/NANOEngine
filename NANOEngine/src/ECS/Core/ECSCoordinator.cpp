@@ -21,7 +21,6 @@
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
 #include "../Systems/UIRenderSystem.hpp"
-#include "../Systems/UITransformSystem.hpp"
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/PhysicsSystem.hpp"
 
@@ -102,17 +101,12 @@ namespace NE::ECS {
 			SetSystemSignature<Systems::ScriptSystem>(sig);
 		}
 
-        m_uiTransformSystem = m_systemManager->RegisterSystem<Systems::UITransformSystem>(m_componentManager.get());
-        {
-            Signature sig;
-            sig.set(GetComponentType<Component::UIRectTransform>());
-            SetSystemSignature<Systems::UITransformSystem>(sig);
-        }
-
         m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());
         {
             Signature sig;
+            //sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UICanvas>());
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
+            //sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIImage>());
             SetSystemSignature<Systems::UIRenderSystem>(sig);
         }
 
@@ -145,6 +139,15 @@ namespace NE::ECS {
 
         return entt;
     }
+
+    //Entity ECSCoordinator::CreateUIEntity()
+    //{
+    //    Entity entt = m_entityManager->CreateEntity();
+    //    AddComponent(entt, Component::EntityMeta{ "Unnamed UI Entity" });
+    //    AddComponent(entt, Component::UIRectTransform{});
+    //    AddComponent(entt, Component::UIImage{});
+    //    return entt;
+    //}
 
     Entity ECSCoordinator::CreateUICanvasEntity()
     {

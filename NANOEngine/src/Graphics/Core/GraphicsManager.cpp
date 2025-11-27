@@ -690,7 +690,6 @@ namespace NE::Graphics {
         UIRenderer::DrawUIFrame();
         //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
-        UIRenderer::Draw3DUIFrame(s_SceneViewHandle);
 
         UIRenderer::Composite(s_SceneViewHandle);
         UIRenderer::ClearCommands();

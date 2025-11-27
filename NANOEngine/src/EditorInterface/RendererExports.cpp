@@ -87,26 +87,23 @@ namespace NE::Renderer {
 				SPD_ERROR("[AssignUITexture] Material UUID is empty!");
 				return;
 			}
-			
-			// store uuids for serialization
+
+            img.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(materialUUID);
+
+            if (!img.material) 
+            {
+                SPD_ERROR("[AssignUITexture] Failed to load material with UUID: " << materialUUID);
+                return;
+            }
+
+            // assign the texture to the material
+            img.material->SetTexture("u_BaseMap", textureUUID);
+
+            // Update the u_HasBaseMap flag to indicate texture is present
+            img.material->SetUniformInt("u_HasBaseMap", 1);
+
+            // Store texture UUID in component for serialization
             img.textureUUID = textureUUID;
-			img.materialUUID = materialUUID;
-
-			img.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(materialUUID);
-
-			if (!img.material)
-			{
-				SPD_ERROR("[AssignUITexture] Failed to load material with UUID: " << materialUUID);
-				return;
-			}
-
-			// load texture and get bindless handle
-			if (!textureUUID.empty()) {
-				auto texture = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
-				if (texture) {
-					img.bindlessHandle = texture->GetBindlessHandle();
-				}
-			}
 
             // mark dirty
             if (NE::GetEngineState() == NE::EngineState::Edit)

@@ -5,18 +5,25 @@
 #include <memory>
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Math/Vec4.hpp"
-#include "../../Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 
     struct UIImage {
-        // image type enum
+        std::string luid;
+        std::string textureUUID;
+        std::shared_ptr<NE::Graphics::Material> material;
+        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 1.f }; // tint
+        int renderMode = 0;
+        bool isDirty = false;
+
+        // image type
         enum class ImageType {
             SIMPLE,         // standard image, no special behavior
             SLICED,         // 9-slice scaling (borders stay same size, center stretches)
             TILED,          // texture repeats to fill area
             FILLED          // fills based on a value (radial, horizontal, vertical, etc.)
         };
+        ImageType imageType = ImageType::SIMPLE;
 
         // fill type (for filled image type)
         enum class FillMethod {
@@ -26,41 +33,31 @@ namespace NE::ECS::Component {
             RADIAL_180,     // fill in 180 degree arc
             RADIAL_360      // fill in full circle
         };
+        FillMethod fillMethod = FillMethod::HORIZONTAL;
+
+        // fill amount (0.0 = empty, 1.0 = full)
+        float fillAmount = 1.0f; 
 
         // fill origin/direction
         enum class FillOrigin {
             // for horizontal
             LEFT = 0,
             RIGHT = 1,
+
             // for vertical
             BOTTOM = 0,
             TOP = 1,
+
             // for radial
             BOTTOM_RADIAL = 0,
             RIGHT_RADIAL = 1,
             TOP_RADIAL = 2,
             LEFT_RADIAL = 3
         };
-
-        // === SERIALIZED FIELDS ===
-        uint64_t luid;
-        std::string textureUUID;
-        std::string materialUUID;
-        NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 1.f }; // tint
-        //int renderMode = 0;
-
-        ImageType imageType = ImageType::SIMPLE;
-        FillMethod fillMethod = FillMethod::HORIZONTAL;
         FillOrigin fillOrigin = FillOrigin::LEFT;
-
-        // fill amount (0.0 = empty, 1.0 = full)
-        float fillAmount = 1.0f;
 
         // fill clockwise (for radial fills)
         bool fillClockwise = true;
-
-        // preserve aspect ratio when scaling (for image type)
-        bool preserveAspect = false;
 
         // sliced image settings (for sliced image type)
         // border sizes in pixels (for 9-slice)
@@ -72,36 +69,12 @@ namespace NE::ECS::Component {
         // pixels per unit multiplier (for tiled image type)
         float pixelsPerUnitMultiplier = 1.0f;
 
-        // === RUNTIME-ONLY FIELDS (not serialized) ===
-        uint64_t bindlessHandle = 0;
-        std::shared_ptr<NE::Graphics::Material> material;
-        bool isDirty = false;
+        // preserve aspect ratio when scaling (for image type)
+        bool preserveAspect = false;
 
-        // Reflection - serialize persistent data only
-        NE_REFLECT_BEGIN(UIImage)
-            NE_REFLECT_FIELD_HIDDEN(luid),
-            NE_REFLECT_FIELD(textureUUID),
-            NE_REFLECT_FIELD(materialUUID),
-            NE_REFLECT_FIELD(color),
-            //NE_REFLECT_FIELD(renderMode),
-            NE_REFLECT_FIELD(imageType),
-            NE_REFLECT_FIELD(fillMethod),
-            NE_REFLECT_FIELD(fillOrigin),
-            NE_REFLECT_FIELD(fillAmount),
-            NE_REFLECT_FIELD(fillClockwise),
-            NE_REFLECT_FIELD(preserveAspect),
-            NE_REFLECT_FIELD(borderLeft),
-            NE_REFLECT_FIELD(borderRight),
-            NE_REFLECT_FIELD(borderTop),
-            NE_REFLECT_FIELD(borderBottom),
-            NE_REFLECT_FIELD(pixelsPerUnitMultiplier)
-        NE_REFLECT_END()
-
-            int renderMode = 0;
-
-            // helper functions
-            // check if image needs special rendering
-            bool RequiresCustomRendering() const {
+        // helper functions
+        // check if image needs special rendering
+        bool RequiresCustomRendering() const {
             return imageType != ImageType::SIMPLE || fillAmount < 1.0f;
         }
 
@@ -118,5 +91,4 @@ namespace NE::ECS::Component {
     };
 
 } // namespace NE::ECS::Component
-
-#endif // UI_IMAGE_HPP
+#endif // END UI_IMAGE_HPP

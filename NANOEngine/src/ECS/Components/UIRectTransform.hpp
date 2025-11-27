@@ -4,19 +4,11 @@
 #include "../../Math/Vec2.hpp"
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Mat4.hpp"
-#include "../../Core/Reflection.hpp"
-#include "Transform.hpp" // for INVALID_PARENT
-#include <string>
 
 namespace NE::ECS::Component {
 
     struct UIRectTransform {
-        // parent entity
-        uint32_t parent = INVALID_PARENT;
-
-        // LUID for serialization
-        uint64_t luid = 0;
-        uint64_t parentLuid = 0;
+        std::string luid;
 
         // position of pivot point
         float x = 0.0f;
@@ -56,34 +48,8 @@ namespace NE::ECS::Component {
         float pivotX = 0.5f;
         float pivotY = 0.5f;
 
-        // Reflection
-        NE_REFLECT_BEGIN(UIRectTransform)
-            NE_REFLECT_FIELD_HIDDEN(luid),
-            NE_REFLECT_FIELD(x),
-            NE_REFLECT_FIELD(y),
-            NE_REFLECT_FIELD(z),
-            NE_REFLECT_FIELD(width),
-            NE_REFLECT_FIELD(height),
-            NE_REFLECT_FIELD(offsetMinX),
-            NE_REFLECT_FIELD(offsetMinY),
-            NE_REFLECT_FIELD(offsetMaxX),
-            NE_REFLECT_FIELD(offsetMaxY),
-            NE_REFLECT_FIELD(rotationX),
-            NE_REFLECT_FIELD(rotationY),
-            NE_REFLECT_FIELD(rotationZ),
-            NE_REFLECT_FIELD(scaleX),
-            NE_REFLECT_FIELD(scaleY),
-            NE_REFLECT_FIELD(scaleZ),
-            NE_REFLECT_FIELD(anchorMinX),
-            NE_REFLECT_FIELD(anchorMinY),
-            NE_REFLECT_FIELD(anchorMaxX),
-            NE_REFLECT_FIELD(anchorMaxY),
-            NE_REFLECT_FIELD(pivotX),
-            NE_REFLECT_FIELD(pivotY),
-            NE_REFLECT_FIELD_HIDDEN(parentLuid)
-        NE_REFLECT_END()
+        uint32_t parent = 0;
 
-        // Helper functions
         bool IsStretchedX() const { return anchorMinX != anchorMaxX; }
         bool IsStretchedY() const { return anchorMinY != anchorMaxY; }
 
@@ -91,6 +57,7 @@ namespace NE::ECS::Component {
         float GetTopLeftX() const {
             return x - width * pivotX;
         }
+
         float GetTopLeftY() const {
             return y - height * pivotY;
         }
@@ -101,6 +68,7 @@ namespace NE::ECS::Component {
             NE::Math::Mat4 rotX = NE::Math::Mat4::BuildXRotation(rotationX);
             NE::Math::Mat4 rotY = NE::Math::Mat4::BuildYRotation(rotationY);
             NE::Math::Mat4 rotZ = NE::Math::Mat4::BuildZRotation(rotationZ);
+
             // apply in ZYX order (common for Euler angles)
             return rotZ * rotY * rotX;
         }
@@ -113,5 +81,4 @@ namespace NE::ECS::Component {
     };
 
 } // namespace NE::ECS::Component
-
-#endif // UI_RECT_TRANSFORM_HPP
+#endif // END UI_RECT_TRANSFORM_HPP

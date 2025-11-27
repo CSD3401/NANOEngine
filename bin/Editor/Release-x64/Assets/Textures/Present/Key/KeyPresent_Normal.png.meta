@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "1e9956c2-cf9b-4115-af1b-57624fc2a35f",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Key\\KeyPresent_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

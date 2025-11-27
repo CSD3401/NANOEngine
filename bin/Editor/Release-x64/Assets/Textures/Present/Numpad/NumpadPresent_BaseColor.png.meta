@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "2b88b652-4978-48e6-87d3-9c0ceaeb4d13",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Numpad\\NumpadPresent_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

@@ -4,162 +4,60 @@
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
 #include "../Components/UICanvas.hpp"
-#include "../Components/UIRectTransform.hpp"
-#include "../Components/UIImage.hpp"
 #include "../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/UIImageMeshGenerator.hpp"
-#include <vector>
-#include <string>
 
 namespace NE::ECS::Systems {
 
     class UIRenderSystem final : public System {
     public:
-        //=================================================================
-        // Public Structures
-        //=================================================================
-
-        struct AccumulatedTransform {
-            float posX = 0.f;
-            float posY = 0.f;
-            float posZ = 0.f;
-            float scaleX = 1.f;
-            float scaleY = 1.f;
-            float scaleZ = 1.f;
-            float rotationZ = 0.f;
-        };
 
         struct WorldTransform {
-            float x = 0.f;
-            float y = 0.f;
-            float z = 0.f;
-            float width = 0.f;
-            float height = 0.f;
-            float accumulatedRotationZ = 0.f;
-            float accumulatedScaleX = 1.f;
-            float accumulatedScaleY = 1.f;
+            float x, y, z;
+            float width, height;
         };
-
-        //=================================================================
-        // Lifecycle
-        //=================================================================
 
         explicit UIRenderSystem(ComponentManager* cm);
 
         void Init() override;
-        void Update(double deltaTime) override;
+        void Update(double deltaTime) override; // submits UI commands to GraphicsManager
         void Exit() override;
+
         void OnEntityAdded(Entity e) override;
         void OnEntityRemoved(Entity e) override;
 
     private:
         ComponentManager* m_cm = nullptr;
 
-        //=================================================================
-        // Canvas Setup
-        //=================================================================
-
-        void SetupCanvasDefaults(Entity canvasEntity, Component::UICanvas& canvas);
-
-        //=================================================================
-        // Transform Hierarchy Functions
-        //=================================================================
-
-        AccumulatedTransform AccumulateParentTransforms(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas
-        );
-
-        std::vector<Entity> BuildParentChain(
-            Entity entity,
-            Entity canvasEntity,
-            Component::UICanvas::RenderMode renderMode
-        );
-
-        bool ShouldIncludeCanvasTransform(Component::UICanvas::RenderMode renderMode);
-
-        //=================================================================
-        // World Transform Calculation
-        //=================================================================
-
+        // helper functions
+        // calculate world transforms based on render mode
         WorldTransform CalculateWorldTransform(
             Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas,
+            const NE::ECS::Component::UICanvas& canvas,
             const Math::Mat4* viewMatrix = nullptr,
             const Math::Mat4* projMatrix = nullptr
         );
 
-        void ApplyPixelPerfectSnapping(WorldTransform& transform);
+        // handles the different scaling mode
+        float CalculateScaleFactor(const NE::ECS::Component::UICanvas& canvas);
 
-        //=================================================================
-        // Canvas & Scaling
-        //=================================================================
-
-        float CalculateScaleFactor(const Component::UICanvas& canvas);
-
-        //=================================================================
-        // Rendering
-        //=================================================================
-
+        // renders all chlildren of a canvas
         void RenderCanvasChildren(
-            Entity canvasEntity,
-            const Component::UICanvas& canvas,
+            Entity canvasEntity, 
+            const NE::ECS::Component::UICanvas& canvas,
             const Math::Mat4* viewMatrix = nullptr,
             const Math::Mat4* projMatrix = nullptr
         );
 
-        std::vector<Entity> CollectCanvasChildren(Entity canvasEntity);
+        // helper:: get camera matrices
+        bool GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj);
 
-        void SortEntitiesByZOrder(std::vector<Entity>& entities);
-
-        std::vector<NE::Graphics::UIVertex> GenerateScreenSpaceVertices(
-            Entity entity,
-            const WorldTransform& worldTransform,
-            const Component::UIImage& img
-        );
-
-        std::vector<NE::Graphics::UIVertex> GenerateWorldSpaceVertices(
-            const Component::UIImage& img
-        );
-
-        Math::Mat4 BuildWorldSpaceModelMatrix(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UIRectTransform& rect
-        );
-
-        void SubmitDrawCommand(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas,
-            const Component::UIImage& img,
-            const Component::UIRectTransform& rect,
-            const WorldTransform& worldTransform,
-            std::vector<NE::Graphics::UIVertex>& vertices,
-            const Math::Mat4* viewMatrix,
-            const Math::Mat4* projMatrix
-        );
-
-        //=================================================================
-        // Vertex Manipulation
-        //=================================================================
-
+        // Helper to rotate 2D UI vertices around a pivot point
         void RotateVertices2D(
             std::vector<NE::Graphics::UIVertex>& vertices,
-            float pivotX,
-            float pivotY,
-            float rotationDegrees
-        );
-
-        //=================================================================
-        // Camera Utilities
-        //=================================================================
-
-        bool GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj);
+            float pivotX, float pivotY,
+            float rotationDegrees);
     };
 
 } // namespace NE::ECS::Systems
-
-#endif // UI_RENDER_SYSTEM_HPP
+#endif // END UI_RENDER_SYSTEM_HPP

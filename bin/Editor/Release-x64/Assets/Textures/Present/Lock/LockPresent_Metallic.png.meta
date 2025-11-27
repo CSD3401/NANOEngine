@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "2c783915-77bf-4f9f-bf37-61734d23a31e",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Lock\\LockPresent_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

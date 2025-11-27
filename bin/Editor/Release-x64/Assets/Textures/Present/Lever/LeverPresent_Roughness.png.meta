@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "75f5c6bb-8f6e-40da-b178-2f65f3627f5a",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Lever\\LeverPresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

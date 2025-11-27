@@ -477,7 +477,7 @@ namespace Editor {
 		std::stringstream ss;
 
 		ss << "#pragma once\n";
-		ss << "#include \"EngineAPI.hpp\"\n";
+		ss << "#include \"ScriptBase.hpp\"\n";
 		ss << "\n";
 		ss << "/**\n";
 		ss << " * " << className << " - Auto-generated script template\n";

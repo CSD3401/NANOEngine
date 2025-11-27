@@ -4,6 +4,7 @@
 namespace Editor {
 
 	struct CreateEntityEvent {};
+	//struct CreateUIEntityEvent {};
 	struct CreateUICanvasEntityEvent {};
 	struct CreateUIImageEntityEvent {
 		uint32_t parentCanvas;  // Which canvas to parent to

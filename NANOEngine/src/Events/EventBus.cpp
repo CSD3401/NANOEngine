@@ -1,4 +1,5 @@
 #include "EventBus.hpp"
+#include <iostream>
 
 namespace NANOEngine::Events {
 

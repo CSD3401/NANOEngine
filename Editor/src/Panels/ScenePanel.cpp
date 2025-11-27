@@ -640,11 +640,63 @@ namespace Editor {
 
 				// World space canvas (3D gizmo)
 				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
-					NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
-					NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
+					ImGuizmo::BeginFrame();
+					ImGuizmo::SetOrthographic(false);
+					ImGuizmo::SetDrawlist();
+					ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
-					Editor::UIGizmoHandler::Update3DGizmo(eid, view, proj, panelPos, panelSize);
-					s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
+					// build world matrix
+					NE::Math::Vec3 position = rectTransform.GetPosition();
+					NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(position.x, position.y, position.z);
+
+					NE::Math::Mat4 R = rectTransform.GetRotationMatrix();
+
+					NE::Math::Vec3 scale = rectTransform.GetScale();
+					NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
+
+					// multiply in correct order
+					NE::Math::Mat4 worldMatrix = T * R * S;
+
+					float matrix[16];
+					memcpy(matrix, worldMatrix.Data(), sizeof(float) * 16);
+
+					bool editedThisFrame = ImGuizmo::Manipulate(
+						EditorScene::m_editorCamera.GetViewMatrix().Data(),
+						EditorScene::m_editorCamera.GetProjectionMatrix().Data(),
+						currentOperation,
+						ImGuizmo::LOCAL,
+						matrix
+					);
+					bool isUsing = ImGuizmo::IsUsing();
+
+					if (!UIGizmoHandler::IsGizmoActive() && isUsing) {
+						UIGizmoHandler::Begin3DGizmo(eid, panelPos, panelSize);
+						s_usingUIGizmo = true;
+					}
+
+					if (UIGizmoHandler::IsGizmoActive() && isUsing && editedThisFrame) {
+						// Convert matrix back to UIRectTransform
+						float tr[3], rotDeg[3], sc[3];
+						ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
+
+						rectTransform.x = tr[0];
+						rectTransform.y = tr[1];
+						rectTransform.z = tr[2];
+
+						rectTransform.rotationX = rotDeg[0];
+						rectTransform.rotationY = rotDeg[1];
+						rectTransform.rotationZ = rotDeg[2];
+
+						rectTransform.scaleX = sc[0];
+						rectTransform.scaleY = sc[1];
+						rectTransform.scaleZ = sc[2];
+					}
+
+					if (UIGizmoHandler::IsGizmoActive() && !isUsing) {
+						UIGizmoHandler::End3DGizmo(eid);
+						s_usingUIGizmo = false;
+						// TODO: Push command for undo/redo
+					}
 				}
 				// Screen space canvas (2D gizmo with corner/edge handles)
 				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||

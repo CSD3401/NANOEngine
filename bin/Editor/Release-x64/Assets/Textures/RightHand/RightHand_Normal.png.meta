@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "006ff65c-b933-4b40-ad24-410a37a068b4",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\RightHand\\RightHand_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

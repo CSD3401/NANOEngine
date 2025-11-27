@@ -2,7 +2,6 @@
 #include "ReflectionJson.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Core/ECSCoordinator.hpp"
-#include "../Graphics/OpenGL/GLTexture.hpp"
 
 // Components
 #include "../ECS/Components/EntityMeta.hpp"
@@ -13,9 +12,6 @@
 #include "../ECS/Components/Rigidbody.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "ECS/Components/Camera.hpp"
-#include "../ECS/Components/UIRectTransform.hpp"
-#include "../ECS/Components/UICanvas.hpp"
-#include "../ECS/Components/UIImage.hpp"
 
 #include "../Graphics/Core/Model.hpp"
 #include "../ECS/Components/ComponentKey.hpp"
@@ -139,10 +135,7 @@ namespace {
 		NE::ECS::Component::Collider,
 		NE::ECS::Component::Rigidbody,
 		NE::ECS::Component::NativeScript,
-		NE::ECS::Component::Camera,
-		NE::ECS::Component::UIRectTransform,
-		NE::ECS::Component::UICanvas,
-		NE::ECS::Component::UIImage
+		NE::ECS::Component::Camera
 	>;
 
 	template <class F>
@@ -200,7 +193,6 @@ namespace NE::Serialization {
 			entities.PushBack(ent, a);
 		}
 		doc.AddMember("Entities", entities, a);
-
 
 		rapidjson::StringBuffer sb;
 		rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);

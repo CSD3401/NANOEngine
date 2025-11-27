@@ -17,7 +17,6 @@
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
-#include "ECS/Systems//UITransformSystem.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
@@ -41,6 +40,33 @@ static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
 }
 namespace NE::SceneManagement {
 
+	void Scene::CreateTestUI() {
+		using ECS::Component::UIRectTransform;
+		using ECS::Component::UIImage;
+
+		//std::cout << "\n=== Creating Test UI ===" << std::endl;
+
+		//// Test 1: Red Box (top-left)
+		//{
+		//	ECS::Entity e = m_ecsCoordinator.CreateUIEntity();
+		//	std::cout << "Created UI entity " << e << " (Red Box)" << std::endl;
+
+		//	auto& rect = m_ecsCoordinator.GetComponent<UIRectTransform>(e);
+		//	rect.x = 50.f;  rect.y = 50.f;
+		//	rect.width = 200.f;  rect.height = 100.f;
+
+		//	auto& img = m_ecsCoordinator.GetComponent<UIImage>(e);
+		//	img.color = Math::Vec4{ 1.f, 0.f, 0.f, 0.8f };
+		//	img.material = nullptr;
+
+		//	std::cout << "  Position: (" << rect.x << ", " << rect.y << ")" << std::endl;
+		//	std::cout << "  Size: " << rect.width << "x" << rect.height << std::endl;
+		//
+		//  std::cout << "Test UI creation complete!\n" << std::endl;
+
+		//}
+	}
+
 	void Scene::Init() {
 		// input
 		m_ecsCoordinator.m_rigidbodySystem->Init();
@@ -52,9 +78,10 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_physicsSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
-		m_ecsCoordinator.m_uiTransformSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
 
+		// temp
+		//CreateTestUI();
 		m_ecsCoordinator.m_animatorSystem->Init();
 		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
 	}

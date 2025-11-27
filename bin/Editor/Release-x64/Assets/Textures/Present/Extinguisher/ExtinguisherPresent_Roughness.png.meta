@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "6f27bbe8-b5b7-4630-88af-19161c62a9bb",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Extinguisher\\ExtinguisherPresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
