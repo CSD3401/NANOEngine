@@ -1,0 +1,73 @@
+#type compute
+#version 460 core
+
+layout (local_size_x = 64) in;
+
+// Must match GPULightCPU in GLClusteredLighting
+struct GPULight {
+    vec4 position;  // xyz + type
+    vec4 color;     // rgb + intensity
+    vec4 params;    // inner, outer, radius, unused
+    vec4 direction; // xyz + padding
+};
+
+// Must match 4 * uint per cluster (offset, count, pad, pad)
+struct Cluster {
+    uint offset;
+    uint count;
+    uint pad0;
+    uint pad1;
+};
+
+layout(std430, binding = 0) buffer LightBuffer {
+    GPULight g_Lights[];
+};
+
+layout(std430, binding = 1) buffer ClusterBuffer {
+    Cluster g_Clusters[];
+};
+
+layout(std430, binding = 2) buffer ClusterLightIndices {
+    uint g_ClusterLightIndices[];
+};
+
+// Must match ClusterParamsCPU in GLClusteredLighting
+layout(std140, binding = 3) uniform ClusterParams {
+    mat4 u_View;
+    mat4 u_Projection;
+
+    float u_zNear;
+    float u_zFar;
+    int   u_ClustersX;
+    int   u_ClustersY;
+    int   u_ClustersZ;
+
+    int   u_NumLights;
+    int   u_ScreenWidth;
+    int   u_ScreenHeight;
+};
+
+void main()
+{
+    uint clusterIndex = gl_GlobalInvocationID.x;
+    int numClusters = u_ClustersX * u_ClustersY * u_ClustersZ;
+
+    if (clusterIndex >= uint(numClusters))
+        return;
+
+    // For now: all clusters see all lights.
+    // We also share a single index list for all clusters:
+    // cluster[0] writes [0..u_NumLights-1] once,
+    // all clusters point to offset = 0, count = u_NumLights.
+
+    if (clusterIndex == 0u) {
+        for (uint i = 0u; i < uint(u_NumLights); ++i) {
+            g_ClusterLightIndices[i] = i;
+        }
+    }
+
+    g_Clusters[clusterIndex].offset = 0u;
+    g_Clusters[clusterIndex].count  = uint(u_NumLights);
+    g_Clusters[clusterIndex].pad0   = 0u;
+    g_Clusters[clusterIndex].pad1   = 0u;
+}

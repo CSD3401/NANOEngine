@@ -130,7 +130,7 @@ namespace NE::Graphics {
 		static RenderViewHandle s_ActiveViewHandle;
 
 		// Clustered Lighting System for forward+ rendering
-        static std::shared_ptr<IClusteredLighting> clusteredLighting;
+        static std::shared_ptr<IClusteredLighting> s_clusteredLighting;
 
         // Debug
         static std::vector<float> s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations

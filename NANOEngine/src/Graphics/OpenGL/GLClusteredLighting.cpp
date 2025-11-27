@@ -14,7 +14,7 @@ namespace NE::Graphics::OpenGL {
 		: clustersX(cX), clustersY(cY), clustersZ(cZ),
           maxLights(maxLights), maxClusterLightIndices(cX * cY * cZ * lightIndicesPerCluster)
     {
-		m_computeShader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("necompute");
+		m_computeShader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("neforwardplus");
 
         // Lights SSBO (binding = 0 in GLSL)
         if (!m_lightSSBO) {
@@ -122,7 +122,6 @@ namespace NE::Graphics::OpenGL {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightSSBO);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_clusterSSBO);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_clusterLightIndicesSSBO);
-        // UBO + atomic already bound at AllocateBuffers
 
         m_computeShader->Bind();
         DispatchCompute();
@@ -207,9 +206,12 @@ namespace NE::Graphics::OpenGL {
 	{
         if (m_numLightsThisView <= 0) return;
 
+        const int numClusters = clustersX * clustersY * clustersZ;
+        if (numClusters <= 0) return;
+
         // Assume compute shader is written with layout(local_size_x = 64)
         constexpr GLuint localSizeX = 64;
-        GLuint groupsX = (static_cast<GLuint>(m_numLightsThisView) + (localSizeX - 1)) / localSizeX;
+        GLuint groupsX = (static_cast<GLuint>(numClusters) + (localSizeX - 1)) / localSizeX;
 
         glDispatchCompute(groupsX, 1, 1);
 	}

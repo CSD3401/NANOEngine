@@ -56,7 +56,7 @@ namespace NE::Graphics {
 	RenderViewHandle GraphicsManager::s_ActiveViewHandle; // This is private and used internally
 	RenderViewHandle GraphicsManager::s_SceneViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
-	std::shared_ptr<IClusteredLighting> GraphicsManager::clusteredLighting;
+	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
     std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
@@ -79,7 +79,7 @@ namespace NE::Graphics {
         s_SceneViewHandle = s_RenderViewManager->Create(1920, 1080, true);
         //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
 
-		clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
+        s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
 
@@ -147,6 +147,8 @@ namespace NE::Graphics {
             if (enableSorting)
                 s_DrawQueue->Sort(camPos);
 
+			s_clusteredLighting->BuildForView(view, m_lights);
+
             // Prepare instance data buffer and batching variables
             std::vector<InstanceData> instanceData;
             instanceData.reserve(32);
@@ -185,7 +187,7 @@ namespace NE::Graphics {
                 shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
 
                 // Set lights
-                shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
+                /*shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
                 for (size_t i = 0; i < m_lights.size(); ++i) {
                     const auto* light = m_lights[i];
                     std::string base = "u_lights[" + std::to_string(i) + "]";
@@ -199,7 +201,10 @@ namespace NE::Graphics {
                     shader->SetUniformFloat(base + ".constant", light->constant);
                     shader->SetUniformFloat(base + ".linear", light->linear);
                     shader->SetUniformFloat(base + ".quadratic", light->quadratic);
-                }
+                }*/
+
+                // Set lights
+				s_clusteredLighting->BindForDraw();
 
                 // Draw mesh with instancing
                 currentMesh->DrawInstanced(instanceData.size());

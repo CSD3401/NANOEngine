@@ -34,7 +34,6 @@ void main() {
 #version 460 core
 #extension GL_ARB_bindless_texture : require
 
-#define MAX_LIGHTS 12
 #define LIGHT_TYPE_DIRECTIONAL 0
 #define LIGHT_TYPE_POINT 1
 #define LIGHT_TYPE_SPOT 2
@@ -64,7 +63,6 @@ uniform int       u_HasNormalMap;
 uniform float     u_Roughness;
 uniform sampler2D u_RoughnessMap;
 uniform int       u_HasRoughnessMap;
-
 uniform float     u_Metallic;
 uniform sampler2D u_MetallicMap;
 uniform int       u_HasMetallicMap;
@@ -81,7 +79,59 @@ uniform vec3 u_Offset;  // uses .xy
 // Emissive
 uniform vec3      u_Emissive;
 
-// ===== Lights =====
+// ===== Fog (scene-wide) =====
+uniform int   i_FogEnabled;   // 0/1
+uniform vec3  i_FogColor;     // linear color!
+uniform int   i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
+uniform float i_FogDensity;   // Exp/Exp2
+uniform float i_FogStart;     // Linear
+uniform float i_FogEnd;       // Linear
+
+// Scene ambient
+uniform vec3 i_GlobalAmbientColor;
+uniform float i_GlobalAmbientIntensity;
+
+// ---- Clustered lighting buffers ----
+// Must match GPULightCPU in GLClusteredLighting
+struct GPULight {
+    vec4 position;  // xyz + type
+    vec4 color;     // rgb + intensity
+    vec4 params;    // inner, outer, radius, unused
+    vec4 direction; // xyz + padding
+};
+// Must match Cluster in compute shader
+struct Cluster {
+    uint offset;
+    uint count;
+    uint pad0;
+    uint pad1;
+};
+layout(std430, binding = 0) buffer LightBuffer {
+    GPULight g_Lights[];
+};
+
+layout(std430, binding = 1) buffer ClusterBuffer {
+    Cluster g_Clusters[];
+};
+
+layout(std430, binding = 2) buffer ClusterLightIndices {
+    uint g_ClusterLightIndices[];
+};
+// Must match ClusterParamsCPU in GLClusteredLighting
+layout(std140, binding = 3) uniform ClusterParams {
+    mat4 u_View;
+    mat4 u_Projection;
+
+    float u_zNear;
+    float u_zFar;
+    int   u_ClustersX;
+    int   u_ClustersY;
+    int   u_ClustersZ;
+
+    int   u_NumLights;
+    int   u_ScreenWidth;
+    int   u_ScreenHeight;
+};
 struct Light {
     int   type; // 0 = directional, 1 = point, 2 = spot
     vec3  color;
@@ -94,23 +144,9 @@ struct Light {
     float linear;
     float quadratic;
 
-    float innerCutoff;    // cos(innerAngle)
-    float outerCutoff;    // cos(outerAngle)
+    float innerCutoff; // cos(innerAngle)
+    float outerCutoff; // cos(outerAngle)
 };
-uniform int   u_numLights;
-uniform Light u_lights[MAX_LIGHTS];
-
-// ===== Fog (scene-wide) =====
-uniform int   i_FogEnabled;   // 0/1
-uniform vec3  i_FogColor;     // linear color!
-uniform int   i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
-uniform float i_FogDensity;   // Exp/Exp2
-uniform float i_FogStart;     // Linear
-uniform float i_FogEnd;       // Linear
-
-// Scene ambient
-uniform vec3 i_GlobalAmbientColor;
-uniform float i_GlobalAmbientIntensity;
 
 const float PI = 3.14159265359;
 
@@ -219,11 +255,53 @@ vec3 EvalSpot(in Light L, vec3 N, vec3 V, vec3 P, vec3 albedo, float metallic, f
     return brdf * (L.color * L.intensity * atten * spot);
 }
 
+Light MakeLightFromGPULight(GPULight g) {
+	Light L;
+    L.type      = int(g.position.w);
+    L.color     = g.color.rgb;
+    L.intensity = g.color.a;
+
+    L.position  = g.position.xyz;
+    L.direction = g.direction.xyz;
+
+    // For now: simple attenuation, you can pack constants into params later
+    L.constant  = 1.0;
+    L.linear    = 0.0;
+    L.quadratic = 0.0;
+
+    L.innerCutoff = g.params.x;
+    L.outerCutoff = g.params.y;
+    return L;
+}
+
+int ComputeClusterIndex(vec3 worldPos)
+{
+    // Screen X/Y from gl_FragCoord
+    int cx = int(gl_FragCoord.x * float(u_ClustersX) / float(u_ScreenWidth));
+    int cy = int(gl_FragCoord.y * float(u_ClustersY) / float(u_ScreenHeight));
+
+    cx = clamp(cx, 0, u_ClustersX - 1);
+    cy = clamp(cy, 0, u_ClustersY - 1);
+
+    // Depth from view-space Z
+    vec3 posVS = (u_View * vec4(worldPos, 1.0)).xyz;
+    float d = -posVS.z; // camera looks down -Z
+
+    float t = (d - u_zNear) / max(u_zFar - u_zNear, 1e-6);
+    t = clamp(t, 0.0, 0.9999); // avoid hitting upper bound exactly
+
+    int cz = int(t * float(u_ClustersZ));
+    cz = clamp(cz, 0, u_ClustersZ - 1);
+
+    int idx = cx + cy * u_ClustersX + cz * (u_ClustersX * u_ClustersY);
+    return idx;
+}
+
 void main() {
     // UV transform
     vec2 uv = v_TexCoord * u_Tiling.xy + u_Offset.xy;
 
-    // view/normal
+    // View / normal
     vec3 V = normalize(u_CameraPos - v_FragPos);
     vec3 N = normalize(v_Normal);
 
@@ -268,10 +346,24 @@ void main() {
 	vec3 ambient = i_GlobalAmbientColor * i_GlobalAmbientIntensity * albedo * ao;
 	
     vec3 Lo = vec3(0.0);
-    for (int i = 0; i < u_numLights; ++i){
-        if (u_lights[i].type == LIGHT_TYPE_DIRECTIONAL) Lo += EvalDirectional(u_lights[i], N, V, albedo, metal, rough);
-        else if (u_lights[i].type == LIGHT_TYPE_POINT)  Lo += EvalPoint      (u_lights[i], N, V, v_FragPos, albedo, metal, rough);
-        else if (u_lights[i].type == LIGHT_TYPE_SPOT)   Lo += EvalSpot       (u_lights[i], N, V, v_FragPos, albedo, metal, rough);
+	
+	int clusterIndex = ComputeClusterIndex(v_FragPos);
+    Cluster c = g_Clusters[clusterIndex];
+    uint offset = c.offset;
+    uint count  = c.count;
+    for (uint i = 0u; i < count; ++i) {
+        uint lightIdx = g_ClusterLightIndices[offset + i];
+        if (lightIdx >= uint(u_NumLights)) continue;
+
+        GPULight gL = g_Lights[lightIdx];
+        Light L     = MakeLightFromGPULight(gL);
+
+        if (L.type == LIGHT_TYPE_DIRECTIONAL)
+            Lo += EvalDirectional(L, N, V, albedo, metal, rough);
+        else if (L.type == LIGHT_TYPE_POINT)
+            Lo += EvalPoint      (L, N, V, v_FragPos, albedo, metal, rough);
+        else if (L.type == LIGHT_TYPE_SPOT)
+            Lo += EvalSpot       (L, N, V, v_FragPos, albedo, metal, rough);
     }
 
     vec3 color_linear = max(ambient + Lo + u_Emissive, 0.0);

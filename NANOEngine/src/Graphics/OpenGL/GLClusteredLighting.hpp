@@ -36,7 +36,9 @@ namespace NE::Graphics::OpenGL {
         void BindForDraw() override;
 
     private:
-		static constexpr int MAX_LIGHTS = 1024;
+
+        void UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights);
+        void DispatchCompute();
 
 		// Settings for current view
         int clustersX;
@@ -56,6 +58,7 @@ namespace NE::Graphics::OpenGL {
         int m_numLightsThisView = 0;
 
         // CPU-side structs matching GLSL layouts
+		// Any changes here must be reflected in the compute shader
         struct GPULightCPU
         {
             float position[4];  // xyz + type
@@ -63,7 +66,6 @@ namespace NE::Graphics::OpenGL {
             float params[4];    // inner/outer, radius, unused
             float direction[4]; // xyz + (maybe) padding
         };
-
         struct ClusterParamsCPU
         {
             NE::Math::Mat4 view;  
@@ -73,14 +75,11 @@ namespace NE::Graphics::OpenGL {
             float zFar;
             int clustersX;
             int clustersY;
-
             int clustersZ;
+
             int numLights;
             int screenWidth;
             int screenHeight;
         };
-
-        void UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights);
-        void DispatchCompute();
     };
 }
