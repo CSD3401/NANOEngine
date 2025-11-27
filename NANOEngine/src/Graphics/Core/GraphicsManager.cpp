@@ -75,8 +75,8 @@ namespace NE::Graphics {
     static GLuint s_BloomTempFBO[BLOOM_LEVELS];
     static GLuint s_BloomTempTex[BLOOM_LEVELS];
 
-    static GLuint s_FinalFBO = 0;
-    static GLuint s_FinalColorTex = 0;
+    //static GLuint s_FinalFBO = 0;
+    //static GLuint s_FinalColorTex = 0;
 
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_DownSampleShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BlurShader;
@@ -119,7 +119,6 @@ namespace NE::Graphics {
             glBindVertexArray(0);
         }
 
-        // LDR target for bright-pass (RGBA8 is fine)
         if (s_BrightPassFBO == 0) {
             glGenFramebuffers(1, &s_BrightPassFBO);
             glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
@@ -158,6 +157,7 @@ namespace NE::Graphics {
 		s_RenderViewManager = std::make_unique<RenderViewManager>();
 
         s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
+        s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
         //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
 
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
@@ -227,36 +227,10 @@ namespace NE::Graphics {
             s_UpSampleShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomupsample");
         }
         if (!s_CompositeShader) {
-            //s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomcomposite");
-            s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("c62283cc-0ae3-455d-8713-fd440462db90");
+            s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomcomposite");
         }
 
-        if (s_FinalFBO == 0) {
-            glGenFramebuffers(1, &s_FinalFBO);
-            glBindFramebuffer(GL_FRAMEBUFFER, s_FinalFBO);
 
-            glGenTextures(1, &s_FinalColorTex);
-            glBindTexture(GL_TEXTURE_2D, s_FinalColorTex);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
-                baseW, baseH, 0,
-                GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                GL_TEXTURE_2D, s_FinalColorTex, 0);
-
-            GLenum att = GL_COLOR_ATTACHMENT0;
-            glDrawBuffers(1, &att);
-
-            // optional: check completeness in debug
-            // if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-            //     LOG_ERROR("Final composite framebuffer incomplete!");
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
 #pragma endregion
 
         //// Load Primitives
@@ -271,7 +245,7 @@ namespace NE::Graphics {
         s_ScreenWidth = static_cast<uint32_t>(viewport[2]);
         s_ScreenHeight = static_cast<uint32_t>(viewport[3]);
 
-        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
+        //UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
     }
 
     void GraphicsManager::BeginFrame() 
@@ -467,7 +441,6 @@ namespace NE::Graphics {
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-            // For next level, current becomes source
             srcTex = s_BloomTex[level];
             srcW = dstW;
             srcH = dstH;
@@ -475,12 +448,10 @@ namespace NE::Graphics {
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // Blur each mip level (horizontal + vertical)
         for (int level = 0; level < BLOOM_LEVELS; ++level) {
             int w = s_BloomWidth[level];
             int h = s_BloomHeight[level];
 
-            // Horizontal: s_BloomTex[level] -> s_BloomTempTex[level]
             glBindFramebuffer(GL_FRAMEBUFFER, s_BloomTempFBO[level]);
             glViewport(0, 0, w, h);
             glClearColor(0, 0, 0, 1);
@@ -497,7 +468,6 @@ namespace NE::Graphics {
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-            // Vertical: s_BloomTempTex[level] -> s_BloomTex[level]
             glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[level]);
             glViewport(0, 0, w, h);
             glClearColor(0, 0, 0, 1);
@@ -521,7 +491,7 @@ namespace NE::Graphics {
             int w = s_BloomWidth[hi];
             int h = s_BloomHeight[hi];
 
-            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomTempFBO[hi]);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[hi]);
             glViewport(0, 0, w, h);
             glClearColor(0, 0, 0, 1);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -529,30 +499,28 @@ namespace NE::Graphics {
             s_UpSampleShader->Bind();
             s_UpSampleShader->SetUniformInt("u_LowRes", 0);
             s_UpSampleShader->SetUniformInt("u_HighRes", 1);
-            s_UpSampleShader->SetUniformFloat("u_Intensity", s_upSampleIntensity); // tweak
+            s_UpSampleShader->SetUniformFloat("u_Intensity", 1.0f);
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);   // low-res
+            glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, s_BloomTex[hi]);      // current high-res
+            glBindTexture(GL_TEXTURE_2D, s_BloomTex[hi]);
 
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-            // swap temp into main for this level
-            std::swap(s_BloomTex[hi], s_BloomTempTex[hi]);
         }
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        if (fb && s_CompositeShader && s_FinalFBO != 0) {
-            uint32_t sceneTexHDR = fb->GetColorAttachment();  // HDR scene
+        auto finalFBO = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
+        if (fb && s_CompositeShader && finalFBO->GetColorAttachment() != 0) {
+            uint32_t sceneTexHDR = fb->GetColorAttachment();
             GLuint bloomTex = s_BloomTex[0];
 
             uint32_t w = fb->GetWidth();
             uint32_t h = fb->GetHeight();
 
-            // Composite into our separate LDR FBO
-            glBindFramebuffer(GL_FRAMEBUFFER, s_FinalFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, finalFBO->GetColorAttachment());
             glViewport(0, 0, w, h);
             glClearColor(0, 0, 0, 1);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -686,11 +654,14 @@ namespace NE::Graphics {
         //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
         if (InputManager::IsKeyDown('4')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
 
-        return s_FinalColorTex;
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
+        if (framebuffer) {
+          return framebuffer->GetColorAttachment();
+        }
 
 		//auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
-  //      if (framebuffer) {
-  //          return framebuffer->GetColorAttachment();
+        //  if (framebuffer) {
+        //  return framebuffer->GetColorAttachment();
 		//}
 
 		//return 0;
@@ -1033,12 +1004,12 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::DrawUI() {
-        //UIRenderer::BeginFrame();
-        //UIRenderer::DrawUIFrame();
-        ////UIRenderer::DrawTestQuad();
-        //UIRenderer::EndFrame();
+        UIRenderer::BeginFrame();
+        UIRenderer::DrawUIFrame();
+        //UIRenderer::DrawTestQuad();
+        UIRenderer::EndFrame();
 
-        //UIRenderer::Composite(s_SceneViewHandle);
-        //UIRenderer::ClearCommands();
+        UIRenderer::Composite(s_SceneViewHandle);
+        UIRenderer::ClearCommands();
     }
 }
