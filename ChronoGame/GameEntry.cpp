@@ -17,19 +17,8 @@
 #include "Scripts/k2bswitch.hpp"
 #include "Scripts/Pickable.hpp"
 #include "Scripts/PlayerController.hpp"
-#include "Scripts/ColourSwapManager.hpp"
-#include "Scripts/ColourSwapButton.hpp"
-#include "Scripts/TimeSwapManager.hpp"
-#include "Scripts/TimeSwapListener.hpp"
-#include "Scripts/ElevatorMove.hpp"
-#include "Scripts/PlayerCameraRaycast.hpp"
-//#include "Scripts/Interactable.hpp"
-//#include "Scripts/Lever.hpp"
 // Component Reference Example Scripts
 #include "Scripts/FollowerScript.hpp"
-#include "Scripts/MirrorPuzzle.hpp"
-#include "Scripts/PressurePlate.hpp"
-#include "Scripts/Door.hpp"
 #include "Scripts/TweenExampleScript.hpp"
 #include "Scripts/ParentControllerScript.hpp"
 #include "Scripts/MaterialSequencer.hpp"
@@ -90,46 +79,10 @@ extern "C" {
             return new k2bswitch();
             });
 
-        registrar->RegisterScript("ColourSwapManager", []() -> NE::Scripting::IScript* {
-            return new ColourSwapManager();
-            });
-
-        registrar->RegisterScript("MirrorPuzzle", []() -> NE::Scripting::IScript* {
-            return new MirrorPuzzle();
-            });
-
-        registrar->RegisterScript("PressurePlate", []() -> NE::Scripting::IScript* {
-            return new PressurePlate();
-            });
-
-        registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
-            return new MaterialSequencer();
-            });
-
-        registrar->RegisterScript("TimeSwapManager", []() -> NE::Scripting::IScript* {
-            return new TimeSwapManager();
-            });
-
-        registrar->RegisterScript("TimeSwapListener", []() -> NE::Scripting::IScript* {
-            return new TimeSwapListener();
-            });
-
-        registrar->RegisterScript("ElevatorMove", []() -> NE::Scripting::IScript* {
-            return new ElevatorMove();
-            });
-
-        //registrar->RegisterScript("Lever", []() -> NE::Scripting::IScript* {
-        //    return new Lever();
-        //    });
-
-        registrar->RegisterScript("PlayerCameraRaycast", []() -> NE::Scripting::IScript* {
-            return new PlayerCameraRaycast();
-            });
-
         // Component Reference Example Scripts
-          registrar->RegisterScript("FollowerScript", []() -> NE::Scripting::IScript* {
-          return new FollowerScript();
-        });
+        registrar->RegisterScript("FollowerScript", []() -> NE::Scripting::IScript* {
+            return new FollowerScript();
+            });
 
         registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
             return new PlayerController();
@@ -139,17 +92,13 @@ extern "C" {
             return new TweenExampleScript();
             });
 
-        //registrar->RegisterScript("ExampleMaterialScript", []() -> NE::Scripting::IScript* {
-        //    return new ExampleMaterialScript();
-        //    });
-
         registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
             return new ParentControllerScript();
             });
 
-        //registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
-        //    return new MaterialSequencer();
-        //    });
+        registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
+            return new MaterialSequencer();
+            });
 
         registrar->RegisterScript("SolveInactive",
             []() -> NE::Scripting::IScript* { return new SolveInactive(); });
@@ -167,10 +116,6 @@ extern "C" {
             return new CameraController();
             });
 
-        registrar->RegisterScript("ColourSwapButton", []() -> NE::Scripting::IScript* {
-            return new ColourSwapButton();
-            });
-            
         registrar->RegisterScript("Pickable", []() -> NE::Scripting::IScript* {
             return new Pickable();
             });
