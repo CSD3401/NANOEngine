@@ -39,6 +39,12 @@ namespace Editor {
 		// Get entity
 		uint32_t entity = event.selectedEntity;
 
+		// Skip UI entities - they don't have Transform component
+		if (!NE::ECS::Query::HasTransform(entity))
+		{
+			return;
+		}
+
 		// Get transform
 		NE::ECS::Component::Transform const& entityTransform = NE::ECS::Query::GetEntityTransform(entity);
 
