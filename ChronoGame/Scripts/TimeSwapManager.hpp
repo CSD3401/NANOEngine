@@ -1,8 +1,7 @@
 #pragma once
 #include "EngineAPI.hpp"
-#include <ScriptSDK/ScriptAPI.h>
-using namespace NE::Scripting;
 
+using namespace NE::Scripting;
 
 /**
  * TimeSwapManager - Toggles between past and present time periods
@@ -20,6 +19,8 @@ class TimeSwapManager : public IScript {
 public:
     TimeSwapManager() {
         // Constructor empty - fields registered in Initialize
+        SCRIPT_FIELD(startInPresent, Bool);
+        SCRIPT_FIELD(showLog, Bool);
     }
 
     ~TimeSwapManager() override = default;
@@ -27,21 +28,22 @@ public:
     void Awake() override {}
 
     void Initialize(Entity entity) override {
-        // Register fields using SCRIPT_FIELD macro
-        SCRIPT_FIELD(startInPresent, Bool);
-        SCRIPT_FIELD(debugMode, Bool);
+
     }
 
     void Start() override {
+        LOG_INFO("TimeSwapManager: Testing event system...");
+        //Events::Send("TestEvent");  // Send a simple test event
+
         isInPresent = startInPresent;
 
-        if (debugMode) {
+        if (showLog) {
             LOG_INFO("TimeSwapManager initialized. Starting in: "
                 << (isInPresent ? "PRESENT" : "PAST"));
         }
 
         // Send initial state to all listeners
-        BroadcastCurrentState();
+        //BroadcastCurrentState();
     }
 
     void Update(double deltaTime) override {
@@ -70,7 +72,7 @@ private:
         // Toggle the state
         isInPresent = !isInPresent;
 
-        if (debugMode) {
+        if (showLog) {
             LOG_INFO("Time swapped to: " << (isInPresent ? "PRESENT" : "PAST"));
         }
 
@@ -80,18 +82,16 @@ private:
 
     void BroadcastCurrentState() {
         if (isInPresent) {
-            // Send event to show present, hide past
-            SendScriptEvent("TimeSwapToPresent", nullptr);
+            Events::Send("TimeSwapToPresent");
         }
         else {
-            // Send event to show past, hide present
-            SendScriptEvent("TimeSwapToPast", nullptr);
+            Events::Send("TimeSwapToPast");
         }
     }
 
     // === Exposed Fields (registered in Initialize) ===
     bool startInPresent = true;  // Which time period to start in
-    bool debugMode = false;      // Enable debug logging
+    bool showLog = false;        // Enable debug logging
 
     // === Internal State (not exposed) ===
     bool isInPresent = true;     // Current time period state
