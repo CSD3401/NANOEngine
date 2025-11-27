@@ -88,7 +88,7 @@ namespace NE::Renderer {
 				return;
 			}
 			
-			// Store UUIDs for serialization
+			// store uuids for serialization
             img.textureUUID = textureUUID;
 			img.materialUUID = materialUUID;
 
@@ -100,7 +100,7 @@ namespace NE::Renderer {
 				return;
 			}
 
-			// Load texture and get bindless handle
+			// load texture and get bindless handle
 			if (!textureUUID.empty()) {
 				auto texture = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
 				if (texture) {

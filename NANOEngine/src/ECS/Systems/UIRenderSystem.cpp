@@ -18,10 +18,12 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::OnEntityAdded(Entity e) {
         // only handle uiimage-specific setup (textures, materials)
-        if (m_cm->HasComponent<UIImage>(e)) {
+        if (m_cm->HasComponent<UIImage>(e)) 
+        {
             auto& img = m_cm->GetComponent<UIImage>(e);
 
-            if (!img.textureUUID.empty()) {
+            if (!img.textureUUID.empty()) 
+            {
                 auto texture = NE::Resource::ResourceManager::GetInstance()
                     .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
                 if (texture) {
@@ -29,7 +31,8 @@ namespace NE::ECS::Systems {
                 }
             }
 
-            if (!img.materialUUID.empty()) {
+            if (!img.materialUUID.empty()) 
+            {
                 img.material = NE::Resource::ResourceManager::GetInstance()
                     .LoadResource<NE::Graphics::Material>(img.materialUUID);
             }
@@ -41,21 +44,25 @@ namespace NE::ECS::Systems {
     void UIRenderSystem::OnEntityRemoved(Entity e) {}
 
     void UIRenderSystem::Init() {
-        // Load resources for all existing UIImage entities
+        // load resources for all existing uiimage entities
         const auto& entities = GetEntities();
-        for (Entity e : entities) {
-            if (m_cm->HasComponent<UIImage>(e)) {
+        for (Entity e : entities) 
+        {
+            if (m_cm->HasComponent<UIImage>(e)) 
+            {
                 auto& img = m_cm->GetComponent<UIImage>(e);
 
                 if (!img.textureUUID.empty() && img.bindlessHandle == 0) {
                     auto texture = NE::Resource::ResourceManager::GetInstance()
                         .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
-                    if (texture) {
+                    if (texture) 
+                    {
                         img.bindlessHandle = texture->GetBindlessHandle();
                     }
                 }
 
-                if (!img.materialUUID.empty() && !img.material) {
+                if (!img.materialUUID.empty() && !img.material)
+                {
                     img.material = NE::Resource::ResourceManager::GetInstance()
                         .LoadResource<NE::Graphics::Material>(img.materialUUID);
                 }
