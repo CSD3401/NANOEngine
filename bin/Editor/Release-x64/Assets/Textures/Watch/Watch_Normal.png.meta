@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "a39a19fe-46f0-46af-9da9-8270d055b7e6",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Watch\\Watch_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

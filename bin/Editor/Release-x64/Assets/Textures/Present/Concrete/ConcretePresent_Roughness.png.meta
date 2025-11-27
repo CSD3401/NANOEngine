@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "871f2f80-d693-4762-b9f1-53af15f2d36b",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Concrete\\ConcretePresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

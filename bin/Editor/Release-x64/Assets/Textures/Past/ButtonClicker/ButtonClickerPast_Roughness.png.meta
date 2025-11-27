@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "10d5594b-88a1-4d45-9d56-cf21a622d7fe",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\ButtonClicker\\ButtonClickerPast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

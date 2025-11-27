@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "30430491-0acb-4675-b1fa-bf3d48f2e48e",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\CordReel\\CordReelPresent_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

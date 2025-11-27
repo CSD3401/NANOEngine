@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "db846f58-1ad4-4d43-a311-1cb7eb55253c",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Numpad\\NumpadPast_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

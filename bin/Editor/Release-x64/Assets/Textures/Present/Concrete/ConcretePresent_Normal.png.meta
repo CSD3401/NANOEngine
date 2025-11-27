@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "55b30127-38d7-461b-ac2e-41e7f62c96be",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Concrete\\ConcretePresent_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

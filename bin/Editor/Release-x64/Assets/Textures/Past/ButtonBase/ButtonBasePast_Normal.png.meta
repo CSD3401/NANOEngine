@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "eb1f402b-39c4-468d-b12c-0c66a93219b7",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\ButtonBase\\ButtonBasePast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

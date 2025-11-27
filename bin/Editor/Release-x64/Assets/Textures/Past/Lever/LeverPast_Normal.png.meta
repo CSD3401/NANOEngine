@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "f7dd89a5-ea4a-49e0-9a0c-289b5034d5bb",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Lever\\LeverPast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
