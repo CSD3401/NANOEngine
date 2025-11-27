@@ -1,6 +1,7 @@
 #pragma once
 #include "EngineAPI.hpp"
 #include <cmath>
+#include <algorithm>
 
 // GLFW key codes
 #define GLFW_KEY_SPACE 32
@@ -14,9 +15,12 @@
  * - Uses raycast-based ground detection & simple raycast-based wall blocking.
  *
  * NOTE:
- * - jumpForce is now effectively "jumpSpeed" (initial upward velocity).
- * - manualGravity should be NEGATIVE (e.g. -18.81f).
+ *   This version makes WASD movement camera-relative. Assign your camera
+ *   Transform in the editor via `cameraTransform`.
  */
+
+    using namespace ChronoGame;
+
 class PlayerController : public IScript {
 public:
     PlayerController() = default;
@@ -32,18 +36,20 @@ public:
         SCRIPT_FIELD(frictionCoefficient, Float);
         SCRIPT_FIELD(maxSlopeAngle, Float);
         SCRIPT_FIELD(groundRaycastDistance, Float);
+        // Expose camera Transform reference (explicit, no macro)
+        RegisterTransformRefField("cameraTransform", &cameraTransform);
     }
 
     void Start() override {
         // Try to get collider half-height so we know where the "feet" are
         if (Command::HasComponent<Component::Collider>(GetEntity())) {
-
             auto& col = Command::GetComponent<Component::Collider>(GetEntity());
             m_colliderHalfHeight = col.halfExtents.y;
             LOG_INFO("Kinematic PlayerController: collider half-height = " << m_colliderHalfHeight);
-        } else {
+        }
+        else {
             LOG_WARNING("Kinematic PlayerController: no Collider found on entity "
-                << GetEntity() << " � ground checks may be inaccurate.");
+                << GetEntity() << " – ground checks may be inaccurate.");
         }
 
         m_velocity = { 0.0f, 0.0f, 0.0f };
@@ -56,30 +62,20 @@ public:
         // 1. Update grounded state via raycast (from current position)
         UpdateGroundedState();
 
-        // 2. Handle horizontal movement input (world-space XZ)
+        // 2. Handle horizontal movement input (camera-relative XZ)
         UpdateHorizontalVelocity(dt);
 
         // 3. Handle jump input
         HandleJump(dt);
 
-        // 4. Apply gravity (when not grounded)
-        ApplyGravity(dt);
+        // 4. Integrate vertical velocity (gravity etc.)
+        ApplyVerticalPhysics(dt);
 
-        // 5. Move character kinematically, with simple wall collision using raycast
+        // 5. Move character (kinematic)
         MoveKinematic(dt);
-
-        
     }
 
-    void OnDestroy() override {}
-    void OnEnable() override {}
-    void OnDisable() override {}
-
-    const char* GetTypeName() const override {
-        return "KinematicPlayerController";
-    }
-
-    // === Event Handlers (Required by IScript) ===
+    // Collision callbacks (kept for completeness)
     void OnCollisionEnter(Entity other) override {}
     void OnCollisionExit(Entity other) override {}
     void OnTriggerEnter(Entity other) override {}
@@ -87,29 +83,162 @@ public:
 
 private:
     // =========================
+    // INPUT / MOVEMENT
+    // =========================
+    void UpdateHorizontalVelocity(float dt) {
+        // Read raw WASD input
+        float h = 0.0f;
+        float v = 0.0f;
+        if (Input::IsKeyDown('D')) h += 1.0f;
+        if (Input::IsKeyDown('A')) h -= 1.0f;
+        if (Input::IsKeyDown('W')) v += 1.0f;
+        if (Input::IsKeyDown('S')) v -= 1.0f;
+
+        Vec3 camFwd = { 0.0f, 0.0f, -1.0f };
+        Vec3 camRight = { 1.0f, 0.0f,  0.0f };
+
+        if (cameraTransform.IsValid()) {
+            Vec3 camEuler = GetRotation(cameraTransform.GetEntity()); // (pitch, yaw, roll) in degrees
+            float yawRad = camEuler.y * (3.14159265359f / 180.0f);
+
+            // Swapped basis for your coordinate frame:
+            // forward = (cos(yaw), 0, sin(yaw))  -> at yaw=0, +X
+            // right   = (-sin(yaw), 0, cos(yaw)) -> at yaw=0, +Z
+            float cy = std::cos(yawRad);
+            float sy = std::sin(yawRad);
+
+            camFwd = { cy, 0.0f,  sy };
+            camRight = { -sy, 0.0f,  cy };
+        }
+
+        // Desired move direction relative to camera
+        Vec3 desired = camFwd * v + camRight * h;
+        if (desired.LengthSquared() > 1e-6f) desired = desired.Normalized() * moveSpeed;
+        else {
+            desired = Vec3(0.0f, 0.0f, 0.0f);
+        }
+
+        // Apply on ground vs in air
+        if (m_isGrounded) {
+            // Snap horizontal velocity to desired when grounded
+            m_velocity.x = desired.x;
+            m_velocity.z = desired.z;
+            // Apply simple ground friction
+            float drag = std::max(0.0f, 1.0f - frictionCoefficient * dt);
+            m_velocity.x *= drag;
+            m_velocity.z *= drag;
+        }
+        else {
+            // Air control: blend current horizontal velocity toward desired
+            float t = m_airControl * dt * 5.0f;
+            if (t < 0.0f) t = 0.0f;
+            if (t > 1.0f) t = 1.0f;
+
+            m_velocity.x = m_velocity.x * (1.0f - t) + desired.x * t;
+            m_velocity.z = m_velocity.z * (1.0f - t) + desired.z * t;
+        }
+
+        // Vertical velocity handled elsewhere (gravity/jump)
+    }
+
+    void HandleJump(float /*dt*/) {
+        m_hasJumpedThisFrame = false;
+
+        // Use WasKeyPressed from your SDK wrapper
+        if (Input::WasKeyPressed(GLFW_KEY_SPACE) && m_isGrounded) {
+            m_velocity.y = jumpForce;
+            m_isGrounded = false;
+            m_hasJumpedThisFrame = true;
+        }
+    }
+
+    void ApplyVerticalPhysics(float dt) {
+        if (!m_isGrounded) {
+            // Apply manual gravity when airborne
+            m_velocity.y += manualGravity * dt;
+
+            if (m_velocity.y < m_maxFallSpeed) {
+                m_velocity.y = m_maxFallSpeed;
+            }
+        }
+        else {
+            if (m_velocity.y < 0.0f) {
+                m_velocity.y = 0.0f;
+            }
+        }
+    }
+
+    // =========================
+    // KINEMATIC MOVEMENT
+    // =========================
+    void MoveKinematic(float dt) {
+        // Compute desired displacement for this frame
+        Vec3 displacement = m_velocity * dt;
+
+        // Simple step: try to move horizontally, then vertically.
+        Vec3 pos = GetPosition();
+        Vec3 newPos = pos;
+
+        // Horizontal XZ
+        Vec3 horiz = { displacement.x, 0.0f, displacement.z };
+
+        if (horiz.LengthSquared() > 0.0f) {
+            // Raycast forward in movement direction to avoid penetrating walls.
+            Vec3 dir = horiz.Normalized();
+            float dist = horiz.Length();
+
+            RaycastHit hit = Raycast(pos, dir, dist + m_skinWidth, worldCollisionMask);
+            if (hit.hasHit && hit.entity != GetEntity()) {
+                // Stop just before the wall
+                float allowed = std::max(0.0f, hit.distance - m_skinWidth);
+                newPos += dir * allowed;
+
+                // Remove horizontal component into wall
+                m_velocity.x = 0.0f;
+                m_velocity.z = 0.0f;
+            }
+            else {
+                newPos += horiz;
+            }
+        }
+
+        // Vertical Y
+        float vMove = displacement.y;
+        if (std::abs(vMove) > 0.0f) {
+            Vec3 vDir = { 0.0f, (vMove > 0.0f) ? 1.0f : -1.0f, 0.0f };
+            float vDist = std::abs(vMove) + m_skinWidth;
+
+            RaycastHit vhit = Raycast(newPos, vDir, vDist, worldCollisionMask);
+            if (vhit.hasHit && vhit.entity != GetEntity()) {
+                float allowed = std::max(0.0f, vhit.distance - m_skinWidth);
+                newPos.y += vDir.y * allowed;
+
+                if (vDir.y < 0.0f) {
+                    // Hit ground from above
+                    m_isGrounded = true;
+                }
+
+                // Stop vertical velocity on collision
+                m_velocity.y = 0.0f;
+            }
+            else {
+                newPos.y += vMove;
+            }
+        }
+
+        // Commit move
+        SetPosition(newPos);
+    }
+
+    // =========================
     // GROUND CHECK
     // =========================
     void UpdateGroundedState() {
-        // If we're moving upwards noticeably, don't try to snap to ground
-        if (m_velocity.y > 0.1f) {
-            m_isGrounded = false;
-            return;
-        }
+        // Raycast straight down from character center to find ground
+        float rayLen = m_colliderHalfHeight + groundRaycastDistance;
+        Vec3 origin = GetPosition();
 
-        Vec3 pos = GetPosition();
-
-        // Current feet position (center - halfHeight)
-        float feetY = pos.y - m_colliderHalfHeight;
-
-        // Start the ray a bit ABOVE the feet so we aren't starting inside the floor
-        Vec3 origin = pos;
-        origin.y = feetY + m_groundProbeStartOffset; // e.g. small positive offset
-
-        Vec3 downDir{ 0.0f, -1.0f, 0.0f };
-        uint32_t layerMask = 0xFFFFFFFF;
-
-        float rayLen = groundRaycastDistance + m_groundProbeStartOffset + m_skinWidth;
-
+        Vec3 downDir = { 0.0f, -1.0f, 0.0f };
         RaycastHit hit = Raycast(origin, downDir, rayLen, layerMask);
 
         if (hit.hasHit && hit.entity != GetEntity()) {
@@ -124,192 +253,42 @@ private:
             // Center = feet + halfHeight
             float targetCenterY = targetFeetY + m_colliderHalfHeight;
 
-            Vec3 newPos = pos;
-            newPos.y = targetCenterY;
-            SetPosition(newPos);
-
-            if (m_velocity.y < 0.0f) {
-                m_velocity.y = 0.0f;
+            // If we’re within snap distance, gently snap to ground to prevent hovering
+            float error = targetCenterY - origin.y;
+            if (std::abs(error) < 0.25f) {
+                SetPosition({ origin.x, origin.y + error, origin.z });
             }
-        } else {
+        }
+        else {
             m_isGrounded = false;
         }
-
-        // Optional debug
-        //SPD_DEBUG("Grounded: " << m_isGrounded
-        //    << " centerY=" << GetPosition().y
-        //    << " feetY=" << (GetPosition().y - m_colliderHalfHeight)
-        //    << " velY=" << m_velocity.y);
     }
 
-    // =========================
-    // HORIZONTAL MOVEMENT
-    // =========================
-    void UpdateHorizontalVelocity(float dt) {
-        Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
+private:
+    // ======= Exposed fields (editable in editor) =======
+    float moveSpeed = 6.0f;                // horizontal units/sec
+    float jumpForce = 7.5f;                // initial Y velocity when jumping
+    float manualGravity = -18.0f;          // gravity accel (neg = downward)
+    float frictionCoefficient = 5.0f;      // basic ground damping
+    float maxSlopeAngle = 45.0f;           // not fully used here
+    float groundRaycastDistance = 0.2f;    // extra ray length below feet for detection
 
-        if (Input::IsKeyDown('W')) {
-            inputDir.z -= 1.0f;
-        }
-        if (Input::IsKeyDown('S')) {
-            inputDir.z += 1.0f;
-        }
-        if (Input::IsKeyDown('A')) {
-            inputDir.x -= 1.0f;
-        }
-        if (Input::IsKeyDown('D')) {
-            inputDir.x += 1.0f;
-        }
+    // ======= Collision and ground layers =======
+    uint32_t worldCollisionMask = 0xFFFFFFFF;  // world blocking mask
+    uint32_t layerMask = 0xFFFFFFFF;           // ground check mask
 
-        float mag = std::sqrt(inputDir.x * inputDir.x + inputDir.z * inputDir.z);
-        if (mag > 0.01f) {
-            inputDir.x /= mag;
-            inputDir.z /= mag;
-        } else {
-            inputDir.x = 0.0f;
-            inputDir.z = 0.0f;
-        }
-
-        // Current horizontal velocity
-        Vec3 horizVel = m_velocity;
-        horizVel.y = 0.0f;
-
-        if (mag > 0.0f) {
-            // Target horizontal velocity
-            Vec3 targetVel{
-                inputDir.x * moveSpeed,
-                0.0f,
-                inputDir.z * moveSpeed
-            };
-
-            // If grounded, snap quickly; if in air, lerp slowly (air control)
-            float accel = m_isGrounded ? 1.0f : m_airControl;
-            horizVel.x = Lerp(horizVel.x, targetVel.x, accel * dt);
-            horizVel.z = Lerp(horizVel.z, targetVel.z, accel * dt);
-        } else if (m_isGrounded) {
-            // Apply friction when grounded and no input
-            float speed = std::sqrt(horizVel.x * horizVel.x + horizVel.z * horizVel.z);
-            if (speed > 0.01f) {
-                float friction = frictionCoefficient * dt;
-                float newSpeed = std::max(0.0f, speed - friction);
-                float factor = (speed > 0.0f) ? (newSpeed / speed) : 0.0f;
-
-                horizVel.x *= factor;
-                horizVel.z *= factor;
-            } else {
-                horizVel.x = 0.0f;
-                horizVel.z = 0.0f;
-            }
-        }
-
-        m_velocity.x = horizVel.x;
-        m_velocity.z = horizVel.z;
-    }
-
-    // =========================
-    // JUMP
-    // =========================
-    void HandleJump(float /*dt*/) {
-        if (Input::WasKeyPressed(GLFW_KEY_SPACE)) {
-            if (m_isGrounded && !m_hasJumpedThisFrame) {
-                LOG_INFO("Kinematic jump!");
-                m_hasJumpedThisFrame = true;
-                m_isGrounded = false;
-                m_velocity.y = jumpForce; // treat as initial upward velocity
-            }
-        }
-
-        if (!Input::IsKeyDown(GLFW_KEY_SPACE)) {
-            m_hasJumpedThisFrame = false;
-        }
-    }
-
-    // =========================
-    // GRAVITY
-    // =========================
-    void ApplyGravity(float dt) {
-        if (!m_isGrounded) {
-            m_velocity.y += manualGravity * dt;
-
-            if (m_velocity.y < m_maxFallSpeed) {
-                m_velocity.y = m_maxFallSpeed;
-            }
-        } else {
-            if (m_velocity.y < 0.0f) {
-                m_velocity.y = 0.0f;
-            }
-        }
-    }
-
-    // =========================
-    // KINEMATIC MOVEMENT
-    // =========================
-    void MoveKinematic(float dt) {
-        Vec3 pos = GetPosition();
-        Vec3 displacement = m_velocity * dt;
-
-        // Separate horizontal and vertical
-        Vec3 horizMove{ displacement.x, 0.0f, displacement.z };
-        float horizLen = std::sqrt(horizMove.x * horizMove.x + horizMove.z * horizMove.z);
-
-        if (horizLen > 0.0001f) {
-            Vec3 dir{
-                horizMove.x / horizLen,
-                0.0f,
-                horizMove.z / horizLen
-            };
-
-            // Simple wall blocking via raycast
-            uint32_t layerMask = 0xFFFFFFFF;
-            float rayLen = horizLen + m_skinWidth;
-
-            RaycastHit hit = Raycast(pos, dir, rayLen, layerMask);
-
-            if (hit.hasHit && hit.entity != GetEntity()) {
-                float allowed = std::max(0.0f, hit.distance - m_skinWidth);
-                if (allowed < horizLen) {
-                    horizMove = dir * allowed;
-                }
-            }
-        }
-
-        Vec3 finalMove{
-            horizMove.x,
-            displacement.y,
-            horizMove.z
-        };
-
-        pos = pos + finalMove;
-        SetPosition(pos);
-    }
-
-    // Simple helper
-    static float Lerp(float a, float b, float t) {
-        if (t < 0.0f) t = 0.0f;
-        if (t > 1.0f) t = 1.0f;
-        return a + (b - a) * t;
-    }
-
-    // === EDITABLE PARAMETERS ===
-
-    // Movement parameters
-    float moveSpeed = 5.0f;
-    float jumpForce = 8.0f;        // now used as jump speed (units/sec)
-    float manualGravity = -18.81f; // should be negative
-    float frictionCoefficient = 20.0f;
-    float maxSlopeAngle = 45.0f;   // (not used yet, placeholder for slope handling)
-
-    // Ground detection
-    float groundRaycastDistance = 0.3f; // ray length below player
-    float m_groundProbeStartOffset = 0.1f;  // start slightly above feet
-    float m_groundSnapOffset = 0.02f;       // snap distance into ground
-    float m_skinWidth = 0.05f;              // used for wall/gap tolerance
+    // ======= Ground snapping =======
+    float m_groundSnapOffset = 0.02f;      // small offset to avoid clipping into floor
+    float m_skinWidth = 0.05f;             // used for wall/gap tolerance
 
     // Air control
     float m_airControl = 0.3f;              // 0 = no air control, 1 = full
 
     // Fall limit
     float m_maxFallSpeed = -50.0f;
+
+    // Camera Transform reference (set in editor). Movement will follow this camera's forward/right.
+    TransformRef cameraTransform{};
 
     // Internal state
     bool m_hasJumpedThisFrame = false;
