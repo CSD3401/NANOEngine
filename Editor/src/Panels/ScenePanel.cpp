@@ -640,68 +640,11 @@ namespace Editor {
 
 				// World space canvas (3D gizmo)
 				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
-					ImGuizmo::BeginFrame();
-					ImGuizmo::SetOrthographic(false);
-					ImGuizmo::SetDrawlist();
-					ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
+					NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
+					NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
 
-					// Build world matrix for the gizmo
-					auto& rect = NE::ECS::Query::GetUIRectTransform(eid);
-					NE::Math::Vec3 position = rect.GetPosition();
-					NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(position.x, position.y, position.z);
-					NE::Math::Mat4 R = rect.GetRotationMatrix();
-					NE::Math::Vec3 scale = rect.GetScale();
-					NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
-					NE::Math::Mat4 worldMatrix = T * R * S;
-
-					float matrix[16];
-					memcpy(matrix, worldMatrix.Data(), sizeof(float) * 16);
-
-					// Draw the gizmo FIRST
-					bool editedThisFrame = ImGuizmo::Manipulate(
-						EditorScene::m_editorCamera.GetViewMatrix().Data(),
-						EditorScene::m_editorCamera.GetProjectionMatrix().Data(),
-						currentOperation,
-						ImGuizmo::LOCAL,
-						matrix
-					);
-
-					// NOW check if using (after Manipulate was called)
-					bool isUsing = ImGuizmo::IsUsing();
-
-					// Begin tracking when user starts dragging
-					if (!UIGizmoHandler::IsGizmoActive() && isUsing) {
-						UIGizmoHandler::Begin3DGizmo(eid, panelPos, panelSize);
-						s_usingUIGizmo = true;
-					}
-
-					// Update transform while dragging
-					if (UIGizmoHandler::IsGizmoActive() && isUsing && editedThisFrame) {
-						float tr[3], rotDeg[3], sc[3];
-						ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
-
-						auto& rectCmd = NE::ECS::Command::GetUIRectTransform(eid);
-						rectCmd.x = tr[0];
-						rectCmd.y = tr[1];
-						rectCmd.z = tr[2];
-
-						rectCmd.rotationX = rotDeg[0];
-						rectCmd.rotationY = rotDeg[1];
-						rectCmd.rotationZ = rotDeg[2];
-
-						rectCmd.scaleX = sc[0];
-						rectCmd.scaleY = sc[1];
-						rectCmd.scaleZ = sc[2];
-
-						// Update command for undo/redo
-						UIGizmoHandler::UpdateCommandAfter(rectCmd);
-					}
-
-					// End tracking when user releases
-					if (UIGizmoHandler::IsGizmoActive() && !isUsing) {
-						UIGizmoHandler::End3DGizmo(eid);
-						s_usingUIGizmo = false;
-					}
+					Editor::UIGizmoHandler::Update3DGizmo(eid, view, proj, panelPos, panelSize);
+					s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
 				}
 				// Screen space canvas (2D gizmo with corner/edge handles)
 				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||

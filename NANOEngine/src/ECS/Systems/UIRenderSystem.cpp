@@ -488,6 +488,9 @@ namespace NE::ECS::Systems {
 
         Math::Vec3 effectiveScale = scale;
         Math::Vec3 accumulatedPosition = position;
+
+        float accumulatedRotationX = rect.rotationX;
+        float accumulatedRotationY = rect.rotationY;
         float accumulatedRotationZ = rect.rotationZ;
 
         Entity parentEntity = rect.parent;
@@ -498,6 +501,8 @@ namespace NE::ECS::Systems {
             effectiveScale.y *= parentRect.scaleY;
             effectiveScale.z *= parentRect.scaleZ;
 
+            accumulatedRotationX += parentRect.rotationX;
+            accumulatedRotationY += parentRect.rotationY;
             accumulatedRotationZ += parentRect.rotationZ;
 
             accumulatedPosition.x += parentRect.x;
@@ -522,7 +527,10 @@ namespace NE::ECS::Systems {
             0.0f
         );
 
-        Math::Mat4 rotationMatrix = Math::Mat4::BuildZRotation(accumulatedRotationZ * PI / 180.0f);
+        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accumulatedRotationX * PI / 180.0f);
+        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accumulatedRotationY * PI / 180.0f);
+        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accumulatedRotationZ * PI / 180.0f);
+        Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
 
         Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(
             accumulatedPosition.x,

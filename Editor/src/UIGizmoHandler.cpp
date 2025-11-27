@@ -8,22 +8,6 @@
 #include <limits>
 #include <iostream>
 
-namespace {
-    static NE::Math::Mat4 BuildUIMatrix(const NE::ECS::Component::UIRectTransform& rect) {
-        NE::Math::Mat4 matrix;
-        matrix.SetToIdentity();
-
-        matrix = NE::Math::Mat4::BuildTranslation(rect.GetPosition()) * matrix;
-        NE::Math::Mat4 rotMatrix = rect.GetRotationMatrix();
-        matrix = rotMatrix * matrix;
-        NE::Math::Vec3 scale = rect.GetScale();
-        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scale.x, scale.y, scale.z);
-        matrix = scaleMatrix * matrix;
-
-        return matrix;
-    }
-}
-
 namespace Editor {
 
     // ============ Static Variable Definitions ============
@@ -31,8 +15,6 @@ namespace Editor {
     ImGuizmo::OPERATION UIGizmoHandler::s_currentOperation = ImGuizmo::TRANSLATE;
     uint32_t UIGizmoHandler::s_gizmoEntityId = 0;
     int UIGizmoHandler::s_gizmoType = 0;
-
-    NE::Math::Mat4 UIGizmoHandler::s_gizmo3DStartMatrix;
 
     bool UIGizmoHandler::s_isDraggingUI = false;
     int UIGizmoHandler::s_draggingCorner = -1;
@@ -52,6 +34,72 @@ namespace Editor {
     uint8_t UIGizmoHandler::s_uiGizmoMask = 0;
 
     // ============ Helper Functions ============
+
+    NE::Math::Mat4 UIGizmoHandler::BuildUIWorldTRS(uint32_t entityId)
+    {
+        using namespace NE::ECS;
+        using namespace NE::ECS::Component;
+
+        NE::Math::Mat4 identity;
+        identity.SetToIdentity();
+
+        if (!Query::HasUIRectTransform(entityId))
+            return identity;
+
+        auto& rect = Query::GetUIRectTransform(entityId);
+
+        constexpr float PI = 3.14159265358979f;
+
+        // Start from local
+        NE::Math::Vec3 accumulatedPos = rect.GetPosition();
+        NE::Math::Vec3 accumulatedScale = rect.GetScale();
+
+        float accumulatedRotX = rect.rotationX;
+        float accumulatedRotY = rect.rotationY;
+        float accumulatedRotZ = rect.rotationZ;
+
+        // Accumulate parents (just like a normal Transform hierarchy)
+        uint32_t parentEntity = rect.parent;
+        while (parentEntity != std::numeric_limits<uint32_t>::max() &&
+            Query::HasUIRectTransform(parentEntity))
+        {
+            auto& parentRect = Query::GetUIRectTransform(parentEntity);
+
+            accumulatedPos.x += parentRect.x;
+            accumulatedPos.y += parentRect.y;
+            accumulatedPos.z += parentRect.z;
+
+            accumulatedScale.x *= parentRect.scaleX;
+            accumulatedScale.y *= parentRect.scaleY;
+            accumulatedScale.z *= parentRect.scaleZ;
+
+            accumulatedRotX += parentRect.rotationX;
+            accumulatedRotY += parentRect.rotationY;
+            accumulatedRotZ += parentRect.rotationZ;
+
+            parentEntity = parentRect.parent;
+        }
+
+        NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(
+            accumulatedScale.x,
+            accumulatedScale.y,
+            accumulatedScale.z
+        );
+
+        NE::Math::Mat4 Rx = NE::Math::Mat4::BuildXRotation(accumulatedRotX * PI / 180.0f);
+        NE::Math::Mat4 Ry = NE::Math::Mat4::BuildYRotation(accumulatedRotY * PI / 180.0f);
+        NE::Math::Mat4 Rz = NE::Math::Mat4::BuildZRotation(accumulatedRotZ * PI / 180.0f);
+        NE::Math::Mat4 R = Rz * Ry * Rx;
+
+        NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(
+            accumulatedPos.x,
+            accumulatedPos.y,
+            accumulatedPos.z
+        );
+
+        // TRS, no width/height/pivot here
+        return T * R * S;
+    }
 
     float UIGizmoHandler::GetAngleFromCenter(ImVec2 center, ImVec2 point) {
         return std::atan2(point.y - center.y, point.x - center.x) * 180.0f / 3.14159265358979f;
@@ -107,12 +155,12 @@ namespace Editor {
 
     // ============ 3D Gizmo (World Space UI) ============
 
-    void UIGizmoHandler::Begin3DGizmo(uint32_t uiEntityId, ImVec2 panelPos, ImVec2 panelSize) {
+    void UIGizmoHandler::Begin3DGizmo(uint32_t uiEntityId, ImVec2 /*panelPos*/, ImVec2 /*panelSize*/)
+    {
         if (s_gizmoActive) return;
 
         auto& rect = NE::ECS::Query::GetUIRectTransform(uiEntityId);
 
-        s_gizmo3DStartMatrix = BuildUIMatrix(rect);
         s_gizmoEntityId = uiEntityId;
         s_gizmoActive = true;
         s_gizmoType = 2;
@@ -120,18 +168,10 @@ namespace Editor {
 
         // Create command based on current operation
         switch (s_currentOperation) {
-        case ImGuizmo::TRANSLATE:
-            s_uiGizmoMask = SetUIRectTransformCommand::Pos;
-            break;
-        case ImGuizmo::ROTATE:
-            s_uiGizmoMask = SetUIRectTransformCommand::Rot;
-            break;
-        case ImGuizmo::SCALE:
-            s_uiGizmoMask = SetUIRectTransformCommand::Scl;
-            break;
-        default:
-            s_uiGizmoMask = SetUIRectTransformCommand::All;
-            break;
+        case ImGuizmo::TRANSLATE: s_uiGizmoMask = SetUIRectTransformCommand::Pos; break;
+        case ImGuizmo::ROTATE:    s_uiGizmoMask = SetUIRectTransformCommand::Rot; break;
+        case ImGuizmo::SCALE:     s_uiGizmoMask = SetUIRectTransformCommand::Scl; break;
+        default:                  s_uiGizmoMask = SetUIRectTransformCommand::All; break;
         }
 
         s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
@@ -140,49 +180,107 @@ namespace Editor {
             &NE::ECS::Command::GetUIRectTransform,
             s_uiGizmoMask
         );
+    }
 
+    void UIGizmoHandler::Update3DGizmo(uint32_t uiEntityId,
+        const NE::Math::Mat4& view,
+        const NE::Math::Mat4& proj,
+        ImVec2 panelPos,
+        ImVec2 panelSize)
+    {
+        // Set up ImGuizmo for this panel
+        ImGuizmo::BeginFrame();
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
         ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
-    }
 
-    void UIGizmoHandler::Update3DGizmo(uint32_t uiEntityId) {
-        if (!s_gizmoActive || s_gizmoType != 2 || s_gizmoEntityId != uiEntityId) return;
-
-        auto& rect = NE::ECS::Command::GetUIRectTransform(uiEntityId);
-        NE::Math::Mat4 currentMatrix = BuildUIMatrix(rect);
+        // Build WORLD TRS (no width/pivot)
+        NE::Math::Mat4 worldMatrix = BuildUIWorldTRS(uiEntityId);
 
         float matrix[16];
-        memcpy(matrix, currentMatrix.Data(), sizeof(float) * 16);
+        memcpy(matrix, worldMatrix.Data(), sizeof(float) * 16);
 
         bool editedThisFrame = ImGuizmo::Manipulate(
-            nullptr,
-            nullptr,
+            view.Data(),
+            proj.Data(),
             s_currentOperation,
             ImGuizmo::LOCAL,
             matrix
         );
 
-        if (editedThisFrame && ImGuizmo::IsUsing()) {
+        bool isUsing = ImGuizmo::IsUsing();
+
+        // Begin tracking when user starts dragging
+        if (!s_gizmoActive && isUsing) {
+            Begin3DGizmo(uiEntityId, panelPos, panelSize);
+        }
+
+        // Update transform while dragging
+        if (s_gizmoActive && isUsing && editedThisFrame) {
             float tr[3], rotDeg[3], sc[3];
             ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
 
-            rect.x = tr[0];
-            rect.y = tr[1];
-            rect.z = tr[2];
+            // World TRS after gizmo
+            float worldPosX = tr[0];
+            float worldPosY = tr[1];
+            float worldPosZ = tr[2];
+            float worldRotX = rotDeg[0];
+            float worldRotY = rotDeg[1];
+            float worldRotZ = rotDeg[2];
+            float worldSclX = sc[0];
+            float worldSclY = sc[1];
+            float worldSclZ = sc[2];
 
-            rect.rotationX = rotDeg[0];
-            rect.rotationY = rotDeg[1];
-            rect.rotationZ = rotDeg[2];
+            auto& rectCmd = NE::ECS::Command::GetUIRectTransform(uiEntityId);
 
-            rect.scaleX = sc[0];
-            rect.scaleY = sc[1];
-            rect.scaleZ = sc[2];
+            // ----- Remove parent TRS -> get local values -----
+            float parentPosX = 0.f, parentPosY = 0.f, parentPosZ = 0.f;
+            float parentRotX = 0.f, parentRotY = 0.f, parentRotZ = 0.f;
+            float parentSclX = 1.f, parentSclY = 1.f, parentSclZ = 1.f;
 
-            // Update command
-            if (s_uiGizmoCmd) {
-                s_uiGizmoCmd->SetAfter(rect);
+            uint32_t p = rectCmd.parent;
+            while (p != std::numeric_limits<uint32_t>::max() &&
+                NE::ECS::Query::HasUIRectTransform(p))
+            {
+                auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
+
+                parentPosX += parentRect.x;
+                parentPosY += parentRect.y;
+                parentPosZ += parentRect.z;
+
+                parentRotX += parentRect.rotationX;
+                parentRotY += parentRect.rotationY;
+                parentRotZ += parentRect.rotationZ;
+
+                parentSclX *= parentRect.scaleX;
+                parentSclY *= parentRect.scaleY;
+                parentSclZ *= parentRect.scaleZ;
+
+                p = parentRect.parent;
             }
+
+            // Local position = world - parent
+            rectCmd.x = worldPosX - parentPosX;
+            rectCmd.y = worldPosY - parentPosY;
+            rectCmd.z = worldPosZ - parentPosZ;
+
+            // Local rotation = world - parent
+            rectCmd.rotationX = worldRotX - parentRotX;
+            rectCmd.rotationY = worldRotY - parentRotY;
+            rectCmd.rotationZ = worldRotZ - parentRotZ;
+
+            // Local scale = world / parent
+            rectCmd.scaleX = (parentSclX > 0.001f) ? worldSclX / parentSclX : worldSclX;
+            rectCmd.scaleY = (parentSclY > 0.001f) ? worldSclY / parentSclY : worldSclY;
+            rectCmd.scaleZ = (parentSclZ > 0.001f) ? worldSclZ / parentSclZ : worldSclZ;
+
+            // Update command for undo/redo
+            UpdateCommandAfter(rectCmd);
+        }
+
+        // End tracking when user releases
+        if (s_gizmoActive && !isUsing) {
+            End3DGizmo(uiEntityId);
         }
     }
 

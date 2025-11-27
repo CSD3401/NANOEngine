@@ -20,7 +20,11 @@ namespace Editor {
 
         // === 3D Gizmo (World Space UI) ===
         static void Begin3DGizmo(uint32_t uiEntityId, ImVec2 panelPos, ImVec2 panelSize);
-        static void Update3DGizmo(uint32_t uiEntityId);
+        static void Update3DGizmo(uint32_t uiEntityId,
+            const NE::Math::Mat4& view,
+            const NE::Math::Mat4& proj,
+            ImVec2 panelPos,
+            ImVec2 panelSize);
         static void End3DGizmo(uint32_t uiEntityId);
 
         // === 2D Gizmo (Screen Space UI) ===
@@ -31,15 +35,15 @@ namespace Editor {
 
         static void UpdateCommandAfter(const NE::ECS::Component::UIRectTransform& rect);
 
+        // World-space helper (TRS only, no width/height/pivot)
+        static NE::Math::Mat4 BuildUIWorldTRS(uint32_t entityId);
+
     private:
         // === Shared State ===
         static bool s_gizmoActive;
         static ImGuizmo::OPERATION s_currentOperation;
         static uint32_t s_gizmoEntityId;
         static int s_gizmoType; // 0 = none, 1 = 2D, 2 = 3D
-
-        // === 3D Gizmo State ===
-        static NE::Math::Mat4 s_gizmo3DStartMatrix;
 
         // === 2D Gizmo State - Position/Resize ===
         static bool s_isDraggingUI;
