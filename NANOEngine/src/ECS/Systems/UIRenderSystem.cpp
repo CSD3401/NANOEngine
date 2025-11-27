@@ -5,6 +5,7 @@
 #include "../../Graphics/Core/UIRenderer.hpp" 
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -15,9 +16,52 @@ namespace NE::ECS::Systems {
 
     UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm) {}
 
-    void UIRenderSystem::OnEntityAdded(Entity) {}
-    void UIRenderSystem::OnEntityRemoved(Entity) {}
-    void UIRenderSystem::Init() {}
+    void UIRenderSystem::OnEntityAdded(Entity e) {
+        // only handle uiimage-specific setup (textures, materials)
+        if (m_cm->HasComponent<UIImage>(e)) {
+            auto& img = m_cm->GetComponent<UIImage>(e);
+
+            if (!img.textureUUID.empty()) {
+                auto texture = NE::Resource::ResourceManager::GetInstance()
+                    .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
+                if (texture) {
+                    img.bindlessHandle = texture->GetBindlessHandle();
+                }
+            }
+
+            if (!img.materialUUID.empty()) {
+                img.material = NE::Resource::ResourceManager::GetInstance()
+                    .LoadResource<NE::Graphics::Material>(img.materialUUID);
+            }
+
+            img.isDirty = true;
+        }
+    }
+
+    void UIRenderSystem::OnEntityRemoved(Entity e) {}
+
+    void UIRenderSystem::Init() {
+        // Load resources for all existing UIImage entities
+        const auto& entities = GetEntities();
+        for (Entity e : entities) {
+            if (m_cm->HasComponent<UIImage>(e)) {
+                auto& img = m_cm->GetComponent<UIImage>(e);
+
+                if (!img.textureUUID.empty() && img.bindlessHandle == 0) {
+                    auto texture = NE::Resource::ResourceManager::GetInstance()
+                        .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
+                    if (texture) {
+                        img.bindlessHandle = texture->GetBindlessHandle();
+                    }
+                }
+
+                if (!img.materialUUID.empty() && !img.material) {
+                    img.material = NE::Resource::ResourceManager::GetInstance()
+                        .LoadResource<NE::Graphics::Material>(img.materialUUID);
+                }
+            }
+        }
+    }
 
     void UIRenderSystem::RotateVertices2D(
         std::vector<NE::Graphics::UIVertex>& vertices,
@@ -320,24 +364,6 @@ namespace NE::ECS::Systems {
                 // Combine: Translation * Rotation * Pivot * Scale
                 // This order ensures the UI rotates around its pivot point
                 cmd.modelMatrix = translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
-
-                // DEBUG: Print first world space UI element
-                static bool debugPrinted = false;
-                if (!debugPrinted) {
-                    std::cout << "[World Space UI Debug]" << std::endl;
-                    std::cout << "  Position: " << position.x << ", " << position.y << ", " << position.z << std::endl;
-                    std::cout << "  Scale: " << scale.x << ", " << scale.y << ", " << scale.z << std::endl;
-                    std::cout << "  Rect Size: " << rect.width << "x" << rect.height << std::endl;
-                    std::cout << "  Pivot: " << pivot.x << ", " << pivot.y << std::endl;
-                    std::cout << "  Model Matrix: " << std::endl;
-                    for (int row = 0; row < 4; row++) {
-                        std::cout << "    [" << cmd.modelMatrix.GetElement(row, 0) << ", "
-                            << cmd.modelMatrix.GetElement(row, 1) << ", "
-                            << cmd.modelMatrix.GetElement(row, 2) << ", "
-                            << cmd.modelMatrix.GetElement(row, 3) << "]" << std::endl;
-                    }
-                    debugPrinted = true;
-                }
             }
 
             NE::Graphics::UIRenderer::Submit(cmd);

@@ -18,8 +18,8 @@ namespace NE::Graphics {
         float height = 0.0f;
 
         // rendering
-        Math::Vec4 color{ 1.0f ,1.0f ,1.0f ,1.0f }; // white
-        std::shared_ptr<Material> material;  // Contains shader + texture + uniforms
+        Math::Vec4 color{ 1.0f ,1.0f ,1.0f ,1.0f };
+        std::shared_ptr<Material> material;
         uint64_t bindlessTextureHandle = 0;
 
         // layering

@@ -6,6 +6,7 @@
 #include <vector>
 #include <rapidjson/document.h>
 #include "../../src/Math/Vec3.hpp"
+#include "../../src/Math/Vec4.hpp" 
 #include "../Core/Reflection.hpp"
 #include "../Core/SpdLogger.hpp"
 #include "ECS/Components/Light.hpp" //temp
@@ -145,6 +146,23 @@ namespace NE::Serialization {
         if (v.HasMember("x")) out.x = v["x"].GetFloat();
         if (v.HasMember("y")) out.y = v["y"].GetFloat();
         if (v.HasMember("z")) out.z = v["z"].GetFloat();
+    }
+
+    // ----------- Math::Vec4 -----------
+    inline RJson to_json(const NE::Math::Vec4& v, Alloc& a) {
+        RJson obj(rapidjson::kObjectType);
+        obj.AddMember("x", v.x, a);
+        obj.AddMember("y", v.y, a);
+        obj.AddMember("z", v.z, a);
+        obj.AddMember("w", v.w, a);
+        return obj;
+    }
+
+    inline void from_json(const RJson& v, NE::Math::Vec4& out) {
+        if (v.HasMember("x")) out.x = v["x"].GetFloat();
+        if (v.HasMember("y")) out.y = v["y"].GetFloat();
+        if (v.HasMember("z")) out.z = v["z"].GetFloat();
+        if (v.HasMember("w")) out.w = v["w"].GetFloat();
     }
 
     // ----------- Reflectable objects -----------

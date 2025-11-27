@@ -6,6 +6,10 @@
 #include "../Components/UICanvas.hpp"
 #include "../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/UIImageMeshGenerator.hpp"
+#include "UITransformSystem.hpp"
+#include <unordered_map>
+#include <vector>
+#include <string>
 
 namespace NE::ECS::Systems {
 
@@ -28,6 +32,16 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_cm = nullptr;
+
+        // LUID -> Entity mapping for parent resolution
+        std::unordered_map<uint64_t, Entity> m_luidToEntity;
+
+        // Pending parent relationships to resolve
+        struct PendingParent {
+            Entity child;
+            uint64_t parentLuid;
+        };
+        std::vector<PendingParent> m_pendingParents;
 
         // helper functions
         // calculate world transforms based on render mode
