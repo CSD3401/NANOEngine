@@ -1,0 +1,228 @@
+{
+    "RenderSettings": {
+        "envSource": 2,
+        "ambientColour": {
+            "x": 0.026442252099514008,
+            "y": 0.03352036327123642,
+            "z": 0.08132284879684448
+        },
+        "ambientIntensity": 0.6269999742507935,
+        "fogEnabled": 1,
+        "fogMode": 1,
+        "fogColour": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "fogStart": 0.0,
+        "fogEnd": 100.0,
+        "fogDensity": 0.03500000014901161
+    },
+    "Entities": [
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 16.259746551513672,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 1,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 2,
+                "parentLuid": 1
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 3,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 4,
+                "parentLuid": 3
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 5,
+                "parentLuid": 1
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 6,
+                "parentLuid": 1
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        }
+    ]
+}

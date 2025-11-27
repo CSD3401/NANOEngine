@@ -87,7 +87,7 @@
                     "y": 0.8999999761581421,
                     "z": 0.5
                 },
-                "intensity": 4.0,
+                "intensity": 6.0,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,

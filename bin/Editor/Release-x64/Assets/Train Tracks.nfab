@@ -1,0 +1,99 @@
+{
+    "Entities": [
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 1,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 2,
+                "parentLuid": 1
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 3,
+                "parentLuid": 1
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        }
+    ]
+}

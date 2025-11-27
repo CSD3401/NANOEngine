@@ -2,21 +2,21 @@
     "RenderSettings": {
         "envSource": 2,
         "ambientColour": {
-            "x": 0.0,
-            "y": 0.08488859236240387,
-            "z": 0.6563010215759277
+            "x": 0.026442252099514008,
+            "y": 0.03352036327123642,
+            "z": 0.08132284879684448
         },
-        "ambientIntensity": 0.014999999664723873,
+        "ambientIntensity": 0.6269999742507935,
         "fogEnabled": 1,
         "fogMode": 1,
         "fogColour": {
-            "x": 0.37324073910713196,
-            "y": 0.4025987982749939,
-            "z": 0.4833333492279053
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
         },
         "fogStart": 0.0,
         "fogEnd": 100.0,
-        "fogDensity": 0.0020000000949949026
+        "fogDensity": 0.03500000014901161
     },
     "Entities": [
         {
@@ -70,7 +70,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 0,
+                "isActive": 1,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 0,
@@ -93,10 +93,10 @@
                     "z": -0.0
                 },
                 "luid": 8390769055744655363,
-                "parentLuid": 8390884663439654913
+                "parentLuid": 8390884679458422785
             },
             "Renderer": {
-                "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
+                "modelUUID": "f578a188-1e20-493c-87cf-890644ee5d23",
                 "materialUUID": "ccfbd4c2-7490-44c3-8eac-bc514cd339b0"
             }
         },
@@ -130,7 +130,7 @@
             },
             "Renderer": {
                 "modelUUID": "builtin:model/sphere",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
             }
         },
         {
@@ -4323,15 +4323,15 @@
                 "name": "TunnelLight",
                 "isActive": 1,
                 "luid": 7308894852323934225,
-                "prefabID": "",
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
                 "prefabLocalID": 0,
                 "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
-                    "x": 16.259803771972656,
-                    "y": 0.0,
-                    "z": 0.0
+                    "x": 16.306852340698242,
+                    "y": 1.7464220523834229,
+                    "z": 7.63385443747211e-8
                 },
                 "Scale": {
                     "x": 1.0,
@@ -4339,7 +4339,7 @@
                     "z": 1.0
                 },
                 "Rotation": {
-                    "x": 0.0,
+                    "x": 90.0,
                     "y": 0.0,
                     "z": 0.0
                 },
@@ -4662,7 +4662,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
             }
         },
         {
@@ -4757,7 +4757,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
             }
         },
         {
@@ -4815,11 +4815,11 @@
                     "z": -0.0
                 },
                 "luid": 8390884663440965634,
-                "parentLuid": 8390884663439654913
+                "parentLuid": 8390884679458422785
             },
             "Renderer": {
-                "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
-                "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
+                "modelUUID": "f578a188-1e20-493c-87cf-890644ee5d23",
+                "materialUUID": "12f30fc0-9c26-4ac0-ac89-a80464d685b5"
             },
             "Collider": {
                 "shapeType": 3,
@@ -5629,65 +5629,7 @@
         },
         {
             "EntityMeta": {
-                "name": "StartGantry",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 1,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 4.128023147583008,
-                    "y": -27.000995635986328,
-                    "z": 0.6321240663528442
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "luid": 8390884670904860687,
-                "parentLuid": 0
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Divider",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 2,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860688,
-                "parentLuid": 8390884670904860687
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Left",
+                "name": "MiddleDivider",
                 "isActive": 1,
                 "luid": 0,
                 "prefabID": "",
@@ -5696,12 +5638,12 @@
             },
             "Transform": {
                 "Position": {
-                    "x": -0.5350000262260437,
-                    "y": 0.0,
-                    "z": 0.0
+                    "x": 4.260000228881836,
+                    "y": -27.000995635986328,
+                    "z": 0.6321240663528442
                 },
                 "Scale": {
-                    "x": 1.0,
+                    "x": 6.0,
                     "y": 1.0,
                     "z": 1.0
                 },
@@ -5711,7 +5653,7 @@
                     "z": -0.0
                 },
                 "luid": 8390884670904860689,
-                "parentLuid": 8390884670904860688
+                "parentLuid": 0
             }
         },
         {
@@ -5782,320 +5724,6 @@
         },
         {
             "EntityMeta": {
-                "name": "Right",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 6,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.5350000262260437,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860692,
-                "parentLuid": 8390884670904860688
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Past",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 7,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860693,
-                "parentLuid": 8390884670904860692
-            },
-            "Renderer": {
-                "modelUUID": "7569ef09-2ddb-4a20-957d-08bdfa780385",
-                "materialUUID": "93e765a6-08cf-412e-8f9b-fcfe004677f7"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Present",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 8,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860694,
-                "parentLuid": 8390884670904860692
-            },
-            "Renderer": {
-                "modelUUID": "7569ef09-2ddb-4a20-957d-08bdfa780385",
-                "materialUUID": "78364399-b7c3-4bdc-aafc-04807a666a52"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Door",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 9,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860695,
-                "parentLuid": 8390884670904860687
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Left",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 10,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.15000000596046448,
-                    "y": 0.550000011920929,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860696,
-                "parentLuid": 8390884670904860695
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Past",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 11,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860697,
-                "parentLuid": 8390884670904860696
-            },
-            "Renderer": {
-                "modelUUID": "1f3fbec6-5c14-4bfc-ba19-5c7ea9683c57",
-                "materialUUID": "b450583c-a49c-4c57-b83f-ebd2762cf6ae"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Present",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 12,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860698,
-                "parentLuid": 8390884670904860696
-            },
-            "Renderer": {
-                "modelUUID": "1f3fbec6-5c14-4bfc-ba19-5c7ea9683c57",
-                "materialUUID": "d30e98c8-d35c-4cab-ac67-139d5fe21819"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Right",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 13,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.15000000596046448,
-                    "y": 0.550000011920929,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 180.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860699,
-                "parentLuid": 8390884670904860695
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Past",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 14,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884670904860700,
-                "parentLuid": 8390884670904860699
-            },
-            "Renderer": {
-                "modelUUID": "1f3fbec6-5c14-4bfc-ba19-5c7ea9683c57",
-                "materialUUID": "b450583c-a49c-4c57-b83f-ebd2762cf6ae"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Present",
-                "isActive": 1,
-                "luid": 0,
-                "prefabID": "",
-                "prefabLocalID": 15,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 0.9999999403953552,
-                    "y": 0.9999999403953552,
-                    "z": 0.9999999403953552
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 1.525815362946048e-9,
-                    "z": 0.0
-                },
-                "luid": 8390884670904860701,
-                "parentLuid": 8390884670904860699
-            },
-            "Renderer": {
-                "modelUUID": "1f3fbec6-5c14-4bfc-ba19-5c7ea9683c57",
-                "materialUUID": "d30e98c8-d35c-4cab-ac67-139d5fe21819"
-            }
-        },
-        {
-            "EntityMeta": {
                 "name": "StartGantry",
                 "isActive": 1,
                 "luid": 0,
@@ -6105,7 +5733,7 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 5.69160795211792,
+                    "x": 5.82138204574585,
                     "y": -27.000995635986328,
                     "z": 0.6321240663528442
                 },
@@ -9996,7 +9624,7 @@
         {
             "EntityMeta": {
                 "name": "Activity Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
                 "prefabLocalID": 1,
@@ -10025,7 +9653,7 @@
         {
             "EntityMeta": {
                 "name": "Point Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 2,
@@ -10073,7 +9701,7 @@
         {
             "EntityMeta": {
                 "name": "Sphere",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 3,
@@ -10106,11 +9734,11 @@
         {
             "EntityMeta": {
                 "name": "Activity Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
                 "prefabLocalID": 1,
-                "isPrefabRoot": 1
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -10135,9 +9763,9 @@
         {
             "EntityMeta": {
                 "name": "Point Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 2,
                 "isPrefabRoot": 0
             },
@@ -10171,7 +9799,7 @@
                     "y": 0.8999999761581421,
                     "z": 0.5
                 },
-                "intensity": 4.0,
+                "intensity": 6.0,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
@@ -10183,9 +9811,9 @@
         {
             "EntityMeta": {
                 "name": "Sphere",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 3,
                 "isPrefabRoot": 0
             },
@@ -10216,11 +9844,11 @@
         {
             "EntityMeta": {
                 "name": "Activity Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
                 "prefabLocalID": 1,
-                "isPrefabRoot": 1
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -10245,9 +9873,9 @@
         {
             "EntityMeta": {
                 "name": "Point Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 2,
                 "isPrefabRoot": 0
             },
@@ -10281,7 +9909,7 @@
                     "y": 0.8999999761581421,
                     "z": 0.5
                 },
-                "intensity": 4.0,
+                "intensity": 6.0,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
@@ -10293,9 +9921,9 @@
         {
             "EntityMeta": {
                 "name": "Sphere",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 3,
                 "isPrefabRoot": 0
             },
@@ -10326,11 +9954,11 @@
         {
             "EntityMeta": {
                 "name": "Activity Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
                 "prefabLocalID": 1,
-                "isPrefabRoot": 1
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
@@ -10355,9 +9983,9 @@
         {
             "EntityMeta": {
                 "name": "Point Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 2,
                 "isPrefabRoot": 0
             },
@@ -10391,7 +10019,7 @@
                     "y": 0.8999999761581421,
                     "z": 0.5
                 },
-                "intensity": 4.0,
+                "intensity": 6.0,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
@@ -10403,9 +10031,9 @@
         {
             "EntityMeta": {
                 "name": "Sphere",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 3,
                 "isPrefabRoot": 0
             },
@@ -10436,17 +10064,17 @@
         {
             "EntityMeta": {
                 "name": "Activity Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
                 "prefabLocalID": 1,
-                "isPrefabRoot": 1
+                "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
                     "x": 4.657369136810303,
                     "y": -23.50080108642578,
-                    "z": -53.986515045166016
+                    "z": -68.74002838134766
                 },
                 "Scale": {
                     "x": 1.0,
@@ -10465,9 +10093,9 @@
         {
             "EntityMeta": {
                 "name": "Point Light",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 2,
                 "isPrefabRoot": 0
             },
@@ -10501,7 +10129,7 @@
                     "y": 0.8999999761581421,
                     "z": 0.5
                 },
-                "intensity": 4.0,
+                "intensity": 6.0,
                 "innerCutoff": 0.9100000262260437,
                 "outerCutoff": 0.8199999928474426,
                 "constant": 1.0,
@@ -10513,9 +10141,9 @@
         {
             "EntityMeta": {
                 "name": "Sphere",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
-                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabID": "",
                 "prefabLocalID": 3,
                 "isPrefabRoot": 0
             },
@@ -10708,23 +10336,27 @@
             "NativeScript": {
                 "ScriptName": "MaterialSequencer",
                 "SerializedFields": {
-                    "isActive": "1",
-                    "autoRun": "1",
                     "solvedEventName": "MaterialSequencerSolved",
+                    "autoRun": "1",
+                    "rayParent": "0",
+                    "isActive": "1",
                     "delayBetween": "0.250000",
-                    "materialA": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                    "rayDistance": "100.000000",
                     "target1": "336",
+                    "materialA": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
                     "materialB": "c427718b-41d1-465f-a21f-99ac1981e4e9",
                     "successMaterial": "c57f74a5-e22a-40fe-bc56-f02aaaa494c8",
                     "target2": "342",
                     "target3": "348",
                     "target4": "395",
                     "target5": "354",
-                    "button1Entity": "380",
-                    "button2Entity": "366",
-                    "button3Entity": "359",
-                    "button4Entity": "373",
-                    "button5Entity": "387"
+                    "attached1": "0",
+                    "attached2": "0",
+                    "attached3": "0",
+                    "attached4": "0",
+                    "attached5": "0",
+                    "clickRayOrigin": "0",
+                    "layerMask": "-1"
                 }
             }
         },
@@ -14479,6 +14111,2981 @@
             "Renderer": {
                 "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
                 "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 21.46267318725586,
+                    "y": 1.6932907104492188,
+                    "z": 1.1701408624649048
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679182123008,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679182123009,
+                "parentLuid": 8390884679182123008
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 6.0,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679182123010,
+                "parentLuid": 8390884679182123008
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "WallsCeiling",
+                "isActive": 1,
+                "luid": 7308894868982661120,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679458422785,
+                "parentLuid": 8390884663439654913
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelFloor",
+                "isActive": 1,
+                "luid": 7308894868993474560,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679469236225,
+                "parentLuid": 8390884663439654913
+            },
+            "Renderer": {
+                "modelUUID": "115aefbd-6a52-46f8-b9f8-2b09219cf3e3",
+                "materialUUID": "82ef83eb-2320-432d-9284-cab560025430"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "StationFloor",
+                "isActive": 1,
+                "luid": 7308894869012152323,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679487913988,
+                "parentLuid": 8390884663439654913
+            },
+            "Renderer": {
+                "modelUUID": "9626b2b0-0049-4a47-9e58-f4e35a97e761",
+                "materialUUID": "98d032ab-d89c-4810-a0be-8fb934334783"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 17.896320343017578,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679571668993,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679572127747,
+                "parentLuid": 8390884679571668993
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679572389893,
+                "parentLuid": 8390884679571668993
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.607717514038086,
+                    "y": -28.0,
+                    "z": 4.82187032699585
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679576715272,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679576715273,
+                "parentLuid": 8390884679576715272
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679576715274,
+                "parentLuid": 8390884679576715272
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.607717514038086,
+                    "y": -28.0,
+                    "z": -3.4358317852020264
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679578877963,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679578877964,
+                "parentLuid": 8390884679578877963
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679578877965,
+                "parentLuid": 8390884679578877963
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.607717514038086,
+                    "y": -28.0,
+                    "z": -11.711935997009277
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679579926542,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679579926543,
+                "parentLuid": 8390884679579926542
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679579926544,
+                "parentLuid": 8390884679579926542
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.607717514038086,
+                    "y": -28.0,
+                    "z": -19.9791316986084
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679580975121,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679580975122,
+                "parentLuid": 8390884679580975121
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679580975123,
+                "parentLuid": 8390884679580975121
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.607999801635742,
+                    "y": -28.0,
+                    "z": -67.9231185913086
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679611252777,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679611252778,
+                "parentLuid": 8390884679611252777
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679611252779,
+                "parentLuid": 8390884679611252777
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Train Tracks",
+                "isActive": 1,
+                "luid": 7308894869095907328,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.607999801635742,
+                    "y": -28.0,
+                    "z": -76.26617431640625
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679614595116,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869096366082,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679614595117,
+                "parentLuid": 8390884679614595116
+            },
+            "Renderer": {
+                "modelUUID": "d148db59-2f7d-4f4a-a38a-333fdd3ba730",
+                "materialUUID": "8db6cb99-935a-40be-b07a-a5ddf4b64c3e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869096628228,
+                "prefabID": "3eb9d5ed-37c3-427e-843a-7bf10543c365",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679614595118,
+                "parentLuid": 8390884679614595116
+            },
+            "Renderer": {
+                "modelUUID": "af49ccd7-d0fa-470a-8ca6-e3ed62c516b5",
+                "materialUUID": "c789a51d-db3c-4fc3-8205-20acda949747"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Catwalk",
+                "isActive": 1,
+                "luid": 7308894869148008495,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 20.01219940185547,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679623770160,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869148663857,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679624425522,
+                "parentLuid": 8390884679623770160
+            },
+            "Renderer": {
+                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
+                "materialUUID": "f927567d-0633-436b-b300-dab3edce60fa"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869148663857,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679627964469,
+                "parentLuid": 8390884679623770160
+            },
+            "Renderer": {
+                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
+                "materialUUID": "989a52a2-73e1-4a95-9b27-89e3c1f1e4b6"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Computer Setup",
+                "isActive": 1,
+                "luid": 7308894869297823744,
+                "prefabID": "9e8b6340-cffd-49d8-bd76-0edb7f5a167b",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 22.034942626953125,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679773585409,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Past",
+                "isActive": 0,
+                "luid": 7308894869298479106,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679774240771,
+                "parentLuid": 8390884679773585409
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Table",
+                "isActive": 0,
+                "luid": 7308894869299134468,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679774896133,
+                "parentLuid": 8390884679774240771
+            },
+            "Renderer": {
+                "modelUUID": "3dd86ba7-5ac6-425e-988a-2c3b0c5a1a93",
+                "materialUUID": "ba92e4f2-80a3-4250-ba17-8ae792a8c484"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Monitor",
+                "isActive": 0,
+                "luid": 7308894869303590919,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8424280285835266,
+                    "z": -0.1186283677816391
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679779352584,
+                "parentLuid": 8390884679774240771
+            },
+            "Renderer": {
+                "modelUUID": "d25d3ca4-15d5-4b2b-a7e1-2f7f08bb06ec",
+                "materialUUID": "3a009f86-00a1-4008-801b-9959f05a8edc"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Keyboard",
+                "isActive": 0,
+                "luid": 7308894869304442890,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8481698036193848,
+                    "z": 0.13962122797966003
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679780204555,
+                "parentLuid": 8390884679774240771
+            },
+            "Renderer": {
+                "modelUUID": "4aeb9789-f1f4-4c03-bbcd-078f14581bb4",
+                "materialUUID": "6f44c1f5-b1d7-4eea-a602-223b66f95ec1"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mouse",
+                "isActive": 0,
+                "luid": 7308894869305557005,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.4178158938884735,
+                    "y": 0.8424915075302124,
+                    "z": 0.14592638611793518
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679781318670,
+                "parentLuid": 8390884679774240771
+            },
+            "Renderer": {
+                "modelUUID": "cad9da27-841f-41fc-a016-692c4b1134a3",
+                "materialUUID": "2167b2cf-b18a-49a0-bb9f-309b2b22a835"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "PC",
+                "isActive": 0,
+                "luid": 7308894869306081295,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.5179634094238281,
+                    "y": 0.8489440679550171,
+                    "z": -0.06548715382814407
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679781842960,
+                "parentLuid": 8390884679774240771
+            },
+            "Renderer": {
+                "modelUUID": "c894e225-2ce6-4b96-9ed0-b1eb64dd00fb",
+                "materialUUID": "6ef2b4b4-b830-4c94-bbc1-dfabc9094221"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Present",
+                "isActive": 1,
+                "luid": 7308894869298479106,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679792394259,
+                "parentLuid": 8390884679773585409
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Table",
+                "isActive": 1,
+                "luid": 7308894869299134468,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679792394260,
+                "parentLuid": 8390884679792394259
+            },
+            "Renderer": {
+                "modelUUID": "3dd86ba7-5ac6-425e-988a-2c3b0c5a1a93",
+                "materialUUID": "c2b6f797-beb4-4234-969e-7d29341ddf3f"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Monitor",
+                "isActive": 1,
+                "luid": 7308894869303590919,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8424280285835266,
+                    "z": -0.1186283677816391
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679792394261,
+                "parentLuid": 8390884679792394259
+            },
+            "Renderer": {
+                "modelUUID": "d25d3ca4-15d5-4b2b-a7e1-2f7f08bb06ec",
+                "materialUUID": "13f09662-8beb-4d85-85c3-9a9ff3eb1e91"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Keyboard",
+                "isActive": 1,
+                "luid": 7308894869304442890,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8481698036193848,
+                    "z": 0.13962122797966003
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679792394262,
+                "parentLuid": 8390884679792394259
+            },
+            "Renderer": {
+                "modelUUID": "4aeb9789-f1f4-4c03-bbcd-078f14581bb4",
+                "materialUUID": "cc98f522-10db-4420-9ab9-3fc97e9bfedb"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mouse",
+                "isActive": 1,
+                "luid": 7308894869305557005,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.4178158938884735,
+                    "y": 0.8424915075302124,
+                    "z": 0.14592638611793518
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679792394263,
+                "parentLuid": 8390884679792394259
+            },
+            "Renderer": {
+                "modelUUID": "cad9da27-841f-41fc-a016-692c4b1134a3",
+                "materialUUID": "69c2b437-2279-4e57-b22a-22c1233a83bd"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "PC",
+                "isActive": 1,
+                "luid": 7308894869306081295,
+                "prefabID": "",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.5179634094238281,
+                    "y": 0.8489440679550171,
+                    "z": -0.06548715382814407
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679792394264,
+                "parentLuid": 8390884679792394259
+            },
+            "Renderer": {
+                "modelUUID": "c894e225-2ce6-4b96-9ed0-b1eb64dd00fb",
+                "materialUUID": "36906c1f-a2c7-4b81-bbb6-941d96a8cd2a"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Activity Light",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.288104057312012,
+                    "y": -23.66121482849121,
+                    "z": -49.162017822265625
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679805370419,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Point Light",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679805370420,
+                "parentLuid": 8390884679805370419
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.7000000476837158,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 6.0,
+                "innerCutoff": 0.9100000262260437,
+                "outerCutoff": 0.8199999928474426,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Sphere",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "b1bfdccb-880e-4adf-b7e1-9440bdb2c3a3",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.30000001192092896,
+                    "y": 0.30000001192092896,
+                    "z": 0.30000001192092896
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679805370421,
+                "parentLuid": 8390884679805370419
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679820509239,
+                "parentLuid": 8390884662799695890
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 5.0,
+                "innerCutoff": 1.809999942779541,
+                "outerCutoff": 0.7200000286102295,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 2
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 3.809108018875122,
+                    "y": -23.025325775146484,
+                    "z": -5.495673656463623
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679841677372,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679841677373,
+                "parentLuid": 8390884679841677372
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679841677374,
+                "parentLuid": 8390884679841677372
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679841677375,
+                "parentLuid": 8390884679841677374
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679841677376,
+                "parentLuid": 8390884679841677372
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679841677377,
+                "parentLuid": 8390884679841677372
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 4.551176071166992,
+                    "y": -23.01803970336914,
+                    "z": -16.36903953552246
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679868285000,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679868285001,
+                "parentLuid": 8390884679868285000
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679868285002,
+                "parentLuid": 8390884679868285000
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679868285003,
+                "parentLuid": 8390884679868285002
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679868285004,
+                "parentLuid": 8390884679868285000
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679868285005,
+                "parentLuid": 8390884679868285000
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.13758894801139832,
+                    "y": -23.02311897277832,
+                    "z": 4.030948162078857
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 90.0
+                },
+                "luid": 8390884679870251086,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679870251087,
+                "parentLuid": 8390884679870251086
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679870251088,
+                "parentLuid": 8390884679870251086
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679870251089,
+                "parentLuid": 8390884679870251088
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679870251090,
+                "parentLuid": 8390884679870251086
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679870251091,
+                "parentLuid": 8390884679870251086
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.441146850585938,
+                    "y": -23.023815155029297,
+                    "z": -30.98911476135254
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679876149332,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679876149333,
+                "parentLuid": 8390884679876149332
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679876149334,
+                "parentLuid": 8390884679876149332
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679876149335,
+                "parentLuid": 8390884679876149334
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679876149336,
+                "parentLuid": 8390884679876149332
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679876149337,
+                "parentLuid": 8390884679876149332
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 16.895931243896484,
+                    "y": -23.01613426208496,
+                    "z": -33.49858093261719
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679877591130,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679877591131,
+                "parentLuid": 8390884679877591130
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679877591132,
+                "parentLuid": 8390884679877591130
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679877591133,
+                "parentLuid": 8390884679877591132
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679877591134,
+                "parentLuid": 8390884679877591130
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679877591135,
+                "parentLuid": 8390884679877591130
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.548144340515137,
+                    "y": -23.02338218688965,
+                    "z": -49.55554962158203
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679879622752,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679879622753,
+                "parentLuid": 8390884679879622752
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679879622754,
+                "parentLuid": 8390884679879622752
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679879622755,
+                "parentLuid": 8390884679879622754
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679879622756,
+                "parentLuid": 8390884679879622752
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679879622757,
+                "parentLuid": 8390884679879622752
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "TunnelLight",
+                "isActive": 1,
+                "luid": 7308894852323934225,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 4.8381667137146,
+                    "y": -23.020719528198242,
+                    "z": -68.8377914428711
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884679881261158,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 1",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679881261159,
+                "parentLuid": 8390884679881261158
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Case",
+                "isActive": 1,
+                "luid": 7308894852452122635,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679881261160,
+                "parentLuid": 8390884679881261158
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679881261161,
+                "parentLuid": 8390884679881261160
+            },
+            "Renderer": {
+                "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
+                "materialUUID": "2d2fa1e9-339b-4e57-acc7-bcce7b4d7573"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Bar Mesh 2",
+                "isActive": 1,
+                "luid": 7308894852451074057,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.032999999821186066,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679881261162,
+                "parentLuid": 8390884679881261158
+            },
+            "Renderer": {
+                "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Light",
+                "isActive": 1,
+                "luid": 7308894869344747574,
+                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884679881261163,
+                "parentLuid": 8390884679881261158
+            },
+            "Light": {
+                "direction": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
+                },
+                "intensity": 10.0,
+                "innerCutoff": 2.309999942779541,
+                "outerCutoff": 0.11999999731779099,
+                "constant": 1.0,
+                "linear": 0.0,
+                "quadratic": 1.0,
+                "type": 1
             }
         }
     ]

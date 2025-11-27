@@ -1,0 +1,421 @@
+{
+    "Entities": [
+        {
+            "EntityMeta": {
+                "name": "Computer Setup",
+                "isActive": 1,
+                "luid": 7308894869297823744,
+                "prefabID": "9e8b6340-cffd-49d8-bd76-0edb7f5a167b",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 1,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Past",
+                "isActive": 0,
+                "luid": 7308894869298479106,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 2,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Table",
+                "isActive": 0,
+                "luid": 7308894869299134468,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 3,
+                "parentLuid": 2
+            },
+            "Renderer": {
+                "modelUUID": "3dd86ba7-5ac6-425e-988a-2c3b0c5a1a93",
+                "materialUUID": "ba92e4f2-80a3-4250-ba17-8ae792a8c484"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Monitor",
+                "isActive": 0,
+                "luid": 7308894869303590919,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8424280285835266,
+                    "z": -0.1186283677816391
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 4,
+                "parentLuid": 2
+            },
+            "Renderer": {
+                "modelUUID": "d25d3ca4-15d5-4b2b-a7e1-2f7f08bb06ec",
+                "materialUUID": "3a009f86-00a1-4008-801b-9959f05a8edc"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Keyboard",
+                "isActive": 0,
+                "luid": 7308894869304442890,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8481698036193848,
+                    "z": 0.13962122797966003
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 5,
+                "parentLuid": 2
+            },
+            "Renderer": {
+                "modelUUID": "4aeb9789-f1f4-4c03-bbcd-078f14581bb4",
+                "materialUUID": "6f44c1f5-b1d7-4eea-a602-223b66f95ec1"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mouse",
+                "isActive": 0,
+                "luid": 7308894869305557005,
+                "prefabID": "",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.4178158938884735,
+                    "y": 0.8424915075302124,
+                    "z": 0.14592638611793518
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 6,
+                "parentLuid": 2
+            },
+            "Renderer": {
+                "modelUUID": "cad9da27-841f-41fc-a016-692c4b1134a3",
+                "materialUUID": "2167b2cf-b18a-49a0-bb9f-309b2b22a835"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "PC",
+                "isActive": 0,
+                "luid": 7308894869306081295,
+                "prefabID": "",
+                "prefabLocalID": 7,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.5179634094238281,
+                    "y": 0.8489440679550171,
+                    "z": -0.06548715382814407
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 7,
+                "parentLuid": 2
+            },
+            "Renderer": {
+                "modelUUID": "c894e225-2ce6-4b96-9ed0-b1eb64dd00fb",
+                "materialUUID": "6ef2b4b4-b830-4c94-bbc1-dfabc9094221"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Present",
+                "isActive": 1,
+                "luid": 7308894869298479106,
+                "prefabID": "",
+                "prefabLocalID": 8,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Table",
+                "isActive": 1,
+                "luid": 7308894869299134468,
+                "prefabID": "",
+                "prefabLocalID": 9,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 9,
+                "parentLuid": 8
+            },
+            "Renderer": {
+                "modelUUID": "3dd86ba7-5ac6-425e-988a-2c3b0c5a1a93",
+                "materialUUID": "c2b6f797-beb4-4234-969e-7d29341ddf3f"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Monitor",
+                "isActive": 1,
+                "luid": 7308894869303590919,
+                "prefabID": "",
+                "prefabLocalID": 10,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8424280285835266,
+                    "z": -0.1186283677816391
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 10,
+                "parentLuid": 8
+            },
+            "Renderer": {
+                "modelUUID": "d25d3ca4-15d5-4b2b-a7e1-2f7f08bb06ec",
+                "materialUUID": "13f09662-8beb-4d85-85c3-9a9ff3eb1e91"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Keyboard",
+                "isActive": 1,
+                "luid": 7308894869304442890,
+                "prefabID": "",
+                "prefabLocalID": 11,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.8481698036193848,
+                    "z": 0.13962122797966003
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 11,
+                "parentLuid": 8
+            },
+            "Renderer": {
+                "modelUUID": "4aeb9789-f1f4-4c03-bbcd-078f14581bb4",
+                "materialUUID": "cc98f522-10db-4420-9ab9-3fc97e9bfedb"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mouse",
+                "isActive": 1,
+                "luid": 7308894869305557005,
+                "prefabID": "",
+                "prefabLocalID": 12,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.4178158938884735,
+                    "y": 0.8424915075302124,
+                    "z": 0.14592638611793518
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 12,
+                "parentLuid": 8
+            },
+            "Renderer": {
+                "modelUUID": "cad9da27-841f-41fc-a016-692c4b1134a3",
+                "materialUUID": "69c2b437-2279-4e57-b22a-22c1233a83bd"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "PC",
+                "isActive": 1,
+                "luid": 7308894869306081295,
+                "prefabID": "",
+                "prefabLocalID": 13,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.5179634094238281,
+                    "y": 0.8489440679550171,
+                    "z": -0.06548715382814407
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 13,
+                "parentLuid": 8
+            },
+            "Renderer": {
+                "modelUUID": "c894e225-2ce6-4b96-9ed0-b1eb64dd00fb",
+                "materialUUID": "36906c1f-a2c7-4b81-bbb6-941d96a8cd2a"
+            }
+        }
+    ]
+}
