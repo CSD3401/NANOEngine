@@ -21,6 +21,7 @@
 #include "../ECS/Components/ComponentKey.hpp"
 
 #include "ECS/Systems/ScriptSystem.hpp"
+#include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 // rapidjson
@@ -442,6 +443,28 @@ namespace NE::Serialization {
 			childT.isDirty = true;
 		}
 
+		// Initialize script instances for all entities with NativeScript components
+		auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
+		if (scriptSystem) {
+			for (size_t i = 0; i < count; ++i) {
+				NE::ECS::Entity entity = created[i];
+				if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
+					auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
+
+					// Only initialize if we have a script name but no instance
+					if (!script.ScriptName.empty() && !script.Instance) {
+						auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
+						if (factory) {
+							script.CreateScript = factory;
+							script.DestroyScript = [](IScript* instance) { delete instance; };
+							script.Instance = nullptr; // Will be created by ScriptSystem
+							scriptSystem->OnEntityAdded(entity); // Force initialization
+						}
+					}
+				}
+			}
+		}
+
 		return ret;
 	}
 
@@ -539,6 +562,28 @@ namespace NE::Serialization {
 			childT.parentLuid = parentT.luid;
 
 			childT.isDirty = true;
+		}
+
+		// Initialize script instances for all entities with NativeScript components
+		auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
+		if (scriptSystem) {
+			for (size_t i = 0; i < count; ++i) {
+				NE::ECS::Entity entity = created[i];
+				if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
+					auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
+
+					// Only initialize if we have a script name but no instance
+					if (!script.ScriptName.empty() && !script.Instance) {
+						auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
+						if (factory) {
+							script.CreateScript = factory;
+							script.DestroyScript = [](IScript* instance) { delete instance; };
+							script.Instance = nullptr; // Will be created by ScriptSystem
+							scriptSystem->OnEntityAdded(entity); // Force initialization
+						}
+					}
+				}
+			}
 		}
 
 		return ret;

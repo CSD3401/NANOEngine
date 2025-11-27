@@ -827,21 +827,25 @@ namespace Editor {
 					if (!comp.ScriptName.empty()) {
 						ImGui::Separator();
 
-						// Script enabled/disabled checkbox
-						if (comp.Instance) {
+						// Check if script instance exists before accessing it
+						if (!comp.Instance) {
+							ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Status: Script not instantiated");
+							ImGui::TextWrapped("The script instance failed to initialize. Try reloading the scene.");
+						}
+						else {
+							// Script enabled/disabled checkbox
 							bool enabled = comp.Instance->IsEnabled();
 							if (ImGui::Checkbox("Enabled", &enabled)) {
 								comp.Instance->SetEnabled(enabled);
 								NE::MarkSceneDirty();
 								SPD_DEBUG("[DirtyFlag] Script enabled/disabled - Scene marked DIRTY");
 							}
-						}
 
-						ImGui::Text("Status: Active");
-						ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+							ImGui::Text("Status: Active");
+							ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
 
-						// --- Scripting Fields UI ---
-						auto fieldNames = comp.Instance->GetExposedFieldNames();
+							// --- Scripting Fields UI ---
+							auto fieldNames = comp.Instance->GetExposedFieldNames();
 						if (!fieldNames.empty()) {
 							ImGui::SeparatorText("Script Fields");
 
@@ -1500,9 +1504,7 @@ namespace Editor {
 								}
 							}
 						}
-						else {
-							ImGui::Text("Status: Not Instantiated");
-						}
+						} // End of comp.Instance else block
 
 						// Show if script is properly registered
 						bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
