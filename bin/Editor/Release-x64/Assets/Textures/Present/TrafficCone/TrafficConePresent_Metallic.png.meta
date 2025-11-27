@@ -1,8 +1,8 @@
 {
     "fileFormatVersion": 1,
-    "uuid": "e8815b4d-7b23-416a-957e-130df11c1100",
+    "uuid": "f113c59f-4061-4626-86e4-8cfad857aa88",
     "assetType": "Texture",
-    "sourcePath": "Assets/Textures\\Present\\TrafficCone\\TrafficCone_TrafficConePresent_BaseColor.png",
+    "sourcePath": "Assets/Textures\\Present\\TrafficCone\\TrafficConePresent_Metallic.png",
     "textureImporterVersion": 1,
     "textureImport": {
         "type": 0,
