@@ -1794,7 +1794,7 @@ namespace Editor {
 								"Stretch Horizontal", "Stretch Vertical", "Stretch Both"
 							};
 
-							static int currentPreset = 5; // default to "Center"
+							static int currentPreset = 4; // default to "Center"
 
 							ImGui::SetNextItemWidth(150);
 							if (ImGui::Combo("##AnchorPresets", &currentPreset, presetNames, IM_ARRAYSIZE(presetNames)))

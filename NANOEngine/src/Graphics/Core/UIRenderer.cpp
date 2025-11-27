@@ -424,20 +424,6 @@ namespace NE::Graphics {
 
         if (overlayCommands.empty()) return;
 
-        static bool printed = false;
-        if (!printed) {
-            std::cout << "[DrawFrame]" << std::endl;
-            std::cout << "  Commands queued: " << s_Commands.size() << std::endl;
-            std::cout << "  Screen size: " << s_ScreenW << " x " << s_ScreenH << std::endl;
-
-            // verify current FBO
-            GLint currentFBO;
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &currentFBO); // get current FBO
-            std::cout << "  Drawing to UI FBO: " << currentFBO << std::endl;
-
-            printed = true;
-        }
-
         // sort overlay commands by order
         std::sort(overlayCommands.begin(), overlayCommands.end(),
             [](const UIDrawCommand& a, const UIDrawCommand& b) {

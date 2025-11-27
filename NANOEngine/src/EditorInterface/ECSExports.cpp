@@ -181,12 +181,10 @@ namespace NE::ECS {
 			// setup RectTransform for canvas (fullscreen by default)
 			Component::UIRectTransform rectTransform;
 			rectTransform.luid = Core::LUIDGenerator::Generate("rect");
-			float screenW = 1920.0f; // temp
-			float screenH = 1080.0f;
-			rectTransform.width = screenW;   // fullscreen canvas
-			rectTransform.height = screenH;
-			rectTransform.x = screenW * 0.5f;
-			rectTransform.y = screenH * 0.5f;
+			rectTransform.width = 1920.0f; // temp
+			rectTransform.height = 1080.0f;
+			rectTransform.x = 0.0f;
+			rectTransform.y = 0.0f;
 			rectTransform.z = 0.0f;
 			rectTransform.parent = NE::ECS::Component::INVALID_PARENT;
 			rectTransform.parentLuid = 0;  // No parent LUID for root canvas

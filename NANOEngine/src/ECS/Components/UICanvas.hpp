@@ -29,7 +29,6 @@ namespace NE::ECS::Component {
         // for Camera mode
         float planeDistance = 100.0f;  // Distance from camera
 
-        float scaleFactor = 1.0f;
         float referenceWidth = 1920.0f;
         float referenceHeight = 1080.0f;
 
@@ -45,13 +44,17 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(renderMode),
             NE_REFLECT_FIELD(scaleMode),
             NE_REFLECT_FIELD(planeDistance),
-            NE_REFLECT_FIELD(scaleFactor),
             NE_REFLECT_FIELD(referenceWidth),
             NE_REFLECT_FIELD(referenceHeight),
             NE_REFLECT_FIELD(pixelPerfect),
             NE_REFLECT_FIELD(isActive),
             NE_REFLECT_FIELD(sortingOrder)
         NE_REFLECT_END()
+
+        // run time only
+        float scaleFactor = 1.0f;
+        RenderMode lastInitializedMode = RenderMode::SCREEN_SPACE_OVERLAY;
+        bool hasBeenInitialized = false;
     };
 
 } // namespace NE::ECS::Component

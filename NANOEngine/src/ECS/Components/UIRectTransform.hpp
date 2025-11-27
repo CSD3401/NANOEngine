@@ -15,8 +15,8 @@ namespace NE::ECS::Component {
         uint32_t parent = INVALID_PARENT;
 
         // LUID for serialization
-        uint64_t luid;
-        uint64_t parentLuid;
+        uint64_t luid = 0;
+        uint64_t parentLuid = 0;
 
         // position of pivot point
         float x = 0.0f;
