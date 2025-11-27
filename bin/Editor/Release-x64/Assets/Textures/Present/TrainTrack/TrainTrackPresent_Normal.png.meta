@@ -5,7 +5,7 @@
     "sourcePath": "Assets/Textures\\Present\\TrainTrack\\TrainTrackPresent_Normal.png",
     "textureImporterVersion": 1,
     "textureImport": {
-        "type": 0,
+        "type": 1,
         "shape": 0,
         "sRGB": 1,
         "alphaSource": 0,
