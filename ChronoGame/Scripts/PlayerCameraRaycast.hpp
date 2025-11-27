@@ -36,7 +36,7 @@ public:
 	void Update(double deltaTime) override {
 		// Called every frame while the script is enabled
 		if (Input::WasKeyReleased('P')) { // <- WILL ONLY WORK FOR LEVERS
-			if (prevEntity != NULL)
+			//if (prevEntity != NULL)
 			{
 				Events::Send("Lever0");
 			}

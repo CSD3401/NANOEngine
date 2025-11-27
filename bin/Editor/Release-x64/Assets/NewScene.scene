@@ -189,6 +189,16 @@
                 },
                 "luid": 8390884645677301761,
                 "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "ElevatorMove",
+                "SerializedFields": {
+                    "startPos": "0 0 0",
+                    "targetPos": "0 -20 0",
+                    "listenToMessage": "Lever0",
+                    "entityToMove": "1 4",
+                    "moveDuration": "2.000000"
+                }
             }
         },
         {
@@ -474,6 +484,9 @@
                 },
                 "luid": 8390884645770756097,
                 "parentLuid": 8390884645677301761
+            },
+            "NativeScript": {
+                "ScriptName": ""
             }
         },
         {
@@ -569,6 +582,16 @@
             "Renderer": {
                 "modelUUID": "0af6b393-727a-47a0-a368-f1eddb202807",
                 "materialUUID": "aa23b387-489e-4a45-94d7-d440799d4034"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
             }
         },
         {
@@ -3106,6 +3129,14 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cylinder",
                 "materialUUID": "8728d4e6-a15f-4dbc-8672-5a70f44ba811"
+            },
+            "NativeScript": {
+                "ScriptName": "PlayerCameraRaycast",
+                "SerializedFields": {
+                    "interactableLayerMask": "69",
+                    "raycastDist": "50.000000",
+                    "raycastCooldown": "10.000000"
+                }
             }
         },
         {
@@ -4767,7 +4798,7 @@
             },
             "Transform": {
                 "Position": {
-                    "x": -6.280357360839844,
+                    "x": -8.7245454788208,
                     "y": 0.0,
                     "z": 0.0
                 },
