@@ -31,6 +31,7 @@ public:
 	void Start() override {
 		// Called when the script is enabled and play mode starts
 		raycastTimer = raycastCooldown;
+		raycastTimer = raycastCooldown;
 	}
 
 	void Update(double deltaTime) override {
@@ -49,17 +50,17 @@ public:
 			Vec3 forward = GetForward(GetEntity());
 			RaycastHit h = Raycast(GetPosition(GetEntity()), forward, raycastDist);
 			std::string log = "FORWARD VEC = X:" + std::to_string(forward.x) + ", Y: " + std::to_string(forward.y) + ", Z: " + std::to_string(forward.z);
-			LOG_DEBUG(log.c_str());
+			//LOG_DEBUG(log.c_str());
 			Vec3 pos = GetPosition(t);
 			log = "POS VEC = X:" + std::to_string(pos.x) + ", Y: " + std::to_string(pos.y) + ", Z: " + std::to_string(pos.z);
-			LOG_DEBUG(log.c_str());
+			//LOG_DEBUG(log.c_str());
 			Vec3 combi = pos + forward;
 			log = "COMBI VEC = X:" + std::to_string(combi.x) + ", Y: " + std::to_string(combi.y) + ", Z: " + std::to_string(combi.z);
-			LOG_DEBUG(log.c_str());
+			//LOG_DEBUG(log.c_str());
 			if (h.hasHit)
 			{
 				prevEntity = h.entity;
-				LOG_DEBUG("ENTITY HIT BY RAYCAST");
+				//LOG_DEBUG("ENTITY HIT BY RAYCAST");
 				
 			}
 			else

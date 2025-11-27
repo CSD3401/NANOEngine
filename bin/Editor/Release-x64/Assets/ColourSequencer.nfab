@@ -1,0 +1,2132 @@
+{
+    "Entities": [
+        {
+            "EntityMeta": {
+                "name": "Sequence Puzzle",
+                "isActive": 1,
+                "luid": 7308894850447310848,
+                "prefabID": "714aaabe-de58-4fa2-aa22-9effd75ee04a",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 1
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.966073989868164,
+                    "y": -0.12142537534236908,
+                    "z": 2.6449999809265137
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 1,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "",
+                "SerializedFields": {
+                    "isActive": "1",
+                    "rayParent": "0",
+                    "autoRun": "0",
+                    "materialA_UUID": "",
+                    "rayDistance": "100.000000",
+                    "delayBetween": "0.250000",
+                    "materialB_UUID": "",
+                    "target1": "0",
+                    "target2": "0",
+                    "target3": "0",
+                    "target4": "0",
+                    "target5": "0",
+                    "attached1": "0",
+                    "attached2": "0",
+                    "attached3": "0",
+                    "attached4": "0",
+                    "attached5": "0",
+                    "clickRayOrigin": "0",
+                    "layerMask": "-1"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "IndicatorLight",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": -0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999999403953552,
+                    "z": 0.9999999403953552
+                },
+                "Rotation": {
+                    "x": -0.027415568009018898,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 2,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 3,
+                "parentLuid": 2
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 4,
+                "parentLuid": 3
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "615e4649-3047-48be-9678-5458f0b7e5f8"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 5,
+                "parentLuid": 3
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "833e0dee-26b8-43bc-94f0-43f1892a3a1e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Dome",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.011521290987730026,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 6,
+                "parentLuid": 2
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 7,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 7,
+                "parentLuid": 6
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "IndicatorLight",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 8,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.10000000149011612,
+                    "y": 0.0,
+                    "z": -0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999998807907104,
+                    "z": 0.9999998807907104
+                },
+                "Rotation": {
+                    "x": -1.5972634553909302,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 9,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 9,
+                "parentLuid": 8
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 10,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 10,
+                "parentLuid": 9
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "615e4649-3047-48be-9678-5458f0b7e5f8"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 11,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 11,
+                "parentLuid": 9
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "833e0dee-26b8-43bc-94f0-43f1892a3a1e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Dome",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 12,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.011521290987730026,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 12,
+                "parentLuid": 8
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 13,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 13,
+                "parentLuid": 12
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "IndicatorLight",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 14,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.20000000298023224,
+                    "y": 0.0,
+                    "z": -0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999998807907104,
+                    "z": 0.9999998807907104
+                },
+                "Rotation": {
+                    "x": -1.5972634553909302,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 14,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 15,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 15,
+                "parentLuid": 14
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 16,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 16,
+                "parentLuid": 15
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "615e4649-3047-48be-9678-5458f0b7e5f8"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 17,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 17,
+                "parentLuid": 15
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "833e0dee-26b8-43bc-94f0-43f1892a3a1e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Dome",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 18,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.011521290987730026,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 18,
+                "parentLuid": 14
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 19,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 19,
+                "parentLuid": 18
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "IndicatorLight",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 20,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.3999999761581421,
+                    "y": 0.0,
+                    "z": -0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999998211860657,
+                    "z": 0.9999998211860657
+                },
+                "Rotation": {
+                    "x": -1.5698477029800415,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 20,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 21,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 21,
+                "parentLuid": 20
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 22,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 22,
+                "parentLuid": 21
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "615e4649-3047-48be-9678-5458f0b7e5f8"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 23,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 23,
+                "parentLuid": 21
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "833e0dee-26b8-43bc-94f0-43f1892a3a1e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Dome",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 24,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.011521290987730026,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 24,
+                "parentLuid": 20
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 25,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 25,
+                "parentLuid": 24
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Switch",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 26,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999997615814209,
+                    "z": 0.9999997615814209
+                },
+                "Rotation": {
+                    "x": -1.5703179836273193,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 26,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 27,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 27,
+                "parentLuid": 26
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 28,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 28,
+                "parentLuid": 27
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "90e4feb0-19f9-4eb6-9b7e-7e08986a496a"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 29,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 29,
+                "parentLuid": 27
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "ec5de467-7965-4ddf-8941-103110fae703"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Flipper",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 30,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 30,
+                "parentLuid": 26
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 31,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 31,
+                "parentLuid": 30
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "3a792367-ee43-48a4-b11e-ace3c3ef1115"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 32,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 32,
+                "parentLuid": 30
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "e234cbbb-0936-41b0-b0bb-375246ca25be"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Switch",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 33,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.10000000149011612,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999997615814209,
+                    "z": 0.9999997615814209
+                },
+                "Rotation": {
+                    "x": -1.5709999799728394,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 33,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 34,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 34,
+                "parentLuid": 33
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 35,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 35,
+                "parentLuid": 34
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "90e4feb0-19f9-4eb6-9b7e-7e08986a496a"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 36,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 36,
+                "parentLuid": 34
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "ec5de467-7965-4ddf-8941-103110fae703"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Flipper",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 37,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 37,
+                "parentLuid": 33
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 38,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 38,
+                "parentLuid": 37
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "3a792367-ee43-48a4-b11e-ace3c3ef1115"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 39,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 39,
+                "parentLuid": 37
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "e234cbbb-0936-41b0-b0bb-375246ca25be"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Switch",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 40,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.20000000298023224,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999998211860657,
+                    "z": 0.9999998211860657
+                },
+                "Rotation": {
+                    "x": -1.5982117652893066,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 40,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 41,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 41,
+                "parentLuid": 40
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 42,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 42,
+                "parentLuid": 41
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "90e4feb0-19f9-4eb6-9b7e-7e08986a496a"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 43,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 43,
+                "parentLuid": 41
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "ec5de467-7965-4ddf-8941-103110fae703"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Flipper",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 44,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 44,
+                "parentLuid": 40
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 45,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 45,
+                "parentLuid": 44
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "3a792367-ee43-48a4-b11e-ace3c3ef1115"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 46,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 46,
+                "parentLuid": 44
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "e234cbbb-0936-41b0-b0bb-375246ca25be"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Switch",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 47,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999997019767761,
+                    "z": 0.9999997019767761
+                },
+                "Rotation": {
+                    "x": -1.570796251296997,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 47,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 48,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 48,
+                "parentLuid": 47
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 49,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 49,
+                "parentLuid": 48
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "90e4feb0-19f9-4eb6-9b7e-7e08986a496a"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 50,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 50,
+                "parentLuid": 48
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "ec5de467-7965-4ddf-8941-103110fae703"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Flipper",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 51,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 51,
+                "parentLuid": 47
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 52,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 52,
+                "parentLuid": 51
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "3a792367-ee43-48a4-b11e-ace3c3ef1115"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 53,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 53,
+                "parentLuid": 51
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "e234cbbb-0936-41b0-b0bb-375246ca25be"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Switch",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 54,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.40000009536743164,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999998211860657,
+                    "z": 0.9999998211860657
+                },
+                "Rotation": {
+                    "x": -1.5703262090682983,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 54,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 55,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 55,
+                "parentLuid": 54
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 56,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 56,
+                "parentLuid": 55
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "90e4feb0-19f9-4eb6-9b7e-7e08986a496a"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 57,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 57,
+                "parentLuid": 55
+            },
+            "Renderer": {
+                "modelUUID": "9114e417-99ef-4c37-9024-679b051ea7d2",
+                "materialUUID": "ec5de467-7965-4ddf-8941-103110fae703"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Flipper",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 58,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 45.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 58,
+                "parentLuid": 54
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 59,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 59,
+                "parentLuid": 58
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "3a792367-ee43-48a4-b11e-ace3c3ef1115"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 60,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 60,
+                "parentLuid": 58
+            },
+            "Renderer": {
+                "modelUUID": "07c00fd3-f8c0-41d6-a459-d12146fb8b38",
+                "materialUUID": "e234cbbb-0936-41b0-b0bb-375246ca25be"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "IndicatorLight",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 61,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.2999999523162842,
+                    "y": 0.0,
+                    "z": -0.10000000149011612
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.9999995827674866,
+                    "z": 0.9999995827674866
+                },
+                "Rotation": {
+                    "x": -1.570796251296997,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 61,
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Base",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 62,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 62,
+                "parentLuid": 61
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 63,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 63,
+                "parentLuid": 62
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "615e4649-3047-48be-9678-5458f0b7e5f8"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 64,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 64,
+                "parentLuid": 62
+            },
+            "Renderer": {
+                "modelUUID": "6faa5e2e-8196-4ea1-98b2-5f2ca5d9891a",
+                "materialUUID": "833e0dee-26b8-43bc-94f0-43f1892a3a1e"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Dome",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 65,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.011521290987730026,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 65,
+                "parentLuid": 61
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "f7cb1b6f-9d8d-4c73-add1-c95dcafba444",
+                "prefabLocalID": 66,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 66,
+                "parentLuid": 65
+            },
+            "Renderer": {
+                "modelUUID": "0c86db56-77f8-438e-9731-434e47259ab1",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        }
+    ]
+}
