@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "8248a43b-6fad-46e6-8297-1a0c7957876c",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Computer\\ComputerPresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

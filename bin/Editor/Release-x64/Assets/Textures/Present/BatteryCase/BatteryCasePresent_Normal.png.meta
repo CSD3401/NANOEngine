@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "18adf271-0e3a-47b4-94f7-c484c5308ebb",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\BatteryCase\\BatteryCasePresent_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

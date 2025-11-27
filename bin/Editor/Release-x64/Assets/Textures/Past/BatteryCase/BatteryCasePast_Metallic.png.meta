@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "17dd881e-3dae-4392-b351-69409125563c",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\BatteryCase\\BatteryCasePast_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

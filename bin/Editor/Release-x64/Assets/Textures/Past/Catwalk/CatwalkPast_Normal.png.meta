@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "81fc9922-ee39-4e8c-bff6-92f13bd12fa3",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Catwalk\\CatwalkPast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

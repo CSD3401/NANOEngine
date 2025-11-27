@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "5bfba529-730a-4b51-b716-6dcc3934cd8a",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Ladder\\LadderPast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

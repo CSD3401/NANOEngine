@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "2566b7fd-f4d4-4ee7-9efe-2ffabae178f4",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Battery\\BatteryPresent_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

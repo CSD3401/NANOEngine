@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "d4cf0c6c-9f64-4e80-9d05-e82ae91a0186",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Table\\TablePresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

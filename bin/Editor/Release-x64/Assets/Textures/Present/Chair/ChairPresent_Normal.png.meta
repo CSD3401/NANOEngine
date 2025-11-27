@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "feb65ec0-0d48-4937-9422-47715163b3e3",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Chair\\ChairPresent_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

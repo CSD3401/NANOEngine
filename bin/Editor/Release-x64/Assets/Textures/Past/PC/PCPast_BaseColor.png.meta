@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "cfd7c426-b98a-4483-8306-b0bd025e39fd",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\PC\\PCPast_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

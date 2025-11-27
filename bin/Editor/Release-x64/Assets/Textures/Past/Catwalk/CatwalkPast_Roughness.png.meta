@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "5b55d21a-17d0-459b-93c1-ea0f6a073add",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Catwalk\\CatwalkPast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

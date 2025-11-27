@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "ec7b8ba9-2453-448d-aa72-3a6fb691903f",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Keyboard\\KeyboardPast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

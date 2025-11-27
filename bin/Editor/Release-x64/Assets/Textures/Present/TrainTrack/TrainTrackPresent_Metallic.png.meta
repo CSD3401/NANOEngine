@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "2b7dca2d-8d91-4eb5-bb30-9a649a6eb7bb",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\TrainTrack\\TrainTrackPresent_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

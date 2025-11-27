@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "81e1da69-6a8e-400a-b7f4-c70910925f52",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Battery\\BatteryPresent_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

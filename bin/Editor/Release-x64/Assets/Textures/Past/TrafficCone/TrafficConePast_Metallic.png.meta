@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "fb410f7f-d6ea-4223-b6cf-a4f65b0da41c",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\TrafficCone\\TrafficConePast_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

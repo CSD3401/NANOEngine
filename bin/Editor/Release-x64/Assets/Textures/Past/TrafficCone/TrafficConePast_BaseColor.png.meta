@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "7bb3be18-49d9-4f91-b28e-5352c337ebc7",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\TrafficCone\\TrafficConePast_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

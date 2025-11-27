@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "52c8f3c1-5e09-4fc9-84f8-4fecf3cac757",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\PC\\PCPast_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

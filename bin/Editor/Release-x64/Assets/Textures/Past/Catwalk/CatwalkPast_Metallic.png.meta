@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "75b0f597-c49c-4947-9e31-6b5c6d810db0",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Catwalk\\CatwalkPast_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

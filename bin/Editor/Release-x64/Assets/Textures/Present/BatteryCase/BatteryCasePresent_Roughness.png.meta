@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "3a48ea72-75ad-40da-9d0f-0c046715ba42",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\BatteryCase\\BatteryCasePresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

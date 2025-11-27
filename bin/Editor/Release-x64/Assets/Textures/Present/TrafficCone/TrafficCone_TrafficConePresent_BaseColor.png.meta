@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "e8815b4d-7b23-416a-957e-130df11c1100",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\TrafficCone\\TrafficCone_TrafficConePresent_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

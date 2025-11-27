@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "dcadc7a8-62fe-4a8d-98d3-d99b39f8ecc1",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\Mouse\\MousePast_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

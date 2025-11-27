@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "9470c201-a880-4df8-9f10-8140cac5b850",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Chair\\ChairPresent_BaseColor.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
