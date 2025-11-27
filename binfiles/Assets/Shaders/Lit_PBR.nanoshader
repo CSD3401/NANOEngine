@@ -119,8 +119,8 @@ layout(std430, binding = 2) buffer ClusterLightIndices {
 };
 // Must match ClusterParamsCPU in GLClusteredLighting
 layout(std140, binding = 3) uniform ClusterParams {
-    mat4 u_View;
-    mat4 u_Projection;
+    mat4 cp_View;
+    mat4 cp_Projection;
 
     float u_zNear;
     float u_zFar;
@@ -284,7 +284,7 @@ int ComputeClusterIndex(vec3 worldPos)
     cy = clamp(cy, 0, u_ClustersY - 1);
 
     // Depth from view-space Z
-    vec3 posVS = (u_View * vec4(worldPos, 1.0)).xyz;
+    vec3 posVS = (cp_View * vec4(worldPos, 1.0)).xyz;
     float d = -posVS.z; // camera looks down -Z
 
     float t = (d - u_zNear) / max(u_zFar - u_zNear, 1e-6);
