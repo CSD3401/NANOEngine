@@ -3153,9 +3153,9 @@
             },
             "Rigidbody": {
                 "mass": 1.0,
-                "motionType": 0,
+                "motionType": 2,
                 "useGravity": 1,
-                "isStatic": 1,
+                "isStatic": 0,
                 "initialVelocity": {
                     "x": 0.0,
                     "y": 0.0,
