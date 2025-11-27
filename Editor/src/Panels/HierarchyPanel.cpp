@@ -339,6 +339,8 @@ namespace Editor {
 	void HierarchyPanel::DrawHierarchyContextMenuBody(bool canEditHierarchy, uint32_t contextEntityId) {
 		// contextEntityId == NE::ECS::NO_ENTITY = clicked on empty
 		//const bool hasEntity = (contextEntityId != NE::ECS::NO_ENTITY);
+		if (!EditorScene::s_selectedEntity) return;
+
 		const bool hasEntity = (EditorScene::s_selectedEntity != nullptr);
 
 		if (ImGui::MenuItem("Cut", "Ctrl+X", false, hasEntity && canEditHierarchy)) {
