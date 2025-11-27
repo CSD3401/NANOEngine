@@ -8,8 +8,6 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Scripts\ColourSwapManager.hpp" />
-    <ClInclude Include="Scripts\Door.hpp" />
     <ClInclude Include="Scripts\BulletShooterScript.hpp" />
     <ClInclude Include="Scripts\CameraController.hpp" />
     <ClInclude Include="Scripts\EngineAPI.hpp" />
@@ -19,26 +17,15 @@
     <ClInclude Include="Scripts\k2bswitch.hpp" />
     <ClInclude Include="Scripts\LightSwitch.hpp" />
     <ClInclude Include="Scripts\MaterialSequencer.hpp" />
-    <ClInclude Include="Scripts\MirrorPuzzle.hpp" />
     <ClInclude Include="Scripts\ParentControllerScript.hpp" />
     <ClInclude Include="Scripts\PhysicsPlayerController.hpp" />
-    <ClInclude Include="Scripts\Pickable.hpp" />
     <ClInclude Include="Scripts\PlayerCamera.hpp" />
     <ClInclude Include="Scripts\PlayerController.hpp" />
     <ClInclude Include="Scripts\PlayerScript.hpp" />
-    <ClInclude Include="Scripts\PressurePlate.hpp" />
     <ClInclude Include="Scripts\PrefabSpawnerScript.hpp" />
     <ClInclude Include="Scripts\TestScript.hpp" />
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />
-    <ClInclude Include="Scripts\TimeSwapListener.hpp" />
-    <ClInclude Include="Scripts\TimeSwapManager.hpp" />
-    <ClInclude Include="Scripts\ColourSwapButton.hpp" />
-    <ClInclude Include="Scripts\ElevatorMove.hpp" />
-    <ClInclude Include="Scripts\Lever.hpp" />
-    <ClInclude Include="Scripts\PlayerCameraRaycast.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />
+    <ClInclude Include="Scripts\Pickable.hpp" />
   </ItemGroup>
 </Project>
