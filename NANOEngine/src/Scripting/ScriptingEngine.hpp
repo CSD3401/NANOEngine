@@ -140,6 +140,8 @@ namespace NE::Scripting {
          * Destroy script instance and call cleanup (used before hot-reload).
          */
         void OnScriptComponentDestroyed(NE::ECS::Entity entity);
+
+        void DestroyAllScriptInstances();
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;
@@ -185,7 +187,6 @@ namespace NE::Scripting {
         };
 
         std::unordered_map<NE::ECS::Entity, ScriptState> SaveAllScriptStates();
-        void DestroyAllScriptInstances();
         bool SwapDLLs(const std::string& oldDllPath, const std::string& newDllPath);
         void RestoreAllScriptStates(const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore);
         void EnableScripts(const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore);
