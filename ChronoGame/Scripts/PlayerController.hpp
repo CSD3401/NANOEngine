@@ -67,8 +67,6 @@ public:
 
         // 5. Move character kinematically, with simple wall collision using raycast
         MoveKinematic(dt);
-
-        
     }
 
     void OnDestroy() override {}
