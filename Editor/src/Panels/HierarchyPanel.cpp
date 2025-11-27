@@ -42,7 +42,7 @@ namespace Editor {
 
 		if (ImGui::BeginPopupContextWindow(
 			"HierarchyContextMenu",
-			ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+			ImGuiPopupFlags_MouseButtonRight)) {
 
 			DrawHierarchyContextMenuBody(canEditHierarchy, NE::ECS::NO_ENTITY);
 			ImGui::EndPopup();
@@ -164,26 +164,26 @@ namespace Editor {
 				// -------------------------------------------------------------------
 				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
 
-				if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
-					DrawHierarchyContextMenuBody(canEditHierarchy, id);
+				//if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
+				//	DrawHierarchyContextMenuBody(canEditHierarchy, id);
 
-					bool isCanvas = NE::ECS::Query::HasUICanvas(id);
-					if (isCanvas) {
-						ImGui::Separator();
-						if (ImGui::MenuItem("Image")) {
-							NANOEngine::Events::EventBus::Get().Dispatch(
-								NANOEngine::Events::EventDomain::Editor,
-								CreateUIImageEntityEvent{ id }
-							);
-						}
-						if (ImGui::MenuItem("Text")) {
-						}
-						if (ImGui::MenuItem("Button")) {
-						}
-					}
+				//	bool isCanvas = NE::ECS::Query::HasUICanvas(id);
+				//	if (isCanvas) {
+				//		ImGui::Separator();
+				//		if (ImGui::MenuItem("Image")) {
+				//			NANOEngine::Events::EventBus::Get().Dispatch(
+				//				NANOEngine::Events::EventDomain::Editor,
+				//				CreateUIImageEntityEvent{ id }
+				//			);
+				//		}
+				//		if (ImGui::MenuItem("Text")) {
+				//		}
+				//		if (ImGui::MenuItem("Button")) {
+				//		}
+				//	}
 
-					ImGui::EndPopup();
-				}
+				//	ImGui::EndPopup();
+				//}
 
 
 				if (useCustomColor)
@@ -341,7 +341,8 @@ namespace Editor {
 
 	void HierarchyPanel::DrawHierarchyContextMenuBody(bool canEditHierarchy, uint32_t contextEntityId) {
 		// contextEntityId == NE::ECS::NO_ENTITY = clicked on empty
-		const bool hasEntity = (contextEntityId != NE::ECS::NO_ENTITY);
+		//const bool hasEntity = (contextEntityId != NE::ECS::NO_ENTITY);
+		const bool hasEntity = (EditorScene::s_selectedEntity != nullptr);
 
 		if (ImGui::MenuItem("Cut", "Ctrl+X", false, hasEntity && canEditHierarchy)) {
 			// TODO: implement cut
