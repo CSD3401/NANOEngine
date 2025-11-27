@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "4dc37c4f-b6c6-4b3b-b507-48e05e9788e9",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Terrain_TunnelFloor\\Terrain_TunnelFloor_AmbientOcclusion.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

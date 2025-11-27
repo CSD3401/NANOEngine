@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "7d6012bf-5f72-4b70-ba32-a58d760ce41b",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Terrain_TunnelFloor\\Terrain_TunnelFloor_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
