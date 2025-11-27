@@ -1,42 +1,62 @@
 #ifndef UI_CANVAS_HPP
 #define UI_CANVAS_HPP
 
+#include <string>
 #include "../../Math/Vec2.hpp"
+#include "../../Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 
     struct UICanvas {
-        std::string luid;
-
         enum class RenderMode {
-            SCREEN_SPACE_OVERLAY, // Always on top, no camera needed <--
+            SCREEN_SPACE_OVERLAY, // Always on top, no camera needed
             SCREEN_SPACE_CAMERA,  // Rendered by specific camera
-            WORLD_SPACE           // Exists in 3D world <--
+            WORLD_SPACE           // Exists in 3D world
         };
-
-        RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY; // default
-
-        // for Camera mode
-        float planeDistance = 100.0f;        // Distance from camera
 
         enum class ScaleMode {
             CONSTANT_PIXEL_SIZE,
-            SCALE_WITH_SCREEN_SIZE, // <--
+            SCALE_WITH_SCREEN_SIZE,
             CONSTANT_PHYSICAL_SIZE
         };
 
-        ScaleMode scaleMode = ScaleMode::SCALE_WITH_SCREEN_SIZE; // default
+        // LUID for serialization
+        uint64_t luid;
 
-        float scaleFactor = 1.0f; // default
+        RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY;
+        ScaleMode scaleMode = ScaleMode::SCALE_WITH_SCREEN_SIZE;
+
+        // for Camera mode
+        float planeDistance = 100.0f;  // Distance from camera
+
         float referenceWidth = 1920.0f;
         float referenceHeight = 1080.0f;
 
         bool pixelPerfect = false;
-
-        // other fields
-        int sortingOrder = 0; // Higher values render on top (layering of canvases) (for ScreenSpaceOverlay and ScreenSpaceCamera)
         bool isActive = true;
+
+        // Higher values render on top (layering of canvases)
+        int sortingOrder = 0;
+
+        // Reflection
+        NE_REFLECT_BEGIN(UICanvas)
+            NE_REFLECT_FIELD_HIDDEN(luid),
+            NE_REFLECT_FIELD(renderMode),
+            NE_REFLECT_FIELD(scaleMode),
+            NE_REFLECT_FIELD(planeDistance),
+            NE_REFLECT_FIELD(referenceWidth),
+            NE_REFLECT_FIELD(referenceHeight),
+            NE_REFLECT_FIELD(pixelPerfect),
+            NE_REFLECT_FIELD(isActive),
+            NE_REFLECT_FIELD(sortingOrder)
+        NE_REFLECT_END()
+
+        // run time only
+        float scaleFactor = 1.0f;
+        RenderMode lastInitializedMode = RenderMode::SCREEN_SPACE_OVERLAY;
+        bool hasBeenInitialized = false;
     };
 
 } // namespace NE::ECS::Component
-#endif // END UI_CANVAS_HPP
+
+#endif // UI_CANVAS_HPP

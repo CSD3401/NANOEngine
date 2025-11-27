@@ -25,9 +25,6 @@ namespace NE::SceneManagement {
 		void ClearDirty() { m_isDirty = false; }
 		void MarkComponentsDirty();
 
-		// temp
-		void CreateTestUI();
-
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
 		bool m_isDirty = false;
