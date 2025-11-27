@@ -6522,6 +6522,15 @@
                 },
                 "luid": 8390884670907809837,
                 "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "TimeSwapListener",
+                "SerializedFields": {
+                    "pastChildren": 0,
+                    "presentChildren": 0,
+                    "startInPresent": "1",
+                    "showLog": "1"
+                }
             }
         },
         {

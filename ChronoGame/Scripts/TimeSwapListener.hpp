@@ -1,7 +1,6 @@
 #pragma once
 #include "EngineAPI.hpp"
 #include <vector>
-#include <ScriptSDK/ScriptAPI.h>
 
 using namespace NE::Scripting;
 
@@ -11,51 +10,45 @@ using namespace NE::Scripting;
  * FEATURES:
  * - Listens for "TimeSwapToPast" and "TimeSwapToPresent" events
  * - Automatically shows/hides appropriate children based on time period
- * - Supports multiple past and present children per object
+ * - Uses hardcoded TransformRef fields instead of vectors
  *
  * USAGE:
  * 1. Attach to parent GameObject (e.g., "Chair")
- * 2. Add past child GameObjects to "pastChildren" vector (e.g., "Past Chair")
- * 3. Add present child GameObjects to "presentChildren" vector (e.g., "Present Chair")
+ * 2. Assign past children to past1, past2, past3 fields
+ * 3. Assign present children to present1, present2, present3 fields
  * 4. Children will be shown/hidden when TimeSwapManager broadcasts events
- *
- * EXAMPLE HIERARCHY:
- * Chair (has TimeSwapListener script)
- *   - Past Chair (added to pastChildren vector)
- *   -Past Chair Cushion (added to pastChildren vector)
- *   - Present Chair (added to presentChildren vector)
- *   - Present Chair Cushion (added to presentChildren vector)
  */
+
+#define MISSING_DATA 999
+
 class TimeSwapListener : public IScript {
 public:
     TimeSwapListener() {
-        // Constructor empty - fields registered in Initialize
+        // Vectors - COMMENTED OUT (keeping for reference)
+         SCRIPT_FIELD_VECTOR(pastChildren, Entity);
+         SCRIPT_FIELD_VECTOR(presentChildren, Entity);
+
+        SCRIPT_FIELD(startInPresent, Bool);
+        SCRIPT_FIELD(showLog, Bool);
     }
 
     ~TimeSwapListener() override = default;
 
-    void Awake() override {
+    void Awake() override {}
+
+    void Initialize(Entity entity) override {
         // Register to listen for time swap events
-        RegisterScriptEventListener("TimeSwapToPast", [this](void* data) {
-            ShowPast();
+        Events::Listen("TimeSwapToPast", [this](void* data) {
+            //ShowPast();
             });
 
-        RegisterScriptEventListener("TimeSwapToPresent", [this](void* data) {
-            ShowPresent();
+        Events::Listen("TimeSwapToPresent", [this](void* data) {
+            //ShowPresent();
             });
 
         if (showLog) {
             LOG_INFO("TimeSwapListener is now listening for time swap events");
         }
-    }
-
-    void Initialize(Entity entity) override {
-        // Register vector fields for past and present children
-        SCRIPT_FIELD_VECTOR(pastChildren, Entity);
-        SCRIPT_FIELD_VECTOR(presentChildren, Entity);
-
-        SCRIPT_FIELD(startInPresent, Bool);
-        SCRIPT_FIELD(showLog, Bool);
     }
 
     void Start() override {
@@ -68,9 +61,7 @@ public:
         }
 
         if (showLog) {
-            LOG_INFO("TimeSwapListener initialized with "
-                << pastChildren.size() << " past children and "
-                << presentChildren.size() << " present children");
+            LOG_INFO("TimeSwapListener initialized");
         }
     }
 
@@ -83,10 +74,6 @@ public:
     void OnDisable() override {}
 
     void OnValidate() override {
-        // Validate that we have children in at least one vector
-        if (pastChildren.empty() && presentChildren.empty()) {
-            LOG_WARNING("TimeSwapListener has no children assigned!");
-        }
     }
 
     const char* GetTypeName() const override {
@@ -100,18 +87,18 @@ public:
 
 private:
     void ShowPast() {
-        // Show all past children
-        for (Entity child : pastChildren) 
-        {
-			SetActive(true, child);
-        }
-
-        // Hide all present children
-        for (Entity child : presentChildren) 
-        {
-            SetActive(false, child);
-
-        }
+         for (Entity child : pastChildren)
+         {
+             if (child != 0) {
+                 SetActive(true, child);
+             }
+         }
+         for (Entity child : presentChildren)
+         {
+             if (child != 0) {
+                 SetActive(false, child);
+             }
+         }
 
         if (showLog) {
             LOG_INFO("Showing PAST children, hiding PRESENT children");
@@ -119,16 +106,17 @@ private:
     }
 
     void ShowPresent() {
-        // Hide all past children
-        for (Entity child : pastChildren) 
+        for (Entity child : pastChildren)
         {
-            SetActive(false, child);
+            if (child != 0) {
+                SetActive(false, child);
+            }
         }
-
-        // Show all present children
-        for (Entity child : presentChildren) 
+        for (Entity child : presentChildren)
         {
-            SetActive(true, child);
+            if (child != 0) {
+                SetActive(true, child);
+            }
         }
 
         if (showLog) {
@@ -136,9 +124,10 @@ private:
         }
     }
 
-    // === Exposed Fields (registered in Initialize) ===
-    std::vector<Entity> pastChildren;       // List of child GameObjects for past era
-    std::vector<Entity> presentChildren;    // List of child GameObjects for present era
-    bool startInPresent = true;             // Which time period to start in
-    bool showLog = false;                 // Enable debug logging
+    // === Exposed Fields ===
+    // Vectors - COMMENTED OUT (keeping for reference)
+    std::vector<Entity> pastChildren;
+    std::vector<Entity> presentChildren;
+    bool startInPresent = true;
+    bool showLog = false;
 };
