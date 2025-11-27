@@ -57,6 +57,147 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
+	//CreateUIEntityCommand::CreateUIEntityCommand() : m_entity(0) {}
+
+	//void CreateUIEntityCommand::Execute()
+	//{
+	//	m_entity = NE::ECS::Command::CreateUIEntity();
+	//	EditorScene::s_entities.push_back(EditorEntity{ m_entity });
+	//	//Editor::EditorScene::BuildFlatHierarchy();
+	//	Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
+	//}
+
+	//void CreateUIEntityCommand::Undo()
+	//{
+	//	// temp
+	//	auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
+	//		[id = m_entity](const EditorEntity& entt) {
+	//			return entt.linkedEntity == id;
+	//		});
+
+	//	if (it != EditorScene::s_entities.end()) {
+	//		EditorScene::s_entities.erase(it);
+	//	}
+
+	//	Editor::EditorScene::s_selectedEntity = nullptr;
+	//	NE::ECS::Command::DestroyEntity(m_entity);
+	//	//Editor::EditorScene::BuildFlatHierarchy();
+	//}
+
+	CreateUICanvasEntityCommand::CreateUICanvasEntityCommand() : m_entity(0) {}
+
+	void CreateUICanvasEntityCommand::Execute()
+	{
+		m_entity = NE::ECS::Command::CreateUICanvasEntity();
+		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
+		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
+
+		// setup as root node in hierarchy
+		Editor::Node node{};
+		node.id = m_entity;
+		node.parent = NE::ECS::NO_ENTITY;  // canvas has no parent
+		node.orderKey = static_cast<float>(EditorScene::s_roots.size());
+		EditorScene::s_nodes[m_entity] = node;
+		EditorScene::s_roots.push_back(m_entity);
+	}
+
+	void CreateUICanvasEntityCommand::Undo()
+	{
+		const uint32_t id = m_entity;
+
+		// remove from editor entities list
+		auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
+			[id](const EditorEntity& entt) {
+				return entt.linkedEntity == id;
+			});
+
+		if (it != EditorScene::s_entities.end()) 
+		{
+			EditorScene::s_entities.erase(it);
+		}
+
+		// remove from scene graph
+		EditorScene::s_nodes.erase(id);
+
+		// remove from roots
+		auto& roots = EditorScene::s_roots;
+		roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
+
+		// remove from any parent's children list
+		for (auto& [parent, vec] : EditorScene::s_children) 
+		{
+			vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
+		}
+
+		// clear selection if needed
+		if (Editor::EditorScene::s_selectedEntity &&
+			Editor::EditorScene::s_selectedEntity->linkedEntity == id) {
+			Editor::EditorScene::s_selectedEntity = nullptr;
+		}
+
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
+	CreateUIImageEntityCommand::CreateUIImageEntityCommand(uint32_t parentCanvas)
+		: m_entity(0), m_parentCanvas(parentCanvas) {
+	}
+
+	void CreateUIImageEntityCommand::Execute()
+	{
+		m_entity = NE::ECS::Command::CreateUIImageEntity(m_parentCanvas);
+		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
+		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
+
+		// setup as child node in hierarchy
+		Editor::Node node{};
+		node.id = m_entity;
+		node.parent = m_parentCanvas;  // image belongs to canvas
+
+		// order key based on number of existing children
+		auto& children = EditorScene::s_children[m_parentCanvas];
+		node.orderKey = static_cast<float>(children.size());
+
+		EditorScene::s_nodes[m_entity] = node;
+		children.push_back(m_entity);  // add to parent's children list
+	}
+
+	void CreateUIImageEntityCommand::Undo()
+	{
+		const uint32_t id = m_entity;
+
+		// remove from editor entities list
+		auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
+			[id](const EditorEntity& entt) {
+				return entt.linkedEntity == id;
+			});
+
+		if (it != EditorScene::s_entities.end()) 
+		{
+			EditorScene::s_entities.erase(it);
+		}
+
+		// remove from scene graph
+		EditorScene::s_nodes.erase(id);
+
+		// remove from roots
+		auto& roots = EditorScene::s_roots;
+		roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
+
+		// remove from all parent's children lists
+		for (auto& [parent, vec] : EditorScene::s_children) 
+		{
+			vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
+		}
+
+		// clear selection if needed
+		if (Editor::EditorScene::s_selectedEntity &&
+			Editor::EditorScene::s_selectedEntity->linkedEntity == id) {
+			Editor::EditorScene::s_selectedEntity = nullptr;
+		}
+
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
 	DeleteEntityCommand::DeleteEntityCommand(uint32_t deletedEntity) : m_entity(deletedEntity) {}
 
 	void DeleteEntityCommand::Execute()

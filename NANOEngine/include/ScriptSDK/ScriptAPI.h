@@ -202,6 +202,7 @@ namespace Scripting {
 
         // Position
         Vec3 GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetWorldPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
         void SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
         void SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
