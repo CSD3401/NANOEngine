@@ -20,13 +20,6 @@ namespace Editor {
             }
         );
 
-        //NANOEngine::Events::EventBus::Get().Subscribe<CreateUIEntityEvent>(
-        //    NANOEngine::Events::EventDomain::Editor,
-        //    [&](const CreateUIEntityEvent&) {
-        //        ExecuteCommand(std::make_unique<CreateUIEntityCommand>());
-        //    }
-        //);
-
         NANOEngine::Events::EventBus::Get().Subscribe<CreateUICanvasEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const CreateUICanvasEntityEvent&) {

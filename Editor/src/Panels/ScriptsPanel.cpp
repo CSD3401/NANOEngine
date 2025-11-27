@@ -483,11 +483,12 @@ namespace Editor {
 		ss << " * " << className << " - Auto-generated script template\n";
 		ss << " * Implement your game logic in the lifecycle methods below.\n";
 		ss << " */\n";
-		ss << "class " << className << " : public IScript {\n";
+		ss << "class " << className << " : public IScript" << " {\n";
 		ss << "public:\n";
 		ss << "\t" << className << "() {\n";
 		ss << "\t\t// Register any editable fields here\n";
-		ss << "\t\t// Example: SCRIPT_FIELD(speed, Float);\n";
+		ss << "\t\t// Example: SCRIPT_FIELD(speed, float);\n";
+		ss << "\t\t// Example: SCRIPT_FIELD_VECTOR(blingstring, String);;\n";
 		ss << "\t}\n";
 		ss << "\n";
 		ss << "\t~" << className << "() override = default;\n";
