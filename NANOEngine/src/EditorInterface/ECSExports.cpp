@@ -167,10 +167,6 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
-		//uint32_t CreateUIEntity() {
-		//	return GetScene().GetECSCoordinator().CreateUIEntity();
-		//}
-
 		uint32_t CreateUICanvasEntity() {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
@@ -185,26 +181,23 @@ namespace NE::ECS {
 			// setup RectTransform for canvas (fullscreen by default)
 			Component::UIRectTransform rectTransform;
 			rectTransform.luid = Core::LUIDGenerator::Generate("rect");
-
-			float screenW = 1920.0f; // temp
-			float screenH = 1080.0f;
-
-			rectTransform.width = screenW;   // fullscreen canvas
-			rectTransform.height = screenH;
-
-			rectTransform.x = screenW * 0.5f;
-			rectTransform.y = screenH * 0.5f;
+			rectTransform.width = 1920.0f; // temp
+			rectTransform.height = 1080.0f;
+			rectTransform.x = 0.0f;
+			rectTransform.y = 0.0f;
 			rectTransform.z = 0.0f;
-
-			rectTransform.parent = NE::ECS::NO_ENTITY;  // Canvas has no parent - it's the root
+			rectTransform.parent = NE::ECS::Component::INVALID_PARENT;
+			rectTransform.parentLuid = 0;  // No parent LUID for root canvas
 			GetScene().GetECSCoordinator().AddComponent(newEntity, rectTransform);
 
 			return newEntity;
 		}
 
 		uint32_t CreateUIImageEntity(uint32_t parentCanvas) {
-			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
-			GetScene().GetECSCoordinator().AddComponent(
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			uint32_t newEntity = ecs.CreateEntity();
+			ecs.AddComponent(
 				newEntity,
 				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("en") });
 
@@ -212,19 +205,28 @@ namespace NE::ECS {
 			Component::UIRectTransform rect;
 			rect.luid = Core::LUIDGenerator::Generate("rect");
 			rect.x = 0.0f;
-			rect.y = 0.0f; 
+			rect.y = 0.0f;
 			rect.z = 0.0f;
 			rect.width = 100.0f;
 			rect.height = 100.0f;
-			rect.parent = parentCanvas;  // Link to parent canvas
-			GetScene().GetECSCoordinator().AddComponent(newEntity, rect);
+			rect.parent = parentCanvas;  // Link to parent canvas (runtime)
+
+			// set parent luid for serialization
+			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
+				rect.parentLuid = ecs.GetComponent<Component::UIRectTransform>(parentCanvas).luid;
+			}
+			else {
+				rect.parentLuid = 0;
+			}
+
+			ecs.AddComponent(newEntity, rect);
 
 			// setup UIImage with default white color
 			Component::UIImage img;
 			img.luid = Core::LUIDGenerator::Generate("image");
 			img.color = Math::Vec4{ 1.f, 1.f, 1.f, 1.f };
 			img.material = nullptr;  // start with solid color
-			GetScene().GetECSCoordinator().AddComponent(newEntity, img);
+			ecs.AddComponent(newEntity, img);
 
 			return newEntity;
 		}
@@ -260,18 +262,6 @@ namespace NE::ECS {
 		void AddCameraComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Core::LUIDGenerator::Generate("ca") });
 		}
-
-		//void AddUIRectTransformComponent(uint32_t e) {
-		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIRectTransform{});
-		//}
-
-		//void AddUIImageComponent(uint32_t e) {
-		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UIImage{});
-		//}
-
-		//void AddUICanvasComponent(uint32_t e) {
-		//	GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::UICanvas{});
-		//}
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
@@ -325,7 +315,17 @@ namespace NE::ECS {
 		}	
 
 		uint32_t GetParent(uint32_t child) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Transform>(child).parent;
+			auto& ecs = NE::GetScene().GetECSCoordinator();
+
+			// Check for regular Transform first
+			if (ecs.HasComponent<NE::ECS::Component::Transform>(child)) {
+				return ecs.GetComponent<NE::ECS::Component::Transform>(child).parent;
+			}
+
+			// Check for UI RectTransform
+			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
+				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
+			}
 		}
 
 		// === Script Management Implementation ===

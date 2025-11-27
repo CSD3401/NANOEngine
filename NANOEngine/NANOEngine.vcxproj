@@ -28,6 +28,7 @@
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
     <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
+    <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\UIImageMeshGenerator.hpp" />
     <ClInclude Include="src\Math\UILayoutCalculator.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
@@ -168,6 +169,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
+    <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
