@@ -3096,6 +3096,17 @@
                 },
                 "luid": 8390884656318775463,
                 "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "PlayerController",
+                "SerializedFields": {
+                    "moveSpeed": "5.000000",
+                    "maxSlopeAngle": "45.000000",
+                    "jumpForce": "8.000000",
+                    "frictionCoefficient": "20.000000",
+                    "manualGravity": "-18.809999",
+                    "groundRaycastDistance": "0.300000"
+                }
             }
         },
         {
@@ -3129,6 +3140,30 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cylinder",
                 "materialUUID": "8728d4e6-a15f-4dbc-8672-5a70f44ba811"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "Rigidbody": {
+                "mass": 1.0,
+                "motionType": 0,
+                "useGravity": 1,
+                "isStatic": 1,
+                "initialVelocity": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "DONTUSEX": 0,
+                "DONTUSEY": 0,
+                "DONTUSEZ": 0
             },
             "NativeScript": {
                 "ScriptName": "PlayerCameraRaycast",
@@ -4785,6 +4820,16 @@
             "Renderer": {
                 "modelUUID": "8d29ee3b-902f-405b-8b6e-1d7fb439f479",
                 "materialUUID": "c8d21264-f385-4232-b696-5131bf96e8a9"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
             }
         },
         {
@@ -10555,6 +10600,46 @@
                     "entityToMove": "1 328",
                     "moveDuration": "2.000000"
                 }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Main Camera",
+                "isActive": 1,
+                "luid": 7308894865398562816,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.4000000059604645,
+                    "z": 0.30000001192092896
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884675874324481,
+                "parentLuid": 8390884656318775463
+            },
+            "NativeScript": {
+                "ScriptName": "PlayerCamera"
+            },
+            "Camera": {
+                "FOV Y": 45.0,
+                "Aspect Ratio": 1.7777777910232544,
+                "Near Plane": 0.10000000149011612,
+                "Far Plane": 1000.0,
+                "Is Main Camera": 1,
+                "Is Active Camera": 1
             }
         }
     ]
