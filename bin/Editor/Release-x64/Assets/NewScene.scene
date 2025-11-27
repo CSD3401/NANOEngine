@@ -4843,14 +4843,14 @@
             },
             "Transform": {
                 "Position": {
-                    "x": -8.7245454788208,
-                    "y": 0.0,
-                    "z": 0.0
+                    "x": 3.7170257568359375,
+                    "y": -26.208145141601563,
+                    "z": 1.4310104846954346
                 },
                 "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
                 },
                 "Rotation": {
                     "x": 0.0,
@@ -5086,7 +5086,7 @@
                 "Position": {
                     "x": 0.75,
                     "y": -1.0,
-                    "z": 0.0
+                    "z": -0.00275498628616333
                 },
                 "Scale": {
                     "x": 1.0,
@@ -5104,6 +5104,13 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cube",
                 "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            },
+            "NativeScript": {
+                "ScriptName": "ColourSwapButton",
+                "SerializedFields": {
+                    "puzzleIndex": "0",
+                    "leftIndex": "0"
+                }
             }
         },
         {
@@ -5137,6 +5144,13 @@
             "Renderer": {
                 "modelUUID": "builtin:model/cube",
                 "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c"
+            },
+            "NativeScript": {
+                "ScriptName": "ColourSwapButton",
+                "SerializedFields": {
+                    "puzzleIndex": "0",
+                    "leftIndex": "1"
+                }
             }
         },
         {
@@ -5414,6 +5428,13 @@
                 },
                 "luid": 8390884670901321736,
                 "parentLuid": 8390884670901321728
+            },
+            "NativeScript": {
+                "ScriptName": "SolveInactive",
+                "SerializedFields": {
+                    "isActive": "1",
+                    "eventName": "colourPuzzle0"
+                }
             }
         },
         {
@@ -6348,6 +6369,13 @@
                 },
                 "luid": 8390884670905319462,
                 "parentLuid": 8390884670905319454
+            },
+            "NativeScript": {
+                "ScriptName": "SolveInactive",
+                "SerializedFields": {
+                    "isActive": "1",
+                    "eventName": "colourPuzzle0"
+                }
             }
         },
         {

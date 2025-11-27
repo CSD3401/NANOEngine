@@ -127,7 +127,7 @@ private:
 
 	std::unordered_map<int, MaterialRef> currentPuzzle;
 
-	std::string eventMessage = "colourPuzzle";
+	std::string eventMessage = "colourPuzzle0";
 
 	void InitPuzzle()
 	{
@@ -170,11 +170,14 @@ private:
 		});
 		LOG_DEBUG("LISTENING TO EVENT: " + listenEvent);
 
-		eventMessage += std::to_string(puzzleIndex);
+		//eventMessage += std::to_string(puzzleIndex);
 	}
 
 	void SwapColours(void* indexData)
 	{
+		if (isSolved)
+			return;
+
 		int leftIndex = *reinterpret_cast<int*>(indexData);
 		int rightIndex = leftIndex + 1;
 		if (leftIndex > swappableChildren.size())
