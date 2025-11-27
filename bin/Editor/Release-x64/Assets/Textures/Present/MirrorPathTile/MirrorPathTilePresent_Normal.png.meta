@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "40d51414-331d-4c2e-a616-bb736c087cae",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\MirrorPathTile\\MirrorPathTilePresent_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

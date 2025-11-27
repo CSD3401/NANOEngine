@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "072363dd-fbef-423c-a5fc-0c1bcb242683",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\ElevatorDoor\\ElevatorDoorPast_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

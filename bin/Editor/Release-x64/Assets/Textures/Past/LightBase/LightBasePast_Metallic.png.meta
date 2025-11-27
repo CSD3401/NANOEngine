@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "5ce6a9b9-a642-44b8-a4ff-cc11f8c81a7e",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\LightBase\\LightBasePast_Metallic.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

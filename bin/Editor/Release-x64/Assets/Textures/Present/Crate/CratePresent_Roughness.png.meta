@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "93b51c30-f6ce-4dc5-abf6-dee72d9128ea",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Crate\\CratePresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

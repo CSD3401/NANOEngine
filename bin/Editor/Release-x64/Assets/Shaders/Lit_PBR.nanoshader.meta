@@ -1,0 +1,6 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "50f92895-66cc-459d-ad25-0fd250c91f3c",
+    "assetType": "Shader",
+    "sourcePath": "Assets/Shaders\\Lit_PBR.nanoshader"
+}

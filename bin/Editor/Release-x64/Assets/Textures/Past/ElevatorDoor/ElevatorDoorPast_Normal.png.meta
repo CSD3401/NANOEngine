@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "413ce02f-6cf9-4e33-a3d8-c4434fafbc4e",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\ElevatorDoor\\ElevatorDoorPast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "19ac8210-d109-4716-a6ec-6af85847cf77",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Past\\GantryDoor\\GantryDoorPast_Normal.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 1,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

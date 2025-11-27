@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "20023cb4-8344-4f57-b86f-77c1da4f8e6d",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\ElevatorBox\\ElevatorBoxPresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

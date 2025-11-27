@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <iostream>
 #include "../NANOEngineAPI.hpp"
 
 #pragma warning(push)
@@ -118,7 +119,7 @@ namespace NANOEngine::Events {
             }
 
             // Now call listeners outside of the lock
-            for (auto& listener : listenersCopy) {
+           for (auto& listener : listenersCopy) {
                 listener(event);
             }
 

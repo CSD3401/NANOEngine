@@ -477,17 +477,18 @@ namespace Editor {
 		std::stringstream ss;
 
 		ss << "#pragma once\n";
-		ss << "#include \"EngineAPI.hpp\"\n";
+		ss << "#include \"ScriptBase.hpp\"\n";
 		ss << "\n";
 		ss << "/**\n";
 		ss << " * " << className << " - Auto-generated script template\n";
 		ss << " * Implement your game logic in the lifecycle methods below.\n";
 		ss << " */\n";
-		ss << "class " << className << " : public IScript {\n";
+		ss << "class " << className << " : public ScriptBase<" << className << "> {\n";
 		ss << "public:\n";
 		ss << "\t" << className << "() {\n";
 		ss << "\t\t// Register any editable fields here\n";
-		ss << "\t\t// Example: SCRIPT_FIELD(speed, Float);\n";
+		ss << "\t\t// Example: REGISTER_FIELD(speed);\n";
+		ss << "\t\t// Example: REGISTER_VECTOR(enemies);\n";
 		ss << "\t}\n";
 		ss << "\n";
 		ss << "\t~" << className << "() override = default;\n";

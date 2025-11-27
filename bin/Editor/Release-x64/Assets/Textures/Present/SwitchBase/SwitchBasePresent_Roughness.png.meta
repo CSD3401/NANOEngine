@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "c855d46c-ca8b-49ae-9861-cf9f1437e21b",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\SwitchBase\\SwitchBasePresent_Roughness.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}

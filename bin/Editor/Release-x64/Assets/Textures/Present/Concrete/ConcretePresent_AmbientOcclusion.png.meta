@@ -1,0 +1,24 @@
+{
+    "fileFormatVersion": 1,
+    "uuid": "55c83158-559a-40d4-ba3d-aece11a8de50",
+    "assetType": "Texture",
+    "sourcePath": "Assets/Textures\\Present\\Concrete\\ConcretePresent_AmbientOcclusion.png",
+    "textureImporterVersion": 1,
+    "textureImport": {
+        "type": 0,
+        "shape": 0,
+        "sRGB": 1,
+        "alphaSource": 0,
+        "alphaIsTransparency": 0,
+        "wrapMode": 0,
+        "filterMode": 1,
+        "mips": {
+            "generateMipmap": 1,
+            "preserveCoverage": 0
+        },
+        "normal": {
+            "flipGreenChannel": 0,
+            "createFromGrayscale": 0
+        }
+    }
+}
