@@ -42,7 +42,7 @@ namespace NE::Graphics {
         auto shader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("neskybox");
         PipelineSpecification spec;
         spec.shader = shader;
-        spec.CullMode = GL_FRONT;
+        spec.CullMode = GL_BACK;
         spec.EnableDepthTest = false;
         spec.PolygonMode = GL_FILL;
         auto pipeline = std::make_shared<GLPipeline>(spec, "Skybox");

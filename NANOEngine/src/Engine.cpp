@@ -86,7 +86,7 @@ namespace NE {
 	SceneManagement::SceneManager gSceneManager;
 
 	void Initialize() {
-		NE_PROFILE_FUNCTION();
+		//NE_PROFILE_FUNCTION();
 		Graphics::WindowProperties props;
 		props.Title = "NANOEngine";
 		props.Width = 1920;
@@ -96,6 +96,9 @@ namespace NE {
 		s_window = std::make_unique<Graphics::Window>(props);
 		s_renderContext = std::make_unique<Graphics::OpenGL::GLContext>();
 		s_renderContext->Init(s_window->GetNativeWindow());
+
+		// here for now
+		glEnable(GL_CULL_FACE);
 
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();

@@ -203,8 +203,7 @@ namespace Editor {
 				ImRect r(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
 				// DO NOT REMOVE - Needed for tween to work
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && EditorScene::s_selectedEntity != nullptr)
-				{
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && EditorScene::s_selectedEntity != nullptr) {
 					// Broadcast message
 					NANOEngine::Events::EventBus::Get().Dispatch(NANOEngine::Events::EventDomain::Editor, SelectEntityEvent(EditorScene::s_selectedEntity->linkedEntity));
 				}
@@ -241,8 +240,7 @@ namespace Editor {
 							previewInsert = i;       // before i
 							previewLineY = r.Min.y;
 							previewLineX1 = r.Min.x; previewLineX2 = r.Max.x;
-						}
-						else if (y > bottomBandBeg) {
+						} else if (y > bottomBandBeg) {
 							// insert below this row (same parent)
 							previewAsChild = false;
 							previewParent = NE::ECS::NO_ENTITY;
@@ -250,8 +248,7 @@ namespace Editor {
 							previewInsert = i + 1;   // after i
 							previewLineY = r.Max.y;
 							previewLineX1 = r.Min.x; previewLineX2 = r.Max.x;
-						}
-						else {
+						} else {
 							// adopt as child of this row
 							previewAsChild = true;
 							previewParent = id;
@@ -276,7 +273,7 @@ namespace Editor {
 					ImGui::TreePop();
 				}
 			}
-		};
+			};
 
 		DrawLevel(NE::ECS::NO_ENTITY, childrenOf0, 0);
 
@@ -342,6 +339,8 @@ namespace Editor {
 	void HierarchyPanel::DrawHierarchyContextMenuBody(bool canEditHierarchy, uint32_t contextEntityId) {
 		// contextEntityId == NE::ECS::NO_ENTITY = clicked on empty
 		//const bool hasEntity = (contextEntityId != NE::ECS::NO_ENTITY);
+		if (!EditorScene::s_selectedEntity) return;
+
 		const bool hasEntity = (EditorScene::s_selectedEntity != nullptr);
 
 		if (ImGui::MenuItem("Cut", "Ctrl+X", false, hasEntity && canEditHierarchy)) {
@@ -412,6 +411,23 @@ namespace Editor {
 					CreateUICanvasEntityEvent{}
 				);
 			}
+
+			bool isCanvas = NE::ECS::Query::HasUICanvas(EditorScene::s_selectedEntity->linkedEntity);
+			if (isCanvas) {
+				ImGui::Separator();
+				if (ImGui::MenuItem("Image")) {
+					NANOEngine::Events::EventBus::Get().Dispatch(
+						NANOEngine::Events::EventDomain::Editor,
+						CreateUIImageEntityEvent{ EditorScene::s_selectedEntity->linkedEntity }
+					);
+				}
+				if (ImGui::MenuItem("Text")) {
+				}
+				if (ImGui::MenuItem("Button")) {
+				}
+			}
+
+
 			ImGui::EndMenu();
 		}
 	}
