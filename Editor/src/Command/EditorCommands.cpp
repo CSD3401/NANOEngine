@@ -188,7 +188,7 @@ namespace Editor {
 			info.id = id;
 			info.wasCanvas = NE::ECS::Query::HasUICanvas(id);
 			info.wasUIImage = NE::ECS::Query::HasUIImage(id);
-			info.parentId = NE::ECS::Command::GetParent(id);
+			info.parentId = NE::ECS::Query::GetParent(id);
 			m_deletedEntities.push_back(info);
 		}
 
