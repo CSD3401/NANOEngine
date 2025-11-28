@@ -84,6 +84,7 @@ public:
 
 	void Start() override {
 		LOG_INFO("=== MirrorPuzzle Started ===");
+		//PlayAudio("event:/UI/Click");
 
 		// Validate parent refs
 		if (!gridParent.IsValid()) {
@@ -250,7 +251,11 @@ public:
 		if (!targetTransform.IsValid() || !mirrorTargetTransform.IsValid()) return;
 		if (puzzleSolved) return;
 
-		if (Input::WasKeyPressed('W')) TryMoveUp();
+		if (Input::WasKeyPressed('W'))
+		{
+			//PlayAudio("event:/OnClick");
+			TryMoveUp();
+		}
 		if (Input::WasKeyPressed('S')) TryMoveDown();
 		if (Input::WasKeyPressed('A')) TryMoveLeft();
 		if (Input::WasKeyPressed('D')) TryMoveRight();
@@ -262,6 +267,7 @@ public:
 			if (!puzzleSolved) {
 				puzzleSolved = true;
 				Events::Send(eventName.c_str());
+				//PlayAudio("event:/UI/Click");
 				LOG_INFO("\n SEND MSG : " << eventName);
 				LOG_INFO("\n=== PUZZLE SOLVED! ===");
 			}

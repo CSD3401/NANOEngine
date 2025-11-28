@@ -8,7 +8,7 @@
 #include "../../Audio/AudioBank.hpp"
 #include <map>
 
-namespace NE::ECS::Systems 
+namespace NE::ECS::Systems
 {
 
 	class AudioSystem final : public System {
@@ -17,7 +17,7 @@ namespace NE::ECS::Systems
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
-		
+
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;
@@ -26,10 +26,11 @@ namespace NE::ECS::Systems
 		FMOD::Studio::System* studioSystem = nullptr;
 		void SetupStudioSystem();
 		void PlaySound(const std::string& eventName);
+		void StopSound(const std::string& eventName);
 		void CleanupStudioSystem();
 		void LoadBankAssets(const std::string& audioDirectory);
 
-		struct AudioEvent 
+		struct AudioEvent
 		{
 			std::string path;        // "event:/Footsteps/Concrete"
 			std::string displayName; // "Footsteps Concrete"

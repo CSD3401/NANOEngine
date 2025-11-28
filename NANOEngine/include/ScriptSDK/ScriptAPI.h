@@ -339,6 +339,24 @@ namespace Scripting {
         // All functions support optional Entity parameter
         //=====================================================================
 
+        /**
+         * @brief Play an FMOD Studio event
+         * @param eventName The event path (e.g., "event:/UI/ButtonClick")
+         *
+         * Example:
+         *   Api::PlayAudio("event:/Music/MainTheme");
+         */
+        void PlayAudio(const std::string& eventName);
+
+        /**
+         * @brief Stop all instances of an FMOD Studio event
+         * @param eventName The event path to stop
+         *
+         * Example:
+         *   Api::StopAudio("event:/Music/MainTheme");
+         */
+        void StopAudio(const std::string& eventName);
+
         bool HasAudioSource(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         // Playback control

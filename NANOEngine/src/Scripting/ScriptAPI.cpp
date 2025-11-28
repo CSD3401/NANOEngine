@@ -28,6 +28,7 @@
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 #include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
 #include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
+#include "../EditorInterface/AudioExports.hpp"
 
 #include <sstream>
 #include <unordered_map>
@@ -636,6 +637,14 @@ namespace Scripting {
     //=========================================================================
     // Audio Source
     //=========================================================================
+
+    void IScript::PlayAudio(const std::string& eventName) {
+        NE::Audio::PlayAudio(eventName);
+    }
+
+    void IScript::StopAudio(const std::string& eventName) {
+        NE::Audio::StopAudio(eventName);
+    }
 
     bool IScript::HasAudioSource(Entity entity) const {
         if (!m_context || !m_context->componentManager) return false;

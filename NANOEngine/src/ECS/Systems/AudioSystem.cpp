@@ -8,6 +8,7 @@
 
 #include <direct.h>
 #include <cstring>
+#include <filesystem>
 
 using namespace NE::ECS::Component;
 
@@ -20,19 +21,19 @@ namespace NE::ECS::Systems {
 		// Private implementation hidden in .cpp
 
 		// Singleton
-		struct AudioEngine 
+		struct AudioEngine
 		{
 			FMOD::System* system = nullptr;
 			std::unordered_map<std::string, FMOD::Sound*> loadedClips;
 
-			AudioEngine() 
+			AudioEngine()
 			{
 				FMOD::System_Create(&system);
 				system->init(512, FMOD_INIT_NORMAL, 0);
 				SPD_INFO("AudioEngine constructor called");
 			}
 
-			~AudioEngine() 
+			~AudioEngine()
 			{
 				SPD_INFO("AudioEngine destructor called");
 				// Cleanup all loaded sounds
@@ -85,7 +86,7 @@ namespace NE::ECS::Systems {
 	//	return assetManager.GetAssetsOfType<NE::Asset::AudioBank>();
 	//}
 
-	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const 
+	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const
 	{
 		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> allEvents;
 
@@ -127,7 +128,7 @@ namespace NE::ECS::Systems {
 		FMOD::System* system)
 	{
 
-		if (!audioSource.m_sound) 
+		if (!audioSource.m_sound)
 			return;
 
 		// Stop previous playback
@@ -203,7 +204,7 @@ namespace NE::ECS::Systems {
 			FMOD_INIT_NORMAL,
 			nullptr
 		);
-		if (result != FMOD_OK) 
+		if (result != FMOD_OK)
 		{
 			SPD_ERROR("FMOD init failed: " << FMOD_ErrorString(result));
 			return;
@@ -276,7 +277,7 @@ namespace NE::ECS::Systems {
 		FMOD::Studio::EventDescription* eventDesc = nullptr;
 		studioSystem->getEvent(eventName.c_str(), &eventDesc);
 
-		if (eventDesc == nullptr) 
+		if (eventDesc == nullptr)
 		{
 			SPD_ERROR("Failed to get event: " << eventName);
 			return;
@@ -291,7 +292,34 @@ namespace NE::ECS::Systems {
 			return;
 		}
 
-		eventInstance->start();	
+		eventInstance->start();
+	}
+
+	void AudioSystem::StopSound(const std::string& eventName)
+	{
+		FMOD::Studio::EventDescription* eventDesc = nullptr;
+		studioSystem->getEvent(eventName.c_str(), &eventDesc);
+
+		if (eventDesc == nullptr)
+		{
+			SPD_WARNING("Failed to get event for stopping: " << eventName);
+			return;
+		}
+
+		// Get all instances of this event and stop them
+		int instanceCount = 0;
+		eventDesc->getInstanceCount(&instanceCount);
+
+		if (instanceCount > 0)
+		{
+			std::vector<FMOD::Studio::EventInstance*> instances(instanceCount);
+			eventDesc->getInstanceList(instances.data(), instanceCount, &instanceCount);
+
+			for (int i = 0; i < instanceCount; ++i)
+			{
+				instances[i]->stop(FMOD_STUDIO_STOP_IMMEDIATE);
+			}
+		}
 	}
 
 	void AudioSystem::CleanupStudioSystem()
@@ -300,38 +328,56 @@ namespace NE::ECS::Systems {
 	}
 
 
-	void AudioSystem::LoadBankAssets(const std::string& /*audioDirectory*/)
+	void AudioSystem::LoadBankAssets(const std::string& audioDirectory)
 	{
-		//SPD_INFO("LoadBankAssets - Checking directory: " << audioDirectory);
-		//
-		//// Check if directory exists
-		//if (!std::filesystem::exists(audioDirectory)) {
-		//	SPD_WARNING("Audio bank directory does not exist: " << audioDirectory);
-		//	return;
-		//}
+		SPD_INFO("LoadBankAssets - Checking directory: " << audioDirectory);
 
-		//auto& assetManager = Asset::AssetManager::GetInstance();
-		//size_t banksLoaded = 0;
-		//
-		//try {
-		//	for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
-		//	{
-		//		if (entry.path().extension() == ".bank")
-		//		{
-		//			// Load thru AssetManager (this creates AudioBank assets)
-		//			std::string bankPath = entry.path().string();
-		//			auto bankAsset = assetManager.Load<NE::Asset::AudioBank>(bankPath, false);
-		//			if (bankAsset)
-		//			{
-		//				banksLoaded++;
-		//				SPD_INFO("Loaded bank asset: " << bankAsset->GetDisplayName());
-		//			}
-		//		}
-		//	}
-		//	SPD_INFO(banksLoaded << " banks loaded successfully");
-		//} catch (const std::exception& e) {
-		//	SPD_ERROR("Error loading bank assets: " << e.what());
-		//}
+		// Check if directory exists
+		if (!std::filesystem::exists(audioDirectory)) {
+			SPD_WARNING("Audio bank directory does not exist: " << audioDirectory);
+			return;
+		}
+
+		// Make sure studio system is created first
+		if (studioSystem == nullptr) {
+			SPD_ERROR("Studio system must be set up before loading banks");
+			return;
+		}
+
+		size_t banksLoaded = 0;
+
+		try {
+			// Load banks directly using FMOD Studio System
+			for (const auto& entry : std::filesystem::directory_iterator(audioDirectory))
+			{
+				if (entry.path().extension() == ".bank")
+				{
+					std::string bankPath = entry.path().string();
+					FMOD::Studio::Bank* fmodBank = nullptr;
+
+					FMOD_RESULT result = studioSystem->loadBankFile(
+						bankPath.c_str(),
+						FMOD_STUDIO_LOAD_BANK_NORMAL,
+						&fmodBank
+					);
+
+					if (result == FMOD_OK && fmodBank != nullptr)
+					{
+						banksLoaded++;
+						std::string bankName = entry.path().filename().string();
+						SPD_INFO("Loaded bank: " << bankName << " from " << bankPath);
+					}
+					else
+					{
+						SPD_ERROR("Failed to load bank: " << bankPath << " - " << FMOD_ErrorString(result));
+					}
+				}
+			}
+			SPD_INFO(banksLoaded << " banks loaded successfully");
+		}
+		catch (const std::exception& e) {
+			SPD_ERROR("Error loading bank assets: " << e.what());
+		}
 	}
 
 	AudioSystem::AudioSystem(ComponentManager* cm) : m_componentManager(cm)
@@ -349,16 +395,16 @@ namespace NE::ECS::Systems {
 	void AudioSystem::Init()
 	{
 		SPD_INFO("AudioSystem::Init() - Starting initialization");
-		
+
 		// Get current directory as std::string
 		std::string currentDir = std::filesystem::current_path().string();
 		std::string bankDir = currentDir + "/Assets/Bank";
 		SPD_INFO("Working directory: " << currentDir);
 		SPD_INFO("Bank directory: " << bankDir);
 
-		LoadBankAssets(bankDir);
 		SetupStudioSystem();
-		PlaySound("event:/OnClick");
+		LoadBankAssets(bankDir);
+		//PlaySound("event:/OnClick");
 
 		SPD_INFO("AudioSystem::Init() - Completed");
 		return;
@@ -399,6 +445,5 @@ namespace NE::ECS::Systems {
 		SPD_INFO("AudioSystem shutdown");
 	}
 
-	
-}
 
+}
