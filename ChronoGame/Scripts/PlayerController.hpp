@@ -15,6 +15,7 @@ public:
 
     void Initialize(Entity entity) override {
         SCRIPT_COMPONENT_REF(playerBottom, TransformRef);
+        SCRIPT_COMPONENT_REF(cameraRef, TransformRef);
 
         SCRIPT_FIELD(moveSpeed, Float);
         SCRIPT_FIELD(jumpForce, Float);
@@ -34,7 +35,8 @@ public:
             auto& col = Command::GetComponent<Component::Collider>(GetEntity());
             m_colliderHalfHeight = col.halfExtents.y;
             LOG_INFO("PlayerController: collider half-height = " << m_colliderHalfHeight);
-        } else {
+        }
+        else {
             LOG_WARNING("PlayerController: no Collider found on entity "
                 << GetEntity() << " – ground checks may be inaccurate.");
         }
@@ -52,7 +54,7 @@ public:
         if (!HasRigidbody())
             return;
 
-        LockRotation(true, false, true);
+        LockRotation(true, true, true);
         const float dt = static_cast<float>(deltaTime);
 
         UpdateGroundedState();
@@ -64,6 +66,7 @@ public:
         if (m_isGrounded && m_lastGroundHit.hasHit) {
             ApplyGroundSnap();
         }
+        SetRotation(GetRotation(cameraRef));
     }
 
     void OnDestroy() override {}
@@ -116,28 +119,28 @@ private:
     void UpdateHorizontalVelocity(float dt) {
         if (!HasRigidbody()) return;
 
-        Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
+        // Get input in local space
+        float forwardInput = 0.0f;
+        float rightInput = 0.0f;
 
         if (Input::IsKeyDown('W')) {
-            inputDir.z -= 1.0f;
+            rightInput += 1.0f;
         }
         if (Input::IsKeyDown('S')) {
-            inputDir.z += 1.0f;
+            rightInput -= 1.0f;
         }
         if (Input::IsKeyDown('A')) {
-            inputDir.x -= 1.0f;
+            forwardInput -= 1.0f;
         }
         if (Input::IsKeyDown('D')) {
-            inputDir.x += 1.0f;
+            forwardInput += 1.0f;
         }
 
-        float mag = std::sqrt(inputDir.x * inputDir.x + inputDir.z * inputDir.z);
+        // Normalize input
+        float mag = std::sqrt(forwardInput * forwardInput + rightInput * rightInput);
         if (mag > 0.01f) {
-            inputDir.x /= mag;
-            inputDir.z /= mag;
-        } else {
-            inputDir.x = 0.0f;
-            inputDir.z = 0.0f;
+            forwardInput /= mag;
+            rightInput /= mag;
         }
 
         Vec3 vel = GetVelocity();
@@ -146,10 +149,28 @@ private:
         horizVel.y = 0.0f;
 
         if (mag > 0.0f) {
+            // Get camera's rotation and calculate forward/right vectors
+            Entity camEntity = cameraRef.GetEntity();
+            Vec3 camRotation = GetRotation(camEntity);
+            float yaw = camRotation.y * (3.14159265f / 180.0f);
+
+            // Camera forward (yaw=0 points towards +Z)
+            Vec3 camForward;
+            camForward.x = std::sin(yaw);
+            camForward.y = 0.0f;
+            camForward.z = std::cos(yaw);
+
+            // Camera right (perpendicular to forward, 90 degrees clockwise)
+            Vec3 camRight;
+            camRight.x = std::cos(yaw);
+            camRight.y = 0.0f;
+            camRight.z = -std::sin(yaw);
+
+            // Calculate target velocity in world space
             Vec3 targetVel{
-                inputDir.x * moveSpeed,
+                (camForward.x * forwardInput + camRight.x * rightInput) * moveSpeed,
                 0.0f,
-                inputDir.z * moveSpeed
+                (camForward.z * forwardInput + camRight.z * rightInput) * moveSpeed
             };
 
             float control = m_isGrounded ? 1.0f : airControl;
@@ -161,7 +182,8 @@ private:
 
             horizVel.x = Lerp(horizVel.x, targetVel.x, t);
             horizVel.z = Lerp(horizVel.z, targetVel.z, t);
-        } else if (m_isGrounded) {
+        }
+        else if (m_isGrounded) {
             // Simple custom friction when grounded and no input
             float speed = std::sqrt(horizVel.x * horizVel.x + horizVel.z * horizVel.z);
             if (speed > 0.01f) {
@@ -171,7 +193,8 @@ private:
 
                 horizVel.x *= factor;
                 horizVel.z *= factor;
-            } else {
+            }
+            else {
                 horizVel.x = 0.0f;
                 horizVel.z = 0.0f;
             }
@@ -240,6 +263,7 @@ private:
 
 private:
     TransformRef playerBottom{};
+    TransformRef cameraRef{};
 
     float moveSpeed = 5.0f;
     float jumpForce = 8.0f;

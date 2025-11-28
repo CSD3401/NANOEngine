@@ -335,10 +335,10 @@ namespace NE::Physics {
         s_PhysicsSystem->Update(dt, /*numSubSteps=*/2, s_TempAllocator.get(), s_JobSystem.get());
 
         // Check which collisions ended this frame
-        if (s_ContactListener)
-        {
-            s_ContactListener->UpdateCollisionStates();
-        }
+        //if (s_ContactListener)
+        //{
+        //    s_ContactListener->UpdateCollisionStates();
+        //}
 
         // Render debug shapes
         //RenderAllBodyShapes();

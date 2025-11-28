@@ -3072,7 +3072,7 @@
         {
             "EntityMeta": {
                 "name": "Player",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 0,
@@ -3081,7 +3081,7 @@
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 0.8500000238418579,
+                    "y": 1.0813100337982178,
                     "z": 0.0
                 },
                 "Scale": {
@@ -3098,26 +3098,13 @@
                 "parentLuid": 0
             },
             "NativeScript": {
-                "ScriptName": "PlayerController",
-                "SerializedFields": {
-                    "playerBottom": "0",
-                    "groundProbeStartOffset": "0.100000",
-                    "maxSlopeAngle": "45.000000",
-                    "moveSpeed": "5.000000",
-                    "skinWidth": "0.050000",
-                    "jumpForce": "8.000000",
-                    "groundFriction": "20.000000",
-                    "groundRaycastDistance": "0.300000",
-                    "groundSnapOffset": "0.020000",
-                    "airControl": "0.300000",
-                    "maxFallSpeed": "-50.000000"
-                }
+                "ScriptName": "PlayerCamera"
             }
         },
         {
             "EntityMeta": {
                 "name": "Mesh",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 0,
@@ -3171,11 +3158,20 @@
                 "DONTUSEZ": 0
             },
             "NativeScript": {
-                "ScriptName": "PlayerCameraRaycast",
+                "ScriptName": "PlayerController",
                 "SerializedFields": {
-                    "interactableLayerMask": "69",
-                    "raycastDist": "50.000000",
-                    "raycastCooldown": "10.000000"
+                    "playerBottom": 680,
+                    "groundProbeStartOffset": "0.100000",
+                    "maxSlopeAngle": "45.000000",
+                    "moveSpeed": "5.000000",
+                    "cameraRef": 0,
+                    "jumpForce": "8.000000",
+                    "groundFriction": "20.000000",
+                    "groundRaycastDistance": "0.300000",
+                    "groundSnapOffset": "0.020000",
+                    "skinWidth": "0.050000",
+                    "airControl": "0.300000",
+                    "maxFallSpeed": "-50.000000"
                 }
             }
         },
@@ -10182,7 +10178,7 @@
         {
             "EntityMeta": {
                 "name": "Main Camera",
-                "isActive": 1,
+                "isActive": 0,
                 "luid": 7308894865398562816,
                 "prefabID": "",
                 "prefabLocalID": 0,
@@ -10191,13 +10187,13 @@
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 0.4000000059604645,
-                    "z": 0.30000001192092896
+                    "y": 0.2352941334247589,
+                    "z": 1.3333334922790527
                 },
                 "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+                    "x": 4.44444465637207,
+                    "y": 0.5882352590560913,
+                    "z": 4.44444465637207
                 },
                 "Rotation": {
                     "x": -0.0,
@@ -10205,7 +10201,7 @@
                     "z": -0.0
                 },
                 "luid": 8390884675874324481,
-                "parentLuid": 8390884656318775463
+                "parentLuid": 8390884656319430825
             },
             "NativeScript": {
                 "ScriptName": "PlayerCamera"
@@ -10215,7 +10211,7 @@
                 "Aspect Ratio": 1.7777777910232544,
                 "Near Plane": 0.10000000149011612,
                 "Far Plane": 1000.0,
-                "Is Main Camera": 1,
+                "Is Main Camera": 0,
                 "Is Active Camera": 1
             }
         },
@@ -10254,19 +10250,19 @@
                     "autoRun": "1",
                     "isActive": "1",
                     "delayBetween": "0.250000",
-                    "target1": "336",
+                    "target1": "321",
                     "materialA": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
                     "materialB": "c427718b-41d1-465f-a21f-99ac1981e4e9",
                     "successMaterial": "c57f74a5-e22a-40fe-bc56-f02aaaa494c8",
-                    "target2": "342",
-                    "target3": "348",
-                    "target4": "395",
-                    "target5": "354",
-                    "button1Entity": "368",
-                    "button2Entity": "347",
-                    "button3Entity": "354",
-                    "button4Entity": "361",
-                    "button5Entity": "375"
+                    "target2": "327",
+                    "target3": "339",
+                    "target4": "333",
+                    "target5": "380",
+                    "button1Entity": "358",
+                    "button2Entity": "372",
+                    "button3Entity": "351",
+                    "button4Entity": "365",
+                    "button5Entity": "344"
                 }
             }
         },
@@ -10517,7 +10513,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 0,
+                "isActive": 1,
                 "luid": 0,
                 "prefabID": "0d4d67d7-2fc3-4225-931c-f5543ab39820",
                 "prefabLocalID": 10,
@@ -13086,6 +13082,16 @@
             "Renderer": {
                 "modelUUID": "115aefbd-6a52-46f8-b9f8-2b09219cf3e3",
                 "materialUUID": "82ef83eb-2320-432d-9284-cab560025430"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
             }
         },
         {
@@ -13119,6 +13125,16 @@
             "Renderer": {
                 "modelUUID": "9626b2b0-0049-4a47-9e58-f4e35a97e761",
                 "materialUUID": "98d032ab-d89c-4810-a0be-8fb934334783"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
             }
         },
         {
@@ -21866,264 +21882,6 @@
         },
         {
             "EntityMeta": {
-                "name": "Test",
-                "isActive": 1,
-                "luid": 7308894872569774080,
-                "prefabID": "",
-                "prefabLocalID": 0,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.8660769462585449,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 0.20000000298023224,
-                    "z": 0.20000000298023224
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "luid": 8390884683045535745,
-                "parentLuid": 0
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/cube",
-                "materialUUID": "neunlitmat"
-            },
-            "Collider": {
-                "shapeType": 0,
-                "halfExtents": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
-                },
-                "radius": 0.5,
-                "height": 1.0
-            },
-            "NativeScript": {
-                "ScriptName": "Pickable",
-                "SerializedFields": {
-                    "materialA": "c427718b-41d1-465f-a21f-99ac1981e4e9",
-                    "picked": "0"
-                }
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Catwalk",
-                "isActive": 1,
-                "luid": 7308894869148008495,
-                "prefabID": "",
-                "prefabLocalID": 1,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 9.722490310668945,
-                    "y": -27.295133590698242,
-                    "z": -48.69956970214844
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "luid": 8390884683061002244,
-                "parentLuid": 0
-            },
-            "NativeScript": {
-                "ScriptName": "TimeSwapListener",
-                "SerializedFields": {
-                    "pastChildren": "1 673",
-                    "presentChildren": "1 674",
-                    "startInPresent": "1",
-                    "showLog": "0"
-                }
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Past",
-                "isActive": 0,
-                "luid": 7308894869148663857,
-                "prefabID": "",
-                "prefabLocalID": 2,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884683061002245,
-                "parentLuid": 8390884683061002244
-            },
-            "Renderer": {
-                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
-                "materialUUID": "f927567d-0633-436b-b300-dab3edce60fa"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Present",
-                "isActive": 1,
-                "luid": 7308894869148663857,
-                "prefabID": "",
-                "prefabLocalID": 3,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 1.45855712890625,
-                    "z": -9.768196105957031
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884683061002246,
-                "parentLuid": 8390884683061002244
-            },
-            "Renderer": {
-                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
-                "materialUUID": "989a52a2-73e1-4a95-9b27-89e3c1f1e4b6"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Catwalk",
-                "isActive": 1,
-                "luid": 7308894869148008495,
-                "prefabID": "",
-                "prefabLocalID": 1,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 9.722490310668945,
-                    "y": -27.295133590698242,
-                    "z": -48.69956970214844
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "luid": 8390884683068014599,
-                "parentLuid": 0
-            },
-            "NativeScript": {
-                "ScriptName": "TimeSwapListener",
-                "SerializedFields": {
-                    "pastChildren": "1 676",
-                    "presentChildren": "1 677",
-                    "startInPresent": "1",
-                    "showLog": "0"
-                }
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Past",
-                "isActive": 1,
-                "luid": 7308894869148663857,
-                "prefabID": "",
-                "prefabLocalID": 2,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884683068014600,
-                "parentLuid": 8390884683068014599
-            },
-            "Renderer": {
-                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
-                "materialUUID": "f927567d-0633-436b-b300-dab3edce60fa"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Present",
-                "isActive": 1,
-                "luid": 7308894869148663857,
-                "prefabID": "",
-                "prefabLocalID": 3,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884683068014601,
-                "parentLuid": 8390884683068014599
-            },
-            "Renderer": {
-                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
-                "materialUUID": "989a52a2-73e1-4a95-9b27-89e3c1f1e4b6"
-            }
-        },
-        {
-            "EntityMeta": {
                 "name": "Crate",
                 "isActive": 1,
                 "luid": 0,
@@ -22224,6 +21982,460 @@
             "Renderer": {
                 "modelUUID": "2db0b34c-b68e-48a8-bba2-c58e842893cf",
                 "materialUUID": "f68d3e59-f56c-44d2-8223-59311ff86723"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Feet",
+                "isActive": 0,
+                "luid": 7308894872682496000,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.6360647082328796,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.888888955116272,
+                    "y": 0.11764705181121826,
+                    "z": 0.888888955116272
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884683158257665,
+                "parentLuid": 8390884656319430825
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Player",
+                "isActive": 1,
+                "luid": 7308894872697176064,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.574497640132904,
+                    "y": -23.786706924438477,
+                    "z": 3.6776742935180664
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884683172937729,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cylinder",
+                "materialUUID": "neunlitmat"
+            },
+            "Collider": {
+                "shapeType": 2,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "Rigidbody": {
+                "mass": 1.0,
+                "motionType": 2,
+                "useGravity": 1,
+                "isStatic": 0,
+                "initialVelocity": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "DONTUSEX": 0,
+                "DONTUSEY": 0,
+                "DONTUSEZ": 0
+            },
+            "NativeScript": {
+                "ScriptName": "PlayerController",
+                "SerializedFields": {
+                    "playerBottom": 679,
+                    "groundProbeStartOffset": "0.100000",
+                    "maxSlopeAngle": "45.000000",
+                    "moveSpeed": "5.000000",
+                    "cameraRef": 683,
+                    "jumpForce": "8.000000",
+                    "groundFriction": "20.000000",
+                    "groundRaycastDistance": "0.300000",
+                    "groundSnapOffset": "0.020000",
+                    "skinWidth": "0.050000",
+                    "airControl": "0.300000",
+                    "maxFallSpeed": "-50.000000"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "isActive": 1,
+                "luid": 7308894872702550025,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.00006914138793945313,
+                    "y": -0.4204464554786682,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 5.0,
+                    "y": 1.0,
+                    "z": 5.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884683178311690,
+                "parentLuid": 8390884683172937729
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "cam",
+                "isActive": 1,
+                "luid": 7308894872705695755,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.7119579315185547,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 5.0,
+                    "y": 1.0,
+                    "z": 5.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884683181457420,
+                "parentLuid": 8390884683172937729
+            },
+            "NativeScript": {
+                "ScriptName": "PlayerCamera"
+            },
+            "Camera": {
+                "FOV Y": 45.0,
+                "Aspect Ratio": 1.7777777910232544,
+                "Near Plane": 0.10000000149011612,
+                "Far Plane": 1000.0,
+                "Is Main Camera": 1,
+                "Is Active Camera": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Catwalk",
+                "isActive": 1,
+                "luid": 7308894869148008495,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.722490310668945,
+                    "y": -26.476760864257813,
+                    "z": -57.848731994628906
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884683450220544,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "TimeSwapListener",
+                "SerializedFields": {
+                    "pastChildren": "1 676",
+                    "presentChildren": "1 677",
+                    "startInPresent": "1",
+                    "showLog": "0"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 1,
+                "luid": 7308894869148663857,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884683450220545,
+                "parentLuid": 8390884683450220544
+            },
+            "Renderer": {
+                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
+                "materialUUID": "f927567d-0633-436b-b300-dab3edce60fa"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869148663857,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884683450220546,
+                "parentLuid": 8390884683450220544
+            },
+            "Renderer": {
+                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
+                "materialUUID": "989a52a2-73e1-4a95-9b27-89e3c1f1e4b6"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Catwalk",
+                "isActive": 1,
+                "luid": 7308894869148008495,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 4.431227684020996,
+                    "y": -25.912952423095703,
+                    "z": 7.882748603820801
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884683485544451,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 7308894869148663857,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884683485544452,
+                "parentLuid": 8390884683485544451
+            },
+            "Renderer": {
+                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
+                "materialUUID": "f927567d-0633-436b-b300-dab3edce60fa"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 7308894869148663857,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884683485544453,
+                "parentLuid": 8390884683485544451
+            },
+            "Renderer": {
+                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
+                "materialUUID": "989a52a2-73e1-4a95-9b27-89e3c1f1e4b6"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Unnamed Entity",
+                "isActive": 1,
+                "luid": 7308894873028919296,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884683504680961,
+                "parentLuid": 0
             }
         }
     ]
