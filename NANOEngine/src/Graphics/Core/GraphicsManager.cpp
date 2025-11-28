@@ -144,7 +144,7 @@ namespace NE::Graphics {
 
         // load the bright-pass nanoshader
         if (!s_BrightPassShader) {
-            s_BrightPassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("68ec4900-0e30-4f9a-8a6d-fa4750cbbf69");
+            s_BrightPassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebrightpass");
         }
     }
 #pragma endregion
@@ -240,11 +240,11 @@ namespace NE::Graphics {
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
         // initialize UI renderer
-        GLint viewport[4];
-        glGetIntegerv(GL_VIEWPORT, viewport);
-        s_ScreenWidth = static_cast<uint32_t>(viewport[2]);
-        s_ScreenHeight = static_cast<uint32_t>(viewport[3]);
-
+        //GLint viewport[4];
+        //glGetIntegerv(GL_VIEWPORT, viewport);
+        //s_ScreenWidth = static_cast<uint32_t>(viewport[2]);
+        //s_ScreenHeight = static_cast<uint32_t>(viewport[3]);
+        //
         //UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
     }
 
@@ -1009,7 +1009,7 @@ namespace NE::Graphics {
         //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
         UIRenderer::Draw3DUIFrame(s_SceneViewHandle);
-
+        
         UIRenderer::Composite(s_SceneViewHandle);
         UIRenderer::ClearCommands();
     }
