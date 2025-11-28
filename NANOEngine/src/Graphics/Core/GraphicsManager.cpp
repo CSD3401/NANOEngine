@@ -58,6 +58,7 @@ namespace NE::Graphics {
     RenderSettings GraphicsManager::renderSettings;
 
 #pragma region EXPERIMENTAL
+    PostProcessingSettings GraphicsManager::postProcessingSettings;
     // Experimental
     static GLuint s_QuadVAO = 0, s_QuadVBO = 0;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BrightPassShader;
@@ -82,15 +83,6 @@ namespace NE::Graphics {
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BlurShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_UpSampleShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_CompositeShader;
-
-    float GraphicsManager::s_brightThreshold = 1.f;
-    float GraphicsManager::s_brightScale = 1.f;
-    float GraphicsManager::s_brightSoftKnee = 0.2f;
-
-    float GraphicsManager::s_upSampleIntensity = 0.8f;
-
-    float GraphicsManager::s_bloomStrength = 0.1f;
-    float GraphicsManager::s_tonemapExposure = 1.f;
     
     // Here for now i will shift it all to rendergraph next time
     void InitFullscreenQuadAndBrightpass()
@@ -402,9 +394,9 @@ namespace NE::Graphics {
 
             s_BrightPassShader->Bind();
             s_BrightPassShader->SetUniformInt("u_SceneTex", 0);
-            s_BrightPassShader->SetUniformFloat("u_Threshold", s_brightThreshold);
-            s_BrightPassShader->SetUniformFloat("u_Scale", s_brightScale);
-            s_BrightPassShader->SetUniformFloat("u_SoftKnee", s_brightSoftKnee);
+            s_BrightPassShader->SetUniformFloat("u_Threshold", postProcessingSettings.bloomSettings.brightThreshold);
+            s_BrightPassShader->SetUniformFloat("u_Scale", postProcessingSettings.bloomSettings.brightScale);
+            s_BrightPassShader->SetUniformFloat("u_SoftKnee", postProcessingSettings.bloomSettings.softKnee);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, sceneTex);
@@ -497,7 +489,7 @@ namespace NE::Graphics {
             s_UpSampleShader->Bind();
             s_UpSampleShader->SetUniformInt("u_LowRes", 0);
             s_UpSampleShader->SetUniformInt("u_HighRes", 1);
-            s_UpSampleShader->SetUniformFloat("u_Intensity", 1.0f);
+            s_UpSampleShader->SetUniformFloat("u_Intensity", postProcessingSettings.bloomSettings.bloomRadius);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
@@ -530,8 +522,9 @@ namespace NE::Graphics {
             s_CompositeShader->Bind();
             s_CompositeShader->SetUniformInt("u_SceneHDR", 0);
             s_CompositeShader->SetUniformInt("u_Bloom", 1);
-            s_CompositeShader->SetUniformFloat("u_BloomStrength", s_bloomStrength);
-            s_CompositeShader->SetUniformFloat("u_Exposure", s_tonemapExposure);
+            s_CompositeShader->SetUniformInt("u_ToneMapType", static_cast<int>(postProcessingSettings.bloomSettings.toneMapType));
+            s_CompositeShader->SetUniformFloat("u_BloomStrength", postProcessingSettings.bloomSettings.bloomIntensity);
+            s_CompositeShader->SetUniformFloat("u_Exposure", postProcessingSettings.bloomSettings.exposure);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, sceneTexHDR);

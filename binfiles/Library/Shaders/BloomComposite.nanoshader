@@ -18,12 +18,13 @@ void main()
 in vec2 vUV;
 out vec4 FragColor;
 
-uniform sampler2D u_SceneHDR;
-uniform sampler2D u_Bloom;
-uniform float     u_BloomStrength;
-uniform float     u_Exposure;
+uniform sampler2D 	u_SceneHDR;
+uniform sampler2D 	u_Bloom;
+uniform int			u_ToneMapType;
+uniform float     	u_BloomStrength;
+uniform float     	u_Exposure;
 
-vec3 TonemapACES(vec3 x)
+vec3 AcesApproximation(vec3 x)
 {
     float a = 2.51;
     float b = 0.03;
@@ -33,7 +34,22 @@ vec3 TonemapACES(vec3 x)
     return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-vec3 TonemapReinhard(vec3 x) {
+vec3 FilmicAces(vec3 x)
+{
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
+
+vec3 Reinhard(vec3 x) {
+    return x / (1.0 + x);
+}
+
+vec3 ReinhardExtended(vec3 x) {
     return x / (1.0 + x);
 }
 

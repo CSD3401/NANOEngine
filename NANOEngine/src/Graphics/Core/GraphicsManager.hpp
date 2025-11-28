@@ -9,6 +9,7 @@
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
+#include "PostProcessingSettings.hpp"
 
 // Forward declarations
 namespace NE::ECS::Component {
@@ -103,17 +104,8 @@ namespace NE::Graphics {
         static RenderViewHandle s_GameViewHandle;
 
         static RenderSettings renderSettings;
-
         // Experimental here for now
-        static float s_brightThreshold;
-        static float s_brightScale;
-        static float s_brightSoftKnee;
-
-        static float s_upSampleIntensity;
-
-        static float s_bloomStrength;
-        static float s_tonemapExposure;
-
+        static PostProcessingSettings postProcessingSettings;
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;

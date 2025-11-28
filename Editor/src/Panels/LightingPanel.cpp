@@ -2,6 +2,7 @@
 #include <imgui/imgui.h>
 #include "Engine.hpp"
 #include <Graphics/Core/RenderSettings.hpp>
+#include <Graphics/Core/PostProcessingSettings.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
 
@@ -26,7 +27,7 @@ namespace Editor {
 		
 		static int s_currentSettingsTab = 0;
 
-		const char* tabNames[] = { "Scene", "Environment", "Realtime Lightmaps", "Baked Lightmaps" };
+		const char* tabNames[] = { "Scene", "Environment", "Post Processing", "Baked Lightmaps" };
 		constexpr int tabCount = IM_ARRAYSIZE(tabNames);
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -66,12 +67,7 @@ namespace Editor {
 
 		switch (s_currentSettingsTab) {
 		case 0: {
-			Editor::DrawFloatField("Bright Threshold", NE::GetBrightThreshold(), 0.1f, true);
-			Editor::DrawFloatField("Bright Scale", NE::GetBrightScale(), 0.1f, true);
-			Editor::DrawFloatField("Bright Soft Knee", NE::GetBrightSoftKnee(), 0.1f, true);
-			Editor::DrawFloatField("Up Sample Intensity", NE::GetUpSampleIntensity(), 0.1f, true);
-			Editor::DrawFloatField("Bloom Strength", NE::GetBloomStrength(), 0.1f, true);
-			Editor::DrawFloatField("Tonemap Exposure", NE::GetToneMapExposure(), 0.1f, true);
+
 		} break;
 		case 1: {
 			if (ImGui::CollapsingHeader("Environment##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -145,6 +141,33 @@ namespace Editor {
 			}
 		} break;
 		case 2: {
+			NE::Graphics::PostProcessingSettings& postProcessingSettings = NE::Renderer::Command::GetPostProcessingSettings();
+
+			if (ImGui::CollapsingHeader("Bloom##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::TextUnformatted("Bloom Tint");
+				ImGui::SameLine();
+				ImGui::ColorEdit3("##BloomTint", postProcessingSettings.bloomSettings.tint.Data());
+				Editor::DrawFloatField("Bright Threshold", postProcessingSettings.bloomSettings.brightThreshold, 0.1f, true);
+				Editor::DrawFloatField("Bright Scale", postProcessingSettings.bloomSettings.brightScale, 0.1f, true);
+				Editor::DrawFloatField("Bright Soft Knee", postProcessingSettings.bloomSettings.softKnee, 0.1f, true);
+				Editor::DrawFloatField("Up Sample Intensity", postProcessingSettings.bloomSettings.bloomRadius, 0.1f, true);
+				Editor::DrawFloatField("Bloom Strength", postProcessingSettings.bloomSettings.bloomIntensity, 0.1f, true);
+			}
+
+			const char* toneMapTypeItems[] = { "Reinhard", "ReinhardExtended", "ACESApproximation", "FilmicACES" };
+			int toneMapType = static_cast<int>(postProcessingSettings.bloomSettings.toneMapType);
+
+			if (ImGui::CollapsingHeader("Tone-Mapping##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::TextUnformatted("Type");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(150.0f);
+				if (ImGui::Combo("##ToneMapType", &toneMapType, toneMapTypeItems, IM_ARRAYSIZE(toneMapTypeItems))) {
+					postProcessingSettings.bloomSettings.toneMapType =
+						static_cast<NE::Graphics::BloomSettings::ToneMapType>(toneMapType);
+				}
+
+				Editor::DrawFloatField("Tonemap Exposure", postProcessingSettings.bloomSettings.exposure, 0.1f, true);
+			}
 
 		} break;
 		case 3: {
