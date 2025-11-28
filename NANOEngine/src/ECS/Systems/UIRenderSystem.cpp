@@ -222,8 +222,12 @@ namespace NE::ECS::Systems {
                 result.rotationZ += rect.rotationZ;
 
                 if (isTarget) {
-                    float localX = rect.x - rect.width * rect.pivotX;
-                    float localY = rect.y - rect.height * rect.pivotY;
+                    // Use scaled dimensions for pivot offset calculation
+                    float scaledWidth = rect.width * result.scaleX;
+                    float scaledHeight = rect.height * result.scaleY;
+
+                    float localX = rect.x - scaledWidth * rect.pivotX;
+                    float localY = rect.y - scaledHeight * rect.pivotY;
 
                     float parentRotation = result.rotationZ - rect.rotationZ;
                     if (std::abs(parentRotation) > ROTATION_EPSILON) {
@@ -293,8 +297,12 @@ namespace NE::ECS::Systems {
             float anchorY = parentHeight * DEFAULT_ANCHOR_Y;
 
             if (isTarget) {
-                float localX = anchorX + rect.x - rect.width * rect.pivotX;
-                float localY = anchorY + rect.y - rect.height * rect.pivotY;
+                // Use scaled dimensions for pivot offset calculation
+                float scaledWidth = rect.width * result.scaleX;
+                float scaledHeight = rect.height * result.scaleY;
+
+                float localX = anchorX + rect.x - scaledWidth * rect.pivotX;
+                float localY = anchorY + rect.y - scaledHeight * rect.pivotY;
 
                 float parentRotation = result.rotationZ - rect.rotationZ;
                 if (std::abs(parentRotation) > ROTATION_EPSILON) {
