@@ -236,7 +236,7 @@ namespace Editor {
 					Editor::Node node{};
 					node.id = entt;
 
-					uint32_t parent = NE::ECS::Command::GetParent(entt);
+					uint32_t parent = NE::ECS::Query::GetParent(entt);
 					node.parent = parent;
 
 					if (parent == NE::ECS::NO_ENTITY) {
@@ -253,7 +253,7 @@ namespace Editor {
 
 				uint32_t prefabRoot = NE::ECS::NO_ENTITY;
 				for (uint32_t entt : newEntities) {
-					uint32_t parent = NE::ECS::Command::GetParent(entt);
+					uint32_t parent = NE::ECS::Query::GetParent(entt);
 					if (parent == NE::ECS::NO_ENTITY || !newSet.count(parent)) {
 						prefabRoot = entt;
 						NE::ECS::Command::GetEntityMeta(entt).prefabID = AssetManager::GetInstance().RetrieveUUID(dropped);
@@ -475,6 +475,7 @@ namespace Editor {
 							for (auto& ent : EditorScene::s_entities) {
 								if (ent.linkedEntity == id) {
 									EditorScene::s_selectedEntity = &ent;
+									EditorScene::ForceOpenParents(ent.linkedEntity);
 									break;
 								}
 							}
