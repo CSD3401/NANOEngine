@@ -82,6 +82,7 @@ namespace NE::Graphics {
 
     RenderSettings GraphicsManager::renderSettings;
 
+    GLuint debugShaderProgram, debugVAO, debugVBO;
 #pragma region EXPERIMENTAL
     PostProcessingSettings GraphicsManager::postProcessingSettings;
     // Experimental
@@ -567,7 +568,6 @@ namespace NE::Graphics {
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             glBindVertexArray(0);
-
 
             glDepthMask(GL_TRUE);
             glEnable(GL_DEPTH_TEST);

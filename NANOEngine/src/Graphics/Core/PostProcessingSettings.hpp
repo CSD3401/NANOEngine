@@ -18,9 +18,9 @@ namespace NE::Graphics {
 		float brightThreshold = 1.f;
 		float brightScale = 1.f;
 		float softKnee = 0.2f;
-		float bloomRadius;
-		float bloomIntensity;
-		float exposure;
+		float bloomRadius = 1.f;
+		float bloomIntensity = 0.1f;
+		float exposure = 1.f;
 
 		ToneMapType toneMapType = ToneMapType::Reinhard;
 

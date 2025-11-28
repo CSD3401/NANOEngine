@@ -24,7 +24,7 @@ uniform int			u_ToneMapType;
 uniform float     	u_BloomStrength;
 uniform float     	u_Exposure;
 
-vec3 AcesApproximation(vec3 x)
+vec3 ACESApprox(vec3 x)
 {
     float a = 2.51;
     float b = 0.03;
@@ -34,23 +34,62 @@ vec3 AcesApproximation(vec3 x)
     return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-vec3 FilmicAces(vec3 x)
+vec3 UnchartedFilmicCurve(vec3 x)
 {
-    float a = 2.51;
-    float b = 0.03;
-    float c = 2.43;
-    float d = 0.59;
-    float e = 0.14;
-    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+    const float A = 0.22;
+    const float B = 0.30;
+    const float C = 0.10;
+    const float D = 0.20;
+    const float E = 0.01;
+    const float F = 0.30;
+
+    vec3 num   = x * (A * x + C * B) + D * E;
+    vec3 denom = x * (A * x + B)     + D * F;
+    return num / denom - E / F;
 }
 
+vec3 FilmicTonemap(vec3 x)
+{
+    const float W = 11.2; // reference white
+    vec3 whiteScale = 1.0 / UnchartedFilmicCurve(vec3(W));
+    return clamp(UnchartedFilmicCurve(x) * whiteScale, 0.0, 1.0);
+}
 
 vec3 Reinhard(vec3 x) {
     return x / (1.0 + x);
 }
 
-vec3 ReinhardExtended(vec3 x) {
-    return x / (1.0 + x);
+vec3 ReinhardExtended(vec3 x)
+{
+    // white point; brighter = more compressed highlights
+    const float Lwhite = 4.0; // you can expose this if you want
+    vec3 num   = x * (1.0 + x / (Lwhite * Lwhite));
+    vec3 denom = 1.0 + x;
+    return num / denom;
+}
+
+vec3 Tonemap(vec3 x, int type)
+{
+    if (type == 1) {
+        // Reinhard
+        return Reinhard(x);
+    }
+    else if (type == 2) {
+        // Reinhard Extended (with white point)
+        return ReinhardExtended(x);
+    }
+    else if (type == 3) {
+        // Fast ACES approximation
+        return ACESApprox(x);
+    }
+    else if (type == 4) {
+        // Filmic (Uncharted-style)
+        return FilmicTonemap(x);
+    }
+    else {
+        // 0 or unknown: no tonemap, just clamp
+        return clamp(x, 0.0, 1.0);
+    }
 }
 
 void main()
@@ -60,7 +99,9 @@ void main()
 	
     vec3 color = scene + bloom * u_BloomStrength;
 	
-    color = TonemapReinhard(color * u_Exposure);
+	color *= u_Exposure;
+	
+    color = Tonemap(color, u_ToneMapType);
 	
     color = pow(color, vec3(1.0 / 2.2));
 	
