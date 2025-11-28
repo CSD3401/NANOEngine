@@ -147,7 +147,9 @@ private:
 		for (Entity child : swappableChildren)
 		{
 			currentPuzzle[childIndex] = startingColours[childIndex];
-			NE::Renderer::Command::AssignMaterial(child, startingColours[childIndex]);
+			Entity childDome = GetChildOf(child, 1);
+			Entity childMesh = GetChildOf(childDome, 0);
+			NE::Renderer::Command::AssignMaterial(childMesh, startingColours[childIndex]);
 			//LOG_DEBUG("CHILD[" << childIndex << "]: " << startingColours[childIndex].GetEntity());
 			childIndex++;
 		}
@@ -162,7 +164,10 @@ private:
 		//LOG_DEBUG("SOLUTION CHILDS COLOURS:");
 		for (Entity c : childSolution)
 		{
-			NE::Renderer::Command::AssignMaterial(c, correctSol[childIndex]);
+
+			Entity childDome = GetChildOf(c, 1);
+			Entity childMesh = GetChildOf(childDome, 0);
+			NE::Renderer::Command::AssignMaterial(childMesh, correctSol[childIndex]);
 			//LOG_DEBUG("SOLUTION[" << childIndex << "]: " << correctSol[childIndex].GetEntity());
 			childIndex++;
 		}
@@ -198,12 +203,18 @@ private:
 		// Swap the colours assigned to those entities
 		std::swap(currentPuzzle[leftIndex], currentPuzzle[rightIndex]);
 
+		Entity leftDome = GetChildOf(leftChild, 1);
+		Entity leftMesh = GetChildOf(leftDome, 0);
+
+		Entity rightDome = GetChildOf(rightChild, 1);
+		Entity rightMesh = GetChildOf(rightDome, 0);
+
 		//LOG_DEBUG("AFTER SWAPPING:");
 		//LOG_DEBUG("LEFT CHILD MATERIAL: " << currentPuzzle[leftIndex].GetEntity());
 		//LOG_DEBUG("RIGHT CHILD MATERIAL: " << currentPuzzle[rightIndex].GetEntity());
 		// Apply new materials to the actual scene objects
-		NE::Renderer::Command::AssignMaterial(leftChild, currentPuzzle[leftIndex]);
-		NE::Renderer::Command::AssignMaterial(rightChild, currentPuzzle[rightIndex]);
+		NE::Renderer::Command::AssignMaterial(leftMesh, currentPuzzle[leftIndex]);
+		NE::Renderer::Command::AssignMaterial(rightMesh, currentPuzzle[rightIndex]);
 
 		// Check if puzzle solved
 		if (CheckPuzzle())
@@ -233,11 +244,15 @@ private:
 	{
 		for (Entity child : swappableChildren)
 		{
-			NE::Renderer::Command::AssignMaterial(child, correctColour);
+			Entity childDome = GetChildOf(child, 1);
+			Entity childMesh = GetChildOf(childDome, 0);
+			NE::Renderer::Command::AssignMaterial(childMesh, correctColour);
 		}
 		for (Entity child : childSolution)
 		{
-			NE::Renderer::Command::AssignMaterial(child, correctColour);
+			Entity childDome = GetChildOf(child, 1);
+			Entity childMesh = GetChildOf(childDome, 0);
+			NE::Renderer::Command::AssignMaterial(childMesh, correctColour);
 
 		}
 

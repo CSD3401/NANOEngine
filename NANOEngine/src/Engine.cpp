@@ -26,6 +26,7 @@
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
 #include "Audio/AudioBank.hpp"
+#include "Audio/AudioManager.hpp"
 #include "Scripting/ScriptingEngine.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
 #include <glfw/glfw3.h>
@@ -103,8 +104,8 @@ namespace NE {
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
-		//Physics::PhysicsManager::TestPhysicsSetup();
-		//glDisable(GL_FRAMEBUFFER_SRGB);
+		std::string bankDir = std::filesystem::current_path().string() + "/Assets/Bank";
+		AudioManager::GetInstance().Init(bankDir);
 	}
 
 	void LoadStartupScene() {
@@ -134,6 +135,8 @@ namespace NE {
 		}
 
 		//s_renderContext->SwapBuffers();
+		AudioManager::GetInstance().Update();
+
 	}
 
 	void Shutdown() {
@@ -142,7 +145,8 @@ namespace NE {
 		Physics::PhysicsManager::Shutdown();
 		Graphics::GraphicsManager::Shutdown();
 		//Physics::Command::Shutdown();
-		
+		AudioManager::GetInstance().Shutdown();
+
 
 		gSceneManager.ExitScene();
 

@@ -81,6 +81,8 @@
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
+    <ClCompile Include="src\Audio\AudioManager.cpp" />
+    <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -232,6 +234,8 @@
     <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
+    <ClInclude Include="src\Audio\AudioManager.hpp" />
+    <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
