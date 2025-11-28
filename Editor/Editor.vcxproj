@@ -241,6 +241,7 @@
     <ClInclude Include="src\Panels\IPanel.hpp" />
     <ClInclude Include="src\ThumbnailManager.hpp" />
     <ClInclude Include="src\UIGizmoHandler.hpp" />
+    <ClInclude Include="src\Util\DrawSelectedCollider.hpp" />
     <ClInclude Include="vendor\include\imgui\imconfig.h" />
     <ClInclude Include="vendor\include\imgui\imgui.h" />
     <ClInclude Include="vendor\include\imgui\imgui_impl_glfw.h" />
