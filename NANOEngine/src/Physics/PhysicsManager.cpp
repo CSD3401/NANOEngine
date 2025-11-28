@@ -902,10 +902,6 @@ namespace NE::Physics {
         //if (lockZ) angVel.SetZ(0.0f);
 
         //motion->SetAngularVelocity(angVel);
-        if (!s_PhysicsSystem) {
-            SPD_WARNING("LockRotation: PhysicsSystem is null");
-            return;
-        }
 
         JPH::BodyID bodyID(_bodyID);
 
@@ -915,10 +911,10 @@ namespace NE::Physics {
             return;
         }
 
-        SPD_INFO("LockRotation: bodyID = {} (raw = {}), lockX = {}, lockY = {}, lockZ = {}",
-            bodyID.GetIndexAndSequenceNumber(),
-            _bodyID,
-            lockX, lockY, lockZ);
+        //SPD_INFO("LockRotation: bodyID = {} (raw = {}), lockX = {}, lockY = {}, lockZ = {}",
+        //    bodyID.GetIndexAndSequenceNumber(),
+        //    _bodyID,
+        //    lockX, lockY, lockZ);
 
         // (Optional) Check if body was actually added to the world
         {
@@ -937,8 +933,8 @@ namespace NE::Physics {
 
         JPH::Body& body = lock.GetBody();
 
-        SPD_INFO("LockRotation: Body MotionType = {}, IsStatic = {}, IsKinematic = {}",
-            (int)body.GetMotionType(), body.IsStatic(), body.IsKinematic());
+        //SPD_INFO("LockRotation: Body MotionType = {}, IsStatic = {}, IsKinematic = {}",
+        //    (int)body.GetMotionType(), body.IsStatic(), body.IsKinematic());
 
         // Don’t mess with static/kinematic bodies here
         if (body.IsStatic() || body.IsKinematic()) {
@@ -963,10 +959,10 @@ namespace NE::Physics {
         JPH::Vec3 linVelBefore = motion->GetLinearVelocity();
         JPH::Vec3 angVelBefore = motion->GetAngularVelocity();
 
-        SPD_INFO("LockRotation: BEFORE - invMass = {}, linVel = ({}, {}, {}), angVel = ({}, {}, {})",
-            invMassBefore,
-            linVelBefore.GetX(), linVelBefore.GetY(), linVelBefore.GetZ(),
-            angVelBefore.GetX(), angVelBefore.GetY(), angVelBefore.GetZ());
+        //SPD_INFO("LockRotation: BEFORE - invMass = {}, linVel = ({}, {}, {}), angVel = ({}, {}, {})",
+        //    invMassBefore,
+        //    linVelBefore.GetX(), linVelBefore.GetY(), linVelBefore.GetZ(),
+        //    angVelBefore.GetX(), angVelBefore.GetY(), angVelBefore.GetZ());
 
         // Get current mass properties (so inertia tensor can be re-computed with new DOFs)
         JPH::MassProperties massProps = shape->GetMassProperties();
@@ -975,7 +971,7 @@ namespace NE::Physics {
         if (invMassBefore > 0.0f) {
             float mass = 1.0f / invMassBefore;
             massProps.ScaleToMass(mass);
-            SPD_INFO("LockRotation: Preserving mass ~ {}", mass);
+            //SPD_INFO("LockRotation: Preserving mass ~ {}", mass);
         } else {
             SPD_WARNING("LockRotation: invMass is 0 for body {}, treating as infinite mass", _bodyID);
         }
@@ -987,7 +983,7 @@ namespace NE::Physics {
         if (lockY) allowed &= ~JPH::EAllowedDOFs::RotationY;
         if (lockZ) allowed &= ~JPH::EAllowedDOFs::RotationZ;
 
-        SPD_INFO("LockRotation: EAllowedDOFs mask after locking = {}", (int)allowed);
+        //SPD_INFO("LockRotation: EAllowedDOFs mask after locking = {}", (int)allowed);
 
         // We’re not touching translations, so this will never become EAllowedDOFs::None
 
@@ -1010,10 +1006,10 @@ namespace NE::Physics {
         JPH::Vec3 linVelAfter = motion->GetLinearVelocity();
         JPH::Vec3 angVelAfter = motion->GetAngularVelocity();
 
-        SPD_INFO("LockRotation: AFTER  - invMass = {}, linVel = ({}, {}, {}), angVel = ({}, {}, {})",
-            invMassAfter,
-            linVelAfter.GetX(), linVelAfter.GetY(), linVelAfter.GetZ(),
-            angVelAfter.GetX(), angVelAfter.GetY(), angVelAfter.GetZ());
+        //SPD_INFO("LockRotation: AFTER  - invMass = {}, linVel = ({}, {}, {}), angVel = ({}, {}, {})",
+        //    invMassAfter,
+        //    linVelAfter.GetX(), linVelAfter.GetY(), linVelAfter.GetZ(),
+        //    angVelAfter.GetX(), angVelAfter.GetY(), angVelAfter.GetZ());
 	}
 
 	void PhysicsManager::ClearAllBodies() {
@@ -1141,7 +1137,7 @@ namespace NE::Physics {
                 hit.entity = static_cast<Entity>(body.GetUserData());
             }
 
-            SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
+            //SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
         }
 
 		return hit;
