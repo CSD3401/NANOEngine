@@ -3,6 +3,7 @@
 #include "EditorInterface/ECSExports.hpp"
 #include "../EditorScene.hpp"
 #include <ECS/Core/Entity.hpp>
+#include <algorithm>
 
 namespace Editor {
 
@@ -180,6 +181,17 @@ namespace Editor {
 		std::vector<uint32_t> toDelete;
 		EditorScene::GetAllDescendants(rootId, toDelete);
 
+		// store information about deleted UI entities before destroying them
+		m_deletedEntities.clear();
+		for (uint32_t id : toDelete) {
+			DeletedUIEntityInfo info;
+			info.id = id;
+			info.wasCanvas = NE::ECS::Query::HasUICanvas(id);
+			info.wasUIImage = NE::ECS::Query::HasUIImage(id);
+			info.parentId = NE::ECS::Command::GetParent(id);
+			m_deletedEntities.push_back(info);
+		}
+
 		for (uint32_t id : toDelete) {
 			{
 				auto it = std::find_if(
@@ -212,21 +224,89 @@ namespace Editor {
 
 	void DeleteEntityCommand::Undo()
 	{
-		m_entity = NE::ECS::Command::CreateEntity();
-		const uint32_t id = m_entity;
+		// Sort entities so parents are recreated before children
+			// (entities with no parent first, then their children, etc.)
+		std::sort(m_deletedEntities.begin(), m_deletedEntities.end(),
+			[](const DeletedUIEntityInfo& a, const DeletedUIEntityInfo& b) {
+				// Canvases (no parent) should come first
+				if (a.parentId == NE::ECS::NO_ENTITY && b.parentId != NE::ECS::NO_ENTITY) return true;
+				if (a.parentId != NE::ECS::NO_ENTITY && b.parentId == NE::ECS::NO_ENTITY) return false;
+				return false;
+			});
 
-		EditorScene::s_entities.push_back(EditorEntity{ id });
+		std::unordered_map<uint32_t, uint32_t> oldToNewId;  // Map old IDs to new IDs
 
-		Editor::Node node{};
-		node.id = id;
-		node.parent = NE::ECS::NO_ENTITY;
-		node.orderKey = static_cast<float>(EditorScene::s_roots.size());
+		for (const auto& info : m_deletedEntities) {
+			uint32_t newEntity;
+			uint32_t newParentId = NE::ECS::NO_ENTITY;
+			if (info.parentId != NE::ECS::NO_ENTITY)
+			{
+				// If the parent was also deleted & recreated, remap to the NEW id
+				auto it = oldToNewId.find(info.parentId);
+				if (it != oldToNewId.end()) 
+				{
+					newParentId = it->second; // parent was recreated
+				}
+				else 
+				{
+					newParentId = info.parentId; // parent still exists, keep original id
+				}
+			}
 
-		EditorScene::s_nodes[id] = node;
-		EditorScene::s_roots.push_back(id);
+			// Recreate the correct type of entity
+			if (info.wasCanvas) {
+				newEntity = NE::ECS::Command::CreateUICanvasEntity();
+			}
+			else if (info.wasUIImage) {
+				newEntity = NE::ECS::Command::CreateUIImageEntity(newParentId);
+			}
+			else {
+				// Regular 3D entity
+				newEntity = NE::ECS::Command::CreateEntity();
+			}
 
-		EditorScene::s_entities.push_back(EditorEntity{ id });
-		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
+			oldToNewId[info.id] = newEntity;
+
+			// Add to editor scene
+			EditorScene::s_entities.push_back(EditorEntity{ newEntity });
+
+			// Setup editor hierarchy
+			Editor::Node node{};
+			node.id = newEntity;
+
+			if (newParentId != NE::ECS::NO_ENTITY) {
+				// Has a parent
+				node.parent = newParentId;
+				auto& children = EditorScene::s_children[newParentId];
+				node.orderKey = static_cast<float>(children.size());
+				children.push_back(newEntity);
+			}
+			else {
+				// Root entity
+				node.parent = NE::ECS::NO_ENTITY;
+				node.orderKey = static_cast<float>(EditorScene::s_roots.size());
+				EditorScene::s_roots.push_back(newEntity);
+			}
+
+			EditorScene::s_nodes[newEntity] = node;
+		}
+
+		// Update m_entity to the new root ID (the canvas in this case)
+		if (!m_deletedEntities.empty()) {
+			// Find the root entity (the one with no parent)
+			for (const auto& info : m_deletedEntities) {
+				if (info.parentId == NE::ECS::NO_ENTITY) {
+					m_entity = oldToNewId[info.id];
+					break;
+				}
+			}
+
+			// Select the recreated root entity
+			auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
+				[id = m_entity](const EditorEntity& e) { return e.linkedEntity == id; });
+			if (it != EditorScene::s_entities.end()) {
+				Editor::EditorScene::s_selectedEntity = &(*it);
+			}
+		}
 	}
-
 }
