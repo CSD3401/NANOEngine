@@ -12,6 +12,7 @@
 #include "../../Graphics/OpenGL/GLShader.hpp"
 #include "../../Graphics/OpenGL/GLPipeline.hpp"
 #include "../../Graphics/Core/Material.hpp"
+#include "../../Graphics/Core/DrawCommand.hpp"
 #include "../../Core/Profiler.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>

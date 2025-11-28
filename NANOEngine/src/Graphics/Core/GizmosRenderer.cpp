@@ -1,11 +1,13 @@
 #include "GizmosRenderer.hpp"
 #include "Frustum.hpp"
 #include "../../Math/Mat4.hpp"
+#include "../../Math/Vec3.hpp"
 #include "GraphicsManager.hpp"
 #include "EditorCamera.hpp"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 namespace NE::Graphics {
 

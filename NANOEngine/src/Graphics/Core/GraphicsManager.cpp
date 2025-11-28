@@ -1,17 +1,32 @@
 #include "GraphicsManager.hpp"
-#include "../../Math/Mat4.hpp"
-#include "../OpenGL/GLCommandBuffer.hpp"
-#include "../Interfaces/IShader.hpp"
+
 #include "EditorCamera.hpp"
 #include "Skybox.hpp"
-#include <glad/glad.h>
-#include "../../Core/Logger.hpp"
-#include "../../Core/Profiler.hpp"
+#include "Material.hpp"
+#include "DrawCommand.hpp"
+#include "DrawQueue.hpp"
+#include "RenderViewManager.hpp"
+#include "RenderSettings.hpp"
+#include "InstanceData.hpp"
+#include "Primitives.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
+
+#include "../../Math/Mat4.hpp"
+#include "../../Math/Vec3.hpp"
+
 #include "../Interfaces/IFrameBuffer.hpp"
-#include "../../ECS/Components/Light.hpp"
+#include "../Interfaces/IShader.hpp"
+#include "../Interfaces/ICommandBuffer.hpp"
+#include "../Interfaces/IPipeline.hpp"
+#include "../Interfaces/IGeometryBuffer.hpp"
+#include "../Interfaces/IStateCache.hpp"
+#include "../Interfaces/IClusteredLighting.hpp"
+
+#include "../OpenGL/GLCommandBuffer.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
+#include "../OpenGL/GLStateCache.hpp"
 #include "../Core/Primitives.hpp"
 #include "GizmosRenderer.hpp"
 #include "UIRenderer.hpp"
@@ -22,6 +37,17 @@
 #include "Core/SpdLogger.hpp"
 #include "InstanceData.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
+#include "../OpenGL/GLFrameBuffer.hpp"
+#include "../OpenGL/GLClusteredLighting.hpp"
+
+#include "Core/SpdLogger.hpp"
+#include "GizmosRenderer.hpp"
+#include "../../Core/Logger.hpp"
+#include "../../Core/Profiler.hpp"
+#include "../../ECS/Components/Light.hpp"
+#include "../../SceneManagement/Scene.hpp"
+
+#include <glad/glad.h>
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 // Experimental stuff
@@ -46,14 +72,13 @@ namespace NE::Graphics {
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
     RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
+	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
     std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
     std::vector<float> GraphicsManager::s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
     int GraphicsManager::s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
     int GraphicsManager::s_DebugProjLoc;
-
-    GLuint debugShaderProgram, debugVAO, debugVBO;
 
     RenderSettings GraphicsManager::renderSettings;
 
@@ -151,6 +176,8 @@ namespace NE::Graphics {
         s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
         s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
         //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
+
+        s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
 
@@ -272,6 +299,8 @@ namespace NE::Graphics {
             if (enableSorting)
                 s_DrawQueue->Sort(camPos);
 
+			s_clusteredLighting->BuildForView(view, m_lights);
+
             // Prepare instance data buffer and batching variables
             std::vector<InstanceData> instanceData;
             instanceData.reserve(32);
@@ -310,7 +339,7 @@ namespace NE::Graphics {
                 shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
 
                 // Set lights
-                shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
+                /*shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
                 for (size_t i = 0; i < m_lights.size(); ++i) {
                     const auto* light = m_lights[i];
                     std::string base = "u_lights[" + std::to_string(i) + "]";
@@ -324,7 +353,10 @@ namespace NE::Graphics {
                     shader->SetUniformFloat(base + ".constant", light->constant);
                     shader->SetUniformFloat(base + ".linear", light->linear);
                     shader->SetUniformFloat(base + ".quadratic", light->quadratic);
-                }
+                }*/
+
+                // Set lights
+				s_clusteredLighting->BindForDraw();
 
                 // Draw mesh with instancing
                 currentMesh->DrawInstanced(instanceData.size());
@@ -614,6 +646,8 @@ namespace NE::Graphics {
 			s_EditorCamera->GetProjectionMatrix(),
 			s_EditorCamera->GetViewMatrix(),
 			s_EditorCamera->GetPosition(),
+			s_EditorCamera->GetNearPlane(),
+			s_EditorCamera->GetFarPlane(),
             false,
             0
         );
@@ -624,9 +658,9 @@ namespace NE::Graphics {
         return s_RenderViewManager->Create(width, height, enablePicking);
 	}
 
-    void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain, uint16_t order)
+    void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, float nearPlane, float farPlane, bool isMain, uint16_t order)
     {
-		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, isMain, order);
+		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, nearPlane, farPlane, isMain, order);
     }
 
     void GraphicsManager::EnableCamera(RenderViewHandle viewHandle)
