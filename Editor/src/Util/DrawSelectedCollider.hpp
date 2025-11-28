@@ -41,7 +41,7 @@ namespace EditorHelpers {
         const float u = ndcX * 0.5f + 0.5f;          // [0..1]
         const float v = ndcY * 0.5f + 0.5f;          // [0..1] (y up)
         outScreen.x = panelPos.x + u * panelSize.x;
-        outScreen.y = panelPos.y + (1.f - v) * panelSize.y; 
+        outScreen.y = panelPos.y + (1.f - v) * panelSize.y;
         return true;
     }
 
@@ -69,12 +69,19 @@ namespace EditorHelpers {
 
         // world corners = tr.worldMatrix * localCorner
         Math::Vec3 W[8];
-        for (int i = 0;i < 8;++i) {
-            const auto& M = tr.worldMatrix;
-            W[i].x = M.GetElement(0, 0) * L[i].x + M.GetElement(0, 1) * L[i].y + M.GetElement(0, 2) * L[i].z + M.GetElement(0, 3);
-            W[i].y = M.GetElement(1, 0) * L[i].x + M.GetElement(1, 1) * L[i].y + M.GetElement(1, 2) * L[i].z + M.GetElement(1, 3);
-            W[i].z = M.GetElement(2, 0) * L[i].x + M.GetElement(2, 1) * L[i].y + M.GetElement(2, 2) * L[i].z + M.GetElement(2, 3);
+        const auto& M = tr.worldMatrix;
+
+
+        NE::Math::Vec3 ex = NE::Math::Vec3(M.GetElement(0, 0), M.GetElement(1, 0), M.GetElement(2, 0)).Normalized();
+        NE::Math::Vec3 ey = NE::Math::Vec3(M.GetElement(0, 1), M.GetElement(1, 1), M.GetElement(2, 1)).Normalized();
+        NE::Math::Vec3 ez = NE::Math::Vec3(M.GetElement(0, 2), M.GetElement(1, 2), M.GetElement(2, 2)).Normalized();
+
+        NE::Math::Vec3 t = NE::Math::Vec3(M.GetElement(0, 3), M.GetElement(1, 3), M.GetElement(2, 3));
+
+        for (int i = 0; i < 8; ++i) {
+            W[i] = t + ex * L[i].x + ey * L[i].y + ez * L[i].z;
         }
+
 
         auto* dl = ImGui::GetWindowDrawList();
         const ImU32 col32 = IM_COL32(255, 230, 0, 255);

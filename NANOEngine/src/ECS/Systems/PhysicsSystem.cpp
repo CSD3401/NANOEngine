@@ -353,6 +353,20 @@ namespace NE::ECS::Systems
                 //rb.motionType = 0U;
                 //rb.mass = 1.f;
                 bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices, entity);
+
+                if (bodyID != 0) {
+                    //Math::Vec3 worldRotationDeg{
+                    //    JPH::RadiansToDegrees(pitch),
+                    //    JPH::RadiansToDegrees(yaw),
+                    //    JPH::RadiansToDegrees(roll)
+                    //};
+
+                    NE::Physics::PhysicsManager::SetTransform(
+                        bodyID,
+                        worldPosition,
+                        Math::Vec3(pitch, yaw, roll)
+                    );
+                }
             }
             break;
             case Component::Collider::ShapeType::None:
