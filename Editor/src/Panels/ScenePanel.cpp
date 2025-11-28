@@ -19,6 +19,7 @@
 #include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
+#include "../Util/DrawSelectedCollider.hpp"
 
 namespace {
 	// helper function for ui
@@ -51,7 +52,7 @@ namespace Editor {
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
 	static bool s_usingUIGizmo = false;
-
+	static bool s_showSelectedCollider = false;
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
 		return deg * 3.14159265358979323846f / 180.0f;
@@ -131,8 +132,15 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
+
+			bool openView = ImGui::Button("Collider Draw");
+			ImVec2 viewMin = ImGui::GetItemRectMin();
+			ImVec2 viewMax = ImGui::GetItemRectMax();
+
+
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
+			if (openView) ImGui::OpenPopup("ViewPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -180,7 +188,11 @@ namespace Editor {
 
 				ImGui::EndPopup();
 			}
-
+			ImGui::SetNextWindowPos(ImVec2(viewMin.x, viewMax.y), ImGuiCond_Appearing);
+			if (ImGui::BeginPopup("ViewPopup")) {
+				ImGui::Checkbox("Show Collider (Selected)", &s_showSelectedCollider);
+				ImGui::EndPopup();
+			}
 			ImGui::PopStyleVar(3);
 			ImGui::PopStyleColor(3);
 			ImGui::PopStyleVar(2);
@@ -194,7 +206,16 @@ namespace Editor {
 			ImVec2(0, 1),
 			ImVec2(1, 0)
 		);
-
+		if (s_showSelectedCollider && Editor::EditorScene::s_selectedEntity) {
+			const uint32_t eid = Editor::EditorScene::s_selectedEntity->linkedEntity;
+			EditorHelpers::DrawSelectedBoxColliderOverlay(
+				eid,
+				panelPos, panelSize,
+				Editor::EditorScene::m_editorCamera.GetViewMatrix(),
+				Editor::EditorScene::m_editorCamera.GetProjectionMatrix(),
+				1.8f
+			);
+		}
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* prefabPayload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
 				std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
