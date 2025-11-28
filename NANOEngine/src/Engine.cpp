@@ -104,6 +104,7 @@ namespace NE {
 		Physics::PhysicsManager::Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
 		//Physics::PhysicsManager::TestPhysicsSetup();
+		//glDisable(GL_FRAMEBUFFER_SRGB);
 	}
 
 	void LoadStartupScene() {

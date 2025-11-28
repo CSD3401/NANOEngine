@@ -2,8 +2,17 @@
 
 #include "../../Math/Vec3.hpp"
 #include <memory>
+#include "../Interfaces/ICommandBuffer.hpp"
+#include "../Interfaces/IPipeline.hpp"
+#include "../Interfaces/IGeometryBuffer.hpp"
+#include "../Interfaces/IStateCache.hpp"
+#include "Material.hpp"
+#include "DrawCommand.hpp"
+#include "DrawQueue.hpp"
+#include "RenderViewManager.hpp"
+#include "RenderSettings.hpp"
+#include "PostProcessingSettings.hpp"
 #include <vector>
-
 
 // Forward declarations
 namespace NE {
@@ -111,10 +120,12 @@ namespace NE::Graphics {
 
 		// Render View Handles
         static RenderViewHandle s_SceneViewHandle;
+        static RenderViewHandle s_FinalOutputViewHandle;
         static RenderViewHandle s_GameViewHandle;
 
         static RenderSettings renderSettings;
-
+        // Experimental here for now
+        static PostProcessingSettings postProcessingSettings;
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
