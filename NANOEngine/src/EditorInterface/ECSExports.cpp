@@ -140,6 +140,20 @@ namespace NE::ECS {
 		const Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
+
+		uint32_t GetParent(uint32_t child) {
+			auto& ecs = NE::GetScene().GetECSCoordinator();
+
+			// Check for regular Transform first
+			if (ecs.HasComponent<NE::ECS::Component::Transform>(child)) {
+				return ecs.GetComponent<NE::ECS::Component::Transform>(child).parent;
+			}
+
+			// Check for UI RectTransform
+			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
+				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
+			}
+		}
 	}
 
 	namespace Command {
@@ -312,20 +326,6 @@ namespace NE::ECS {
 
 		void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
 			NE::GetScene().GetECSCoordinator().m_transformSystem->SetParent(child, parent);
-		}	
-
-		uint32_t GetParent(uint32_t child) {
-			auto& ecs = NE::GetScene().GetECSCoordinator();
-
-			// Check for regular Transform first
-			if (ecs.HasComponent<NE::ECS::Component::Transform>(child)) {
-				return ecs.GetComponent<NE::ECS::Component::Transform>(child).parent;
-			}
-
-			// Check for UI RectTransform
-			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
-				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
-			}
 		}
 
 		// === Script Management Implementation ===

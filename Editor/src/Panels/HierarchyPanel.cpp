@@ -9,15 +9,52 @@
 #include <ECS/Core/Entity.hpp>
 #include <Engine.hpp>
 #include <imgui/imgui_internal.h>
-#include <EditorInterface/ECSExports.hpp>
+#include <algorithm>
 #include <ECS/Components/EntityMeta.hpp>
 #include "../AssetManagement/AssetManager.hpp"
 #include <Math/Vec3.hpp>
 
+namespace {
+	// Lowercase helper
+	std::string ToLower(std::string s)
+	{
+		std::transform(s.begin(), s.end(), s.begin(),
+			[](unsigned char c) { return (char)std::tolower(c); });
+		return s;
+	}
+
+	bool MarkVisibleRecursive(
+		uint32_t id,
+		const std::string& queryLower,
+		std::unordered_set<uint32_t>& outVisible)
+	{
+		using namespace Editor;
+
+		const auto& meta = NE::ECS::Query::GetEntityMeta(id);
+		std::string nameLower = ToLower(meta.name);
+
+		bool selfMatch = queryLower.empty()
+			? true
+			: (nameLower.find(queryLower) != std::string::npos);
+
+		const auto& kids = Editor::EditorScene::ChildrenOf(id);
+		bool anyChildMatch = false;
+		for (uint32_t child : kids) {
+			if (MarkVisibleRecursive(child, queryLower, outVisible))
+				anyChildMatch = true;
+		}
+
+		if (selfMatch || anyChildMatch) {
+			outVisible.insert(id);
+			return true;
+		}
+		return false;
+	}
+}
+
+
 namespace Editor {
 	HierarchyPanel::HierarchyPanel() {
-		//EditorScene::s_entities.reserve(NE::ECS::MAX_ENTITIES);
-
 		auto numEntt = NE::GetNumEntities();
 		EditorScene::s_entities.reserve(numEntt.size());
 		for (auto e : numEntt) {
@@ -27,6 +64,27 @@ namespace Editor {
 
 	void HierarchyPanel::OnImGuiRender() {
 		ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
+
+		static bool filtering = false;
+		std::unordered_set<uint32_t> visible;
+		if (ImGui::BeginMenuBar()) {
+			static char s_searchBuf[128] = "";
+			ImGui::SetNextItemWidth(-1.0f);
+			ImGui::InputTextWithHint("##HierarchySearch", "Search...", s_searchBuf, IM_ARRAYSIZE(s_searchBuf));
+
+			std::string search = s_searchBuf;
+			std::string searchLower = ToLower(search);
+			filtering = !searchLower.empty();
+
+			// Build visible set when filtering
+			auto& childrenOf0 = Editor::EditorScene::ChildrenOf(NE::ECS::NO_ENTITY);
+			if (filtering) {
+				for (uint32_t root : childrenOf0)
+					MarkVisibleRecursive(root, searchLower, visible);
+			}
+
+			ImGui::EndMenuBar();
+		}
 
 		bool canEditHierarchy = EditorScene::selectedPrefab.empty();
 
@@ -78,13 +136,6 @@ namespace Editor {
 			Editor::EditorScene::BuildHierarchyFromECS();
 			s_built = true;
 		}
-		//static int s_lastEntityCount = -1;
-		//int currentCount = static_cast<int>(NE::GetNumEntities().size());
-
-		//if (currentCount != s_lastEntityCount) {
-		//	Editor::EditorScene::RebuildFromActiveScene();
-		//	s_lastEntityCount = currentCount;
-		//}
 
 		// ---- Drag state ----
 		static uint32_t draggingId = NE::ECS::NO_ENTITY;
@@ -106,10 +157,13 @@ namespace Editor {
 
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 
-		std::function<void(uint32_t /*parent*/, const std::vector<uint32_t>& /*siblings*/, int /*depth*/)> DrawLevel;
+		std::function<void(uint32_t , const std::vector<uint32_t>& , int )> DrawLevel;
 		DrawLevel = [&](uint32_t parent, const std::vector<uint32_t>& siblings, int depth) {
 			for (int i = 0; i < (int)siblings.size(); ++i) {
 				uint32_t id = siblings[i];
+
+				if (filtering && visible.find(id) == visible.end())
+					continue;
 
 				// -------- label & selection ----------
 				Editor::EditorEntity* ent = nullptr;
@@ -161,36 +215,14 @@ namespace Editor {
 				if (useCustomColor)
 					ImGui::PushStyleColor(ImGuiCol_Text, finalColor);
 
-				// -------------------------------------------------------------------
+				if (EditorScene::s_forceOpen.contains(id) || filtering) {
+					ImGui::SetNextItemOpen(true, ImGuiCond_Always);
+				}
+
 				bool open = ImGui::TreeNodeEx((void*)(uintptr_t)id, flags, "%s", label.c_str());
-
-				//if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
-				//	DrawHierarchyContextMenuBody(canEditHierarchy, id);
-
-				//	bool isCanvas = NE::ECS::Query::HasUICanvas(id);
-				//	if (isCanvas) {
-				//		ImGui::Separator();
-				//		if (ImGui::MenuItem("Image")) {
-				//			NANOEngine::Events::EventBus::Get().Dispatch(
-				//				NANOEngine::Events::EventDomain::Editor,
-				//				CreateUIImageEntityEvent{ id }
-				//			);
-				//		}
-				//		if (ImGui::MenuItem("Text")) {
-				//		}
-				//		if (ImGui::MenuItem("Button")) {
-				//		}
-				//	}
-
-				//	ImGui::EndPopup();
-				//}
-
 
 				if (useCustomColor)
 					ImGui::PopStyleColor();
-
-				// Optional: auto-open non-leaf by default
-				// if (!isLeaf) ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
 				// Delay selection logic - only select if not starting a drag
 				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
@@ -333,13 +365,13 @@ namespace Editor {
 			clickedThisFrame = false;
 		}
 
+		EditorScene::s_forceOpen.clear();
 		ImGui::End();
 	}
 
 	void HierarchyPanel::DrawHierarchyContextMenuBody(bool canEditHierarchy, uint32_t contextEntityId) {
 		// contextEntityId == NE::ECS::NO_ENTITY = clicked on empty
 		//const bool hasEntity = (contextEntityId != NE::ECS::NO_ENTITY);
-		
 
 		const bool hasEntity = (EditorScene::s_selectedEntity != nullptr);
 

@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include "EditorEntity.hpp"
 #include "Graphics/Core/EditorCamera.hpp"
 
@@ -31,6 +32,7 @@ namespace Editor {
         static std::unordered_map<uint32_t, Node> s_nodes;                // id -> node
         static std::unordered_map<uint32_t, std::vector<uint32_t>> s_children; // parent -> children ids
         static std::vector<uint32_t> s_roots;
+        static std::unordered_set<uint32_t> s_forceOpen;
 
         static bool ReorderWithinSiblings(uint32_t parent, uint32_t child, int insertIndex);
         static bool AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex);
@@ -46,6 +48,7 @@ namespace Editor {
         static void DuplicateSelected();
         static void CopySelected();
         static void PasteSelected();
+        static void ForceOpenParents(uint32_t child);
     };
 
 }

@@ -827,21 +827,49 @@ namespace Editor {
 					if (!comp.ScriptName.empty()) {
 						ImGui::Separator();
 
-						// Script enabled/disabled checkbox
-						if (comp.Instance) {
+						// Check if script is registered in the DLL
+						bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
+
+						// Check if script instance exists before accessing it
+						if (!comp.Instance) {
+							// More detailed error message based on registration status
+							if (!isRegistered) {
+								ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Status: Script not found in DLL");
+								ImGui::TextWrapped("The script '%s' no longer exists in the compiled game code.", comp.ScriptName.c_str());
+								ImGui::TextWrapped("It may have been deleted or renamed.");
+
+								// Offer to remove the invalid script
+								ImGui::Spacing();
+								if (ImGui::Button("Remove Invalid Script")) {
+									NE::ECS::Command::RemoveEntityScript(entity);
+									NE::MarkSceneDirty();
+									SPD_DEBUG("[DirtyFlag] Invalid script removed - Scene marked DIRTY");
+								}
+								ImGui::SameLine();
+								ImGui::TextDisabled("(?)");
+								if (ImGui::IsItemHovered()) {
+									ImGui::SetTooltip("This will clear the script component and put it in 'No Script' state");
+								}
+							}
+							else {
+								ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Status: Script not instantiated");
+								ImGui::TextWrapped("The script instance failed to initialize. Try reloading the scene or removing and re-adding the script.");
+							}
+						}
+						else {
+							// Script enabled/disabled checkbox
 							bool enabled = comp.Instance->IsEnabled();
 							if (ImGui::Checkbox("Enabled", &enabled)) {
 								comp.Instance->SetEnabled(enabled);
 								NE::MarkSceneDirty();
 								SPD_DEBUG("[DirtyFlag] Script enabled/disabled - Scene marked DIRTY");
 							}
-						}
 
-						ImGui::Text("Status: Active");
-						ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+							ImGui::Text("Status: Active");
+							ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
 
-						// --- Scripting Fields UI ---
-						auto fieldNames = comp.Instance->GetExposedFieldNames();
+							// --- Scripting Fields UI ---
+							auto fieldNames = comp.Instance->GetExposedFieldNames();
 						if (!fieldNames.empty()) {
 							ImGui::SeparatorText("Script Fields");
 
@@ -1500,15 +1528,7 @@ namespace Editor {
 								}
 							}
 						}
-						else {
-							ImGui::Text("Status: Not Instantiated");
-						}
-
-						// Show if script is properly registered
-						bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
-						if (!isRegistered) {
-							ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Warning: Script not registered!");
-						}
+						} // End of comp.Instance else block
 					}
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Camera)) 

@@ -5,7 +5,6 @@
 #include "../src/ECS/Components/UIRectTransform.hpp"
 #include <Engine.hpp>
 #include <ECS/Components/EntityMeta.hpp>
-#include <unordered_set>
 
 namespace {
     // helper function: remove an entity ID from a vector if it exist
@@ -28,6 +27,7 @@ namespace Editor {
     std::unordered_map<uint32_t, Node> EditorScene::s_nodes;
     std::unordered_map<uint32_t, std::vector<uint32_t>> EditorScene::s_children;
     std::vector<uint32_t> EditorScene::s_roots;
+    std::unordered_set<uint32_t> EditorScene::s_forceOpen;
 
     NE::Graphics::EditorCamera EditorScene::m_editorCamera;
 
@@ -177,7 +177,7 @@ namespace Editor {
         for (const auto& e : s_entities) {
             uint32_t id = e.linkedEntity;
 
-            uint32_t parent = NE::ECS::Command::GetParent(id);
+            uint32_t parent = NE::ECS::Query::GetParent(id);
 
             Node node;
             node.id = id;
@@ -227,7 +227,7 @@ namespace Editor {
             Node node{};
             node.id = entt;
 
-            uint32_t parent = NE::ECS::Command::GetParent(entt);
+            uint32_t parent = NE::ECS::Query::GetParent(entt);
             node.parent = parent;
 
             if (parent == NE::ECS::NO_ENTITY) {
@@ -266,7 +266,7 @@ namespace Editor {
             Node node{};
             node.id = entt;
 
-            uint32_t parent = NE::ECS::Command::GetParent(entt);
+            uint32_t parent = NE::ECS::Query::GetParent(entt);
             node.parent = parent;
 
             if (parent == NE::ECS::NO_ENTITY) {
@@ -282,5 +282,17 @@ namespace Editor {
         }
 
         EditorScene::s_selectedEntity = nullptr;
+    }
+
+    void EditorScene::ForceOpenParents(uint32_t child)
+    {
+        uint32_t cur = child;
+        while (true) {
+            uint32_t parent = NE::ECS::Query::GetParent(cur);
+            if (parent == NE::ECS::NO_ENTITY) break;
+
+            s_forceOpen.insert(parent);
+            cur = parent;
+        }
     }
 }

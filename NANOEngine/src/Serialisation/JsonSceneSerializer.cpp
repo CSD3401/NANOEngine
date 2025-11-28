@@ -21,6 +21,7 @@
 #include "../ECS/Components/ComponentKey.hpp"
 
 #include "ECS/Systems/ScriptSystem.hpp"
+#include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 // rapidjson
@@ -442,6 +443,28 @@ namespace NE::Serialization {
 			childT.isDirty = true;
 		}
 
+		// Initialize script instances for all entities with NativeScript components
+		auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
+		if (scriptSystem) {
+			for (size_t i = 0; i < count; ++i) {
+				NE::ECS::Entity entity = created[i];
+				if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
+					auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
+
+					// Only initialize if we have a script name but no instance
+					if (!script.ScriptName.empty() && !script.Instance) {
+						auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
+						if (factory) {
+							script.CreateScript = factory;
+							script.DestroyScript = [](IScript* instance) { delete instance; };
+							script.Instance = nullptr; // Will be created by ScriptSystem
+							scriptSystem->OnEntityAdded(entity); // Force initialization
+						}
+					}
+				}
+			}
+		}
+
 		return ret;
 	}
 
@@ -541,6 +564,28 @@ namespace NE::Serialization {
 			childT.isDirty = true;
 		}
 
+		// Initialize script instances for all entities with NativeScript components
+		auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
+		if (scriptSystem) {
+			for (size_t i = 0; i < count; ++i) {
+				NE::ECS::Entity entity = created[i];
+				if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
+					auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
+
+					// Only initialize if we have a script name but no instance
+					if (!script.ScriptName.empty() && !script.Instance) {
+						auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
+						if (factory) {
+							script.CreateScript = factory;
+							script.DestroyScript = [](IScript* instance) { delete instance; };
+							script.Instance = nullptr; // Will be created by ScriptSystem
+							scriptSystem->OnEntityAdded(entity); // Force initialization
+						}
+					}
+				}
+			}
+		}
+
 		return ret;
 	}
 
@@ -551,22 +596,36 @@ namespace NE::Serialization {
 	{
 		auto& ecs = scene.GetECSCoordinator();
 
+		using Transform = NE::ECS::Component::Transform;
+
 		ForEachComponentType([&]<typename C>() {
-			// SKIP RULE: skip Transform on root entity (to preserve instance placement)
-			if constexpr (std::is_same_v<C, NE::ECS::Component::Transform>) {
-				if (entity == rootEntity)
+			if constexpr (std::is_same_v<C, Transform>) {
+				if (!ecs.HasComponent<Transform>(entity))
 					return;
+
+				auto& t = ecs.GetComponent<Transform>(entity);
+
+				auto oldPos = t.localPosition;
+				auto oldRot = t.localRotationEuler;
+
+				ReloadComponent<Transform>(ecs, entity, entVal);
+
+				if (entity == rootEntity) {
+					t.localPosition = oldPos;
+					t.localRotationEuler = oldRot;
+				}
+
+				return;
 			}
 
 			ReloadComponent<C>(ecs, entity, entVal);
 		});
 
-		// Optional: after reloading, mark Transform dirty
-		if (ecs.HasComponent<NE::ECS::Component::Transform>(entity)
-			&& entity != rootEntity) {
-			auto& t = ecs.GetComponent<NE::ECS::Component::Transform>(entity);
+		if (ecs.HasComponent<Transform>(entity)) {
+			auto& t = ecs.GetComponent<Transform>(entity);
 			t.isDirty = true;
 		}
+
 		if (ecs.HasComponent<NE::ECS::Component::Renderer>(entity)) {
 			auto& renderer = ecs.GetComponent<NE::ECS::Component::Renderer>(entity);
 
@@ -576,6 +635,7 @@ namespace NE::Serialization {
 				renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
 		}
 	}
+
 
 	void JsonSceneSerializer::SerializePrefabToMemory(SceneManagement::Scene& scene,
 		uint32_t rootEnt,
