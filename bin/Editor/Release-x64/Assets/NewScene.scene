@@ -10255,14 +10255,14 @@
                     "materialB": "c427718b-41d1-465f-a21f-99ac1981e4e9",
                     "successMaterial": "c57f74a5-e22a-40fe-bc56-f02aaaa494c8",
                     "target2": "327",
-                    "target3": "339",
-                    "target4": "333",
-                    "target5": "380",
-                    "button1Entity": "358",
-                    "button2Entity": "372",
-                    "button3Entity": "351",
+                    "target3": "333",
+                    "target4": "380",
+                    "target5": "339",
+                    "button1Entity": "344",
+                    "button2Entity": "351",
+                    "button3Entity": "358",
                     "button4Entity": "365",
-                    "button5Entity": "344"
+                    "button5Entity": "372"
                 }
             }
         },
