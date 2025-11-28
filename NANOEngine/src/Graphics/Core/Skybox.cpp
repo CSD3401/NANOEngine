@@ -7,7 +7,9 @@
 #include "../OpenGL/GLPipeline.hpp"
 #include <glad/glad.h>
 #include "../../Math/Mat4.hpp"
+#include "../../Math/Vec3.hpp"
 #include "Vertex.hpp"
+#include "DrawCommand.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 
 namespace NE::Graphics {

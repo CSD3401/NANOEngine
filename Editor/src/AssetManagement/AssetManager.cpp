@@ -179,6 +179,7 @@ namespace {
         type = Trim(type);
         if (type == "vertex") return GL_VERTEX_SHADER;
         if (type == "fragment") return GL_FRAGMENT_SHADER;
+		if (type == "compute") return GL_COMPUTE_SHADER;
         throw std::runtime_error("Unknown shader type: " + type);
     }
 
