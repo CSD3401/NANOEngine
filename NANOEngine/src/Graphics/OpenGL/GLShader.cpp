@@ -183,44 +183,54 @@ namespace NE::Graphics::OpenGL {
         hasFallback = (h->programFlags & 1u) != 0;
         if (hasFallback) {
             size_t off = static_cast<size_t>(progEnd);
-			// Fallback for compute shader
-            if (isCompute) {
-                if (off + 4 > blob.size) {
-                    hasFallback = false;
 
-                    return true;
-                }
-                uint32_t csLen32 = 0;
-                std::memcpy(&csLen32, blob.data + off, 4);
-                off += 4;
-
-                if (off + csLen32 > blob.size) {
-                    hasFallback = false;
-                    return true;
-                }
-                csSrc = reinterpret_cast<const char*>(blob.data + off);
-                csLen = static_cast<size_t>(csLen32);
+            // 1) Read stageCount
+            if (off + 4 > blob.size) {
+                hasFallback = false;
+                return true; // header is otherwise valid; just no fallback
             }
-			// Fallback for vertex + fragment shader
-            else {
-                if (off + 4 > blob.size) { hasFallback = false; return true; }
-                uint32_t vsLen32 = 0;
-                std::memcpy(&vsLen32, blob.data + off, 4);
-                off += 4;
+            uint32_t stageCount = 0;
+            std::memcpy(&stageCount, blob.data + off, 4);
+            off += 4;
 
-                if (off + vsLen32 + 4 > blob.size) { hasFallback = false; return true; }
-                vsSrc = reinterpret_cast<const char*>(blob.data + off);
-                vsLen = static_cast<size_t>(vsLen32);
-                off += vsLen32;
+            // 2) Loop stages
+            for (uint32_t i = 0; i < stageCount; ++i) {
+                if (off + 8 > blob.size) {
+                    hasFallback = false;
+                    return true;
+                }
 
-                if (off + 4 > blob.size) { hasFallback = false; return true; }
-                uint32_t fsLen32 = 0;
-                std::memcpy(&fsLen32, blob.data + off, 4);
-                off += 4;
+                uint32_t stageEnum = 0;
+                uint32_t len = 0;
+                std::memcpy(&stageEnum, blob.data + off, 4);
+                std::memcpy(&len, blob.data + off + 4, 4);
+                off += 8;
 
-                if (off + fsLen32 > blob.size) { hasFallback = false; return true; }
-                fsSrc = reinterpret_cast<const char*>(blob.data + off);
-                fsLen = static_cast<size_t>(fsLen32);
+                if (off + len > blob.size) {
+                    hasFallback = false;
+                    return true;
+                }
+
+                const char* src = reinterpret_cast<const char*>(blob.data + off);
+                off += len;
+
+                switch (stageEnum) {
+                case GL_VERTEX_SHADER:
+                    vsSrc = src;
+                    vsLen = static_cast<size_t>(len);
+                    break;
+                case GL_FRAGMENT_SHADER:
+                    fsSrc = src;
+                    fsLen = static_cast<size_t>(len);
+                    break;
+                case GL_COMPUTE_SHADER:
+                    csSrc = src;
+                    csLen = static_cast<size_t>(len);
+                    break;
+                default:
+                    // Unknown stage; ignore or log
+                    break;
+                }
             }
         }
         return true;
