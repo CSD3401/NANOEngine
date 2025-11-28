@@ -240,12 +240,10 @@ namespace NE::Graphics {
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
         // initialize UI renderer
-        //GLint viewport[4];
-        //glGetIntegerv(GL_VIEWPORT, viewport);
-        //s_ScreenWidth = static_cast<uint32_t>(viewport[2]);
-        //s_ScreenHeight = static_cast<uint32_t>(viewport[3]);
-        //
-        //UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
+        s_ScreenWidth = static_cast<uint32_t>(1920);
+        s_ScreenHeight = static_cast<uint32_t>(1080);
+        
+        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
     }
 
     void GraphicsManager::BeginFrame() 
@@ -520,10 +518,14 @@ namespace NE::Graphics {
             uint32_t w = fb->GetWidth();
             uint32_t h = fb->GetHeight();
 
-            glBindFramebuffer(GL_FRAMEBUFFER, finalFBO->GetColorAttachment());
+            finalFBO->Bind();
+
             glViewport(0, 0, w, h);
             glClearColor(0, 0, 0, 1);
             glClear(GL_COLOR_BUFFER_BIT);
+
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
 
             s_CompositeShader->Bind();
             s_CompositeShader->SetUniformInt("u_SceneHDR", 0);
@@ -540,6 +542,10 @@ namespace NE::Graphics {
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             glBindVertexArray(0);
+
+
+            glDepthMask(GL_TRUE);
+            glEnable(GL_DEPTH_TEST);
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
@@ -658,6 +664,8 @@ namespace NE::Graphics {
         if (framebuffer) {
           return framebuffer->GetColorAttachment();
         }
+
+        return 0;
 
 		//auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
         //  if (framebuffer) {
@@ -1008,9 +1016,9 @@ namespace NE::Graphics {
         UIRenderer::DrawUIFrame();
         //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
-        UIRenderer::Draw3DUIFrame(s_SceneViewHandle);
+        UIRenderer::Draw3DUIFrame(s_FinalOutputViewHandle);
         
-        UIRenderer::Composite(s_SceneViewHandle);
+        UIRenderer::Composite(s_FinalOutputViewHandle);
         UIRenderer::ClearCommands();
     }
 }
