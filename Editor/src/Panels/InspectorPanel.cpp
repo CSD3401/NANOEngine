@@ -937,10 +937,13 @@ namespace Editor {
 										ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
 									}
 								}
-								else if (ftype.starts_with("componentref:")) {
+								else if (ftype == "transformref" || ftype == "rigidbodyref" || ftype == "audiosourceref") {
 									// Component reference field
-									// Extract component type (e.g., "Transform" from "componentref:Transform")
-									std::string componentType = ftype.substr(13); // Skip "componentref:"
+									// Map field type to component name for display/validation
+									std::string componentType;
+									if (ftype == "transformref") componentType = "Transform";
+									else if (ftype == "rigidbodyref") componentType = "Rigidbody";
+									else if (ftype == "audiosourceref") componentType = "AudioSource";
 
 									// Get current pointer value and try to find the entity name
 									std::string displayName = "None";
