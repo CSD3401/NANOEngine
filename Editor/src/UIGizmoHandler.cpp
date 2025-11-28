@@ -28,6 +28,7 @@ namespace Editor {
     float UIGizmoHandler::s_rotationStartAngle = 0.0f;
     float UIGizmoHandler::s_originalRotation = 0.0f;
     ImVec2 UIGizmoHandler::s_rotationCenter = ImVec2(0, 0);
+    constexpr float ROTATION_SENSITIVITY = 5.0f;
 
     // Undo/Redo command state
     std::unique_ptr<SetUIRectTransformCommand> UIGizmoHandler::s_uiGizmoCmd = nullptr;
@@ -217,26 +218,17 @@ namespace Editor {
 
         // Update transform while dragging
         if (s_gizmoActive && isUsing && editedThisFrame) {
-            float tr[3], rotDeg[3], sc[3];
-            ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
-
-            // World TRS after gizmo
-            float worldPosX = tr[0];
-            float worldPosY = tr[1];
-            float worldPosZ = tr[2];
-            float worldRotX = rotDeg[0];
-            float worldRotY = rotDeg[1];
-            float worldRotZ = rotDeg[2];
-            float worldSclX = sc[0];
-            float worldSclY = sc[1];
-            float worldSclZ = sc[2];
-
             auto& rectCmd = NE::ECS::Command::GetUIRectTransform(uiEntityId);
 
-            // ----- Remove parent TRS -> get local values -----
-            float parentPosX = 0.f, parentPosY = 0.f, parentPosZ = 0.f;
-            float parentRotX = 0.f, parentRotY = 0.f, parentRotZ = 0.f;
-            float parentSclX = 1.f, parentSclY = 1.f, parentSclZ = 1.f;
+            // ========== DO IT LIKE 3D ENTITIES! ==========
+
+            // 1. Get new world matrix from ImGuizmo
+            NE::Math::Mat4 newWorld;
+            memcpy(newWorld.Data(), matrix, sizeof(float) * 16);
+
+            // 2. Build parent world matrix
+            NE::Math::Mat4 parentWorld;
+            parentWorld.SetToIdentity();
 
             uint32_t p = rectCmd.parent;
             while (p != std::numeric_limits<uint32_t>::max() &&
@@ -244,35 +236,45 @@ namespace Editor {
             {
                 auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
 
-                parentPosX += parentRect.x;
-                parentPosY += parentRect.y;
-                parentPosZ += parentRect.z;
+                // Build parent's TRS
+                constexpr float PI = 3.14159265358979f;
+                NE::Math::Mat4 pT = NE::Math::Mat4::BuildTranslation(parentRect.x, parentRect.y, parentRect.z);
+                NE::Math::Mat4 pRx = NE::Math::Mat4::BuildXRotation(parentRect.rotationX * PI / 180.0f);
+                NE::Math::Mat4 pRy = NE::Math::Mat4::BuildYRotation(parentRect.rotationY * PI / 180.0f);
+                NE::Math::Mat4 pRz = NE::Math::Mat4::BuildZRotation(parentRect.rotationZ * PI / 180.0f);
+                NE::Math::Mat4 pR = pRz * pRy * pRx;
+                NE::Math::Mat4 pS = NE::Math::Mat4::BuildScaling(parentRect.scaleX, parentRect.scaleY, parentRect.scaleZ);
 
-                parentRotX += parentRect.rotationX;
-                parentRotY += parentRect.rotationY;
-                parentRotZ += parentRect.rotationZ;
-
-                parentSclX *= parentRect.scaleX;
-                parentSclY *= parentRect.scaleY;
-                parentSclZ *= parentRect.scaleZ;
+                parentWorld = parentWorld * (pT * pR * pS);
 
                 p = parentRect.parent;
             }
 
-            // Local position = world - parent
-            rectCmd.x = worldPosX - parentPosX;
-            rectCmd.y = worldPosY - parentPosY;
-            rectCmd.z = worldPosZ - parentPosZ;
+            // 3. Convert to local matrix: local = parent^-1 * world
+            NE::Math::Mat4 invParent = parentWorld.Inverse();
+            NE::Math::Mat4 newLocal = invParent * newWorld;
 
-            // Local rotation = world - parent
-            rectCmd.rotationX = worldRotX - parentRotX;
-            rectCmd.rotationY = worldRotY - parentRotY;
-            rectCmd.rotationZ = worldRotZ - parentRotZ;
+            // 4. Decompose LOCAL matrix (not world!)
+            float localMatrix[16];
+            memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
 
-            // Local scale = world / parent
-            rectCmd.scaleX = (parentSclX > 0.001f) ? worldSclX / parentSclX : worldSclX;
-            rectCmd.scaleY = (parentSclY > 0.001f) ? worldSclY / parentSclY : worldSclY;
-            rectCmd.scaleZ = (parentSclZ > 0.001f) ? worldSclZ / parentSclZ : worldSclZ;
+            float tr[3], rotDeg[3], sc[3];
+            ImGuizmo::DecomposeMatrixToComponents(localMatrix, tr, rotDeg, sc);
+
+            // 5. Save local values directly (NO sensitivity multiplier!)
+            rectCmd.x = tr[0];
+            rectCmd.y = tr[1];
+            rectCmd.z = tr[2];
+
+            rectCmd.rotationX = rotDeg[0];
+            rectCmd.rotationY = rotDeg[1];
+            rectCmd.rotationZ = rotDeg[2];
+
+            rectCmd.scaleX = sc[0];
+            rectCmd.scaleY = sc[1];
+            rectCmd.scaleZ = sc[2];
+
+            // =============================================
 
             // Update command for undo/redo
             UpdateCommandAfter(rectCmd);

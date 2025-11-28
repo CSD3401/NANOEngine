@@ -1729,7 +1729,7 @@ namespace Editor {
 						float spacing = 10.0f;
 
 						// Helper macro for UIRectTransform fields
-#define UI_RECT_DRAG(label, fieldPtr, speed, minVal, maxVal, format) \
+						#define UI_RECT_DRAG(label, fieldPtr, speed, minVal, maxVal, format) \
 						do { \
 							using Owner = NE::ECS::Component::UIRectTransform; \
 							using FieldT = std::decay_t<decltype(comp.*fieldPtr)>; \
@@ -1768,7 +1768,7 @@ namespace Editor {
 							} \
 						} while(0)
 
-#define UI_RECT_SLIDER(label, fieldPtr, minVal, maxVal, format) \
+						#define UI_RECT_SLIDER(label, fieldPtr, minVal, maxVal, format) \
 						do { \
 							using Owner = NE::ECS::Component::UIRectTransform; \
 							using FieldT = std::decay_t<decltype(comp.*fieldPtr)>; \
@@ -1952,21 +1952,23 @@ namespace Editor {
 							ImGui::Text("Rotation");
 							ImGui::SameLine(100);
 
+							constexpr float ROTATION_DRAG_SPEED = 5.0f;
+
 							ImGui::PushItemWidth(70);
 							if (!isOverlay)
 							{
 								ImGui::Text("X");
 								ImGui::SameLine();
-								UI_RECT_DRAG("##RotX", &NE::ECS::Component::UIRectTransform::rotationX, 1.0f, -360.0f, 360.0f, "%.1f");
+								UI_RECT_DRAG("##RotX", &NE::ECS::Component::UIRectTransform::rotationX, ROTATION_DRAG_SPEED, 0.0f, 0.0f, "%.1f");
 								ImGui::SameLine();
 								ImGui::Text("Y");
 								ImGui::SameLine();
-								UI_RECT_DRAG("##RotY", &NE::ECS::Component::UIRectTransform::rotationY, 1.0f, -360.0f, 360.0f, "%.1f");
+								UI_RECT_DRAG("##RotY", &NE::ECS::Component::UIRectTransform::rotationY, ROTATION_DRAG_SPEED, 0.0f, 0.0f, "%.1f");							
 								ImGui::SameLine();
 							}
 							ImGui::Text("Z");
 							ImGui::SameLine();
-							UI_RECT_DRAG("##RotZ", &NE::ECS::Component::UIRectTransform::rotationZ, 1.0f, -360.0f, 360.0f, "%.1f");
+							UI_RECT_DRAG("##RotZ", &NE::ECS::Component::UIRectTransform::rotationZ,	ROTATION_DRAG_SPEED, 0.0f, 0.0f, "%.1f");					
 							ImGui::PopItemWidth();
 						}
 
@@ -1997,8 +1999,8 @@ namespace Editor {
 							ImGui::PopItemWidth();
 						}
 
-#undef UI_RECT_DRAG
-#undef UI_RECT_SLIDER
+						#undef UI_RECT_DRAG
+						#undef UI_RECT_SLIDER
 
 						ImGui::Unindent();
 					}

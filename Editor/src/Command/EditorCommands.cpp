@@ -224,8 +224,8 @@ namespace Editor {
 
 	void DeleteEntityCommand::Undo()
 	{
-		// Sort entities so parents are recreated before children
-			// (entities with no parent first, then their children, etc.)
+		// sort entities so parents are recreated before children
+		// (entities with no parent first, then their children, etc.)
 		std::sort(m_deletedEntities.begin(), m_deletedEntities.end(),
 			[](const DeletedUIEntityInfo& a, const DeletedUIEntityInfo& b) {
 				// Canvases (no parent) should come first
@@ -234,9 +234,10 @@ namespace Editor {
 				return false;
 			});
 
-		std::unordered_map<uint32_t, uint32_t> oldToNewId;  // Map old IDs to new IDs
+		std::unordered_map<uint32_t, uint32_t> oldToNewId; // map old id to new id
 
-		for (const auto& info : m_deletedEntities) {
+		for (const auto& info : m_deletedEntities) 
+		{
 			uint32_t newEntity;
 			uint32_t newParentId = NE::ECS::NO_ENTITY;
 			if (info.parentId != NE::ECS::NO_ENTITY)
@@ -253,36 +254,41 @@ namespace Editor {
 				}
 			}
 
-			// Recreate the correct type of entity
-			if (info.wasCanvas) {
+			// recreate the correct type of entity
+			if (info.wasCanvas)
+			{
 				newEntity = NE::ECS::Command::CreateUICanvasEntity();
 			}
-			else if (info.wasUIImage) {
+			else if (info.wasUIImage) 
+			{
 				newEntity = NE::ECS::Command::CreateUIImageEntity(newParentId);
 			}
-			else {
-				// Regular 3D entity
+			else 
+			{
+				// just regular 3D entity
 				newEntity = NE::ECS::Command::CreateEntity();
 			}
 
 			oldToNewId[info.id] = newEntity;
 
-			// Add to editor scene
+			// add to editor scene
 			EditorScene::s_entities.push_back(EditorEntity{ newEntity });
 
-			// Setup editor hierarchy
+			// setup editor hierarchy
 			Editor::Node node{};
 			node.id = newEntity;
 
-			if (newParentId != NE::ECS::NO_ENTITY) {
-				// Has a parent
+			if (newParentId != NE::ECS::NO_ENTITY) 
+			{
+				// has a parent
 				node.parent = newParentId;
 				auto& children = EditorScene::s_children[newParentId];
 				node.orderKey = static_cast<float>(children.size());
 				children.push_back(newEntity);
 			}
-			else {
-				// Root entity
+			else 
+			{
+				// root entity
 				node.parent = NE::ECS::NO_ENTITY;
 				node.orderKey = static_cast<float>(EditorScene::s_roots.size());
 				EditorScene::s_roots.push_back(newEntity);
@@ -291,17 +297,20 @@ namespace Editor {
 			EditorScene::s_nodes[newEntity] = node;
 		}
 
-		// Update m_entity to the new root ID (the canvas in this case)
-		if (!m_deletedEntities.empty()) {
-			// Find the root entity (the one with no parent)
-			for (const auto& info : m_deletedEntities) {
-				if (info.parentId == NE::ECS::NO_ENTITY) {
+		// update m_entity to the new root id (the canvas in this case)
+		if (!m_deletedEntities.empty())
+		{
+			// find the root entity (the one with no parent)
+			for (const auto& info : m_deletedEntities) 
+			{
+				if (info.parentId == NE::ECS::NO_ENTITY) 
+				{
 					m_entity = oldToNewId[info.id];
 					break;
 				}
 			}
 
-			// Select the recreated root entity
+			// select the recreated root entity
 			auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
 				[id = m_entity](const EditorEntity& e) { return e.linkedEntity == id; });
 			if (it != EditorScene::s_entities.end()) {
