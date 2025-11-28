@@ -34,70 +34,32 @@ namespace NE::ECS::Systems {
         auto& rect = m_cm->GetComponent<Component::UIRectTransform>(e);
 
         // remove from luid map
-        if (rect.luid != 0) 
+        if (rect.luid != 0)
         {
             m_luidToEntity.erase(rect.luid);
         }
 
-        // remove from pending parents list (if it was waiting for parent resolution)
+        // remove from pending parents list
         m_pendingParents.erase(
             std::remove_if(m_pendingParents.begin(), m_pendingParents.end(),
                 [e](const PendingParent& pp) { return pp.child == e; }),
             m_pendingParents.end()
         );
 
-        // if this is a canvas being destroyed, destroy all its children too
-        bool isCanvas = m_cm->HasComponent<Component::UICanvas>(e);
+        // REMOVED THE CANVAS DESTRUCTION LOGIC - Let the editor handle hierarchy
+        // The editor's DeleteEntityCommand already handles destroying descendants
 
-        if (isCanvas) 
+        // Just orphan direct children (they may not be destroyed)
+        const auto& entities = GetEntities();
+        for (Entity child : entities)
         {
-            // collect children to destroy
-            std::vector<Entity> childrenToDestroy;
-
-            const auto& entities = GetEntities();
-            for (Entity child : entities) 
+            if (child == e) continue;
+            if (!m_cm->HasComponent<Component::UIRectTransform>(child)) continue;
+            auto& childRect = m_cm->GetComponent<Component::UIRectTransform>(child);
+            if (childRect.parent == e)
             {
-                if (child == e) continue;
-                if (!m_cm->HasComponent<Component::UIRectTransform>(child)) continue;
-
-                auto& childRect = m_cm->GetComponent<Component::UIRectTransform>(child);
-
-                // walk up the parent chain to see if it leads to this canvas
-                Entity current = child;
-                while (current != NO_ENTITY) 
-                {
-                    if (!m_cm->HasComponent<Component::UIRectTransform>(current)) break;
-                    auto& currentRect = m_cm->GetComponent<Component::UIRectTransform>(current);
-
-                    if (currentRect.parent == e) 
-                    {
-                        childrenToDestroy.push_back(child);
-                        break;
-                    }
-                    current = currentRect.parent;
-                }
-            }
-
-            // destroy collected children
-            for (Entity child : childrenToDestroy) 
-            {
-                NE::ECS::Command::DestroyEntity(child);
-            }
-        }
-        else 
-        {
-            // not a canvas, just orphan direct children
-            const auto& entities = GetEntities();
-            for (Entity child : entities) 
-            {
-                if (child == e) continue;
-                if (!m_cm->HasComponent<Component::UIRectTransform>(child)) continue;
-                auto& childRect = m_cm->GetComponent<Component::UIRectTransform>(child);
-                if (childRect.parent == e) 
-                {
-                    childRect.parent = NO_ENTITY;
-                    childRect.parentLuid = 0;
-                }
+                childRect.parent = NO_ENTITY;
+                childRect.parentLuid = 0;
             }
         }
     }

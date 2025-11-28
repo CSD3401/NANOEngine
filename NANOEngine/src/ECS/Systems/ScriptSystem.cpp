@@ -40,7 +40,7 @@ namespace NE::ECS::Systems {
 				nsc.Instance->SetEnabled(false); // Start disabled
 				SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
 			}
-			else {
+			else if (!nsc.ScriptName.empty()) {
 				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
 
 				if (factory) {
@@ -66,10 +66,16 @@ namespace NE::ECS::Systems {
 					nsc.Instance->SetEnabled(false);
 					SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
 				}
+				else {
+					// Script not found in DLL
+					SPD_WARNING("Cannot initialize script '" << nsc.ScriptName
+						<< "' for entity " << (int)entity
+						<< " - script not found in DLL. It may have been deleted or renamed.");
+				}
 			}
 		}
 
-		
+
 	}
 
     void ScriptSystem::OnEntityRemoved(Entity entity) {
@@ -136,7 +142,18 @@ namespace NE::ECS::Systems {
 
 			if (!nsc.ScriptName.empty()) {
 				nsc.CreateScript = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
-				nsc.DestroyScript = [](IScript* s) { delete s; };
+
+				// Check if script factory was found
+				if (nsc.CreateScript) {
+					nsc.DestroyScript = [](IScript* s) { delete s; };
+				}
+				else {
+					// Script no longer exists in DLL - log warning but keep ScriptName
+					// This allows the editor to show the missing script and offer to remove it
+					SPD_WARNING("Script '" << nsc.ScriptName << "' not found in DLL for entity " << entity << ". The script may have been deleted or renamed.");
+					// Don't clear ScriptName - let the editor handle it
+					// This prevents silent data loss and lets user decide what to do
+				}
 			}
 
 			if (nsc.CreateScript && !nsc.Instance) {
@@ -265,14 +282,17 @@ namespace NE::ECS::Systems {
 			}
 
 			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-			if (nsc.Instance && nsc.Instance->IsEnabled()) {
-				// Call Start() before first Update() if not yet called
-				if (!nsc.Instance->_HasStarted()) {
-					nsc.Instance->Start();
-					nsc.Instance->_MarkStartCalled();
-				}
+			// Guard against null instance (can happen if script was deleted from DLL)
+			if (nsc.Instance) {
+				if (nsc.Instance->IsEnabled()) {
+					// Call Start() before first Update() if not yet called
+					if (!nsc.Instance->_HasStarted()) {
+						nsc.Instance->Start();
+						nsc.Instance->_MarkStartCalled();
+					}
 
-				nsc.Instance->Update(deltaTime);
+					nsc.Instance->Update(deltaTime);
+				}
 			}
 		}
 	}

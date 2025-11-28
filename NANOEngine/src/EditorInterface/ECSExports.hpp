@@ -64,6 +64,7 @@ namespace NE::ECS {
 
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
+		NANOENGINE_API uint32_t GetParent(uint32_t child);
 	}
 
 	namespace Command {
@@ -72,7 +73,6 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays = true);
-		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
 		NANOENGINE_API void AddLightComponent(uint32_t e);
 		NANOENGINE_API void AddRendererComponent(uint32_t e);
