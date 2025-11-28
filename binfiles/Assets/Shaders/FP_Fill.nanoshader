@@ -33,9 +33,9 @@ layout(std430, binding = 2) buffer ClusterLightIndices {
 
 // Must match ClusterParamsCPU in GLClusteredLighting
 layout(std140, binding = 3) uniform ClusterParams {
-    mat4 i_View;
-    mat4 i_Projection;
-	mat4 i_InvProjection;
+    mat4  i_View;
+    mat4  i_Projection;
+	mat4  i_InvProjection;
 	
     float i_zNear;
     float i_zFar;
@@ -47,9 +47,6 @@ layout(std140, binding = 3) uniform ClusterParams {
     int   i_ScreenWidth;
     int   i_ScreenHeight;
 };
-
-// Must match value in GLClusteredLighting
-const uint MAX_LIGHTS_PER_CLUSTER = 64u;
 
 bool SphereIntersectsAABB(vec3 center, float radius, vec3 bmin, vec3 bmax)
 {
@@ -142,71 +139,63 @@ void main()
         return;
     }
 
-    // If there are no lights this frame, clear this cluster and bail.
     if (i_NumLights <= 0) {
-        g_Clusters[clusterIndex].offset = 0u;
-        g_Clusters[clusterIndex].count  = 0u;
-        g_Clusters[clusterIndex].pad0   = 0u;
-        g_Clusters[clusterIndex].pad1   = 0u;
+        // Nothing to do: cluster already has count=0 from pass 1
         return;
     }
 
-    // Decompose flat clusterIndex -> (cx, cy, cz)
+    // Decode cluster coords
     int clustersPerSlice = i_ClustersX * i_ClustersY;
     int cz = int(clusterIndex) / clustersPerSlice;
     int rem = int(clusterIndex) % clustersPerSlice;
     int cy = rem / i_ClustersX;
     int cx = rem % i_ClustersX;
 
-    // Reserve space in per-cluster region
-    uint baseOffset = clusterIndex * MAX_LIGHTS_PER_CLUSTER;
-    uint count      = 0u;
-
-    // Compute this cluster’s AABB in view space
     vec3 clusterMinVS;
     vec3 clusterMaxVS;
     ComputeClusterAABBVS(cx, cy, cz, clusterMinVS, clusterMaxVS);
 
-    // For each light, test sphere–AABB
-    for (int li = 0; li < i_NumLights; ++li) {
+    uint offset   = g_Clusters[clusterIndex].offset;
+    uint capacity = g_Clusters[clusterIndex].count; // how many we are allowed to write
+    uint writeCount = 0u;
 
+    if (capacity == 0u) {
+        // This cluster was clamped to 0 in CPU step or had no lights
+        return;
+    }
+
+    for (int li = 0; li < i_NumLights; ++li) {
         GPULight gL = g_Lights[li];
         int lightType = int(gL.position.w);
 
         // Directional affects all clusters
         if (lightType == 0) {
-            if (count < MAX_LIGHTS_PER_CLUSTER) {
-                g_ClusterLightIndices[baseOffset + count] = uint(li);
-                count++;
+            if (writeCount < capacity) {
+                g_ClusterLightIndices[offset + writeCount] = uint(li);
+                writeCount++;
             }
             continue;
         }
 
-        // Point / spot as sphere in view space
         vec3 lightWS = gL.position.xyz;
         vec3 lightVS = (i_View * vec4(lightWS, 1.0)).xyz;
         float radius = max(gL.params.z, 0.0);
-
-        // Quick reject: radius == 0 and center outside cluster?
-        if (radius <= 0.0) {
-            // Treat as a tiny sphere
-            radius = 0.001;
-        }
+        if (radius <= 0.0) radius = 0.001;
 
         if (!SphereIntersectsAABB(lightVS, radius, clusterMinVS, clusterMaxVS)) {
             continue;
         }
 
-        // Append index if within capacity
-        if (count < MAX_LIGHTS_PER_CLUSTER) {
-            g_ClusterLightIndices[baseOffset + count] = uint(li);
-            count++;
+        if (writeCount < capacity) {
+            g_ClusterLightIndices[offset + writeCount] = uint(li);
+            writeCount++;
+        } else {
+            // Capacity exhausted: we *could* break here, since we know
+            // we can't write more to this cluster.
+            break;
         }
-        // else: silently drop extra lights for this cluster
     }
 
-    g_Clusters[clusterIndex].offset = baseOffset;
-    g_Clusters[clusterIndex].count  = count;
-    g_Clusters[clusterIndex].pad0   = 0u;
-    g_Clusters[clusterIndex].pad1   = 0u;
+    // Optionally, store the *actual* written count (might be <= capacity)
+    g_Clusters[clusterIndex].count = writeCount;
 }

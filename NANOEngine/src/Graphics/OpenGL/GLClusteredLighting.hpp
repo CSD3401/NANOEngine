@@ -29,13 +29,13 @@ namespace NE::Graphics::OpenGL {
 	constexpr int CLUSTERED_LIGHTING_SIZE_X = 16;
 	constexpr int CLUSTERED_LIGHTING_SIZE_Y = 9;
 	constexpr int CLUSTERED_LIGHTING_SIZE_Z = 24;
-	constexpr int MAX_LIGHTS_PER_CLUSTER = 64;
+	constexpr int AVERAGE_CLUSTERS_PER_LIGHT = 16;
 
     class GLClusteredLighting final : public IClusteredLighting {
     public:
 		GLClusteredLighting(
             int cX = CLUSTERED_LIGHTING_SIZE_X, int cY = CLUSTERED_LIGHTING_SIZE_Y, int cZ = CLUSTERED_LIGHTING_SIZE_Z,
-            int maxLights = MAX_LIGHTS_PER_VIEW, int lightIndicesPerCluster = MAX_LIGHTS_PER_CLUSTER
+			int maxLights = MAX_LIGHTS_PER_VIEW, int avgClustersPerLight = AVERAGE_CLUSTERS_PER_LIGHT
         );
 		~GLClusteredLighting();
 
@@ -61,16 +61,17 @@ namespace NE::Graphics::OpenGL {
         unsigned m_clusterParamsUBO = 0;
         unsigned m_lightIndexCounterBuffer = 0;
 
-        std::shared_ptr<GLShader> m_computeShader;
+        std::shared_ptr<GLShader> m_countShader;
+        std::shared_ptr<GLShader> m_fillShader;
         int m_numLightsThisView = 0;
 
         // CPU-side structs matching GLSL layouts
-		// Any changes here must be reflected in the compute shader
+		// Any changes here must be reflected in the compute shaders
         struct GPULightCPU
         {
             float position[4];  // xyz + type
             float color[4];     // rgb + intensity
-            float params[4];    // inner/outer, radius, unused
+            float params[4];    // inner, outer, radius, unused
             float direction[4]; // xyz + (maybe) padding
         };
         struct ClusterParamsCPU
@@ -88,6 +89,12 @@ namespace NE::Graphics::OpenGL {
             int numLights;
             int screenWidth;
             int screenHeight;
+        };
+        struct ClusterGPU {
+            uint32_t offset;
+            uint32_t count;
+            uint32_t pad0;
+            uint32_t pad1;
         };
     };
 }

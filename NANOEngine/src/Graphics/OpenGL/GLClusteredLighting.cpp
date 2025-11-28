@@ -10,11 +10,12 @@
 
 namespace NE::Graphics::OpenGL {
 
-    GLClusteredLighting::GLClusteredLighting(int cX, int cY, int cZ, int maxLights, int lightIndicesPerCluster)
+    GLClusteredLighting::GLClusteredLighting(int cX, int cY, int cZ, int maxLights, int avgClustersPerLight)
 		: clustersX(cX), clustersY(cY), clustersZ(cZ),
-          maxLights(maxLights), maxClusterLightIndices(cX * cY * cZ * lightIndicesPerCluster)
+          maxLights(maxLights), maxClusterLightIndices(maxLights * avgClustersPerLight)
     {
-		m_computeShader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("neforwardplus");
+        m_countShader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("nefpcount");
+        m_fillShader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("nefpfill");
 
         // Lights SSBO (binding = 0 in GLSL)
         if (!m_lightSSBO) {
@@ -75,7 +76,8 @@ namespace NE::Graphics::OpenGL {
 
     GLClusteredLighting::~GLClusteredLighting() 
     {
-        m_computeShader.reset();
+        m_countShader.reset();
+        m_fillShader.reset();
         if (m_lightSSBO) {
             glDeleteBuffers(1, &m_lightSSBO);
             m_lightSSBO = 0;
@@ -100,7 +102,7 @@ namespace NE::Graphics::OpenGL {
 
 	void GLClusteredLighting::BuildForView(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights)
 	{
-        if (!m_computeShader || !m_computeShader->GetProgramID()) {
+        if (!m_countShader || !m_fillShader) {
             return;
         }
 
@@ -113,25 +115,77 @@ namespace NE::Graphics::OpenGL {
 
         UploadLights(view, lights);
 
+        const int numClusters = clustersX * clustersY * clustersZ;
 		// Early out if no lights
 		// Note: we still call UploadLights so the fragment shaders know the light count
-        if (m_numLightsThisView <= 0) 
+        if (m_numLightsThisView <= 0 || numClusters <= 0)
             return;
 
-        // Reset atomic counter
-        glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, m_lightIndexCounterBuffer);
-        GLuint zero = 0;
-        glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
-
+        // ---------- PASS 1: COUNT ----------
         // Bind SSBOs
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightSSBO);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_clusterSSBO);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_clusterLightIndicesSSBO);
 
-        m_computeShader->Bind();
-        DispatchCompute();
+        // Bind UBO
+        glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_clusterParamsUBO);
 
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
+        m_countShader->Bind();
+
+        constexpr GLuint localSizeX = 64;
+        GLuint groupsX = (static_cast<GLuint>(numClusters) + (localSizeX - 1)) / localSizeX;
+        glDispatchCompute(groupsX, 1, 1);
+
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        // ---------- CPU PREFIX SUM ----------
+        std::vector<ClusterGPU> clusters(numClusters);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_clusterSSBO);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,
+            0,
+            sizeof(ClusterGPU) * numClusters,
+            clusters.data());
+
+        uint32_t runningOffset = 0;
+        for (int i = 0; i < numClusters; ++i) {
+            clusters[i].offset = runningOffset;
+
+            // Clamp so we don't exceed global index pool
+            uint32_t count = clusters[i].count;
+            if (runningOffset + count > static_cast<uint32_t>(maxClusterLightIndices)) {
+                uint32_t remaining = (runningOffset < static_cast<uint32_t>(maxClusterLightIndices))
+                    ? (static_cast<uint32_t>(maxClusterLightIndices) - runningOffset)
+                    : 0u;
+                clusters[i].count = remaining;
+                runningOffset += remaining;
+                // Optional: warn once
+                // SPD_WARNING("ClusteredLighting: global index buffer capacity exceeded; clamping cluster " << i);
+            }
+            else {
+                runningOffset += count;
+            }
+        }
+
+        // Upload offsets (and possibly clamped counts) back to GPU
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER,
+            0,
+            sizeof(ClusterGPU) * numClusters,
+            clusters.data());
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        // ---------- PASS 2: FILL ----------
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightSSBO);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_clusterSSBO);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_clusterLightIndicesSSBO);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_clusterParamsUBO);
+
+        m_fillShader->Bind();
+
+        glDispatchCompute(groupsX, 1, 1);
+
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}
 
 	void GLClusteredLighting::BindForDraw() 
@@ -208,6 +262,7 @@ namespace NE::Graphics::OpenGL {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
+	// Note: this function is not currently used, as the dispatch is done directly in BuildForView.
 	void GLClusteredLighting::DispatchCompute() 
 	{
         if (m_numLightsThisView <= 0) return;
