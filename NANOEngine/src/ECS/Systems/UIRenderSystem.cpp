@@ -214,40 +214,21 @@ namespace NE::ECS::Systems {
             for (size_t i = 0; i < chain.size(); ++i) {
                 Entity current = chain[i];
                 auto& rect = m_cm->GetComponent<UIRectTransform>(current);
-                bool isTarget = (current == entity);
 
+                // accumulate scale
                 result.scaleX *= rect.scaleX;
                 result.scaleY *= rect.scaleY;
                 result.scaleZ *= rect.scaleZ;
+
+                // accumulate rotation
+                result.rotationX += rect.rotationX;
+                result.rotationY += rect.rotationY;
                 result.rotationZ += rect.rotationZ;
 
-                if (isTarget) {
-                    float localX = rect.x - rect.width * rect.pivotX;
-                    float localY = rect.y - rect.height * rect.pivotY;
-
-                    float parentRotation = result.rotationZ - rect.rotationZ;
-                    if (std::abs(parentRotation) > ROTATION_EPSILON) {
-                        float rad = parentRotation * PI / 180.0f;
-                        float cosR = std::cos(rad);
-                        float sinR = std::sin(rad);
-                        float rotatedX = localX * cosR - localY * sinR;
-                        float rotatedY = localX * sinR + localY * cosR;
-                        localX = rotatedX;
-                        localY = rotatedY;
-                    }
-
-                    float parentScaleX = result.scaleX / rect.scaleX;
-                    float parentScaleY = result.scaleY / rect.scaleY;
-
-                    result.posX += localX * parentScaleX;
-                    result.posY += localY * parentScaleY;
-                    result.posZ += rect.z;
-                }
-                else {
-                    result.posX += rect.x;
-                    result.posY += rect.y;
-                    result.posZ += rect.z;
-                }
+                // accumulate position
+                result.posX += rect.x;
+                result.posY += rect.y;
+                result.posZ += rect.z;
             }
 
             return result;
@@ -293,8 +274,12 @@ namespace NE::ECS::Systems {
             float anchorY = parentHeight * DEFAULT_ANCHOR_Y;
 
             if (isTarget) {
-                float localX = anchorX + rect.x - rect.width * rect.pivotX;
-                float localY = anchorY + rect.y - rect.height * rect.pivotY;
+                // Use scaled dimensions for pivot offset calculation
+                float scaledWidth = rect.width * result.scaleX;
+                float scaledHeight = rect.height * result.scaleY;
+
+                float localX = anchorX + rect.x - scaledWidth * rect.pivotX;
+                float localY = anchorY + rect.y - scaledHeight * rect.pivotY;
 
                 float parentRotation = result.rotationZ - rect.rotationZ;
                 if (std::abs(parentRotation) > ROTATION_EPSILON) {
@@ -480,62 +465,40 @@ namespace NE::ECS::Systems {
     Math::Mat4 UIRenderSystem::BuildWorldSpaceModelMatrix(
         Entity entity,
         Entity canvasEntity,
-        const UIRectTransform& rect
+        const UIRectTransform& rect,
+        const AccumulatedTransform& accumulated
     ) {
-        Math::Vec3 position = rect.GetPosition();
-        Math::Vec3 scale = rect.GetScale();
+        // compute pivot offset
         Math::Vec2 pivot = rect.GetPivot();
 
-        Math::Vec3 effectiveScale = scale;
-        Math::Vec3 accumulatedPosition = position;
+        float pivotOffsetX = -rect.width * pivot.x * accumulated.scaleX;
+        float pivotOffsetY = -rect.height * pivot.y * accumulated.scaleY;
 
-        float accumulatedRotationX = rect.rotationX;
-        float accumulatedRotationY = rect.rotationY;
-        float accumulatedRotationZ = rect.rotationZ;
-
-        Entity parentEntity = rect.parent;
-        while (parentEntity != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(parentEntity)) {
-            auto& parentRect = m_cm->GetComponent<UIRectTransform>(parentEntity);
-
-            effectiveScale.x *= parentRect.scaleX;
-            effectiveScale.y *= parentRect.scaleY;
-            effectiveScale.z *= parentRect.scaleZ;
-
-            accumulatedRotationX += parentRect.rotationX;
-            accumulatedRotationY += parentRect.rotationY;
-            accumulatedRotationZ += parentRect.rotationZ;
-
-            accumulatedPosition.x += parentRect.x;
-            accumulatedPosition.y += parentRect.y;
-            accumulatedPosition.z += parentRect.z;
-
-            parentEntity = parentRect.parent;
-        }
-
-        float pivotOffsetX = -rect.width * pivot.x * effectiveScale.x;
-        float pivotOffsetY = -rect.height * pivot.y * effectiveScale.y;
-
+        // Scale matrix using accumulated scale
         Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
-            rect.width * effectiveScale.x,
-            rect.height * effectiveScale.y,
-            effectiveScale.z
+            rect.width * accumulated.scaleX,
+            rect.height * accumulated.scaleY,
+            accumulated.scaleZ
         );
 
+        // pivot offset in local space
         Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(
             pivotOffsetX,
             pivotOffsetY,
             0.0f
         );
 
-        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accumulatedRotationX * PI / 180.0f);
-        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accumulatedRotationY * PI / 180.0f);
-        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accumulatedRotationZ * PI / 180.0f);
+        // rotation using accumulated rotations
+        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accumulated.rotationX * PI / 180.0f);
+        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accumulated.rotationY * PI / 180.0f);
+        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accumulated.rotationZ * PI / 180.0f);
         Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
 
+        // translation using accumulated position
         Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(
-            accumulatedPosition.x,
-            accumulatedPosition.y,
-            accumulatedPosition.z
+            accumulated.posX,
+            accumulated.posY,
+            accumulated.posZ
         );
 
         return translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
@@ -548,6 +511,7 @@ namespace NE::ECS::Systems {
         const UIImage& img,
         const UIRectTransform& rect,
         const WorldTransform& worldTransform,
+        const AccumulatedTransform& accumulated,
         std::vector<NE::Graphics::UIVertex>& vertices,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
@@ -578,7 +542,7 @@ namespace NE::ECS::Systems {
         if (projMatrix) cmd.projMatrix = *projMatrix;
 
         if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-            cmd.modelMatrix = BuildWorldSpaceModelMatrix(entity, canvasEntity, rect);
+            cmd.modelMatrix = BuildWorldSpaceModelMatrix(entity, canvasEntity, rect, accumulated);
         }
 
         NE::Graphics::UIRenderer::Submit(cmd);
@@ -600,6 +564,8 @@ namespace NE::ECS::Systems {
             auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
+            AccumulatedTransform accumulated = AccumulateParentTransforms(e, canvasEntity, canvas);
+
             WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
 
             std::vector<NE::Graphics::UIVertex> vertices;
@@ -613,7 +579,7 @@ namespace NE::ECS::Systems {
 
             if (vertices.empty()) continue;
 
-            SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, vertices, viewMatrix, projMatrix);
+            SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, accumulated, vertices, viewMatrix, projMatrix);
         }
     }
 

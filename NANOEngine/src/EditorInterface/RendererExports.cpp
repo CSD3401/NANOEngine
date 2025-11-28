@@ -77,6 +77,7 @@ namespace NE::Renderer {
 		}
 
 		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }
+		Graphics::PostProcessingSettings& GetPostProcessingSettings() { return Graphics::GraphicsManager::postProcessingSettings; }
 
         void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID) {
             auto& img = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);

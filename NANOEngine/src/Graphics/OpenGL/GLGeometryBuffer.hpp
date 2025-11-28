@@ -2,8 +2,12 @@
 
 #include "../Interfaces/IGeometryBuffer.hpp"
 #include <memory>
-#include "../Interfaces/IVertexBuffer.hpp"
-#include "../Interfaces/IIndexBuffer.hpp"
+
+// Forward declarations
+namespace NE::Graphics {
+    class IVertexBuffer;
+    class IIndexBuffer;
+}
 
 namespace NE::Graphics::OpenGL {
 

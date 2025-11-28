@@ -104,6 +104,7 @@ namespace NE {
 		Physics::PhysicsManager::Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
 		//Physics::PhysicsManager::TestPhysicsSetup();
+		//glDisable(GL_FRAMEBUFFER_SRGB);
 	}
 
 	void LoadStartupScene() {
@@ -337,8 +338,11 @@ namespace NE {
 		glGetProgramBinary(linkedProgram, binLen, &written, &fmt, blob.data());
 
 		NE::Resource::NanoShdHeader h{};
-		h.stagesMask = ((shaderStages.count(GL_VERTEX_SHADER) ? 1 : 0) << 0)
-			| ((shaderStages.count(GL_FRAGMENT_SHADER) ? 1 : 0) << 4);
+		h.stagesMask = 
+			((shaderStages.count(GL_VERTEX_SHADER) ? 1u : 0u) << 0) | 
+			((shaderStages.count(GL_FRAGMENT_SHADER) ? 1u : 0u) << 4) |
+			((shaderStages.count(GL_COMPUTE_SHADER) ? 1u : 0u) << 8);
+			;
 		h.sourceHash = 0; // (optional) fill later
 		h.definesHash = 0; // (optional)
 		h.permutationKey = 0; // (optional)
@@ -355,13 +359,26 @@ namespace NE {
 		ofs.write(reinterpret_cast<const char*>(&h), sizeof(h));
 		ofs.write(reinterpret_cast<const char*>(blob.data()), written);
 
-		if (embedSourceFallback) {
+		/*if (embedSourceFallback) {
 			const auto& vs = shaderStages.at(GL_VERTEX_SHADER);
 			const auto& fs = shaderStages.at(GL_FRAGMENT_SHADER);
 			uint32_t vsLen = static_cast<uint32_t>(vs.size());
 			uint32_t fsLen = static_cast<uint32_t>(fs.size());
 			ofs.write(reinterpret_cast<const char*>(&vsLen), 4); ofs.write(vs.data(), vsLen);
 			ofs.write(reinterpret_cast<const char*>(&fsLen), 4); ofs.write(fs.data(), fsLen);
+		}*/
+
+		if (embedSourceFallback) {
+			uint32_t stageCount = static_cast<uint32_t>(shaderStages.size());
+			ofs.write(reinterpret_cast<const char*>(&stageCount), 4);
+
+			for (auto& [stageEnum, src] : shaderStages) {
+				uint32_t stage = static_cast<uint32_t>(stageEnum);
+				uint32_t len = static_cast<uint32_t>(src.size());
+				ofs.write(reinterpret_cast<const char*>(&stage), 4);
+				ofs.write(reinterpret_cast<const char*>(&len), 4);
+				ofs.write(src.data(), len);
+			}
 		}
 
 		glDeleteProgram(linkedProgram);
