@@ -1209,7 +1209,7 @@ namespace Scripting {
     void IScript::RegisterTransformRefField(const std::string& name, TransformRef* memberPtr) {
         RegisterFieldInternal(
             name,
-            "transformref",
+            "componentref:Transform",
             memberPtr,
             [memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
             [this, memberPtr](const std::string& value) -> bool {
@@ -1228,7 +1228,7 @@ namespace Scripting {
     void IScript::RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr) {
         RegisterFieldInternal(
             name,
-            "rigidbodyref",
+            "componentref:Rigidbody",
             memberPtr,
             [memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
             [this, memberPtr](const std::string& value) -> bool {
@@ -1247,7 +1247,7 @@ namespace Scripting {
     void IScript::RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr) {
         RegisterFieldInternal(
             name,
-            "audiosourceref",
+            "componentref:AudioSource",
             memberPtr,
             [memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
             [this, memberPtr](const std::string& value) -> bool {
