@@ -339,7 +339,7 @@ namespace Editor {
 	void HierarchyPanel::DrawHierarchyContextMenuBody(bool canEditHierarchy, uint32_t contextEntityId) {
 		// contextEntityId == NE::ECS::NO_ENTITY = clicked on empty
 		//const bool hasEntity = (contextEntityId != NE::ECS::NO_ENTITY);
-		if (!EditorScene::s_selectedEntity) return;
+		
 
 		const bool hasEntity = (EditorScene::s_selectedEntity != nullptr);
 
@@ -412,18 +412,20 @@ namespace Editor {
 				);
 			}
 
-			bool isCanvas = NE::ECS::Query::HasUICanvas(EditorScene::s_selectedEntity->linkedEntity);
-			if (isCanvas) {
-				ImGui::Separator();
-				if (ImGui::MenuItem("Image")) {
-					NANOEngine::Events::EventBus::Get().Dispatch(
-						NANOEngine::Events::EventDomain::Editor,
-						CreateUIImageEntityEvent{ EditorScene::s_selectedEntity->linkedEntity }
-					);
-				}
-				if (ImGui::MenuItem("Text")) {
-				}
-				if (ImGui::MenuItem("Button")) {
+			if (EditorScene::s_selectedEntity) {
+				bool isCanvas = NE::ECS::Query::HasUICanvas(EditorScene::s_selectedEntity->linkedEntity);
+				if (isCanvas) {
+					ImGui::Separator();
+					if (ImGui::MenuItem("Image")) {
+						NANOEngine::Events::EventBus::Get().Dispatch(
+							NANOEngine::Events::EventDomain::Editor,
+							CreateUIImageEntityEvent{ EditorScene::s_selectedEntity->linkedEntity }
+						);
+					}
+					if (ImGui::MenuItem("Text")) {
+					}
+					if (ImGui::MenuItem("Button")) {
+					}
 				}
 			}
 
