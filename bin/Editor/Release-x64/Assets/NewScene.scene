@@ -3213,7 +3213,8 @@
                     "startCol": "0",
                     "endRow": "0",
                     "endCol": "3",
-                    "zOffset": "0.100000"
+                    "zOffset": "0.100000",
+                    "eventName": "MirrorPuzzleSolved"
                 }
             }
         },
@@ -7118,6 +7119,13 @@
                 },
                 "luid": 8390884670935269449,
                 "parentLuid": 8390884670935269445
+            },
+            "NativeScript": {
+                "ScriptName": "SolveInactive",
+                "SerializedFields": {
+                    "isActive": "1",
+                    "eventName": "MirrorPuzzleSolved"
+                }
             }
         },
         {
@@ -7152,7 +7160,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 0,
+                "isActive": 1,
                 "luid": 7308894852325769237,
                 "prefabID": "",
                 "prefabLocalID": 7,
@@ -17015,9 +17023,9 @@
                     "z": 1.0
                 },
                 "Rotation": {
-                    "x": 0.0,
+                    "x": -0.0,
                     "y": 0.0,
-                    "z": 0.0
+                    "z": -0.0
                 },
                 "luid": 8390884681616130049,
                 "parentLuid": 0
@@ -17028,6 +17036,4827 @@
                     "startInPresent": "1",
                     "showLog": "0"
                 }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "MirrorPuzzle",
+                "isActive": 1,
+                "luid": 7308894871267049472,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.5064382553100586,
+                    "y": -0.3252373933792114,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681742811137,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "MirrorPuzzle",
+                "SerializedFields": {
+                    "targetTransform": "669",
+                    "gridParent": "526",
+                    "startRow": "2",
+                    "mirrorTargetTransform": "670",
+                    "mirrorGridParent": "587",
+                    "startCol": "0",
+                    "endRow": "0",
+                    "endCol": "3",
+                    "zOffset": "0.100000",
+                    "eventName": "MirrorPuzzleSolved"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "OriginalGrid",
+                "isActive": 1,
+                "luid": 7308894871269081091,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681744842756,
+                "parentLuid": 8390884681742811137
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "00",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681754279944,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681782132793,
+                "parentLuid": 8390884681754279944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681804218427,
+                "parentLuid": 8390884681754279944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681816932412,
+                "parentLuid": 8390884681754279944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681830498365,
+                "parentLuid": 8390884681754279944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "01",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681837117502,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681837117503,
+                "parentLuid": 8390884681837117502
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681837117504,
+                "parentLuid": 8390884681837117502
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681837117505,
+                "parentLuid": 8390884681837117502
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681837117506,
+                "parentLuid": 8390884681837117502
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "02",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681847734389,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681847734390,
+                "parentLuid": 8390884681847734389
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681847734391,
+                "parentLuid": 8390884681847734389
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681847734392,
+                "parentLuid": 8390884681847734389
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681847734393,
+                "parentLuid": 8390884681847734389
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "03",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681848782970,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681848782971,
+                "parentLuid": 8390884681848782970
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681848782972,
+                "parentLuid": 8390884681848782970
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681848782973,
+                "parentLuid": 8390884681848782970
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681848782974,
+                "parentLuid": 8390884681848782970
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "10",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681850486911,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681850486912,
+                "parentLuid": 8390884681850486911
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681850486913,
+                "parentLuid": 8390884681850486911
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681850486914,
+                "parentLuid": 8390884681850486911
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681850486915,
+                "parentLuid": 8390884681850486911
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "11",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681851732100,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681851732101,
+                "parentLuid": 8390884681851732100
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681851732102,
+                "parentLuid": 8390884681851732100
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681851732103,
+                "parentLuid": 8390884681851732100
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681851732104,
+                "parentLuid": 8390884681851732100
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "12",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681852518537,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681852518538,
+                "parentLuid": 8390884681852518537
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681852518539,
+                "parentLuid": 8390884681852518537
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681852518540,
+                "parentLuid": 8390884681852518537
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681852518541,
+                "parentLuid": 8390884681852518537
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "13",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681854288014,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681854288015,
+                "parentLuid": 8390884681854288014
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681854288016,
+                "parentLuid": 8390884681854288014
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681854288017,
+                "parentLuid": 8390884681854288014
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681854288018,
+                "parentLuid": 8390884681854288014
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "20",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681855664275,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681855664276,
+                "parentLuid": 8390884681855664275
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681855664277,
+                "parentLuid": 8390884681855664275
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681855664278,
+                "parentLuid": 8390884681855664275
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681855664279,
+                "parentLuid": 8390884681855664275
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "21",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.30000001192092896,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681857040536,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681857040537,
+                "parentLuid": 8390884681857040536
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681857040538,
+                "parentLuid": 8390884681857040536
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681857040539,
+                "parentLuid": 8390884681857040536
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681857040540,
+                "parentLuid": 8390884681857040536
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "22",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681858220189,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681858220190,
+                "parentLuid": 8390884681858220189
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681858220191,
+                "parentLuid": 8390884681858220189
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681858220192,
+                "parentLuid": 8390884681858220189
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681858220193,
+                "parentLuid": 8390884681858220189
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "23",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681859989666,
+                "parentLuid": 8390884681744842756
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681859989667,
+                "parentLuid": 8390884681859989666
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681859989668,
+                "parentLuid": 8390884681859989666
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681859989669,
+                "parentLuid": 8390884681859989666
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681859989670,
+                "parentLuid": 8390884681859989666
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "MirrorGrid",
+                "isActive": 1,
+                "luid": 7308894871269081091,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 1.672642707824707,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035943,
+                "parentLuid": 8390884681742811137
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "00",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035944,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035945,
+                "parentLuid": 8390884681865035944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 4,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035946,
+                "parentLuid": 8390884681865035944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035947,
+                "parentLuid": 8390884681865035944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 6,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035948,
+                "parentLuid": 8390884681865035944
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 72,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035949,
+                "parentLuid": 8390884681865036010
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 75,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035950,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "01",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 73,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035951,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 74,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035952,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 75,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035953,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 76,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035954,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 77,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035955,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 74,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035956,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 76,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035957,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 77,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035958,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "23",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 78,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035959,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 79,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035960,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 80,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035961,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 81,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035962,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 82,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035963,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 79,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035964,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 80,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035965,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 81,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035966,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 82,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035967,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "01",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 26,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.2999999523162842,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035968,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 27,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035969,
+                "parentLuid": 8390884681865035968
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 28,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035970,
+                "parentLuid": 8390884681865035968
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 29,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035971,
+                "parentLuid": 8390884681865035968
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 30,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035972,
+                "parentLuid": 8390884681865035968
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 82,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035973,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 77,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035974,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "02",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 33,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.5999999046325684,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035975,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 34,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035976,
+                "parentLuid": 8390884681865035975
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 35,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035977,
+                "parentLuid": 8390884681865035975
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 36,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035978,
+                "parentLuid": 8390884681865035975
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 37,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035979,
+                "parentLuid": 8390884681865035975
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "03",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 38,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.9000000953674316,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035980,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 39,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035981,
+                "parentLuid": 8390884681865035980
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 40,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035982,
+                "parentLuid": 8390884681865035980
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 41,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035983,
+                "parentLuid": 8390884681865035980
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 42,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035984,
+                "parentLuid": 8390884681865035980
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "10",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 43,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035985,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 44,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035986,
+                "parentLuid": 8390884681865035985
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 45,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035987,
+                "parentLuid": 8390884681865035985
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 46,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035988,
+                "parentLuid": 8390884681865035985
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 47,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035989,
+                "parentLuid": 8390884681865035985
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "11",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 48,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.2999999523162842,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035990,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 49,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035991,
+                "parentLuid": 8390884681865035990
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 50,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035992,
+                "parentLuid": 8390884681865035990
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 51,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035993,
+                "parentLuid": 8390884681865035990
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 52,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035994,
+                "parentLuid": 8390884681865035990
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "12",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 53,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.5999999046325684,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035995,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 54,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035996,
+                "parentLuid": 8390884681865035995
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 55,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035997,
+                "parentLuid": 8390884681865035995
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 56,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865035998,
+                "parentLuid": 8390884681865035995
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 57,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865035999,
+                "parentLuid": 8390884681865035995
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "13",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 58,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.30000001192092896,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036000,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 59,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036001,
+                "parentLuid": 8390884681865036000
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 60,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036002,
+                "parentLuid": 8390884681865036000
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 61,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036003,
+                "parentLuid": 8390884681865036000
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 62,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865036004,
+                "parentLuid": 8390884681865036000
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "20",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 63,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036005,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 64,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036006,
+                "parentLuid": 8390884681865036005
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 65,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036007,
+                "parentLuid": 8390884681865036005
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 66,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036008,
+                "parentLuid": 8390884681865036005
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 67,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865036009,
+                "parentLuid": 8390884681865036005
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "21",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 68,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.2999999523162842,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036010,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 69,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036011,
+                "parentLuid": 8390884681865036010
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 70,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036012,
+                "parentLuid": 8390884681865036010
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 71,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036013,
+                "parentLuid": 8390884681865036010
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 72,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865036014,
+                "parentLuid": 8390884681865036010
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "22",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 73,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.6000000238418579,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036015,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 74,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036016,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 75,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036017,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 76,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036018,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 77,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865036019,
+                "parentLuid": 8390884681865036015
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "23",
+                "isActive": 1,
+                "luid": 7308894871278518279,
+                "prefabID": "",
+                "prefabLocalID": 78,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.8999999761581421,
+                    "y": -0.6000000238418579,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 0.20000000298023224,
+                    "z": 0.20000000298023224
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036020,
+                "parentLuid": 8390884681865035943
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "UP",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 79,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036021,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RIGHT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 80,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.25,
+                    "y": 0.0,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036022,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "DOWN",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 81,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.25,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681865036023,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LEFT",
+                "isActive": 1,
+                "luid": 7308894871306371128,
+                "prefabID": "",
+                "prefabLocalID": 82,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.25,
+                    "y": -9.5367431640625e-7,
+                    "z": 0.550000011920929
+                },
+                "Scale": {
+                    "x": 0.20000000298023224,
+                    "y": 1.0,
+                    "z": 0.5
+                },
+                "Rotation": {
+                    "x": 90.0,
+                    "y": 90.0,
+                    "z": 0.0
+                },
+                "luid": 8390884681865036024,
+                "parentLuid": 8390884681865036020
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/plane",
+                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "OriginalTransform",
+                "isActive": 1,
+                "luid": 7308894871394975993,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.6000000238418579,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681870737658,
+                "parentLuid": 8390884681742811137
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "c427718b-41d1-465f-a21f-99ac1981e4e9"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "MirrorTransform",
+                "isActive": 1,
+                "luid": 7308894871394975993,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.575559139251709,
+                    "y": -0.6046634912490845,
+                    "z": 0.10000000149011612
+                },
+                "Scale": {
+                    "x": 0.10000000149011612,
+                    "y": 0.10000000149011612,
+                    "z": 0.10000000149011612
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884681876308220,
+                "parentLuid": 8390884681742811137
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/sphere",
+                "materialUUID": "c427718b-41d1-465f-a21f-99ac1981e4e9"
             }
         }
     ]

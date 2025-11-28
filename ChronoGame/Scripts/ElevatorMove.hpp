@@ -55,7 +55,7 @@ public:
 		// Called every frame while the script is enabled
 		if (isMoving)
 		{
-			moveTimer -= deltaTime;
+			moveTimer -= (float)deltaTime;
 			if (moveTimer <= 0.0f)
 			{
 				isMoving = false;

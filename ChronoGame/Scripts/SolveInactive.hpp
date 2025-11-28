@@ -29,18 +29,9 @@ public:
             SetActive(false, GetEntity());
             });
         LOG_INFO(std::string("SolveInactive listening to '") + eventName + "'");
-
     }
 
     void Initialize(Entity entity) override {
-        // Subscribe to event once when script is initialized
-        //LOG_WARNING("Listening to :" << eventName.c_str());
-
-        //Events::Listen(eventName.c_str(), [this](void* data) {
-        //    // Deactivate the entity this script is attached to
-        //    SetActive(false, GetEntity());
-        //});
-        //LOG_INFO(std::string("SolveInactive listening to '") + eventName + "'");
     }
 
     void Update(double) override {

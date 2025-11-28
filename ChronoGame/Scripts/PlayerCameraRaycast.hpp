@@ -43,7 +43,7 @@ public:
 			}
 		}
 
-		raycastTimer -= deltaTime;
+		raycastTimer -= (float)deltaTime;
 		if (raycastTimer <= 0.0f)
 		{
 			TransformRef t = GetTransformRef(GetEntity());

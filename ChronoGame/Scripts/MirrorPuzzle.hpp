@@ -79,14 +79,7 @@ public:
 		//SCRIPT_FIELD(tileSpacingX, Float);
 		//SCRIPT_FIELD(tileSpacingY, Float);
 		SCRIPT_FIELD(zOffset, Float);
-
-		// TODO: Uncomment these when engine adds support for std::vector<CustomStruct>
-		// SCRIPT_FIELD_STRUCT(tileRestrictions);
-		// SCRIPT_FIELD_STRUCT(mirrorTileRestrictions);
-
-		// NOTE: The tileRestrictions and mirrorTileRestrictions vectors work in code
-		// but aren't currently editable in the editor. For now, configure them
-		// programmatically in Start() or use the alternative flat int vector approach.
+		SCRIPT_FIELD(eventName, String);
 	}
 
 	void Start() override {
@@ -168,6 +161,24 @@ public:
 
 				grid[restriction.row][restriction.col] = allowed;
 				LOG_INFO("Original tile (" << restriction.row << "," << restriction.col << ") restricted to: " << static_cast<int>(allowed));
+			
+				// Update visual direction indicators for this tile
+				int tileIndex = restriction.row * 4 + restriction.col;
+				if (tileTransforms[tileIndex].IsValid()) {
+					Entity tileEntity = tileTransforms[tileIndex].GetEntity();
+
+					// Get direction indicator children (UP=0, RIGHT=1, DOWN=2, LEFT=3)
+					Entity upIndicator = GetChildOf(tileEntity, 0);
+					Entity rightIndicator = GetChildOf(tileEntity, 1);
+					Entity downIndicator = GetChildOf(tileEntity, 2);
+					Entity leftIndicator = GetChildOf(tileEntity, 3);
+
+					// Set active based on allowed directions
+					if (upIndicator != 0) SetActive((allowed & UP) != 0, upIndicator);
+					if (rightIndicator != 0) SetActive((allowed & RIGHT) != 0, rightIndicator);
+					if (downIndicator != 0) SetActive((allowed & DOWN) != 0, downIndicator);
+					if (leftIndicator != 0) SetActive((allowed & LEFT) != 0, leftIndicator);
+				}
 			}
 		}
 
@@ -182,6 +193,24 @@ public:
 
 				mirrorGrid[restriction.row][restriction.col] = allowed;
 				LOG_INFO("Mirror tile (" << restriction.row << "," << restriction.col << ") restricted to: " << static_cast<int>(allowed));
+			
+				// Update visual direction indicators for this mirror tile
+				int tileIndex = restriction.row * 4 + restriction.col;
+				if (mirrorTileTransforms[tileIndex].IsValid()) {
+					Entity tileEntity = mirrorTileTransforms[tileIndex].GetEntity();
+
+					// Get direction indicator children (UP=0, RIGHT=1, DOWN=2, LEFT=3)
+					Entity upIndicator = GetChildOf(tileEntity, 0);
+					Entity rightIndicator = GetChildOf(tileEntity, 1);
+					Entity downIndicator = GetChildOf(tileEntity, 2);
+					Entity leftIndicator = GetChildOf(tileEntity, 3);
+
+					// Set active based on allowed directions
+					if (upIndicator != 0) SetActive((allowed & UP) != 0, upIndicator);
+					if (rightIndicator != 0) SetActive((allowed & RIGHT) != 0, rightIndicator);
+					if (downIndicator != 0) SetActive((allowed & DOWN) != 0, downIndicator);
+					if (leftIndicator != 0) SetActive((allowed & LEFT) != 0, leftIndicator);
+				}
 			}
 		}
 
@@ -232,6 +261,8 @@ public:
 		if (HasReachedEnd() && HasMirrorReachedEnd()) {
 			if (!puzzleSolved) {
 				puzzleSolved = true;
+				Events::Send(eventName.c_str());
+				LOG_INFO("\n SEND MSG : " << eventName);
 				LOG_INFO("\n=== PUZZLE SOLVED! ===");
 			}
 		}
@@ -484,6 +515,8 @@ public:
 	// Tile movement restrictions (configurable in editor)
 	std::vector<TileConfig> tileRestrictions;        // Original grid restrictions
 	std::vector<TileConfig> mirrorTileRestrictions;  // Mirror grid restrictions
+
+	std::string eventName = "MirrorPuzzleSolved";
 
 	// === INTERNAL STATE ===
 
