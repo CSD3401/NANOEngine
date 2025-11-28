@@ -225,8 +225,8 @@ public:
 		if (Input::WasKeyPressed('S')) TryMoveDown();
 		if (Input::WasKeyPressed('A')) TryMoveLeft();
 		if (Input::WasKeyPressed('D')) TryMoveRight();
-		if (Input::WasKeyPressed('P')) PrintGridState();
-		if (Input::WasKeyPressed('R')) ResetPuzzle();
+		//if (Input::WasKeyPressed('P')) PrintGridState();
+		//if (Input::WasKeyPressed('R')) ResetPuzzle();
 
 		// Check win condition
 		if (HasReachedEnd() && HasMirrorReachedEnd()) {

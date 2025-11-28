@@ -33,7 +33,6 @@ public:
 
     void Start() override {
         LOG_INFO("TimeSwapManager: Testing event system...");
-        //Events::Send("TestEvent");  // Send a simple test event
 
         isInPresent = startInPresent;
 
@@ -43,7 +42,7 @@ public:
         }
 
         // Send initial state to all listeners
-        //BroadcastCurrentState();
+        BroadcastCurrentState();
     }
 
     void Update(double deltaTime) override {

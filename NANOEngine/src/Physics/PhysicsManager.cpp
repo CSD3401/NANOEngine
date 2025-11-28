@@ -1141,7 +1141,7 @@ namespace NE::Physics {
                 hit.entity = static_cast<Entity>(body.GetUserData());
             }
 
-            SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
+            //SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
         }
 
 		return hit;

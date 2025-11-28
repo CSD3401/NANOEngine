@@ -39,11 +39,11 @@ public:
     void Initialize(Entity entity) override {
         // Register to listen for time swap events
         Events::Listen("TimeSwapToPast", [this](void* data) {
-            //ShowPast();
+            ShowPast();
             });
 
         Events::Listen("TimeSwapToPresent", [this](void* data) {
-            //ShowPresent();
+            ShowPresent();
             });
 
         if (showLog) {
