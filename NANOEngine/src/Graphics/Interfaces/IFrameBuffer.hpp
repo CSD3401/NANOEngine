@@ -20,6 +20,7 @@ namespace NE::Graphics {
         virtual uint32_t GetWidth() const = 0;
         virtual uint32_t GetHeight() const = 0;
 
+        virtual uint32_t GetFramebuffer() const = 0;
 		virtual uint32_t ReadPixel(uint32_t x, uint32_t y) = 0;
     };
 

@@ -16,6 +16,11 @@
 #include "../ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
+#include "ECS/Systems/UIRenderSystem.hpp"
+#include "ECS/Systems//UITransformSystem.hpp"
+#include "../ECS/Components/UIRectTransform.hpp"
+#include "../ECS/Components/UIImage.hpp"
+#include "../ECS/Components/UICanvas.hpp"
 #include "Core/Couroutine.hpp"
 #include "Core/SpdLogger.hpp"  // For console logging
 #include "PrefabManagement/PrefabManager.hpp"
@@ -47,6 +52,9 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_physicsSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
+		m_ecsCoordinator.m_uiTransformSystem->Init();
+		m_ecsCoordinator.m_uiRenderSystem->Init();
+
 		m_ecsCoordinator.m_animatorSystem->Init();
 		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
 	}
@@ -67,6 +75,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_physicsSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
+		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
 	}
@@ -75,6 +84,8 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawFrame();
 		Graphics::GraphicsManager::EndFrame();
+		Graphics::GraphicsManager::DrawUI();
+
 	}
 
 	void Scene::Exit() {
@@ -87,6 +98,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Exit();
 		m_ecsCoordinator.m_physicsSystem->Exit();
 		m_ecsCoordinator.m_scriptSystem->Exit();	
+		m_ecsCoordinator.m_uiRenderSystem->Exit();	
 		m_ecsCoordinator.m_animatorSystem->Exit();
 	}
 

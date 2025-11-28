@@ -129,6 +129,9 @@
     <ClCompile Include="src\Panels\ScriptsPanel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\UIGizmoHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\Panels\AssetBrowserPanel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -284,11 +287,17 @@
     <ClInclude Include="src\Panels\ScriptsPanel.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\UIGizmoHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="vendor\include\imgui\misc\cpp\imgui_stdlib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Panels\LightingPanel.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Util\DrawSelectedCollider.hpp">
+      <Filter>Header Files\src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,12 @@
 #include "RendererExports.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/UIImage.hpp"
+#include "../ECS/Components/UICanvas.hpp"
+#include "../ECS/Components/UIRectTransform.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "../../Editor/src/AssetManagement/AssetManager.hpp"
+#include "../Graphics/Core/PipelineCache.hpp"
 #include "../EngineState.hpp"  // For GetEngineState
 #include "../Engine.hpp"  // For MarkSceneDirty
 #include <Core/SpdLogger.hpp>
@@ -72,6 +77,44 @@ namespace NE::Renderer {
 		}
 
 		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }
-	}
 
+        void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID) {
+            auto& img = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
+
+            // load the material (this loads the shader, pipeline settings, etc.)
+			if (materialUUID.empty())
+			{
+				SPD_ERROR("[AssignUITexture] Material UUID is empty!");
+				return;
+			}
+			
+			// store uuids for serialization
+            img.textureUUID = textureUUID;
+			img.materialUUID = materialUUID;
+
+			img.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(materialUUID);
+
+			if (!img.material)
+			{
+				SPD_ERROR("[AssignUITexture] Failed to load material with UUID: " << materialUUID);
+				return;
+			}
+
+			// load texture and get bindless handle
+			if (!textureUUID.empty()) {
+				auto texture = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
+				if (texture) {
+					img.bindlessHandle = texture->GetBindlessHandle();
+				}
+			}
+
+            // mark dirty
+            if (NE::GetEngineState() == NE::EngineState::Edit)
+            {
+                img.isDirty = true;
+                NE::MarkSceneDirty();
+                SPD_DEBUG("[DirtyFlag] UI Texture changed - Scene marked DIRTY");
+            }
+        }
+	}
 }

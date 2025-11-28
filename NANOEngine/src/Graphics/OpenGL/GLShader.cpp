@@ -3,7 +3,9 @@
 #include <sstream>
 #include <glad/glad.h>
 #include "Core/SpdLogger.hpp"
+#include "Math/Vec2.hpp"
 #include "Math/Vec3.hpp"
+#include "Math/Vec4.hpp"
 #include "Math/Mat4.hpp"
 #include <iostream>
 #include "ResourceManagement/BinaryHeaders/NanoShdHeader.hpp"
@@ -108,13 +110,21 @@ namespace NE::Graphics::OpenGL {
         glUniform1f(GetUniformLocation(uName), value);
     }
 
-    void GLShader::SetUniformVec3(const std::string& uName, const Vec3& value) 
-    {
+    void GLShader::SetUniformVec2(const std::string& name, const NE::Math::Vec2& value) {
+        int loc = GetUniformLocation(name);
+        glUniform2f(loc, value.x, value.y);
+    }
+
+    void GLShader::SetUniformVec3(const std::string& uName, const Vec3& value) {
         glUniform3fv(GetUniformLocation(uName), 1, value.Data());
     }
 
-    void GLShader::SetUniformMat4(const std::string& uName, const Mat4& matrix) 
-    {
+    void GLShader::SetUniformVec4(const std::string& name, const NE::Math::Vec4& value) {
+        int loc = GetUniformLocation(name);
+        glUniform4f(loc, value.x, value.y, value.z, value.w);
+    }
+
+    void GLShader::SetUniformMat4(const std::string& uName, const Mat4& matrix) {
         glUniformMatrix4fv(GetUniformLocation(uName), 1, GL_FALSE, matrix.Data());
     }
 

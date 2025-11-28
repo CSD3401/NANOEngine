@@ -190,6 +190,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\ImGuiLayer.cpp" />
     <ClCompile Include="src\ThumbnailManager.cpp" />
+    <ClCompile Include="src\UIGizmoHandler.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui_draw.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui_impl_glfw.cpp" />
@@ -239,6 +240,8 @@
     <ClInclude Include="src\ImGuiLayer.hpp" />
     <ClInclude Include="src\Panels\IPanel.hpp" />
     <ClInclude Include="src\ThumbnailManager.hpp" />
+    <ClInclude Include="src\UIGizmoHandler.hpp" />
+    <ClInclude Include="src\Util\DrawSelectedCollider.hpp" />
     <ClInclude Include="vendor\include\imgui\imconfig.h" />
     <ClInclude Include="vendor\include\imgui\imgui.h" />
     <ClInclude Include="vendor\include\imgui\imgui_impl_glfw.h" />

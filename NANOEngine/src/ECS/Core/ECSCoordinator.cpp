@@ -8,6 +8,9 @@
 #include "../Components/EntityMeta.hpp"
 #include "../Components/AudioSource.hpp"
 #include "../Components/NativeScript.hpp"
+#include "../Components/UICanvas.hpp"
+#include "../Components/UIRectTransform.hpp"
+#include "../Components/UIImage.hpp"
 #include "../Components/Camera.hpp"
 
 #include "../Systems/TransformSystem.hpp"
@@ -17,6 +20,8 @@
 #include "../Systems/ColliderSystem.hpp"
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
+#include "../Systems/UIRenderSystem.hpp"
+#include "../Systems/UITransformSystem.hpp"
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/PhysicsSystem.hpp"
 
@@ -41,6 +46,9 @@ namespace NE::ECS {
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
         RegisterComponent<Component::NativeScript>();
+        RegisterComponent<Component::UIRectTransform>();
+        RegisterComponent<Component::UICanvas>();
+        RegisterComponent<Component::UIImage>();
         RegisterComponent<Component::Animator>();
 		RegisterComponent<Component::Camera>();
         
@@ -94,6 +102,20 @@ namespace NE::ECS {
 			SetSystemSignature<Systems::ScriptSystem>(sig);
 		}
 
+        m_uiTransformSystem = m_systemManager->RegisterSystem<Systems::UITransformSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::UIRectTransform>());
+            SetSystemSignature<Systems::UITransformSystem>(sig);
+        }
+
+        m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
+            SetSystemSignature<Systems::UIRenderSystem>(sig);
+        }
+
         m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
         {
             Signature sig;
@@ -109,6 +131,7 @@ namespace NE::ECS {
             sig.set(GetComponentType<Component::Transform>());
             SetSystemSignature<Systems::CameraSystem>(sig);
 		}
+        
         m_physicsSystem = m_systemManager->RegisterSystem<Systems::PhysicsSystem>(m_componentManager.get());
         {
             Signature sig;
@@ -120,6 +143,18 @@ namespace NE::ECS {
     Entity ECSCoordinator::CreateEntity() {
         Entity entt = m_entityManager->CreateEntity();
 
+        return entt;
+    }
+
+    Entity ECSCoordinator::CreateUICanvasEntity()
+    {
+        Entity entt = m_entityManager->CreateEntity();
+        return entt;
+    }
+
+    Entity ECSCoordinator::CreateUIImageEntity(Entity parentCanvas)
+    {
+        Entity entt = m_entityManager->CreateEntity();
         return entt;
     }
 

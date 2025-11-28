@@ -27,6 +27,15 @@
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
 #include "../OpenGL/GLStateCache.hpp"
+#include "../Core/Primitives.hpp"
+#include "GizmosRenderer.hpp"
+#include "UIRenderer.hpp"
+#include "../OpenGL/GLStateCache.hpp"
+#include "glfw/glfw3.h"
+#include "Graphics/OpenGL/GLFrameBuffer.hpp"
+#include "../../SceneManagement/Scene.hpp"
+#include "Core/SpdLogger.hpp"
+#include "InstanceData.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include "../OpenGL/GLClusteredLighting.hpp"
@@ -43,6 +52,8 @@
 
 
 namespace NE::Graphics {
+    uint32_t GraphicsManager::s_ScreenWidth = 1920;
+    uint32_t GraphicsManager::s_ScreenHeight = 1080;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
     int GraphicsManager::drawCount = 0;
     bool GraphicsManager::enableSorting = true;
@@ -111,6 +122,14 @@ namespace NE::Graphics {
         //auto skinned = std::make_shared<OpenGL::GLShader>();
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
+
+        // initialize UI renderer
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
+        s_ScreenWidth = static_cast<uint32_t>(viewport[2]);
+        s_ScreenHeight = static_cast<uint32_t>(viewport[3]);
+
+        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
     }
 
     void GraphicsManager::BeginFrame() 
@@ -302,6 +321,7 @@ namespace NE::Graphics {
         s_DebugTriangles.shrink_to_fit();
         s_DebugVertexBuffer.shrink_to_fit();
 
+        UIRenderer::Shutdown();
         NE::Graphics::GizmosRenderer::Cleanup();
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
     }
@@ -372,6 +392,18 @@ namespace NE::Graphics {
             return framebuffer->GetColorAttachment();
 		}
 		return 0;
+    }
+
+    IStateCache* GraphicsManager::GetStateCache() {
+        return s_StateCache.get();
+    }
+
+    uint32_t GraphicsManager::GetScreenWidth() {
+        return s_ScreenWidth;
+    }
+
+    uint32_t GraphicsManager::GetScreenHeight() {
+        return s_ScreenHeight;
     }
 
     // Debug drawing test code
@@ -687,5 +719,16 @@ namespace NE::Graphics {
         // clear both buffers
         s_DebugLines.clear();
         s_DebugTriangles.clear();
+    }
+
+    void GraphicsManager::DrawUI() {
+        UIRenderer::BeginFrame();
+        UIRenderer::DrawUIFrame();
+        //UIRenderer::DrawTestQuad();
+        UIRenderer::EndFrame();
+        UIRenderer::Draw3DUIFrame(s_SceneViewHandle);
+
+        UIRenderer::Composite(s_SceneViewHandle);
+        UIRenderer::ClearCommands();
     }
 }

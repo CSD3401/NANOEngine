@@ -21,6 +21,9 @@ namespace NE::ECS {
 		struct Animator;
 		struct Camera;
 		struct PhysicsBody;
+		struct UIRectTransform;
+		struct UIImage;
+		struct UICanvas;
 	}
 
 	namespace Query {
@@ -39,6 +42,14 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::Collider& GetEntityCollider(uint32_t e);
 		NANOENGINE_API const Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API const Component::NativeScript& GetEntityScript(uint32_t e);
+		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
+		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
+		NANOENGINE_API const Component::UICanvas& GetUICanvas(uint32_t e);
+
+		NANOENGINE_API bool HasTransform(uint32_t e);
+		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
+		NANOENGINE_API bool HasUICanvas(uint32_t e);
+		NANOENGINE_API bool HasUIImage(uint32_t e);
 
 		// --- Component Existence Checks ---
 		NANOENGINE_API bool HasTransform(uint32_t e);
@@ -57,6 +68,8 @@ namespace NE::ECS {
 
 	namespace Command {
 		NANOENGINE_API uint32_t CreateEntity();
+		NANOENGINE_API uint32_t CreateUICanvasEntity();
+		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays = true);
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
@@ -78,6 +91,9 @@ namespace NE::ECS {
 		NANOENGINE_API Component::Collider& GetEntityCollider(uint32_t e);
 		NANOENGINE_API Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API Component::NativeScript& GetEntityScript(uint32_t e);
+		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
+		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
+		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
 
 		// --- Script Management ---

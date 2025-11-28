@@ -73,16 +73,19 @@ namespace NE::SceneManagement {
 
 		// 2) Destroy editor scene script instances to prevent memory leaks
 		// We don't need them during play mode - only runtime scene needs active scripts
-		for (NE::ECS::Entity entity : entities) {
-			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-			if (nsc.Instance) {
-				// Properly destroy the instance
-				Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-			}
-			// Clear function pointers
-			nsc.CreateScript = nullptr;
-			nsc.DestroyScript = nullptr;
-		}
+		//for (NE::ECS::Entity entity : entities) {
+		//	auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+		//	if (nsc.Instance) {
+		//		// Properly destroy the instance
+		//		Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
+		//	}
+		//	// Clear function pointers
+		//	nsc.CreateScript = nullptr;
+		//	nsc.DestroyScript = nullptr;
+		//}
+		Scripting::ScriptingEngine::GetInstance().DestroyAllScriptInstances();
+
+
 		hack::sceneRdy = false;
 		// 3) create runtime scene and load from the same data
 		m_runtime = std::make_unique<Scene>();
