@@ -29,6 +29,7 @@
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 #include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/RenderSettings.hpp"
 #include <fstream>
 #include <functional>
 

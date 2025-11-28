@@ -1,37 +1,49 @@
 #pragma once
+
+#include "../../Math/Vec3.hpp"
 #include <memory>
-#include "../Interfaces/ICommandBuffer.hpp"
-#include "../Interfaces/IPipeline.hpp"
-#include "../Interfaces/IGeometryBuffer.hpp"
-#include "../Interfaces/IStateCache.hpp"
-#include "Material.hpp"
-#include "DrawCommand.hpp"
-#include "DrawQueue.hpp"
-#include "RenderViewManager.hpp"
-#include "RenderSettings.hpp"
+#include <vector>
+
 
 // Forward declarations
-namespace NE::ECS::Component {
-    struct DirectionalLight;
-    struct PointLight;
-    struct SpotLight;
-    struct Light;
-}
-namespace NE::SceneManagement {
-    enum class RenderPass;
+namespace NE {
+    namespace Graphics {
+        class EditorCamera;
+        class Skybox;
+        class IFrameBuffer;
+        class IClusteredLighting;
+        class IStateCache;
+        class ICommandBuffer;
+        class DrawQueue;
+        class RenderViewManager;
+        struct DrawCommand;
+        struct RenderView;
+        struct RenderSettings;
+
+        using RenderViewHandle = std::uint32_t;
+	}
+    namespace ECS {
+        namespace Component {
+            struct DirectionalLight;
+            struct PointLight;
+            struct SpotLight;
+            struct Light;
+        }
+	}
+    namespace Math {
+        struct Vec3;
+		struct Mat4;
+	}
 }
 
 namespace NE::Graphics {
-    class EditorCamera;
-    class Skybox;
-    class IFrameBuffer;
 
+    // Debug needs to be moved
     struct DebugLine {
         Math::Vec3 from;
         Math::Vec3 to;
         Math::Vec3 color;
     };
-
     struct DebugTriangle {
         Math::Vec3 v0;
         Math::Vec3 v1;
@@ -62,7 +74,7 @@ namespace NE::Graphics {
 		static void SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
         
 		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);
-        static void SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain, uint16_t order);
+        static void SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, float nearPlane, float farPlane, bool isMain, uint16_t order);
 		static void EnableCamera(RenderViewHandle viewHandle);
 		static void DisableCamera(RenderViewHandle viewHandle);
 
@@ -107,27 +119,18 @@ namespace NE::Graphics {
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
 
-		static SceneManagement::RenderPass s_CurrentRenderPass; // TEMP?
-
-        
+        // Command Buffer
         static std::unique_ptr<ICommandBuffer> s_CommandBuffer;
-        static std::unique_ptr<Skybox> s_skybox;
-        static EditorCamera* s_EditorCamera;
 
-		// Note: Each camera should be stored within its own framebuffer in the future
-		// Current active camera matrices and position
-		//static CameraData m_ActiveCamera;
+		// Skybox
+        static std::unique_ptr<Skybox> s_skybox;
+
+		// Editor Camera
+        static EditorCamera* s_EditorCamera;
 
         // Gizmo and jolt Drawing
         static std::vector<DebugLine> s_DebugLines;
         static std::vector<DebugTriangle> s_DebugTriangles;
-
-        static std::vector<float> s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
-
-        static int s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
-        static int s_DebugProjLoc;
-
-        static constexpr size_t INITIAL_DEBUG_BUFFER_SIZE = 10000;
 
 		// Pipeline state cache
 		static std::unique_ptr<IStateCache> s_StateCache;
@@ -138,5 +141,14 @@ namespace NE::Graphics {
 		// Framebuffer Manager
 		static std::unique_ptr<RenderViewManager> s_RenderViewManager;
 		static RenderViewHandle s_ActiveViewHandle;
+
+		// Clustered Lighting System for forward+ rendering
+        static std::shared_ptr<IClusteredLighting> s_clusteredLighting;
+
+        // Debug
+        static std::vector<float> s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations
+        static int s_DebugViewLoc; // cached uniform locations (avoid glGetUniformLocation every frame)
+        static int s_DebugProjLoc;
+        static constexpr size_t INITIAL_DEBUG_BUFFER_SIZE = 10000;
     };
 }

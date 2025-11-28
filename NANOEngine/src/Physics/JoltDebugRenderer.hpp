@@ -6,6 +6,10 @@
 #pragma warning(push)
 #pragma warning(disable: 4100)
 
+// Forward declarations
+namespace NE::Math {
+    struct Vec3;
+}
 
 namespace NE::Physics {
 
