@@ -3,6 +3,7 @@
 #include "ICommand.hpp"
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace Editor {
 
@@ -49,6 +50,14 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
+
+        struct DeletedUIEntityInfo {
+            uint32_t id;
+            bool wasCanvas;
+            bool wasUIImage;
+            uint32_t parentId;  // For UI images
+        };
+        std::vector<DeletedUIEntityInfo> m_deletedEntities;
     };
 
     class RenameEntityCommand : public ICommand {
