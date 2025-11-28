@@ -69,12 +69,12 @@ namespace Editor {
                 if (p->DataSize == sizeof(uint32_t)) {
                     uint32_t dropped = *static_cast<const uint32_t*>(p->Data);
                     
-                    std::string prefabName = "Prefab";
                     auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
-                    if (!meta.name.empty())
-                        prefabName = meta.name;
+                    std::string prefabName = meta.name;
+                    if (meta.name.empty())
+                        prefabName = "Prefab";
 
-                    std::string filePath = m_currentDirectory.string() + prefabName + ".nfab";
+                    std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
                     SPD_INFO("Prefab created at: " << filePath);
                     std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
                     AssetManager::GetInstance().GenerateMetadata(filePath);
