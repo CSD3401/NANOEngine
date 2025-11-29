@@ -124,7 +124,7 @@ namespace NE::Graphics {
 
         if (!s_ShadowShader) {
             s_ShadowShader = Resource::ResourceManager::GetInstance()
-                .LoadResource<OpenGL::GLShader>("6c49cc9a-efd8-4d05-b70e-872ab6d44b60");
+                .LoadResource<OpenGL::GLShader>("neshadowdepth");
         }
 
         for (auto* light : m_lights) {
