@@ -24,6 +24,7 @@
 #include "Core/Couroutine.hpp"
 #include "Core/SpdLogger.hpp"  // For console logging
 #include "PrefabManagement/PrefabManager.hpp"
+#include "EngineState.hpp"
 
 static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
 	namespace fs = std::filesystem;
@@ -50,7 +51,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
-		m_ecsCoordinator.m_physicsSystem->Init();
+
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_uiTransformSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
@@ -62,6 +63,8 @@ namespace NE::SceneManagement {
 	void Scene::Update(double dt)
 	{
 		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
+		if (g_EngineState == EngineState::Play)
+			m_ecsCoordinator.m_physicsSystem->Update(dt);
 		//m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
@@ -73,7 +76,7 @@ namespace NE::SceneManagement {
 		//Graphics::GizmosRenderer::TestGizmosRenderer();
 #pragma endregion
 		m_ecsCoordinator.m_audioSystem->Update(dt);
-		m_ecsCoordinator.m_physicsSystem->Update(dt);
+
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
@@ -95,13 +98,13 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
-		m_ecsCoordinator.m_physicsSystem->Exit();
 		m_ecsCoordinator.m_scriptSystem->Exit();	
 		m_ecsCoordinator.m_uiRenderSystem->Exit();	
 		m_ecsCoordinator.m_animatorSystem->Exit();
 	}
 
 	void Scene::ScriptStart() {
+		m_ecsCoordinator.m_physicsSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->StartScripts();
 	}
 
@@ -111,6 +114,7 @@ namespace NE::SceneManagement {
 
 	void Scene::ScriptStop() {
 		m_ecsCoordinator.m_scriptSystem->StopScripts();
+		m_ecsCoordinator.m_physicsSystem->Exit();
 	}
 
 	void Scene::MarkDirty() {
