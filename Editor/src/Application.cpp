@@ -142,11 +142,6 @@ namespace Editor {
 				glfwMakeContextCurrent(backup_context);
 			}
 
-			auto window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
-			static int w, h;
-			glfwGetFramebufferSize(window, &w, &h);
-			NE::DisplayFinalOutput(w,h);
-
 			glfwSwapBuffers(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()));
 
 			Profiler::EndFrame();
