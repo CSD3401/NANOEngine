@@ -134,6 +134,60 @@ namespace NE {
 		}
 	}
 
+	void AudioManager::StopAllSounds()
+	{
+		auto& instance = GetInstance();
+
+		if (!instance.m_initialized || !instance.m_studioSystem) {
+			SPD_WARNING("AudioManager not initialized - cannot stop all sounds");
+			return;
+		}
+
+		// Get all loaded banks
+		int bankCount = 0;
+		instance.m_studioSystem->getBankCount(&bankCount);
+
+		if (bankCount == 0) {
+			return;
+		}
+
+		std::vector<FMOD::Studio::Bank*> banks(bankCount);
+		int retrieved = 0;
+		instance.m_studioSystem->getBankList(banks.data(), bankCount, &retrieved);
+
+		int totalStopped = 0;
+
+		// For each bank, get all events and stop them
+		for (int i = 0; i < retrieved; ++i) {
+			int eventCount = 0;
+			banks[i]->getEventCount(&eventCount);
+
+			if (eventCount > 0) {
+				std::vector<FMOD::Studio::EventDescription*> events(eventCount);
+				banks[i]->getEventList(events.data(), eventCount, &eventCount);
+
+				for (int j = 0; j < eventCount; ++j) {
+					int instanceCount = 0;
+					events[j]->getInstanceCount(&instanceCount);
+
+					if (instanceCount > 0) {
+						std::vector<FMOD::Studio::EventInstance*> instances(instanceCount);
+						events[j]->getInstanceList(instances.data(), instanceCount, &instanceCount);
+
+						for (int k = 0; k < instanceCount; ++k) {
+							instances[k]->stop(FMOD_STUDIO_STOP_IMMEDIATE);
+							totalStopped++;
+						}
+					}
+				}
+			}
+		}
+
+		if (totalStopped > 0) {
+			SPD_INFO("Stopped all sounds (" << totalStopped << " instances)");
+		}
+	}
+
 	bool AudioManager::IsInitialized()
 	{
 		return GetInstance().m_initialized;

@@ -16,4 +16,9 @@ namespace NE::Audio {
 	 */
 	NANOENGINE_API void StopAudio(const std::string& eventName);
 
+	/**
+ * @brief Stop all currently playing sounds
+ */
+	NANOENGINE_API void StopAllAudio();
+
 } // namespace NE::Audio

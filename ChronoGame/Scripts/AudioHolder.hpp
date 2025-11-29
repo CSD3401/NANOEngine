@@ -1,5 +1,6 @@
 #pragma once
 #include "EngineAPI.hpp"
+using namespace NE::Scripting;
 
 /**
  * Pickable - Auto-generated script template
@@ -17,7 +18,6 @@ public:
 	// === Lifecycle Methods ===
 
 	void Awake() override {
-		// Called when the script component is first created
 	}
 
 	void Initialize(Entity entity) override {
@@ -25,7 +25,8 @@ public:
 	}
 
 	void Start() override {
-
+		// Called when the script component is first created
+		PlayAudio("event:/BGM_NIGHTSHIFT_LOW");
 	}
 
 	void Update(double deltaTime) override {
@@ -33,6 +34,26 @@ public:
 			LOG_INFO("send key lock solved");
 
 			Events::Send("KeyLockSolved");
+		}
+
+		if (Input::WasKeyPressed('2')) {
+			PlayAudio("event:/VOICEOVER1");
+		}
+
+		if (Input::WasKeyPressed('3')) {
+			PlayAudio("event:/VOICEOVER2");
+		}
+
+		if (Input::WasKeyPressed('4')) {
+			PlayAudio("event:/VOICEOVER3");
+		}
+
+		if (Input::WasKeyPressed('5')) {
+			PlayAudio("event:/VOICEOVER4");
+		}
+
+		if (Input::WasKeyPressed('6')) {
+			PlayAudio("event:/VOICEOVER5");
 		}
 	}
 

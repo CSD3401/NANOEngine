@@ -65,6 +65,7 @@ public:
 				data.keyEntity = GetEntity();  // The entity this script is attached to
 
 				Events::Send("GetKeyColor", &data);
+				PlayAudio("event:/UNGRAB");
 			}
 		}
 	}
@@ -110,6 +111,7 @@ public:
 	}
 
 	void Picked(void* data) {
+		PlayAudio("event:/GRAB");
 		auto* entityPtr = static_cast<std::pair<uint32_t, uint32_t>*>(data);
 		uint32_t entity = entityPtr->first;
 

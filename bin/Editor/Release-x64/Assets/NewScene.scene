@@ -266,6 +266,16 @@
             "Renderer": {
                 "modelUUID": "eee11c63-ef82-4672-be92-b56ba31b6e72",
                 "materialUUID": "d1870980-f3a0-40ac-8d1f-1de3844262c7"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
             }
         },
         {
@@ -300,7 +310,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 0,
+                "isActive": 1,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 0,
@@ -395,7 +405,7 @@
         {
             "EntityMeta": {
                 "name": "Mesh Past",
-                "isActive": 0,
+                "isActive": 1,
                 "luid": 0,
                 "prefabID": "",
                 "prefabLocalID": 0,
@@ -3101,7 +3111,8 @@
             "NativeScript": {
                 "ScriptName": "PlayerCamera",
                 "SerializedFields": {
-                    "offset": "1.000000"
+                    "offset": "1.000000",
+                    "leverEntity": "0"
                 }
             }
         },
@@ -10369,7 +10380,8 @@
             "NativeScript": {
                 "ScriptName": "PlayerCamera",
                 "SerializedFields": {
-                    "offset": "1.000000"
+                    "offset": "1.000000",
+                    "leverEntity": "1050253722"
                 }
             },
             "Camera": {
@@ -21542,9 +21554,9 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 7.788454055786133,
-                    "y": -23.786706924438477,
-                    "z": -22.781858444213867
+                    "x": -0.11457008123397827,
+                    "y": 0.40276649594306946,
+                    "z": -0.6043757200241089
                 },
                 "Scale": {
                     "x": 0.20000000298023224,
@@ -21665,7 +21677,8 @@
             "NativeScript": {
                 "ScriptName": "PlayerCamera",
                 "SerializedFields": {
-                    "offset": "1.000000"
+                    "offset": "1.000000",
+                    "leverEntity": "-1067210710"
                 }
             },
             "Camera": {
@@ -22783,6 +22796,49 @@
             "Renderer": {
                 "modelUUID": "01d5df1f-2239-4d51-85c3-fdb97b7a9068",
                 "materialUUID": "dd9d1921-53e4-406e-8383-057ef92ffa93"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Test Lift",
+                "isActive": 1,
+                "luid": 7308894879065243648,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": -0.7875667214393616,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 2.0,
+                    "y": 0.20000000298023224,
+                    "z": 2.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884689541005313,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "c57f74a5-e22a-40fe-bc56-f02aaaa494c8"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "radius": 0.5,
+                "height": 1.0
             }
         }
     ]

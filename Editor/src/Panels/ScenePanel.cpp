@@ -11,6 +11,7 @@
 #include "Engine.hpp"
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <EditorInterface/ECSExports.hpp>
+#include <EditorInterface/AudioExports.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
@@ -362,6 +363,7 @@ namespace Editor {
 					for (auto e : numEntt) {
 						EditorScene::s_entities.push_back(EditorEntity{ e });
 					}
+					NE::Audio::StopAllAudio();
 				}
 			}
 			ImGui::End();

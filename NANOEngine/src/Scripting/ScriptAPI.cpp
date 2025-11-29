@@ -645,6 +645,9 @@ namespace Scripting {
     void IScript::StopAudio(const std::string& eventName) {
         NE::Audio::StopAudio(eventName);
     }
+    void IScript::StopAllAudio() {
+        NE::Audio::StopAllAudio();
+    }
 
     bool IScript::HasAudioSource(Entity entity) const {
         if (!m_context || !m_context->componentManager) return false;

@@ -11,4 +11,8 @@ namespace NE::Audio {
 		AudioManager::StopSound(eventName);
 	}
 
+	void StopAllAudio() {
+		AudioManager::StopAllSounds();
+	}
+
 } // namespace NE::Audio

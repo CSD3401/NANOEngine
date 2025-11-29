@@ -82,9 +82,11 @@ private:
     void BroadcastCurrentState() {
         if (isInPresent) {
             Events::Send("TimeSwapToPresent");
+            PlayAudio("event:/SWITCH_TO_PRESENT");
         }
         else {
             Events::Send("TimeSwapToPast");
+            PlayAudio("event:/SWITCH_TO_PAST");
         }
     }
 

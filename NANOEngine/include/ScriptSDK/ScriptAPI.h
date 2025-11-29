@@ -356,6 +356,9 @@ namespace Scripting {
          *   Api::StopAudio("event:/Music/MainTheme");
          */
         void StopAudio(const std::string& eventName);
+        void StopAllAudio();
+
+
 
         bool HasAudioSource(Entity entity = DEFAULT_ENTITY_PARAM) const;
 

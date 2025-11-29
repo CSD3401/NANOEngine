@@ -38,6 +38,9 @@ namespace NE {
 		// Stop all instances of an FMOD Studio event
 		static void StopSound(const std::string& eventName);
 
+		// Stop all currently playing sounds
+		static void StopAllSounds();
+
 		// Check if audio system is initialized
 		static bool IsInitialized();
 

@@ -7,6 +7,7 @@ class PlayerCamera : public IScript {
 public:
     PlayerCamera() {
         SCRIPT_FIELD(offset, Float);
+        SCRIPT_FIELD(leverEntity, Int);
     }
 
 	void Start() override
@@ -106,15 +107,18 @@ public:
             // NEW  
             Vec3 rayStart = GetWorldPosition() + forward * offset; // Offset 1 unit forward
             auto hit = Raycast(rayStart, forward, 5.f);
-            LOG_DEBUG("Position: " << GetPosition().x << " : " << GetPosition().y << " : " << GetPosition().z);
-            LOG_DEBUG("Forward: " << forward.x << " : " << forward.y << " : " << forward.z);
-            
-            LOG_DEBUG("Entity Hit: " << hit.entity);
+            //LOG_DEBUG("Position: " << GetPosition().x << " : " << GetPosition().y << " : " << GetPosition().z);
+            //LOG_DEBUG("Forward: " << forward.x << " : " << forward.y << " : " << forward.z
+            LOG_DEBUG("Raycast Entity Hit: " << hit.entity);
             std::pair<uint32_t, uint32_t> data = { hit.entity, GetEntity() };
 
             if (hit.entity != NE::Scripting::INVALID_ENTITY) {
                 Events::Send("OnCameraRaycastHit", &data);
             }
+
+            if (hit.entity == leverEntity) {
+                Events::Send("Lever0");
+			}
         }
     }
 
@@ -148,4 +152,8 @@ private:
     std::string receivedColor;
     bool shouldSendUnlockEvent = false;  // Flag to defer event sending
     uint32_t receivedKeyEntity;
+
+    //Lever
+    //Entity leverEntity;
+    int leverEntity;
 };

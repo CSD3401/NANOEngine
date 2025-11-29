@@ -143,6 +143,20 @@ private:
             rightInput /= mag;
         }
 
+        // Handle walking audio
+        bool shouldBeWalking = (mag > 0.0f) && m_isGrounded;
+
+        if (shouldBeWalking && !m_isWalking) {
+            // Started walking - play looping sound
+            PlayAudio("event:/WALK");
+            m_isWalking = true;
+        }
+        else if (!shouldBeWalking && m_isWalking) {
+            // Stopped walking - stop sound
+            StopAudio("event:/WALK");
+            m_isWalking = false;
+        }
+
         Vec3 vel = GetVelocity();
 
         Vec3 horizVel = vel;
@@ -217,6 +231,7 @@ private:
 
                 m_hasJumpedThisFrame = true;
                 m_isGrounded = false;
+                PlayAudio("event:/JUMP");
             }
         }
 
@@ -281,6 +296,8 @@ private:
     bool m_isGrounded = false;
     bool m_hasJumpedThisFrame = false;
     float m_colliderHalfHeight = 0.5f;
+
+    bool m_isWalking = false;
 
     RaycastHit m_lastGroundHit{};
 };

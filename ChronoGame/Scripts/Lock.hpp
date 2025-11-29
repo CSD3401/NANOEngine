@@ -29,6 +29,12 @@ public:
 			LOG_INFO("Sending KeyLockSolved event");
 			Events::Send("KeyLockSolved");
 			shouldSendKeyLockSolved = false;
+
+			// Deactivate the key
+			SetActive(false, keyEntity);
+
+			// Deactivate this lock
+			SetActive(false, GetEntity());
 		}
 	}
 
@@ -55,7 +61,7 @@ public:
 
 		auto* unlockData = static_cast<UnlockData*>(data);
 		std::string keyColor = unlockData->color;
-		uint32_t keyEntity = unlockData->keyEntity;
+		keyEntity = unlockData->keyEntity;
 
 		LOG_INFO("Attempting to unlock " << keyColor << " lock\n");
 		LOG_INFO("Key entity: " << keyEntity);
@@ -64,14 +70,14 @@ public:
 		{
 			LOG_INFO("Successfully Unlock, Key and Lock Pair SetInactive");
 
-			// Deactivate the key
-			SetActive(false, keyEntity);
+			//// Deactivate the key
+			//SetActive(false, keyEntity);
 
-			// Deactivate this lock
-			SetActive(false, GetEntity());
+			//// Deactivate this lock
+			//SetActive(false, GetEntity());
 
 			successfulUnlocks++;  // Increment static counter
-			LOG_INFO("Total successful unlocks: " << successfulUnlocks);
+			LOG_WARNING("Total successful unlocks: " << successfulUnlocks);
 
 			if (successfulUnlocks == 3)
 			{
@@ -99,8 +105,9 @@ private:
 	Entity pickedBy;
 	float pickDistance = 4.f;
 	std::string color;
+	
 	bool shouldSendKeyLockSolved = false;  // Flag to defer event
-
+	Entity keyEntity; 
 	// Static counter shared across all Lock instances
 	static inline int successfulUnlocks = 0;
 };
