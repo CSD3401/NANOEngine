@@ -542,6 +542,9 @@ namespace Scripting {
         template<typename EnumType>
         void RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions);
 
+        // LayerMask field registration (multi-select layer picker in editor)
+        void RegisterLayerMaskField(const std::string& name, LayerMask* memberPtr);
+
         // Struct field registration (with reflection support)
         // NOTE: StructType must have NE_REFLECT macros. Include "Reflection.h" in your script.
         template<typename StructType>
@@ -561,6 +564,10 @@ namespace Scripting {
         virtual std::vector<std::string> GetEnumOptions(const std::string& fieldName) const;
         virtual int GetEnumValue(const std::string& fieldName) const;
         virtual void SetEnumValue(const std::string& fieldName, int value);
+
+        // LayerMask field support
+        virtual uint32_t GetLayerMaskValue(const std::string& fieldName) const;
+        virtual void SetLayerMaskValue(const std::string& fieldName, uint32_t value);
 
         // Array/vector field support
         virtual size_t GetArraySize(const std::string& fieldName) const;
@@ -601,6 +608,10 @@ namespace Scripting {
         void SetFieldEnumCallbacks(const std::string& name,
             std::function<int()> getEnumValue,
             std::function<void(int)> setEnumValue);
+
+        void SetFieldLayerMaskCallbacks(const std::string& name,
+            std::function<uint32_t()> getLayerMaskValue,
+            std::function<void(uint32_t)> setLayerMaskValue);
 
      Entity m_entity = INVALID_ENTITY;
         bool m_enabled = true;

@@ -129,6 +129,10 @@ namespace Scripting {
             std::vector<std::string> enumOptions;
             std::function<int()> getEnumValue;
             std::function<void(int)> setEnumValue;
+
+            // LayerMask support
+            std::function<uint32_t()> getLayerMaskValue;
+            std::function<void(uint32_t)> setLayerMaskValue;
         };
 
         std::unordered_map<std::string, FieldEntry> fields;
@@ -1893,6 +1897,37 @@ namespace Scripting {
         MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
     }
 
+    void IScript::RegisterLayerMaskField(const std::string& name, LayerMask* memberPtr) {
+        RegisterFieldInternal(
+            name,
+            "layermask",
+            memberPtr,
+            // getValue: Return mask as string
+            [memberPtr]() -> std::string {
+                return std::to_string(memberPtr->mask);
+            },
+            // setValue: Set mask from string
+            [memberPtr](const std::string& value) -> bool {
+                try {
+                    memberPtr->mask = std::stoul(value);
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            }
+        );
+
+        // Set LayerMask callbacks for editor access
+        SetFieldLayerMaskCallbacks(name,
+            [memberPtr]() -> uint32_t {
+                return memberPtr->mask;
+            },
+            [memberPtr](uint32_t value) {
+                memberPtr->mask = value;
+            }
+        );
+    }
+
     //=========================================================================
     // Helper Methods for Template Functions
     //=========================================================================
@@ -1919,6 +1954,20 @@ namespace Scripting {
         if (it != m_fieldRegistry->fields.end()) {
             it->second.getEnumValue = getEnumValue;
             it->second.setEnumValue = setEnumValue;
+        }
+    }
+
+    void IScript::SetFieldLayerMaskCallbacks(const std::string& name,
+        std::function<uint32_t()> getLayerMaskValue,
+        std::function<void(uint32_t)> setLayerMaskValue) {
+        if (!m_fieldRegistry) {
+            m_fieldRegistry = new FieldRegistry();
+        }
+
+        auto it = m_fieldRegistry->fields.find(name);
+        if (it != m_fieldRegistry->fields.end()) {
+            it->second.getLayerMaskValue = getLayerMaskValue;
+            it->second.setLayerMaskValue = setLayerMaskValue;
         }
     }
 
@@ -2002,6 +2051,25 @@ namespace Scripting {
         auto it = m_fieldRegistry->fields.find(fieldName);
         if (it != m_fieldRegistry->fields.end() && it->second.setEnumValue) {
             it->second.setEnumValue(value);
+        }
+    }
+
+    uint32_t IScript::GetLayerMaskValue(const std::string& fieldName) const {
+        if (!m_fieldRegistry) return 0;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.getLayerMaskValue) {
+            return it->second.getLayerMaskValue();
+        }
+        return 0;
+    }
+
+    void IScript::SetLayerMaskValue(const std::string& fieldName, uint32_t value) {
+        if (!m_fieldRegistry) return;
+
+        auto it = m_fieldRegistry->fields.find(fieldName);
+        if (it != m_fieldRegistry->fields.end() && it->second.setLayerMaskValue) {
+            it->second.setLayerMaskValue(value);
         }
     }
 

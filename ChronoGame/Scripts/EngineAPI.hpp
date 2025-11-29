@@ -153,6 +153,11 @@ using String = ScriptFieldType::String;
 #define SCRIPT_FIELD_STRUCT(fieldName) \
     RegisterStructField(#fieldName, &this->fieldName)
 
+// SCRIPT_FIELD_LAYERMASK macro - registers LayerMask fields with layer picker
+// Usage: SCRIPT_FIELD_LAYERMASK(collisionMask)
+#define SCRIPT_FIELD_LAYERMASK(fieldName) \
+    RegisterLayerMaskField(#fieldName, &this->fieldName)
+
 // ============ CONVENIENCE NAMESPACES (GLOBAL SCOPE) ============
 // Similar pattern to Input, Events, Coroutines namespaces in ScriptAPI.h
 
@@ -284,6 +289,7 @@ using Vec3 = NE::Scripting::Vec3;
 using Entity = NE::Scripting::Entity;
 using IScript = NE::Scripting::IScript;
 using RaycastHit = NE::Scripting::RaycastHit;
+using LayerMask = NE::Scripting::LayerMask;
 
 // Component reference types
 using TransformRef = NE::Scripting::TransformRef;
