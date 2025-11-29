@@ -83,6 +83,7 @@ namespace NE::Graphics {
 		static void SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
         
 		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);
+        static void DestroyRenderView(RenderViewHandle handle);
         static void SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, float nearPlane, float farPlane, bool isMain, uint16_t order);
 		static void EnableCamera(RenderViewHandle viewHandle);
 		static void DisableCamera(RenderViewHandle viewHandle);
