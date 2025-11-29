@@ -225,13 +225,13 @@ namespace NE::Graphics::OpenGL {
             dst.params[0] = src->innerCutoff;
             dst.params[1] = src->outerCutoff;
 			dst.params[2] = src->radius;
-            dst.params[3] = 0.0f;
+            dst.params[3] = static_cast<float>(src->shadowIndex);
 
             // direction.xyz + padding
             dst.direction[0] = src->direction.x;
             dst.direction[1] = src->direction.y;
             dst.direction[2] = src->direction.z;
-            dst.direction[3] = 0.0f;
+            dst.direction[3] = static_cast<float>(src->shadowType);
         }
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lightSSBO);

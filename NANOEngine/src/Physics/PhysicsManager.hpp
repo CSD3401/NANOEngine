@@ -111,25 +111,25 @@ namespace NE::Physics {
         static uint32_t CreateBoxBody(const Math::Vec3& pos,
             const Math::Vec3& rot,
             const Math::Vec3& size,
-            JPH::EMotionType motionType, uint32_t entity);
+            JPH::EMotionType motionType, uint32_t entity, uint8_t layer);
 
         static void UpdateBoxSize(uint32_t bodyID, const Math::Vec3& newSize);
 
         static uint32_t CreateSphereBody(const Math::Vec3& pos,
             const Math::Vec3& rot,
             float radius,
-            JPH::EMotionType motionType, uint32_t entity);
+            JPH::EMotionType motionType, uint32_t entity, uint8_t layer);
 
         static uint32_t CreateMeshShape(
             std::string meshID,
             const std::vector<Math::Vec3>& vertices,
-            const std::vector<uint32_t>& indices, uint32_t entity);
+            const std::vector<uint32_t>& indices, uint32_t entity, uint8_t layer);
 
 
         static void UpdateSphereRadius(uint32_t bodyID, float newRadius);
 
         static uint32_t CreateCapsuleBody(const Math::Vec3& pos, const Math::Vec3& rot,
-            float halfHeight, float radius, JPH::EMotionType motionType, uint32_t entity);
+            float halfHeight, float radius, JPH::EMotionType motionType, uint32_t entity, uint8_t layer);
 
         static void RenderAllBodyShapes();
         static void RenderBodyShape(const JPH::Body& body);

@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Audio\AudioManager.hpp" />
+    <ClInclude Include="src\Core\Layers.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
     <ClInclude Include="include\ScriptSDK\Components.h" />
     <ClInclude Include="include\ScriptSDK\ECS.h" />
@@ -36,6 +37,7 @@
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
+    <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
     <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
@@ -106,7 +108,6 @@
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
-    <ClInclude Include="src\ECSInternals.hpp" />
     <ClInclude Include="src\ECS\Components\Light.hpp" />
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
@@ -178,6 +179,7 @@
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
+    <ClCompile Include="src\Physics\LayerMaskBodyFilter.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
@@ -215,7 +217,6 @@
     <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
     <ClCompile Include="src\Core\Profiler.cpp" />
-    <ClCompile Include="src\ECSInternals.cpp" />
     <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\EditorCamera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />

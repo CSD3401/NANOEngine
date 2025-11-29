@@ -1,5 +1,4 @@
 #include "EditorCommands.hpp"
-#include "ECSInternals.hpp"
 #include "EditorInterface/ECSExports.hpp"
 #include "../EditorScene.hpp"
 #include <ECS/Core/Entity.hpp>

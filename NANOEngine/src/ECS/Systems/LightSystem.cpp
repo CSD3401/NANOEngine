@@ -37,18 +37,16 @@ namespace NE::ECS::Systems {
     void LightSystem::Update(double) {
         NE_PROFILE_FUNCTION();
         Graphics::GraphicsManager::m_lights.clear();
-        int numLights = 0;
+
         // Can optimize with isdirty for light next time
         const auto& entities = GetEntities();
         for (Entity entity : entities) {
-            if (numLights > 12) break;
             auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
             if (meta.isActive) {
                 auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
-                auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
-                sl.position = t.worldMatrix.GetTranslation();
-                Graphics::GraphicsManager::m_lights.push_back(&sl);
-                ++numLights;
+                auto& light = m_componentManager->GetComponent<Component::Light>(entity);
+                light.position = t.worldMatrix.GetTranslation();
+                Graphics::GraphicsManager::m_lights.push_back(&light);
             }
         }
     }

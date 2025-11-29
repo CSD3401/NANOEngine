@@ -22,7 +22,6 @@
     <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
     <ClCompile Include="src\Core\Profiler.cpp" />
-    <ClCompile Include="src\ECSInternals.cpp" />
     <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\EditorCamera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
@@ -83,6 +82,7 @@
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\Audio\AudioManager.cpp" />
     <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
+    <ClCompile Include="src\Physics\LayerMaskBodyFilter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -131,7 +131,6 @@
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
-    <ClInclude Include="src\ECSInternals.hpp" />
     <ClInclude Include="src\ECS\Components\Light.hpp" />
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
@@ -236,6 +235,8 @@
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Audio\AudioManager.hpp" />
     <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
+    <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
+    <ClInclude Include="src\Core\Layers.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

@@ -74,9 +74,9 @@ namespace NE::SceneManagement {
 #pragma endregion
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 		m_ecsCoordinator.m_physicsSystem->Update(dt);
-		m_ecsCoordinator.m_scriptSystem->Update(dt);
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
+		m_ecsCoordinator.m_scriptSystem->Update(dt);
 		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
 	}
 

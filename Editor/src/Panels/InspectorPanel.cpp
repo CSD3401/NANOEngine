@@ -18,7 +18,6 @@
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
-#include <ECSInternals.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -45,6 +44,7 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
+#include "../EditorLayers.hpp"
 
 namespace {
 	// the widget maker
@@ -438,6 +438,143 @@ namespace Editor {
 					}
 				}
 
+				//const char* previewTag[1] = { "Under Dev" };
+
+				//ImGui::PushID("EntityTag");
+				//if (ImGui::BeginCombo("Tag", *previewTag)) {
+				//	int tagCount = 0;
+				//	for (int i = 0; i < tagCount; ++i) {
+				//		bool selected = (i == 0);
+
+				//		if (selected)
+				//			ImGui::SetItemDefaultFocus();
+				//	}
+				//	ImGui::EndCombo();
+				//}
+				//ImGui::PopID();
+
+				//ImGui::SameLine();
+
+				//using LayerFieldT = uint8_t;
+
+				//int currentLayer = (int)metaRO.layer;
+				//int newLayer = currentLayer;
+
+				//const char* preview = Editor::Layers::GetLayerName(currentLayer);
+
+				//ImGui::PushID("EntityLayer");
+				//if (ImGui::BeginCombo("Layer", preview)) {
+				//	int layerCount = Editor::Layers::GetLayerCount();
+				//	for (int i = 0; i < layerCount; ++i) {
+				//		bool selected = (i == currentLayer);
+				//		if (ImGui::Selectable(Editor::Layers::GetLayerName(i), selected)) {
+				//			newLayer = i;
+				//		}
+				//		if (selected)
+				//			ImGui::SetItemDefaultFocus();
+				//	}
+				//	ImGui::EndCombo();
+				//}
+				//ImGui::PopID();
+
+				//if (newLayer != currentLayer) {
+				//	FieldKey layerKey{
+				//		entity,
+				//		&typeid(Owner),
+				//		MemberPointerHasher<Owner, LayerFieldT>{}(&Owner::layer)
+				//	};
+
+				//	using Cmd = Editor::SetFieldCommand<Owner, LayerFieldT>;
+				//	auto cmd = std::make_unique<Cmd>(
+				//		entity,
+				//		std::string("Change Layer"),
+				//		&Owner::layer,
+				//		metaRO.layer,
+				//		static_cast<LayerFieldT>(newLayer),
+				//		&NE::ECS::Command::GetEntityMeta
+				//	);
+
+				//	Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+				//}
+
+				// =========================================
+// Shared width for both Tag & Layer combos
+// =========================================
+				const float comboWidth = 140.0f;
+
+				// =========================================
+				// TAG COMBO
+				// =========================================
+				const char* previewTag = "Under Dev";   // Should later come from metaRO.tag
+
+				ImGui::PushID("EntityTag");
+				ImGui::PushItemWidth(comboWidth);
+
+				if (ImGui::BeginCombo("Tag", previewTag)) {
+					// Currently empty, but structure ready
+					// Example:
+					// for (int i = 0; i < tagCount; ++i) { ... }
+					ImGui::TextDisabled("[No Tags Yet]");
+					ImGui::EndCombo();
+				}
+
+				ImGui::PopItemWidth();
+				ImGui::PopID();
+
+				ImGui::SameLine();
+
+				// =========================================
+				// LAYER COMBO
+				// =========================================
+				using LayerFieldT = uint8_t;
+
+				int currentLayer = (int)metaRO.layer;
+				int newLayer = currentLayer;
+
+				const char* preview = Editor::Layers::GetLayerName(currentLayer);
+
+				ImGui::PushID("EntityLayer");
+				ImGui::PushItemWidth(comboWidth);
+
+				if (ImGui::BeginCombo("Layer", preview)) {
+					int layerCount = Editor::Layers::GetLayerCount();
+					for (int i = 0; i < layerCount; ++i) {
+						bool selected = (i == currentLayer);
+						if (ImGui::Selectable(Editor::Layers::GetLayerName(i), selected))
+							newLayer = i;
+
+						if (selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				ImGui::PopItemWidth();
+				ImGui::PopID();
+
+				// =========================================
+				// CHANGE COMMAND
+				// =========================================
+				if (newLayer != currentLayer) {
+					FieldKey layerKey{
+						entity,
+						&typeid(Owner),
+						MemberPointerHasher<Owner, LayerFieldT>{}(&Owner::layer)
+					};
+
+					using Cmd = Editor::SetFieldCommand<Owner, LayerFieldT>;
+					auto cmd = std::make_unique<Cmd>(
+						entity,
+						std::string("Change Layer"),
+						&Owner::layer,
+						metaRO.layer,
+						static_cast<LayerFieldT>(newLayer),
+						&NE::ECS::Command::GetEntityMeta
+					);
+
+					Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+				}
+
 				if (metaRO.prefabID != "") {
 					ImGui::Text("Prefab");
 					ImGui::SameLine();
@@ -585,6 +722,19 @@ namespace Editor {
 						}
 						ImGui::EndDragDropTarget();
 					}
+
+					static const char* ShadowCastModeNames[] = { "Off", "On", "TwoSided", "ShadowsOnly" };
+					int currentCastMode = static_cast<int>(comp.shadowCastMode);
+					auto& tempR = NE::ECS::Command::GetEntityRenderer(entity);
+					if (ImGui::Combo("Shadow Cast Mode", &currentCastMode, ShadowCastModeNames, IM_ARRAYSIZE(ShadowCastModeNames))) {
+						tempR.shadowCastMode = static_cast<NE::ECS::Component::Renderer::ShadowCastMode>(currentCastMode);
+
+						NE::MarkSceneDirty();
+					}
+
+					if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
+						NE::MarkSceneDirty();
+					}
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Light))
 				{
@@ -596,6 +746,28 @@ namespace Editor {
 					if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
+
+						// Mark scene dirty when light type changes
+						NE::MarkSceneDirty();
+						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
+					}
+
+					static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
+					int shadowType = static_cast<int>(comp.shadowType);
+					if (ImGui::Combo("Shadow Type", &shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames))) {
+						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+						tempLight.shadowType = static_cast<NE::ECS::Component::Light::ShadowType>(shadowType);
+
+						// Mark scene dirty when light type changes
+						NE::MarkSceneDirty();
+						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
+					}
+
+					static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
+					int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
+					if (ImGui::Combo("Shadow Update Mode", &shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames))) {
+						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+						tempLight.shadowUpdateMode = static_cast<NE::ECS::Component::Light::ShadowUpdateMode>(shadowUpdateMode);
 
 						// Mark scene dirty when light type changes
 						NE::MarkSceneDirty();

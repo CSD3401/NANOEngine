@@ -296,7 +296,7 @@ namespace NE::ECS::Systems
 
         if (m_componentManager->HasComponent<Component::Collider>(entity)) {
             auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
-            //auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+            auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
             Math::Mat4 m = transform.worldMatrix;
             Math::Vec3 worldPosition{ m[12], m[13], m[14] };
 
@@ -324,7 +324,7 @@ namespace NE::ECS::Systems
                 bodyID = NE::Physics::PhysicsManager::CreateBoxBody(
                     worldPosition, worldRotation,
                     collider.halfExtents * 2.0f,
-                    motionType, entity
+                    motionType, entity, meta.layer
                 );
                 break;
 
@@ -332,7 +332,7 @@ namespace NE::ECS::Systems
                 bodyID = NE::Physics::PhysicsManager::CreateSphereBody(
                     worldPosition, worldRotation,
                     collider.radius,
-                    motionType, entity
+                    motionType, entity, meta.layer
                 );
                 break;
 
@@ -341,7 +341,7 @@ namespace NE::ECS::Systems
                     worldPosition, worldRotation,
                     collider.height * 0.5f,
                     collider.radius,
-                    motionType, entity
+                    motionType, entity, meta.layer
                 );
                 break;
             case Component::Collider::ShapeType::Mesh: {
@@ -352,7 +352,7 @@ namespace NE::ECS::Systems
                 //rb.isStatic = true;
                 //rb.motionType = 0U;
                 //rb.mass = 1.f;
-                bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices, entity);
+                bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices, entity, meta.layer);
 
                 if (bodyID != 0) {
                     //Math::Vec3 worldRotationDeg{
@@ -373,14 +373,6 @@ namespace NE::ECS::Systems
                 break;
             }
             
-        }
-        else {
-            Math::Vec3 defaultSize(1.0f, 1.0f, 1.0f);
-            bodyID = NE::Physics::PhysicsManager::CreateBoxBody(
-                transform.localPosition, transform.localRotationEuler,
-                defaultSize,
-                motionType, entity
-            );
         }
 
         if (bodyID != 0)

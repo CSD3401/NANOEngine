@@ -78,7 +78,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(SolutionDir).tmp\$(ProjectName)\$(Configuration)-$(Platform)\</IntDir>
-    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -215,6 +215,7 @@
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
+    <ClInclude Include="src\EditorLayers.hpp" />
     <ClInclude Include="src\Panels\AnimationGraphPanel.hpp" />
     <ClInclude Include="src\Panels\AnimationPanel.hpp" />
     <ClInclude Include="src\Panels\AnimationRuntimePanel.hpp" />
