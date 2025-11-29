@@ -391,23 +391,17 @@ namespace NE {
 
 	void EditorPlay() {
 		g_EngineState = EngineState::Play;
-		NE::Physics::PhysicsManager::ClearAllBodies();
 		gSceneManager.BeginPlay();
-		Physics::PhysicsManager::ActivateBodies();
 		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 
 	void EditorPause() {
 		g_EngineState = EngineState::Play;
-		Physics::PhysicsManager::DeactivateBodies();
-		//Physics::Command::DeactivateBodies();
 		gSceneManager.GetActive()->ScriptPause();
 	}
 
 	void EditorEdit() {
 		g_EngineState = EngineState::Edit;
-		Physics::PhysicsManager::DeactivateBodies(); 
-		NE::Physics::PhysicsManager::ClearAllBodies(); // to change to create body on play and clear on stop once
 		gSceneManager.StopPlay();
 	}
 
