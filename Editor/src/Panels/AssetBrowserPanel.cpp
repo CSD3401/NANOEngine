@@ -2,7 +2,6 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <Engine.hpp>
-#include <ECSInternals.hpp>
 #include "../../src/EditorScene.hpp"
 #include "../AssetManagement/AssetManager.hpp"
 #include <Core/SpdLogger.hpp>
