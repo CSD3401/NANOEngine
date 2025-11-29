@@ -28,11 +28,17 @@
 #include "../EngineState.hpp"  // Include EngineState for dirty flag logic
 #include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
 #include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
+#include "SceneManagement/SceneManager.hpp"
 
 #include <sstream>
 #include <unordered_map>
 #include <functional>
 #include <cmath>
+
+namespace NE {
+    SceneManagement::Scene& GetScene();
+    extern SceneManagement::SceneManager gSceneManager;
+}
 
 namespace NE {
 namespace Scripting {
@@ -2219,6 +2225,17 @@ namespace Scripting {
   PropagateActiveStateToChildren(childTransform.children, effectiveActive);
    }
         }
+    }
+
+    //=========================================================================
+    // Scene Management API IMPLEMENTATION (SDK → Engine bridge)
+    //=========================================================================
+
+    void SwitchScene(const std::string& path) {
+        gSceneManager.StopPlay();
+        gSceneManager.ExitScene();
+        gSceneManager.LoadScene(path);
+        gSceneManager.BeginPlay();
     }
 
     //=========================================================================

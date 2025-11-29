@@ -152,9 +152,11 @@ public:
 		SetPosition(tref0, GetPosition() + Vec3(1.0,1.0,0));
 
 		if (Input::WasKeyPressed('K')) {
-			int dmg = 20;
+			/*int dmg = 20;
 			Events::Send("OnPlayerHit", &dmg);
-			LOG_DEBUG("Santaclaus is coming to town for my damn choice");
+			LOG_DEBUG("Santaclaus is coming to town for my damn choice");*/
+
+			NE::Scripting::SwitchScene("Assets/NewScene.scene");
 		}
 		else if (Input::WasKeyPressed('C'))
 		{
