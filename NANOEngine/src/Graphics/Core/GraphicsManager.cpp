@@ -54,6 +54,11 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "Input/InputManager.hpp"
 
+namespace {
+    float Radians(float deg) {
+        return deg * 3.14159265358979323846f / 180.0f;
+    }
+}
 
 namespace NE::Graphics {
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
@@ -102,14 +107,162 @@ namespace NE::Graphics {
     static GLuint s_BloomTempFBO[BLOOM_LEVELS];
     static GLuint s_BloomTempTex[BLOOM_LEVELS];
 
-    //static GLuint s_FinalFBO = 0;
-    //static GLuint s_FinalColorTex = 0;
-
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_DownSampleShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BlurShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_UpSampleShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_CompositeShader;
-    
+    // Shadow
+    static std::shared_ptr<OpenGL::GLShader> s_ShadowShader;
+    const int SHADOW_RES = 2048;
+
+    void GraphicsManager::UpdateShadowMaps()
+    {
+        // No lights or no draw commands? Nothing to do.
+        const auto& commands = s_DrawQueue->GetCommands();
+        if (m_lights.empty() || commands.empty())
+            return;
+
+        if (!s_ShadowShader) {
+            s_ShadowShader = Resource::ResourceManager::GetInstance()
+                .LoadResource<OpenGL::GLShader>("6c49cc9a-efd8-4d05-b70e-872ab6d44b60");
+        }
+
+        for (auto* light : m_lights) {
+            if (!light) continue;
+
+            if (light->shadowType == ECS::Component::Light::ShadowType::None)
+                continue;
+
+            switch (light->shadowUpdateMode) {
+            case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
+                continue;
+
+            case ECS::Component::Light::ShadowUpdateMode::StaticBake:
+                if (light->shadowBaked)
+                    continue;
+
+            case ECS::Component::Light::ShadowUpdateMode::Realtime:
+                RenderShadowMapForLight(*light, commands);
+                break;
+            }
+        }
+    }
+
+    void GraphicsManager::RenderShadowMapForLight(ECS::Component::Light& light,
+        const std::vector<DrawCommand>& commands)
+    {
+        if (light.type == ECS::Component::Light::Type::Directional || light.type == ECS::Component::Light::Type::Spot) {
+            if (light.shadowMapTex == 0) {
+                glGenTextures(1, &light.shadowMapTex);
+                glBindTexture(GL_TEXTURE_2D, light.shadowMapTex);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+                    SHADOW_RES, SHADOW_RES, 0,
+                    GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+                float border[4] = { 1,1,1,1 };
+                glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+
+                glGenFramebuffers(1, &light.shadowMapFBO);
+                glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                    GL_TEXTURE_2D, light.shadowMapTex, 0);
+                glDrawBuffer(GL_NONE);
+                glReadBuffer(GL_NONE);
+            }
+
+            Math::Mat4 lightView;
+            Math::Mat4 lightProj;
+
+            Math::Vec3 dir = light.direction.Normalized();
+
+            Math::Vec3 up{ 0.f, 1.f, 0.f };
+            if (std::fabs(dir.y) > 0.9f) {
+                up = { 0.f, 0.f, 1.f };
+            }
+
+            if (light.type == ECS::Component::Light::Type::Directional) {
+                lightView = Math::Mat4::BuildViewMtx(
+                    light.position,
+                    light.position + dir,
+                    up
+                );
+                float size = 20.f;
+                lightProj = Math::Mat4::BuildOrtho(-size, size, -size, size, 0.1f, 100.f);
+            } else {
+                lightView = Math::Mat4::BuildViewMtx(
+                    light.position,
+                    light.position + dir,
+                    up
+                );
+                float fov = acosf(light.outerCutoff) * 2.0f;
+                float nearP = 0.1f;
+                float farP = light.radius > 0.f ? light.radius : 50.f;
+                lightProj = Math::Mat4::BuildSymPerspective(fov, 1.0f, nearP, farP);
+            }
+
+            light.lightViewProj = lightProj * lightView;
+
+            glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
+            glViewport(0, 0, SHADOW_RES, SHADOW_RES);
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            s_ShadowShader->Bind();
+            s_ShadowShader->SetUniformMat4("u_LightVP", light.lightViewProj);
+
+            for (const auto& cmd : commands) {
+                if (!cmd.castsShadow) continue;
+
+                s_ShadowShader->SetUniformMat4("u_Model", cmd.transform);
+                cmd.mesh->Bind();
+                cmd.mesh->Draw();
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        } else if (light.type == ECS::Component::Light::Type::Point) {
+            //if (light.shadowMapTex == 0) {
+            //    glGenTextures(1, &light.shadowMapTex);
+            //    glBindTexture(GL_TEXTURE_CUBE_MAP, light.shadowMapTex);
+            //    for (int face = 0; face < 6; ++face) {
+            //        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
+            //            GL_DEPTH_COMPONENT24, SHADOW_RES, SHADOW_RES, 0,
+            //            GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+            //    }
+            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+            //    glGenFramebuffers(1, &light.shadowMapFBO);
+            //}
+
+            //float nearP = 0.1f;
+            //float farP = light.radius > 0.f ? light.radius : 50.f;
+            //float aspect = 1.0f;
+            //float fov = Radians(90.0f);
+
+            //Math::Mat4 shadowProj = Math::Mat4::BuildSymPerspective(fov, aspect, nearP, farP);
+
+            //Vec3 pos = light.position;
+
+            //Math::Mat4 views[6] = {
+            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 1, 0, 0}, Vec3{0,-1,0}),
+            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{-1, 0, 0}, Vec3{0,-1,0}),
+            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 1, 0}, Vec3{0, 0,1}),
+            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0,-1, 0}, Vec3{0, 0,-1}),
+            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 0, 1}, Vec3{0,-1,0}),
+            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 0,-1}, Vec3{0,-1,0})
+            //};
+
+        }
+
+        if (light.shadowUpdateMode == ECS::Component::Light::ShadowUpdateMode::StaticBake)
+            light.shadowBaked = true;
+    }
+
     // Here for now i will shift it all to rendergraph next time
     void InitFullscreenQuadAndBrightpass()
     {
@@ -285,6 +438,9 @@ namespace NE::Graphics {
         NE_PROFILE_FUNCTION();
 
 		int renderedViews = 0;
+
+        UpdateShadowMaps();
+
         for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
             if (view.isMain && view.order == 0) s_GameViewHandle = handle;
@@ -300,6 +456,32 @@ namespace NE::Graphics {
             if (enableSorting)
                 s_DrawQueue->Sort(camPos);
 
+            static const int MAX_SHADOWS = 16;
+            std::vector<Math::Mat4> shadowVPs;
+            std::vector<GLuint>     shadowTextures;
+            shadowVPs.reserve(MAX_SHADOWS);
+            shadowTextures.reserve(MAX_SHADOWS);
+
+            int shadowCount = 0;
+            for (auto* l : m_lights) {
+                if (!l) continue;
+
+                l->shadowIndex = -1;
+
+                if (l->shadowType == ECS::Component::Light::ShadowType::None)
+                    continue;
+                if (l->shadowMapTex == 0)
+                    continue;
+
+                if (shadowCount >= MAX_SHADOWS)
+                    continue;
+
+                l->shadowIndex = shadowCount;
+                shadowVPs.push_back(l->lightViewProj);
+                shadowTextures.push_back(l->shadowMapTex);
+                ++shadowCount;
+            }
+
 			s_clusteredLighting->BuildForView(view, m_lights);
 
             // Prepare instance data buffer and batching variables
@@ -307,6 +489,7 @@ namespace NE::Graphics {
             instanceData.reserve(32);
             std::shared_ptr<IGeometryBuffer> currentMesh;
             std::shared_ptr<Material> currentMaterial;
+            bool currentReceiveShadows = false;
 
             auto flushBatch = [&]() {
                 if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
@@ -339,22 +522,26 @@ namespace NE::Graphics {
                 shader->SetUniformFloat("i_FogStart", renderSettings.fogStart);
                 shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
 
-                // Set lights
-                /*shader->SetUniformInt("u_numLights", static_cast<int>(m_lights.size()));
-                for (size_t i = 0; i < m_lights.size(); ++i) {
-                    const auto* light = m_lights[i];
-                    std::string base = "u_lights[" + std::to_string(i) + "]";
-                    shader->SetUniformInt(base + ".type", light->type);
-                    shader->SetUniformVec3(base + ".position", light->position);
-                    shader->SetUniformVec3(base + ".direction", light->direction);
-                    shader->SetUniformVec3(base + ".color", light->color);
-                    shader->SetUniformFloat(base + ".intensity", light->intensity);
-                    shader->SetUniformFloat(base + ".innerCutoff", light->innerCutoff);
-                    shader->SetUniformFloat(base + ".outerCutoff", light->outerCutoff);
-                    shader->SetUniformFloat(base + ".constant", light->constant);
-                    shader->SetUniformFloat(base + ".linear", light->linear);
-                    shader->SetUniformFloat(base + ".quadratic", light->quadratic);
-                }*/
+                shader->SetUniformInt("u_ReceiveShadows", currentReceiveShadows ? 1 : 0);
+
+                // Shadow arrays
+                int numShadows = static_cast<int>(shadowVPs.size());
+                if (numShadows > 16) numShadows = 16;
+
+                // Only set if the shader actually has these uniforms (PBR)
+                shader->SetUniformInt("u_NumShadowMaps", numShadows);
+
+                for (int i = 0; i < numShadows; ++i) {
+                    std::string vpName = "u_ShadowVP[" + std::to_string(i) + "]";
+                    std::string texName = "u_ShadowMaps[" + std::to_string(i) + "]";
+
+                    shader->SetUniformMat4(vpName.c_str(), shadowVPs[i]);
+
+                    int unit = 5 + i; // reserve slots 5..(5+numShadows-1)
+                    shader->SetUniformInt(texName.c_str(), unit);
+                    glActiveTexture(GL_TEXTURE0 + unit);
+                    glBindTexture(GL_TEXTURE_2D, shadowTextures[i]);
+                }
 
                 // Set lights
 				s_clusteredLighting->BindForDraw();
@@ -373,11 +560,13 @@ namespace NE::Graphics {
             {
                 auto mesh = command.mesh;
                 auto material = command.material;
+                bool receives = command.receivesShadow;
 
                 // Check compatibility with current batch
                 bool compatible =
                     (mesh == currentMesh) &&
-                    (material == currentMaterial);
+                    (material == currentMaterial) &&
+                    (receives == currentReceiveShadows);
 
                 // Flush current batch if not compatible
                 if (!compatible && !instanceData.empty()) {
@@ -388,6 +577,7 @@ namespace NE::Graphics {
                 if (!compatible) {
                     currentMesh = mesh;
                     currentMaterial = material;
+                    currentReceiveShadows = receives;
                 }
 
                 NE::Graphics::InstanceData instance{};

@@ -126,6 +126,9 @@ namespace NE::Graphics {
         static RenderSettings renderSettings;
         // Experimental here for now
         static PostProcessingSettings postProcessingSettings;
+
+        static void UpdateShadowMaps();
+        static void RenderShadowMapForLight(ECS::Component::Light& light, const std::vector<DrawCommand>& commands);
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
