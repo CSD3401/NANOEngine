@@ -28,6 +28,9 @@ namespace NE::Graphics::OpenGL {
 		// Read pixel data from the picking attachment
 		uint32_t ReadPixel(uint32_t x, uint32_t y);
 
+		// Blit this framebuffer to the default framebuffer (screen)
+		void BlitToScreen(int windowWidth, int windowHeight);
+
         static void Unbind();
 
     private:

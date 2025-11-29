@@ -75,8 +75,8 @@ namespace NE::Graphics {
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
     RenderViewHandle GraphicsManager::s_ActiveViewHandle;
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
-    RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
+    RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
 	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
@@ -329,7 +329,6 @@ namespace NE::Graphics {
 
         s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
         s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
-        //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
@@ -900,6 +899,23 @@ namespace NE::Graphics {
 		}
 		return 0;
     }
+
+    uint32_t GraphicsManager::GetFinalOutputColorAttachment()
+    {
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
+        if (framebuffer) {
+            return framebuffer->GetColorAttachment();
+        }
+        return 0;
+	}
+
+    void GraphicsManager::DisplayFinalOutput(int windowWidth, int windowHeight)
+    {
+		// Note: Game view handle should be replaced with final output view handle when post-processing is added
+		s_RenderViewManager->BlitToScreen(s_GameViewHandle, windowWidth, windowHeight);
+
+		//s_RenderViewManager->BlitToScreen(s_SceneViewHandle, windowWidth, windowHeight);
+	}
 
     IStateCache* GraphicsManager::GetStateCache() {
         return s_StateCache.get();

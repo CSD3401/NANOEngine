@@ -46,6 +46,9 @@ namespace NE::Graphics {
 		// Destroys all managed framebuffers
 		void DestroyAll();
 
+		// Blits to the default framebuffer
+		void BlitToScreen(RenderViewHandle handle, int windowWidth, int windowHeight);
+
 		// Sets the camera data for the given render view handle
 		void SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, float nearPlane, float farPlane, bool isMain, uint16_t order);
 
