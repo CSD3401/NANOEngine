@@ -45,6 +45,7 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
+#include "../EditorLayers.hpp"
 
 namespace {
 	// the widget maker
@@ -436,6 +437,143 @@ namespace Editor {
 							g_activeCommands.erase(it);
 						}
 					}
+				}
+
+				//const char* previewTag[1] = { "Under Dev" };
+
+				//ImGui::PushID("EntityTag");
+				//if (ImGui::BeginCombo("Tag", *previewTag)) {
+				//	int tagCount = 0;
+				//	for (int i = 0; i < tagCount; ++i) {
+				//		bool selected = (i == 0);
+
+				//		if (selected)
+				//			ImGui::SetItemDefaultFocus();
+				//	}
+				//	ImGui::EndCombo();
+				//}
+				//ImGui::PopID();
+
+				//ImGui::SameLine();
+
+				//using LayerFieldT = uint8_t;
+
+				//int currentLayer = (int)metaRO.layer;
+				//int newLayer = currentLayer;
+
+				//const char* preview = Editor::Layers::GetLayerName(currentLayer);
+
+				//ImGui::PushID("EntityLayer");
+				//if (ImGui::BeginCombo("Layer", preview)) {
+				//	int layerCount = Editor::Layers::GetLayerCount();
+				//	for (int i = 0; i < layerCount; ++i) {
+				//		bool selected = (i == currentLayer);
+				//		if (ImGui::Selectable(Editor::Layers::GetLayerName(i), selected)) {
+				//			newLayer = i;
+				//		}
+				//		if (selected)
+				//			ImGui::SetItemDefaultFocus();
+				//	}
+				//	ImGui::EndCombo();
+				//}
+				//ImGui::PopID();
+
+				//if (newLayer != currentLayer) {
+				//	FieldKey layerKey{
+				//		entity,
+				//		&typeid(Owner),
+				//		MemberPointerHasher<Owner, LayerFieldT>{}(&Owner::layer)
+				//	};
+
+				//	using Cmd = Editor::SetFieldCommand<Owner, LayerFieldT>;
+				//	auto cmd = std::make_unique<Cmd>(
+				//		entity,
+				//		std::string("Change Layer"),
+				//		&Owner::layer,
+				//		metaRO.layer,
+				//		static_cast<LayerFieldT>(newLayer),
+				//		&NE::ECS::Command::GetEntityMeta
+				//	);
+
+				//	Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+				//}
+
+				// =========================================
+// Shared width for both Tag & Layer combos
+// =========================================
+				const float comboWidth = 140.0f;
+
+				// =========================================
+				// TAG COMBO
+				// =========================================
+				const char* previewTag = "Under Dev";   // Should later come from metaRO.tag
+
+				ImGui::PushID("EntityTag");
+				ImGui::PushItemWidth(comboWidth);
+
+				if (ImGui::BeginCombo("Tag", previewTag)) {
+					// Currently empty, but structure ready
+					// Example:
+					// for (int i = 0; i < tagCount; ++i) { ... }
+					ImGui::TextDisabled("[No Tags Yet]");
+					ImGui::EndCombo();
+				}
+
+				ImGui::PopItemWidth();
+				ImGui::PopID();
+
+				ImGui::SameLine();
+
+				// =========================================
+				// LAYER COMBO
+				// =========================================
+				using LayerFieldT = uint8_t;
+
+				int currentLayer = (int)metaRO.layer;
+				int newLayer = currentLayer;
+
+				const char* preview = Editor::Layers::GetLayerName(currentLayer);
+
+				ImGui::PushID("EntityLayer");
+				ImGui::PushItemWidth(comboWidth);
+
+				if (ImGui::BeginCombo("Layer", preview)) {
+					int layerCount = Editor::Layers::GetLayerCount();
+					for (int i = 0; i < layerCount; ++i) {
+						bool selected = (i == currentLayer);
+						if (ImGui::Selectable(Editor::Layers::GetLayerName(i), selected))
+							newLayer = i;
+
+						if (selected)
+							ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				ImGui::PopItemWidth();
+				ImGui::PopID();
+
+				// =========================================
+				// CHANGE COMMAND
+				// =========================================
+				if (newLayer != currentLayer) {
+					FieldKey layerKey{
+						entity,
+						&typeid(Owner),
+						MemberPointerHasher<Owner, LayerFieldT>{}(&Owner::layer)
+					};
+
+					using Cmd = Editor::SetFieldCommand<Owner, LayerFieldT>;
+					auto cmd = std::make_unique<Cmd>(
+						entity,
+						std::string("Change Layer"),
+						&Owner::layer,
+						metaRO.layer,
+						static_cast<LayerFieldT>(newLayer),
+						&NE::ECS::Command::GetEntityMeta
+					);
+
+					Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
 				}
 
 				if (metaRO.prefabID != "") {

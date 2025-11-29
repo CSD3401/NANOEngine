@@ -215,6 +215,7 @@
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
+    <ClInclude Include="src\EditorLayers.hpp" />
     <ClInclude Include="src\Panels\AnimationGraphPanel.hpp" />
     <ClInclude Include="src\Panels\AnimationPanel.hpp" />
     <ClInclude Include="src\Panels\AnimationRuntimePanel.hpp" />

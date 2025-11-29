@@ -11,6 +11,7 @@ namespace NE::ECS::Component {
         uint64_t luid;
         uint64_t prefabInstanceID = 0; 
         uint16_t prefabLocalID;
+        uint8_t layer = 0;
         bool isActive = true;
         bool isPrefabRoot = false;
 
@@ -18,6 +19,7 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(name),
             NE_REFLECT_FIELD(isActive),
             NE_REFLECT_FIELD(luid),
+            NE_REFLECT_FIELD(layer),
             NE_REFLECT_FIELD(prefabID),
             NE_REFLECT_FIELD(prefabLocalID),
             NE_REFLECT_FIELD(isPrefabRoot)

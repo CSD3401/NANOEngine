@@ -299,6 +299,9 @@
     <ClInclude Include="src\Util\DrawSelectedCollider.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
+    <ClInclude Include="src\EditorLayers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Editor.rc">
