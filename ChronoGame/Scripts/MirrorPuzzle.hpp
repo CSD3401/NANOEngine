@@ -5,41 +5,16 @@
 /**
  * MirrorPuzzle - Tile-based puzzle with mirrored movement
  *
- * Uses 4 TransformRefs:
- *   - targetTransform, gridParent (original)
- *   - mirrorTargetTransform, mirrorGridParent (mirror)
+ * NOTE: Since we can't query entity names and child order is unreliable,
+ * tiles are assigned manually via exposed TransformRef fields.
  *
- * Start/End positions are configured via exposed int fields.
- * Mirror positions are automatically calculated (horizontally mirrored).
- *
- * ============================================================================
- * EXPOSED FIELDS:
- * ============================================================================
- *   - startRow, startCol: Starting tile for original target (0-2, 0-3)
- *   - endRow, endCol: Goal tile for original target (0-2, 0-3)
- *   Mirror positions auto-calculated: mirrorCol = 3 - col
- *
- * ============================================================================
- * HIERARCHY SETUP:
- * ============================================================================
- *
- *   Scene
- *   ├── ScriptHolder (attach this script here)
- *   ├── OriginalGridParent (assign to gridParent)
- *   │   ├── Tile0 (child 0) ... Tile11 (child 11)
- *   ├── MirrorGridParent (assign to mirrorGridParent)
- *   │   ├── Tile0 (child 0) ... Tile11 (child 11)
- *   ├── Target (assign to targetTransform)
- *   └── MirrorTarget (assign to mirrorTargetTransform)
- *
- * Grid Layout (4 columns x 3 rows):
- *   Row 0: [0] [1] [2] [3]
- *   Row 1: [4] [5] [6] [7]
- *   Row 2: [8] [9] [10][11]
+ * Setup in editor:
+ * 1. Assign all 12 original tiles to tile00, tile01, ... tile23
+ * 2. Assign all 12 mirror tiles to mirrorTile00, ... mirrorTile23
+ * 3. Assign targetTransform and mirrorTargetTransform
  */
 class MirrorPuzzle : public IScript {
 public:
-	// Struct to configure individual tile movement directions
 	struct TileConfig {
 		int row = 0;
 		int col = 0;
@@ -59,11 +34,40 @@ public:
 	};
 
 	MirrorPuzzle() {
-		// Component references (use SCRIPT_COMPONENT_REF in constructor)
 		SCRIPT_COMPONENT_REF(targetTransform, TransformRef);
-		SCRIPT_COMPONENT_REF(gridParent, TransformRef);
 		SCRIPT_COMPONENT_REF(mirrorTargetTransform, TransformRef);
-		SCRIPT_COMPONENT_REF(mirrorGridParent, TransformRef);
+
+		// Original grid tiles (row 0)
+		SCRIPT_COMPONENT_REF(tile00, TransformRef);
+		SCRIPT_COMPONENT_REF(tile01, TransformRef);
+		SCRIPT_COMPONENT_REF(tile02, TransformRef);
+		SCRIPT_COMPONENT_REF(tile03, TransformRef);
+		// Row 1
+		SCRIPT_COMPONENT_REF(tile10, TransformRef);
+		SCRIPT_COMPONENT_REF(tile11, TransformRef);
+		SCRIPT_COMPONENT_REF(tile12, TransformRef);
+		SCRIPT_COMPONENT_REF(tile13, TransformRef);
+		// Row 2
+		SCRIPT_COMPONENT_REF(tile20, TransformRef);
+		SCRIPT_COMPONENT_REF(tile21, TransformRef);
+		SCRIPT_COMPONENT_REF(tile22, TransformRef);
+		SCRIPT_COMPONENT_REF(tile23, TransformRef);
+
+		// Mirror grid tiles (row 0)
+		SCRIPT_COMPONENT_REF(mirrorTile00, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile01, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile02, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile03, TransformRef);
+		// Row 1
+		SCRIPT_COMPONENT_REF(mirrorTile10, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile11, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile12, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile13, TransformRef);
+		// Row 2
+		SCRIPT_COMPONENT_REF(mirrorTile20, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile21, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile22, TransformRef);
+		SCRIPT_COMPONENT_REF(mirrorTile23, TransformRef);
 	}
 
 	~MirrorPuzzle() override = default;
@@ -71,38 +75,21 @@ public:
 	void Awake() override {}
 
 	void Initialize(Entity entity) override {
-		// Primitive fields (use SCRIPT_FIELD in Initialize)
 		SCRIPT_FIELD(startRow, Int);
 		SCRIPT_FIELD(startCol, Int);
 		SCRIPT_FIELD(endRow, Int);
 		SCRIPT_FIELD(endCol, Int);
-		//SCRIPT_FIELD(tileSpacingX, Float);
-		//SCRIPT_FIELD(tileSpacingY, Float);
 		SCRIPT_FIELD(zOffset, Float);
-		SCRIPT_FIELD(eventName, String);
 	}
 
 	void Start() override {
 		LOG_INFO("=== MirrorPuzzle Started ===");
-		//PlayAudio("event:/UI/Click");
 
-		// Validate parent refs
-		if (!gridParent.IsValid()) {
-			LOG_ERROR("gridParent is not assigned!");
-			return;
-		}
-		if (!mirrorGridParent.IsValid()) {
-			LOG_ERROR("mirrorGridParent is not assigned!");
-			return;
-		}
-
-		// Clamp start/end positions to valid range
 		startRow = Clamp(startRow, 0, 2);
 		startCol = Clamp(startCol, 0, 3);
 		endRow = Clamp(endRow, 0, 2);
 		endCol = Clamp(endCol, 0, 3);
 
-		// Calculate mirror positions (horizontally mirrored)
 		mirrorStartRow = startRow;
 		mirrorStartCol = 3 - startCol;
 		mirrorEndRow = endRow;
@@ -111,39 +98,34 @@ public:
 		LOG_INFO("Original: Start(" << startRow << "," << startCol << ") -> End(" << endRow << "," << endCol << ")");
 		LOG_INFO("Mirror:   Start(" << mirrorStartRow << "," << mirrorStartCol << ") -> End(" << mirrorEndRow << "," << mirrorEndCol << ")");
 
-		// Cache original grid tile transforms
-		Entity gridParentEntity = gridParent.GetEntity();
-		size_t originalChildCount = GetChildCountOf(gridParentEntity);
-		LOG_INFO("Original grid parent has " << originalChildCount << " children");
+		// Cache tiles into array (manual assignment)
+		tileTransforms[0] = tile00;
+		tileTransforms[1] = tile01;
+		tileTransforms[2] = tile02;
+		tileTransforms[3] = tile03;
+		tileTransforms[4] = tile10;
+		tileTransforms[5] = tile11;
+		tileTransforms[6] = tile12;
+		tileTransforms[7] = tile13;
+		tileTransforms[8] = tile20;
+		tileTransforms[9] = tile21;
+		tileTransforms[10] = tile22;
+		tileTransforms[11] = tile23;
 
-		if (originalChildCount < 12) {
-			LOG_ERROR("Original grid needs 12 tile children, found " << originalChildCount);
-			return;
-		}
+		mirrorTileTransforms[0] = mirrorTile00;
+		mirrorTileTransforms[1] = mirrorTile01;
+		mirrorTileTransforms[2] = mirrorTile02;
+		mirrorTileTransforms[3] = mirrorTile03;
+		mirrorTileTransforms[4] = mirrorTile10;
+		mirrorTileTransforms[5] = mirrorTile11;
+		mirrorTileTransforms[6] = mirrorTile12;
+		mirrorTileTransforms[7] = mirrorTile13;
+		mirrorTileTransforms[8] = mirrorTile20;
+		mirrorTileTransforms[9] = mirrorTile21;
+		mirrorTileTransforms[10] = mirrorTile22;
+		mirrorTileTransforms[11] = mirrorTile23;
 
-		for (size_t i = 0; i < 12; ++i) {
-			Entity childEntity = GetChildOf(gridParentEntity, i);
-			tileTransforms[i] = GetTransformRef(childEntity);
-		}
-		LOG_INFO("Cached 12 original tile transforms");
-
-		// Cache mirror grid tile transforms
-		Entity mirrorGridParentEntity = mirrorGridParent.GetEntity();
-		size_t mirrorChildCount = GetChildCountOf(mirrorGridParentEntity);
-		LOG_INFO("Mirror grid parent has " << mirrorChildCount << " children");
-
-		if (mirrorChildCount < 12) {
-			LOG_ERROR("Mirror grid needs 12 tile children, found " << mirrorChildCount);
-			return;
-		}
-
-		for (size_t i = 0; i < 12; ++i) {
-			Entity childEntity = GetChildOf(mirrorGridParentEntity, i);
-			mirrorTileTransforms[i] = GetTransformRef(childEntity);
-		}
-		LOG_INFO("Cached 12 mirror tile transforms");
-
-		// Initialize direction grids - all tiles allow all directions by default
+		// Initialize all tiles to allow all directions
 		for (auto& row : grid) {
 			row.fill(ALL);
 		}
@@ -151,7 +133,7 @@ public:
 			row.fill(ALL);
 		}
 
-		// Apply user-configured tile restrictions for original grid
+		// Apply tile restrictions for original grid
 		for (const auto& restriction : tileRestrictions) {
 			if (restriction.row >= 0 && restriction.row < 3 && restriction.col >= 0 && restriction.col < 4) {
 				Direction allowed = NONE;
@@ -162,19 +144,22 @@ public:
 
 				grid[restriction.row][restriction.col] = allowed;
 				LOG_INFO("Original tile (" << restriction.row << "," << restriction.col << ") restricted to: " << static_cast<int>(allowed));
-			
-				// Update visual direction indicators for this tile
+
+				// Update direction indicators (child 0=UP, 1=RIGHT, 2=DOWN, 3=LEFT)
 				int tileIndex = restriction.row * 4 + restriction.col;
 				if (tileTransforms[tileIndex].IsValid()) {
 					Entity tileEntity = tileTransforms[tileIndex].GetEntity();
 
-					// Get direction indicator children (UP=0, RIGHT=1, DOWN=2, LEFT=3)
 					Entity upIndicator = GetChildOf(tileEntity, 0);
 					Entity rightIndicator = GetChildOf(tileEntity, 1);
 					Entity downIndicator = GetChildOf(tileEntity, 2);
 					Entity leftIndicator = GetChildOf(tileEntity, 3);
 
-					// Set active based on allowed directions
+					if (upIndicator != 0) SetActive(false, upIndicator);
+					if (rightIndicator != 0) SetActive(false, rightIndicator);
+					if (downIndicator != 0) SetActive(false, downIndicator);
+					if (leftIndicator != 0) SetActive(false, leftIndicator);
+
 					if (upIndicator != 0) SetActive((allowed & UP) != 0, upIndicator);
 					if (rightIndicator != 0) SetActive((allowed & RIGHT) != 0, rightIndicator);
 					if (downIndicator != 0) SetActive((allowed & DOWN) != 0, downIndicator);
@@ -183,7 +168,7 @@ public:
 			}
 		}
 
-		// Apply user-configured tile restrictions for mirror grid
+		// Apply tile restrictions for mirror grid
 		for (const auto& restriction : mirrorTileRestrictions) {
 			if (restriction.row >= 0 && restriction.row < 3 && restriction.col >= 0 && restriction.col < 4) {
 				Direction allowed = NONE;
@@ -194,19 +179,22 @@ public:
 
 				mirrorGrid[restriction.row][restriction.col] = allowed;
 				LOG_INFO("Mirror tile (" << restriction.row << "," << restriction.col << ") restricted to: " << static_cast<int>(allowed));
-			
-				// Update visual direction indicators for this mirror tile
+
+				// Update direction indicators
 				int tileIndex = restriction.row * 4 + restriction.col;
 				if (mirrorTileTransforms[tileIndex].IsValid()) {
 					Entity tileEntity = mirrorTileTransforms[tileIndex].GetEntity();
 
-					// Get direction indicator children (UP=0, RIGHT=1, DOWN=2, LEFT=3)
 					Entity upIndicator = GetChildOf(tileEntity, 0);
 					Entity rightIndicator = GetChildOf(tileEntity, 1);
 					Entity downIndicator = GetChildOf(tileEntity, 2);
 					Entity leftIndicator = GetChildOf(tileEntity, 3);
 
-					// Set active based on allowed directions
+					if (upIndicator != 0) SetActive(false, upIndicator);
+					if (rightIndicator != 0) SetActive(false, rightIndicator);
+					if (downIndicator != 0) SetActive(false, downIndicator);
+					if (leftIndicator != 0) SetActive(false, leftIndicator);
+
 					if (upIndicator != 0) SetActive((allowed & UP) != 0, upIndicator);
 					if (rightIndicator != 0) SetActive((allowed & RIGHT) != 0, rightIndicator);
 					if (downIndicator != 0) SetActive((allowed & DOWN) != 0, downIndicator);
@@ -215,28 +203,25 @@ public:
 			}
 		}
 
-		// Set current positions to start positions
 		currentRow = startRow;
 		currentCol = startCol;
 		mirrorRow = mirrorStartRow;
 		mirrorCol = mirrorStartCol;
 
-		// Position original target on starting tile
 		if (targetTransform.IsValid()) {
 			int startTileIndex = startRow * 4 + startCol;
 			if (tileTransforms[startTileIndex].IsValid()) {
-				Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex], gridParent);
+				Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex]);
 				startPos.z += zOffset;
 				SetPosition(targetTransform, startPos);
 				LOG_INFO("Original target placed at (" << currentRow << "," << currentCol << ")");
 			}
 		}
 
-		// Position mirror target on starting tile
 		if (mirrorTargetTransform.IsValid()) {
 			int mirrorStartTileIndex = mirrorStartRow * 4 + mirrorStartCol;
 			if (mirrorTileTransforms[mirrorStartTileIndex].IsValid()) {
-				Vec3 mirrorStartPos = GetTileWorldPosition(mirrorTileTransforms[mirrorStartTileIndex], mirrorGridParent);
+				Vec3 mirrorStartPos = GetTileWorldPosition(mirrorTileTransforms[mirrorStartTileIndex]);
 				mirrorStartPos.z += zOffset;
 				SetPosition(mirrorTargetTransform, mirrorStartPos);
 				LOG_INFO("Mirror target placed at (" << mirrorRow << "," << mirrorCol << ")");
@@ -251,25 +236,16 @@ public:
 		if (!targetTransform.IsValid() || !mirrorTargetTransform.IsValid()) return;
 		if (puzzleSolved) return;
 
-		if (Input::WasKeyPressed('W'))
-		{
-			//PlayAudio("event:/OnClick");
-			TryMoveUp();
-		}
+		if (Input::WasKeyPressed('W')) TryMoveUp();
 		if (Input::WasKeyPressed('S')) TryMoveDown();
 		if (Input::WasKeyPressed('A')) TryMoveLeft();
 		if (Input::WasKeyPressed('D')) TryMoveRight();
-		//if (Input::WasKeyPressed('P')) PrintGridState();
-		//if (Input::WasKeyPressed('R')) ResetPuzzle();
 
-		// Check win condition
 		if (HasReachedEnd() && HasMirrorReachedEnd()) {
 			if (!puzzleSolved) {
 				puzzleSolved = true;
-				Events::Send(eventName.c_str());
-				//PlayAudio("event:/UI/Click");
-				LOG_INFO("\n SEND MSG : " << eventName);
 				LOG_INFO("\n=== PUZZLE SOLVED! ===");
+				Events::Send(eventName.c_str());
 			}
 		}
 	}
@@ -283,7 +259,6 @@ public:
 		return "MirrorPuzzle";
 	}
 
-	// === DIRECTION ENUM ===
 	enum Direction : uint8_t {
 		NONE = 0,
 		UP = 1 << 0,
@@ -293,24 +268,18 @@ public:
 		ALL = UP | DOWN | LEFT | RIGHT
 	};
 
-	// === HELPER FUNCTIONS ===
-
 	int Clamp(int val, int min, int max) const {
 		if (val < min) return min;
 		if (val > max) return max;
 		return val;
 	}
 
-	Vec3 GetTileWorldPosition(const TransformRef& tileRef, const TransformRef& parentRef) const {
-		if (!tileRef.IsValid() || !parentRef.IsValid()) {
+	Vec3 GetTileWorldPosition(const TransformRef& tileRef) const {
+		if (!tileRef.IsValid()) {
 			return Vec3(0, 0, 0);
 		}
-		Vec3 localPos = GetPosition(tileRef);
-		Vec3 parentPos = GetPosition(parentRef);
-		return parentPos + localPos;
+		return GetPosition(tileRef);
 	}
-
-	// === MOVEMENT ===
 
 	void TryMoveUp() {
 		LOG_INFO("\n--- Attempting UP ---");
@@ -329,14 +298,14 @@ public:
 	void TryMoveLeft() {
 		LOG_INFO("\n--- Attempting LEFT ---");
 		bool originalMoved = TryMoveOriginal(LEFT, 0, -1);
-		bool mirrorMoved = TryMoveMirror(RIGHT, 0, 1);  // Mirror moves opposite horizontally
+		bool mirrorMoved = TryMoveMirror(RIGHT, 0, 1);
 		if (originalMoved || mirrorMoved) LogCurrentState();
 	}
 
 	void TryMoveRight() {
 		LOG_INFO("\n--- Attempting RIGHT ---");
 		bool originalMoved = TryMoveOriginal(RIGHT, 0, 1);
-		bool mirrorMoved = TryMoveMirror(LEFT, 0, -1);  // Mirror moves opposite horizontally
+		bool mirrorMoved = TryMoveMirror(LEFT, 0, -1);
 		if (originalMoved || mirrorMoved) LogCurrentState();
 	}
 
@@ -410,7 +379,7 @@ public:
 
 	void MoveOriginalTargetToTile(int tileIndex) {
 		if (tileTransforms[tileIndex].IsValid() && targetTransform.IsValid()) {
-			Vec3 tilePos = GetTileWorldPosition(tileTransforms[tileIndex], gridParent);
+			Vec3 tilePos = GetTileWorldPosition(tileTransforms[tileIndex]);
 			tilePos.z += zOffset;
 			SetPosition(targetTransform, tilePos);
 		}
@@ -418,13 +387,11 @@ public:
 
 	void MoveMirrorTargetToTile(int tileIndex) {
 		if (mirrorTileTransforms[tileIndex].IsValid() && mirrorTargetTransform.IsValid()) {
-			Vec3 tilePos = GetTileWorldPosition(mirrorTileTransforms[tileIndex], mirrorGridParent);
+			Vec3 tilePos = GetTileWorldPosition(mirrorTileTransforms[tileIndex]);
 			tilePos.z += zOffset;
 			SetPosition(mirrorTargetTransform, tilePos);
 		}
 	}
-
-	// === WIN CONDITION (now based on grid coordinates) ===
 
 	bool HasReachedEnd() const {
 		return (currentRow == endRow && currentCol == endCol);
@@ -434,105 +401,42 @@ public:
 		return (mirrorRow == mirrorEndRow && mirrorCol == mirrorEndCol);
 	}
 
-	// === RESET ===
-
-	void ResetPuzzle() {
-		LOG_INFO("\n=== Resetting Puzzle ===");
-
-		currentRow = startRow;
-		currentCol = startCol;
-		mirrorRow = mirrorStartRow;
-		mirrorCol = mirrorStartCol;
-		puzzleSolved = false;
-
-		// Reposition targets
-		if (targetTransform.IsValid()) {
-			int startTileIndex = startRow * 4 + startCol;
-			if (tileTransforms[startTileIndex].IsValid()) {
-				Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex], gridParent);
-				startPos.z += 1.0f;
-				SetPosition(targetTransform, startPos);
-			}
-		}
-
-		if (mirrorTargetTransform.IsValid()) {
-			int mirrorStartTileIndex = mirrorStartRow * 4 + mirrorStartCol;
-			if (mirrorTileTransforms[mirrorStartTileIndex].IsValid()) {
-				Vec3 mirrorStartPos = GetTileWorldPosition(mirrorTileTransforms[mirrorStartTileIndex], mirrorGridParent);
-				mirrorStartPos.z += 1.0f;
-				SetPosition(mirrorTargetTransform, mirrorStartPos);
-			}
-		}
-
-		LogCurrentState();
-	}
-
-	// === DEBUG ===
-
 	void LogCurrentState() const {
 		LOG_INFO("=== Current State ===");
 		LOG_INFO("Original: (" << currentRow << "," << currentCol << ") -> Goal(" << endRow << "," << endCol << ")");
 		LOG_INFO("Mirror:   (" << mirrorRow << "," << mirrorCol << ") -> Goal(" << mirrorEndRow << "," << mirrorEndCol << ")");
 	}
 
-	void PrintGridState() const {
-		LOG_INFO("\n=== Grid State ===");
-		LOG_INFO("ORIGINAL GRID:");
-		for (int row = 0; row < 3; row++) {
-			LOG_INFO("Row " << row << ": "
-				<< static_cast<int>(grid[row][0]) << " "
-				<< static_cast<int>(grid[row][1]) << " "
-				<< static_cast<int>(grid[row][2]) << " "
-				<< static_cast<int>(grid[row][3]));
-		}
-		LOG_INFO("Original position: (" << currentRow << "," << currentCol << ")");
-		LOG_INFO("Original goal: (" << endRow << "," << endCol << ")");
+	// Original grid tiles
+	TransformRef tile00, tile01, tile02, tile03;
+	TransformRef tile10, tile11, tile12, tile13;
+	TransformRef tile20, tile21, tile22, tile23;
 
-		LOG_INFO("\nMIRROR GRID:");
-		for (int row = 0; row < 3; row++) {
-			LOG_INFO("Row " << row << ": "
-				<< static_cast<int>(mirrorGrid[row][0]) << " "
-				<< static_cast<int>(mirrorGrid[row][1]) << " "
-				<< static_cast<int>(mirrorGrid[row][2]) << " "
-				<< static_cast<int>(mirrorGrid[row][3]));
-		}
-		LOG_INFO("Mirror position: (" << mirrorRow << "," << mirrorCol << ")");
-		LOG_INFO("Mirror goal: (" << mirrorEndRow << "," << mirrorEndCol << ")");
-	}
-
-	// === EXPOSED FIELDS (4 refs + 4 position ints) ===
+	// Mirror grid tiles
+	TransformRef mirrorTile00, mirrorTile01, mirrorTile02, mirrorTile03;
+	TransformRef mirrorTile10, mirrorTile11, mirrorTile12, mirrorTile13;
+	TransformRef mirrorTile20, mirrorTile21, mirrorTile22, mirrorTile23;
 
 	TransformRef targetTransform;
-	TransformRef gridParent;
 	TransformRef mirrorTargetTransform;
-	TransformRef mirrorGridParent;
 
-	// User-configurable start/end positions (exposed in editor)
-	int startRow = 2;  // Default: bottom-left
+	int startRow = 2;
 	int startCol = 0;
-	int endRow = 0;    // Default: top-right
+	int endRow = 0;
 	int endCol = 3;
 
-	//float tileSpacingX = 1.5f;
-	//float tileSpacingY = 1.5f;
+	float zOffset = 1.0f;
 
-	float zOffset = 1.0f;  // Height offset above tile
-
-	// Tile movement restrictions (configurable in editor)
-	std::vector<TileConfig> tileRestrictions;        // Original grid restrictions
-	std::vector<TileConfig> mirrorTileRestrictions;  // Mirror grid restrictions
+	std::vector<TileConfig> tileRestrictions;
+	std::vector<TileConfig> mirrorTileRestrictions;
 
 	std::string eventName = "MirrorPuzzleSolved";
 
-	// === INTERNAL STATE ===
-
-	// Mirror positions (calculated from original)
 	int mirrorStartRow = 0;
 	int mirrorStartCol = 0;
 	int mirrorEndRow = 0;
 	int mirrorEndCol = 0;
 
-	// Current positions
 	int currentRow = 0;
 	int currentCol = 0;
 	int mirrorRow = 0;
@@ -540,11 +444,9 @@ public:
 
 	bool puzzleSolved = false;
 
-	// Direction grids
 	std::array<std::array<Direction, 4>, 3> grid;
 	std::array<std::array<Direction, 4>, 3> mirrorGrid;
 
-	// Tile transforms (populated from GetChildOf in Start)
 	std::array<TransformRef, 12> tileTransforms;
 	std::array<TransformRef, 12> mirrorTileTransforms;
 };

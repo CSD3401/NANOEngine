@@ -2707,7 +2707,7 @@
                 "Position": {
                     "x": 0.0,
                     "y": 0.0,
-                    "z": 0.0
+                    "z": 8.699385034560692e-8
                 },
                 "Scale": {
                     "x": 1.0,
@@ -3161,7 +3161,7 @@
             "NativeScript": {
                 "ScriptName": "PlayerController",
                 "SerializedFields": {
-                    "playerBottom": 680,
+                    "playerBottom": 0,
                     "groundProbeStartOffset": "0.100000",
                     "maxSlopeAngle": "45.000000",
                     "moveSpeed": "5.000000",
@@ -3208,15 +3208,36 @@
                 "ScriptName": "MirrorPuzzle",
                 "SerializedFields": {
                     "targetTransform": "126",
-                    "gridParent": "100",
-                    "startRow": "2",
                     "mirrorTargetTransform": "127",
-                    "mirrorGridParent": "113",
-                    "startCol": "0",
+                    "tile00": "0",
+                    "tile01": "0",
+                    "tile11": "0",
+                    "tile02": "0",
+                    "tile10": "0",
+                    "tile03": "0",
+                    "tile12": "0",
+                    "tile13": "0",
+                    "tile20": "0",
+                    "tile21": "0",
+                    "tile22": "0",
+                    "tile23": "0",
+                    "mirrorTile00": "0",
                     "endRow": "0",
+                    "mirrorTile01": "0",
+                    "mirrorTile02": "0",
+                    "mirrorTile03": "0",
+                    "mirrorTile10": "0",
+                    "mirrorTile11": "0",
+                    "mirrorTile12": "0",
+                    "mirrorTile13": "0",
+                    "mirrorTile20": "0",
+                    "mirrorTile21": "0",
+                    "startCol": "0",
+                    "mirrorTile22": "0",
+                    "mirrorTile23": "0",
+                    "startRow": "2",
                     "endCol": "3",
-                    "zOffset": "0.100000",
-                    "eventName": "MirrorPuzzleSolved"
+                    "zOffset": "0.100000"
                 }
             }
         },
@@ -15970,9 +15991,9 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 1.5064382553100586,
-                    "y": -0.3252373933792114,
-                    "z": 0.0
+                    "x": 5.533458709716797,
+                    "y": -24.160886764526367,
+                    "z": -15.567887306213379
                 },
                 "Scale": {
                     "x": 1.0,
@@ -15981,7 +16002,7 @@
                 },
                 "Rotation": {
                     "x": 0.0,
-                    "y": 0.0,
+                    "y": 90.0,
                     "z": 0.0
                 },
                 "luid": 8390884681742811137,
@@ -15990,16 +16011,37 @@
             "NativeScript": {
                 "ScriptName": "MirrorPuzzle",
                 "SerializedFields": {
-                    "targetTransform": "669",
-                    "gridParent": "526",
-                    "startRow": "2",
-                    "mirrorTargetTransform": "670",
-                    "mirrorGridParent": "587",
-                    "startCol": "0",
+                    "targetTransform": "612",
+                    "mirrorTargetTransform": "613",
+                    "tile00": "491",
+                    "tile01": "496",
+                    "tile11": "516",
+                    "tile02": "501",
+                    "tile10": "511",
+                    "tile03": "506",
+                    "tile12": "521",
+                    "tile13": "526",
+                    "tile20": "531",
+                    "tile21": "536",
+                    "tile22": "541",
+                    "tile23": "546",
+                    "mirrorTile00": "552",
                     "endRow": "0",
+                    "mirrorTile01": "559",
+                    "mirrorTile02": "565",
+                    "mirrorTile03": "570",
+                    "mirrorTile10": "575",
+                    "mirrorTile11": "580",
+                    "mirrorTile12": "585",
+                    "mirrorTile13": "590",
+                    "mirrorTile20": "595",
+                    "mirrorTile21": "600",
+                    "startCol": "0",
+                    "mirrorTile22": "605",
+                    "mirrorTile23": "608",
+                    "startRow": "2",
                     "endCol": "3",
-                    "zOffset": "0.100000",
-                    "eventName": "MirrorPuzzleSolved"
+                    "zOffset": "0.100000"
                 }
             }
         },
@@ -18208,171 +18250,6 @@
         },
         {
             "EntityMeta": {
-                "name": "LEFT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 72,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.25,
-                    "y": -9.5367431640625e-7,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": 0.0
-                },
-                "luid": 8390884681865035949,
-                "parentLuid": 8390884681865036010
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "RIGHT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 75,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.25,
-                    "y": 0.0,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035950,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "01",
-                "isActive": 1,
-                "luid": 7308894871278518279,
-                "prefabID": "",
-                "prefabLocalID": 73,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.6000000238418579,
-                    "y": -0.6000000238418579,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 0.20000000298023224,
-                    "z": 0.20000000298023224
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035951,
-                "parentLuid": 8390884681865035943
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/cube",
-                "materialUUID": "neunlitmat"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "UP",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 74,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035952,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "RIGHT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 75,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.25,
-                    "y": 0.0,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035953,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
                 "name": "DOWN",
                 "isActive": 1,
                 "luid": 7308894871306371128,
@@ -18406,369 +18283,6 @@
         },
         {
             "EntityMeta": {
-                "name": "LEFT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 77,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.25,
-                    "y": -9.5367431640625e-7,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": 0.0
-                },
-                "luid": 8390884681865035955,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "UP",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 74,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035956,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "DOWN",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 76,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": -0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035957,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "LEFT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 77,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.25,
-                    "y": -9.5367431640625e-7,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": 0.0
-                },
-                "luid": 8390884681865035958,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "23",
-                "isActive": 1,
-                "luid": 7308894871278518279,
-                "prefabID": "",
-                "prefabLocalID": 78,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.8999999761581421,
-                    "y": -0.6000000238418579,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 0.20000000298023224,
-                    "z": 0.20000000298023224
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035959,
-                "parentLuid": 8390884681865035943
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/cube",
-                "materialUUID": "neunlitmat"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "UP",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 79,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035960,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "RIGHT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 80,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.25,
-                    "y": 0.0,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035961,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "DOWN",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 81,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": -0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035962,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "LEFT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 82,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.25,
-                    "y": -9.5367431640625e-7,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": 0.0
-                },
-                "luid": 8390884681865035963,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "UP",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 79,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035964,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "RIGHT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 80,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.25,
-                    "y": 0.0,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865035965,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
                 "name": "DOWN",
                 "isActive": 1,
                 "luid": 7308894871306371128,
@@ -18793,39 +18307,6 @@
                     "z": -0.0
                 },
                 "luid": 8390884681865035966,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "LEFT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 82,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.25,
-                    "y": -9.5367431640625e-7,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": 0.0
-                },
-                "luid": 8390884681865035967,
                 "parentLuid": 8390884681865036020
             },
             "Renderer": {
@@ -18992,39 +18473,6 @@
                 },
                 "luid": 8390884681865035972,
                 "parentLuid": 8390884681865035968
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "LEFT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 82,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.25,
-                    "y": -9.5367431640625e-7,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": 0.0
-                },
-                "luid": 8390884681865035973,
-                "parentLuid": 8390884681865036020
             },
             "Renderer": {
                 "modelUUID": "builtin:model/plane",
@@ -20485,72 +19933,6 @@
         },
         {
             "EntityMeta": {
-                "name": "DOWN",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 76,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": -0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865036018,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "LEFT",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 77,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.25,
-                    "y": -9.5367431640625e-7,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 90.0,
-                    "z": 0.0
-                },
-                "luid": 8390884681865036019,
-                "parentLuid": 8390884681865036015
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
                 "name": "23",
                 "isActive": 1,
                 "luid": 7308894871278518279,
@@ -20641,39 +20023,6 @@
                     "z": -0.0
                 },
                 "luid": 8390884681865036022,
-                "parentLuid": 8390884681865036020
-            },
-            "Renderer": {
-                "modelUUID": "builtin:model/plane",
-                "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "DOWN",
-                "isActive": 1,
-                "luid": 7308894871306371128,
-                "prefabID": "",
-                "prefabLocalID": 81,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": -0.25,
-                    "z": 0.550000011920929
-                },
-                "Scale": {
-                    "x": 0.20000000298023224,
-                    "y": 1.0,
-                    "z": 0.5
-                },
-                "Rotation": {
-                    "x": 90.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884681865036023,
                 "parentLuid": 8390884681865036020
             },
             "Renderer": {
@@ -22102,11 +21451,11 @@
             "NativeScript": {
                 "ScriptName": "PlayerController",
                 "SerializedFields": {
-                    "playerBottom": 679,
+                    "playerBottom": 0,
                     "groundProbeStartOffset": "0.100000",
                     "maxSlopeAngle": "45.000000",
                     "moveSpeed": "5.000000",
-                    "cameraRef": 683,
+                    "cameraRef": 0,
                     "jumpForce": "8.000000",
                     "groundFriction": "20.000000",
                     "groundRaycastDistance": "0.300000",
@@ -22848,6 +22197,110 @@
             "Renderer": {
                 "modelUUID": "c596246b-8454-4cab-a2da-7255d583e792",
                 "materialUUID": "63d7ceca-1bc7-44a9-89e4-74714438b689"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Phonebooth",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 6.103379249572754,
+                    "y": -24.792648315429688,
+                    "z": -13.20024299621582
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884687060402176,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "TimeSwapListener",
+                "SerializedFields": {
+                    "pastChildren": "1 677",
+                    "presentChildren": "1 678",
+                    "startInPresent": "1",
+                    "showLog": "0"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884687060402177,
+                "parentLuid": 8390884687060402176
+            },
+            "Renderer": {
+                "modelUUID": "01d5df1f-2239-4d51-85c3-fdb97b7a9068",
+                "materialUUID": "6e49b41c-341d-40b2-8745-5d8dcd71c85c"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 8.699385034560692e-8
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884687060402178,
+                "parentLuid": 8390884687060402176
+            },
+            "Renderer": {
+                "modelUUID": "01d5df1f-2239-4d51-85c3-fdb97b7a9068",
+                "materialUUID": "dd9d1921-53e4-406e-8383-057ef92ffa93"
             }
         }
     ]
