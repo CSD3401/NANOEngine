@@ -21,6 +21,7 @@
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include "Core/SpdLogger.hpp"
+#include "LayerMaskBodyFilter.hpp"
 
 namespace NE::Physics {
 	// Self notes:
@@ -523,7 +524,7 @@ namespace NE::Physics {
         return s_PhysicsSystem.get();
     }
 
-    uint32_t PhysicsManager::CreateBoxBody(const Math::Vec3& pos, const Math::Vec3& rot, const Math::Vec3& size, JPH::EMotionType motionType, uint32_t entity)
+    uint32_t PhysicsManager::CreateBoxBody(const Math::Vec3& pos, const Math::Vec3& rot, const Math::Vec3& size, JPH::EMotionType motionType, uint32_t entity, uint8_t layer)
     {
         if (!s_PhysicsSystem)
             return 0;
@@ -540,7 +541,7 @@ namespace NE::Physics {
 
         JPH::RefConst<JPH::Shape> boxShape = shapeResult.Get();
 
-        JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
+        //JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
 
         JPH::BodyCreationSettings bodySettings(
             boxShape,
@@ -551,7 +552,7 @@ namespace NE::Physics {
                 JPH::DegreesToRadians(rot.z)
                 }),
             motionType,
-            layer
+            static_cast<JPH::ObjectLayer>(layer)
         );
 
         bodySettings.mAllowDynamicOrKinematic = true;
@@ -585,7 +586,7 @@ namespace NE::Physics {
     }
 
     uint32_t PhysicsManager::CreateSphereBody(const Math::Vec3& pos, const Math::Vec3& rot,
-        float radius, JPH::EMotionType motionType, uint32_t entity) {
+        float radius, JPH::EMotionType motionType, uint32_t entity, uint8_t layer) {
         if (!s_PhysicsSystem) return 0;
 
         printf("Creating sphere with radius: %.2f\n", radius);
@@ -600,7 +601,7 @@ namespace NE::Physics {
 
         JPH::RefConst<JPH::Shape> sphereShape = shapeResult.Get();
 
-        JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
+        //JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
 
         JPH::BodyCreationSettings bodySettings(
             sphereShape,
@@ -611,7 +612,7 @@ namespace NE::Physics {
                 JPH::DegreesToRadians(rot.z)
                 }),
             motionType,
-            layer
+            static_cast<JPH::ObjectLayer>(layer)
         );
 
         bodySettings.mAllowDynamicOrKinematic = true;
@@ -620,7 +621,7 @@ namespace NE::Physics {
         return CreateBody(bodySettings, entity);
     }
 
-	uint32_t PhysicsManager::CreateMeshShape(std::string meshID, const std::vector<Math::Vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t entity) {
+	uint32_t PhysicsManager::CreateMeshShape(std::string meshID, const std::vector<Math::Vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t entity, uint8_t layer) {
         if (!s_PhysicsSystem)
             return 0;
 
@@ -686,7 +687,7 @@ namespace NE::Physics {
             JPH::RVec3::sZero(),      // position - you can update later with SetTransform
             JPH::Quat::sIdentity(),   // rotation
             JPH::EMotionType::Static, // must be Static for non-convex mesh
-            Layers::NON_MOVING
+            static_cast<JPH::ObjectLayer>(layer)
         );
 
         
@@ -703,7 +704,7 @@ namespace NE::Physics {
 	}
 
     uint32_t PhysicsManager::CreateCapsuleBody(const Math::Vec3& pos, const Math::Vec3& rot,
-        float halfHeight, float radius, JPH::EMotionType motionType, uint32_t entity)
+        float halfHeight, float radius, JPH::EMotionType motionType, uint32_t entity, uint8_t layer)
     {
         if (!s_PhysicsSystem) return 0;
 
@@ -719,7 +720,7 @@ namespace NE::Physics {
 
         JPH::RefConst<JPH::Shape> capsuleShape = shapeResult.Get();
 
-        JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
+        //JPH::ObjectLayer layer = (motionType == JPH::EMotionType::Static) ? Layers::NON_MOVING : Layers::MOVING;
 
         JPH::BodyCreationSettings bodySettings(
             capsuleShape,
@@ -730,7 +731,7 @@ namespace NE::Physics {
                 JPH::DegreesToRadians(rot.z)
                 }),
             motionType,
-            layer
+            static_cast<JPH::ObjectLayer>(layer)
         );
 
         bodySettings.mAllowDynamicOrKinematic = true;
@@ -1040,44 +1041,22 @@ namespace NE::Physics {
 		RaycastHit hit;
 		hit.hasHit = false;
 
-		if (!s_PhysicsSystem) {
+		if (!s_PhysicsSystem || maxDistance <= 0.0f) {
 			return hit;
 		}
 
-		// Validate input
-		if (maxDistance <= 0.0f) {
-			return hit;
-		}
-
-		// Normalize direction
 		JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
 		float dirLength = joltDir.Length();
-		if (dirLength < 0.0001f) {
-			return hit;  // Invalid direction
-		}
-		joltDir = joltDir / dirLength;  // Normalize
+		if (dirLength < 0.0001f) return hit;
 
-		// Create ray
+		joltDir /= dirLength;
+
 		JPH::RRayCast ray;
 		ray.mOrigin = JPH::RVec3(origin.x, origin.y, origin.z);
 		ray.mDirection = joltDir * maxDistance;
 
-		// Create object layer filter
-		class ObjectLayerFilter : public JPH::ObjectLayerFilter {
-		public:
-			uint32_t mLayerMask;
+        LayerMaskBodyFilter layerFilter(layerMask);
 
-			ObjectLayerFilter(uint32_t mask) : mLayerMask(mask) {}
-
-			virtual bool ShouldCollide(JPH::ObjectLayer inLayer) const override {
-				// Check if this layer's bit is set in the mask
-				return (mLayerMask & (1 << inLayer)) != 0;
-			}
-		};
-
-		ObjectLayerFilter layerFilter(layerMask);
-
-		// Perform raycast with object layer filtering
 		JPH::RayCastResult result;
 		bool hasHit = s_PhysicsSystem->GetNarrowPhaseQuery().CastRay(
 			ray,
@@ -1087,34 +1066,6 @@ namespace NE::Physics {
 			JPH::BodyFilter()
 		);
 
-		// Check if we hit something
-		//if (hasHit && !result.mBodyID.IsInvalid()) {
-		//	hit.hasHit = true;
-		//	hit.distance = result.mFraction * maxDistance;
-
-		//	// Calculate hit point
-		//	JPH::RVec3 hitPoint = ray.mOrigin + ray.mDirection * result.mFraction;
-		//	hit.point = Math::Vec3(
-		//		static_cast<float>(hitPoint.GetX()),
-		//		static_cast<float>(hitPoint.GetY()),
-		//		static_cast<float>(hitPoint.GetZ())
-		//	);
-
-		//	// Get surface normal
-		//	JPH::BodyLockRead lock(s_PhysicsSystem->GetBodyLockInterface(), result.mBodyID);
-		//	if (lock.Succeeded()) {
-		//		const JPH::Body& body = lock.GetBody();
-		//		JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
-		//		hit.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
-		//	}
-
-		//	// Store body ID and find associated entity
-		//	hit.bodyID = result.mBodyID.GetIndexAndSequenceNumber();
-		//	//hit.entity = GetBodyEntity(hit.bodyID);
-  //          hit.entity = static_cast<Entity>(s_PhysicsSystem->GetBodyInterface().GetUserData(result.mBodyID));
-
-  //          SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
-		//}
         if (hasHit && !result.mBodyID.IsInvalid()) {
             hit.hasHit = true;
             hit.distance = result.mFraction * maxDistance;
