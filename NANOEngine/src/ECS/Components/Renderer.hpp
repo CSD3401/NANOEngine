@@ -8,10 +8,18 @@
 namespace NE::ECS::Component {
 
 	struct Renderer {
+		enum ShadowCastMode : uint8_t {
+			Off,
+			On,
+			TwoSided,
+			ShadowsOnly
+		};
 		//Graphics::Material material;
 		// Exposed
 		std::string modelUUID;
 		std::string materialUUID;
+		ShadowCastMode shadowCastMode = ShadowCastMode::Off;
+		bool receiveShadows = false;
 
 		// Internal
 		std::shared_ptr<Graphics::Model> model;
@@ -24,7 +32,9 @@ namespace NE::ECS::Component {
 
 		NE_REFLECT_BEGIN(Renderer)
 			NE_REFLECT_FIELD(modelUUID),
-			NE_REFLECT_FIELD(materialUUID)
+			NE_REFLECT_FIELD(materialUUID),
+			NE_REFLECT_FIELD(shadowCastMode),
+			NE_REFLECT_FIELD(receiveShadows)
 		NE_REFLECT_END()
 	};
 

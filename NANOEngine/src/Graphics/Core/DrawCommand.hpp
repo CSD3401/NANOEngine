@@ -11,5 +11,8 @@ namespace NE::Graphics {
         std::shared_ptr<Material> material;
         Math::Mat4 transform;
 		Math::Vec3 idRGB = Math::Vec3{ -1.0f, -1.0f, -1.0f }; // for object picking
+
+        bool castsShadow;
+        bool receivesShadow;
     };
 }
