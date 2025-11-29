@@ -17,8 +17,9 @@ namespace NE::Graphics {
 		// Camera data
 		Math::Mat4 projection;
 		Math::Mat4 view;
-
 		Math::Vec3 position;
+		float nearPlane;
+		float farPlane;
 
 		bool isMain = false;
 		bool isActive = false; // GraphicsManager only renders active views
@@ -36,6 +37,9 @@ namespace NE::Graphics {
 		// Creates a framebuffer and returns its handle
 		RenderViewHandle Create(uint32_t width, uint32_t height, bool enablePicking = true);
 
+		RenderViewHandle CreateHDR(uint32_t width, uint32_t height, bool enablePicking = true);
+		RenderViewHandle CreateLDR(uint32_t width, uint32_t height, bool enablePicking = true);
+
 		// Destroys the framebuffer associated with the given handle
 		void Destroy(RenderViewHandle handle);
 		
@@ -43,7 +47,7 @@ namespace NE::Graphics {
 		void DestroyAll();
 
 		// Sets the camera data for the given render view handle
-		void SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, bool isMain, uint16_t order);
+		void SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, float nearPlane, float farPlane, bool isMain, uint16_t order);
 
 		// Enable/Disable camera for the given render view handle
 		void EnableCamera(RenderViewHandle handle);

@@ -4,7 +4,9 @@
 #include "ECS/Core/Entity.hpp"
 
 namespace NE::Graphics::OpenGL {
-
+    GLFrameBuffer::GLFrameBuffer()
+    {
+    }
     GLFrameBuffer::GLFrameBuffer(uint32_t width, uint32_t height)
         : m_Width(width), m_Height(height) 
     {
@@ -17,6 +19,105 @@ namespace NE::Graphics::OpenGL {
         glDeleteTextures(1, &m_ColorAttachment);
 		glDeleteTextures(1, &m_PickingAttachment);
         glDeleteRenderbuffers(1, &m_RBO);
+    }
+
+    void GLFrameBuffer::CreateAsHDR(uint32_t width, uint32_t height, bool enablePicking) {
+        m_Width = width;
+        m_Height = height;
+
+        if (m_FBO) {
+            glDeleteFramebuffers(1, &m_FBO);
+            glDeleteTextures(1, &m_ColorAttachment);
+            glDeleteRenderbuffers(1, &m_RBO);
+        }
+
+        glGenFramebuffers(1, &m_FBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+
+        // --- Color attachment 0: normal scene ---
+        glGenTextures(1, &m_ColorAttachment);
+        glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_Width, m_Height, 0, GL_RGBA, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment, 0);
+
+        // --- Color attachment 1: picking IDs ---
+        if (enablePicking) {
+            glGenTextures(1, &m_PickingAttachment);
+            glBindTexture(GL_TEXTURE_2D, m_PickingAttachment);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_PickingAttachment, 0);
+        }
+
+        // Specify the color attachments for rendering
+        GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+        glDrawBuffers(2, attachments);
+
+        // --- Depth-stencil attachment ---
+        glGenRenderbuffers(1, &m_RBO);
+        glBindRenderbuffer(GL_RENDERBUFFER, m_RBO);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Width, m_Height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RBO);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            LOG_ERROR("Framebuffer is incomplete!");
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void GLFrameBuffer::CreateAsLDR(uint32_t width, uint32_t height, bool enablePicking) {
+        if (m_FBO) {
+            glDeleteFramebuffers(1, &m_FBO);
+            glDeleteTextures(1, &m_ColorAttachment);
+            glDeleteRenderbuffers(1, &m_RBO);
+        }
+
+        glGenFramebuffers(1, &m_FBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+
+        // --- Color attachment 0: normal scene ---
+        glGenTextures(1, &m_ColorAttachment);
+        glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment, 0);
+
+        // --- Color attachment 1: picking IDs ---
+        if (enablePicking) {
+            glGenTextures(1, &m_PickingAttachment);
+            glBindTexture(GL_TEXTURE_2D, m_PickingAttachment);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_PickingAttachment, 0);
+        }
+
+        // Specify the color attachments for rendering
+        GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+        glDrawBuffers(2, attachments);
+
+        // --- Depth-stencil attachment ---
+        glGenRenderbuffers(1, &m_RBO);
+        glBindRenderbuffer(GL_RENDERBUFFER, m_RBO);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Width, m_Height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RBO);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            LOG_ERROR("Framebuffer is incomplete!");
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     void GLFrameBuffer::Invalidate() 
@@ -34,6 +135,7 @@ namespace NE::Graphics::OpenGL {
         glGenTextures(1, &m_ColorAttachment);
         glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_Width, m_Height, 0, GL_RGBA, GL_FLOAT, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

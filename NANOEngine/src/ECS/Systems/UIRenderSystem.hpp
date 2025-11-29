@@ -26,6 +26,8 @@ namespace NE::ECS::Systems {
             float scaleX = 1.f;
             float scaleY = 1.f;
             float scaleZ = 1.f;
+            float rotationX = 0.f;
+            float rotationY = 0.f;
             float rotationZ = 0.f;
         };
 
@@ -127,7 +129,8 @@ namespace NE::ECS::Systems {
         Math::Mat4 BuildWorldSpaceModelMatrix(
             Entity entity,
             Entity canvasEntity,
-            const Component::UIRectTransform& rect
+            const Component::UIRectTransform& rect,
+            const AccumulatedTransform& accumulated
         );
 
         void SubmitDrawCommand(
@@ -137,6 +140,7 @@ namespace NE::ECS::Systems {
             const Component::UIImage& img,
             const Component::UIRectTransform& rect,
             const WorldTransform& worldTransform,
+            const AccumulatedTransform& accumulated,
             std::vector<NE::Graphics::UIVertex>& vertices,
             const Math::Mat4* viewMatrix,
             const Math::Mat4* projMatrix

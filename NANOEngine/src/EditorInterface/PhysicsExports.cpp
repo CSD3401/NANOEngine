@@ -117,73 +117,73 @@ namespace NE::Physics
 		//	}
 		//}
 
-		void CreatePhysicsBody(uint32_t entity)
-		{
-			printf("=== CreatePhysicsBody START for entity %u ===\n", entity);
+		//void CreatePhysicsBody(uint32_t entity)
+		//{
+		//	printf("=== CreatePhysicsBody START for entity %u ===\n", entity);
 
-			// return if alr exists
-			if (PhysicsManager::EntityHasPhysicsBody(entity)) {
-				printf("Entity %u already has physics body, skipping\n", entity);
-				return;
-			}
+		//	// return if alr exists
+		//	if (PhysicsManager::EntityHasPhysicsBody(entity)) {
+		//		printf("Entity %u already has physics body, skipping\n", entity);
+		//		return;
+		//	}
 
-			auto& coordinator = NE::GetScene().GetECSCoordinator();
+		//	auto& coordinator = NE::GetScene().GetECSCoordinator();
 
-			// Check if components exist
-			if (!coordinator.HasComponent<NE::ECS::Component::Transform>(entity)) {
-				printf("ERROR: Entity %u has no Transform component!\n", entity);
-				return;
-			}
-			if (!coordinator.HasComponent<NE::ECS::Component::Collider>(entity)) {
-				printf("ERROR: Entity %u has no Collider component!\n", entity);
-				return;
-			}
+		//	// Check if components exist
+		//	if (!coordinator.HasComponent<NE::ECS::Component::Transform>(entity)) {
+		//		printf("ERROR: Entity %u has no Transform component!\n", entity);
+		//		return;
+		//	}
+		//	if (!coordinator.HasComponent<NE::ECS::Component::Collider>(entity)) {
+		//		printf("ERROR: Entity %u has no Collider component!\n", entity);
+		//		return;
+		//	}
 
-			auto& transform = coordinator.GetComponent<NE::ECS::Component::Transform>(entity);
-			auto& collider = coordinator.GetComponent<NE::ECS::Component::Collider>(entity);
+		//	auto& transform = coordinator.GetComponent<NE::ECS::Component::Transform>(entity);
+		//	auto& collider = coordinator.GetComponent<NE::ECS::Component::Collider>(entity);
 
-			printf("Transform: pos(%.2f, %.2f, %.2f) rot(%.2f, %.2f, %.2f)\n",
-				transform.localPosition.x, transform.localPosition.y, transform.localPosition.z,
-				transform.localRotationEuler.x, transform.localRotationEuler.y, transform.localRotationEuler.z);
-			printf("Collider shapeType: %d\n", static_cast<int>(collider.shapeType));
+		//	printf("Transform: pos(%.2f, %.2f, %.2f) rot(%.2f, %.2f, %.2f)\n",
+		//		transform.localPosition.x, transform.localPosition.y, transform.localPosition.z,
+		//		transform.localRotationEuler.x, transform.localRotationEuler.y, transform.localRotationEuler.z);
+		//	printf("Collider shapeType: %d\n", static_cast<int>(collider.shapeType));
 
-			if (collider.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
-			{
-				Math::Vec3 fullSize = {
-					collider.halfExtents.x * 2.0f,
-					collider.halfExtents.y * 2.0f,
-					collider.halfExtents.z * 2.0f
-				};
+		//	if (collider.shapeType == NE::ECS::Component::Collider::ShapeType::Box)
+		//	{
+		//		Math::Vec3 fullSize = {
+		//			collider.halfExtents.x * 2.0f,
+		//			collider.halfExtents.y * 2.0f,
+		//			collider.halfExtents.z * 2.0f
+		//		};
 
-				printf("Box collider - halfExtents: (%.2f, %.2f, %.2f)\n",
-					collider.halfExtents.x, collider.halfExtents.y, collider.halfExtents.z);
-				printf("Box collider - fullSize: (%.2f, %.2f, %.2f)\n",
-					fullSize.x, fullSize.y, fullSize.z);
+		//		printf("Box collider - halfExtents: (%.2f, %.2f, %.2f)\n",
+		//			collider.halfExtents.x, collider.halfExtents.y, collider.halfExtents.z);
+		//		printf("Box collider - fullSize: (%.2f, %.2f, %.2f)\n",
+		//			fullSize.x, fullSize.y, fullSize.z);
 
-				uint32_t bodyId = Physics::PhysicsManager::CreateBoxBody(
-					transform.localPosition,
-					transform.localRotationEuler,
-					fullSize,
-					JPH::EMotionType::Dynamic, entity
-				);
+		//		uint32_t bodyId = Physics::PhysicsManager::CreateBoxBody(
+		//			transform.localPosition,
+		//			transform.localRotationEuler,
+		//			fullSize,
+		//			JPH::EMotionType::Dynamic, entity, meta.layer
+		//		);
 
-				printf("CreateBoxBody returned: %u\n", bodyId);
+		//		printf("CreateBoxBody returned: %u\n", bodyId);
 
-				if (bodyId != 0) {
-					Physics::PhysicsManager::RegisterEntityBody(entity, bodyId);
-					printf("SUCCESS: Registered physics body %u for entity %u\n", bodyId, entity);
-				}
-				else {
-					printf("FAILED: CreateBoxBody returned 0 - body creation failed!\n");
-				}
-			}
-			else
-			{
-				printf("Unsupported shape type: %d\n", static_cast<int>(collider.shapeType));
-			}
+		//		if (bodyId != 0) {
+		//			Physics::PhysicsManager::RegisterEntityBody(entity, bodyId);
+		//			printf("SUCCESS: Registered physics body %u for entity %u\n", bodyId, entity);
+		//		}
+		//		else {
+		//			printf("FAILED: CreateBoxBody returned 0 - body creation failed!\n");
+		//		}
+		//	}
+		//	else
+		//	{
+		//		printf("Unsupported shape type: %d\n", static_cast<int>(collider.shapeType));
+		//	}
 
-			printf("=== CreatePhysicsBody END for entity %u ===\n", entity);
-		}
+		//	printf("=== CreatePhysicsBody END for entity %u ===\n", entity);
+		//}
 
 		void UpdatePhysicsBody(uint32_t entity)
 		{
@@ -203,7 +203,6 @@ namespace NE::Physics
 
 
 				Physics::PhysicsManager::UpdateBoxSize(bodyId, fullSize);
-
 			}
 		}
 

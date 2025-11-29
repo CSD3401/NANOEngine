@@ -79,7 +79,9 @@
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
+    <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
+    <ClCompile Include="src\Physics\LayerMaskBodyFilter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -228,7 +230,11 @@
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
+    <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
+    <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
+    <ClInclude Include="src\Core\Layers.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

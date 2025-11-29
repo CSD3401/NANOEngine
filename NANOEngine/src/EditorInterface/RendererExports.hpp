@@ -11,6 +11,7 @@ namespace NE::ECS::Component {
 
 namespace NE::Graphics {
 	struct RenderSettings;
+	struct PostProcessingSettings;
 }
 
 namespace NE::Renderer {
@@ -25,5 +26,6 @@ namespace NE::Renderer {
 		NANOENGINE_API void AssignMaterial(uint32_t e, const std::string& uuid);
 		NANOENGINE_API void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID);
 		NANOENGINE_API Graphics::RenderSettings& GetRenderSettings();
+		NANOENGINE_API Graphics::PostProcessingSettings& GetPostProcessingSettings();
 	}
 }

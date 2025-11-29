@@ -12,6 +12,13 @@
 
 namespace {
 
+	// These stage flags must match those in CookShader
+    enum : uint32_t {
+        STAGE_VS = 1u << 0,
+        STAGE_FS = 1u << 4,
+        STAGE_CS = 1u << 8
+    };
+
     static GLuint CompileStage(GLenum type, std::string_view src) {
         GLuint sh = glCreateShader(type);
         if (!sh) return 0;
@@ -67,7 +74,8 @@ namespace {
 
 namespace NE::Graphics::OpenGL {
 
-    GLShader::GLShader() : m_programID(0) {
+    GLShader::GLShader() : m_programID(0) 
+    {
     }
 
     //GLShader::GLShader(const std::string& filePath)
@@ -77,23 +85,28 @@ namespace NE::Graphics::OpenGL {
     //    Compile(shaderSources);
     //}
 
-    GLShader::~GLShader() {
+    GLShader::~GLShader() 
+    {
         glDeleteProgram(m_programID);
     }
 
-    void GLShader::Bind() const {
+    void GLShader::Bind() const 
+    {
         glUseProgram(m_programID);
     }
 
-    void GLShader::Unbind() const {
+    void GLShader::Unbind() const 
+    {
         glUseProgram(0);
     }
 
-    void GLShader::SetUniformInt(const std::string& uName, int value) {
+    void GLShader::SetUniformInt(const std::string& uName, int value) 
+    {
         glUniform1i(GetUniformLocation(uName), value);
     }
 
-    void GLShader::SetUniformFloat(const std::string& uName, float value) {
+    void GLShader::SetUniformFloat(const std::string& uName, float value) 
+    {
         glUniform1f(GetUniformLocation(uName), value);
     }
 
@@ -115,7 +128,8 @@ namespace NE::Graphics::OpenGL {
         glUniformMatrix4fv(GetUniformLocation(uName), 1, GL_FALSE, matrix.Data());
     }
 
-    void GLShader::SetUniformHandle(const std::string& uName, uint64_t handle) {
+    void GLShader::SetUniformHandle(const std::string& uName, uint64_t handle) 
+    {
         // Require ARB_bindless_texture to be loaded by GLAD
         if (!glUniformHandleui64ARB) {
             SPD_WARNING("Bindless texture functions not loaded. Did you enable GL_ARB_bindless_texture in GLAD?");
@@ -125,7 +139,8 @@ namespace NE::Graphics::OpenGL {
         if (loc >= 0) glUniformHandleui64ARB(loc, handle);
     }
 
-    void GLShader::SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) {
+    void GLShader::SetUniformHandlev(const std::string& uName, const uint64_t* handles, int count) 
+    {
         if (!glUniformHandleui64vARB) {
             SPD_WARNING("Bindless texture functions not loaded. Did you enable GL_ARB_bindless_texture in GLAD?");
             return;
@@ -134,7 +149,8 @@ namespace NE::Graphics::OpenGL {
         if (loc >= 0) glUniformHandleui64vARB(loc, count, handles);
     }
 
-    int GLShader::GetUniformLocation(const std::string& uName) {
+    int GLShader::GetUniformLocation(const std::string& uName) 
+    {
         if (m_uniformLocationCache.count(uName))
             return m_uniformLocationCache[uName];
         int location = glGetUniformLocation(m_programID, uName.c_str());
@@ -142,7 +158,8 @@ namespace NE::Graphics::OpenGL {
         return location;
     }
 
-    bool GLShader::Preload(NE::Resource::BinaryView blob) {
+    bool GLShader::Preload(NE::Resource::BinaryView blob) 
+    {
         if (blob.size < sizeof(NE::Resource::NanoShdHeader)) return false;
         const auto* h = blob.as<NE::Resource::NanoShdHeader>(0);
         if (!h) return false;
@@ -156,36 +173,72 @@ namespace NE::Graphics::OpenGL {
         progBlob = blob.data + h->programOffset;
         progSize = static_cast<size_t>(h->programSize);
 
+		const uint32_t stages = h->stagesMask;
+		const bool hasVS = (stages & STAGE_VS) != 0;
+		const bool hasFS = (stages & STAGE_FS) != 0;
+		const bool hasCS = (stages & STAGE_CS) != 0;
+		isCompute = hasCS && !hasVS && !hasFS;
+
         // embedded source fallback layout
         hasFallback = (h->programFlags & 1u) != 0;
         if (hasFallback) {
             size_t off = static_cast<size_t>(progEnd);
 
-            if (off + 4 > blob.size) { hasFallback = false; return true; }
-            uint32_t vsLen32 = 0;
-            std::memcpy(&vsLen32, blob.data + off, 4);
+            // 1) Read stageCount
+            if (off + 4 > blob.size) {
+                hasFallback = false;
+                return true; // header is otherwise valid; just no fallback
+            }
+            uint32_t stageCount = 0;
+            std::memcpy(&stageCount, blob.data + off, 4);
             off += 4;
 
-            if (off + vsLen32 + 4 > blob.size) { hasFallback = false; return true; }
-            vsSrc = reinterpret_cast<const char*>(blob.data + off);
-            vsLen = static_cast<size_t>(vsLen32);
-            off += vsLen32;
+            // 2) Loop stages
+            for (uint32_t i = 0; i < stageCount; ++i) {
+                if (off + 8 > blob.size) {
+                    hasFallback = false;
+                    return true;
+                }
 
-            if (off + 4 > blob.size) { hasFallback = false; return true; }
-            uint32_t fsLen32 = 0;
-            std::memcpy(&fsLen32, blob.data + off, 4);
-            off += 4;
+                uint32_t stageEnum = 0;
+                uint32_t len = 0;
+                std::memcpy(&stageEnum, blob.data + off, 4);
+                std::memcpy(&len, blob.data + off + 4, 4);
+                off += 8;
 
-            if (off + fsLen32 > blob.size) { hasFallback = false; return true; }
-            fsSrc = reinterpret_cast<const char*>(blob.data + off);
-            fsLen = static_cast<size_t>(fsLen32);
+                if (off + len > blob.size) {
+                    hasFallback = false;
+                    return true;
+                }
+
+                const char* src = reinterpret_cast<const char*>(blob.data + off);
+                off += len;
+
+                switch (stageEnum) {
+                case GL_VERTEX_SHADER:
+                    vsSrc = src;
+                    vsLen = static_cast<size_t>(len);
+                    break;
+                case GL_FRAGMENT_SHADER:
+                    fsSrc = src;
+                    fsLen = static_cast<size_t>(len);
+                    break;
+                case GL_COMPUTE_SHADER:
+                    csSrc = src;
+                    csLen = static_cast<size_t>(len);
+                    break;
+                default:
+                    // Unknown stage; ignore or log
+                    break;
+                }
+            }
         }
-
         return true;
     }
 
     // Need to delete blob after finalizing TODO
-    void GLShader::Finalize() {
+    void GLShader::Finalize() 
+    {
         if (!progBlob || progSize == 0) { m_programID = 0; return; }
 
         m_programID = glCreateProgram();
@@ -213,17 +266,54 @@ namespace NE::Graphics::OpenGL {
             return;
         }
 
-        GLuint vs = CompileStage(GL_VERTEX_SHADER, std::string_view(vsSrc, vsLen));
-        GLuint fs = CompileStage(GL_FRAGMENT_SHADER, std::string_view(fsSrc, fsLen));
-        if (!vs || !fs) {
-            if (vs) glDeleteShader(vs);
-            if (fs) glDeleteShader(fs);
-            return;
-        }
+        GLuint prog = 0;
+        // Compute fallback
+        if (isCompute) {
+            if (!csSrc || csLen == 0) {
+                SPD_WARNING("Compute shader fallback requested but no compute source embedded.");
+                return;
+            }
 
-        GLuint prog = LinkProgram(vs, fs);
-        glDeleteShader(vs);
-        glDeleteShader(fs);
+            GLuint cs = CompileStage(GL_COMPUTE_SHADER, std::string_view(csSrc, csLen));
+            if (!cs) {
+                return;
+            }
+
+            prog = glCreateProgram();
+            if (!prog) {
+                glDeleteShader(cs);
+                return;
+            }
+
+            glProgramParameteri(prog, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+            glAttachShader(prog, cs);
+            glLinkProgram(prog);
+            glDeleteShader(cs);
+
+            GLint linkStatus = GL_FALSE;
+            glGetProgramiv(prog, GL_LINK_STATUS, &linkStatus);
+            if (linkStatus != GL_TRUE) {
+                char log[1024];
+                glGetProgramInfoLog(prog, sizeof(log), nullptr, log);
+                SPD_WARNING("Compute shader program link failed in fallback: " << log);
+                glDeleteProgram(prog);
+                return;
+            }
+		}
+        // Vertex + Fragment fallback
+        else {
+            GLuint vs = CompileStage(GL_VERTEX_SHADER, std::string_view(vsSrc, vsLen));
+            GLuint fs = CompileStage(GL_FRAGMENT_SHADER, std::string_view(fsSrc, fsLen));
+            if (!vs || !fs) {
+                if (vs) glDeleteShader(vs);
+                if (fs) glDeleteShader(fs);
+                return;
+            }
+
+            prog = LinkProgram(vs, fs);
+            glDeleteShader(vs);
+            glDeleteShader(fs);
+        }
 
         if (prog) {
             m_programID = prog;
@@ -235,7 +325,8 @@ namespace NE::Graphics::OpenGL {
         }
     }
 
-    std::vector<UniformDesc> GLShader::EnumerateActiveUniforms() const {
+    std::vector<UniformDesc> GLShader::EnumerateActiveUniforms() const 
+    {
         GLint count = 0;
         glGetProgramiv(m_programID, GL_ACTIVE_UNIFORMS, &count);
         std::vector<UniformDesc> out;
@@ -255,11 +346,13 @@ namespace NE::Graphics::OpenGL {
         return out;
     }
 
-    bool GLShader::HasUniform(std::string_view name) const {
+    bool GLShader::HasUniform(std::string_view name) const 
+    {
         return glGetUniformLocation(m_programID, std::string(name).c_str()) != -1;
     }
 
-    void GLShader::SetUniformMat4Array(const std::string& uName, const Mat4* data, int count) {
+    void GLShader::SetUniformMat4Array(const std::string& uName, const Mat4* data, int count) 
+    {
         GLint loc = GetUniformLocation(uName);
         if (loc >= 0) {
             glUniformMatrix4fv(loc, count, GL_FALSE, reinterpret_cast<const float*>(data));

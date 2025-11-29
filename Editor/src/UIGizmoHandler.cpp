@@ -28,6 +28,7 @@ namespace Editor {
     float UIGizmoHandler::s_rotationStartAngle = 0.0f;
     float UIGizmoHandler::s_originalRotation = 0.0f;
     ImVec2 UIGizmoHandler::s_rotationCenter = ImVec2(0, 0);
+    constexpr float ROTATION_SENSITIVITY = 5.0f;
 
     // Undo/Redo command state
     std::unique_ptr<SetUIRectTransformCommand> UIGizmoHandler::s_uiGizmoCmd = nullptr;
@@ -175,7 +176,7 @@ namespace Editor {
         }
 
         s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
-            uiEntityId, "UI Gizmo: Transform 3D",
+            uiEntityId, "UI Gizmo: Transform",
             s_originalTransform, s_originalTransform,
             &NE::ECS::Command::GetUIRectTransform,
             s_uiGizmoMask
@@ -217,26 +218,17 @@ namespace Editor {
 
         // Update transform while dragging
         if (s_gizmoActive && isUsing && editedThisFrame) {
-            float tr[3], rotDeg[3], sc[3];
-            ImGuizmo::DecomposeMatrixToComponents(matrix, tr, rotDeg, sc);
-
-            // World TRS after gizmo
-            float worldPosX = tr[0];
-            float worldPosY = tr[1];
-            float worldPosZ = tr[2];
-            float worldRotX = rotDeg[0];
-            float worldRotY = rotDeg[1];
-            float worldRotZ = rotDeg[2];
-            float worldSclX = sc[0];
-            float worldSclY = sc[1];
-            float worldSclZ = sc[2];
-
             auto& rectCmd = NE::ECS::Command::GetUIRectTransform(uiEntityId);
 
-            // ----- Remove parent TRS -> get local values -----
-            float parentPosX = 0.f, parentPosY = 0.f, parentPosZ = 0.f;
-            float parentRotX = 0.f, parentRotY = 0.f, parentRotZ = 0.f;
-            float parentSclX = 1.f, parentSclY = 1.f, parentSclZ = 1.f;
+            // ========== DO IT LIKE 3D ENTITIES! ==========
+
+            // 1. Get new world matrix from ImGuizmo
+            NE::Math::Mat4 newWorld;
+            memcpy(newWorld.Data(), matrix, sizeof(float) * 16);
+
+            // 2. Build parent world matrix
+            NE::Math::Mat4 parentWorld;
+            parentWorld.SetToIdentity();
 
             uint32_t p = rectCmd.parent;
             while (p != std::numeric_limits<uint32_t>::max() &&
@@ -244,35 +236,45 @@ namespace Editor {
             {
                 auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
 
-                parentPosX += parentRect.x;
-                parentPosY += parentRect.y;
-                parentPosZ += parentRect.z;
+                // Build parent's TRS
+                constexpr float PI = 3.14159265358979f;
+                NE::Math::Mat4 pT = NE::Math::Mat4::BuildTranslation(parentRect.x, parentRect.y, parentRect.z);
+                NE::Math::Mat4 pRx = NE::Math::Mat4::BuildXRotation(parentRect.rotationX * PI / 180.0f);
+                NE::Math::Mat4 pRy = NE::Math::Mat4::BuildYRotation(parentRect.rotationY * PI / 180.0f);
+                NE::Math::Mat4 pRz = NE::Math::Mat4::BuildZRotation(parentRect.rotationZ * PI / 180.0f);
+                NE::Math::Mat4 pR = pRz * pRy * pRx;
+                NE::Math::Mat4 pS = NE::Math::Mat4::BuildScaling(parentRect.scaleX, parentRect.scaleY, parentRect.scaleZ);
 
-                parentRotX += parentRect.rotationX;
-                parentRotY += parentRect.rotationY;
-                parentRotZ += parentRect.rotationZ;
-
-                parentSclX *= parentRect.scaleX;
-                parentSclY *= parentRect.scaleY;
-                parentSclZ *= parentRect.scaleZ;
+                parentWorld = parentWorld * (pT * pR * pS);
 
                 p = parentRect.parent;
             }
 
-            // Local position = world - parent
-            rectCmd.x = worldPosX - parentPosX;
-            rectCmd.y = worldPosY - parentPosY;
-            rectCmd.z = worldPosZ - parentPosZ;
+            // 3. Convert to local matrix: local = parent^-1 * world
+            NE::Math::Mat4 invParent = parentWorld.Inverse();
+            NE::Math::Mat4 newLocal = invParent * newWorld;
 
-            // Local rotation = world - parent
-            rectCmd.rotationX = worldRotX - parentRotX;
-            rectCmd.rotationY = worldRotY - parentRotY;
-            rectCmd.rotationZ = worldRotZ - parentRotZ;
+            // 4. Decompose LOCAL matrix (not world!)
+            float localMatrix[16];
+            memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
 
-            // Local scale = world / parent
-            rectCmd.scaleX = (parentSclX > 0.001f) ? worldSclX / parentSclX : worldSclX;
-            rectCmd.scaleY = (parentSclY > 0.001f) ? worldSclY / parentSclY : worldSclY;
-            rectCmd.scaleZ = (parentSclZ > 0.001f) ? worldSclZ / parentSclZ : worldSclZ;
+            float tr[3], rotDeg[3], sc[3];
+            ImGuizmo::DecomposeMatrixToComponents(localMatrix, tr, rotDeg, sc);
+
+            // 5. Save local values directly (NO sensitivity multiplier!)
+            rectCmd.x = tr[0];
+            rectCmd.y = tr[1];
+            rectCmd.z = tr[2];
+
+            rectCmd.rotationX = rotDeg[0];
+            rectCmd.rotationY = rotDeg[1];
+            rectCmd.rotationZ = rotDeg[2];
+
+            rectCmd.scaleX = sc[0];
+            rectCmd.scaleY = sc[1];
+            rectCmd.scaleZ = sc[2];
+
+            // =============================================
 
             // Update command for undo/redo
             UpdateCommandAfter(rectCmd);
@@ -320,12 +322,14 @@ namespace Editor {
 
         auto& rectTransform = NE::ECS::Command::GetUIRectTransform(uiEntityId);
 
-        float scaleX = panelSize.x / fbWidth;
-        float scaleY = panelSize.y / fbHeight;
+        float panelScaleX = panelSize.x / fbWidth;
+        float panelScaleY = panelSize.y / fbHeight;
 
-        // Calculate world pivot position (accumulate parent positions)
+        // Calculate world pivot position and accumulated scale
         float worldPivotX = rectTransform.x;
         float worldPivotY = rectTransform.y;
+        float worldScaleX = rectTransform.scaleX;
+        float worldScaleY = rectTransform.scaleY;
 
         uint32_t currentParent = rectTransform.parent;
         while (currentParent != std::numeric_limits<uint32_t>::max()) {
@@ -333,25 +337,31 @@ namespace Editor {
             auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
             worldPivotX += parentRect.x;
             worldPivotY += parentRect.y;
+            worldScaleX *= parentRect.scaleX;
+            worldScaleY *= parentRect.scaleY;
             currentParent = parentRect.parent;
         }
 
-        // Calculate top-left from pivot
-        float topLeftX = worldPivotX - rectTransform.width * rectTransform.pivotX;
-        float topLeftY = worldPivotY - rectTransform.height * rectTransform.pivotY;
+        // Apply world scale to dimensions
+        float scaledWidth = rectTransform.width * worldScaleX;
+        float scaledHeight = rectTransform.height * worldScaleY;
+
+        // Calculate top-left from pivot (using scaled dimensions)
+        float topLeftX = worldPivotX - scaledWidth * rectTransform.pivotX;
+        float topLeftY = worldPivotY - scaledHeight * rectTransform.pivotY;
 
         // Convert to screen coordinates
         ImVec2 topLeft(
-            panelPos.x + topLeftX * scaleX,
-            panelPos.y + topLeftY * scaleY
+            panelPos.x + topLeftX * panelScaleX,
+            panelPos.y + topLeftY * panelScaleY
         );
         ImVec2 bottomRight(
-            panelPos.x + (topLeftX + rectTransform.width) * scaleX,
-            panelPos.y + (topLeftY + rectTransform.height) * scaleY
+            panelPos.x + (topLeftX + scaledWidth) * panelScaleX,
+            panelPos.y + (topLeftY + scaledHeight) * panelScaleY
         );
         ImVec2 center(
-            panelPos.x + worldPivotX * scaleX,
-            panelPos.y + worldPivotY * scaleY
+            panelPos.x + worldPivotX * panelScaleX,
+            panelPos.y + worldPivotY * panelScaleY
         );
 
         // Get rotation
@@ -431,7 +441,7 @@ namespace Editor {
         }
 
         // Draw center/pivot handle
-        drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(255, 120, 0, 255)); // Orange for pivot
+        drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(255, 120, 0, 255));
 
         // ========== ROTATION HANDLE ==========
         float rotationHandleOffset = 35.0f;
@@ -548,7 +558,6 @@ namespace Editor {
                 s_originalTransform = rectTransform;
                 handleClicked = true;
 
-                // Create command for rotation
                 s_uiGizmoMask = SetUIRectTransformCommand::Rot;
                 s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
                     uiEntityId, "UI Gizmo: Rotate",
@@ -573,7 +582,6 @@ namespace Editor {
                         s_originalTransform = rectTransform;
                         handleClicked = true;
 
-                        // Create command for resize
                         s_uiGizmoMask = SetUIRectTransformCommand::Size;
                         s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
                             uiEntityId, "UI Gizmo: Resize",
@@ -602,7 +610,6 @@ namespace Editor {
                         s_originalTransform = rectTransform;
                         handleClicked = true;
 
-                        // Create command for resize
                         s_uiGizmoMask = SetUIRectTransformCommand::Size;
                         s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
                             uiEntityId, "UI Gizmo: Resize",
@@ -628,7 +635,6 @@ namespace Editor {
                     s_dragStart = mousePos;
                     s_originalTransform = rectTransform;
 
-                    // Create command for position
                     s_uiGizmoMask = SetUIRectTransformCommand::Pos;
                     s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
                         uiEntityId, "UI Gizmo: Move",
@@ -660,7 +666,6 @@ namespace Editor {
                 rectTransform.rotationZ = 0.0f;
             }
 
-            // Update command
             if (s_uiGizmoCmd) {
                 s_uiGizmoCmd->SetAfter(rectTransform);
             }
@@ -672,17 +677,18 @@ namespace Editor {
             CommitCommand();
         }
 
-        // ========== POSITION DRAG (pivot moves) ==========
+        // ========== POSITION DRAG ==========
         if (s_isDraggingUI && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
         {
             ImVec2 deltaPixels(mousePos.x - s_dragStart.x, mousePos.y - s_dragStart.y);
-            float deltaFBX = deltaPixels.x / scaleX;
-            float deltaFBY = deltaPixels.y / scaleY;
+
+            // Convert screen pixels to framebuffer units
+            float deltaFBX = deltaPixels.x / panelScaleX;
+            float deltaFBY = deltaPixels.y / panelScaleY;
 
             rectTransform.x = s_originalTransform.x + deltaFBX;
             rectTransform.y = s_originalTransform.y + deltaFBY;
 
-            // Update command
             if (s_uiGizmoCmd) {
                 s_uiGizmoCmd->SetAfter(rectTransform);
             }
@@ -694,51 +700,68 @@ namespace Editor {
             CommitCommand();
         }
 
-        // ========== CORNER RESIZE (pivot stays fixed!) ==========
+        // ========== CORNER RESIZE ==========
         if (s_draggingCorner >= 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
         {
             ImVec2 deltaPixels(mousePos.x - s_dragStart.x, mousePos.y - s_dragStart.y);
 
-            float deltaFBX = deltaPixels.x / scaleX;
-            float deltaFBY = deltaPixels.y / scaleY;
+            // Convert screen pixels to framebuffer units
+            float deltaFBX = deltaPixels.x / panelScaleX;
+            float deltaFBY = deltaPixels.y / panelScaleY;
 
+            // Account for rotation
             float origRotation = s_originalTransform.rotationZ;
             float origRadians = origRotation * PI / 180.0f;
             float origCosR = std::cos(origRadians);
             float origSinR = std::sin(origRadians);
 
-            // Transform to local space
+            // Transform to local (rotated) space
             float localDeltaX = deltaFBX * origCosR + deltaFBY * origSinR;
             float localDeltaY = -deltaFBX * origSinR + deltaFBY * origCosR;
+
+            // Account for world scale - divide by scale to get local width/height change
+            // Use the scale at drag start for consistency
+            float origWorldScaleX = s_originalTransform.scaleX;
+            float origWorldScaleY = s_originalTransform.scaleY;
+
+            // Accumulate parent scale from original state
+            uint32_t p = s_originalTransform.parent;
+            while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
+                auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
+                origWorldScaleX *= parentRect.scaleX;
+                origWorldScaleY *= parentRect.scaleY;
+                p = parentRect.parent;
+            }
+
+            // Convert to local units (divide by world scale)
+            float localWidthDelta = (origWorldScaleX > 0.001f) ? localDeltaX / origWorldScaleX : localDeltaX;
+            float localHeightDelta = (origWorldScaleY > 0.001f) ? localDeltaY / origWorldScaleY : localDeltaY;
 
             float newWidth = s_originalTransform.width;
             float newHeight = s_originalTransform.height;
 
-            // For pivot-based system, resizing just changes width/height
-            // The pivot position stays the same!
             switch (s_draggingCorner) {
             case 0: // Top-left
-                newWidth = s_originalTransform.width - localDeltaX;
-                newHeight = s_originalTransform.height - localDeltaY;
+                newWidth = s_originalTransform.width - localWidthDelta;
+                newHeight = s_originalTransform.height - localHeightDelta;
                 break;
             case 1: // Top-right
-                newWidth = s_originalTransform.width + localDeltaX;
-                newHeight = s_originalTransform.height - localDeltaY;
+                newWidth = s_originalTransform.width + localWidthDelta;
+                newHeight = s_originalTransform.height - localHeightDelta;
                 break;
             case 2: // Bottom-right
-                newWidth = s_originalTransform.width + localDeltaX;
-                newHeight = s_originalTransform.height + localDeltaY;
+                newWidth = s_originalTransform.width + localWidthDelta;
+                newHeight = s_originalTransform.height + localHeightDelta;
                 break;
             case 3: // Bottom-left
-                newWidth = s_originalTransform.width - localDeltaX;
-                newHeight = s_originalTransform.height + localDeltaY;
+                newWidth = s_originalTransform.width - localWidthDelta;
+                newHeight = s_originalTransform.height + localHeightDelta;
                 break;
             }
 
             rectTransform.width = std::max(1.0f, newWidth);
             rectTransform.height = std::max(1.0f, newHeight);
 
-            // Update command
             if (s_uiGizmoCmd) {
                 s_uiGizmoCmd->SetAfter(rectTransform);
             }
@@ -750,45 +773,62 @@ namespace Editor {
             CommitCommand();
         }
 
-        // ========== EDGE RESIZE (pivot stays fixed!) ==========
+        // ========== EDGE RESIZE ==========
         if (s_draggingEdge >= 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
         {
             ImVec2 deltaPixels(mousePos.x - s_dragStart.x, mousePos.y - s_dragStart.y);
 
-            float deltaFBX = deltaPixels.x / scaleX;
-            float deltaFBY = deltaPixels.y / scaleY;
+            // Convert screen pixels to framebuffer units
+            float deltaFBX = deltaPixels.x / panelScaleX;
+            float deltaFBY = deltaPixels.y / panelScaleY;
 
+            // Account for rotation
             float origRotation = s_originalTransform.rotationZ;
             float origRadians = origRotation * PI / 180.0f;
             float origCosR = std::cos(origRadians);
             float origSinR = std::sin(origRadians);
 
-            // Transform to local space
+            // Transform to local (rotated) space
             float localDeltaX = deltaFBX * origCosR + deltaFBY * origSinR;
             float localDeltaY = -deltaFBX * origSinR + deltaFBY * origCosR;
+
+            // Account for world scale
+            float origWorldScaleX = s_originalTransform.scaleX;
+            float origWorldScaleY = s_originalTransform.scaleY;
+
+            uint32_t p = s_originalTransform.parent;
+            while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
+                auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
+                origWorldScaleX *= parentRect.scaleX;
+                origWorldScaleY *= parentRect.scaleY;
+                p = parentRect.parent;
+            }
+
+            // Convert to local units
+            float localWidthDelta = (origWorldScaleX > 0.001f) ? localDeltaX / origWorldScaleX : localDeltaX;
+            float localHeightDelta = (origWorldScaleY > 0.001f) ? localDeltaY / origWorldScaleY : localDeltaY;
 
             float newWidth = s_originalTransform.width;
             float newHeight = s_originalTransform.height;
 
             switch (s_draggingEdge) {
             case 0: // Top edge
-                newHeight = s_originalTransform.height - localDeltaY;
+                newHeight = s_originalTransform.height - localHeightDelta;
                 break;
             case 1: // Right edge
-                newWidth = s_originalTransform.width + localDeltaX;
+                newWidth = s_originalTransform.width + localWidthDelta;
                 break;
             case 2: // Bottom edge
-                newHeight = s_originalTransform.height + localDeltaY;
+                newHeight = s_originalTransform.height + localHeightDelta;
                 break;
             case 3: // Left edge
-                newWidth = s_originalTransform.width - localDeltaX;
+                newWidth = s_originalTransform.width - localWidthDelta;
                 break;
             }
 
             rectTransform.width = std::max(1.0f, newWidth);
             rectTransform.height = std::max(1.0f, newHeight);
 
-            // Update command
             if (s_uiGizmoCmd) {
                 s_uiGizmoCmd->SetAfter(rectTransform);
             }
@@ -805,7 +845,6 @@ namespace Editor {
         {
             if (s_isDraggingUI || s_draggingCorner >= 0 || s_draggingEdge >= 0 || s_isDraggingRotation)
             {
-                // Commit any pending command before cleanup
                 CommitCommand();
 
                 s_isDraggingUI = false;
