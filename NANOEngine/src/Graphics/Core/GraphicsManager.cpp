@@ -197,7 +197,7 @@ namespace NE::Graphics {
                     light.position + dir,
                     up
                 );
-                float fov = acosf(light.outerCutoff) * 2.0f;
+                float fov = Radians(light.outerCutoff) * 2.0f;
                 float nearP = 0.1f;
                 float farP = light.radius > 0.f ? light.radius : 50.f;
                 lightProj = Math::Mat4::BuildSymPerspective(fov, 1.0f, nearP, farP);

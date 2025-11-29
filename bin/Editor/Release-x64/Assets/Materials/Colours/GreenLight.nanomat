@@ -1,0 +1,45 @@
+{
+    "Shader": "50f92895-66cc-459d-ad25-0fd250c91f3c",
+    "DepthTest": true,
+    "BlendMode": true,
+    "CullMode": 1029,
+    "PolygonMode": 6914,
+    "Properties": {
+        "u_HasShadowMaps": 0,
+        "u_NumShadowMaps": 0,
+        "u_HasAlbedoMap": 0,
+        "u_HasMetallicMap": 0,
+        "u_HasAmbientOcclusionMap": 0,
+        "u_HasNormalMap": 0,
+        "u_ReceiveShadows": 0,
+        "u_HasRoughnessMap": 0,
+        "u_Metallic": 0.0,
+        "u_Roughness": 0.0,
+        "u_BaseColor": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "u_Emissive": [
+            0.30000001192092896,
+            2.0,
+            0.800000011920929
+        ],
+        "u_Tiling": [
+            1.0,
+            1.0,
+            1.0
+        ],
+        "u_Offset": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "u_MetallicMap": "",
+        "u_AlbedoMap": "",
+        "u_ShadowMaps": "",
+        "u_AmbientOcclusionMap": "",
+        "u_NormalMap": "",
+        "u_RoughnessMap": ""
+    }
+}

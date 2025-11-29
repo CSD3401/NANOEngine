@@ -23,17 +23,17 @@
             "EntityMeta": {
                 "name": "TunnelLight",
                 "isActive": 1,
-                "luid": 7308894852323934225,
+                "luid": 7308894879597461504,
                 "layer": 0,
-                "prefabID": "3df225ba-e6da-49d1-b227-0c72f7bf9fb4",
+                "prefabID": "3b5410a9-0760-48f9-b745-0405438c9793",
                 "prefabLocalID": 1,
                 "isPrefabRoot": 0
             },
             "Transform": {
                 "Position": {
-                    "x": 16.259746551513672,
-                    "y": 0.0,
-                    "z": 0.0
+                    "x": -1.9657914638519287,
+                    "y": -24.4156436920166,
+                    "z": 3.6929471492767334
                 },
                 "Scale": {
                     "x": 1.0,
@@ -42,7 +42,7 @@
                 },
                 "Rotation": {
                     "x": 90.0,
-                    "y": 0.0,
+                    "y": 90.0,
                     "z": 0.0
                 },
                 "luid": 1,
@@ -80,16 +80,16 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
+                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
         },
         {
             "EntityMeta": {
-                "name": "Case",
+                "name": "Light",
                 "isActive": 1,
-                "luid": 7308894852452122635,
+                "luid": 7308894869344747574,
                 "layer": 0,
                 "prefabID": "",
                 "prefabLocalID": 3,
@@ -99,7 +99,7 @@
                 "Position": {
                     "x": 0.0,
                     "y": 0.0,
-                    "z": 0.0
+                    "z": 0.20022225379943848
                 },
                 "Scale": {
                     "x": 1.0,
@@ -113,13 +113,35 @@
                 },
                 "luid": 3,
                 "parentLuid": 1
+            },
+            "Light": {
+                "direction": {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "color": {
+                    "x": 1.5,
+                    "y": 1.0,
+                    "z": 0.800000011920929
+                },
+                "intensity": 2.0,
+                "innerCutoff": 0.0,
+                "outerCutoff": -1.0,
+                "radius": 7.0,
+                "constant": 1.0,
+                "linear": 1.0,
+                "quadratic": 1.0,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
+                "type": 2
             }
         },
         {
             "EntityMeta": {
-                "name": "Mesh",
+                "name": "Case",
                 "isActive": 1,
-                "luid": 7308894852452581389,
+                "luid": 7308894852452122635,
                 "layer": 0,
                 "prefabID": "",
                 "prefabLocalID": 4,
@@ -142,7 +164,37 @@
                     "z": -0.0
                 },
                 "luid": 4,
-                "parentLuid": 3
+                "parentLuid": 1
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh",
+                "isActive": 1,
+                "luid": 7308894852452581389,
+                "layer": 0,
+                "prefabID": "",
+                "prefabLocalID": 5,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 5,
+                "parentLuid": 4
             },
             "Renderer": {
                 "modelUUID": "ce7b5cb9-d7af-4710-a37d-33437258bc2f",
@@ -158,7 +210,7 @@
                 "luid": 7308894852451074057,
                 "layer": 0,
                 "prefabID": "",
-                "prefabLocalID": 5,
+                "prefabLocalID": 6,
                 "isPrefabRoot": 0
             },
             "Transform": {
@@ -177,66 +229,14 @@
                     "y": 0.0,
                     "z": -0.0
                 },
-                "luid": 5,
+                "luid": 6,
                 "parentLuid": 1
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
+                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Light",
-                "isActive": 1,
-                "luid": 7308894869344747574,
-                "layer": 0,
-                "prefabID": "",
-                "prefabLocalID": 6,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.10000000149011612
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 6,
-                "parentLuid": 1
-            },
-            "Light": {
-                "direction": {
-                    "x": 0.0,
-                    "y": -1.0,
-                    "z": 0.0
-                },
-                "color": {
-                    "x": 1.5,
-                    "y": 0.8999999761581421,
-                    "z": 0.5
-                },
-                "intensity": 10.0,
-                "innerCutoff": 2.309999942779541,
-                "outerCutoff": 0.11999999731779099,
-                "radius": 10.0,
-                "constant": 1.0,
-                "linear": 0.0,
-                "quadratic": 1.0,
-                "shadowType": 0,
-                "shadowUpdateMode": 0,
-                "type": 1
             }
         }
     ]

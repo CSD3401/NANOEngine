@@ -8,6 +8,12 @@
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include <glad/glad.h>
 
+namespace {
+    float Radians(float deg) {
+        return deg * 3.14159265358979323846f / 180.0f;
+    }
+}
+
 namespace NE::Graphics::OpenGL {
 
     GLClusteredLighting::GLClusteredLighting(int cX, int cY, int cZ, int maxLights, int avgClustersPerLight)
@@ -222,8 +228,8 @@ namespace NE::Graphics::OpenGL {
             dst.color[3] = src->intensity;
 
             // params:  inner / outer / radius / padding
-            dst.params[0] = src->innerCutoff;
-            dst.params[1] = src->outerCutoff;
+            dst.params[0] = std::cos(Radians(src->innerCutoff));
+            dst.params[1] = std::cos(Radians(src->outerCutoff));
 			dst.params[2] = src->radius;
             dst.params[3] = static_cast<float>(src->shadowIndex);
 
