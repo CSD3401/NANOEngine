@@ -66,7 +66,11 @@ public:
         if (m_isGrounded && m_lastGroundHit.hasHit) {
             ApplyGroundSnap();
         }
-        SetRotation(GetRotation(cameraRef));
+
+        Vec3 camRot = GetRotation(cameraRef);
+        Vec3 playerRot = GetRotation();   // current player rotation
+        playerRot.y = camRot.y;           // only copy yaw
+        SetRotation(playerRot);
     }
 
     void OnDestroy() override {}
@@ -123,18 +127,10 @@ private:
         float forwardInput = 0.0f;
         float rightInput = 0.0f;
 
-        if (Input::IsKeyDown('W')) {
-            rightInput += 1.0f;
-        }
-        if (Input::IsKeyDown('S')) {
-            rightInput -= 1.0f;
-        }
-        if (Input::IsKeyDown('A')) {
-            forwardInput -= 1.0f;
-        }
-        if (Input::IsKeyDown('D')) {
-            forwardInput += 1.0f;
-        }
+        if (Input::IsKeyDown('W')) forwardInput += 1.0f;
+        if (Input::IsKeyDown('A')) rightInput += 1.0f;
+        if (Input::IsKeyDown('S')) forwardInput -= 1.0f;
+        if (Input::IsKeyDown('D')) rightInput -= 1.0f;
 
         // Normalize input
         float mag = std::sqrt(forwardInput * forwardInput + rightInput * rightInput);
@@ -163,34 +159,28 @@ private:
         horizVel.y = 0.0f;
 
         if (mag > 0.0f) {
-            // Get camera's rotation and calculate forward/right vectors
-            Entity camEntity = cameraRef.GetEntity();
-            Vec3 camRotation = GetRotation(camEntity);
-            float yaw = camRotation.y * (3.14159265f / 180.0f);
+            Vec3 camForward = GetForward(cameraRef.GetEntity());
 
-            // Camera forward (yaw=0 points towards +Z)
-            Vec3 camForward;
-            camForward.x = std::sin(yaw);
             camForward.y = 0.0f;
-            camForward.z = std::cos(yaw);
+            float len = std::sqrt(camForward.x * camForward.x + camForward.z * camForward.z);
+            if (len > 0.0001f) {
+                camForward.x /= len;
+                camForward.z /= len;
+            } else {
+                camForward = Vec3{ 0.0f, 0.0f, 1.0f };
+            }
 
-            // Camera right (perpendicular to forward, 90 degrees clockwise)
-            Vec3 camRight;
-            camRight.x = std::cos(yaw);
-            camRight.y = 0.0f;
-            camRight.z = -std::sin(yaw);
+            Vec3 up{ 0.0f, 1.0f, 0.0f };
+            Vec3 camRight = up.Cross(camForward);
 
-            // Calculate target velocity in world space
-            Vec3 targetVel{
-                (camForward.x * forwardInput + camRight.x * rightInput) * moveSpeed,
-                0.0f,
-                (camForward.z * forwardInput + camRight.z * rightInput) * moveSpeed
-            };
+            Vec3 targetVel;
+            targetVel.x = (camForward.x * forwardInput + camRight.x * rightInput) * moveSpeed;
+            targetVel.y = 0.0f;
+            targetVel.z = (camForward.z * forwardInput + camRight.z * rightInput) * moveSpeed;
 
             float control = m_isGrounded ? 1.0f : airControl;
             control = std::clamp(control, 0.0f, 1.0f);
 
-            // Snappiness factor
             float t = control * dt * 10.0f;
             t = std::clamp(t, 0.0f, 1.0f);
 
