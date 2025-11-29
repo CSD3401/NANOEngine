@@ -12,6 +12,7 @@ public:
 		// Example: SCRIPT_FIELD(speed, Float);
 		SCRIPT_COMPONENT_REF(materialA, MaterialRef);
 		SCRIPT_FIELD(picked, Bool);
+		SCRIPT_FIELD(color, String);
 	}
 
 	~Pickable() override = default;
@@ -33,14 +34,38 @@ public:
 				Picked(data);
 			}
 		);
+
+		//Events::Listen(color.c_str(),
+		//	[this](void* data) {
+		//		Picked(data);
+		//	}
+		//);
 	}
 
 	void Update(double deltaTime) override {
 		if (picked) {
-			Vec3 forward = GetForward(pickedBy);
-			SetPosition(forward * pickDistance);
+			// FIXED positioning
+			TransformRef cameraTransform = GetTransformRef(pickedBy);
+			Vec3 cameraPos = GetPosition(cameraTransform);
+			Vec3 forward = GetForward(cameraTransform);
+			SetPosition(cameraPos + forward * pickDistance);
 
-			if (Input::WasMouseReleased(0)) picked = false;
+			if (Input::WasMouseReleased(0))
+			{
+				picked = false;
+
+				// Create struct to pass both color AND entity
+				struct KeyData {
+					std::string color;
+					uint32_t keyEntity;
+				};
+
+				KeyData data;
+				data.color = color;
+				data.keyEntity = GetEntity();  // The entity this script is attached to
+
+				Events::Send("GetKeyColor", &data);
+			}
 		}
 	}
 
@@ -106,4 +131,6 @@ private:
 	Entity pickedBy;
 
 	float pickDistance = 4.f;
+	
+	std::string color;
 };

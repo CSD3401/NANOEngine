@@ -37,6 +37,8 @@
     <ClInclude Include="Scripts\ElevatorMove.hpp" />
     <ClInclude Include="Scripts\Lever.hpp" />
     <ClInclude Include="Scripts\PlayerCameraRaycast.hpp" />
+    <ClInclude Include="Scripts\Lock.hpp" />
+    <ClInclude Include="Scripts\AudioHolder.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />

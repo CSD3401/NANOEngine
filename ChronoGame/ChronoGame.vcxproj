@@ -159,6 +159,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Scripts\AudioHolder.hpp" />
     <ClInclude Include="Scripts\ColourSwapButton.hpp" />
     <ClInclude Include="Scripts\ColourSwapManager.hpp" />
     <ClInclude Include="Scripts\Door.hpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="Scripts\k2bswitch.hpp" />
     <ClInclude Include="Scripts\Lever.hpp" />
     <ClInclude Include="Scripts\LightSwitch.hpp" />
+    <ClInclude Include="Scripts\Lock.hpp" />
     <ClInclude Include="Scripts\MaterialSequencer.hpp" />
     <ClInclude Include="Scripts\MirrorPuzzle.hpp" />
     <ClInclude Include="Scripts\ParentControllerScript.hpp" />

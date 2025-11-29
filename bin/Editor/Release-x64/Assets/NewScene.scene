@@ -3099,7 +3099,10 @@
                 "parentLuid": 0
             },
             "NativeScript": {
-                "ScriptName": "PlayerCamera"
+                "ScriptName": "PlayerCamera",
+                "SerializedFields": {
+                    "offset": "1.000000"
+                }
             }
         },
         {
@@ -6631,6 +6634,13 @@
                 },
                 "luid": 8390884670917836857,
                 "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "SolveInactive",
+                "SerializedFields": {
+                    "isActive": "1",
+                    "eventName": "KeyLockSolved"
+                }
             }
         },
         {
@@ -7534,14 +7544,14 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 0.0,
+                    "x": 1.3774833679199219,
                     "y": 0.0,
-                    "z": 0.0
+                    "z": 0.5529899597167969
                 },
                 "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+                    "x": 2.0,
+                    "y": 2.0,
+                    "z": 2.0
                 },
                 "Rotation": {
                     "x": -0.0,
@@ -7554,6 +7564,24 @@
             "Renderer": {
                 "modelUUID": "3067e324-e6af-44f2-879e-26c9e39e0f24",
                 "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "NativeScript": {
+                "ScriptName": "Pickable",
+                "SerializedFields": {
+                    "materialA": "",
+                    "picked": "0",
+                    "color": "yellow"
+                }
             }
         },
         {
@@ -7596,14 +7624,14 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 0.0,
+                    "x": -1.1432156562805176,
                     "y": 0.0,
-                    "z": 0.0
+                    "z": -2.327516555786133
                 },
                 "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+                    "x": 2.0,
+                    "y": 2.0,
+                    "z": 2.0
                 },
                 "Rotation": {
                     "x": -0.0,
@@ -7616,6 +7644,24 @@
             "Renderer": {
                 "modelUUID": "3067e324-e6af-44f2-879e-26c9e39e0f24",
                 "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "NativeScript": {
+                "ScriptName": "Pickable",
+                "SerializedFields": {
+                    "materialA": "",
+                    "picked": "0",
+                    "color": "blue"
+                }
             }
         },
         {
@@ -7658,14 +7704,14 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 0.0,
+                    "x": -2.3516645431518555,
                     "y": 0.0,
-                    "z": 0.0
+                    "z": 1.1031436920166016
                 },
                 "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
+                    "x": 2.0,
+                    "y": 2.0,
+                    "z": 2.0
                 },
                 "Rotation": {
                     "x": -0.0,
@@ -7678,6 +7724,24 @@
             "Renderer": {
                 "modelUUID": "3067e324-e6af-44f2-879e-26c9e39e0f24",
                 "materialUUID": "c57f74a5-e22a-40fe-bc56-f02aaaa494c8"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "NativeScript": {
+                "ScriptName": "Pickable",
+                "SerializedFields": {
+                    "materialA": "",
+                    "picked": "0",
+                    "color": "green"
+                }
             }
         },
         {
@@ -7707,6 +7771,24 @@
                 },
                 "luid": 8390884670948311135,
                 "parentLuid": 0
+            },
+            "Collider": {
+                "shapeType": 4,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "NativeScript": {
+                "ScriptName": "",
+                "SerializedFields": {
+                    "materialA": "",
+                    "picked": "0",
+                    "color": "yellow"
+                }
             }
         },
         {
@@ -7740,6 +7822,24 @@
             "Renderer": {
                 "modelUUID": "337fe7a7-b8c7-4e69-a3e3-ec4c9ad10145",
                 "materialUUID": "758cd72e-dbf2-4fd1-bea9-5d396e6cec03"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "NativeScript": {
+                "ScriptName": "Lock",
+                "SerializedFields": {
+                    "materialA": "",
+                    "picked": "0",
+                    "color": "yellow"
+                }
             }
         },
         {
@@ -7802,6 +7902,24 @@
             "Renderer": {
                 "modelUUID": "337fe7a7-b8c7-4e69-a3e3-ec4c9ad10145",
                 "materialUUID": "ea32e122-a8ba-4672-ab60-705fd79b9086"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "NativeScript": {
+                "ScriptName": "Lock",
+                "SerializedFields": {
+                    "materialA": "",
+                    "picked": "0",
+                    "color": "blue"
+                }
             }
         },
         {
@@ -7864,6 +7982,24 @@
             "Renderer": {
                 "modelUUID": "337fe7a7-b8c7-4e69-a3e3-ec4c9ad10145",
                 "materialUUID": "c57f74a5-e22a-40fe-bc56-f02aaaa494c8"
+            },
+            "Collider": {
+                "shapeType": 0,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            },
+            "NativeScript": {
+                "ScriptName": "Lock",
+                "SerializedFields": {
+                    "materialA": "",
+                    "picked": "0",
+                    "color": "green"
+                }
             }
         },
         {
@@ -10231,7 +10367,10 @@
                 "parentLuid": 8390884656319430825
             },
             "NativeScript": {
-                "ScriptName": "PlayerCamera"
+                "ScriptName": "PlayerCamera",
+                "SerializedFields": {
+                    "offset": "1.000000"
+                }
             },
             "Camera": {
                 "FOV Y": 45.0,
@@ -21403,9 +21542,9 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 0.574497640132904,
+                    "x": 7.788454055786133,
                     "y": -23.786706924438477,
-                    "z": 3.6776742935180664
+                    "z": -22.781858444213867
                 },
                 "Scale": {
                     "x": 0.20000000298023224,
@@ -21451,11 +21590,11 @@
             "NativeScript": {
                 "ScriptName": "PlayerController",
                 "SerializedFields": {
-                    "playerBottom": 0,
+                    "playerBottom": 655,
                     "groundProbeStartOffset": "0.100000",
                     "maxSlopeAngle": "45.000000",
                     "moveSpeed": "5.000000",
-                    "cameraRef": 0,
+                    "cameraRef": 656,
                     "jumpForce": "8.000000",
                     "groundFriction": "20.000000",
                     "groundRaycastDistance": "0.300000",
@@ -21507,7 +21646,7 @@
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 0.7119579315185547,
+                    "y": 1.1402091979980469,
                     "z": 0.0
                 },
                 "Scale": {
@@ -21524,7 +21663,10 @@
                 "parentLuid": 8390884683172937729
             },
             "NativeScript": {
-                "ScriptName": "PlayerCamera"
+                "ScriptName": "PlayerCamera",
+                "SerializedFields": {
+                    "offset": "1.000000"
+                }
             },
             "Camera": {
                 "FOV Y": 45.0,
@@ -21743,8 +21885,8 @@
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
+                    "y": -0.2160797119140625,
+                    "z": -2.0389251708984375
                 },
                 "Scale": {
                     "x": 1.0,
@@ -21764,11 +21906,11 @@
                 "materialUUID": "989a52a2-73e1-4a95-9b27-89e3c1f1e4b6"
             },
             "Collider": {
-                "shapeType": 0,
+                "shapeType": 3,
                 "halfExtents": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
                 },
                 "radius": 0.5,
                 "height": 1.0
@@ -22297,6 +22439,346 @@
                 },
                 "luid": 8390884687060402178,
                 "parentLuid": 8390884687060402176
+            },
+            "Renderer": {
+                "modelUUID": "01d5df1f-2239-4d51-85c3-fdb97b7a9068",
+                "materialUUID": "dd9d1921-53e4-406e-8383-057ef92ffa93"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Crate",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 2.231581449508667,
+                    "y": -26.952726364135742,
+                    "z": 3.9590513706207275
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884687265726464,
+                "parentLuid": 0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884687265726465,
+                "parentLuid": 8390884687265726464
+            },
+            "Renderer": {
+                "modelUUID": "2db0b34c-b68e-48a8-bba2-c58e842893cf",
+                "materialUUID": "357bd74f-1af1-4068-958d-c2816dc0bf4a"
+            },
+            "Collider": {
+                "shapeType": 3,
+                "halfExtents": {
+                    "x": 0.5,
+                    "y": 0.5,
+                    "z": 0.5
+                },
+                "radius": 0.5,
+                "height": 1.0
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884687265726466,
+                "parentLuid": 8390884687265726464
+            },
+            "Renderer": {
+                "modelUUID": "2db0b34c-b68e-48a8-bba2-c58e842893cf",
+                "materialUUID": "f68d3e59-f56c-44d2-8223-59311ff86723"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "AudioHolder",
+                "isActive": 1,
+                "luid": 7308894877556342784,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884688032104449,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "AudioHolder"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "LeftPressurePlate",
+                "isActive": 1,
+                "luid": 7308894877560012803,
+                "prefabID": "",
+                "prefabLocalID": 0,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 5.435033321380615,
+                    "y": -27.903308868408203,
+                    "z": -33.636356353759766
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.20000000298023224,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884688035774468,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "RightPressurePlate",
+                "isActive": 1,
+                "luid": 7308894877560012803,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 13.549519538879395,
+                    "y": -27.903308868408203,
+                    "z": -33.636356353759766
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 0.20000000298023224,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884688040689670,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "BlackPlane",
+                "isActive": 1,
+                "luid": 7308894877560012803,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.420863151550293,
+                    "y": -35.768455505371094,
+                    "z": -53.58555221557617
+                },
+                "Scale": {
+                    "x": 10.0,
+                    "y": 0.20000000298023224,
+                    "z": 25.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884688044818441,
+                "parentLuid": 0
+            },
+            "Renderer": {
+                "modelUUID": "builtin:model/cube",
+                "materialUUID": "neunlitmat"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Phonebooth",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 1,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 9.6267728805542,
+                    "y": -25.866924285888672,
+                    "z": -36.1579475402832
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "luid": 8390884688065462272,
+                "parentLuid": 0
+            },
+            "NativeScript": {
+                "ScriptName": "TimeSwapListener",
+                "SerializedFields": {
+                    "pastChildren": "1 677",
+                    "presentChildren": "1 678",
+                    "startInPresent": "1",
+                    "showLog": "0"
+                }
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Past",
+                "isActive": 0,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 2,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884688065462273,
+                "parentLuid": 8390884688065462272
+            },
+            "Renderer": {
+                "modelUUID": "01d5df1f-2239-4d51-85c3-fdb97b7a9068",
+                "materialUUID": "6e49b41c-341d-40b2-8745-5d8dcd71c85c"
+            }
+        },
+        {
+            "EntityMeta": {
+                "name": "Mesh Present",
+                "isActive": 1,
+                "luid": 0,
+                "prefabID": "",
+                "prefabLocalID": 3,
+                "isPrefabRoot": 0
+            },
+            "Transform": {
+                "Position": {
+                    "x": -0.06333446502685547,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "Scale": {
+                    "x": 1.0,
+                    "y": 1.0,
+                    "z": 1.0
+                },
+                "Rotation": {
+                    "x": -0.0,
+                    "y": 0.0,
+                    "z": -0.0
+                },
+                "luid": 8390884688065462274,
+                "parentLuid": 8390884688065462272
             },
             "Renderer": {
                 "modelUUID": "01d5df1f-2239-4d51-85c3-fdb97b7a9068",

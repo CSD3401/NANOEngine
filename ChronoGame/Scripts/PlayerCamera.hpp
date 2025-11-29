@@ -6,6 +6,47 @@
 class PlayerCamera : public IScript {
 public:
     PlayerCamera() {
+        SCRIPT_FIELD(offset, Float);
+    }
+
+	void Start() override
+    {
+
+		// This is a hack way and it sends the msg to all 3 locks at once
+        Events::Listen("GetKeyColor",
+            [this](void* data) {
+                // code here
+				ReceiveKeyColor(data);
+            }
+        );
+    }
+
+    void ReceiveKeyColor(void* data)
+    {
+        struct KeyData {
+            std::string color;
+            uint32_t keyEntity;
+        };
+
+        auto* keyData = static_cast<KeyData*>(data);
+        receivedColor = keyData->color;
+        receivedKeyEntity = keyData->keyEntity;  // Store key entity
+
+        // copy paste from Update raycast
+        // i jus hard send msg firsfor now 
+
+        //auto forward = GetForward();
+        //Vec3 rayStart = GetWorldPosition() + forward * 1; // Offset 1 unit forward
+        //auto hit = Raycast(rayStart, forward, 5.f);
+
+        //if (hit.entity != NE::Scripting::INVALID_ENTITY) {
+        //    Events::Send("TryToUnlock", &color);
+        //}
+
+        LOG_INFO("Received Key Color: " << receivedColor);
+        LOG_INFO("Key Entity: " << receivedKeyEntity);
+
+        shouldSendUnlockEvent = true;
     }
 
     void Initialize(Entity entity) override {
@@ -13,6 +54,25 @@ public:
 
     void Update(double deltaTime) override {
         if (!isActive) return;
+
+        // Deferred event sending
+        if (shouldSendUnlockEvent) {
+            LOG_INFO("Sending TryToUnlock event with color: " << receivedColor);
+
+            // Send both color and key entity to Lock
+            struct UnlockData {
+                std::string color;
+                uint32_t keyEntity;
+            };
+
+            UnlockData data;
+            data.color = receivedColor;
+            data.keyEntity = receivedKeyEntity;
+
+            Events::Send("TryToUnlock", &data);
+            shouldSendUnlockEvent = false;
+        }
+
 
         auto [mouseX, mouseY] = Input::GetMousePosition();
 
@@ -42,7 +102,10 @@ public:
         
         if (Input::WasMousePressed(0)) {
             auto forward = GetForward();
-            auto hit = Raycast(GetWorldPosition(), forward, 5.f);
+            //auto hit = Raycast(GetWorldPosition(), forward, 5.f);
+            // NEW  
+            Vec3 rayStart = GetWorldPosition() + forward * offset; // Offset 1 unit forward
+            auto hit = Raycast(rayStart, forward, 5.f);
             LOG_DEBUG("Position: " << GetPosition().x << " : " << GetPosition().y << " : " << GetPosition().z);
             LOG_DEBUG("Forward: " << forward.x << " : " << forward.y << " : " << forward.z);
             
@@ -74,9 +137,15 @@ private:
 
     bool switched = false;
 
+	float offset = 1.0f;
     float m_yaw = 0.0f;   // degrees
     float m_pitch = 0.0f;   // degrees
     bool  m_firstMouse = true;
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
+
+    // For KeyLock Puzzle
+    std::string receivedColor;
+    bool shouldSendUnlockEvent = false;  // Flag to defer event sending
+    uint32_t receivedKeyEntity;
 };

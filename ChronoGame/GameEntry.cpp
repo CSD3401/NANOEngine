@@ -23,6 +23,8 @@
 #include "Scripts/TimeSwapListener.hpp"
 #include "Scripts/ElevatorMove.hpp"
 #include "Scripts/PlayerCameraRaycast.hpp"
+#include "Scripts/Lock.hpp"
+#include "Scripts/AudioHolder.hpp"
 //#include "Scripts/Interactable.hpp"
 //#include "Scripts/Lever.hpp"
 // Component Reference Example Scripts
@@ -116,6 +118,14 @@ extern "C" {
 
         registrar->RegisterScript("ElevatorMove", []() -> NE::Scripting::IScript* {
             return new ElevatorMove();
+            });
+
+        registrar->RegisterScript("Lock", []() -> NE::Scripting::IScript* {
+            return new Lock();
+            });
+
+        registrar->RegisterScript("AudioHolder", []() -> NE::Scripting::IScript* {
+            return new AudioHolder();
             });
 
         //registrar->RegisterScript("Lever", []() -> NE::Scripting::IScript* {
