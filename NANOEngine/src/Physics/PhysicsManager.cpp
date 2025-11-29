@@ -310,8 +310,8 @@ namespace NE::Physics {
         s_PhysicsSystem->Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints,
             s_BPLayerInterface, s_ObjectVsBroadPhaseLayerFilter, s_ObjectLayerPairFilter);
 
-        s_ContactListener = std::make_unique<PhysicsContactListener>();
-        s_PhysicsSystem->SetContactListener(s_ContactListener.get());
+        //s_ContactListener = std::make_unique<PhysicsContactListener>();
+        //s_PhysicsSystem->SetContactListener(s_ContactListener.get());
     }
 
 	void PhysicsManager::Update(float dt) {
@@ -386,26 +386,26 @@ namespace NE::Physics {
 
     void PhysicsManager::RegisterCollisionEnterCallback(PhysicsContactListener::CollisionCallback callback)
     {
-        if (s_ContactListener)
-        {
-            s_ContactListener->RegisterCollisionEnterCallback(callback);
-        }
+        //if (s_ContactListener)
+        //{
+        //    s_ContactListener->RegisterCollisionEnterCallback(callback);
+        //}
     }
 
     void PhysicsManager::RegisterCollisionStayCallback(PhysicsContactListener::CollisionCallback callback)
     {
-        if (s_ContactListener)
-        {
-            s_ContactListener->RegisterCollisionStayCallback(callback);
-        }
+        //if (s_ContactListener)
+        //{
+        //    s_ContactListener->RegisterCollisionStayCallback(callback);
+        //}
     }
 
     void PhysicsManager::RegisterCollisionExitCallback(PhysicsContactListener::CollisionCallback callback)
     {
-        if (s_ContactListener)
-        {
-            s_ContactListener->RegisterCollisionExitCallback(callback);
-        }
+        //if (s_ContactListener)
+        //{
+        //    s_ContactListener->RegisterCollisionExitCallback(callback);
+        //}
     }
 
     void PhysicsManager::Shutdown() {
@@ -742,10 +742,10 @@ namespace NE::Physics {
     void PhysicsManager::RegisterEntityBody(Entity entity, uint32_t bodyID)
     {
         s_EntityToBodyMap[entity] = bodyID;
-        if (s_ContactListener)
-        {
-            s_ContactListener->MapBodyToEntity(JPH::BodyID(bodyID), entity);
-        }
+        //if (s_ContactListener)
+        //{
+        //    s_ContactListener->MapBodyToEntity(JPH::BodyID(bodyID), entity);
+        //}
     }
 
     void PhysicsManager::UnregisterEntityBody(Entity entity)
@@ -753,10 +753,10 @@ namespace NE::Physics {
         auto it = s_EntityToBodyMap.find(entity);
         if (it != s_EntityToBodyMap.end())
         {
-            if (s_ContactListener)
-            {
-                s_ContactListener->UnmapBody(JPH::BodyID(it->second));
-            }
+            //if (s_ContactListener)
+            //{
+            //    s_ContactListener->UnmapBody(JPH::BodyID(it->second));
+            //}
             s_EntityToBodyMap.erase(it);
         }
     }
