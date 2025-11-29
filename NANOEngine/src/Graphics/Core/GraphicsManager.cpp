@@ -848,6 +848,10 @@ namespace NE::Graphics {
         return s_RenderViewManager->Create(width, height, enablePicking);
 	}
 
+    void GraphicsManager::DestroyRenderView(RenderViewHandle handle) {
+        s_RenderViewManager->Destroy(handle);
+    }
+
     void GraphicsManager::SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, float nearPlane, float farPlane, bool isMain, uint16_t order)
     {
 		s_RenderViewManager->SetCameraData(viewHandle, projection, view, position, nearPlane, farPlane, isMain, order);
