@@ -128,8 +128,16 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void CameraSystem::Exit()
-	{
+	void CameraSystem::Exit() {
+		const auto& entities = GetEntities();
+		for (Entity entity : entities) {
+			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
+			if (!camera.renderViewHandles.empty()) {
+				for (auto& handle : camera.renderViewHandles) {
+					Graphics::GraphicsManager::DestroyRenderView(handle);
+				}
+			}
+		}
 	}
 
 	void CameraSystem::BuildProjection(Camera& cam)
