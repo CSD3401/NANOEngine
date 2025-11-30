@@ -36,25 +36,25 @@ public:
 			Events::Send("KeyLockSolved");
 		}
 
-		if (Input::WasKeyPressed('2')) {
-			PlayAudio("event:/VOICEOVER1");
-		}
+		//if (Input::WasKeyPressed('2')) {
+		//	PlayAudio("event:/VOICEOVER1");
+		//}
 
-		if (Input::WasKeyPressed('3')) {
-			PlayAudio("event:/VOICEOVER2");
-		}
+		//if (Input::WasKeyPressed('3')) {
+		//	PlayAudio("event:/VOICEOVER2");
+		//}
 
-		if (Input::WasKeyPressed('4')) {
-			PlayAudio("event:/VOICEOVER3");
-		}
+		//if (Input::WasKeyPressed('4')) {
+		//	PlayAudio("event:/VOICEOVER3");
+		//}
 
-		if (Input::WasKeyPressed('5')) {
-			PlayAudio("event:/VOICEOVER4");
-		}
+		//if (Input::WasKeyPressed('5')) {
+		//	PlayAudio("event:/VOICEOVER4");
+		//}
 
-		if (Input::WasKeyPressed('6')) {
-			PlayAudio("event:/VOICEOVER5");
-		}
+		//if (Input::WasKeyPressed('6')) {
+		//	PlayAudio("event:/VOICEOVER5");
+		//}
 	}
 
 	void OnDestroy() override {

@@ -17,6 +17,7 @@ public:
 		SCRIPT_FIELD(picked, Bool);
 		SCRIPT_FIELD(color, String);
 		SCRIPT_FIELD(tag, Int);  // 0 = Key, 1 = Object
+		SCRIPT_FIELD(hardcodedPosition, Vec3); 
 	}
 
 	~Pickable() override = default;
@@ -72,27 +73,30 @@ public:
 				else if (tag == 1)
 				{
 					// Raycast down to see what's below
-					Vec3 down(0, -1, 0);
-					auto hit = Raycast(GetPosition(), down, 2.0f);
+					//Vec3 down(0, -1, 0);
+					//auto hit = Raycast(GetPosition(), down, 2.0f);
 
-					if (hit.entity != NE::Scripting::INVALID_ENTITY) 
-					{
-						LOG_INFO("Dropped object on entity: " << hit.entity);
+					//if (hit.entity != NE::Scripting::INVALID_ENTITY) 
+					//{
+					//	LOG_INFO("Dropped object on entity: " << hit.entity);
 
-						struct DropData {
-							uint32_t droppedItem;
-							uint32_t plateEntity;
-						};
-						DropData dropData;
-						dropData.droppedItem = GetEntity();
-						dropData.plateEntity = hit.entity;
+					//	struct DropData {
+					//		uint32_t droppedItem;
+					//		uint32_t plateEntity;
+					//	};
+					//	DropData dropData;
+					//	dropData.droppedItem = GetEntity();
+					//	dropData.plateEntity = hit.entity;
 
-						Events::Send("ObjectDroppedOnPlate", &dropData);
-					}
-					else 
-					{
-						LOG_INFO("Dropped object on nothing");
-					}
+					//	Events::Send("ObjectDroppedOnPlate", &dropData);
+					//}
+					//else 
+					//{
+					//	LOG_INFO("Dropped object on nothing");
+					//}
+
+					// Uk what im too lazy to debug this shit
+					SetPosition(hardcodedPosition);
 				}
 			}
 		}
@@ -159,4 +163,5 @@ private:
 	float pickDistance = 4.f;
 	std::string color;
 	int tag = 1;  // 0 = Key, 1 = Object
+	Vec3 hardcodedPosition = Vec3(0, 0, 0);
 };

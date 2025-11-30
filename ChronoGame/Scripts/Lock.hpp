@@ -24,6 +24,25 @@ public:
 	}
 
 	void Update(double deltaTime) override {
+
+		if (setObjInactiveNextFrame)
+		{
+			// Deactivate the key
+			SetActive(false, keyEntity);
+
+			// Deactivate this lock
+			SetActive(false, GetEntity());
+
+			successfulUnlocks++;  // Increment static counter
+			LOG_WARNING("Total successful unlocks: " << successfulUnlocks);
+
+			if (successfulUnlocks == 3)
+			{
+				LOG_INFO("All locks unlocked! Unlocking Door");
+				shouldSendKeyLockSolved = true;  // Defer to next frame
+			}
+		}
+
 		// Deferred event sending
 		if (shouldSendKeyLockSolved) {
 			LOG_INFO("Sending KeyLockSolved event");
@@ -70,20 +89,22 @@ public:
 		{
 			LOG_INFO("Successfully Unlock, Key and Lock Pair SetInactive");
 
+			setObjInactiveNextFrame = true;
+
 			//// Deactivate the key
 			//SetActive(false, keyEntity);
 
 			//// Deactivate this lock
 			//SetActive(false, GetEntity());
 
-			successfulUnlocks++;  // Increment static counter
-			LOG_WARNING("Total successful unlocks: " << successfulUnlocks);
+			//successfulUnlocks++;  // Increment static counter
+			//LOG_WARNING("Total successful unlocks: " << successfulUnlocks);
 
-			if (successfulUnlocks == 3)
-			{
-				LOG_INFO("All locks unlocked! Unlocking Door");
-				shouldSendKeyLockSolved = true;  // Defer to next frame
-			}
+			//if (successfulUnlocks == 3)
+			//{
+			//	LOG_INFO("All locks unlocked! Unlocking Door");
+			//	shouldSendKeyLockSolved = true;  // Defer to next frame
+			//}
 		}
 		else
 		{
@@ -106,6 +127,7 @@ private:
 	float pickDistance = 4.f;
 	std::string color;
 	
+	bool setObjInactiveNextFrame = false;
 	bool shouldSendKeyLockSolved = false;  // Flag to defer event
 	Entity keyEntity; 
 	// Static counter shared across all Lock instances
