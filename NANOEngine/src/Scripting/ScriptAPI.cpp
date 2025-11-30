@@ -782,13 +782,13 @@ namespace Scripting {
     float IScript::GetCameraFOV() const {
         if (!HasCamera()) return 45.0f;
         const auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
-        return camera.fovY;
+        return camera.fov;
     }
 
     void IScript::SetCameraFOV(float fov) {
         if (!HasCamera()) return;
         auto& camera = m_context->componentManager->GetComponent<ECS::Component::Camera>(m_entity);
-        camera.fovY = fov;
+        camera.fov = fov;
         camera.isDirty = true; // Mark camera projection as needing rebuild
     }
 

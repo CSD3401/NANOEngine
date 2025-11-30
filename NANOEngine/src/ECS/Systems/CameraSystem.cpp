@@ -94,11 +94,6 @@ namespace NE::ECS::Systems {
 				BuildProjection(camera);
 			}
 
-			// transform isDirty seems to be broken.
-			/*if (transform.isDirty) {
-				BuildView(camera, transform);
-			}*/
-
 			BuildView(camera, transform);
 
 			if (camera.renderViewHandles.empty()) {
@@ -113,7 +108,7 @@ namespace NE::ECS::Systems {
 						camera.renderViewHandles[i],
 						camera.projectionMtx,
 						camera.viewMtx,
-						transform.localPosition,
+						transform.worldMatrix.GetTranslation(),
 						camera.nearPlane,
 						camera.farPlane,
 						camera.isMain,
@@ -143,7 +138,7 @@ namespace NE::ECS::Systems {
 	void CameraSystem::BuildProjection(Camera& cam)
 	{
 		// Build perspective projection matrix
-		float f = 1.0f / std::tan(cam.fovY * 0.5f);
+		float f = 1.0f / std::tan(cam.fov * (NE::Math::PI / 180.0f) * 0.5f);
 		float& aspect = cam.aspectRatio;
 		float& nearPlane = cam.nearPlane;
 		float& farPlane = cam.farPlane;

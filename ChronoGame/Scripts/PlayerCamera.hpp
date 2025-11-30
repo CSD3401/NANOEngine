@@ -106,8 +106,15 @@ public:
         if (m_pitch > 89.0f)  m_pitch = 89.0f;
         if (m_pitch < -89.0f) m_pitch = -89.0f;
 
+
+        /*Entity player = GetParent();
+        if (player != NE::Scripting::INVALID_ENTITY) {
+            SetRotation(0.0f, m_yaw, 0.0f, player);
+        }*/
+
+        // 2) Rotate camera itself by pitch + yaw (so view actually updates)
         SetRotation(m_pitch, m_yaw, 0.0f);
-        
+
         if (Input::WasMousePressed(0)) {
             auto forward = GetForward();
             //auto hit = Raycast(GetWorldPosition(), forward, 5.f);
