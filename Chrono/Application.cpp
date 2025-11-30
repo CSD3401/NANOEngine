@@ -18,13 +18,16 @@
 namespace Editor {
 	bool Application::isRunning = true;
 	Timer Application::timer;
+	static int frames = 0;
+	static bool beginPlaying = false;
+	static bool editorPlayExecuted = false;
 
 	void Application::Init() {
 		timer.Start();
 
 		// Enable logging BEFORE engine initialization
-		SpdLogger::GetInstance().EnableFileLogging("logs/session.log");
-		SpdLogger::GetInstance().EnableCrashOnlyLogging("crash_logs/");
+		//SpdLogger::GetInstance().EnableFileLogging("logs/session.log");
+		//SpdLogger::GetInstance().EnableCrashOnlyLogging("crash_logs/");
 
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
@@ -82,6 +85,17 @@ namespace Editor {
 	void Application::Run() {
 		while (!NE::WindowShouldClose()) {
 			Profiler::BeginFrame();
+
+			if (frames >= 120)
+				beginPlaying = true;
+
+			if (beginPlaying && !editorPlayExecuted) {
+				NE::EditorPlay();
+				editorPlayExecuted = true;
+			} else if (!beginPlaying) {
+				++frames;
+			}
+
 			timer.Update();
 
 			NE::InputManager::BeginFrame();

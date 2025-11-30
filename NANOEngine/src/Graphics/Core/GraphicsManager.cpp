@@ -1255,7 +1255,7 @@ namespace NE::Graphics {
     void GraphicsManager::DisplayFinalOutput(int windowWidth, int windowHeight)
     {
 		// Note: Game view handle should be replaced with final output view handle when post-processing is added
-		s_RenderViewManager->BlitToScreen(s_FinalOutputViewHandle, windowWidth, windowHeight);
+		s_RenderViewManager->BlitToScreen(s_FinalGameOutputHandle, windowWidth, windowHeight);
 
 		//s_RenderViewManager->BlitToScreen(s_SceneViewHandle, windowWidth, windowHeight);
 	}
