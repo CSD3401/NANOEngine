@@ -233,6 +233,7 @@
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
     <ClInclude Include="src\Core\Layers.hpp" />
+    <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -317,9 +318,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ECS\Systems\RenderSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ECSInternals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Events\EventBus.cpp">

@@ -16,6 +16,7 @@ namespace NE::Graphics {
         virtual void SetPickingWrite(bool enable) = 0;
 
         virtual uint32_t GetColorAttachment() const = 0; // GLuint texture ID for ImGui::Image
+        virtual uint32_t GetDepthAttachment() const = 0; // GLuint texture ID for ImGui::Image
 
         virtual uint32_t GetWidth() const = 0;
         virtual uint32_t GetHeight() const = 0;

@@ -11,6 +11,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NANOEngine", "NANOEngine\NANOEngine.vcxproj", "{9C23839B-FCD8-4844-9915-10F801C600D7}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chrono", "Chrono\Chrono.vcxproj", "{A4DF7B50-44AC-4F0E-B599-8B4F411F2F7C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9C23839B-FCD8-4844-9915-10F801C600D7} = {9C23839B-FCD8-4844-9915-10F801C600D7}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

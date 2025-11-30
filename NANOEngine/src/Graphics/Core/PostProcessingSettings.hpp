@@ -35,11 +35,30 @@ namespace NE::Graphics {
 		NE_REFLECT_END()
 	};
 
+	struct SSAOSettings {
+		bool enabled = false;
+
+		float radius = 0.5f;
+		float bias = 0.025f;
+		float intensity = 1.0f;
+		float power = 1.5f;
+
+		NE_REFLECT_BEGIN(SSAOSettings)
+			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(radius),
+			NE_REFLECT_FIELD(bias),
+			NE_REFLECT_FIELD(intensity),
+			NE_REFLECT_FIELD(power)
+			NE_REFLECT_END()
+	};
+
 	struct PostProcessingSettings {
 		BloomSettings bloomSettings;
+		SSAOSettings  ssaoSettings;
 
 		NE_REFLECT_BEGIN(PostProcessingSettings)
-			NE_REFLECT_FIELD(bloomSettings)
+			NE_REFLECT_FIELD(bloomSettings),
+			NE_REFLECT_FIELD(ssaoSettings)
 		NE_REFLECT_END()
 	};
 
