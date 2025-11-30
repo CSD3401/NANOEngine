@@ -2,11 +2,11 @@
     "RenderSettings": {
         "envSource": 2,
         "ambientColour": {
-            "x": 0.05215144157409668,
-            "y": 0.03892422094941139,
-            "z": 0.0
+            "x": 0.03880107402801514,
+            "y": 0.029364001005887985,
+            "z": 0.001593210268765688
         },
-        "ambientIntensity": 1.0700000524520874,
+        "ambientIntensity": 1.2569999694824219,
         "fogEnabled": 1,
         "fogMode": 1,
         "fogColour": {
@@ -16,7 +16,29 @@
         },
         "fogStart": 0.0,
         "fogEnd": 100.0,
-        "fogDensity": 0.04500000178813934
+        "fogDensity": 0.054999999701976776
+    },
+    "PostProcessingSettings": {
+        "bloomSettings": {
+            "tint": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "brightThreshold": 1.0,
+            "brightScale": 1.0,
+            "softKnee": 0.10000000149011612,
+            "bloomRadius": 1.0,
+            "bloomIntensity": 0.20000000298023224,
+            "exposure": 1.0
+        },
+        "ssaoSettings": {
+            "enabled": 1,
+            "radius": 1.75,
+            "bias": 0.014999999664723873,
+            "intensity": 1.0,
+            "power": 14.600000381469727
+        }
     },
     "Entities": [
         {
@@ -11303,7 +11325,7 @@
                 }
             },
             "Camera": {
-                "FOV Y": 45.0,
+                "FOV": 60.0,
                 "Aspect Ratio": 1.7777777910232544,
                 "Near Plane": 0.10000000149011612,
                 "Far Plane": 1000.0,
@@ -15657,9 +15679,9 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 5.533458709716797,
-                    "y": -24.160886764526367,
-                    "z": -15.567887306213379
+                    "x": 3.111462116241455,
+                    "y": -25.698299407958984,
+                    "z": -15.1329927444458
                 },
                 "Scale": {
                     "x": 1.0,
@@ -21526,7 +21548,7 @@
                 },
                 "Scale": {
                     "x": 0.20000000298023224,
-                    "y": 1.0,
+                    "y": 1.5,
                     "z": 0.20000000298023224
                 },
                 "Rotation": {
@@ -21551,7 +21573,7 @@
                     "z": 0.5
                 },
                 "radius": 0.30000001192092896,
-                "height": 0.5
+                "height": 0.75
             },
             "Rigidbody": {
                 "mass": 1.0,
@@ -21573,9 +21595,9 @@
                     "playerBottom": 606,
                     "groundProbeStartOffset": "0.100000",
                     "maxSlopeAngle": "45.000000",
-                    "moveSpeed": "5.000000",
+                    "moveSpeed": "3.000000",
                     "cameraRef": 607,
-                    "jumpForce": "8.000000",
+                    "jumpForce": "5.000000",
                     "groundFriction": "20.000000",
                     "groundRaycastDistance": "0.300000",
                     "groundSnapOffset": "0.020000",
@@ -21627,8 +21649,8 @@
             },
             "Transform": {
                 "Position": {
-                    "x": 0.0,
-                    "y": 0.7012267112731934,
+                    "x": -3.5762786865234375e-7,
+                    "y": 0.40199851989746094,
                     "z": 0.0
                 },
                 "Scale": {
@@ -21652,8 +21674,8 @@
                 }
             },
             "Camera": {
-                "FOV Y": 45.0,
-                "Aspect Ratio": 1.7777777910232544,
+                "FOV": 60.0,
+                "Aspect Ratio": 1.7769999504089355,
                 "Near Plane": 0.10000000149011612,
                 "Far Plane": 1000.0,
                 "Is Main Camera": 1,
@@ -21786,128 +21808,6 @@
                     "x": 0.5,
                     "y": 0.5,
                     "z": 0.5
-                },
-                "radius": 0.5,
-                "height": 1.0
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Catwalk",
-                "isActive": 1,
-                "luid": 7308894869148008495,
-                "layer": 0,
-                "prefabID": "",
-                "prefabLocalID": 1,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 4.431227684020996,
-                    "y": -25.912952423095703,
-                    "z": 10.97412395477295
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "luid": 8390884683485544451,
-                "parentLuid": 0
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Past",
-                "isActive": 0,
-                "luid": 7308894869148663857,
-                "layer": 0,
-                "prefabID": "",
-                "prefabLocalID": 2,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884683485544452,
-                "parentLuid": 8390884683485544451
-            },
-            "Renderer": {
-                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
-                "materialUUID": "f927567d-0633-436b-b300-dab3edce60fa",
-                "shadowCastMode": 0,
-                "receiveShadows": 0
-            },
-            "Collider": {
-                "shapeType": 3,
-                "halfExtents": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
-                },
-                "radius": 0.5,
-                "height": 1.0
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Present",
-                "isActive": 1,
-                "luid": 7308894869148663857,
-                "layer": 0,
-                "prefabID": "",
-                "prefabLocalID": 3,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": -0.2160797119140625,
-                    "z": -2.0389251708984375
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884683485544453,
-                "parentLuid": 8390884683485544451
-            },
-            "Renderer": {
-                "modelUUID": "ea4e97c8-5b8b-4d62-8133-ae1b3fe3abae",
-                "materialUUID": "989a52a2-73e1-4a95-9b27-89e3c1f1e4b6",
-                "shadowCastMode": 1,
-                "receiveShadows": 1
-            },
-            "Collider": {
-                "shapeType": 3,
-                "halfExtents": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
                 },
                 "radius": 0.5,
                 "height": 1.0
@@ -22455,8 +22355,8 @@
             "Transform": {
                 "Position": {
                     "x": 0.0,
-                    "y": 0.0,
-                    "z": 8.699385034560692e-8
+                    "y": -0.8961696624755859,
+                    "z": 0.06468391418457031
                 },
                 "Scale": {
                     "x": 1.0,
@@ -22474,118 +22374,6 @@
             "Renderer": {
                 "modelUUID": "01d5df1f-2239-4d51-85c3-fdb97b7a9068",
                 "materialUUID": "dd9d1921-53e4-406e-8383-057ef92ffa93",
-                "shadowCastMode": 1,
-                "receiveShadows": 1
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Crate",
-                "isActive": 1,
-                "luid": 0,
-                "layer": 0,
-                "prefabID": "",
-                "prefabLocalID": 1,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 2.231581449508667,
-                    "y": -26.952726364135742,
-                    "z": 3.9590513706207275
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884687265726464,
-                "parentLuid": 0
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Past",
-                "isActive": 0,
-                "luid": 0,
-                "layer": 0,
-                "prefabID": "",
-                "prefabLocalID": 2,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": 0.0,
-                    "y": 0.0,
-                    "z": 0.0
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884687265726465,
-                "parentLuid": 8390884687265726464
-            },
-            "Renderer": {
-                "modelUUID": "2db0b34c-b68e-48a8-bba2-c58e842893cf",
-                "materialUUID": "357bd74f-1af1-4068-958d-c2816dc0bf4a",
-                "shadowCastMode": 0,
-                "receiveShadows": 0
-            },
-            "Collider": {
-                "shapeType": 3,
-                "halfExtents": {
-                    "x": 0.5,
-                    "y": 0.5,
-                    "z": 0.5
-                },
-                "radius": 0.5,
-                "height": 1.0
-            }
-        },
-        {
-            "EntityMeta": {
-                "name": "Mesh Present",
-                "isActive": 1,
-                "luid": 0,
-                "layer": 0,
-                "prefabID": "",
-                "prefabLocalID": 3,
-                "isPrefabRoot": 0
-            },
-            "Transform": {
-                "Position": {
-                    "x": -0.37305593490600586,
-                    "y": -0.004924774169921875,
-                    "z": 1.2883002758026123
-                },
-                "Scale": {
-                    "x": 1.0,
-                    "y": 1.0,
-                    "z": 1.0
-                },
-                "Rotation": {
-                    "x": -0.0,
-                    "y": 0.0,
-                    "z": -0.0
-                },
-                "luid": 8390884687265726466,
-                "parentLuid": 8390884687265726464
-            },
-            "Renderer": {
-                "modelUUID": "2db0b34c-b68e-48a8-bba2-c58e842893cf",
-                "materialUUID": "f68d3e59-f56c-44d2-8223-59311ff86723",
                 "shadowCastMode": 1,
                 "receiveShadows": 1
             }
@@ -22835,8 +22623,8 @@
             "Transform": {
                 "Position": {
                     "x": -0.06333446502685547,
-                    "y": 0.0,
-                    "z": 0.0
+                    "y": -0.8120212554931641,
+                    "z": 0.0206756591796875
                 },
                 "Scale": {
                     "x": 1.0,
@@ -22965,7 +22753,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23006,9 +22794,9 @@
                     "z": 0.0
                 },
                 "color": {
-                    "x": 1.5,
+                    "x": 2.0,
                     "y": 0.8999999761581421,
-                    "z": 0.800000011920929
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -23017,8 +22805,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -23119,7 +22907,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23185,7 +22973,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23237,8 +23025,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -23339,7 +23127,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23405,7 +23193,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23446,9 +23234,9 @@
                     "z": -1.0
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -23559,7 +23347,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23625,7 +23413,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23666,14 +23454,14 @@
                     "z": 0.0
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
                 "outerCutoff": 100.0,
-                "radius": 11.0,
+                "radius": 13.0,
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
@@ -23779,7 +23567,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23845,7 +23633,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -23886,9 +23674,9 @@
                     "z": 1.0
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -23999,7 +23787,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24065,7 +23853,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24106,9 +23894,9 @@
                     "z": 0.0
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -24117,8 +23905,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -24219,7 +24007,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24285,7 +24073,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24326,9 +24114,9 @@
                     "z": 0.0
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -24337,8 +24125,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -24439,7 +24227,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24505,7 +24293,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24546,9 +24334,9 @@
                     "z": 0.0
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -24557,8 +24345,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -24659,7 +24447,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24770,9 +24558,9 @@
                     "y": 2.0,
                     "z": 0.800000011920929
                 },
-                "intensity": 1.0,
+                "intensity": 3.0,
                 "innerCutoff": 90.0,
-                "outerCutoff": 100.0,
+                "outerCutoff": 80.0,
                 "radius": 11.0,
                 "constant": 1.0,
                 "linear": 1.0,
@@ -24945,7 +24733,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -24986,9 +24774,9 @@
                     "z": -0.5
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -24997,8 +24785,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -25099,7 +24887,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -25213,7 +25001,7 @@
                 "intensity": 2.0,
                 "innerCutoff": 90.0,
                 "outerCutoff": 100.0,
-                "radius": 10.0,
+                "radius": 13.0,
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
@@ -25385,7 +25173,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -25539,7 +25327,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -25650,9 +25438,9 @@
                     "y": 1.0,
                     "z": 0.800000011920929
                 },
-                "intensity": 1.0,
+                "intensity": 1.5,
                 "innerCutoff": 90.0,
-                "outerCutoff": 100.0,
+                "outerCutoff": 80.0,
                 "radius": 10.0,
                 "constant": 1.0,
                 "linear": 1.0,
@@ -25825,7 +25613,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -25979,7 +25767,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26045,7 +25833,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26086,9 +25874,9 @@
                     "z": -0.5
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -26097,8 +25885,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -26199,7 +25987,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26265,7 +26053,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26306,9 +26094,9 @@
                     "z": 0.0
                 },
                 "color": {
-                    "x": 1.5,
-                    "y": 1.0,
-                    "z": 0.800000011920929
+                    "x": 2.0,
+                    "y": 0.8999999761581421,
+                    "z": 0.5
                 },
                 "intensity": 1.0,
                 "innerCutoff": 90.0,
@@ -26317,8 +26105,8 @@
                 "constant": 1.0,
                 "linear": 1.0,
                 "quadratic": 1.0,
-                "shadowType": 2,
-                "shadowUpdateMode": 2,
+                "shadowType": 0,
+                "shadowUpdateMode": 0,
                 "type": 2
             }
         },
@@ -26419,7 +26207,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26485,7 +26273,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26639,7 +26427,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26705,7 +26493,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26859,7 +26647,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -26925,7 +26713,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -27079,7 +26867,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -27145,7 +26933,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
@@ -27299,7 +27087,7 @@
             },
             "Renderer": {
                 "modelUUID": "ce403d6b-e368-4843-bcf4-e0109d3e05e2",
-                "materialUUID": "226e7a3c-6d8a-4bcb-8747-e35d63d2178c",
+                "materialUUID": "62680d97-caa8-4854-ba20-cebd4dcef082",
                 "shadowCastMode": 0,
                 "receiveShadows": 0
             }
