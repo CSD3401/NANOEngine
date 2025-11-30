@@ -409,8 +409,8 @@ namespace NE::Graphics {
             s_UpSampleShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomupsample");
         }
         if (!s_CompositeShader) {
-            //s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomcomposite");
-            s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("45d05351-73fc-424b-98d2-b1a80b05957f");
+            s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomcomposite");
+            //s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("45d05351-73fc-424b-98d2-b1a80b05957f");
         }
 
         // SAAO
