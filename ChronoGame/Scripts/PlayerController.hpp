@@ -3,6 +3,7 @@
 #include <cmath>
 #include <algorithm>
 #include <ScriptSDK/Math.h>
+using namespace NE::Scripting;
 
 #define GLFW_KEY_SPACE 32
 
@@ -71,6 +72,13 @@ public:
         Vec3 playerRot = GetRotation();   // current player rotation
         playerRot.y = camRot.y;           // only copy yaw
         SetRotation(playerRot);
+
+        // Reset just before the crate if fall down
+        if (GetPosition().y < -36)
+        {
+            SetPosition(Vec3{ 9.421f, -35.768f, -53.586f });
+            SetVelocity(Vec3{ 0.0f, 0.0f, 0.0f });
+        }
     }
 
     void OnDestroy() override {}
