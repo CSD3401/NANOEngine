@@ -61,4 +61,6 @@ namespace NE {
 	NANOENGINE_API void EditorEdit();
 
 	NANOENGINE_API int GetDrawCallCount();
+
+	NANOENGINE_API void DisplayFinalOutput(int windowWidth, int windowHeight);
 }

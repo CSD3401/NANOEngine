@@ -404,4 +404,8 @@ namespace NE {
 	int GetDrawCallCount() {
 		return Graphics::GraphicsManager::drawCount;
 	}
+
+	void DisplayFinalOutput(int windowWidth, int windowHeight) {
+		Graphics::GraphicsManager::DisplayFinalOutput(windowWidth, windowHeight);
+	}
 }

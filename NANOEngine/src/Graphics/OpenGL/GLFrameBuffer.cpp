@@ -218,6 +218,44 @@ namespace NE::Graphics::OpenGL {
         return id;
 	}
 
+    void GLFrameBuffer::BlitToScreen(int windowWidth, int windowHeight) 
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // Default framebuffer
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glViewport(0, 0, windowWidth, windowHeight);
+        glBlitFramebuffer(
+            0, 0, m_Width, m_Height,
+            0, 0, windowWidth, windowHeight,
+            GL_COLOR_BUFFER_BIT, GL_LINEAR
+        );
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // TEST 1
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //glViewport(0, 0, windowWidth, windowHeight);
+        //glDisable(GL_DEPTH_TEST);
+
+        //glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // bright magenta
+        //glClear(GL_COLOR_BUFFER_BIT);
+
+        // TEST 2
+        //glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+        //glViewport(0, 0, m_Width, m_Height);
+        //glClearColor(1.f, 0.f, 0.f, 1.f);
+        //glClear(GL_COLOR_BUFFER_BIT);
+        //glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBO);
+        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        //glReadBuffer(GL_COLOR_ATTACHMENT0);
+        //glViewport(0, 0, windowWidth, windowHeight);
+        //glBlitFramebuffer(
+        //    0, 0, m_Width, m_Height,
+        //    0, 0, windowWidth, windowHeight,
+        //    GL_COLOR_BUFFER_BIT, GL_LINEAR
+        //);
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
     void GLFrameBuffer::Unbind()
     {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
