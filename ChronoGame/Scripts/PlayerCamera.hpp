@@ -56,6 +56,13 @@ public:
     void Update(double deltaTime) override {
         if (!isActive) return;
 
+		// Cheatcode to trigger ElevatorMove
+        if (Input::WasKeyReleased('O')) { // <- WILL ONLY WORK FOR LEVERS
+            {
+                Events::Send("Lever0");
+            }
+        }
+
         // Deferred event sending
         if (shouldSendUnlockEvent) {
             LOG_INFO("Sending TryToUnlock event with color: " << receivedColor);

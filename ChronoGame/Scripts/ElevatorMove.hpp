@@ -59,6 +59,8 @@ public:
 			if (moveTimer <= 0.0f)
 			{
 				isMoving = false;
+				StopAudio("event:/ELEVATOR_MOVE");
+				PlayAudio("event:/ELEVATOR_STOP");
 				std::swap(startPos, targetPos);
 				moveTimer = 2.0f;
 			}
@@ -124,6 +126,7 @@ private:
 			return;
 
 		isMoving = true;
+		PlayAudio("event:/ELEVATOR_MOVE");
 
 		Tweener::StartVec3([this](const Vec3& pos) { SetPosition(pos); },
 			startPos, targetPos, moveDuration, NE::Scripting::TweenType::EASE_BOTH, entityToMove[0]);

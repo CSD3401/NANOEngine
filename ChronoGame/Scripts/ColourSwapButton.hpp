@@ -84,6 +84,7 @@ public:
 		// Event bus
 		std::string event = eventSend + std::to_string(puzzleIndex);
 		Events::Send(event.c_str(), &leftIndex);
+		PlayAudio("event:/COLOR_CLICK");
 	}
 
 private:

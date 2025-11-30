@@ -2,8 +2,11 @@
 #include "EngineAPI.hpp"
 
 /**
- * Pickable - Auto-generated script template
- * Implement your game logic in the lifecycle methods below.
+ * Pickable - Objects that can be picked up and carried
+ *
+ * Tag values:
+ * 0 = Key (sends color when released for Lock matching)
+ * 1 = Object (can be dropped on pressure plates)
  */
 class Pickable : public IScript {
 public:
@@ -13,6 +16,7 @@ public:
 		SCRIPT_COMPONENT_REF(materialA, MaterialRef);
 		SCRIPT_FIELD(picked, Bool);
 		SCRIPT_FIELD(color, String);
+		SCRIPT_FIELD(tag, Int);  // 0 = Key, 1 = Object
 	}
 
 	~Pickable() override = default;
@@ -34,12 +38,6 @@ public:
 				Picked(data);
 			}
 		);
-
-		//Events::Listen(color.c_str(),
-		//	[this](void* data) {
-		//		Picked(data);
-		//	}
-		//);
 	}
 
 	void Update(double deltaTime) override {
@@ -54,18 +52,48 @@ public:
 			{
 				picked = false;
 
-				// Create struct to pass both color AND entity
-				struct KeyData {
-					std::string color;
-					uint32_t keyEntity;
-				};
+				// Keys
+				if (tag == 0 && color.length() > 0)
+				{
+					// Create struct to pass both color AND entity
+					struct KeyData {
+						std::string color;
+						uint32_t keyEntity;
+					};
 
-				KeyData data;
-				data.color = color;
-				data.keyEntity = GetEntity();  // The entity this script is attached to
+					KeyData data;
+					data.color = color;
+					data.keyEntity = GetEntity();  // The entity this script is attached to
 
-				Events::Send("GetKeyColor", &data);
-				PlayAudio("event:/UNGRAB");
+					Events::Send("GetKeyColor", &data);
+					PlayAudio("event:/UNGRAB");
+				}
+				// Objects for Pressure Plates
+				else if (tag == 1)
+				{
+					// Raycast down to see what's below
+					Vec3 down(0, -1, 0);
+					auto hit = Raycast(GetPosition(), down, 2.0f);
+
+					if (hit.entity != NE::Scripting::INVALID_ENTITY) 
+					{
+						LOG_INFO("Dropped object on entity: " << hit.entity);
+
+						struct DropData {
+							uint32_t droppedItem;
+							uint32_t plateEntity;
+						};
+						DropData dropData;
+						dropData.droppedItem = GetEntity();
+						dropData.plateEntity = hit.entity;
+
+						Events::Send("ObjectDroppedOnPlate", &dropData);
+					}
+					else 
+					{
+						LOG_INFO("Dropped object on nothing");
+					}
+				}
 			}
 		}
 	}
@@ -115,8 +143,6 @@ public:
 		auto* entityPtr = static_cast<std::pair<uint32_t, uint32_t>*>(data);
 		uint32_t entity = entityPtr->first;
 
-
-		//LOG_CRITICAL("Picked Called");
 		//LOG_INFO("Picked Entity: " << entity);
 		if (entity == GetEntity()) {
 			NE::Renderer::Command::AssignMaterial(entity, materialA);
@@ -127,12 +153,10 @@ public:
 	
 private:
 	// Add your private member variables here
-	// Example: float speed = 5.0f;
 	MaterialRef materialA{};
 	bool picked = false;
 	Entity pickedBy;
-
 	float pickDistance = 4.f;
-	
 	std::string color;
+	int tag = 1;  // 0 = Key, 1 = Object
 };

@@ -189,6 +189,7 @@ private:
 
     // Handle 1..5 press (from event or keyboard)
     void HandleKey(int pressedIdx1Based) {
+        PlayAudio("event:/SEQUENCER_CLICK");
         if (m_solved) return;
         if (!m_waitingForClicks) return;
         if (m_clickIndex < 0 || m_clickIndex >= 5 || m_order[m_clickIndex] < 0) { FailAndReset(); return; }
