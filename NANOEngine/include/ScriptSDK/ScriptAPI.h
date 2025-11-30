@@ -942,6 +942,48 @@ namespace Scripting {
      */
     SCRIPT_API void ClearAllTweens();
 
+    //=========================================================================
+    // RENDER SETTINGS API (SDK-level render settings functions)
+    //=========================================================================
+
+    /// Environment source enumeration for ambient lighting
+    enum class EnvSource : uint8_t {
+        Skybox = 0,
+        Gradient = 1,
+        Color = 2
+    };
+
+    /// Fog mode enumeration for fog rendering
+    enum class FogMode : uint8_t {
+        Linear = 0,
+        Exponential = 1,
+        ExponentialSquared = 2
+    };
+
+    // Environment Lighting
+    SCRIPT_API EnvSource GetEnvSource();
+    SCRIPT_API void SetEnvSource(EnvSource source);
+    SCRIPT_API Vec3 GetAmbientColor();
+    SCRIPT_API void SetAmbientColor(const Vec3& color);
+    SCRIPT_API void SetAmbientColor(float r, float g, float b);
+    SCRIPT_API float GetAmbientIntensity();
+    SCRIPT_API void SetAmbientIntensity(float intensity);
+
+    // Fog Settings
+    SCRIPT_API bool IsFogEnabled();
+    SCRIPT_API void SetFogEnabled(bool enabled);
+    SCRIPT_API FogMode GetFogMode();
+    SCRIPT_API void SetFogMode(FogMode mode);
+    SCRIPT_API Vec3 GetFogColor();
+    SCRIPT_API void SetFogColor(const Vec3& color);
+    SCRIPT_API void SetFogColor(float r, float g, float b);
+    SCRIPT_API float GetFogStart();
+    SCRIPT_API void SetFogStart(float start);
+    SCRIPT_API float GetFogEnd();
+    SCRIPT_API void SetFogEnd(float end);
+    SCRIPT_API float GetFogDensity();
+    SCRIPT_API void SetFogDensity(float density);
+
 } // namespace Scripting
 } // namespace NE
 
@@ -1109,6 +1151,178 @@ namespace Tweener {
      */
     inline void Clear() {
         NE::Scripting::ClearAllTweens();
+    }
+}
+
+/// Render settings namespace - control environment lighting and fog
+namespace RenderSettings {
+    using EnvSource = NE::Scripting::EnvSource;
+    using FogMode = NE::Scripting::FogMode;
+
+    // Environment Lighting
+    /**
+     * @brief Get the current environment source for ambient lighting
+     * @return Current environment source (Skybox, Gradient, or Color)
+     */
+    inline EnvSource GetEnvSource() {
+        return NE::Scripting::GetEnvSource();
+    }
+
+    /**
+     * @brief Set the environment source for ambient lighting
+     * @param source Environment source to use
+     */
+    inline void SetEnvSource(EnvSource source) {
+        NE::Scripting::SetEnvSource(source);
+    }
+
+    /**
+     * @brief Get the ambient color
+     * @return Ambient color as Vec3
+     */
+    inline NE::Scripting::Vec3 GetAmbientColor() {
+        return NE::Scripting::GetAmbientColor();
+    }
+
+    /**
+     * @brief Set the ambient color
+     * @param color New ambient color
+     */
+    inline void SetAmbientColor(const NE::Scripting::Vec3& color) {
+        NE::Scripting::SetAmbientColor(color);
+    }
+
+    /**
+     * @brief Set the ambient color using RGB components
+     * @param r Red component (0.0 to 1.0)
+     * @param g Green component (0.0 to 1.0)
+     * @param b Blue component (0.0 to 1.0)
+     */
+    inline void SetAmbientColor(float r, float g, float b) {
+        NE::Scripting::SetAmbientColor(r, g, b);
+    }
+
+    /**
+     * @brief Get the ambient intensity
+     * @return Ambient intensity multiplier
+     */
+    inline float GetAmbientIntensity() {
+        return NE::Scripting::GetAmbientIntensity();
+    }
+
+    /**
+     * @brief Set the ambient intensity
+     * @param intensity Ambient intensity multiplier
+     */
+    inline void SetAmbientIntensity(float intensity) {
+        NE::Scripting::SetAmbientIntensity(intensity);
+    }
+
+    // Fog Settings
+    /**
+     * @brief Check if fog is enabled
+     * @return true if fog is enabled
+     */
+    inline bool IsFogEnabled() {
+        return NE::Scripting::IsFogEnabled();
+    }
+
+    /**
+     * @brief Enable or disable fog
+     * @param enabled true to enable fog, false to disable
+     */
+    inline void SetFogEnabled(bool enabled) {
+        NE::Scripting::SetFogEnabled(enabled);
+    }
+
+    /**
+     * @brief Get the current fog mode
+     * @return Current fog mode (Linear, Exponential, or ExponentialSquared)
+     */
+    inline FogMode GetFogMode() {
+        return NE::Scripting::GetFogMode();
+    }
+
+    /**
+     * @brief Set the fog mode
+     * @param mode Fog mode to use
+     */
+    inline void SetFogMode(FogMode mode) {
+        NE::Scripting::SetFogMode(mode);
+    }
+
+    /**
+     * @brief Get the fog color
+     * @return Fog color as Vec3
+     */
+    inline NE::Scripting::Vec3 GetFogColor() {
+        return NE::Scripting::GetFogColor();
+    }
+
+    /**
+     * @brief Set the fog color
+     * @param color New fog color
+     */
+    inline void SetFogColor(const NE::Scripting::Vec3& color) {
+        NE::Scripting::SetFogColor(color);
+    }
+
+    /**
+     * @brief Set the fog color using RGB components
+     * @param r Red component (0.0 to 1.0)
+     * @param g Green component (0.0 to 1.0)
+     * @param b Blue component (0.0 to 1.0)
+     */
+    inline void SetFogColor(float r, float g, float b) {
+        NE::Scripting::SetFogColor(r, g, b);
+    }
+
+    /**
+     * @brief Get the fog start distance (for Linear fog mode)
+     * @return Fog start distance
+     */
+    inline float GetFogStart() {
+        return NE::Scripting::GetFogStart();
+    }
+
+    /**
+     * @brief Set the fog start distance (for Linear fog mode)
+     * @param start Fog start distance
+     */
+    inline void SetFogStart(float start) {
+        NE::Scripting::SetFogStart(start);
+    }
+
+    /**
+     * @brief Get the fog end distance (for Linear fog mode)
+     * @return Fog end distance
+     */
+    inline float GetFogEnd() {
+        return NE::Scripting::GetFogEnd();
+    }
+
+    /**
+     * @brief Set the fog end distance (for Linear fog mode)
+     * @param end Fog end distance
+     */
+    inline void SetFogEnd(float end) {
+        NE::Scripting::SetFogEnd(end);
+    }
+
+    /**
+     * @brief Get the fog density (for Exponential fog modes)
+     * @return Fog density
+     */
+    inline float GetFogDensity() {
+        return NE::Scripting::GetFogDensity();
+    }
+
+    /**
+     * @brief Set the fog density (for Exponential fog modes)
+     * @param density Fog density
+     */
+    inline void SetFogDensity(float density) {
+        NE::Scripting::SetFogDensity(density);
     }
 }
 
