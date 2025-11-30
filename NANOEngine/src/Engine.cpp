@@ -130,7 +130,7 @@ namespace NE {
 		TweenManager::Get().Update(static_cast<float>(dt));
 		//Graphics::GraphicsManager::EndFrame();
 
-		if (InputManager::WasKeyPressed('L')) {
+		if (InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
 			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
 

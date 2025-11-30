@@ -87,7 +87,7 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawFrame();
 		Graphics::GraphicsManager::EndFrame();
-		//Graphics::GraphicsManager::DrawUI();
+		Graphics::GraphicsManager::DrawUI();
 	}
 
 	void Scene::Exit() {
@@ -98,7 +98,8 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
-		m_ecsCoordinator.m_scriptSystem->Exit();	
+		m_ecsCoordinator.m_scriptSystem->Exit();
+		m_ecsCoordinator.m_uiTransformSystem->Exit();
 		m_ecsCoordinator.m_uiRenderSystem->Exit();	
 		m_ecsCoordinator.m_animatorSystem->Exit();
 	}

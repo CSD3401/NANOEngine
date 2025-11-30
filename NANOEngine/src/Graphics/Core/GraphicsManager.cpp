@@ -503,7 +503,11 @@ namespace NE::Graphics {
 
         int renderedViews = 0;
 
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
         UpdateShadowMaps();
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
 
         for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
@@ -1215,9 +1219,12 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::GetSceneColorAttachment() 
     {
         //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
-        if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
-        if (InputManager::IsKeyDown('9')) return s_SSAOTex;
-        if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
+        //if (InputManager::IsKeyDown('5')) return s_RenderViewManager->GetFramebuffer(s_GameViewHandle)->GetColorAttachment();
+        //if (InputManager::IsKeyDown('6')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
+        //if (InputManager::IsKeyDown('7')) return s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle)->GetColorAttachment();
+        if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
+        //if (InputManager::IsKeyDown('9')) return s_SSAOTex;
+        //if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
 
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {

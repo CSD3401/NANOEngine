@@ -132,6 +132,7 @@ namespace NE::SceneManagement {
 			}
 
 			m_editor->Exit();
+			m_editor.reset();
 			m_editor = std::make_unique<Scene>();
 			NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_editor, m_editorBackup);
 			m_editor->Init();

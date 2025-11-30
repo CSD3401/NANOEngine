@@ -244,6 +244,18 @@ namespace Scripting {
         return ToSDKVec3(transform.localRotationEuler);
     }
 
+    Vec3 IScript::GetWorldRotation(Entity entity) const {
+        CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+            return Vec3::Zero();
+
+        auto& m = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity).worldMatrix;
+        return ToSDKVec3(m.GetRotation());
+    }
+
     void IScript::SetRotation(const Vec3& rot, Entity entity) {
         CHECK_CONTEXT_OR_RETURN();
 
@@ -321,6 +333,29 @@ namespace Scripting {
         forward.x = std::cos(pitch) * std::cos(yaw);
         forward.y = std::sin(pitch);
         forward.z = std::cos(pitch) * std::sin(yaw);
+
+        return forward.Normalized();
+    }
+
+    Vec3 IScript::GetWorldForward(Entity entity) const {
+        CHECK_CONTEXT_OR_RETURN(Vec3::Forward()); // or Zero(), whatever you prefer
+
+        Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+        if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+            return Vec3::Forward();
+
+        const auto& transform = m_context->componentManager
+            ->GetComponent<ECS::Component::Transform>(targetEntity);
+
+        const Math::Mat4& m = transform.worldMatrix;
+
+        // Assuming column-major and column 2 is the forward axis:
+        Vec3 forward(
+            m.a[8],  // x
+            m.a[9],  // y
+            m.a[10]  // z
+        );
 
         return forward.Normalized();
     }

@@ -143,10 +143,19 @@ namespace NE::ECS::Systems {
 	void CameraSystem::BuildProjection(Camera& cam)
 	{
 		// Build perspective projection matrix
-		float f = 1.0f / std::tan(cam.fovY * 0.5f);
-		float& aspect = cam.aspectRatio;
+		float f = 1.0f / std::tan((cam.fovY * (NE::Math::PI / 180.0f)) * 0.5f);
+		//float& aspect = cam.aspectRatio;
+		float aspect = 1920.f / 1080.f;
 		float& nearPlane = cam.nearPlane;
 		float& farPlane = cam.farPlane;
+
+		//cam.projectionMtx.SetToZero();
+		//cam.projectionMtx.GetElement(0, 0) = f / aspect;
+		//cam.projectionMtx.GetElement(1, 1) = f;
+		//cam.projectionMtx.GetElement(2, 2) = (farPlane + nearPlane) / (nearPlane - farPlane);
+		//cam.projectionMtx.GetElement(2, 3) = (2 * farPlane * nearPlane) / (nearPlane - farPlane);
+		//cam.projectionMtx.GetElement(3, 2) = -1.0f;
+		//cam.projectionMtx.GetElement(3, 3) = 0.0f;
 
 		cam.projectionMtx.SetToZero();
 		cam.projectionMtx.GetElement(0, 0) = f / aspect;

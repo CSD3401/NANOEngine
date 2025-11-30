@@ -14,8 +14,8 @@ namespace NE::ECS::Component {
 		Mat4 viewMtx;
 		Mat4 projectionMtx;
 
-		float fovY{ 45.0f };
-		float aspectRatio{ 16.0f / 9.0f };
+		float fovY{ 60.0f };
+		float aspectRatio{ 1920.f / 1080.0f };
 		float nearPlane{ 0.1f };
 		float farPlane{ 1000.0f };
 

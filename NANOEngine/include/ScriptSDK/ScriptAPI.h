@@ -208,6 +208,7 @@ namespace Scripting {
 
         // Rotation (Euler angles in degrees)
         Vec3 GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetWorldRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
         void SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
         void SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
@@ -226,6 +227,7 @@ namespace Scripting {
 
         // Direction vectors (based on rotation)
         Vec3 GetForward(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 GetWorldForward(Entity entity) const;
         Vec3 GetRight(Entity entity = DEFAULT_ENTITY_PARAM) const;
         Vec3 GetUp(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
