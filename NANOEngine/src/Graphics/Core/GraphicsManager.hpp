@@ -126,6 +126,7 @@ namespace NE::Graphics {
 		// Render View Handles
         static RenderViewHandle s_SceneViewHandle;
         static RenderViewHandle s_FinalOutputViewHandle;
+        static RenderViewHandle s_FinalGameOutputHandle;
         static RenderViewHandle s_GameViewHandle;
 
         static RenderSettings renderSettings;

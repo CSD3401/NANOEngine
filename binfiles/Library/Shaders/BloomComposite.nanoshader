@@ -24,6 +24,10 @@ uniform int			u_ToneMapType;
 uniform float     	u_BloomStrength;
 uniform float     	u_Exposure;
 
+uniform sampler2D u_SSAO;
+uniform int       u_UseSSAO;
+uniform float     u_AOIntensity;
+
 vec3 ACESApprox(vec3 x)
 {
     float a = 2.51;
@@ -97,7 +101,16 @@ void main()
     vec3 scene  = texture(u_SceneHDR, vUV).rgb;
     vec3 bloom  = texture(u_Bloom,    vUV).rgb;
 	
-    vec3 color = scene + bloom * u_BloomStrength;
+	float ao = 1.0;
+	if (u_UseSSAO == 1) {
+		float aoTex = texture(u_SSAO, vUV).r;
+		float aoStrength = clamp(u_AOIntensity, 0.0, 1.0);
+		ao = mix(1.0, aoTex, aoStrength);
+	}
+	
+	vec3 lit = scene * ao;
+	
+    vec3 color = lit + bloom * u_BloomStrength;
 	
 	color *= u_Exposure;
 	
