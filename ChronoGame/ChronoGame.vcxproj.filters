@@ -27,5 +27,6 @@
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />
     <ClInclude Include="Scripts\Pickable.hpp" />
+    <ClInclude Include="Scripts\RenderSettingsDemo.hpp" />
   </ItemGroup>
 </Project>

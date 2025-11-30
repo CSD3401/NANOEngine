@@ -29,6 +29,8 @@
 #include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
 #include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
 #include "SceneManagement/SceneManager.hpp"
+#include "../EditorInterface/RendererExports.hpp"  // For RenderSettings access
+#include "../Graphics/Core/RenderSettings.hpp"  // For RenderSettings struct
 
 #include <sstream>
 #include <unordered_map>
@@ -2585,6 +2587,112 @@ namespace Scripting {
         // Use TweenManager's Clean() function to clear all tweens
         TweenManager::Get().Clean();
         s_tweenWrappers.clear();
+    }
+
+    //=========================================================================
+    // RENDER SETTINGS API IMPLEMENTATION
+    //=========================================================================
+
+    // Environment Lighting
+    EnvSource GetEnvSource() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return static_cast<EnvSource>(settings.envSource);
+    }
+
+    void SetEnvSource(EnvSource source) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.envSource = static_cast<Graphics::RenderSettings::EnvSource>(source);
+    }
+
+    Vec3 GetAmbientColor() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return ToSDKVec3(settings.ambientColour);
+    }
+
+    void SetAmbientColor(const Vec3& color) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.ambientColour = ToEngineVec3(color);
+    }
+
+    void SetAmbientColor(float r, float g, float b) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.ambientColour = Math::Vec3(r, g, b);
+    }
+
+    float GetAmbientIntensity() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return settings.ambientIntensity;
+    }
+
+    void SetAmbientIntensity(float intensity) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.ambientIntensity = intensity;
+    }
+
+    // Fog Settings
+    bool IsFogEnabled() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return settings.fogEnabled;
+    }
+
+    void SetFogEnabled(bool enabled) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.fogEnabled = enabled;
+    }
+
+    FogMode GetFogMode() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return static_cast<FogMode>(settings.fogMode);
+    }
+
+    void SetFogMode(FogMode mode) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.fogMode = static_cast<Graphics::RenderSettings::FogMode>(mode);
+    }
+
+    Vec3 GetFogColor() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return ToSDKVec3(settings.fogColour);
+    }
+
+    void SetFogColor(const Vec3& color) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.fogColour = ToEngineVec3(color);
+    }
+
+    void SetFogColor(float r, float g, float b) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.fogColour = Math::Vec3(r, g, b);
+    }
+
+    float GetFogStart() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return settings.fogStart;
+    }
+
+    void SetFogStart(float start) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.fogStart = start;
+    }
+
+    float GetFogEnd() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return settings.fogEnd;
+    }
+
+    void SetFogEnd(float end) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.fogEnd = end;
+    }
+
+    float GetFogDensity() {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        return settings.fogDensity;
+    }
+
+    void SetFogDensity(float density) {
+        auto& settings = Renderer::Command::GetRenderSettings();
+        settings.fogDensity = density;
     }
 
 } // namespace Scripting
