@@ -2,6 +2,7 @@
 // Needed for once shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
+
 //#include "Core/Logger.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Graphics/OpenGL/GLContext.hpp"
@@ -11,6 +12,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
 #include <Input/InputManager.hpp>
+
+
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -86,7 +89,12 @@ namespace Editor {
 
 			NE::Run(timer.GetDeltaTime());
 
-			glfwSwapBuffers(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()));
+			GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+			static int w, h;
+			glfwGetFramebufferSize(window, &w, &h);
+			NE::DisplayFinalOutput(w, h);
+
+			glfwSwapBuffers(window);
 
 			Profiler::EndFrame();
 		}
