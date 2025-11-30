@@ -119,6 +119,8 @@ namespace NE::Graphics {
     // SSAO
     static GLuint s_SSAOFBO = 0;
     static GLuint s_SSAOTex = 0;
+    static GLuint s_SSAOGAMEFBO = 0;
+    static GLuint s_SSAOGAMETex = 0;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_SSAOShader;
 
     void GraphicsManager::UpdateShadowMaps()
@@ -427,6 +429,29 @@ namespace NE::Graphics {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SSAOTex, 0);
+            GLenum att = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &att);
+
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                LOG_ERROR("SSAO FBO incomplete!");
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        if (s_SSAOGAMEFBO == 0) {
+            glGenFramebuffers(1, &s_SSAOGAMEFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOGAMEFBO);
+
+            glGenTextures(1, &s_SSAOGAMETex);
+            glBindTexture(GL_TEXTURE_2D, s_SSAOGAMETex);
+            //glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1920, 1080, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SSAOGAMETex, 0);
             GLenum att = GL_COLOR_ATTACHMENT0;
             glDrawBuffers(1, &att);
 
@@ -872,7 +897,7 @@ namespace NE::Graphics {
             GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
             glDisable(GL_DEPTH_TEST);
 
-            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOGAMEFBO);
 
             uint32_t w = gamefb->GetWidth();
             uint32_t h = gamefb->GetHeight();
@@ -1067,7 +1092,7 @@ namespace NE::Graphics {
             glBindTexture(GL_TEXTURE_2D, bloomTex);
 
             glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
+            glBindTexture(GL_TEXTURE_2D, s_SSAOGAMETex);
 
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
