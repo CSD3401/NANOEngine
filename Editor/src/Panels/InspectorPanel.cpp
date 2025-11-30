@@ -18,7 +18,6 @@
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
-#include <ECSInternals.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -723,6 +722,19 @@ namespace Editor {
 						}
 						ImGui::EndDragDropTarget();
 					}
+
+					static const char* ShadowCastModeNames[] = { "Off", "On", "TwoSided", "ShadowsOnly" };
+					int currentCastMode = static_cast<int>(comp.shadowCastMode);
+					auto& tempR = NE::ECS::Command::GetEntityRenderer(entity);
+					if (ImGui::Combo("Shadow Cast Mode", &currentCastMode, ShadowCastModeNames, IM_ARRAYSIZE(ShadowCastModeNames))) {
+						tempR.shadowCastMode = static_cast<NE::ECS::Component::Renderer::ShadowCastMode>(currentCastMode);
+
+						NE::MarkSceneDirty();
+					}
+
+					if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
+						NE::MarkSceneDirty();
+					}
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Light))
 				{
@@ -734,6 +746,28 @@ namespace Editor {
 					if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
+
+						// Mark scene dirty when light type changes
+						NE::MarkSceneDirty();
+						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
+					}
+
+					static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
+					int shadowType = static_cast<int>(comp.shadowType);
+					if (ImGui::Combo("Shadow Type", &shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames))) {
+						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+						tempLight.shadowType = static_cast<NE::ECS::Component::Light::ShadowType>(shadowType);
+
+						// Mark scene dirty when light type changes
+						NE::MarkSceneDirty();
+						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
+					}
+
+					static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
+					int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
+					if (ImGui::Combo("Shadow Update Mode", &shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames))) {
+						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+						tempLight.shadowUpdateMode = static_cast<NE::ECS::Component::Light::ShadowUpdateMode>(shadowUpdateMode);
 
 						// Mark scene dirty when light type changes
 						NE::MarkSceneDirty();

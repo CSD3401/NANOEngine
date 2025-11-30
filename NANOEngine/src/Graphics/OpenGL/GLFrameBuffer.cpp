@@ -18,7 +18,7 @@ namespace NE::Graphics::OpenGL {
         glDeleteFramebuffers(1, &m_FBO);
         glDeleteTextures(1, &m_ColorAttachment);
 		glDeleteTextures(1, &m_PickingAttachment);
-        glDeleteRenderbuffers(1, &m_RBO);
+        glDeleteTextures(1, &m_DepthAttachment);
     }
 
     void GLFrameBuffer::CreateAsHDR(uint32_t width, uint32_t height, bool enablePicking) {
@@ -28,7 +28,7 @@ namespace NE::Graphics::OpenGL {
         if (m_FBO) {
             glDeleteFramebuffers(1, &m_FBO);
             glDeleteTextures(1, &m_ColorAttachment);
-            glDeleteRenderbuffers(1, &m_RBO);
+            glDeleteTextures(1, &m_DepthAttachment);
         }
 
         glGenFramebuffers(1, &m_FBO);
@@ -60,11 +60,18 @@ namespace NE::Graphics::OpenGL {
         GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
         glDrawBuffers(2, attachments);
 
-        // --- Depth-stencil attachment ---
-        glGenRenderbuffers(1, &m_RBO);
-        glBindRenderbuffer(GL_RENDERBUFFER, m_RBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Width, m_Height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RBO);
+        // --- Depth attachment as TEXTURE ---
+        glGenTextures(1, &m_DepthAttachment);
+        glBindTexture(GL_TEXTURE_2D, m_DepthAttachment);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+            m_Width, m_Height, 0,
+            GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+            GL_TEXTURE_2D, m_DepthAttachment, 0);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             LOG_ERROR("Framebuffer is incomplete!");
@@ -76,7 +83,7 @@ namespace NE::Graphics::OpenGL {
         if (m_FBO) {
             glDeleteFramebuffers(1, &m_FBO);
             glDeleteTextures(1, &m_ColorAttachment);
-            glDeleteRenderbuffers(1, &m_RBO);
+            glDeleteTextures(1, &m_DepthAttachment);
         }
 
         glGenFramebuffers(1, &m_FBO);
@@ -108,12 +115,6 @@ namespace NE::Graphics::OpenGL {
         GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
         glDrawBuffers(2, attachments);
 
-        // --- Depth-stencil attachment ---
-        glGenRenderbuffers(1, &m_RBO);
-        glBindRenderbuffer(GL_RENDERBUFFER, m_RBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Width, m_Height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RBO);
-
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             LOG_ERROR("Framebuffer is incomplete!");
 
@@ -125,7 +126,7 @@ namespace NE::Graphics::OpenGL {
         if (m_FBO) {
             glDeleteFramebuffers(1, &m_FBO);
             glDeleteTextures(1, &m_ColorAttachment);
-            glDeleteRenderbuffers(1, &m_RBO);
+            glDeleteTextures(1, &m_DepthAttachment);
         }
 
         glGenFramebuffers(1, &m_FBO);
@@ -155,12 +156,6 @@ namespace NE::Graphics::OpenGL {
 		// Specify the color attachments for rendering
 		GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 		glDrawBuffers(2, attachments);
-
-		// --- Depth-stencil attachment ---
-        glGenRenderbuffers(1, &m_RBO);
-        glBindRenderbuffer(GL_RENDERBUFFER, m_RBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Width, m_Height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RBO);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             LOG_ERROR("Framebuffer is incomplete!");
@@ -216,6 +211,44 @@ namespace NE::Graphics::OpenGL {
         if (id > ECS::MAX_ENTITIES) return ECS::NO_ENTITY;
 
         return id;
+	}
+
+    void GLFrameBuffer::BlitToScreen(int windowWidth, int windowHeight) 
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // Default framebuffer
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glViewport(0, 0, windowWidth, windowHeight);
+        glBlitFramebuffer(
+            0, 0, m_Width, m_Height,
+            0, 0, windowWidth, windowHeight,
+            GL_COLOR_BUFFER_BIT, GL_LINEAR
+        );
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // TEST 1
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //glViewport(0, 0, windowWidth, windowHeight);
+        //glDisable(GL_DEPTH_TEST);
+
+        //glClearColor(1.0f, 0.0f, 1.0f, 1.0f); // bright magenta
+        //glClear(GL_COLOR_BUFFER_BIT);
+
+        // TEST 2
+        //glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+        //glViewport(0, 0, m_Width, m_Height);
+        //glClearColor(1.f, 0.f, 0.f, 1.f);
+        //glClear(GL_COLOR_BUFFER_BIT);
+        //glBindFramebuffer(GL_READ_FRAMEBUFFER, m_FBO);
+        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        //glReadBuffer(GL_COLOR_ATTACHMENT0);
+        //glViewport(0, 0, windowWidth, windowHeight);
+        //glBlitFramebuffer(
+        //    0, 0, m_Width, m_Height,
+        //    0, 0, windowWidth, windowHeight,
+        //    GL_COLOR_BUFFER_BIT, GL_LINEAR
+        //);
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
     void GLFrameBuffer::Unbind()

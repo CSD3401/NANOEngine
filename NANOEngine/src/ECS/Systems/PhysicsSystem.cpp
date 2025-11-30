@@ -92,15 +92,16 @@ namespace NE::ECS::Systems
     
     }
 
-    void PhysicsSystem::Update(double dt)
-    {
+    void PhysicsSystem::Update(double dt) {
         SyncCollidersToPhysics();
         SyncKinematicTransforms();
         NE::Physics::PhysicsManager::Update(static_cast<float>(dt));
         SyncPhysicsToTransforms();
     }
 
-    void PhysicsSystem::Exit() {}
+    void PhysicsSystem::Exit() {
+        NE::Physics::PhysicsManager::ClearAllBodies();
+    }
 
     void PhysicsSystem::HandleCollisionEnter(const NE::Physics::CollisionInfo& collision)
     {

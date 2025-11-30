@@ -28,15 +28,29 @@ public:
 		SCRIPT_FIELD(respawnDelay, Float);
 		SCRIPT_FIELD(enableAutoRespawn, Bool);
 
-		std::cout << "[TestScript] Created with fields registered" << std::endl;
+		// Register LayerMask field for testing
+		SCRIPT_FIELD_LAYERMASK(collisionLayers);
+
+		//std::cout << "[TestScript] Created with fields registered" << std::endl;
 	}
 
     void Initialize(Entity entity) override {
-		std::cout << "[TestScript] Initialized for entity " << entity << std::endl;
-		std::cout << "  Controls:" << std::endl;
-		std::cout << "  - Press 'R' to trigger respawn (deactivate then reactivate)" << std::endl;
-		std::cout << "  - Use Inspector 'isActive' checkbox to toggle entity on/off" << std::endl;
-		std::cout << "  - Use Inspector 'Enabled' checkbox to enable/disable this script" << std::endl;
+		//std::cout << "[TestScript] Initialized for entity " << entity << std::endl;
+		//std::cout << "  Controls:" << std::endl;
+		//std::cout << "  - Press 'R' to trigger respawn (deactivate then reactivate)" << std::endl;
+		//std::cout << "  - Use Inspector 'isActive' checkbox to toggle entity on/off" << std::endl;
+		//std::cout << "  - Use Inspector 'Enabled' checkbox to enable/disable this script" << std::endl;
+
+		//// Test LayerMask functionality
+		//std::cout << "[TestScript] LayerMask Test:" << std::endl;
+		//std::cout << "  Collision Layers Mask: " << collisionLayers.GetMask() << std::endl;
+		//std::cout << "  Contains Layer 0 (Default): " << (collisionLayers.Contains(0) ? "Yes" : "No") << std::endl;
+		//std::cout << "  Contains Layer 2 (Player): " << (collisionLayers.Contains(2) ? "Yes" : "No") << std::endl;
+
+		// Programmatically set some layers for testing
+		collisionLayers.Add(0);  // Add Default layer
+		collisionLayers.Add(2);  // Add Player layer
+		//std::cout << "  After adding layers 0 and 2, mask = " << collisionLayers.GetMask() << std::endl;
 	}
 
 	void Update(double deltaTime) override {
@@ -49,10 +63,10 @@ public:
 				// Respawn complete - reactivate entity
 				SetActive(GetEntity(), true);
 				m_isRespawning = false;
-				std::cout << "[TestScript] Entity '" << objectName << "' respawned!" << std::endl;
+			/*	std::cout << "[TestScript] Entity '" << objectName << "' respawned!" << std::endl;
 				std::cout << "  - Scripts: ENABLED" << std::endl;
 				std::cout << "  - Rendering: ENABLED" << std::endl;
-				std::cout << "  - Physics: ENABLED" << std::endl;
+				std::cout << "  - Physics: ENABLED" << std::endl;*/
 			}
 			return; // Don't do normal update logic while respawning
 		}
@@ -139,6 +153,9 @@ private:
 	std::string objectName = "TestObject";
 	float respawnDelay = 2.0f;    // seconds before respawn
 	bool enableAutoRespawn = false; // Auto-respawn every 5 seconds
+
+	// LayerMask field for testing (Unity-style multi-select layer picker)
+	LayerMask collisionLayers;
 
 	// === Internal State (Not exposed to editor) ===
 	float m_totalTime = 0.0f;

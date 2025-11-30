@@ -166,5 +166,85 @@ namespace Scripting {
     using MaterialRef = ComponentRef<MaterialHandle>;
     using PrefabRef = ComponentRef<PrefabHandle>;
 
+    //=========================================================================
+    // LAYER MASK (Physics layer filtering)
+    //=========================================================================
+
+    /// Layer mask for physics filtering - similar to Unity's LayerMask
+    /// Stores a bitmask of enabled layers for collision/raycast filtering
+    struct SCRIPT_API LayerMask {
+        uint32_t mask = 0;  ///< Bitmask of enabled layers
+
+        LayerMask() = default;
+        LayerMask(uint32_t value) : mask(value) {}
+
+        /// Check if a specific layer is enabled in this mask
+        bool Contains(uint8_t layer) const {
+            return (mask & (1u << static_cast<uint32_t>(layer))) != 0;
+        }
+
+        /// Enable a specific layer in this mask
+        void Add(uint8_t layer) {
+            mask |= (1u << static_cast<uint32_t>(layer));
+        }
+
+        /// Disable a specific layer in this mask
+        void Remove(uint8_t layer) {
+            mask &= ~(1u << static_cast<uint32_t>(layer));
+        }
+
+        /// Toggle a specific layer in this mask
+        void Toggle(uint8_t layer) {
+            mask ^= (1u << static_cast<uint32_t>(layer));
+        }
+
+        /// Set the layer mask from a list of layers
+        void Set(std::initializer_list<uint8_t> layers) {
+            mask = 0;
+            for (uint8_t layer : layers) {
+                mask |= (1u << static_cast<uint32_t>(layer));
+            }
+        }
+
+        /// Clear all layers
+        void Clear() {
+            mask = 0;
+        }
+
+        /// Check if mask is empty (no layers enabled)
+        bool IsEmpty() const {
+            return mask == 0;
+        }
+
+        /// Get the raw mask value
+        uint32_t GetMask() const {
+            return mask;
+        }
+
+        /// Set the raw mask value
+        void SetMask(uint32_t value) {
+            mask = value;
+        }
+
+        /// Implicit conversion to uint32_t for convenience
+        operator uint32_t() const {
+            return mask;
+        }
+
+        // Comparison operators
+        bool operator==(const LayerMask& other) const { return mask == other.mask; }
+        bool operator!=(const LayerMask& other) const { return mask != other.mask; }
+
+        // Bitwise operators
+        LayerMask operator|(const LayerMask& other) const { return LayerMask(mask | other.mask); }
+        LayerMask operator&(const LayerMask& other) const { return LayerMask(mask & other.mask); }
+        LayerMask operator^(const LayerMask& other) const { return LayerMask(mask ^ other.mask); }
+        LayerMask operator~() const { return LayerMask(~mask); }
+
+        LayerMask& operator|=(const LayerMask& other) { mask |= other.mask; return *this; }
+        LayerMask& operator&=(const LayerMask& other) { mask &= other.mask; return *this; }
+        LayerMask& operator^=(const LayerMask& other) { mask ^= other.mask; return *this; }
+    };
+
 } // namespace Scripting
 } // namespace NE

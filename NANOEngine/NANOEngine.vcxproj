@@ -30,6 +30,7 @@
     <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
+    <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
     <ClInclude Include="src\Graphics\Core\UIImageMeshGenerator.hpp" />
     <ClInclude Include="src\Math\UILayoutCalculator.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
@@ -106,7 +107,6 @@
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
-    <ClInclude Include="src\ECSInternals.hpp" />
     <ClInclude Include="src\ECS\Components\Light.hpp" />
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
@@ -214,7 +214,6 @@
     <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
     <ClCompile Include="src\Core\Profiler.cpp" />
-    <ClCompile Include="src\ECSInternals.cpp" />
     <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\EditorCamera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
@@ -393,7 +392,9 @@ xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Con
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
-xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
+xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"
+xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>

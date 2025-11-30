@@ -82,6 +82,14 @@ namespace NE::Graphics {
 		m_NextHandle = 1;
 	}
 
+	void RenderViewManager::BlitToScreen(RenderViewHandle handle, int windowWidth, int windowHeight)
+	{
+		auto framebuffer = GetFramebuffer(handle);
+		if (framebuffer) {
+			framebuffer->BlitToScreen(windowWidth, windowHeight);
+		}
+	}
+
 	void RenderViewManager::SetCameraData(RenderViewHandle handle, Math::Mat4 projection, Math::Mat4 view, Math::Vec3 position, float nearPlane, float farPlane, bool isMain, uint16_t order)
 	{
 		auto it = m_Views.find(handle);

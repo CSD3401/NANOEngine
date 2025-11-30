@@ -22,7 +22,6 @@
     <ClCompile Include="src\Physics\PhysicsManager.cpp" />
     <ClCompile Include="src\Graphics\Core\Primitives.cpp" />
     <ClCompile Include="src\Core\Profiler.cpp" />
-    <ClCompile Include="src\ECSInternals.cpp" />
     <ClCompile Include="src\ECS\Systems\LightSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\EditorCamera.cpp" />
     <ClCompile Include="src\Core\Timer.cpp" />
@@ -130,7 +129,6 @@
     <ClInclude Include="src\Graphics\Core\Primitives.hpp" />
     <ClInclude Include="src\Core\Profiler.hpp" />
     <ClInclude Include="src\Core\Reflection.hpp" />
-    <ClInclude Include="src\ECSInternals.hpp" />
     <ClInclude Include="src\ECS\Components\Light.hpp" />
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
@@ -235,6 +233,7 @@
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
     <ClInclude Include="src\Core\Layers.hpp" />
+    <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -319,9 +318,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ECS\Systems\RenderSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ECSInternals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Events\EventBus.cpp">

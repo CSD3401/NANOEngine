@@ -86,28 +86,13 @@ namespace NE::ECS::Systems {
             if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
                 const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
                 if (!meta.isActive) {
-                    continue; // Skip rendering for inactive entities
+                    continue;
                 }
             }
 
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
             if (!renderer.visible || !renderer.model) continue;
             auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-
-            //if (!renderer.visible)
-            //{
-            //    std::cout << "entity is outside of frustum, not rendered" << std::endl;
-            //    continue;
-            //}
-            //else
-            //{
-            //    std::cout << "entity is inside frustum, rendered" << std::endl;
-            //}
-
-			//if (!renderer.model && !renderer.modelPath.empty())
-				//renderer.model = Graphics::LoadModel(renderer.modelPath.string());
-			//if (!renderer.model)
-			//	continue;
 
 			for (auto& sub : renderer.model->meshes) {
 				Graphics::DrawCommand cmd;
@@ -119,6 +104,9 @@ namespace NE::ECS::Systems {
                 float g = (float)((entity >> 8) & 0xFF) / 255.0f;
                 float b = (float)((entity >> 16) & 0xFF) / 255.0f;
 				cmd.idRGB = Vec3{ r, g, b };
+
+                cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
+                cmd.receivesShadow = renderer.receiveShadows;
 
                 //cmd.material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
                 //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });

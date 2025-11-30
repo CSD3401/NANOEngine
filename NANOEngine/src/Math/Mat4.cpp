@@ -254,8 +254,8 @@ namespace NE::Math {
 	}
 
 	Mat4 Mat4::BuildOrtho(float l, float r, float b, float t, float n, float f) {
-		Mat4 mOrtho{ 2.f - (r - l), 0.f,           0.f,				 -((r + l) / (r - l)),
-					 0.f,		    2.f - (t - b), 0.f,				 -((t + b) / (t - b)),
+		Mat4 mOrtho{ 2.f / (r - l), 0.f,           0.f,				 -((r + l) / (r - l)),
+					 0.f,		    2.f / (t - b), 0.f,				 -((t + b) / (t - b)),
 					 0.f,           0.f,           -(2.f / (f - n)), -((f + n) / (f - n)),
 					 0.f,		    0.f,			  0.f,			 1.f };
 

@@ -79,10 +79,9 @@ namespace NE::Graphics {
         static uint32_t GetScreenWidth();
         static uint32_t GetScreenHeight();
         static IStateCache* GetStateCache();
-
-		static void SetActiveCamera(const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, bool isMain);
         
 		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);
+        static void DestroyRenderView(RenderViewHandle handle);
         static void SetCameraData(RenderViewHandle viewHandle, const Math::Mat4& projection, const Math::Mat4& view, const Math::Vec3& position, float nearPlane, float farPlane, bool isMain, uint16_t order);
 		static void EnableCamera(RenderViewHandle viewHandle);
 		static void DisableCamera(RenderViewHandle viewHandle);
@@ -92,6 +91,12 @@ namespace NE::Graphics {
 		// Used for ImGui texture display
 		static uint32_t GetSceneColorAttachment();
 		static uint32_t GetGameColorAttachment();
+
+		// Used to get final output for fullscreen display
+		static uint32_t GetFinalOutputColorAttachment();
+
+		// Display final output to screen
+		static void DisplayFinalOutput(int windowWidth, int windowHeight);
 
         // Gizmo Drawing
         static void InitDebugPrimitives();
@@ -121,11 +126,15 @@ namespace NE::Graphics {
 		// Render View Handles
         static RenderViewHandle s_SceneViewHandle;
         static RenderViewHandle s_FinalOutputViewHandle;
+        static RenderViewHandle s_FinalGameOutputHandle;
         static RenderViewHandle s_GameViewHandle;
 
         static RenderSettings renderSettings;
         // Experimental here for now
         static PostProcessingSettings postProcessingSettings;
+
+        static void UpdateShadowMaps();
+        static void RenderShadowMapForLight(ECS::Component::Light& light, const std::vector<DrawCommand>& commands);
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
