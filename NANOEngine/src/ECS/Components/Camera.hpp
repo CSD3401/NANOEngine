@@ -14,7 +14,7 @@ namespace NE::ECS::Component {
 		Mat4 viewMtx;
 		Mat4 projectionMtx;
 
-		float fovY{ 60.0f };
+		float fov{ 60.f };
 		float aspectRatio{ 1920.f / 1080.0f };
 		float nearPlane{ 0.1f };
 		float farPlane{ 1000.0f };
@@ -30,7 +30,7 @@ namespace NE::ECS::Component {
 		std::vector<RenderViewHandle> renderViewHandles;
 
 		NE_REFLECT_BEGIN(Camera)
-			NE_REFLECT_FIELD_NAMED(fovY, "FOV Y"),
+			NE_REFLECT_FIELD_NAMED(fov, "FOV"),
 			NE_REFLECT_FIELD_NAMED(aspectRatio, "Aspect Ratio"),
 			NE_REFLECT_FIELD_NAMED(nearPlane, "Near Plane"),
 			NE_REFLECT_FIELD_NAMED(farPlane, "Far Plane"),
