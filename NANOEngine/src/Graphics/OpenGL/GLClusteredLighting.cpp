@@ -8,6 +8,12 @@
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include <glad/glad.h>
 
+namespace {
+    float Radians(float deg) {
+        return deg * 3.14159265358979323846f / 180.0f;
+    }
+}
+
 namespace NE::Graphics::OpenGL {
 
     GLClusteredLighting::GLClusteredLighting(int cX, int cY, int cZ, int maxLights, int avgClustersPerLight)
@@ -196,8 +202,8 @@ namespace NE::Graphics::OpenGL {
         glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_clusterParamsUBO);
 	}
 
-	void GLClusteredLighting::UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights)
-	{
+    void GLClusteredLighting::UploadLights(const Graphics::RenderView& view, const std::vector<ECS::Component::Light*>& lights)
+    {
         using NE::Math::Mat4;
         using NE::Math::Vec3;
 
@@ -222,9 +228,9 @@ namespace NE::Graphics::OpenGL {
             dst.color[3] = src->intensity;
 
             // params:  inner / outer / radius / padding
-            dst.params[0] = src->innerCutoff;
-            dst.params[1] = src->outerCutoff;
-			dst.params[2] = src->radius;
+            dst.params[0] = std::cos(Radians(src->innerCutoff));
+            dst.params[1] = std::cos(Radians(src->outerCutoff));
+            dst.params[2] = src->radius;
             dst.params[3] = static_cast<float>(src->shadowIndex);
 
             // direction.xyz + padding
@@ -244,9 +250,9 @@ namespace NE::Graphics::OpenGL {
         ClusterParamsCPU params{};
         params.view = view.view;
         params.proj = view.projection;
-		params.invProj = view.projection.Inverse();
-		params.zNear = view.nearPlane;
-		params.zFar = view.farPlane;
+        params.invProj = view.projection.Inverse();
+        params.zNear = view.nearPlane;
+        params.zFar = view.farPlane;
 
         params.clustersX = clustersX;
         params.clustersY = clustersY;
@@ -260,7 +266,7 @@ namespace NE::Graphics::OpenGL {
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	}
+    }
 
 	// Note: this function is not currently used, as the dispatch is done directly in BuildForView.
 	void GLClusteredLighting::DispatchCompute() 
