@@ -1,5 +1,6 @@
 #pragma once
 #include "EngineAPI.hpp"
+#define GLFW_KEY_LEFT_CONTROL   340
 using namespace NE::Scripting;
 
 /**
@@ -31,13 +32,13 @@ public:
 
 	// CHEATCODE
 	void Update(double deltaTime) override {
-		if (Input::WasKeyPressed('1')) {
+		if (Input::WasKeyPressed(GLFW_KEY_LEFT_CONTROL) && Input::WasKeyPressed('1')) {
 			LOG_INFO("send key lock solved");
 
 			Events::Send("KeyLockSolved");
 		}
 
-		if (Input::WasKeyPressed('2')) {
+		if (Input::WasKeyPressed(GLFW_KEY_LEFT_CONTROL) && Input::WasKeyPressed('2')) {
 			LOG_INFO("send MaterialSequencerSolved");
 
 			Events::Send("MaterialSequencerSolved");
