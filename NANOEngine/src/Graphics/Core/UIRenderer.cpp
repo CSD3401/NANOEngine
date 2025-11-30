@@ -669,6 +669,8 @@ namespace NE::Graphics {
         glDisable(GL_DEPTH_TEST); // screen space ui has no depth
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
 
         // use composite shader
         glUseProgram(s_CompositeShader);
