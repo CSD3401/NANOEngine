@@ -29,12 +29,20 @@ public:
 		PlayAudio("event:/BGM_NIGHTSHIFT_LOW");
 	}
 
+	// CHEATCODE
 	void Update(double deltaTime) override {
 		if (Input::WasKeyPressed('1')) {
 			LOG_INFO("send key lock solved");
 
 			Events::Send("KeyLockSolved");
 		}
+
+		if (Input::WasKeyPressed('2')) {
+			LOG_INFO("send MaterialSequencerSolved");
+
+			Events::Send("MaterialSequencerSolved");
+		}
+
 
 		//if (Input::WasKeyPressed('2')) {
 		//	PlayAudio("event:/VOICEOVER1");

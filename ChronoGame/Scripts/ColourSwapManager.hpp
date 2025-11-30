@@ -257,6 +257,8 @@ private:
 		}
 
 		LOG_WARNING("PuzzleSolved :" << eventMessage.c_str());
+		PlayAudio("event:/VOICEOVER1");
+
 		Events::Send(eventMessage.c_str());
 	}
 };

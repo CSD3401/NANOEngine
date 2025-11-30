@@ -383,13 +383,17 @@ namespace NE::ECS::Systems
             if (hasRigidbody) {
                 auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
                 rb.bodyID = bodyID;
+
+                NE::Physics::PhysicsManager::SetGravityEnabled(bodyID, rb.useGravity);
             }
 
             printf("PhysicsSystem: Created %s body %d for entity %d\n",
                 motionType == JPH::EMotionType::Kinematic ? "KINEMATIC" :
                 motionType == JPH::EMotionType::Dynamic ? "DYNAMIC" : "STATIC",
                 bodyID, entity);
+
         }
+
     }
 
     void PhysicsSystem::UpdatePhysicsBody(Entity entity)

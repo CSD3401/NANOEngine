@@ -97,6 +97,13 @@ public:
 
 					// Uk what im too lazy to debug this shit
 					SetPosition(hardcodedPosition);
+					PlayAudio("event:/UNGRAB");
+					counter++;
+					if (counter == 2)
+					{
+						Events::Send("BothActivated");
+						PlayAudio("event:/VOICEOVER5");
+					}
 				}
 			}
 		}
@@ -164,4 +171,5 @@ private:
 	std::string color;
 	int tag = 1;  // 0 = Key, 1 = Object
 	Vec3 hardcodedPosition = Vec3(0, 0, 0);
+	static inline int counter = 0;
 };

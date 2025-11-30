@@ -221,6 +221,8 @@ private:
                 // Force all buttons to -45 and lock
                 SetAllButtonsXToNeg45();
                 Events::Send(solvedEventName.c_str(), nullptr);
+                PlayAudio("event:/VOICEOVER4");
+
                 m_waitingForClicks = false;
                 m_hasQueued = false;
                 m_solved = true; // <-- LOCK

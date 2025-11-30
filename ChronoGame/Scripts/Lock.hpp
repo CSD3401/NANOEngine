@@ -40,6 +40,7 @@ public:
 			{
 				LOG_INFO("All locks unlocked! Unlocking Door");
 				shouldSendKeyLockSolved = true;  // Defer to next frame
+				PlayAudio("event:/VOICEOVER3");
 			}
 		}
 
