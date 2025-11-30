@@ -38,7 +38,7 @@
 #include "Scripts/PrefabSpawnerScript.hpp"
 #include "Scripts/BulletShooterScript.hpp"
 #include "Scripts/CameraController.hpp"
-#include "Scripts/SolveInactive.hpp"
+#include "Scripts/RenderSettingsDemo.hpp"
 
 
 
@@ -161,8 +161,8 @@ extern "C" {
         //    return new MaterialSequencer();
         //    });
 
-        registrar->RegisterScript("SolveInactive",
-            []() -> NE::Scripting::IScript* { return new SolveInactive(); });
+        registrar->RegisterScript("RenderSettingsDemo",
+            []() -> NE::Scripting::IScript* { return new RenderSettingsDemo(); });
 
 
         registrar->RegisterScript("PrefabSpawnerScript", []() -> NE::Scripting::IScript* {

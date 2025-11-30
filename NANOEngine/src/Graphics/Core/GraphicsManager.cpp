@@ -119,6 +119,8 @@ namespace NE::Graphics {
     // SSAO
     static GLuint s_SSAOFBO = 0;
     static GLuint s_SSAOTex = 0;
+    static GLuint s_SSAOGAMEFBO = 0;
+    static GLuint s_SSAOGAMETex = 0;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_SSAOShader;
 
     void GraphicsManager::UpdateShadowMaps()
@@ -410,7 +412,6 @@ namespace NE::Graphics {
         }
         if (!s_CompositeShader) {
             s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomcomposite");
-            //s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("45d05351-73fc-424b-98d2-b1a80b05957f");
         }
 
         // SAAO
@@ -420,7 +421,8 @@ namespace NE::Graphics {
 
             glGenTextures(1, &s_SSAOTex);
             glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1920, 1080, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+            //glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1920, 1080, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -436,11 +438,34 @@ namespace NE::Graphics {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
 
+        if (s_SSAOGAMEFBO == 0) {
+            glGenFramebuffers(1, &s_SSAOGAMEFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOGAMEFBO);
+
+            glGenTextures(1, &s_SSAOGAMETex);
+            glBindTexture(GL_TEXTURE_2D, s_SSAOGAMETex);
+            //glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1920, 1080, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SSAOGAMETex, 0);
+            GLenum att = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &att);
+
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                LOG_ERROR("SSAO FBO incomplete!");
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
         if (!s_SSAOShader) {
             //s_SSAOShader = Resource::ResourceManager::GetInstance()
             //    .LoadResource<OpenGL::GLShader>("nessao");
             s_SSAOShader = Resource::ResourceManager::GetInstance()
-                .LoadResource<OpenGL::GLShader>("118ce59d-0507-4d77-8eb0-1536c49206fb");
+                .LoadResource<OpenGL::GLShader>("nessao");
         }
 
 #pragma endregion
@@ -654,32 +679,32 @@ namespace NE::Graphics {
                 uint32_t h = fb->GetHeight();
 
                 glViewport(0, 0, w, h);
-                glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
                 glClearColor(0, 0, 0, 1);
                 glClear(GL_COLOR_BUFFER_BIT);
 
                 s_SSAOShader->Bind();
 
-                //// depth texture from HDR framebuffer (you may need to expose this)
-                //GLuint depthTex = fb->GetDepthAttachment(); // implement this if needed
+                // depth texture from HDR framebuffer (you may need to expose this)
+                GLuint depthTex = fb->GetDepthAttachment(); // implement this if needed
 
-                //s_SSAOShader->SetUniformInt("u_Depth", 0);
-                //s_SSAOShader->SetUniformFloat("u_Radius", postProcessingSettings.ssaoSettings.radius);
-                //s_SSAOShader->SetUniformFloat("u_Bias", postProcessingSettings.ssaoSettings.bias);
-                //s_SSAOShader->SetUniformFloat("u_Intensity", postProcessingSettings.ssaoSettings.intensity);
-                //s_SSAOShader->SetUniformFloat("u_Power", postProcessingSettings.ssaoSettings.power);
+                s_SSAOShader->SetUniformInt("u_Depth", 0);
+                s_SSAOShader->SetUniformFloat("u_Radius", postProcessingSettings.ssaoSettings.radius);
+                s_SSAOShader->SetUniformFloat("u_Bias", postProcessingSettings.ssaoSettings.bias);
+                s_SSAOShader->SetUniformFloat("u_Intensity", postProcessingSettings.ssaoSettings.intensity);
+                s_SSAOShader->SetUniformFloat("u_Power", postProcessingSettings.ssaoSettings.power);
 
-                //// pass inverse projection for scene view
-                //// (you already store projection in RenderViewManager)
+                // pass inverse projection for scene view
+                // (you already store projection in RenderViewManager)
                 //auto& views = s_RenderViewManager->GetAllRenderViews();
                 //auto it = views.find(s_SceneViewHandle);
                 //if (it != views.end()) {
                 //    Math::Mat4 invProj = it->second.projection.Inverse();
-                //    s_SSAOShader->SetUniformMat4("u_InvProj", invProj);
                 //}
+                Math::Mat4 invProj = s_EditorCamera->GetProjectionMatrix().Inverse();
+                s_SSAOShader->SetUniformMat4("u_InvProj", invProj);
 
-                //glActiveTexture(GL_TEXTURE0);
-                //glBindTexture(GL_TEXTURE_2D, depthTex);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, depthTex);
 
                 glBindVertexArray(s_QuadVAO);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -872,7 +897,7 @@ namespace NE::Graphics {
             GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
             glDisable(GL_DEPTH_TEST);
 
-            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOGAMEFBO);
 
             uint32_t w = gamefb->GetWidth();
             uint32_t h = gamefb->GetHeight();
@@ -889,7 +914,6 @@ namespace NE::Graphics {
             s_SSAOShader->SetUniformInt("u_Depth", 0);
             s_SSAOShader->SetUniformFloat("u_Radius", postProcessingSettings.ssaoSettings.radius);
             s_SSAOShader->SetUniformFloat("u_Bias", postProcessingSettings.ssaoSettings.bias);
-            s_SSAOShader->SetUniformFloat("u_Intensity", postProcessingSettings.ssaoSettings.intensity);
             s_SSAOShader->SetUniformFloat("u_Power", postProcessingSettings.ssaoSettings.power);
 
             // pass inverse projection for scene view
@@ -1068,7 +1092,7 @@ namespace NE::Graphics {
             glBindTexture(GL_TEXTURE_2D, bloomTex);
 
             glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
+            glBindTexture(GL_TEXTURE_2D, s_SSAOGAMETex);
 
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1191,6 +1215,7 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::GetSceneColorAttachment() 
     {
         //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
+        if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
         if (InputManager::IsKeyDown('9')) return s_SSAOTex;
         if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
 

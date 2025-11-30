@@ -188,6 +188,9 @@ namespace NE::Serialization {
 		auto& rs = Graphics::GraphicsManager::renderSettings;
 		doc.AddMember("RenderSettings", NE::Serialization::to_json(rs, a), a);
 
+		auto& pps = Graphics::GraphicsManager::postProcessingSettings;
+		doc.AddMember("PostProcessingSettings", NE::Serialization::to_json(pps, a), a);
+
 		Value entities(kArrayType);
 
 		const auto& ids = scene.GetECSCoordinator().GetUsedEntities();
@@ -249,6 +252,11 @@ namespace NE::Serialization {
 		if (doc.HasMember("RenderSettings")) {
 			auto& rs = Graphics::GraphicsManager::renderSettings;
 			NE::Serialization::from_json(doc["RenderSettings"], rs);
+		}
+
+		if (doc.HasMember("PostProcessingSettings")) {
+			auto& pps = Graphics::GraphicsManager::postProcessingSettings;
+			NE::Serialization::from_json(doc["PostProcessingSettings"], pps);
 		}
 
 		if (!doc.IsObject() || !doc.HasMember("Entities")) return;
