@@ -57,8 +57,13 @@ namespace NE::Graphics::OpenGL {
         }
 
         // Specify the color attachments for rendering
-        GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-        glDrawBuffers(2, attachments);
+        if (enablePicking) {
+            GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+            glDrawBuffers(2, attachments);
+        } else {
+            GLenum attachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &attachment);
+        }
 
         // --- Depth attachment as TEXTURE ---
         glGenTextures(1, &m_DepthAttachment);
@@ -112,8 +117,13 @@ namespace NE::Graphics::OpenGL {
         }
 
         // Specify the color attachments for rendering
-        GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-        glDrawBuffers(2, attachments);
+        if (enablePicking) {
+            GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+            glDrawBuffers(2, attachments);
+        } else {
+            GLenum attachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &attachment);
+        }
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             LOG_ERROR("Framebuffer is incomplete!");

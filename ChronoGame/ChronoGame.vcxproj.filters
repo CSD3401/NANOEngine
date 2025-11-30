@@ -39,6 +39,8 @@
     <ClInclude Include="Scripts\PlayerCameraRaycast.hpp" />
     <ClInclude Include="Scripts\Lock.hpp" />
     <ClInclude Include="Scripts\AudioHolder.hpp" />
+    <ClInclude Include="Scripts\Pickable.hpp" />
+    <ClInclude Include="Scripts\RenderSettingsDemo.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />
