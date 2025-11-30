@@ -75,8 +75,9 @@ namespace NE::Graphics {
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
     RenderViewHandle GraphicsManager::s_ActiveViewHandle;
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
-    RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
+    RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
+    RenderViewHandle GraphicsManager::s_FinalGameOutputHandle;
 	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
@@ -114,6 +115,11 @@ namespace NE::Graphics {
     // Shadow
     static std::shared_ptr<OpenGL::GLShader> s_ShadowShader;
     const int SHADOW_RES = 2048;
+
+    // SSAO
+    static GLuint s_SSAOFBO = 0;
+    static GLuint s_SSAOTex = 0;
+    static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_SSAOShader;
 
     void GraphicsManager::UpdateShadowMaps()
     {
@@ -317,6 +323,8 @@ namespace NE::Graphics {
         if (!s_BrightPassShader) {
             s_BrightPassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebrightpass");
         }
+
+
     }
 #pragma endregion
 
@@ -329,7 +337,7 @@ namespace NE::Graphics {
 
         s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
         s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
-        //s_GameViewHandle = s_RenderViewManager->Create(1920, 1080, false);
+        s_FinalGameOutputHandle = s_RenderViewManager->Create(1920, 1080, false);
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
@@ -388,6 +396,7 @@ namespace NE::Graphics {
             w = std::max(1, w / 2);
             h = std::max(1, h / 2);
         }
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         if (!s_DownSampleShader) {
@@ -401,8 +410,38 @@ namespace NE::Graphics {
         }
         if (!s_CompositeShader) {
             s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nebloomcomposite");
+            //s_CompositeShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("45d05351-73fc-424b-98d2-b1a80b05957f");
         }
 
+        // SAAO
+        if (s_SSAOFBO == 0) {
+            glGenFramebuffers(1, &s_SSAOFBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
+
+            glGenTextures(1, &s_SSAOTex);
+            glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1920, 1080, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s_SSAOTex, 0);
+            GLenum att = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &att);
+
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                LOG_ERROR("SSAO FBO incomplete!");
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        if (!s_SSAOShader) {
+            //s_SSAOShader = Resource::ResourceManager::GetInstance()
+            //    .LoadResource<OpenGL::GLShader>("nessao");
+            s_SSAOShader = Resource::ResourceManager::GetInstance()
+                .LoadResource<OpenGL::GLShader>("118ce59d-0507-4d77-8eb0-1536c49206fb");
+        }
 
 #pragma endregion
 
@@ -437,20 +476,20 @@ namespace NE::Graphics {
     {
         NE_PROFILE_FUNCTION();
 
-		int renderedViews = 0;
+        int renderedViews = 0;
 
         UpdateShadowMaps();
 
         for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
             if (view.isMain && view.order == 0) s_GameViewHandle = handle;
-            
+
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
-            
-			const Mat4& camProj = view.projection;
+
+            const Mat4& camProj = view.projection;
             const Mat4& camView = view.view;
-			const Vec3& camPos = view.position;
+            const Vec3& camPos = view.position;
 
             // Sort by RenderQueue -> Material -> Mesh
             if (enableSorting)
@@ -482,7 +521,7 @@ namespace NE::Graphics {
                 ++shadowCount;
             }
 
-			s_clusteredLighting->BuildForView(view, m_lights);
+            s_clusteredLighting->BuildForView(view, m_lights);
 
             // Prepare instance data buffer and batching variables
             std::vector<InstanceData> instanceData;
@@ -544,7 +583,7 @@ namespace NE::Graphics {
                 }
 
                 // Set lights
-				s_clusteredLighting->BindForDraw();
+                s_clusteredLighting->BindForDraw();
 
                 // Draw mesh with instancing
                 currentMesh->DrawInstanced(instanceData.size());
@@ -556,8 +595,7 @@ namespace NE::Graphics {
                 };
 
             const auto& commands = s_DrawQueue->GetCommands();
-            for (const auto& command : commands)
-            {
+            for (const auto& command : commands) {
                 auto mesh = command.mesh;
                 auto material = command.material;
                 bool receives = command.receivesShadow;
@@ -599,17 +637,287 @@ namespace NE::Graphics {
         }
 
 #pragma region EXPERIMENTAL
-        uint32_t sceneTex = 0;
-        auto fb = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
-        if (fb) {
-            sceneTex = fb->GetColorAttachment();  // bypass GetSceneColorAttachment()
+        {
+            uint32_t sceneTex = 0;
+            auto fb = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+            if (fb) {
+                sceneTex = fb->GetColorAttachment();  // bypass GetSceneColorAttachment()
+            }
+
+            if (postProcessingSettings.ssaoSettings.enabled && s_SSAOShader && fb) {
+                GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+                glDisable(GL_DEPTH_TEST);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
+
+                uint32_t w = fb->GetWidth();
+                uint32_t h = fb->GetHeight();
+
+                glViewport(0, 0, w, h);
+                glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                s_SSAOShader->Bind();
+
+                //// depth texture from HDR framebuffer (you may need to expose this)
+                //GLuint depthTex = fb->GetDepthAttachment(); // implement this if needed
+
+                //s_SSAOShader->SetUniformInt("u_Depth", 0);
+                //s_SSAOShader->SetUniformFloat("u_Radius", postProcessingSettings.ssaoSettings.radius);
+                //s_SSAOShader->SetUniformFloat("u_Bias", postProcessingSettings.ssaoSettings.bias);
+                //s_SSAOShader->SetUniformFloat("u_Intensity", postProcessingSettings.ssaoSettings.intensity);
+                //s_SSAOShader->SetUniformFloat("u_Power", postProcessingSettings.ssaoSettings.power);
+
+                //// pass inverse projection for scene view
+                //// (you already store projection in RenderViewManager)
+                //auto& views = s_RenderViewManager->GetAllRenderViews();
+                //auto it = views.find(s_SceneViewHandle);
+                //if (it != views.end()) {
+                //    Math::Mat4 invProj = it->second.projection.Inverse();
+                //    s_SSAOShader->SetUniformMat4("u_InvProj", invProj);
+                //}
+
+                //glActiveTexture(GL_TEXTURE0);
+                //glBindTexture(GL_TEXTURE_2D, depthTex);
+
+                glBindVertexArray(s_QuadVAO);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                glBindVertexArray(0);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+                if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+            }
+
+            if (sceneTex != 0 && s_BrightPassShader) {
+                glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
+
+                uint32_t w = fb ? fb->GetWidth() : 1920;
+                uint32_t h = fb ? fb->GetHeight() : 1080;
+
+                glViewport(0, 0, w, h);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                s_BrightPassShader->Bind();
+                s_BrightPassShader->SetUniformInt("u_SceneTex", 0);
+                s_BrightPassShader->SetUniformFloat("u_Threshold", postProcessingSettings.bloomSettings.brightThreshold);
+                s_BrightPassShader->SetUniformFloat("u_Scale", postProcessingSettings.bloomSettings.brightScale);
+                s_BrightPassShader->SetUniformFloat("u_SoftKnee", postProcessingSettings.bloomSettings.softKnee);
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, sceneTex);
+
+                glBindVertexArray(s_QuadVAO);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                glBindVertexArray(0);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            }
+
+            GLuint srcTex = s_BrightPassTex;
+            int srcW = fb ? fb->GetWidth() : 1920;
+            int srcH = fb ? fb->GetHeight() : 1080;
+
+            for (int level = 0; level < BLOOM_LEVELS; ++level) {
+                int dstW = s_BloomWidth[level];
+                int dstH = s_BloomHeight[level];
+
+                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[level]);
+                glViewport(0, 0, dstW, dstH);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                s_DownSampleShader->Bind();
+                s_DownSampleShader->SetUniformInt("u_Source", 0);
+                s_DownSampleShader->SetUniformVec2("u_TexelSize", { 1.0f / srcW, 1.0f / srcH });
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, srcTex);
+
+                glBindVertexArray(s_QuadVAO);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+                srcTex = s_BloomTex[level];
+                srcW = dstW;
+                srcH = dstH;
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            for (int level = 0; level < BLOOM_LEVELS; ++level) {
+                int w = s_BloomWidth[level];
+                int h = s_BloomHeight[level];
+
+                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomTempFBO[level]);
+                glViewport(0, 0, w, h);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                s_BlurShader->Bind();
+                s_BlurShader->SetUniformInt("u_Source", 0);
+                s_BlurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
+                s_BlurShader->SetUniformVec2("u_Direction", { 1.0f, 0.0f });
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
+
+                glBindVertexArray(s_QuadVAO);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[level]);
+                glViewport(0, 0, w, h);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                s_BlurShader->Bind();
+                s_BlurShader->SetUniformInt("u_Source", 0);
+                s_BlurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
+                s_BlurShader->SetUniformVec2("u_Direction", { 0.0f, 1.0f });
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, s_BloomTempTex[level]);
+
+                glBindVertexArray(s_QuadVAO);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            for (int level = BLOOM_LEVELS - 1; level > 0; --level) {
+                int hi = level - 1;
+                int w = s_BloomWidth[hi];
+                int h = s_BloomHeight[hi];
+
+                glBindFramebuffer(GL_FRAMEBUFFER, s_BloomFBO[hi]);
+                glViewport(0, 0, w, h);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                s_UpSampleShader->Bind();
+                s_UpSampleShader->SetUniformInt("u_LowRes", 0);
+                s_UpSampleShader->SetUniformInt("u_HighRes", 1);
+                s_UpSampleShader->SetUniformFloat("u_Intensity", postProcessingSettings.bloomSettings.bloomRadius);
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, s_BloomTex[level]);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, s_BloomTex[hi]);
+
+                glBindVertexArray(s_QuadVAO);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            auto finalFBO = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
+            if (fb && s_CompositeShader && finalFBO->GetColorAttachment() != 0) {
+                uint32_t sceneTexHDR = fb->GetColorAttachment();
+                GLuint bloomTex = s_BloomTex[0];
+
+                uint32_t w = fb->GetWidth();
+                uint32_t h = fb->GetHeight();
+
+                finalFBO->Bind();
+
+                glViewport(0, 0, w, h);
+                glClearColor(0, 0, 0, 1);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                glDisable(GL_DEPTH_TEST);
+                glDepthMask(GL_FALSE);
+
+                s_CompositeShader->Bind();
+                s_CompositeShader->SetUniformInt("u_SceneHDR", 0);
+                s_CompositeShader->SetUniformInt("u_Bloom", 1);
+                s_CompositeShader->SetUniformInt("u_ToneMapType", static_cast<int>(postProcessingSettings.bloomSettings.toneMapType));
+                s_CompositeShader->SetUniformFloat("u_BloomStrength", postProcessingSettings.bloomSettings.bloomIntensity);
+                s_CompositeShader->SetUniformFloat("u_Exposure", postProcessingSettings.bloomSettings.exposure);
+
+                s_CompositeShader->SetUniformInt("u_SSAO", 2);
+                s_CompositeShader->SetUniformInt("u_UseSSAO", postProcessingSettings.ssaoSettings.enabled ? 1 : 0);
+                s_CompositeShader->SetUniformFloat("u_AOIntensity", postProcessingSettings.ssaoSettings.intensity);
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, sceneTexHDR);
+
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, bloomTex);
+
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
+
+                glBindVertexArray(s_QuadVAO);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                glBindVertexArray(0);
+
+                glDepthMask(GL_TRUE);
+                glEnable(GL_DEPTH_TEST);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            }
         }
 
-        if (sceneTex != 0 && s_BrightPassShader) {
+#pragma endregion
+
+
+#pragma region EXPERIMENTAL
+        uint32_t gameSceneTex = 0;
+        auto gamefb = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
+        if (gamefb) {
+            gameSceneTex = gamefb->GetColorAttachment();
+        } else return;
+
+        if (postProcessingSettings.ssaoSettings.enabled && s_SSAOShader && gamefb) {
+            GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+            glDisable(GL_DEPTH_TEST);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, s_SSAOFBO);
+
+            uint32_t w = gamefb->GetWidth();
+            uint32_t h = gamefb->GetHeight();
+
+            glViewport(0, 0, w, h);
+            glClearColor(0, 0, 0, 1);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            s_SSAOShader->Bind();
+
+            // depth texture from HDR framebuffer (you may need to expose this)
+            GLuint depthTex = gamefb->GetDepthAttachment(); // implement this if needed
+
+            s_SSAOShader->SetUniformInt("u_Depth", 0);
+            s_SSAOShader->SetUniformFloat("u_Radius", postProcessingSettings.ssaoSettings.radius);
+            s_SSAOShader->SetUniformFloat("u_Bias", postProcessingSettings.ssaoSettings.bias);
+            s_SSAOShader->SetUniformFloat("u_Intensity", postProcessingSettings.ssaoSettings.intensity);
+            s_SSAOShader->SetUniformFloat("u_Power", postProcessingSettings.ssaoSettings.power);
+
+            // pass inverse projection for scene view
+            // (you already store projection in RenderViewManager)
+            auto& views = s_RenderViewManager->GetAllRenderViews();
+            auto it = views.find(s_GameViewHandle);
+            if (it != views.end()) {
+                Math::Mat4 invProj = it->second.projection.Inverse();
+                s_SSAOShader->SetUniformMat4("u_InvProj", invProj);
+            }
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, depthTex);
+
+            glBindVertexArray(s_QuadVAO);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            glBindVertexArray(0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+        }
+
+        if (gameSceneTex != 0 && s_BrightPassShader) {
             glBindFramebuffer(GL_FRAMEBUFFER, s_BrightPassFBO);
 
-            uint32_t w = fb ? fb->GetWidth() : 1920;
-            uint32_t h = fb ? fb->GetHeight() : 1080;
+            uint32_t w = gamefb ? gamefb->GetWidth() : 1920;
+            uint32_t h = gamefb ? gamefb->GetHeight() : 1080;
 
             glViewport(0, 0, w, h);
             glClearColor(0, 0, 0, 1);
@@ -622,7 +930,7 @@ namespace NE::Graphics {
             s_BrightPassShader->SetUniformFloat("u_SoftKnee", postProcessingSettings.bloomSettings.softKnee);
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, sceneTex);
+            glBindTexture(GL_TEXTURE_2D, gameSceneTex);
 
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -632,8 +940,8 @@ namespace NE::Graphics {
         }
 
         GLuint srcTex = s_BrightPassTex;
-        int srcW = fb ? fb->GetWidth() : 1920;
-        int srcH = fb ? fb->GetHeight() : 1080;
+        int srcW = gamefb ? gamefb->GetWidth() : 1920;
+        int srcH = gamefb ? gamefb->GetHeight() : 1080;
 
         for (int level = 0; level < BLOOM_LEVELS; ++level) {
             int dstW = s_BloomWidth[level];
@@ -725,13 +1033,13 @@ namespace NE::Graphics {
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        auto finalFBO = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
-        if (fb && s_CompositeShader && finalFBO->GetColorAttachment() != 0) {
-            uint32_t sceneTexHDR = fb->GetColorAttachment();
+        auto finalFBO = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
+        if (gamefb && s_CompositeShader && finalFBO->GetColorAttachment() != 0) {
+            uint32_t sceneTexHDR = gamefb->GetColorAttachment();
             GLuint bloomTex = s_BloomTex[0];
 
-            uint32_t w = fb->GetWidth();
-            uint32_t h = fb->GetHeight();
+            uint32_t w = gamefb->GetWidth();
+            uint32_t h = gamefb->GetHeight();
 
             finalFBO->Bind();
 
@@ -749,11 +1057,18 @@ namespace NE::Graphics {
             s_CompositeShader->SetUniformFloat("u_BloomStrength", postProcessingSettings.bloomSettings.bloomIntensity);
             s_CompositeShader->SetUniformFloat("u_Exposure", postProcessingSettings.bloomSettings.exposure);
 
+            s_CompositeShader->SetUniformInt("u_SSAO", 2);
+            s_CompositeShader->SetUniformInt("u_UseSSAO", postProcessingSettings.ssaoSettings.enabled ? 1 : 0);
+            s_CompositeShader->SetUniformFloat("u_AOIntensity", postProcessingSettings.ssaoSettings.intensity);
+
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, sceneTexHDR);
 
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, bloomTex);
+
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, s_SSAOTex);
 
             glBindVertexArray(s_QuadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -845,7 +1160,7 @@ namespace NE::Graphics {
 
     RenderViewHandle GraphicsManager::CreateRenderView(uint32_t width, uint32_t height, bool enablePicking) 
     {
-        return s_RenderViewManager->Create(width, height, enablePicking);
+        return s_RenderViewManager->CreateHDR(width, height, enablePicking);
 	}
 
     void GraphicsManager::DestroyRenderView(RenderViewHandle handle) {
@@ -875,11 +1190,9 @@ namespace NE::Graphics {
 
     uint32_t GraphicsManager::GetSceneColorAttachment() 
     {
-        if (InputManager::IsKeyDown('1')) return s_BrightPassTex;
-        if (InputManager::IsKeyDown('2')) return s_BloomTex[0];
-        if (InputManager::IsKeyDown('3')) return s_BloomTex[1];
         //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
-        if (InputManager::IsKeyDown('4')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
+        if (InputManager::IsKeyDown('9')) return s_SSAOTex;
+        if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
 
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
@@ -898,12 +1211,29 @@ namespace NE::Graphics {
 
     uint32_t GraphicsManager::GetGameColorAttachment()
     {
-		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
+		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
         if (framebuffer) {
             return framebuffer->GetColorAttachment();
 		}
 		return 0;
     }
+
+    uint32_t GraphicsManager::GetFinalOutputColorAttachment()
+    {
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
+        if (framebuffer) {
+            return framebuffer->GetColorAttachment();
+        }
+        return 0;
+	}
+
+    void GraphicsManager::DisplayFinalOutput(int windowWidth, int windowHeight)
+    {
+		// Note: Game view handle should be replaced with final output view handle when post-processing is added
+		s_RenderViewManager->BlitToScreen(s_FinalOutputViewHandle, windowWidth, windowHeight);
+
+		//s_RenderViewManager->BlitToScreen(s_SceneViewHandle, windowWidth, windowHeight);
+	}
 
     IStateCache* GraphicsManager::GetStateCache() {
         return s_StateCache.get();

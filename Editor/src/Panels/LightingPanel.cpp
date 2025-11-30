@@ -169,6 +169,14 @@ namespace Editor {
 				Editor::DrawFloatField("Tonemap Exposure", postProcessingSettings.bloomSettings.exposure, 0.1f, true);
 			}
 
+			if (ImGui::CollapsingHeader("SSAO##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+				Editor::DrawCheckbox("Enabled", postProcessingSettings.ssaoSettings.enabled);
+				Editor::DrawFloatField("Radius", postProcessingSettings.ssaoSettings.radius, 0.1f, true);
+				Editor::DrawFloatField("Bias", postProcessingSettings.ssaoSettings.bias, 0.1f, true);
+				Editor::DrawFloatField("Intensity", postProcessingSettings.ssaoSettings.intensity, 0.1f, true);
+				Editor::DrawFloatField("Power", postProcessingSettings.ssaoSettings.power, 0.1f, true);
+			}
+
 		} break;
 		case 3: {
 

@@ -214,6 +214,10 @@ private:
         if (!HasRigidbody()) return;
 
         if (Input::WasKeyPressed(GLFW_KEY_SPACE)) {
+            LOG_INFO("jump \n");
+            LOG_INFO("m_isGrounded " << m_isGrounded);
+            LOG_INFO("m_hasJumpedThisFrame " << m_hasJumpedThisFrame);
+
             if (m_isGrounded && !m_hasJumpedThisFrame) {
                 Vec3 vel = GetVelocity();
                 vel.y = jumpForce;
