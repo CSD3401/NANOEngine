@@ -39,6 +39,7 @@
 #include "Scripts/BulletShooterScript.hpp"
 #include "Scripts/CameraController.hpp"
 #include "Scripts/RenderSettingsDemo.hpp"
+#include "Scripts/SolveInactive.hpp"
 
 
 
@@ -157,9 +158,9 @@ extern "C" {
             return new ParentControllerScript();
             });
 
-        //registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
-        //    return new MaterialSequencer();
-        //    });
+        registrar->RegisterScript("SolveInactive", []() -> NE::Scripting::IScript* {
+            return new SolveInactive();
+            });
 
         registrar->RegisterScript("RenderSettingsDemo",
             []() -> NE::Scripting::IScript* { return new RenderSettingsDemo(); });

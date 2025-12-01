@@ -41,6 +41,7 @@
     <ClInclude Include="Scripts\AudioHolder.hpp" />
     <ClInclude Include="Scripts\Pickable.hpp" />
     <ClInclude Include="Scripts\RenderSettingsDemo.hpp" />
+    <ClInclude Include="Scripts\SolveInactive.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Scripts\SCRIPTBASE_QUICK_REFERENCE.md" />

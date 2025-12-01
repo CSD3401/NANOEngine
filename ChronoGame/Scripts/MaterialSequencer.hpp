@@ -42,12 +42,26 @@ public:
 
     // === IScript required ===
     void Initialize(Entity) override {
+        // Time-swap listeners: present allows input, past plays/blinks only
+        Events::Listen("TimeSwapToPresent", [this](void*) {
+            m_isInPresent = true;
+            // Reset re-queue gate so a NEW past visit can play once again
+            m_hasQueued = false;
+            if (!m_solved && CountOrder() > 0) { m_waitingForClicks = true; }
+            });
+        Events::Listen("TimeSwapToPast", [this](void*) {
+            m_isInPresent = false;
+            // In past: disable input; trigger sequence ONCE per swap if allowed
+            m_waitingForClicks = false;
+            if (autoRun && !m_solved && !m_hasQueued) { QueueSequence(); }
+            });
+
         if (delayBetween <= 0.f) delayBetween = 0.25f;
-        if (autoRun && !m_hasQueued && !m_solved) QueueSequence();
+        // Autoplay now triggered only on TimeSwapToPast once per swap
 
         // Listen to camera raycast hit
         Events::Listen("OnCameraRaycastHit", [this](void* payload) {
-            if (!isActive || m_solved || !m_waitingForClicks || !payload) return;
+            if (!isActive || m_solved || !m_waitingForClicks || !payload || !m_isInPresent) return;
             auto* data = static_cast<std::pair<uint32_t, uint32_t>*>(payload);
             uint32_t hit = data->first;
             int pressed = MapEntityToButtonIndex(hit); // 1..5, 0 if not ours
@@ -57,14 +71,18 @@ public:
 
     void Update(double) override {
         if (!isActive || m_solved) return;
-        // Number keys for test input
+
+        if (!m_isInPresent) {
+            // Past timeline: no input. Sequence (if any) is triggered once upon swap in Initialize().
+            return;
+        }
+
+        // Present timeline: allow input; do NOT autoplay
         if (Input::WasKeyPressed('1')) HandleKey(1);
         if (Input::WasKeyPressed('2')) HandleKey(2);
         if (Input::WasKeyPressed('3')) HandleKey(3);
         if (Input::WasKeyPressed('4')) HandleKey(4);
         if (Input::WasKeyPressed('5')) HandleKey(5);
-
-        if (!m_hasQueued && !m_waitingForClicks && autoRun && !m_solved) QueueSequence();
     }
 
     // Satisfy pure virtuals (unused here)
@@ -75,6 +93,9 @@ public:
     void OnDestroy() override {}
     void OnEnable() override {}
     void OnDisable() override {}
+
+    // Time-swap state
+    bool m_isInPresent = true;
 
     // === Designer-set fields ===
     bool isActive = true;
@@ -167,7 +188,7 @@ private:
         for (size_t step = 0; step < idx.size(); ++step) {
             int i = m_order[step];
             Entity e = trefs[i].GetEntity();
-            Coroutines::AddAction(h, [e, b = materialB]() { NE::Renderer::Command::AssignMaterial(e, b); });
+            Coroutines::AddAction(h, [this, e, b = materialB]() { if (!m_isInPresent) { NE::Renderer::Command::AssignMaterial(e, b); } });
             Coroutines::AddWait(h, delayBetween);
         }
 
@@ -182,7 +203,18 @@ private:
             });
 
         // Begin input
-        Coroutines::AddAction(h, [this]() { if (!m_solved) { m_waitingForClicks = true; m_clickIndex = 0; } });
+        Coroutines::AddAction(h, [this]() {
+            if (m_solved) return;
+            if (!m_isInPresent) {
+                // In past: play once; do not re-queue automatically
+                m_waitingForClicks = false;
+            }
+            else {
+                // In present: allow user input for the memorized order
+                m_waitingForClicks = true;
+                m_clickIndex = 0;
+            }
+            });
     }
 
     int CountOrder() const { int n = 0; for (int i = 0; i < 5; ++i) if (m_order[i] >= 0) ++n; return n; }
