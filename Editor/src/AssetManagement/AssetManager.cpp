@@ -58,11 +58,66 @@ namespace Editor::Assets {
         // Register Builtin
         auto typeIndex = static_cast<size_t>(AssetType::Model);
         auto& meshes = m_assetsByType[typeIndex];
-        meshes.push_back({ "Cube",     "builtin:model/cube" });
-        meshes.push_back({ "Plane",    "builtin:model/plane" });
-        meshes.push_back({ "Cylinder", "builtin:model/cylinder" });
-        meshes.push_back({ "Sphere",   "builtin:model/sphere" });
-        meshes.push_back({ "Capsule",  "builtin:model/capsule" });
+
+        {
+            AssetRecord rec;
+            rec.id = "builtin:model/cube";
+            rec.type = AssetType::Model;
+            rec.sourcePath = "Cube";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            meshes.push_back({ "Cube",     "builtin:model/cube" });
+        }
+
+        {
+            AssetRecord rec;
+            rec.id = "builtin:model/plane";
+            rec.type = AssetType::Model;
+            rec.sourcePath = "Plane";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            meshes.push_back({ "Plane",    "builtin:model/plane" });
+        }
+
+        {
+            AssetRecord rec;
+            rec.id = "builtin:model/cylinder";
+            rec.type = AssetType::Model;
+            rec.sourcePath = "Cylinder";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            meshes.push_back({ "Cylinder", "builtin:model/cylinder" });
+        }
+
+        {
+            AssetRecord rec;
+            rec.id = "builtin:model/sphere";
+            rec.type = AssetType::Model;
+            rec.sourcePath = "Sphere";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            meshes.push_back({ "Sphere",   "builtin:model/sphere" });
+        }
+
+        {
+            AssetRecord rec;
+            rec.id = "builtin:model/capsule";
+            rec.type = AssetType::Model;
+            rec.sourcePath = "Capsule";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            meshes.push_back({ "Capsule",  "builtin:model/capsule" });
+        }
     }
 
 	AssetManager& AssetManager::GetInstance() {
@@ -368,21 +423,21 @@ namespace Editor::Assets {
 
     Assets::AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {
         std::string e = ToLower(std::string(extension));
-        if (e == "texture") return Assets::AssetType::Texture;
-        else if (e == "mesh") return Assets::AssetType::Model;
-        else if (e == "shader") return Assets::AssetType::Shader;
-        else if (e == "material") return Assets::AssetType::Material;
-        else if (e == "audio") return Assets::AssetType::Audio;
+        if (e == "texture")         return Assets::AssetType::Texture;
+        else if (e == "mesh")       return Assets::AssetType::Model;
+        else if (e == "shader")     return Assets::AssetType::Shader;
+        else if (e == "material")   return Assets::AssetType::Material;
+        else if (e == "audio")      return Assets::AssetType::Audio;
         return Assets::AssetType::Unknown;
     }
 
     Assets::AssetType AssetManager::GetAssetTypeFromExtension(std::string_view extension) {
 		std::string e = ToLower(std::string(extension));
-        if (e == ".png" || e == ".jpg" || e == ".jpeg" || e == ".tga") return Assets::AssetType::Texture;
-        else if (e == ".fbx" || e == ".obj") return Assets::AssetType::Model;
-        else if (e == ".nanoshader") return Assets::AssetType::Shader;
-        else if (e == ".nanomat") return Assets::AssetType::Material;
-        else if (e == ".wav" || e == ".mp3") return Assets::AssetType::Audio;
+        if (e == ".png" || e == ".jpg" || e == ".jpeg" || e == ".tga")  return Assets::AssetType::Texture;
+        else if (e == ".fbx" || e == ".obj")                            return Assets::AssetType::Model;
+        else if (e == ".nanoshader")                                    return Assets::AssetType::Shader;
+        else if (e == ".nanomat")                                       return Assets::AssetType::Material;
+        else if (e == ".wav" || e == ".mp3")                            return Assets::AssetType::Audio;
 		return Assets::AssetType::Unknown;
 	}
 
