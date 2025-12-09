@@ -1,0 +1,134 @@
+#include "HierarchySystem.hpp"
+#include "../Components/Hierarchy.hpp"
+#include "../Components/Transform.hpp"
+#include "Math/Mat4.hpp"
+
+namespace NE::ECS::Systems {
+
+    namespace {
+        NE::Math::Mat4 InverseTRS(const NE::Math::Mat4& world) {
+        	using namespace NE::Math;
+        	const Vec3 p = world.GetTranslation();
+        	const Vec3 r = world.GetRotation(); // Euler (same order you use to build)
+        	const Vec3 s = world.GetScale();
+
+        	// (T*R*S)^-1 = S^-1 * R^-1 * T^-1
+        	Mat4 invT = Mat4::BuildTranslation(Vec3{ -p.x, -p.y, -p.z });
+        	Mat4 invR = Mat4::BuildZRotation(-r.z) * Mat4::BuildYRotation(-r.y) * Mat4::BuildXRotation(-r.x);
+        	Mat4 invS = Mat4::BuildScaling(1.0f / s.x, 1.0f / s.y, 1.0f / s.z);
+        	return invS * invR * invT;
+        }
+
+        void DecomposeToTRS(const NE::Math::Mat4& m,
+        	NE::Math::Vec3& outPos,
+        	NE::Math::Vec3& outRot,
+        	NE::Math::Vec3& outScale)
+        {
+        	outPos = m.GetTranslation();
+        	outRot = m.GetRotation();
+        	outScale = m.GetScale();
+        }
+    }
+
+	HierarchySystem::HierarchySystem(ComponentManager* cm) : m_componentManager(cm) {}
+
+	void HierarchySystem::OnEntityAdded(Entity e) {
+		if (!m_componentManager->HasComponent<Component::Hierarchy>(e))
+			return;
+
+		auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
+
+		if (h.luid != 0) {
+			m_luidToEntity[h.luid] = e;
+		}
+
+		if (h.parentLuid != 0) {
+			m_pendingParents.push_back({ e, h.parentLuid });
+		}
+	}
+
+	void HierarchySystem::OnEntityRemoved(Entity e) {
+	}
+
+	void HierarchySystem::Init() {
+	}
+
+	void HierarchySystem::Update(double) {
+	}
+
+	void HierarchySystem::Exit() {
+	}
+
+	void HierarchySystem::SetParent(Entity child, Entity newParent, bool keepWorld) {
+        auto& childH = m_componentManager->GetComponent<Component::Hierarchy>(child);
+        auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
+
+        NE::Math::Mat4 childWorldBefore;
+        if (keepWorld) {
+            childWorldBefore = childT.worldMatrix;
+        }
+
+        // Remove from old parent’s children list
+        if (childH.parent != Component::INVALID_PARENT) {
+            auto& oldParentH = m_componentManager->GetComponent<Component::Hierarchy>(childH.parent);
+            auto& vec = oldParentH.children;
+            vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
+        }
+
+        // Set new parent
+        childH.parent = (newParent == Component::INVALID_PARENT)
+            ? Component::INVALID_PARENT
+            : newParent;
+
+        if (newParent != Component::INVALID_PARENT) {
+            auto& parentH = m_componentManager->GetComponent<Component::Hierarchy>(newParent);
+            parentH.children.push_back(child);
+
+            // parentLuid from parent’s Hierarchy
+            childH.parentLuid = parentH.luid;
+        } else {
+            childH.parentLuid = 0;
+        }
+
+        // Adjust local if keepWorld
+        if (keepWorld) {
+            NE::Math::Mat4 localM;
+            if (newParent != Component::INVALID_PARENT) {
+                auto& parentT = m_componentManager->GetComponent<Component::Transform>(newParent);
+                NE::Math::Mat4 invParent = InverseTRS(parentT.worldMatrix);
+                localM = invParent * childWorldBefore;
+            } else {
+                localM = childWorldBefore;
+            }
+
+            DecomposeToTRS(localM,
+                childT.localPosition,
+                childT.localRotationEuler,
+                childT.localScale);
+        }
+
+        childT.isDirty = true;
+	}
+
+	void HierarchySystem::ResolvePendingParentsForAll(bool keepWorldForNewParents) {
+        std::vector<PendingParent> stillPending;
+        stillPending.reserve(m_pendingParents.size());
+
+        for (const PendingParent& pp : m_pendingParents) {
+            if (!m_componentManager->HasComponent<Component::Hierarchy>(pp.child))
+                continue;
+
+            auto& childH = m_componentManager->GetComponent<Component::Hierarchy>(pp.child);
+
+            auto it = m_luidToEntity.find(pp.parentLuid);
+            if (it != m_luidToEntity.end()) {
+                Entity parentEnt = it->second;
+                SetParent(pp.child, parentEnt, keepWorldForNewParents);
+            } else {
+                stillPending.push_back(pp);
+            }
+        }
+
+        m_pendingParents.swap(stillPending);
+	}
+}

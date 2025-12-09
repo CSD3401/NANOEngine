@@ -20,23 +20,11 @@ namespace NE::ECS::Systems {
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;
-
-
-		void SetParent(Entity child, Entity newParent, bool keepWorld = true);
 	private:
-		void MarkDirtyRecursive(Entity e);
 		void BuildLocalMatrices();
-		void UpdateWorldRecursive(Entity e, const Math::Mat4& parentWorld);
-
-		void ResolvePendingParentsForAll(bool keepWorldForNewParents);
-
-		struct PendingParent {
-			Entity      child;
-			uint64_t    parentLuid;
-		};
-
-		std::unordered_map<uint64_t, Entity> m_luidToEntity;
-		std::vector<PendingParent>  m_pendingParents;
+		void UpdateWorldRecursive(Entity e,
+			const Math::Mat4& parentWorld,
+			bool parentWorldDirty);
 
 		ComponentManager* m_componentManager;
 	};
