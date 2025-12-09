@@ -17,7 +17,8 @@ namespace Editor::Assets {
 		Shader,
 		Material,
 		Audio,
-		Prefab
+		Prefab,
+		Scene
 	};
 
 	struct AssetRecord {

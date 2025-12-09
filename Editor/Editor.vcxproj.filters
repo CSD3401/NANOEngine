@@ -162,6 +162,9 @@
     <ClCompile Include="src\AssetManagement\Interfaces\ModelSettingsEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ImGuiLayer.hpp">
@@ -348,6 +351,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\AssetRecord.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -9,6 +9,7 @@
 #include "Core/SpdLogger.hpp"
 #include "Graphics/Core/Primitives.hpp"
 //#include "Graphics/OpenGL/GLShader.hpp"
+#include "ResourceTypes.hpp"
 
 namespace NE::Resource {
 
@@ -31,7 +32,8 @@ namespace NE::Resource {
 				return builtin;
 			}
 
-			const auto path = ComputeArtifactPathFromUUID(uuid);
+			constexpr ResourceType type = T::GetStaticType();
+			const auto path = ComputeArtifactPathFromUUID(uuid, type);
 			std::vector<uint8_t> bytes;
 			if (!ReadBinFile(path, bytes) || bytes.empty()) {
 				SPD_WARNING("Failed to read binary: " << uuid);

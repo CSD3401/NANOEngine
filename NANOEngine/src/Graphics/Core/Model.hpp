@@ -31,6 +31,8 @@ namespace NE::Graphics {
         bool GetPhysicsMesh(std::vector<Math::Vec3>& outVerts,
             std::vector<uint32_t>& outIndices) const;
 
+        static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::Model; }
+        Resource::ResourceType GetType() const override { return GetStaticType(); }
         //void ComputeModelSphereBounds();
 
     private:

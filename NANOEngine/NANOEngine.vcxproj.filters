@@ -184,7 +184,6 @@
     <ClInclude Include="src\ECS\Core\Signature.hpp" />
     <ClInclude Include="src\ECS\Core\SystemManager.hpp" />
     <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
-    <ClInclude Include="src\Serialisation\ISceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\ReflectionJson.hpp" />
     <ClInclude Include="src\Tween\Tween.hpp" />
@@ -234,6 +233,7 @@
     <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
     <ClInclude Include="src\Core\Layers.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
+    <ClInclude Include="src\ResourceManagement\ResourceTypes.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

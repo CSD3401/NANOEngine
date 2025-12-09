@@ -81,6 +81,7 @@
     <ClInclude Include="src\Graphics\Core\PipelineCache.hpp" />
     <ClInclude Include="src\Input\InputManager.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourcePaths.hpp" />
+    <ClInclude Include="src\ResourceManagement\ResourceTypes.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
     <ClInclude Include="src\Scripting\IScript_Compat.hpp" />
     <ClInclude Include="src\Scripting\ScriptContext.hpp" />
@@ -163,7 +164,6 @@
     <ClInclude Include="src\ECS\Core\Signature.hpp" />
     <ClInclude Include="src\ECS\Core\SystemManager.hpp" />
     <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
-    <ClInclude Include="src\Serialisation\ISceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
     <ClInclude Include="src\Serialisation\ReflectionJson.hpp" />
     <ClInclude Include="src\Tween\Tween.hpp" />

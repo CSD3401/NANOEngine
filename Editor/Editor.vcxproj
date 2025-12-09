@@ -164,6 +164,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\ModelSettingsEditor.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\IAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp" />
@@ -211,6 +212,7 @@
     <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AssetManagement\AssetRecord.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />
     <ClInclude Include="src\AssetManagement\AssetTypes.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\MaterialEditor.hpp" />

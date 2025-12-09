@@ -30,7 +30,7 @@ namespace Editor::Assets {
         std::string AssetTypeToString(Editor::Assets::AssetType type) {
             switch (type) {
             case Editor::Assets::AssetType::Texture:    return "Texture";
-            case Editor::Assets::AssetType::Model:       return "Mesh";
+            case Editor::Assets::AssetType::Model:      return "Mesh";
             case Editor::Assets::AssetType::Shader:     return "Shader";
             case Editor::Assets::AssetType::Material:   return "Material";
             case Editor::Assets::AssetType::Audio:      return "Audio";
@@ -42,10 +42,21 @@ namespace Editor::Assets {
             const std::string& uuid, const std::string& filename) {
             switch (type) {
             case Assets::AssetType::Texture:    return std::make_unique<Assets::TextureAsset>();
-            case Assets::AssetType::Model:       return std::make_unique<Assets::ModelAsset>();
+            case Assets::AssetType::Model:      return std::make_unique<Assets::ModelAsset>();
             case Assets::AssetType::Material:   return std::make_unique<Assets::MaterialAsset>();
             case Assets::AssetType::Shader:     return std::make_unique<Assets::ShaderAsset>();
             default:                            return nullptr;
+            }
+        }
+
+        NE::Resource::ResourceType GetResourceTypeFromAssetType(Assets::AssetType type) {
+            switch (type) {
+            case Assets::AssetType::Texture:    return NE::Resource::ResourceType::Texture;
+            case Assets::AssetType::Model:      return NE::Resource::ResourceType::Model;
+            case Assets::AssetType::Material:   return NE::Resource::ResourceType::Material;
+            case Assets::AssetType::Shader:     return NE::Resource::ResourceType::Shader;
+            case Assets::AssetType::Scene:      return NE::Resource::ResourceType::Scene;
+            default:                            return NE::Resource::ResourceType::Unknown;
             }
         }
 
@@ -170,7 +181,8 @@ namespace Editor::Assets {
                 rec.asset = CreateImporterForType(type, uuid, fsSourcePath.filename().string());
             }
 
-            const auto cookedPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
+            const auto cookedPath = 
+                NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
             if (!fs::exists(cookedPath) && rec.asset) {
                 rec.asset->Cook(fsSourcePath.string(), cookedPath);
                 rec.isLoaded = true;
@@ -189,7 +201,8 @@ namespace Editor::Assets {
         }
 
         if (rec.asset) {
-            const auto cookedPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
+            const auto cookedPath = 
+                NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
             rec.asset->Cook(fsSourcePath.string(), cookedPath);
             rec.isLoaded = true;
         }
@@ -276,7 +289,8 @@ namespace Editor::Assets {
         }
 
         rec.asset->LoadImportSettings(fsSourcePath.string());
-        rec.asset->Cook(fsSourcePath.string(), NE::Resource::ComputeArtifactPathFromUUID(uuid));
+        rec.asset->Cook(fsSourcePath.string(), 
+            NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type)));
         rec.isLoaded = true;
     }
 

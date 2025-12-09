@@ -54,6 +54,8 @@ namespace NE::Graphics {
 
         bool Preload(Resource::BinaryView blob) override;
         void Finalize() override;
+        static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::Material; }
+        Resource::ResourceType GetType() const override { return GetStaticType(); }
 
         //void SetUniformMat4Array(const std::string& name, const std::vector<NE::Math::Mat4>& values); // warning: definition not found
 
