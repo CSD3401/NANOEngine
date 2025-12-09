@@ -85,7 +85,7 @@
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
-    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoModelHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />

@@ -219,7 +219,7 @@ namespace Editor {
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* prefabPayload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
 				std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
-				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 				Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
 				std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
 
@@ -256,7 +256,7 @@ namespace Editor {
 					uint32_t parent = NE::ECS::Query::GetParent(entt);
 					if (parent == NE::ECS::NO_ENTITY || !newSet.count(parent)) {
 						prefabRoot = entt;
-						NE::ECS::Command::GetEntityMeta(entt).prefabID = AssetManager::GetInstance().RetrieveUUID(dropped);
+						NE::ECS::Command::GetEntityMeta(entt).prefabID = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 						break;
 					}
 				}
@@ -275,7 +275,7 @@ namespace Editor {
 				Editor::EditorScene::selectedAsset.clear();
 			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
-				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 
 				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					ImVec2 mousePos = ImGui::GetMousePos();
@@ -297,7 +297,7 @@ namespace Editor {
 				}
 			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
 				std::string dropped((const char*)modalPayload->Data, modalPayload->DataSize - 1);
-				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 
 				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					ImVec2 mousePos = ImGui::GetMousePos();

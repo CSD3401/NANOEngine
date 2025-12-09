@@ -41,7 +41,7 @@
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
-    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoModelHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />

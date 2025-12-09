@@ -124,7 +124,7 @@ namespace Editor {
 
 			if (ImGui::Button("Save")) {
 				NE::SavePrefabScene(EditorScene::selectedPrefab);
-				std::string uuid = AssetManager::GetInstance().RetrieveUUID(EditorScene::selectedPrefab);
+				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(EditorScene::selectedPrefab);
 				NE::ReloadAllInstancesOfPrefab(uuid, EditorScene::selectedPrefab);
 			}
 

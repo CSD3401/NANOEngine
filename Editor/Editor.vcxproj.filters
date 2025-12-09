@@ -114,7 +114,7 @@
     <ClCompile Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MaterialEditor.cpp">
+    <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Panels\AnimationPanel.cpp">
@@ -139,6 +139,27 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Panels\LightingPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ShaderAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\TextureAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Assets\IAsset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Interfaces\TextureSettingsEditor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManagement\Interfaces\ModelSettingsEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -266,7 +287,7 @@
     <ClInclude Include="vendor\include\imgui\widgets\imgui_widget_flamegraph\imgui_widget_flamegraph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MaterialEditor.hpp">
+    <ClInclude Include="src\AssetManagement\Interfaces\MaterialEditor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Panels\AnimationPanel.hpp">
@@ -300,6 +321,33 @@
       <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\EditorLayers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\MaterialAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ModelAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\PrefabAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\SceneAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\ShaderAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Assets\TextureAsset.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\AssetTypes.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Interfaces\TextureSettingsEditor.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

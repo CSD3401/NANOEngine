@@ -1,49 +1,59 @@
 #ifndef ASSET_MANAGER_HPP
 #define ASSET_MANAGER_HPP
+
 #include <unordered_map>
 #include <vector>
-#include "AssetMetadata.hpp"
-#include "Settings/TextureImportSettings.hpp"
+#include <array>
+#include <memory>
 
-namespace Editor {
+#include "AssetRecord.hpp"
+#include "Assets/IAsset.hpp"
 
+namespace Editor::Assets {
 	constexpr uint16_t CURRENT_META_SCHEMA_VERSION = 1;
+
+	// Helper: number of asset types (assumes Prefab is last)
+	inline constexpr size_t AssetTypeCount =
+		static_cast<size_t>(AssetType::Prefab) + 1;
 
 	class AssetManager {
 	public:
 		static AssetManager& GetInstance();
 
-		void LoadAssetRegistry();
-		void SaveAssetRegistry();
-
 		void GenerateMetadata(const std::string& sourcePath);
 		void ReimportAsset(const std::string& sourcePath);
 
 		std::string RetrieveUUID(const std::string& sourcePath);
-		std::string RetrieveFileName(const std::string& uuid);
-		
-		bool SaveTextureImportSettings(const std::string& metaPath, const TextureImportSettings& settings);
+		std::string RetrieveFilename(const std::string& uuid);
 
-		template <AssetType T>
-		std::vector<std::pair<std::string, UUID>>& GetAssetsOfType() {
-			static std::vector<std::pair<std::string, UUID>> registry;
-			return registry;
-		}
+		AssetRecord* GetRecord(const UUID& id);
+		const AssetRecord* GetRecord(const UUID& id) const;
+
+		AssetRecord* GetRecordBySource(const std::string& sourcePath);
+		const AssetRecord* GetRecordBySource(const std::string& sourcePath) const;
+
+		const std::vector<std::pair<std::string, UUID>>&
+			GetAssetsOfType(AssetType type) const;
 	private:
 		AssetManager();
 		~AssetManager() = default;
 
+		AssetRecord& RegisterAsset(
+			const UUID& id,
+			AssetType type,
+			const std::filesystem::path& sourcePath);
+
+		void UnregisterAsset(const UUID& id);
+
 		AssetType GetAssetTypeFromString(std::string_view extension);
-		AssetType GetAssetTypeFromExtension(std::string_view);
+		AssetType GetAssetTypeFromExtension(std::string_view extension);
 
-		bool CookTexture(const std::string& sourcePath, const std::string& outPath, const TextureImportSettings& settings);
-		bool CookShader(const std::string& sourcePath, const std::string& outPath);
-		bool CookMaterial(const std::string& sourcePath, const std::string& outPath);
-		bool CookMesh(const std::string& sourcePath, const std::string& outPath);
+		std::unordered_map<UUID, AssetRecord> m_assetsByID; // uuid to assetrecord
+		std::unordered_map<std::string, UUID> m_idByPath; // sourcepath to uuid
 
-		std::unordered_map<UUID, AssetMetadata> m_assets;
+		using NameUUIDList = std::vector<std::pair<std::string, UUID>>; // filename to uuid
+		std::array<NameUUIDList, AssetTypeCount> m_assetsByType;
 	};
-
 }
 
 #endif

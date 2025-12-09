@@ -24,7 +24,7 @@ namespace Editor {
 
             if (filePath.extension() == ".meta") continue;
 
-            AssetManager::GetInstance().GenerateMetadata(entry.path().string());
+            Assets::AssetManager::GetInstance().GenerateMetadata(entry.path().string());
         }
     }
 
@@ -76,8 +76,8 @@ namespace Editor {
                     std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
                     SPD_INFO("Prefab created at: " << filePath);
                     std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
-                    AssetManager::GetInstance().GenerateMetadata(filePath);
-                    std::string prefabID = AssetManager::GetInstance().RetrieveUUID(filePath);
+                    Assets::AssetManager::GetInstance().GenerateMetadata(filePath);
+                    std::string prefabID = Assets::AssetManager::GetInstance().RetrieveUUID(filePath);
                     meta.prefabID = prefabID;
 
                     NE::SerializePrefab(dropped, filePath);
@@ -537,7 +537,7 @@ namespace Editor {
                 }
 
                 if (ImGui::MenuItem("Reimport")) {
-                    AssetManager::GetInstance().ReimportAsset(m_selectedPath.string());
+                    Assets::AssetManager::GetInstance().ReimportAsset(m_selectedPath.string());
                 }
             }
             else {
@@ -607,7 +607,7 @@ namespace Editor {
             out.close();
         }
 
-        AssetManager::GetInstance().GenerateMetadata(matPath.string());
+        Assets::AssetManager::GetInstance().GenerateMetadata(matPath.string());
     }
 
     void AssetBrowserPanel::DeleteAssetWithMeta(const std::filesystem::path& assetPath) {

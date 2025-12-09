@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <Core/Reflection.hpp>
 
-namespace Editor {
+namespace Editor::Assets {
 
 	inline constexpr int TEXTURE_IMPORTER_VERSION = 1;
 
