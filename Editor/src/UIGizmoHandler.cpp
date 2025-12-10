@@ -2,11 +2,13 @@
 #include "imgui/imgui_internal.h"
 #include "EditorInterface/ECSExports.hpp"
 #include "Command/CommandHistory.hpp"
+#include <ECS/Components/UICanvas.hpp>
 #include <algorithm>
 #include <cstring>
 #include <cmath>
 #include <limits>
 #include <iostream>
+#include <vector>
 
 namespace Editor {
 
@@ -49,37 +51,85 @@ namespace Editor {
 
         auto& rect = Query::GetUIRectTransform(entityId);
 
+        // Find canvas entity
+        uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
+        const UICanvas* canvas = nullptr;
+
+        // First check if this entity itself is a canvas
+        if (Query::HasUICanvas(entityId)) {
+            canvasEntityId = entityId;
+            canvas = &Query::GetUICanvas(entityId);
+        } else {
+            // Walk up parent chain to find canvas
+            uint32_t currentParent = rect.parent;
+            while (currentParent != std::numeric_limits<uint32_t>::max()) {
+                if (Query::HasUICanvas(currentParent)) {
+                    canvasEntityId = currentParent;
+                    canvas = &Query::GetUICanvas(currentParent);
+                    break;
+                }
+                if (!Query::HasUIRectTransform(currentParent)) break;
+                currentParent = Query::GetUIRectTransform(currentParent).parent;
+            }
+        }
+
+        // Only build world matrix for world space UI
+        if (!canvas || canvas->renderMode != UICanvas::RenderMode::WORLD_SPACE) {
+            return identity;
+        }
+
         constexpr float PI = 3.14159265358979f;
 
-        // Start from local
-        NE::Math::Vec3 accumulatedPos = rect.GetPosition();
-        NE::Math::Vec3 accumulatedScale = rect.GetScale();
+        // Build parent chain (including canvas for world space)
+        std::vector<uint32_t> chain;
+        uint32_t current = entityId;
 
-        float accumulatedRotX = rect.rotationX;
-        float accumulatedRotY = rect.rotationY;
-        float accumulatedRotZ = rect.rotationZ;
-
-        // Accumulate parents (just like a normal Transform hierarchy)
-        uint32_t parentEntity = rect.parent;
-        while (parentEntity != std::numeric_limits<uint32_t>::max() &&
-            Query::HasUIRectTransform(parentEntity))
-        {
-            auto& parentRect = Query::GetUIRectTransform(parentEntity);
-
-            accumulatedPos.x += parentRect.x;
-            accumulatedPos.y += parentRect.y;
-            accumulatedPos.z += parentRect.z;
-
-            accumulatedScale.x *= parentRect.scaleX;
-            accumulatedScale.y *= parentRect.scaleY;
-            accumulatedScale.z *= parentRect.scaleZ;
-
-            accumulatedRotX += parentRect.rotationX;
-            accumulatedRotY += parentRect.rotationY;
-            accumulatedRotZ += parentRect.rotationZ;
-
-            parentEntity = parentRect.parent;
+        while (current != std::numeric_limits<uint32_t>::max() && Query::HasUIRectTransform(current)) {
+            chain.push_back(current);
+            if (current == canvasEntityId) break; // Include canvas for world space
+            current = Query::GetUIRectTransform(current).parent;
         }
+
+        std::reverse(chain.begin(), chain.end());
+
+        // Accumulate transforms along the chain
+        NE::Math::Vec3 accumulatedPos(0, 0, 0);
+        NE::Math::Vec3 accumulatedScale(1, 1, 1);
+        float accumulatedRotX = 0.0f;
+        float accumulatedRotY = 0.0f;
+        float accumulatedRotZ = 0.0f;
+
+        for (uint32_t entity : chain) {
+            auto& currentRect = Query::GetUIRectTransform(entity);
+
+            // Accumulate position
+            accumulatedPos.x += currentRect.x;
+            accumulatedPos.y += currentRect.y;
+            accumulatedPos.z += currentRect.z;
+
+            // Accumulate scale
+            accumulatedScale.x *= currentRect.scaleX;
+            accumulatedScale.y *= currentRect.scaleY;
+            accumulatedScale.z *= currentRect.scaleZ;
+
+            // Accumulate rotation
+            accumulatedRotX += currentRect.rotationX;
+            accumulatedRotY += currentRect.rotationY;
+            accumulatedRotZ += currentRect.rotationZ;
+        }
+
+        // Build TRS matrix - match TransformSystem's order: T * R * S
+        // Rotation order: X * Y * Z (same as TransformSystem)
+        NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(
+            accumulatedPos.x,
+            accumulatedPos.y,
+            accumulatedPos.z
+        );
+
+        NE::Math::Mat4 Rx = NE::Math::Mat4::BuildXRotation(accumulatedRotX * PI / 180.0f);
+        NE::Math::Mat4 Ry = NE::Math::Mat4::BuildYRotation(accumulatedRotY * PI / 180.0f);
+        NE::Math::Mat4 Rz = NE::Math::Mat4::BuildZRotation(accumulatedRotZ * PI / 180.0f);
+        NE::Math::Mat4 R = Rx * Ry * Rz; // X * Y * Z order (same as TransformSystem)
 
         NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(
             accumulatedScale.x,
@@ -87,18 +137,7 @@ namespace Editor {
             accumulatedScale.z
         );
 
-        NE::Math::Mat4 Rx = NE::Math::Mat4::BuildXRotation(accumulatedRotX * PI / 180.0f);
-        NE::Math::Mat4 Ry = NE::Math::Mat4::BuildYRotation(accumulatedRotY * PI / 180.0f);
-        NE::Math::Mat4 Rz = NE::Math::Mat4::BuildZRotation(accumulatedRotZ * PI / 180.0f);
-        NE::Math::Mat4 R = Rz * Ry * Rx;
-
-        NE::Math::Mat4 T = NE::Math::Mat4::BuildTranslation(
-            accumulatedPos.x,
-            accumulatedPos.y,
-            accumulatedPos.z
-        );
-
-        // TRS, no width/height/pivot here
+        // TRS order: T * R * S (same as TransformSystem)
         return T * R * S;
     }
 
@@ -226,53 +265,113 @@ namespace Editor {
             NE::Math::Mat4 newWorld;
             memcpy(newWorld.Data(), matrix, sizeof(float) * 16);
 
-            // 2. Build parent world matrix
-            NE::Math::Mat4 parentWorld;
-            parentWorld.SetToIdentity();
+            // 2. Find canvas entity
+            uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
+            if (NE::ECS::Query::HasUICanvas(uiEntityId)) {
+                canvasEntityId = uiEntityId;
+            } else {
+                uint32_t p = rectCmd.parent;
+                while (p != std::numeric_limits<uint32_t>::max()) {
+                    if (NE::ECS::Query::HasUICanvas(p)) {
+                        canvasEntityId = p;
+                        break;
+                    }
+                    if (!NE::ECS::Query::HasUIRectTransform(p)) break;
+                    p = NE::ECS::Query::GetUIRectTransform(p).parent;
+                }
+            }
 
+            // 3. Build parent world matrix (all parents up to and including canvas for world space)
+            // Build parent chain first (from immediate parent to canvas)
+            std::vector<uint32_t> parentChain;
             uint32_t p = rectCmd.parent;
             while (p != std::numeric_limits<uint32_t>::max() &&
                 NE::ECS::Query::HasUIRectTransform(p))
             {
-                auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
+                parentChain.push_back(p);
+                // Stop at canvas for world space (canvas transform is included)
+                if (p == canvasEntityId) break;
+                p = NE::ECS::Query::GetUIRectTransform(p).parent;
+            }
 
-                // Build parent's TRS
-                constexpr float PI = 3.14159265358979f;
+            // Reverse to get root-to-leaf order (canvas first, then immediate parent)
+            std::reverse(parentChain.begin(), parentChain.end());
+
+            // Build parent world matrix from root to leaf
+            NE::Math::Mat4 parentWorld;
+            parentWorld.SetToIdentity();
+
+            constexpr float PI = 3.14159265358979f;
+            for (uint32_t parentId : parentChain) {
+                auto& parentRect = NE::ECS::Query::GetUIRectTransform(parentId);
+
+                // Build parent's TRS - match TransformSystem's order: T * R * S
+                // Rotation order: X * Y * Z (same as TransformSystem)
                 NE::Math::Mat4 pT = NE::Math::Mat4::BuildTranslation(parentRect.x, parentRect.y, parentRect.z);
                 NE::Math::Mat4 pRx = NE::Math::Mat4::BuildXRotation(parentRect.rotationX * PI / 180.0f);
                 NE::Math::Mat4 pRy = NE::Math::Mat4::BuildYRotation(parentRect.rotationY * PI / 180.0f);
                 NE::Math::Mat4 pRz = NE::Math::Mat4::BuildZRotation(parentRect.rotationZ * PI / 180.0f);
-                NE::Math::Mat4 pR = pRz * pRy * pRx;
+                NE::Math::Mat4 pR = pRx * pRy * pRz; // X * Y * Z order (same as TransformSystem)
                 NE::Math::Mat4 pS = NE::Math::Mat4::BuildScaling(parentRect.scaleX, parentRect.scaleY, parentRect.scaleZ);
 
+                // Accumulate from root to leaf: parentWorld = parentWorld * (pT * pR * pS)
                 parentWorld = parentWorld * (pT * pR * pS);
-
-                p = parentRect.parent;
             }
 
-            // 3. Convert to local matrix: local = parent^-1 * world
+            // 4. Convert to local matrix: local = parent^-1 * world
             NE::Math::Mat4 invParent = parentWorld.Inverse();
             NE::Math::Mat4 newLocal = invParent * newWorld;
 
-            // 4. Decompose LOCAL matrix (not world!)
+            // 5. Decompose LOCAL matrix using ImGuizmo (same as 3D entities!)
             float localMatrix[16];
             memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
 
             float tr[3], rotDeg[3], sc[3];
             ImGuizmo::DecomposeMatrixToComponents(localMatrix, tr, rotDeg, sc);
 
-            // 5. Save local values directly (NO sensitivity multiplier!)
-            rectCmd.x = tr[0];
-            rectCmd.y = tr[1];
-            rectCmd.z = tr[2];
+            // 6. Validate and clamp decomposed values to prevent NaN/Inf
+            constexpr float MIN_SCALE = 0.001f;
+            constexpr float MAX_SCALE = 1000.0f;
+            constexpr float MAX_POS = 100000.0f;
 
-            rectCmd.rotationX = rotDeg[0];
-            rectCmd.rotationY = rotDeg[1];
-            rectCmd.rotationZ = rotDeg[2];
+            // Clamp translation
+            tr[0] = std::clamp(tr[0], -MAX_POS, MAX_POS);
+            tr[1] = std::clamp(tr[1], -MAX_POS, MAX_POS);
+            tr[2] = std::clamp(tr[2], -MAX_POS, MAX_POS);
 
-            rectCmd.scaleX = sc[0];
-            rectCmd.scaleY = sc[1];
-            rectCmd.scaleZ = sc[2];
+            // Normalize rotation to -180 to 180 range
+            for (int i = 0; i < 3; i++) {
+                while (rotDeg[i] > 180.0f) rotDeg[i] -= 360.0f;
+                while (rotDeg[i] < -180.0f) rotDeg[i] += 360.0f;
+            }
+
+            // Clamp scale (prevent zero or negative)
+            for (int i = 0; i < 3; i++) {
+                if (std::isnan(sc[i]) || std::isinf(sc[i]) || sc[i] < MIN_SCALE) {
+                    sc[i] = MIN_SCALE;
+                }
+                sc[i] = std::clamp(sc[i], MIN_SCALE, MAX_SCALE);
+            }
+
+            // 7. Save local values (only update what the current operation affects)
+            // Note: ImGuizmo returns rotation in degrees, which matches our storage
+            if (s_currentOperation == ImGuizmo::TRANSLATE || s_currentOperation == ImGuizmo::UNIVERSAL) {
+                rectCmd.x = tr[0];
+                rectCmd.y = tr[1];
+                rectCmd.z = tr[2];
+            }
+
+            if (s_currentOperation == ImGuizmo::ROTATE || s_currentOperation == ImGuizmo::UNIVERSAL) {
+                rectCmd.rotationX = rotDeg[0];
+                rectCmd.rotationY = rotDeg[1];
+                rectCmd.rotationZ = rotDeg[2];
+            }
+
+            if (s_currentOperation == ImGuizmo::SCALE || s_currentOperation == ImGuizmo::UNIVERSAL) {
+                rectCmd.scaleX = sc[0];
+                rectCmd.scaleY = sc[1];
+                rectCmd.scaleZ = sc[2];
+            }
 
             // =============================================
 

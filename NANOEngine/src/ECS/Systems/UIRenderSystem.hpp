@@ -8,6 +8,7 @@
 #include "../Components/UIImage.hpp"
 #include "../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/UIImageMeshGenerator.hpp"
+#include "UITransformSystem.hpp"
 #include <vector>
 #include <string>
 
@@ -16,37 +17,10 @@ namespace NE::ECS::Systems {
     class UIRenderSystem final : public System {
     public:
         //=================================================================
-        // Public Structures
-        //=================================================================
-
-        struct AccumulatedTransform {
-            float posX = 0.f;
-            float posY = 0.f;
-            float posZ = 0.f;
-            float scaleX = 1.f;
-            float scaleY = 1.f;
-            float scaleZ = 1.f;
-            float rotationX = 0.f;
-            float rotationY = 0.f;
-            float rotationZ = 0.f;
-        };
-
-        struct WorldTransform {
-            float x = 0.f;
-            float y = 0.f;
-            float z = 0.f;
-            float width = 0.f;
-            float height = 0.f;
-            float accumulatedRotationZ = 0.f;
-            float accumulatedScaleX = 1.f;
-            float accumulatedScaleY = 1.f;
-        };
-
-        //=================================================================
         // Lifecycle
         //=================================================================
 
-        explicit UIRenderSystem(ComponentManager* cm);
+        explicit UIRenderSystem(ComponentManager* cm, UITransformSystem* transformSystem = nullptr);
 
         void Init() override;
         void Update(double deltaTime) override;
@@ -54,52 +28,12 @@ namespace NE::ECS::Systems {
         void OnEntityAdded(Entity e) override;
         void OnEntityRemoved(Entity e) override;
 
+        // Set the transform system (called after both systems are registered)
+        void SetTransformSystem(UITransformSystem* transformSystem);
+
     private:
         ComponentManager* m_cm = nullptr;
-
-        //=================================================================
-        // Canvas Setup
-        //=================================================================
-
-        void SetupCanvasDefaults(Entity canvasEntity, Component::UICanvas& canvas);
-
-        //=================================================================
-        // Transform Hierarchy Functions
-        //=================================================================
-
-        AccumulatedTransform AccumulateParentTransforms(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas
-        );
-
-        std::vector<Entity> BuildParentChain(
-            Entity entity,
-            Entity canvasEntity,
-            Component::UICanvas::RenderMode renderMode
-        );
-
-        bool ShouldIncludeCanvasTransform(Component::UICanvas::RenderMode renderMode);
-
-        //=================================================================
-        // World Transform Calculation
-        //=================================================================
-
-        WorldTransform CalculateWorldTransform(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas,
-            const Math::Mat4* viewMatrix = nullptr,
-            const Math::Mat4* projMatrix = nullptr
-        );
-
-        void ApplyPixelPerfectSnapping(WorldTransform& transform);
-
-        //=================================================================
-        // Canvas & Scaling
-        //=================================================================
-
-        float CalculateScaleFactor(const Component::UICanvas& canvas);
+        UITransformSystem* m_transformSystem = nullptr;
 
         //=================================================================
         // Rendering
@@ -118,7 +52,7 @@ namespace NE::ECS::Systems {
 
         std::vector<NE::Graphics::UIVertex> GenerateScreenSpaceVertices(
             Entity entity,
-            const WorldTransform& worldTransform,
+            const UITransformSystem::WorldTransform& worldTransform,
             const Component::UIImage& img
         );
 
@@ -126,12 +60,6 @@ namespace NE::ECS::Systems {
             const Component::UIImage& img
         );
 
-        Math::Mat4 BuildWorldSpaceModelMatrix(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UIRectTransform& rect,
-            const AccumulatedTransform& accumulated
-        );
 
         void SubmitDrawCommand(
             Entity entity,
@@ -139,8 +67,8 @@ namespace NE::ECS::Systems {
             const Component::UICanvas& canvas,
             const Component::UIImage& img,
             const Component::UIRectTransform& rect,
-            const WorldTransform& worldTransform,
-            const AccumulatedTransform& accumulated,
+            const UITransformSystem::WorldTransform& worldTransform,
+            const UITransformSystem::AccumulatedTransform& accumulated,
             std::vector<NE::Graphics::UIVertex>& vertices,
             const Math::Mat4* viewMatrix,
             const Math::Mat4* projMatrix

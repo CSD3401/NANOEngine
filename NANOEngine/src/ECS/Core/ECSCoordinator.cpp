@@ -115,6 +115,9 @@ namespace NE::ECS {
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
             SetSystemSignature<Systems::UIRenderSystem>(sig);
         }
+        
+        // Set the transform system reference in the render system
+        m_uiRenderSystem->SetTransformSystem(m_uiTransformSystem.get());
 
         m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
         {

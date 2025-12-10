@@ -87,7 +87,7 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawFrame();
 		Graphics::GraphicsManager::EndFrame();
-		//Graphics::GraphicsManager::DrawUI();
+		Graphics::GraphicsManager::DrawUI();
 	}
 
 	void Scene::Exit() {

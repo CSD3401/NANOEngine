@@ -3,10 +3,30 @@
 #include "../Components/UICanvas.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "../../EditorInterface/ECSExports.hpp"
+#include "../../Graphics/Core/GraphicsManager.hpp"
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 
 namespace NE::ECS::Systems {
+
+    //=========================================================================
+    // Constants
+    //=========================================================================
+
+    static constexpr float PI = 3.14159265358979f;
+    static constexpr float ROTATION_EPSILON = 0.001f;
+
+    // Default anchor at center for Screen Space modes
+    static constexpr float DEFAULT_ANCHOR_X = 0.5f;
+    static constexpr float DEFAULT_ANCHOR_Y = 0.5f;
+
+    // Default world space canvas scale (so 100x100 UI = 10x10 world units)
+    static constexpr float DEFAULT_WORLD_SPACE_SCALE = 0.1f;
+
+    //=========================================================================
+    // Lifecycle
+    //=========================================================================
 
     UITransformSystem::UITransformSystem(ComponentManager* cm) : m_cm(cm) {}
 
@@ -129,5 +149,353 @@ namespace NE::ECS::Systems {
     }
 
     void UITransformSystem::Exit() {}
+
+    //=========================================================================
+    // Transform Hierarchy Functions
+    //=========================================================================
+
+    bool UITransformSystem::ShouldIncludeCanvasTransform(Component::UICanvas::RenderMode renderMode) {
+        return renderMode == Component::UICanvas::RenderMode::WORLD_SPACE;
+    }
+
+    std::vector<Entity> UITransformSystem::BuildParentChain(
+        Entity entity,
+        Entity canvasEntity,
+        Component::UICanvas::RenderMode renderMode
+    ) {
+        std::vector<Entity> chain;
+        Entity current = entity;
+
+        while (current != NO_ENTITY && m_cm->HasComponent<Component::UIRectTransform>(current)) {
+            if (current == canvasEntity && !ShouldIncludeCanvasTransform(renderMode)) {
+                break;
+            }
+
+            chain.push_back(current);
+            current = m_cm->GetComponent<Component::UIRectTransform>(current).parent;
+        }
+
+        std::reverse(chain.begin(), chain.end());
+        return chain;
+    }
+
+    UITransformSystem::AccumulatedTransform UITransformSystem::AccumulateParentTransforms(
+        Entity entity,
+        Entity canvasEntity,
+        const Component::UICanvas& canvas
+    ) {
+        AccumulatedTransform result;
+
+        if (!m_cm->HasComponent<Component::UIRectTransform>(entity)) {
+            return result;
+        }
+
+        //=====================================================================
+        // WORLD SPACE: Original logic - NO center anchor offset
+        // Canvas transform IS included (position, rotation, scale all apply)
+        //=====================================================================
+        if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
+            std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
+
+            for (size_t i = 0; i < chain.size(); ++i) {
+                Entity current = chain[i];
+                auto& rect = m_cm->GetComponent<Component::UIRectTransform>(current);
+
+                // accumulate scale
+                result.scaleX *= rect.scaleX;
+                result.scaleY *= rect.scaleY;
+                result.scaleZ *= rect.scaleZ;
+
+                // accumulate rotation
+                result.rotationX += rect.rotationX;
+                result.rotationY += rect.rotationY;
+                result.rotationZ += rect.rotationZ;
+
+                // accumulate position
+                result.posX += rect.x;
+                result.posY += rect.y;
+                result.posZ += rect.z;
+            }
+
+            return result;
+        }
+
+        //=====================================================================
+        // SCREEN SPACE: Apply center anchor and scaleFactor
+        // Canvas transform is IGNORED (locked like Unity)
+        //=====================================================================
+        result.scaleX = canvas.scaleFactor;
+        result.scaleY = canvas.scaleFactor;
+
+        std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
+
+        for (size_t i = 0; i < chain.size(); ++i) {
+            Entity current = chain[i];
+            auto& rect = m_cm->GetComponent<Component::UIRectTransform>(current);
+            bool isTarget = (current == entity);
+
+            result.scaleX *= rect.scaleX;
+            result.scaleY *= rect.scaleY;
+            result.scaleZ *= rect.scaleZ;
+            result.rotationZ += rect.rotationZ;
+
+            // Get parent dimensions for anchor calculation
+            float parentWidth = 0.f;
+            float parentHeight = 0.f;
+
+            if (i > 0) {
+                Entity parentEntity = chain[i - 1];
+                auto& parentRect = m_cm->GetComponent<Component::UIRectTransform>(parentEntity);
+                parentWidth = parentRect.width;
+                parentHeight = parentRect.height;
+            }
+            else {
+                // Direct child of canvas - use screen dimensions in reference coordinates
+                parentWidth = NE::Graphics::GraphicsManager::GetScreenWidth() / canvas.scaleFactor;
+                parentHeight = NE::Graphics::GraphicsManager::GetScreenHeight() / canvas.scaleFactor;
+            }
+
+            // Center anchor offset
+            float anchorX = parentWidth * DEFAULT_ANCHOR_X;
+            float anchorY = parentHeight * DEFAULT_ANCHOR_Y;
+
+            if (isTarget) {
+                // Use scaled dimensions for pivot offset calculation
+                float scaledWidth = rect.width * result.scaleX;
+                float scaledHeight = rect.height * result.scaleY;
+
+                float localX = anchorX + rect.x - scaledWidth * rect.pivotX;
+                float localY = anchorY + rect.y - scaledHeight * rect.pivotY;
+
+                float parentRotation = result.rotationZ - rect.rotationZ;
+                if (std::abs(parentRotation) > ROTATION_EPSILON) {
+                    float rad = parentRotation * PI / 180.0f;
+                    float cosR = std::cos(rad);
+                    float sinR = std::sin(rad);
+                    float rotatedX = localX * cosR - localY * sinR;
+                    float rotatedY = localX * sinR + localY * cosR;
+                    localX = rotatedX;
+                    localY = rotatedY;
+                }
+
+                float parentScaleX = result.scaleX / rect.scaleX;
+                float parentScaleY = result.scaleY / rect.scaleY;
+
+                result.posX += localX * parentScaleX;
+                result.posY += localY * parentScaleY;
+                result.posZ += rect.z;
+            }
+            else {
+                result.posX += anchorX + rect.x;
+                result.posY += anchorY + rect.y;
+                result.posZ += rect.z;
+            }
+        }
+
+        return result;
+    }
+
+    //=========================================================================
+    // World Transform Calculation
+    //=========================================================================
+
+    UITransformSystem::WorldTransform UITransformSystem::CalculateWorldTransform(
+        Entity entity,
+        Entity canvasEntity,
+        const Component::UICanvas& canvas,
+        const Math::Mat4* viewMatrix,
+        const Math::Mat4* projMatrix
+    ) {
+        WorldTransform result;
+
+        if (!m_cm->HasComponent<Component::UIRectTransform>(entity)) {
+            return result;
+        }
+
+        auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
+        AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
+
+        result.x = accumulated.posX;
+        result.y = accumulated.posY;
+        result.z = accumulated.posZ;
+        result.width = rect.width * accumulated.scaleX;
+        result.height = rect.height * accumulated.scaleY;
+        result.accumulatedRotationZ = accumulated.rotationZ;
+        result.accumulatedScaleX = accumulated.scaleX;
+        result.accumulatedScaleY = accumulated.scaleY;
+
+        // Pixel-perfect snapping for screen space only
+        if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+            canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+            if (canvas.pixelPerfect) {
+                ApplyPixelPerfectSnapping(result);
+            }
+        }
+
+        return result;
+    }
+
+    void UITransformSystem::ApplyPixelPerfectSnapping(WorldTransform& transform) {
+        transform.x = std::round(transform.x);
+        transform.y = std::round(transform.y);
+        transform.width = std::round(transform.width);
+        transform.height = std::round(transform.height);
+    }
+
+    //=========================================================================
+    // Model Matrix Building
+    //=========================================================================
+
+    Math::Mat4 UITransformSystem::BuildWorldSpaceModelMatrix(
+        Entity entity,
+        Entity canvasEntity,
+        const Component::UIRectTransform& rect,
+        const AccumulatedTransform& accumulated
+    ) {
+        // compute pivot offset
+        Math::Vec2 pivot = rect.GetPivot();
+
+        float pivotOffsetX = -rect.width * pivot.x * accumulated.scaleX;
+        float pivotOffsetY = -rect.height * pivot.y * accumulated.scaleY;
+
+        // Scale matrix using accumulated scale
+        Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
+            rect.width * accumulated.scaleX,
+            rect.height * accumulated.scaleY,
+            accumulated.scaleZ
+        );
+
+        // pivot offset in local space
+        Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(
+            pivotOffsetX,
+            pivotOffsetY,
+            0.0f
+        );
+
+        // rotation using accumulated rotations
+        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accumulated.rotationX * PI / 180.0f);
+        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accumulated.rotationY * PI / 180.0f);
+        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accumulated.rotationZ * PI / 180.0f);
+        Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
+
+        // translation using accumulated position
+        Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(
+            accumulated.posX,
+            accumulated.posY,
+            accumulated.posZ
+        );
+
+        return translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
+    }
+
+    //=========================================================================
+    // Canvas Setup
+    //=========================================================================
+
+    void UITransformSystem::SetupCanvasDefaults(Entity canvasEntity, Component::UICanvas& canvas) {
+        if (!m_cm->HasComponent<Component::UIRectTransform>(canvasEntity)) {
+            return;
+        }
+
+        // Check if render mode changed or first time setup
+        bool renderModeChanged = canvas.hasBeenInitialized &&
+            (canvas.renderMode != canvas.lastInitializedMode);
+
+        if (canvas.hasBeenInitialized && !renderModeChanged) {
+            // Already initialized and mode hasn't changed - only update screen space position
+            if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+                canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
+            {
+                auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
+                float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+                float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+                canvasRect.x = screenWidth * DEFAULT_ANCHOR_X;
+                canvasRect.y = screenHeight * DEFAULT_ANCHOR_Y;
+                canvasRect.width = canvas.referenceWidth;
+                canvasRect.height = canvas.referenceHeight;
+            }
+            return;
+        }
+
+        // First time OR render mode changed - apply full defaults
+        auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
+
+        switch (canvas.renderMode) {
+        case Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY:
+        case Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA: {
+            float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+            float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+
+            canvasRect.x = screenWidth * DEFAULT_ANCHOR_X;
+            canvasRect.y = screenHeight * DEFAULT_ANCHOR_Y;
+            canvasRect.z = 0.f;
+
+            // Reset scale to 1 (scaleFactor handles scaling)
+            canvasRect.scaleX = 1.f;
+            canvasRect.scaleY = 1.f;
+            canvasRect.scaleZ = 1.f;
+
+            canvasRect.width = canvas.referenceWidth;
+            canvasRect.height = canvas.referenceHeight;
+
+            // Reset rotation
+            canvasRect.rotationX = 0.f;
+            canvasRect.rotationY = 0.f;
+            canvasRect.rotationZ = 0.f;
+            break;
+        }
+
+        case Component::UICanvas::RenderMode::WORLD_SPACE: {
+            // Apply default world space scale
+            canvasRect.scaleX = DEFAULT_WORLD_SPACE_SCALE;
+            canvasRect.scaleY = DEFAULT_WORLD_SPACE_SCALE;
+            canvasRect.scaleZ = 1.f;
+
+            // Reset position to origin (user can move it)
+            canvasRect.x = 0.f;
+            canvasRect.y = 0.f;
+            canvasRect.z = 0.f;
+
+            // Keep rotation as is or reset
+            canvasRect.rotationX = 0.f;
+            canvasRect.rotationY = 0.f;
+            canvasRect.rotationZ = 0.f;
+            break;
+        }
+        }
+
+        // Mark as initialized with current mode
+        canvas.hasBeenInitialized = true;
+        canvas.lastInitializedMode = canvas.renderMode;
+    }
+
+    //=========================================================================
+    // Canvas & Scaling
+    //=========================================================================
+
+    float UITransformSystem::CalculateScaleFactor(const Component::UICanvas& canvas) {
+        float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+        float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+
+        switch (canvas.scaleMode) {
+        case Component::UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE: {
+            float widthScale = screenWidth / canvas.referenceWidth;
+            float heightScale = screenHeight / canvas.referenceHeight;
+            return std::min(widthScale, heightScale);
+        }
+
+        case Component::UICanvas::ScaleMode::CONSTANT_PIXEL_SIZE: {
+            return 1.0f;
+        }
+
+        case Component::UICanvas::ScaleMode::CONSTANT_PHYSICAL_SIZE: {
+            float referenceDPI = 96.0f;
+            float currentDPI = 96.0f;
+            return currentDPI / referenceDPI;
+        }
+        }
+
+        return 1.0f;
+    }
 
 } // namespace NE::ECS::Systems
