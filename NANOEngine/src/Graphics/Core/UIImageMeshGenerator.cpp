@@ -51,18 +51,23 @@ namespace NE::Graphics {
         const Math::Vec4& color
     ) {
         // Standard quad: 2 triangles, 6 vertices
+        // In top-left origin system (Y-down):
+        //   (x, y) = top-left corner (Y is small at top)
+        //   (x + width, y + height) = bottom-right corner (Y is large at bottom)
+        // OpenGL UV: (0,0) = bottom-left of texture, (1,1) = top-right of texture
+        // We flip V coordinates to match: top screen vertex (Y=small) maps to top texture (V=1), bottom screen vertex (Y=large) maps to bottom texture (V=0)
         std::vector<UIVertex> vertices;
         vertices.reserve(6);
 
-        // Triangle 1
-        vertices.push_back(CreateVertex(x, y, z, 0.0f, 1.0f, color)); // Bottom-left
-        vertices.push_back(CreateVertex(x + width, y, z, 1.0f, 1.0f, color)); // Bottom-right
-        vertices.push_back(CreateVertex(x + width, y + height, z, 1.0f, 0.0f, color)); // Top-right
+        // Triangle 1: Top-left, Top-right, Bottom-right
+        vertices.push_back(CreateVertex(x, y, z, 0.0f, 1.0f, color)); // Top-left: UV(0,1) = top-left of texture
+        vertices.push_back(CreateVertex(x + width, y, z, 1.0f, 1.0f, color)); // Top-right: UV(1,1) = top-right of texture
+        vertices.push_back(CreateVertex(x + width, y + height, z, 1.0f, 0.0f, color)); // Bottom-right: UV(1,0) = bottom-right of texture
 
-        // Triangle 2
-        vertices.push_back(CreateVertex(x, y, z, 0.0f, 1.0f, color)); // Bottom-left
-        vertices.push_back(CreateVertex(x + width, y + height, z, 1.0f, 0.0f, color)); // Top-right
-        vertices.push_back(CreateVertex(x, y + height, z, 0.0f, 0.0f, color)); // Top-left
+        // Triangle 2: Top-left, Bottom-right, Bottom-left
+        vertices.push_back(CreateVertex(x, y, z, 0.0f, 1.0f, color)); // Top-left: UV(0,1) = top-left of texture
+        vertices.push_back(CreateVertex(x + width, y + height, z, 1.0f, 0.0f, color)); // Bottom-right: UV(1,0) = bottom-right of texture
+        vertices.push_back(CreateVertex(x, y + height, z, 0.0f, 0.0f, color)); // Bottom-left: UV(0,0) = bottom-left of texture
 
         return vertices;
     }
@@ -77,7 +82,7 @@ namespace NE::Graphics {
         // Corners stay same size, edges stretch in one direction, center stretches both
 
         std::vector<UIVertex> vertices;
-        vertices.reserve(54); // 9 quads × 6 vertices
+        vertices.reserve(54); // 9 quads ï¿½ 6 vertices
 
         float left = image.borderLeft;
         float right = image.borderRight;

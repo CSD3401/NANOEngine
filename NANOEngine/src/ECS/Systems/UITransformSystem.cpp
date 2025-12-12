@@ -229,6 +229,19 @@ namespace NE::ECS::Systems {
 
         std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
 
+        // Special case: If querying the Canvas itself (root entity, no parent)
+        // For Canvas, rect.x/y already represents the pivot position in screen space
+        // We should NOT add pivot offset again - the position IS the pivot position
+        // This is because Canvas has no parent anchor to offset from
+        if (entity == canvasEntity) {
+            auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
+            // Canvas position (rect.x, rect.y) is already the pivot position
+            result.posX = rect.x * result.scaleX;
+            result.posY = rect.y * result.scaleY;
+            result.posZ = rect.z;
+            return result;
+        }
+
         for (size_t i = 0; i < chain.size(); ++i) {
             Entity current = chain[i];
             auto& rect = m_cm->GetComponent<Component::UIRectTransform>(current);
@@ -255,37 +268,22 @@ namespace NE::ECS::Systems {
                 parentHeight = NE::Graphics::GraphicsManager::GetScreenHeight() / canvas.scaleFactor;
             }
 
-            // Center anchor offset
-            float anchorX = parentWidth * DEFAULT_ANCHOR_X;
-            float anchorY = parentHeight * DEFAULT_ANCHOR_Y;
+            // Calculate anchor position using actual anchor values from component
+            bool isStretchedX = rect.IsStretchedX();
+            bool isStretchedY = rect.IsStretchedY();
 
             if (isTarget) {
-                // Use scaled dimensions for pivot offset calculation
-                float scaledWidth = rect.width * result.scaleX;
-                float scaledHeight = rect.height * result.scaleY;
-
-                float localX = anchorX + rect.x - scaledWidth * rect.pivotX;
-                float localY = anchorY + rect.y - scaledHeight * rect.pivotY;
-
-                float parentRotation = result.rotationZ - rect.rotationZ;
-                if (std::abs(parentRotation) > ROTATION_EPSILON) {
-                    float rad = parentRotation * PI / 180.0f;
-                    float cosR = std::cos(rad);
-                    float sinR = std::sin(rad);
-                    float rotatedX = localX * cosR - localY * sinR;
-                    float rotatedY = localX * sinR + localY * cosR;
-                    localX = rotatedX;
-                    localY = rotatedY;
-                }
-
-                float parentScaleX = result.scaleX / rect.scaleX;
-                float parentScaleY = result.scaleY / rect.scaleY;
-
-                result.posX += localX * parentScaleX;
-                result.posY += localY * parentScaleY;
+                // For the target entity, use anchor point for positioning (same as parent entities)
+                float anchorX = parentWidth * rect.anchorMinX;
+                float anchorY = parentHeight * (1.0f - rect.anchorMinY);
+                result.posX += anchorX + rect.x;
+                result.posY += anchorY + rect.y;
                 result.posZ += rect.z;
             }
             else {
+                // For parent entities, use anchor point for positioning
+                float anchorX = parentWidth * rect.anchorMinX;
+                float anchorY = parentHeight * (1.0f - rect.anchorMinY);
                 result.posX += anchorX + rect.x;
                 result.posY += anchorY + rect.y;
                 result.posZ += rect.z;

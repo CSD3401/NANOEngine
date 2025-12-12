@@ -424,30 +424,20 @@ namespace Editor {
         float panelScaleX = panelSize.x / fbWidth;
         float panelScaleY = panelSize.y / fbHeight;
 
-        // Calculate world pivot position and accumulated scale
-        float worldPivotX = rectTransform.x;
-        float worldPivotY = rectTransform.y;
-        float worldScaleX = rectTransform.scaleX;
-        float worldScaleY = rectTransform.scaleY;
+        // Use UITransformSystem to get world transform (accounts for anchors properly)
+        auto worldTransform = NE::ECS::Query::GetUIWorldTransform(uiEntityId);
+        
+        // worldTransform.x/y is the pivot position in top-left origin coordinates
+        float worldPivotX = worldTransform.x;
+        float worldPivotY = worldTransform.y;
+        
+        // worldTransform.width/height are already scaled
+        float scaledWidth = worldTransform.width;
+        float scaledHeight = worldTransform.height;
 
-        uint32_t currentParent = rectTransform.parent;
-        while (currentParent != std::numeric_limits<uint32_t>::max()) {
-            if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-            auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
-            worldPivotX += parentRect.x;
-            worldPivotY += parentRect.y;
-            worldScaleX *= parentRect.scaleX;
-            worldScaleY *= parentRect.scaleY;
-            currentParent = parentRect.parent;
-        }
-
-        // Apply world scale to dimensions
-        float scaledWidth = rectTransform.width * worldScaleX;
-        float scaledHeight = rectTransform.height * worldScaleY;
-
-        // Calculate top-left from pivot (using scaled dimensions)
+        // Calculate top-left from pivot (Unity-style: pivot (0,0) = bottom-left)
         float topLeftX = worldPivotX - scaledWidth * rectTransform.pivotX;
-        float topLeftY = worldPivotY - scaledHeight * rectTransform.pivotY;
+        float topLeftY = worldPivotY - scaledHeight * (1.0f - rectTransform.pivotY);
 
         // Convert to screen coordinates
         ImVec2 topLeft(
@@ -463,8 +453,8 @@ namespace Editor {
             panelPos.y + worldPivotY * panelScaleY
         );
 
-        // Get rotation
-        float rotationZ = rectTransform.rotationZ;
+        // Get rotation (use accumulated rotation from world transform)
+        float rotationZ = worldTransform.accumulatedRotationZ;
         bool hasRotation = std::abs(rotationZ) > 0.001f;
         const float PI = 3.14159265358979f;
         float radians = rotationZ * PI / 180.0f;

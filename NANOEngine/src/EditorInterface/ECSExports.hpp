@@ -65,6 +65,19 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
+
+		// UI World Transform (for gizmo alignment)
+		struct UIWorldTransform {
+			float x = 0.f;
+			float y = 0.f;
+			float z = 0.f;
+			float width = 0.f;
+			float height = 0.f;
+			float accumulatedRotationZ = 0.f;
+			float accumulatedScaleX = 1.f;
+			float accumulatedScaleY = 1.f;
+		};
+		NANOENGINE_API UIWorldTransform GetUIWorldTransform(uint32_t entity);
 	}
 
 	namespace Command {

@@ -132,10 +132,21 @@ namespace NE::ECS::Systems {
     ) {
         auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
 
+        // Unity-style: worldTransform is already in top-left origin coordinates (Y-down)
+        // worldTransform.x/y is the pivot position (calculated in AccumulateParentTransforms)
+        // GenerateVertices expects top-left corner, so we calculate it from pivot position
+        //
+        // In Unity: pivot (0,0) = bottom-left, (0.5,0.5) = center, (1,1) = top-right
+        // Formula: topLeft = pivot - (width * pivotX, height * (1 - pivotY))
+        //   - X: pivotX_norm = 0.0 → left, 1.0 → right
+        //   - Y: pivotY_norm = 0.0 → bottom, 1.0 → top (in Y-down: bottom Y > top Y)
+        float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
+        float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
+        
         auto vertices = NE::Graphics::UIImageMeshGenerator::GenerateVertices(
             img,
-            worldTransform.x,
-            worldTransform.y,
+            topLeftX,
+            topLeftY,
             worldTransform.z,
             worldTransform.width,
             worldTransform.height,
@@ -143,8 +154,10 @@ namespace NE::ECS::Systems {
         );
 
         if (!vertices.empty() && std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
-            float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
-            float pivotY = worldTransform.y + worldTransform.height * rect.pivotY;
+            // Rotate vertices around the pivot point
+            // worldTransform.x/y is already the pivot position in top-left origin coordinates
+            float pivotX = worldTransform.x;
+            float pivotY = worldTransform.y;
             RotateVertices2D(vertices, pivotX, pivotY, worldTransform.accumulatedRotationZ);
         }
 
@@ -175,8 +188,13 @@ namespace NE::ECS::Systems {
     ) {
         NE::Graphics::UIDrawCommand cmd;
 
-        cmd.x = worldTransform.x;
-        cmd.y = worldTransform.y;
+        // BuildQuadVertices expects top-left corner, not pivot position
+        // Calculate top-left from pivot: topLeft = pivot - (width * pivotX, height * (1 - pivotY))
+        float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
+        float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
+        
+        cmd.x = topLeftX;
+        cmd.y = topLeftY;
         cmd.z = worldTransform.z;
         cmd.width = worldTransform.width;
         cmd.height = worldTransform.height;

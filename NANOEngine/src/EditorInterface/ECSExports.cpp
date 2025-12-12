@@ -14,7 +14,9 @@
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
+#include "../ECS/Systems/UITransformSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
+#include <limits>
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
@@ -153,6 +155,58 @@ namespace NE::ECS {
 			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
 				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
 			}
+		}
+
+		UIWorldTransform GetUIWorldTransform(uint32_t entity) {
+			UIWorldTransform result{};
+			auto& ecs = NE::GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<NE::ECS::Component::UIRectTransform>(entity)) {
+				return result;
+			}
+
+			// Find canvas entity
+			uint32_t canvasEntity = std::numeric_limits<uint32_t>::max();
+			const NE::ECS::Component::UICanvas* canvas = nullptr;
+
+			if (ecs.HasComponent<NE::ECS::Component::UICanvas>(entity)) {
+				canvasEntity = entity;
+				canvas = &ecs.GetComponent<NE::ECS::Component::UICanvas>(entity);
+			} else {
+				auto& rect = ecs.GetComponent<NE::ECS::Component::UIRectTransform>(entity);
+				uint32_t currentParent = rect.parent;
+				while (currentParent != NE::ECS::NO_ENTITY) {
+					if (ecs.HasComponent<NE::ECS::Component::UICanvas>(currentParent)) {
+						canvasEntity = currentParent;
+						canvas = &ecs.GetComponent<NE::ECS::Component::UICanvas>(currentParent);
+						break;
+					}
+					if (!ecs.HasComponent<NE::ECS::Component::UIRectTransform>(currentParent)) break;
+					currentParent = ecs.GetComponent<NE::ECS::Component::UIRectTransform>(currentParent).parent;
+				}
+			}
+
+			if (!canvas || canvasEntity == std::numeric_limits<uint32_t>::max()) {
+				return result;
+			}
+
+			// Use UITransformSystem to calculate world transform
+			if (ecs.m_uiTransformSystem) {
+				auto worldTransform = ecs.m_uiTransformSystem->CalculateWorldTransform(
+					entity, canvasEntity, *canvas, nullptr, nullptr
+				);
+
+				result.x = worldTransform.x;
+				result.y = worldTransform.y;
+				result.z = worldTransform.z;
+				result.width = worldTransform.width;
+				result.height = worldTransform.height;
+				result.accumulatedRotationZ = worldTransform.accumulatedRotationZ;
+				result.accumulatedScaleX = worldTransform.accumulatedScaleX;
+				result.accumulatedScaleY = worldTransform.accumulatedScaleY;
+			}
+
+			return result;
 		}
 	}
 
