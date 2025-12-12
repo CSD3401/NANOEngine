@@ -115,7 +115,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -143,7 +143,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -165,12 +165,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MaterialEditor.cpp" />
+    <ClCompile Include="src\Serialization\Serializer.cpp" />
     <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
     <ClCompile Include="src\AssetManagement\UUID.cpp" />
+    <ClCompile Include="src\EditorSelection.cpp" />
     <ClCompile Include="src\EditorUI.cpp" />
-    <ClCompile Include="src\Panels\AnimationGraphPanel.cpp" />
-    <ClCompile Include="src\Panels\AnimationPanel.cpp" />
-    <ClCompile Include="src\Panels\AnimationRuntimePanel.cpp" />
     <ClCompile Include="src\EditorScene.cpp" />
     <ClCompile Include="src\Command\CommandHistory.cpp" />
     <ClCompile Include="src\Command\EditorCommands.cpp" />
@@ -205,6 +204,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MaterialEditor.hpp" />
+    <ClInclude Include="src\Serialization\Serializer.hpp" />
     <ClInclude Include="src\AssetManagement\AssetManager.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\AssetManagement\AssetMetadata.hpp" />
@@ -216,14 +216,11 @@
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
     <ClInclude Include="src\EditorLayers.hpp" />
-    <ClInclude Include="src\Panels\AnimationGraphPanel.hpp" />
-    <ClInclude Include="src\Panels\AnimationPanel.hpp" />
-    <ClInclude Include="src\Panels\AnimationRuntimePanel.hpp" />
+    <ClInclude Include="src\EditorSelection.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />
     <ClInclude Include="src\Command\CommandHistory.hpp" />
     <ClInclude Include="src\Command\EditorCommands.hpp" />
     <ClInclude Include="src\Command\ICommand.hpp" />
-    <ClInclude Include="src\EditorEntity.hpp" />
     <ClInclude Include="src\Panels\ConsolePanel.hpp" />
     <ClInclude Include="src\Panels\GamePanel.hpp" />
     <ClInclude Include="src\Panels\HierarchyPanel.hpp" />

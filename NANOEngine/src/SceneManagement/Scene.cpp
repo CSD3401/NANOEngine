@@ -1,26 +1,27 @@
 #include "Scene.hpp"
-#include "../../src/Graphics/Core/GraphicsManager.hpp"
-#include "../../src/Graphics/Core/GizmosRenderer.hpp"
-#include "../ECS/Systems/TransformSystem.hpp"
-#include "../ECS/Systems/RenderSystem.hpp"
-#include "../ECS/Systems/LightSystem.hpp"
-#include "../ECS/Systems/RigidbodySystem.hpp"
-#include "../ECS/Systems/ColliderSystem.hpp"
-#include "../ECS/Systems/AudioSystem.hpp"
-#include "../ECS/Systems/AnimatorSystem.hpp"
-#include "../Animation/TransformClipIO.hpp"
 #include <filesystem>
-#include "../ECS/Systems/CameraSystem.hpp"
-#include "../ECS/Systems/PhysicsSystem.hpp"
-#include "../ECS/Components/Transform.hpp"
-#include "../ECS/Components/Renderer.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/GizmosRenderer.hpp"
+#include "ECS/Systems/TransformSystem.hpp"
+#include "ECS/Systems/RenderSystem.hpp"
+#include "ECS/Systems/LightSystem.hpp"
+#include "ECS/Systems/RigidbodySystem.hpp"
+#include "ECS/Systems/ColliderSystem.hpp"
+#include "ECS/Systems/AudioSystem.hpp"
+#include "ECS/Systems/AnimatorSystem.hpp"
+#include "ECS/Systems/HierarchySystem.hpp"
+#include "../Animation/TransformClipIO.hpp"
+#include "ECS/Systems/CameraSystem.hpp"
+#include "ECS/Systems/PhysicsSystem.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Renderer.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
 #include "ECS/Systems//UITransformSystem.hpp"
-#include "../ECS/Components/UIRectTransform.hpp"
-#include "../ECS/Components/UIImage.hpp"
-#include "../ECS/Components/UICanvas.hpp"
+#include "ECS/Components/UIRectTransform.hpp"
+#include "ECS/Components/UIImage.hpp"
+#include "ECS/Components/UICanvas.hpp"
 #include "Core/Couroutine.hpp"
 #include "Core/SpdLogger.hpp"  // For console logging
 #include "PrefabManagement/PrefabManager.hpp"
@@ -46,6 +47,7 @@ namespace NE::SceneManagement {
 		// input
 		m_ecsCoordinator.m_rigidbodySystem->Init();
 		//m_ecsCoordinator.m_colliderSystem->Init();
+		m_ecsCoordinator.m_hierarchySystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_cameraSystem->Init();

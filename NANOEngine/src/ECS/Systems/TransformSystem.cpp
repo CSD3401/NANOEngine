@@ -13,14 +13,6 @@ namespace NE::ECS::Systems {
 	void TransformSystem::OnEntityAdded(Entity e) {
 		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 
-		//if (t.luid != 0) {
-		//	m_luidToEntity[t.luid] = e;
-		//}
-
-		//if (t.parentLuid != 0) {
-		//	m_pendingParents.push_back({ e, t.parentLuid });
-		//}
-
 		Math::Mat4 translation = Math::Mat4::BuildTranslation(t.localPosition);
 
 		Math::Mat4 rotation =
@@ -41,19 +33,20 @@ namespace NE::ECS::Systems {
 	}
 
 	void TransformSystem::Init() {
-		const auto& entities = GetEntities();
+		//const auto& entities = GetEntities();
 
-		BuildLocalMatrices();
+		//BuildLocalMatrices();
 
-		Math::Mat4 I;
-		I.SetToIdentity();
+		//Math::Mat4 I;
+		//I.SetToIdentity();
 
-		for (Entity e : entities) {
-			auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
-			if (h.parent == Component::INVALID_PARENT) {
-				UpdateWorldRecursive(e, I, false);
-			}
-		}
+		//for (Entity e : entities) {
+		//	auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
+		//	if (h.parent == Component::INVALID_PARENT) {
+		//		UpdateWorldRecursive(e, I, false);
+		//	}
+		//}
+		Update(0.0);
 	}
 
 	void TransformSystem::Update(double) {

@@ -51,6 +51,7 @@ namespace NE::ECS::Systems {
 	}
 
 	void HierarchySystem::Init() {
+        ResolvePendingParentsForAll(false);
 	}
 
 	void HierarchySystem::Update(double) {
@@ -109,6 +110,88 @@ namespace NE::ECS::Systems {
 
         childT.isDirty = true;
 	}
+
+    void HierarchySystem::SetParent(Entity child,
+        Entity newParent,
+        int insertIndex,
+        bool keepWorld)
+    {
+        using Component::INVALID_PARENT;
+
+        auto& childH = m_componentManager->GetComponent<Component::Hierarchy>(child);
+        auto& childT = m_componentManager->GetComponent<Component::Transform>(child);
+
+        const uint32_t oldParent = childH.parent;
+
+        NE::Math::Mat4 childWorldBefore;
+        if (keepWorld) {
+            childWorldBefore = childT.worldMatrix;
+        }
+
+        int oldIndex = -1;
+        if (oldParent != INVALID_PARENT) {
+            auto& oldParentH = m_componentManager->GetComponent<Component::Hierarchy>(oldParent);
+            auto& vec = oldParentH.children;
+
+            for (int i = 0; i < static_cast<int>(vec.size()); ++i) {
+                if (vec[i] == child) {
+                    oldIndex = i;
+                    vec.erase(vec.begin() + i);
+                    break;
+                }
+            }
+        }
+
+        childH.parent = (newParent == INVALID_PARENT)
+            ? INVALID_PARENT
+            : newParent;
+
+        if (newParent != INVALID_PARENT) {
+            auto& parentH = m_componentManager->GetComponent<Component::Hierarchy>(newParent);
+            auto& vec = parentH.children;
+
+            if (newParent == oldParent && oldIndex != -1 && insertIndex > oldIndex) {
+                --insertIndex;
+            }
+
+            if (insertIndex < 0 || insertIndex > static_cast<int>(vec.size())) {
+                insertIndex = static_cast<int>(vec.size());
+            }
+
+            vec.insert(vec.begin() + insertIndex, child);
+
+            childH.parentLuid = parentH.luid;
+        } else {
+            childH.parentLuid = 0;
+        }
+
+        if (keepWorld) {
+            NE::Math::Mat4 localM;
+            if (newParent != INVALID_PARENT) {
+                auto& parentT = m_componentManager->GetComponent<Component::Transform>(newParent);
+                NE::Math::Mat4 invParent = InverseTRS(parentT.worldMatrix);
+                localM = invParent * childWorldBefore;
+            } else {
+                localM = childWorldBefore;
+            }
+
+            DecomposeToTRS(localM,
+                childT.localPosition,
+                childT.localRotationEuler,
+                childT.localScale);
+        }
+
+        childT.isDirty = true;
+    }
+
+    //void HierarchySystem::SetParent(Entity child,
+    //    Entity newParent,
+    //    bool keepWorld)
+    //{
+    //    // Append at the end of new parent's children list
+    //    SetParent(child, newParent, /*insertIndex*/ std::numeric_limits<int>::max(), keepWorld);
+    //}
+
 
 	void HierarchySystem::ResolvePendingParentsForAll(bool keepWorldForNewParents) {
         std::vector<PendingParent> stillPending;

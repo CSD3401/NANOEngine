@@ -30,6 +30,7 @@ namespace NE {
 	NANOENGINE_API void SetEditorCamera(void* camera);
 
 	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y);
+	NANOENGINE_API std::vector<uint32_t> GetPickedEntities(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 	
 	NANOENGINE_API void SaveCurrentScene(std::string path);
 	NANOENGINE_API void SaveSceneIfDirty(std::string path = "");

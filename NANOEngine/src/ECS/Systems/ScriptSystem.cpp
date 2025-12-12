@@ -244,36 +244,36 @@ namespace NE::ECS::Systems {
 			bool shouldUpdate = true;
 
 			if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
-				const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+				//const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
 
-				// First check: entity's own isActive flag
-				if (!meta.isActive) {
-					shouldUpdate = false;
-				}
-				// Second check: walk up parent chain to see if any parent is disabled
-				else if (m_componentManager->HasComponent<Component::Transform>(entity)) {
-					const auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-					Entity currentParent = transform.parent;
+				//// First check: entity's own isActive flag
+				//if (!meta.isActive) {
+				//	shouldUpdate = false;
+				//}
+				//// Second check: walk up parent chain to see if any parent is disabled
+				//else if (m_componentManager->HasComponent<Component::Transform>(entity)) {
+				//	const auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+				//	Entity currentParent = transform.parent;
 
-					while (currentParent != Component::INVALID_PARENT) {
-						if (m_componentManager->HasComponent<Component::EntityMeta>(currentParent)) {
-							const auto& parentMeta = m_componentManager->GetComponent<Component::EntityMeta>(currentParent);
-							if (!parentMeta.isActive) {
-								shouldUpdate = false;
-								break; // Parent is disabled, so we're inactive in hierarchy
-							}
-						}
+				//	while (currentParent != Component::INVALID_PARENT) {
+				//		if (m_componentManager->HasComponent<Component::EntityMeta>(currentParent)) {
+				//			const auto& parentMeta = m_componentManager->GetComponent<Component::EntityMeta>(currentParent);
+				//			if (!parentMeta.isActive) {
+				//				shouldUpdate = false;
+				//				break; // Parent is disabled, so we're inactive in hierarchy
+				//			}
+				//		}
 
-						// Move up to next parent
-						if (m_componentManager->HasComponent<Component::Transform>(currentParent)) {
-							const auto& parentTransform = m_componentManager->GetComponent<Component::Transform>(currentParent);
-							currentParent = parentTransform.parent;
-						}
-						else {
-							break;
-						}
-					}
-				}
+				//		// Move up to next parent
+				//		if (m_componentManager->HasComponent<Component::Transform>(currentParent)) {
+				//			const auto& parentTransform = m_componentManager->GetComponent<Component::Transform>(currentParent);
+				//			currentParent = parentTransform.parent;
+				//		}
+				//		else {
+				//			break;
+				//		}
+				//	}
+				//}
 			}
 
 			// Skip this entity if inactive in hierarchy

@@ -12,10 +12,14 @@ namespace NE::ECS::Systems {
 		void OnEntityRemoved(Entity e) override;
 
 		void Init() override;
-		void Update(double) override {}   // often empty
-		void Exit() override {}
+		void Update(double) override;
+		void Exit() override;
 
 		void SetParent(Entity child, Entity newParent, bool keepWorld = true);
+		void SetParent(Entity child,
+			Entity newParent,
+			int insertIndex,
+			bool keepWorld = true);
 
 	private:
 		void ResolvePendingParentsForAll(bool keepWorldForNewParents);

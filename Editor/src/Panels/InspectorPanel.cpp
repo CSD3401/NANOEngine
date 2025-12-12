@@ -327,9 +327,8 @@ namespace Editor {
 	{
 		ImGui::Begin("Inspector", nullptr);
 
-		if (EditorScene::s_selectedEntity)
-		{
-			uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
+		if (EditorScene::s_selection.GetLastClicked() != NE::ECS::NO_ENTITY) {
+			uint32_t entity = EditorScene::s_selection.GetLastClicked();
 
 			// Entity name field only (isActive is now handled by EntityMeta component)
 			{
@@ -343,7 +342,7 @@ namespace Editor {
 					//metaRO.isActive = isActiveValue;
 
 					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
-					EditorScene::SetAllDescendantsActive(entity, isActiveValue);
+					//EditorScene::SetAllDescendantsActive(entity, isActiveValue);
 					NE::MarkSceneDirty();
 				}
 
@@ -2731,43 +2730,43 @@ namespace Editor {
 
 			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
 				if (ImGui::MenuItem("Renderer")) {
-					NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddRendererComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added Renderer component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Rigidbody")) {
-					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
+					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added Rigidbody/Collider components - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Collider")) {
-					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added Collider component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Light")) {
-					NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddLightComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added Light component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("AudioSource")) {
-					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added AudioSource component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Script")) {
-					NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddScriptComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added Script component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Camera")) {
-					NE::ECS::Command::AddCameraComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddCameraComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added Camera component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Animator")) {
-					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selectedEntity->linkedEntity);
+					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selection.GetLastClicked());
 					NE::MarkSceneDirty();
 					SPD_DEBUG("[DirtyFlag] Added Animator component - Scene marked DIRTY");
 				}

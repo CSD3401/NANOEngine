@@ -383,6 +383,13 @@ namespace NE::Math {
 		return mView;
 	}
 
+	void Mat4::SetTranslation(const Vec3& t)
+	{
+		a[12] = t.x;
+		a[13] = t.y;
+		a[14] = t.z;
+	}
+
 	Vec3 Mat4::GetTranslation() const {
 		return Vec3(a[12], a[13], a[14]);
 	}

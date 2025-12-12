@@ -181,6 +181,12 @@ namespace NE {
 		return Graphics::GraphicsManager::ReadPixel(x, y);
 	}
 
+	std::vector<uint32_t> GetPickedEntities(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+		std::vector<uint32_t> pickedIds;
+		Graphics::GraphicsManager::ReadPixelRect(x, y, width, height, pickedIds);
+		return pickedIds;
+	}
+
 	void SaveCurrentScene(std::string path) {
 		auto* editorScene = gSceneManager.GetEditorScene();
 		if (!editorScene) return;
