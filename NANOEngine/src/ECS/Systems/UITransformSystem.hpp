@@ -27,6 +27,9 @@ namespace NE::ECS::Systems {
             float rotationX = 0.f;
             float rotationY = 0.f;
             float rotationZ = 0.f;
+            // Calculated size when anchors are stretched (0 = use rect.width/height)
+            float calculatedWidth = 0.f;
+            float calculatedHeight = 0.f;
         };
 
         struct WorldTransform {

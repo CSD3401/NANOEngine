@@ -2033,25 +2033,138 @@ namespace Editor {
 
 						ImGui::Spacing();
 
-						// Size section
+						// Size/Offset section - changes based on anchor mode
 						{
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Size");
-							ImGui::SameLine(100);
+							bool isStretchedX = (comp.anchorMinX != comp.anchorMaxX);
+							bool isStretchedY = (comp.anchorMinY != comp.anchorMaxY);
 
-							ImGui::BeginGroup();
-							ImGui::TextDisabled("Width");
-							ImGui::SetNextItemWidth(itemWidth);
-							UI_RECT_DRAG("##Width", &NE::ECS::Component::UIRectTransform::width, 1.0f, 1.0f, 10000.0f, "%.0f");
-							ImGui::EndGroup();
+							if (isStretchedX || isStretchedY) {
+								// Stretched mode: Show Left/Right/Top/Bottom offsets (like Unity)
+								ImGui::AlignTextToFramePadding();
+								ImGui::Text("Offsets");
+								ImGui::SameLine(100);
 
-							ImGui::SameLine(0, spacing);
+								if (isStretchedX && isStretchedY) {
+									// Stretch Both: Arrange in columns (Left/Top, Right/Bottom)
+									// First row: Left and Right
+									float leftColumnX = ImGui::GetCursorPosX();
+									
+									ImGui::BeginGroup();
+									ImGui::TextDisabled("Left");
+									ImGui::SetNextItemWidth(itemWidth);
+									UI_RECT_DRAG("##OffsetLeft", &NE::ECS::Component::UIRectTransform::offsetMinX, 1.0f, 0.0f, 0.0f, "%.0f");
+									ImGui::EndGroup();
 
-							ImGui::BeginGroup();
-							ImGui::TextDisabled("Height");
-							ImGui::SetNextItemWidth(itemWidth);
-							UI_RECT_DRAG("##Height", &NE::ECS::Component::UIRectTransform::height, 1.0f, 1.0f, 10000.0f, "%.0f");
-							ImGui::EndGroup();
+									ImGui::SameLine(0, spacing);
+
+									ImGui::BeginGroup();
+									ImGui::TextDisabled("Right");
+									ImGui::SetNextItemWidth(itemWidth);
+									UI_RECT_DRAG("##OffsetRight", &NE::ECS::Component::UIRectTransform::offsetMaxX, 1.0f, 0.0f, 0.0f, "%.0f");
+									ImGui::EndGroup();
+
+									// Second row: Top and Bottom, aligned with Left and Right columns
+									ImGui::SetCursorPosX(leftColumnX);
+									ImGui::BeginGroup();
+									ImGui::TextDisabled("Top");
+									ImGui::SetNextItemWidth(itemWidth);
+									UI_RECT_DRAG("##OffsetTop", &NE::ECS::Component::UIRectTransform::offsetMaxY, 1.0f, 0.0f, 0.0f, "%.0f");
+									ImGui::EndGroup();
+
+									ImGui::SameLine(0, spacing);
+
+									ImGui::BeginGroup();
+									ImGui::TextDisabled("Bottom");
+									ImGui::SetNextItemWidth(itemWidth);
+									UI_RECT_DRAG("##OffsetBottom", &NE::ECS::Component::UIRectTransform::offsetMinY, 1.0f, 0.0f, 0.0f, "%.0f");
+									ImGui::EndGroup();
+								}
+								else {
+									// Single-axis stretch: Show non-stretched dimension first, then offsets
+									// First row: Show non-stretched dimension (Width or Height)
+									if (!isStretchedX) {
+										// Point anchor X: Show Width
+										ImGui::BeginGroup();
+										ImGui::TextDisabled("Width");
+										ImGui::SetNextItemWidth(itemWidth);
+										UI_RECT_DRAG("##Width", &NE::ECS::Component::UIRectTransform::width, 1.0f, 1.0f, 10000.0f, "%.0f");
+										ImGui::EndGroup();
+									}
+									else if (!isStretchedY) {
+										// Point anchor Y: Show Height (for Stretch Horizontal)
+										ImGui::BeginGroup();
+										ImGui::TextDisabled("Height");
+										ImGui::SetNextItemWidth(itemWidth);
+										UI_RECT_DRAG("##Height", &NE::ECS::Component::UIRectTransform::height, 1.0f, 1.0f, 10000.0f, "%.0f");
+										ImGui::EndGroup();
+									}
+
+									// Second row: Show stretched dimension offsets
+									if (isStretchedX) {
+										// Horizontal stretch: Show Left and Right
+										if (!isStretchedY) {
+											// If only horizontal stretch, show on same line after Height
+											ImGui::SameLine(0, spacing);
+										}
+
+										ImGui::BeginGroup();
+										ImGui::TextDisabled("Left");
+										ImGui::SetNextItemWidth(itemWidth);
+										UI_RECT_DRAG("##OffsetLeft", &NE::ECS::Component::UIRectTransform::offsetMinX, 1.0f, 0.0f, 0.0f, "%.0f");
+										ImGui::EndGroup();
+
+										ImGui::SameLine(0, spacing);
+
+										ImGui::BeginGroup();
+										ImGui::TextDisabled("Right");
+										ImGui::SetNextItemWidth(itemWidth);
+										UI_RECT_DRAG("##OffsetRight", &NE::ECS::Component::UIRectTransform::offsetMaxX, 1.0f, 0.0f, 0.0f, "%.0f");
+										ImGui::EndGroup();
+									}
+
+									if (isStretchedY) {
+										// Vertical stretch: Show Top and Bottom
+										if (!isStretchedX) {
+											// If only vertical stretch, show on same line after Width
+											ImGui::SameLine(0, spacing);
+										}
+
+										ImGui::BeginGroup();
+										ImGui::TextDisabled("Top");
+										ImGui::SetNextItemWidth(itemWidth);
+										UI_RECT_DRAG("##OffsetTop", &NE::ECS::Component::UIRectTransform::offsetMaxY, 1.0f, 0.0f, 0.0f, "%.0f");
+										ImGui::EndGroup();
+
+										ImGui::SameLine(0, spacing);
+
+										ImGui::BeginGroup();
+										ImGui::TextDisabled("Bottom");
+										ImGui::SetNextItemWidth(itemWidth);
+										UI_RECT_DRAG("##OffsetBottom", &NE::ECS::Component::UIRectTransform::offsetMinY, 1.0f, 0.0f, 0.0f, "%.0f");
+										ImGui::EndGroup();
+									}
+								}
+							}
+							else {
+								// Point anchor mode: Show Width and Height (normal mode)
+								ImGui::AlignTextToFramePadding();
+								ImGui::Text("Size");
+								ImGui::SameLine(100);
+
+								ImGui::BeginGroup();
+								ImGui::TextDisabled("Width");
+								ImGui::SetNextItemWidth(itemWidth);
+								UI_RECT_DRAG("##Width", &NE::ECS::Component::UIRectTransform::width, 1.0f, 1.0f, 10000.0f, "%.0f");
+								ImGui::EndGroup();
+
+								ImGui::SameLine(0, spacing);
+
+								ImGui::BeginGroup();
+								ImGui::TextDisabled("Height");
+								ImGui::SetNextItemWidth(itemWidth);
+								UI_RECT_DRAG("##Height", &NE::ECS::Component::UIRectTransform::height, 1.0f, 1.0f, 10000.0f, "%.0f");
+								ImGui::EndGroup();
+							}
 						}
 
 						// Anchor section

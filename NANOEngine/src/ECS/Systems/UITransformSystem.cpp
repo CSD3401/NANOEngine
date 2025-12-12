@@ -273,11 +273,57 @@ namespace NE::ECS::Systems {
             bool isStretchedY = rect.IsStretchedY();
 
             if (isTarget) {
-                // For the target entity, use anchor point for positioning (same as parent entities)
-                float anchorX = parentWidth * rect.anchorMinX;
-                float anchorY = parentHeight * (1.0f - rect.anchorMinY);
-                result.posX += anchorX + rect.x;
-                result.posY += anchorY + rect.y;
+                // For the target entity, calculate position and size based on anchor mode
+                if (isStretchedX) {
+                    // Stretched horizontally: edges are anchored, size calculated from anchor spread
+                    float anchorMinX = parentWidth * rect.anchorMinX;
+                    float anchorMaxX = parentWidth * rect.anchorMaxX;
+                    float leftEdge = anchorMinX + rect.offsetMinX;
+                    float rightEdge = anchorMaxX - rect.offsetMaxX;
+                    float calculatedWidth = rightEdge - leftEdge;
+                    
+                    // Position is the left edge (or pivot position if we need it)
+                    // For stretched anchors, we store the pivot position
+                    float pivotX = leftEdge + calculatedWidth * rect.pivotX;
+                    result.posX += pivotX;
+                    result.calculatedWidth = calculatedWidth;
+                }
+                else {
+                    // Point anchor: position is anchor + offset
+                    float anchorX = parentWidth * rect.anchorMinX;
+                    result.posX += anchorX + rect.x;
+                }
+
+                if (isStretchedY) {
+                    // Stretched vertically: edges are anchored, size calculated from anchor spread
+                    // Unity: anchorMinY/anchorMaxY are normalized (0.0=bottom, 1.0=top in Unity's Y-up)
+                    // In top-left origin: 0.0=top, parentHeight=bottom (Y-down)
+                    // Convert: Unity bottom (0.0) → our bottom (parentHeight), Unity top (1.0) → our top (0.0)
+                    float anchorMinYPos = parentHeight * (1.0f - rect.anchorMinY);  // Convert to top-left origin
+                    float anchorMaxYPos = parentHeight * (1.0f - rect.anchorMaxY);  // Convert to top-left origin
+                    
+                    // Determine which is top and which is bottom (smaller Y = top, larger Y = bottom)
+                    float topAnchorPos = std::min(anchorMinYPos, anchorMaxYPos);
+                    float bottomAnchorPos = std::max(anchorMinYPos, anchorMaxYPos);
+                    
+                    // offsetMaxY = top offset (positive = padding inward from top)
+                    // offsetMinY = bottom offset (positive = padding inward from bottom)
+                    float topEdge = topAnchorPos + rect.offsetMaxY;      // Top edge: anchor + top offset
+                    float bottomEdge = bottomAnchorPos - rect.offsetMinY; // Bottom edge: anchor - bottom offset
+                    float calculatedHeight = bottomEdge - topEdge;
+                    
+                    // Position is the pivot position
+                    // For stretched anchors, we store the pivot position
+                    float pivotY = topEdge + calculatedHeight * (1.0f - rect.pivotY);
+                    result.posY += pivotY;
+                    result.calculatedHeight = calculatedHeight;
+                }
+                else {
+                    // Point anchor: position is anchor + offset
+                    float anchorY = parentHeight * (1.0f - rect.anchorMinY);
+                    result.posY += anchorY + rect.y;
+                }
+
                 result.posZ += rect.z;
             }
             else {
@@ -316,8 +362,21 @@ namespace NE::ECS::Systems {
         result.x = accumulated.posX;
         result.y = accumulated.posY;
         result.z = accumulated.posZ;
-        result.width = rect.width * accumulated.scaleX;
-        result.height = rect.height * accumulated.scaleY;
+        
+        // Use calculated width/height if anchors are stretched, otherwise use rect.width/height
+        if (accumulated.calculatedWidth > 0.f) {
+            result.width = accumulated.calculatedWidth * accumulated.scaleX;
+        }
+        else {
+            result.width = rect.width * accumulated.scaleX;
+        }
+        
+        if (accumulated.calculatedHeight > 0.f) {
+            result.height = accumulated.calculatedHeight * accumulated.scaleY;
+        }
+        else {
+            result.height = rect.height * accumulated.scaleY;
+        }
         result.accumulatedRotationZ = accumulated.rotationZ;
         result.accumulatedScaleX = accumulated.scaleX;
         result.accumulatedScaleY = accumulated.scaleY;
