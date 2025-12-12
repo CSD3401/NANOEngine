@@ -12,6 +12,7 @@
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
 #include "../Components/Camera.hpp"
+#include "../Components/Hierarchy.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -24,6 +25,7 @@
 #include "../Systems/UITransformSystem.hpp"
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/PhysicsSystem.hpp"
+#include "../Systems/HierarchySystem.hpp"
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
@@ -51,6 +53,7 @@ namespace NE::ECS {
         RegisterComponent<Component::UIImage>();
         RegisterComponent<Component::Animator>();
 		RegisterComponent<Component::Camera>();
+        RegisterComponent<Component::Hierarchy>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
@@ -137,6 +140,13 @@ namespace NE::ECS {
             Signature sig;
             sig.set(GetComponentType<Component::Collider>());
             SetSystemSignature<Systems::PhysicsSystem>(sig);
+        }
+
+        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Hierarchy>());
+            SetSystemSignature<Systems::HierarchySystem>(sig);
         }
     }
 

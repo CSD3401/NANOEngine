@@ -2,13 +2,12 @@
 #define NANOENGINE_ECS_ENTITY_HPP
 
 #include <cstdint>
-#include <limits>
 
 namespace NE::ECS {
 
 	using Entity = uint32_t;
 	static constexpr Entity MAX_ENTITIES = 2000;
-	static constexpr Entity NO_ENTITY = std::numeric_limits<Entity>::max();
+	static constexpr Entity NO_ENTITY = UINT32_MAX;
 
 }
 

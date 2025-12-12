@@ -1181,10 +1181,12 @@ namespace NE::Graphics {
         s_RenderViewManager->DisableCamera(viewHandle);
     }
 
-    uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) 
-    {
-        //SPD_DEBUG("Clicked on X: " << x << " Y: " << y);
+    uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) {
 		return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->ReadPixel(x, y);
+    }
+
+    void GraphicsManager::ReadPixelRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, std::vector<uint32_t>& outIds) {
+        s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->ReadPixelRect(x, y, width, height, outIds);
     }
 
     uint32_t GraphicsManager::GetSceneColorAttachment() 

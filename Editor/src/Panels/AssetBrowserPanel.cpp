@@ -330,7 +330,7 @@ namespace Editor {
                     if (entryPath.extension() == ".obj" || entryPath.extension() == ".fbx" ||
                         entryPath.extension() == ".nanomat" ||
                         entryPath.extension() == ".jpg" || entryPath.extension() == ".png") {
-                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::s_selection.Clear();
                         EditorScene::selectedAsset = entryPath.string();
                     } else if (entryPath.extension() == ".scene") {
                         // NE::LoadTargetScene(entryPath.string());
@@ -338,12 +338,12 @@ namespace Editor {
                         //     EditorScene::s_entities.push_back({ entt });
                         // }
                     } else if (entryPath.extension() == ".nfab") {
-                        EditorScene::s_selectedEntity = nullptr;
+                        EditorScene::s_selection.Clear();
                         EditorScene::selectedAsset = "";
                         NE::LoadPrefabScene(entryPath.string());
 
                         Editor::EditorScene::selectedPrefab = entryPath.string();
-                        Editor::EditorScene::RebuildFromActiveScene();
+                        //Editor::EditorScene::RebuildFromActiveScene();
                     }
                 }
             }

@@ -8,9 +8,9 @@
 #include <glfw/glfw3.h>
 #include "Command/CommandHistory.hpp"
 #include "Panels/InspectorPanel.hpp"
-#include "Panels/AnimationPanel.hpp"
-#include "Panels/AnimationRuntimePanel.hpp"
-#include "Panels/AnimationGraphPanel.hpp"
+//#include "Panels/AnimationPanel.hpp"
+//#include "Panels/AnimationRuntimePanel.hpp"
+//#include "Panels/AnimationGraphPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LightingPanel.hpp"
 #include <Core/SpdLogger.hpp>  // For SPD_INFO, SPD_DEBUG logging
@@ -70,11 +70,11 @@ namespace Editor {
 				!ImGui::IsAnyItemFocused()) {
 				bool canEditHierarchy = EditorScene::selectedPrefab.empty();
 				if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-					EditorScene::DuplicateSelected();
+					//EditorScene::DuplicateSelected();
 				} else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-					EditorScene::CopySelected();
+					//EditorScene::CopySelected();
 				} else if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
-					EditorScene::PasteSelected();
+					//EditorScene::PasteSelected();
 				}
 			}
 		}
@@ -251,13 +251,13 @@ namespace Editor {
 			}
 			if (ImGui::BeginMenu("Animation")) {
 				if (ImGui::MenuItem("Animation", nullptr, false)) {
-					AddPanel<AnimationPanel>();
+					//AddPanel<AnimationPanel>();
 				}
 				if (ImGui::MenuItem("Animator", nullptr, false)) {
-					AddPanel<AnimatorGraphPanel>();
+					//AddPanel<AnimatorGraphPanel>();
 				}
 				if (ImGui::MenuItem("Animation Runtime", nullptr, false)) {
-					AddPanel<AnimatorRuntimePanel>();
+					//AddPanel<AnimatorRuntimePanel>();
 				}
 				ImGui::EndMenu();
 			}

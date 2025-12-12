@@ -5,14 +5,14 @@
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Mat4.hpp"
 #include "../../Core/Reflection.hpp"
-#include "Transform.hpp" // for INVALID_PARENT
 #include <string>
 
 namespace NE::ECS::Component {
+    //inline constexpr uint32_t INVALID_PARENT = UINT32_MAX;
 
     struct UIRectTransform {
         // parent entity
-        uint32_t parent = INVALID_PARENT;
+        uint32_t parent = UINT32_MAX;
 
         // LUID for serialization
         uint64_t luid = 0;
