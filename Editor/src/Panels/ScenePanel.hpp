@@ -14,6 +14,11 @@ namespace Editor {
 
 		virtual void OnImGuiRender() override;
 	private:
+		void SelectEntitiesInRect(ImVec2 startScreen,
+			ImVec2 endScreen,
+			ImVec2 panelPos,
+			ImVec2 panelSize);
+
 		float m_cameraYaw = -90.0f;  // looking along -Z
 		float m_cameraPitch = 0.0f;
 
@@ -36,6 +41,10 @@ namespace Editor {
 		float m_aspectRatio;
 		float m_nearPlane;
 		float m_farPlane;
+
+		bool  m_dragSelecting = false;
+		ImVec2 m_dragStartScreen = {};
+		ImVec2 m_dragEndScreen = {};
 
 		SceneCameraTweener sceneCameraTweener;
 	};

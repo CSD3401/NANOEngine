@@ -459,6 +459,7 @@ namespace NE::Math {
 		*************************************************************************/
 		Mat3 CreateSubMat3(unsigned int row, unsigned int col) const;
 
+		void SetTranslation(const Vec3& t);
 		Vec3 GetTranslation() const;
 
 		Vec3 GetScale() const;

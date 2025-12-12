@@ -6,6 +6,7 @@
 #include <vector>
 #include "../NANOEngineAPI.hpp"
 #include "../Core/Reflection.hpp"
+#include "ECS/Core/Entity.hpp"
 
 namespace NE::ECS {
 	// Forward Decl
@@ -24,6 +25,7 @@ namespace NE::ECS {
 		struct UIRectTransform;
 		struct UIImage;
 		struct UICanvas;
+		struct Hierarchy;
 	}
 
 	namespace Query {
@@ -45,6 +47,7 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API const Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API const Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 
 		NANOENGINE_API bool HasTransform(uint32_t e);
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
@@ -72,7 +75,7 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
-		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays = true);
+		NANOENGINE_API void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos = true);
 
 		NANOENGINE_API void AddLightComponent(uint32_t e);
 		NANOENGINE_API void AddRendererComponent(uint32_t e);
@@ -95,6 +98,7 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
+		NANOENGINE_API Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();

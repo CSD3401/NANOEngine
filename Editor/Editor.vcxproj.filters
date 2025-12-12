@@ -117,15 +117,6 @@
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\AnimationPanel.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Panels\AnimationRuntimePanel.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Panels\AnimationGraphPanel.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
     <ClCompile Include="src\Panels\ScriptsPanel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -165,6 +156,12 @@
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\EditorSelection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Serialization\Serializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ImGuiLayer.hpp">
@@ -183,9 +180,6 @@
       <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Command\EditorCommands.hpp">
-      <Filter>Header Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\EditorEntity.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\EditorEvents.hpp">
@@ -293,15 +287,6 @@
     <ClInclude Include="src\AssetManagement\Interfaces\MaterialEditor.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Panels\AnimationPanel.hpp">
-      <Filter>Header Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\AnimationRuntimePanel.hpp">
-      <Filter>Header Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\AnimationGraphPanel.hpp">
-      <Filter>Header Files\src</Filter>
-    </ClInclude>
     <ClInclude Include="src\AssetManagement\Settings\ModelImportSettings.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -354,6 +339,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\AssetManagement\AssetRecord.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\EditorSelection.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Serialization\Serializer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
