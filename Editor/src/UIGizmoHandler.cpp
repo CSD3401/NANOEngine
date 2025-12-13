@@ -3,6 +3,7 @@
 #include "EditorInterface/ECSExports.hpp"
 #include "Command/CommandHistory.hpp"
 #include <ECS/Components/UICanvas.hpp>
+#include <Math/Vec4.hpp>
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -23,12 +24,15 @@ namespace Editor {
     int UIGizmoHandler::s_draggingEdge = -1;
     ImVec2 UIGizmoHandler::s_dragStart;
     NE::ECS::Component::UIRectTransform UIGizmoHandler::s_originalTransform;
-    ImVec2 UIGizmoHandler::s_originalWorldPos;
+    ImVec2 UIGizmoHandler::s_originalWorldPos;  // For 2D gizmo
+    NE::Math::Vec3 UIGizmoHandler::s_originalWorldPos3D;  // For 3D world space gizmo
+    float UIGizmoHandler::s_originalPivotZ3D = 0.0f;  // Store original pivot Z for 3D gizmo translation
 
     // Rotation state
     bool UIGizmoHandler::s_isDraggingRotation = false;
     float UIGizmoHandler::s_rotationStartAngle = 0.0f;
     float UIGizmoHandler::s_originalRotation = 0.0f;
+    float UIGizmoHandler::s_cumulativeRotation = 0.0f;  // Track cumulative rotation to handle -180/180 wrapping
     ImVec2 UIGizmoHandler::s_rotationCenter = ImVec2(0, 0);
     constexpr float ROTATION_SENSITIVITY = 5.0f;
 
@@ -736,36 +740,61 @@ namespace Editor {
         }
 
         // ========== ROTATION DRAG ==========
-        if (s_isDraggingRotation && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+        // Use IsMouseDown instead of IsMouseDragging to work even when mouse is outside viewport
+        if (s_isDraggingRotation && ImGui::IsMouseDown(ImGuiMouseButton_Left))
         {
-            float currentAngle = GetAngleFromCenter(s_rotationCenter, mousePos);
-            float deltaAngle = currentAngle - s_rotationStartAngle;
-
-            rectTransform.rotationZ = s_originalRotation + deltaAngle;
-
+            // Get current mouse position (works even when outside viewport)
+            ImVec2 currentMousePos = ImGui::GetMousePos();
+            float currentAngle = GetAngleFromCenter(s_rotationCenter, currentMousePos);
+            
+            // Calculate delta from last frame's angle to handle -180/180 wrapping
+            // Instead of using s_rotationStartAngle directly, we track cumulative rotation
+            float frameDelta = currentAngle - s_rotationStartAngle;
+            
+            // Normalize frame delta to [-180, 180] to handle wrapping
+            while (frameDelta > 180.0f) frameDelta -= 360.0f;
+            while (frameDelta < -180.0f) frameDelta += 360.0f;
+            
+            // Apply rotation sensitivity multiplier for world space UI
+            // Higher values = more sensitive (less mouse movement needed for same rotation)
+            // This function is Update2DGizmoWorldSpace, so we're always in world space here
+            const float rotationSensitivity = 3.0f;  // 3x sensitivity for world space
+            frameDelta *= rotationSensitivity;
+            
+            // Accumulate the frame delta to get total rotation since drag started
+            s_cumulativeRotation += frameDelta;
+            
+            // Update start angle for next frame (using current angle to avoid accumulation errors)
+            s_rotationStartAngle = currentAngle;
+            
+            // Apply cumulative rotation to the entity's local rotation
+            // For screen space overlay, normalize to [-180, 180] range
+            rectTransform.rotationZ = s_originalRotation + s_cumulativeRotation;
+            
+            // Normalize rotation to [-180, 180] for screen space overlay only
             while (rectTransform.rotationZ > 180.0f) rectTransform.rotationZ -= 360.0f;
             while (rectTransform.rotationZ < -180.0f) rectTransform.rotationZ += 360.0f;
-
+            
             if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
                 rectTransform.rotationZ = std::round(rectTransform.rotationZ / 15.0f) * 15.0f;
             }
-
+            
             if (std::abs(rectTransform.rotationZ) < 3.0f &&
                 !(ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))) {
                 rectTransform.rotationZ = 0.0f;
             }
-
+            
             if (s_uiGizmoCmd) {
                 s_uiGizmoCmd->SetAfter(rectTransform);
             }
         }
-
+        
         if (s_isDraggingRotation && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             s_isDraggingRotation = false;
             CommitCommand();
         }
-
+        
         // ========== POSITION DRAG ==========
         if (s_isDraggingUI && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
         {
@@ -941,6 +970,855 @@ namespace Editor {
                 s_draggingEdge = -1;
                 s_isDraggingRotation = false;
             }
+        }
+    }
+
+    // Helper function to project world space point to screen space
+    static bool WorldToScreen(const NE::Math::Vec3& worldPos,
+        const NE::Math::Mat4& view,
+        const NE::Math::Mat4& proj,
+        const ImVec2& panelPos,
+        const ImVec2& panelSize,
+        ImVec2& outScreen)
+    {
+        NE::Math::Mat4 VP = proj * view;
+        
+        // Transform to clip space (manually multiply Mat4 * Vec4, avoiding Vec4 constructor)
+        float inputX = worldPos.x;
+        float inputY = worldPos.y;
+        float inputZ = worldPos.z;
+        float inputW = 1.0f;
+        
+        float clipX = VP.GetElement(0, 0) * inputX + VP.GetElement(0, 1) * inputY + VP.GetElement(0, 2) * inputZ + VP.GetElement(0, 3) * inputW;
+        float clipY = VP.GetElement(1, 0) * inputX + VP.GetElement(1, 1) * inputY + VP.GetElement(1, 2) * inputZ + VP.GetElement(1, 3) * inputW;
+        float clipW = VP.GetElement(3, 0) * inputX + VP.GetElement(3, 1) * inputY + VP.GetElement(3, 2) * inputZ + VP.GetElement(3, 3) * inputW;
+        
+        if (clipW <= 1e-5f) return false; // behind camera / invalid
+        
+        // Perspective divide
+        float invW = 1.0f / clipW;
+        float ndcX = clipX * invW;
+        float ndcY = clipY * invW;
+        
+        // Optional: quick reject if outside viewport
+        if (ndcX < -1.0f || ndcX > 1.0f || ndcY < -1.0f || ndcY > 1.0f)
+            return false;
+        
+        // Convert NDC to screen space
+        const float u = ndcX * 0.5f + 0.5f;  // [0..1]
+        const float v = ndcY * 0.5f + 0.5f;  // [0..1] (Y-up)
+        outScreen.x = panelPos.x + u * panelSize.x;
+        outScreen.y = panelPos.y + (1.0f - v) * panelSize.y;  // Flip Y for ImGui
+        return true;
+    }
+
+    void UIGizmoHandler::Update2DGizmoWorldSpace(uint32_t uiEntityId,
+        const NE::Math::Mat4& view,
+        const NE::Math::Mat4& proj,
+        ImVec2 panelPos,
+        ImVec2 panelSize)
+    {
+        // Begin gizmo if not already active
+        if (!s_gizmoActive) {
+            Begin2DGizmo(uiEntityId);
+        }
+        
+        if (!s_gizmoActive || s_gizmoType != 1 || s_gizmoEntityId != uiEntityId) return;
+
+        auto& rectTransform = NE::ECS::Command::GetUIRectTransform(uiEntityId);
+
+        // Get world transform to find the pivot position in world space
+        auto worldTransform = NE::ECS::Query::GetUIWorldTransform(uiEntityId);
+        
+        // Get the accumulated transform to build the model matrix
+        // Find canvas entity
+        uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
+        NE::ECS::Component::UICanvas* canvas = nullptr;
+        
+        if (NE::ECS::Query::HasUICanvas(uiEntityId)) {
+            canvasEntityId = uiEntityId;
+            canvas = &NE::ECS::Command::GetUICanvas(uiEntityId);
+        } else {
+            uint32_t p = rectTransform.parent;
+            while (p != std::numeric_limits<uint32_t>::max()) {
+                if (NE::ECS::Query::HasUICanvas(p)) {
+                    canvasEntityId = p;
+                    canvas = &NE::ECS::Command::GetUICanvas(p);
+                    break;
+                }
+                if (!NE::ECS::Query::HasUIRectTransform(p)) break;
+                p = NE::ECS::Query::GetUIRectTransform(p).parent;
+            }
+        }
+        
+        if (!canvas || canvas->renderMode != NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
+            return;
+        }
+
+        // Build the full model matrix to transform unit quad corners to world space
+        // Use the same logic as BuildWorldSpaceModelMatrix in UITransformSystem
+        const float PI = 3.14159265358979f;
+        
+        // Get accumulated transform by building parent chain
+        NE::Math::Vec3 accumulatedPos(0, 0, 0);
+        NE::Math::Vec3 accumulatedScale(1, 1, 1);
+        float accumulatedRotX = 0.0f;
+        float accumulatedRotY = 0.0f;
+        float accumulatedRotZ = 0.0f;
+        
+        // Build parent chain
+        std::vector<uint32_t> chain;
+        uint32_t current = uiEntityId;
+        while (current != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(current)) {
+            chain.push_back(current);
+            if (current == canvasEntityId) break;
+            current = NE::ECS::Query::GetUIRectTransform(current).parent;
+        }
+        std::reverse(chain.begin(), chain.end());
+        
+        // Accumulate transforms
+        for (uint32_t entity : chain) {
+            auto& currentRect = NE::ECS::Query::GetUIRectTransform(entity);
+            accumulatedPos.x += currentRect.x;
+            accumulatedPos.y += currentRect.y;
+            accumulatedPos.z += currentRect.z;
+            accumulatedScale.x *= currentRect.scaleX;
+            accumulatedScale.y *= currentRect.scaleY;
+            accumulatedScale.z *= currentRect.scaleZ;
+            accumulatedRotX += currentRect.rotationX;
+            accumulatedRotY += currentRect.rotationY;
+            accumulatedRotZ += currentRect.rotationZ;
+        }
+        
+        // Build model matrix using same logic as BuildWorldSpaceModelMatrix
+        // Get pivot without using Vec2 (to avoid linker issues)
+        float pivotX = rectTransform.pivotX;
+        float pivotY = rectTransform.pivotY;
+        float scaledWidth = rectTransform.width * accumulatedScale.x;
+        float scaledHeight = rectTransform.height * accumulatedScale.y;
+        
+        // Step 1: Scale
+        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scaledWidth, scaledHeight, accumulatedScale.z);
+        
+        // Step 2: Pivot offset (same as BuildWorldSpaceModelMatrix)
+        float pivotOffsetX = -scaledWidth * pivotX;
+        float pivotOffsetY = -scaledHeight * (1.0f - pivotY);  // Flip Y for world space
+        NE::Math::Mat4 pivotMatrix = NE::Math::Mat4::BuildTranslation(pivotOffsetX, pivotOffsetY, 0.0f);
+        
+        // Step 3: Rotation (full 3D)
+        NE::Math::Mat4 rotationX = NE::Math::Mat4::BuildXRotation(accumulatedRotX * PI / 180.0f);
+        NE::Math::Mat4 rotationY = NE::Math::Mat4::BuildYRotation(accumulatedRotY * PI / 180.0f);
+        NE::Math::Mat4 rotationZ = NE::Math::Mat4::BuildZRotation(accumulatedRotZ * PI / 180.0f);
+        NE::Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
+        
+        // Step 4: Translation
+        NE::Math::Mat4 translationMatrix = NE::Math::Mat4::BuildTranslation(
+            accumulatedPos.x, accumulatedPos.y, accumulatedPos.z
+        );
+        
+        // Full model matrix: Translate * Rotate * Pivot * Scale
+        NE::Math::Mat4 modelMatrix = translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
+        
+        // Unit quad corners in local space: (0,0,0), (1,0,0), (1,1,0), (0,1,0)
+        NE::Math::Vec3 unitCorners[4] = {
+            NE::Math::Vec3(0.0f, 0.0f, 0.0f),  // Top-left (Y-down)
+            NE::Math::Vec3(1.0f, 0.0f, 0.0f),  // Top-right
+            NE::Math::Vec3(1.0f, 1.0f, 0.0f),  // Bottom-right
+            NE::Math::Vec3(0.0f, 1.0f, 0.0f)   // Bottom-left
+        };
+        
+        // Calculate center (pivot) in screen space FIRST (needed for invalid corner fallback)
+        NE::Math::Vec3 pivotWorldPos(accumulatedPos.x, accumulatedPos.y, accumulatedPos.z);
+        ImVec2 center;
+        bool centerValid = WorldToScreen(pivotWorldPos, view, proj, panelPos, panelSize, center);
+        
+        // If center not valid, use viewport center as fallback
+        if (!centerValid) {
+            center = ImVec2(panelPos.x + panelSize.x * 0.5f, panelPos.y + panelSize.y * 0.5f);
+        }
+        
+        // Transform corners to world space using model matrix
+        ImVec2 corners[4];
+        bool cornersValid[4] = { false, false, false, false };
+        int validCornerCount = 0;
+        
+        for (int i = 0; i < 4; i++) {
+            // Manually multiply Mat4 * Vec4 (avoiding Vec4 constructor)
+            float inputX = unitCorners[i].x;
+            float inputY = unitCorners[i].y;
+            float inputZ = unitCorners[i].z;
+            float inputW = 1.0f;
+            
+            float worldX = modelMatrix.GetElement(0, 0) * inputX + modelMatrix.GetElement(0, 1) * inputY + modelMatrix.GetElement(0, 2) * inputZ + modelMatrix.GetElement(0, 3) * inputW;
+            float worldY = modelMatrix.GetElement(1, 0) * inputX + modelMatrix.GetElement(1, 1) * inputY + modelMatrix.GetElement(1, 2) * inputZ + modelMatrix.GetElement(1, 3) * inputW;
+            float worldZ = modelMatrix.GetElement(2, 0) * inputX + modelMatrix.GetElement(2, 1) * inputY + modelMatrix.GetElement(2, 2) * inputZ + modelMatrix.GetElement(2, 3) * inputW;
+            
+            NE::Math::Vec3 worldCorner(worldX, worldY, worldZ);
+            
+            // Project to screen space
+            ImVec2 projectedCorner;
+            if (WorldToScreen(worldCorner, view, proj, panelPos, panelSize, projectedCorner)) {
+                // Check if corner is within viewport (with small margin for edge cases)
+                const float margin = 50.0f;  // Increased margin to allow slight out-of-viewport
+                bool inViewport = (projectedCorner.x >= panelPos.x - margin && projectedCorner.x <= panelPos.x + panelSize.x + margin &&
+                                   projectedCorner.y >= panelPos.y - margin && projectedCorner.y <= panelPos.y + panelSize.y + margin);
+                
+                if (inViewport) {
+                    corners[i] = projectedCorner;
+                    cornersValid[i] = true;
+                    validCornerCount++;
+                } else {
+                    // Corner is far outside viewport - mark as invalid and don't store position
+                    // This prevents edges from being calculated with invalid positions
+                    corners[i] = center;  // Use center as placeholder (won't be drawn)
+                    cornersValid[i] = false;
+                }
+            } else {
+                // Behind camera or invalid projection - mark as invalid
+                corners[i] = center;  // Use center as placeholder (won't be drawn)
+                cornersValid[i] = false;
+            }
+        }
+        
+        // Draw gizmo if ANY part of the UI is visible (at least 1 corner or center)
+        // Only skip if the ENTIRE image is out of screen (all corners AND center invalid)
+        if (validCornerCount == 0 && !centerValid) {
+            return;  // Entire UI element is out of view, don't draw gizmo
+        }
+        
+        // If center not valid but we have valid corners, estimate center from valid corners
+        if (!centerValid && validCornerCount > 0) {
+            float avgX = 0.0f, avgY = 0.0f;
+            int count = 0;
+            for (int i = 0; i < 4; i++) {
+                if (cornersValid[i]) {
+                    avgX += corners[i].x;
+                    avgY += corners[i].y;
+                    count++;
+                }
+            }
+            if (count > 0) {
+                center = ImVec2(avgX / count, avgY / count);
+                centerValid = true;
+            }
+        }
+        
+        // If we have valid corners but center is still invalid, use viewport center as fallback
+        if (!centerValid) {
+            center = ImVec2(panelPos.x + panelSize.x * 0.5f, panelPos.y + panelSize.y * 0.5f);
+        }
+        
+        // Calculate edge midpoints - only for edges between valid corners
+        ImVec2 edges[4];
+        bool edgesValid[4] = { false, false, false, false };
+        for (int i = 0; i < 4; i++) {
+            int next = (i + 1) % 4;
+            if (cornersValid[i] && cornersValid[next]) {
+                edges[i] = ImVec2((corners[i].x + corners[next].x) * 0.5f, (corners[i].y + corners[next].y) * 0.5f);
+                edgesValid[i] = true;
+            } else {
+                // Invalid edge - set to center as fallback (won't be drawn anyway)
+                edges[i] = center;
+                edgesValid[i] = false;
+            }
+        }
+        
+        const float handleSize = 8.0f;
+        ImVec2 mousePos = ImGui::GetMousePos();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        
+        // Check if there's any rotation (X, Y, or Z)
+        bool hasRotation = (std::abs(accumulatedRotX) > 0.001f || 
+                           std::abs(accumulatedRotY) > 0.001f || 
+                           std::abs(accumulatedRotZ) > 0.001f);
+        
+        // For rotation handle direction, use Z rotation (main rotation for UI)
+        float rotZ = accumulatedRotZ * PI / 180.0f;
+        float cosR = std::cos(rotZ);
+        float sinR = std::sin(rotZ);
+        
+        // ========== DRAW GIZMO ==========
+        
+        // Draw rectangle outline - only draw edges when BOTH corners are valid
+        for (int i = 0; i < 4; i++) {
+            int next = (i + 1) % 4;
+            // Only draw edge if BOTH corners are valid (prevents squashed appearance)
+            if (cornersValid[i] && cornersValid[next]) {
+                drawList->AddLine(corners[i], corners[next], IM_COL32(255, 255, 255, 255), 2.0f);
+            }
+        }
+        
+        // Draw corner handles - only for valid corners
+        for (int i = 0; i < 4; i++) {
+            if (cornersValid[i]) {
+                drawList->AddRectFilled(
+                    ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
+                    ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
+                    IM_COL32(0, 120, 255, 255)
+                );
+            }
+        }
+        
+        // Draw edge handles - only for valid edges
+        for (int i = 0; i < 4; i++) {
+            if (edgesValid[i]) {
+                drawList->AddRectFilled(
+                    ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
+                    ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
+                    IM_COL32(0, 120, 255, 255)
+                );
+            }
+        }
+        
+        // Draw center/pivot handle
+        drawList->AddCircleFilled(center, handleSize * 0.5f, IM_COL32(255, 120, 0, 255));
+        
+        // ========== ROTATION HANDLE ==========
+        // Find the top edge (edge with minimum Y value in screen space)
+        // In ImGui, Y increases downward, so top edge has smallest Y
+        int topEdgeIndex = -1;
+        float minY = std::numeric_limits<float>::max();
+        for (int i = 0; i < 4; i++) {
+            if (edgesValid[i] && edges[i].y < minY) {
+                minY = edges[i].y;
+                topEdgeIndex = i;
+            }
+        }
+        
+        bool canDrawRotationHandle = (topEdgeIndex >= 0);
+        bool hoveringRotation = false;
+        
+        if (canDrawRotationHandle) {
+            float rotationHandleOffset = 35.0f;
+            ImVec2 rotationHandleBase = edges[topEdgeIndex];
+            ImVec2 rotationHandle;
+            
+            if (hasRotation) {
+                float dirX = -sinR;
+                float dirY = -cosR;
+                rotationHandle.x = rotationHandleBase.x + dirX * rotationHandleOffset;
+                rotationHandle.y = rotationHandleBase.y + dirY * rotationHandleOffset;
+            }
+            else {
+                rotationHandle.x = center.x;
+                rotationHandle.y = edges[topEdgeIndex].y - rotationHandleOffset;  // Above top edge
+            }
+            
+            drawList->AddLine(rotationHandleBase, rotationHandle, IM_COL32(255, 255, 255, 180), 1.5f);
+            
+            const float rotationHandleRadius = 10.0f;
+            {
+                float dx = mousePos.x - rotationHandle.x;
+                float dy = mousePos.y - rotationHandle.y;
+                float dist2 = dx * dx + dy * dy;
+                if (dist2 <= rotationHandleRadius * rotationHandleRadius) {
+                    hoveringRotation = true;
+                }
+            }
+            
+            ImU32 rotationColor = hoveringRotation ? IM_COL32(0, 255, 100, 255) : IM_COL32(0, 200, 200, 255);
+            if (s_isDraggingRotation) {
+                rotationColor = IM_COL32(255, 200, 0, 255);
+            }
+            drawList->AddCircleFilled(rotationHandle, rotationHandleRadius, rotationColor);
+            drawList->AddCircle(rotationHandle, rotationHandleRadius, IM_COL32(255, 255, 255, 255), 12, 2.0f);
+            
+            if (!s_isDraggingRotation) {
+                float iconRadius = rotationHandleRadius * 0.5f;
+                drawList->AddCircle(rotationHandle, iconRadius, IM_COL32(255, 255, 255, 200), 8, 1.5f);
+            }
+        }
+        
+        // ========== HOVERING DETECTION ==========
+        bool mouseInThisPanel = mousePos.x >= panelPos.x && mousePos.x <= panelPos.x + panelSize.x &&
+            mousePos.y >= panelPos.y && mousePos.y <= panelPos.y + panelSize.y;
+        
+        if (!s_isDraggingUI && s_draggingCorner < 0 && s_draggingEdge < 0 && !s_isDraggingRotation && mouseInThisPanel)
+        {
+            bool hoveringHandle = false;
+            
+            if (hoveringRotation) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                hoveringHandle = true;
+            }
+            
+            if (!hoveringHandle) {
+                for (int i = 0; i < 4; ++i)
+                {
+                    float dx = mousePos.x - corners[i].x;
+                    float dy = mousePos.y - corners[i].y;
+                    float dist2 = dx * dx + dy * dy;
+                    
+                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                    {
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                        hoveringHandle = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!hoveringHandle)
+            {
+                for (int i = 0; i < 4; ++i)
+                {
+                    float dx = mousePos.x - edges[i].x;
+                    float dy = mousePos.y - edges[i].y;
+                    float dist2 = dx * dx + dy * dy;
+                    
+                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                    {
+                        if (i == 0 || i == 2) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                        else ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                        hoveringHandle = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!hoveringHandle)
+            {
+                float dx = mousePos.x - center.x;
+                float dy = mousePos.y - center.y;
+                float dist2 = dx * dx + dy * dy;
+                
+                if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+                    hoveringHandle = true;
+                }
+            }
+        }
+        
+        // ========== HELPER: Screen to World (unproject) ==========
+        auto ScreenToWorld = [&](const ImVec2& screenPos, float worldZ) -> NE::Math::Vec3 {
+            // Convert screen to NDC
+            float u = (screenPos.x - panelPos.x) / panelSize.x;  // [0..1]
+            float v = 1.0f - (screenPos.y - panelPos.y) / panelSize.y;  // [0..1], flip Y
+            float ndcX = u * 2.0f - 1.0f;  // [-1..1]
+            float ndcY = v * 2.0f - 1.0f;  // [-1..1]
+            
+            // Unproject: inverse of view-projection
+            NE::Math::Mat4 VP = proj * view;
+            NE::Math::Mat4 invVP = VP.Inverse();
+            
+            // Create two points on the ray (near and far in NDC Z)
+            float nearNDCZ = -1.0f;
+            float farNDCZ = 1.0f;
+            
+            // Unproject near point (as Vec4, then divide by w)
+            float nearX4 = invVP.GetElement(0, 0) * ndcX + invVP.GetElement(0, 1) * ndcY + invVP.GetElement(0, 2) * nearNDCZ + invVP.GetElement(0, 3);
+            float nearY4 = invVP.GetElement(1, 0) * ndcX + invVP.GetElement(1, 1) * ndcY + invVP.GetElement(1, 2) * nearNDCZ + invVP.GetElement(1, 3);
+            float nearZ4 = invVP.GetElement(2, 0) * ndcX + invVP.GetElement(2, 1) * ndcY + invVP.GetElement(2, 2) * nearNDCZ + invVP.GetElement(2, 3);
+            float nearW4 = invVP.GetElement(3, 0) * ndcX + invVP.GetElement(3, 1) * ndcY + invVP.GetElement(3, 2) * nearNDCZ + invVP.GetElement(3, 3);
+            
+            float nearX = 0.0f, nearY = 0.0f, nearZ = 0.0f;
+            if (std::abs(nearW4) > 1e-5f) {
+                nearX = nearX4 / nearW4;
+                nearY = nearY4 / nearW4;
+                nearZ = nearZ4 / nearW4;
+            }
+            
+            // Unproject far point
+            float farX4 = invVP.GetElement(0, 0) * ndcX + invVP.GetElement(0, 1) * ndcY + invVP.GetElement(0, 2) * farNDCZ + invVP.GetElement(0, 3);
+            float farY4 = invVP.GetElement(1, 0) * ndcX + invVP.GetElement(1, 1) * ndcY + invVP.GetElement(1, 2) * farNDCZ + invVP.GetElement(1, 3);
+            float farZ4 = invVP.GetElement(2, 0) * ndcX + invVP.GetElement(2, 1) * ndcY + invVP.GetElement(2, 2) * farNDCZ + invVP.GetElement(2, 3);
+            float farW4 = invVP.GetElement(3, 0) * ndcX + invVP.GetElement(3, 1) * ndcY + invVP.GetElement(3, 2) * farNDCZ + invVP.GetElement(3, 3);
+            
+            float farX = 0.0f, farY = 0.0f, farZ = 0.0f;
+            if (std::abs(farW4) > 1e-5f) {
+                farX = farX4 / farW4;
+                farY = farY4 / farW4;
+                farZ = farZ4 / farW4;
+            }
+            
+            // Find intersection with plane at worldZ
+            // Ray: P = near + t * (far - near)
+            // Plane: z = worldZ
+            float rayDirZ = farZ - nearZ;
+            if (std::abs(rayDirZ) < 1e-5f) {
+                // Ray is parallel to plane, return near point projected to plane
+                return NE::Math::Vec3(nearX, nearY, worldZ);
+            }
+            
+            float t = (worldZ - nearZ) / rayDirZ;
+            float worldX = nearX + t * (farX - nearX);
+            float worldY = nearY + t * (farY - nearY);
+            
+            return NE::Math::Vec3(worldX, worldY, worldZ);
+        };
+        
+        // ========== HANDLE CLICKING ==========
+        if (!s_isDraggingUI && s_draggingCorner < 0 && s_draggingEdge < 0 && !s_isDraggingRotation &&
+            mouseInThisPanel && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            bool handleClicked = false;
+            
+            // Rotation handle
+            if (hoveringRotation)
+            {
+                s_isDraggingRotation = true;
+                s_rotationCenter = center;
+                s_rotationStartAngle = GetAngleFromCenter(center, mousePos);
+                s_originalRotation = rectTransform.rotationZ;  // Use local rotation, not accumulated
+                s_cumulativeRotation = 0.0f;  // Reset cumulative rotation
+                s_originalTransform = rectTransform;
+                handleClicked = true;
+                
+                s_uiGizmoMask = SetUIRectTransformCommand::Rot;
+                s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                    uiEntityId, "UI Gizmo: Rotate",
+                    s_originalTransform, s_originalTransform,
+                    &NE::ECS::Command::GetUIRectTransform,
+                    s_uiGizmoMask
+                );
+            }
+            
+            // Corner handles
+            if (!handleClicked) {
+                for (int i = 0; i < 4; ++i)
+                {
+                    float dx = mousePos.x - corners[i].x;
+                    float dy = mousePos.y - corners[i].y;
+                    float dist2 = dx * dx + dy * dy;
+                    
+                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                    {
+                        s_draggingCorner = i;
+                        s_dragStart = mousePos;
+                        s_originalWorldPos3D = ScreenToWorld(mousePos, pivotWorldPos.z);
+                        s_originalPivotZ3D = pivotWorldPos.z;  // Store original Z for delta calculation
+                        s_originalTransform = rectTransform;
+                        handleClicked = true;
+                        
+                        s_uiGizmoMask = SetUIRectTransformCommand::Size;
+                        s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                            uiEntityId, "UI Gizmo: Resize",
+                            s_originalTransform, s_originalTransform,
+                            &NE::ECS::Command::GetUIRectTransform,
+                            s_uiGizmoMask
+                        );
+                        break;
+                    }
+                }
+            }
+            
+            // Edge handles
+            if (!handleClicked)
+            {
+                for (int i = 0; i < 4; ++i)
+                {
+                    float dx = mousePos.x - edges[i].x;
+                    float dy = mousePos.y - edges[i].y;
+                    float dist2 = dx * dx + dy * dy;
+                    
+                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                    {
+                        s_draggingEdge = i;
+                        s_dragStart = mousePos;
+                        s_originalWorldPos3D = ScreenToWorld(mousePos, pivotWorldPos.z);
+                        s_originalPivotZ3D = pivotWorldPos.z;  // Store original Z for delta calculation
+                        s_originalTransform = rectTransform;
+                        handleClicked = true;
+                        
+                        s_uiGizmoMask = SetUIRectTransformCommand::Size;
+                        s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                            uiEntityId, "UI Gizmo: Resize",
+                            s_originalTransform, s_originalTransform,
+                            &NE::ECS::Command::GetUIRectTransform,
+                            s_uiGizmoMask
+                        );
+                        break;
+                    }
+                }
+            }
+            
+            // Center/pivot handle (position drag)
+            if (!handleClicked)
+            {
+                float dx = mousePos.x - center.x;
+                float dy = mousePos.y - center.y;
+                float dist2 = dx * dx + dy * dy;
+                
+                if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                {
+                    s_isDraggingUI = true;
+                    s_dragStart = mousePos;
+                    s_originalWorldPos3D = ScreenToWorld(mousePos, pivotWorldPos.z);
+                    s_originalPivotZ3D = pivotWorldPos.z;  // Store original Z for delta calculation
+                    s_originalTransform = rectTransform;
+                    
+                    s_uiGizmoMask = SetUIRectTransformCommand::Pos;
+                    s_uiGizmoCmd = std::make_unique<SetUIRectTransformCommand>(
+                        uiEntityId, "UI Gizmo: Move",
+                        s_originalTransform, s_originalTransform,
+                        &NE::ECS::Command::GetUIRectTransform,
+                        s_uiGizmoMask
+                    );
+                }
+            }
+        }
+        
+        // ========== ROTATION DRAG ==========
+        // Use IsMouseDown instead of IsMouseDragging to work even when mouse is outside viewport
+        if (s_isDraggingRotation && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            // Get current mouse position (works even when outside viewport)
+            ImVec2 currentMousePos = ImGui::GetMousePos();
+            float currentAngle = GetAngleFromCenter(s_rotationCenter, currentMousePos);
+            
+            // Calculate delta from last frame's angle to handle -180/180 wrapping
+            // Instead of using s_rotationStartAngle directly, we track cumulative rotation
+            float frameDelta = currentAngle - s_rotationStartAngle;
+            
+            // Normalize frame delta to [-180, 180] to handle wrapping
+            while (frameDelta > 180.0f) frameDelta -= 360.0f;
+            while (frameDelta < -180.0f) frameDelta += 360.0f;
+            
+            // Apply rotation sensitivity multiplier for world space UI
+            // This function (Update2DGizmoWorldSpace) is only called for world space UI
+            // Higher values = more sensitive (less mouse movement needed for same rotation)
+            const float rotationSensitivity = 50.0f;  // 50x sensitivity for world space
+            frameDelta *= rotationSensitivity;
+            
+            // Accumulate the frame delta to get total rotation since drag started
+            s_cumulativeRotation += frameDelta;
+            
+            // Update start angle for next frame (using current angle to avoid accumulation errors)
+            s_rotationStartAngle = currentAngle;
+            
+            // Apply cumulative rotation to the entity's local rotation
+            // Don't normalize the stored rotation value - allow it to accumulate beyond [-180, 180]
+            // Rotation matrices work correctly with any angle value, and this allows continuous rotation
+            rectTransform.rotationZ = s_originalRotation + s_cumulativeRotation;
+            
+            if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+                rectTransform.rotationZ = std::round(rectTransform.rotationZ / 15.0f) * 15.0f;
+            }
+            
+            if (std::abs(rectTransform.rotationZ) < 3.0f &&
+                !(ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))) {
+                rectTransform.rotationZ = 0.0f;
+            }
+            
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rectTransform);
+            }
+        }
+        
+        if (s_isDraggingRotation && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            s_isDraggingRotation = false;
+            CommitCommand();
+        }
+        
+        // ========== POSITION DRAG ==========
+        // Use IsMouseDown instead of IsMouseDragging to work even when mouse is outside viewport
+        if (s_isDraggingUI && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            // Get current mouse position (works even when outside viewport)
+            ImVec2 currentScreenPos = ImGui::GetMousePos();
+            
+            // Calculate screen delta from the original drag start position
+            // This allows translation to continue even when the gizmo goes out of view
+            ImVec2 screenDelta = ImVec2(
+                currentScreenPos.x - s_dragStart.x,
+                currentScreenPos.y - s_dragStart.y
+            );
+            
+            // Convert screen delta to world space delta using delta-based projection
+            // This works even when the current position is out of view
+            NE::Math::Vec3 originalWorldPos = s_originalWorldPos3D;
+            
+            // Calculate world position at original screen position + delta
+            // Use the stored original Z to ensure consistent projection
+            ImVec2 newScreenPos = ImVec2(
+                s_dragStart.x + screenDelta.x,
+                s_dragStart.y + screenDelta.y
+            );
+            NE::Math::Vec3 newWorldPos = ScreenToWorld(newScreenPos, s_originalPivotZ3D);
+            
+            // Calculate the world delta
+            NE::Math::Vec3 worldDelta = newWorldPos - originalWorldPos;
+            
+            // Apply a sensitivity factor (adjust this value to tune sensitivity)
+            // Smaller values = less sensitive, larger values = more sensitive
+            const float sensitivityFactor = 0.15f;  // Reduced from 0.5f for less sensitivity
+            worldDelta.x *= sensitivityFactor;
+            worldDelta.y *= sensitivityFactor;
+            worldDelta.z *= sensitivityFactor;
+            
+            // Convert world delta to local space delta
+            // Build parent transform chain (excluding current entity)
+            std::vector<uint32_t> parentChain;
+            uint32_t p = rectTransform.parent;
+            while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
+                parentChain.push_back(p);
+                if (p == canvasEntityId) break;
+                p = NE::ECS::Query::GetUIRectTransform(p).parent;
+            }
+            std::reverse(parentChain.begin(), parentChain.end());
+            
+            // Build parent transform matrix (rotation and scale only, no translation)
+            NE::Math::Vec3 parentScale(1, 1, 1);
+            float parentRotX = 0.0f, parentRotY = 0.0f, parentRotZ = 0.0f;
+            for (uint32_t parentId : parentChain) {
+                auto& parentRect = NE::ECS::Query::GetUIRectTransform(parentId);
+                parentScale.x *= parentRect.scaleX;
+                parentScale.y *= parentRect.scaleY;
+                parentScale.z *= parentRect.scaleZ;
+                parentRotX += parentRect.rotationX;
+                parentRotY += parentRect.rotationY;
+                parentRotZ += parentRect.rotationZ;
+            }
+            
+            // Build inverse parent rotation matrix to convert world delta to local space
+            NE::Math::Mat4 invRotX = NE::Math::Mat4::BuildXRotation(-parentRotX * PI / 180.0f);
+            NE::Math::Mat4 invRotY = NE::Math::Mat4::BuildYRotation(-parentRotY * PI / 180.0f);
+            NE::Math::Mat4 invRotZ = NE::Math::Mat4::BuildZRotation(-parentRotZ * PI / 180.0f);
+            NE::Math::Mat4 invParentRot = invRotX * invRotY * invRotZ;  // Inverse rotation order
+            
+            // Transform world delta to local space (remove parent rotation and scale)
+            float localDeltaX = invParentRot.GetElement(0, 0) * worldDelta.x + invParentRot.GetElement(0, 1) * worldDelta.y + invParentRot.GetElement(0, 2) * worldDelta.z;
+            float localDeltaY = invParentRot.GetElement(1, 0) * worldDelta.x + invParentRot.GetElement(1, 1) * worldDelta.y + invParentRot.GetElement(1, 2) * worldDelta.z;
+            float localDeltaZ = invParentRot.GetElement(2, 0) * worldDelta.x + invParentRot.GetElement(2, 1) * worldDelta.y + invParentRot.GetElement(2, 2) * worldDelta.z;
+            
+            // Remove parent scale
+            if (std::abs(parentScale.x) > 1e-5f) localDeltaX /= parentScale.x;
+            if (std::abs(parentScale.y) > 1e-5f) localDeltaY /= parentScale.y;
+            if (std::abs(parentScale.z) > 1e-5f) localDeltaZ /= parentScale.z;
+            
+            // Apply local delta to transform
+            rectTransform.x = s_originalTransform.x + localDeltaX;
+            rectTransform.y = s_originalTransform.y + localDeltaY;
+            rectTransform.z = s_originalTransform.z + localDeltaZ;
+            
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rectTransform);
+            }
+        }
+        
+        if (s_isDraggingUI && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            s_isDraggingUI = false;
+            CommitCommand();
+        }
+        
+        // ========== CORNER/EDGE RESIZE DRAG ==========
+        // Use IsMouseDown instead of IsMouseDragging to work even when mouse is outside viewport
+        if ((s_draggingCorner >= 0 || s_draggingEdge >= 0) && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            // Get current mouse position (works even when outside viewport)
+            ImVec2 currentScreenPos = ImGui::GetMousePos();
+            ImVec2 screenDelta = ImVec2(
+                currentScreenPos.x - s_dragStart.x,
+                currentScreenPos.y - s_dragStart.y
+            );
+            
+            // Convert screen delta to world space delta using delta-based projection
+            // This works even when the current position is out of view
+            ImVec2 newScreenPos = ImVec2(
+                s_dragStart.x + screenDelta.x,
+                s_dragStart.y + screenDelta.y
+            );
+            NE::Math::Vec3 newWorldPos = ScreenToWorld(newScreenPos, s_originalPivotZ3D);
+            NE::Math::Vec3 worldDelta = newWorldPos - s_originalWorldPos3D;
+            
+            // Apply sensitivity factor for resize operations
+            // Increased from 0.15f to 0.3f for more sensitive scaling
+            const float resizeSensitivityFactor = 0.3f;
+            worldDelta.x *= resizeSensitivityFactor;
+            worldDelta.y *= resizeSensitivityFactor;
+            worldDelta.z *= resizeSensitivityFactor;
+            
+            // Convert world delta to local space (same as position drag)
+            std::vector<uint32_t> parentChain;
+            uint32_t p = rectTransform.parent;
+            while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
+                parentChain.push_back(p);
+                if (p == canvasEntityId) break;
+                p = NE::ECS::Query::GetUIRectTransform(p).parent;
+            }
+            std::reverse(parentChain.begin(), parentChain.end());
+            
+            NE::Math::Vec3 parentScale(1, 1, 1);
+            float parentRotX = 0.0f, parentRotY = 0.0f, parentRotZ = 0.0f;
+            for (uint32_t parentId : parentChain) {
+                auto& parentRect = NE::ECS::Query::GetUIRectTransform(parentId);
+                parentScale.x *= parentRect.scaleX;
+                parentScale.y *= parentRect.scaleY;
+                parentScale.z *= parentRect.scaleZ;
+                parentRotX += parentRect.rotationX;
+                parentRotY += parentRect.rotationY;
+                parentRotZ += parentRect.rotationZ;
+            }
+            
+            NE::Math::Mat4 invRotX = NE::Math::Mat4::BuildXRotation(-parentRotX * PI / 180.0f);
+            NE::Math::Mat4 invRotY = NE::Math::Mat4::BuildYRotation(-parentRotY * PI / 180.0f);
+            NE::Math::Mat4 invRotZ = NE::Math::Mat4::BuildZRotation(-parentRotZ * PI / 180.0f);
+            NE::Math::Mat4 invParentRot = invRotX * invRotY * invRotZ;
+            
+            float localDeltaX = invParentRot.GetElement(0, 0) * worldDelta.x + invParentRot.GetElement(0, 1) * worldDelta.y + invParentRot.GetElement(0, 2) * worldDelta.z;
+            float localDeltaY = invParentRot.GetElement(1, 0) * worldDelta.x + invParentRot.GetElement(1, 1) * worldDelta.y + invParentRot.GetElement(1, 2) * worldDelta.z;
+            
+            // Remove parent scale
+            if (std::abs(parentScale.x) > 1e-5f) localDeltaX /= parentScale.x;
+            if (std::abs(parentScale.y) > 1e-5f) localDeltaY /= parentScale.y;
+            
+            // Calculate resize in local space
+            float deltaX = localDeltaX;
+            float deltaY = localDeltaY;
+            
+            // For corners: resize both width and height
+            // For edges: resize only one dimension
+            if (s_draggingCorner >= 0) {
+                // Corner resize: adjust width and height based on corner
+                // Corner 0: top-left, 1: top-right, 2: bottom-right, 3: bottom-left
+                float widthDelta = 0.0f;
+                float heightDelta = 0.0f;
+                
+                if (s_draggingCorner == 0 || s_draggingCorner == 3) {
+                    // Left corners: negative X delta increases width
+                    widthDelta = -deltaX;
+                } else {
+                    // Right corners: positive X delta increases width
+                    widthDelta = deltaX;
+                }
+                
+                if (s_draggingCorner == 0 || s_draggingCorner == 1) {
+                    // Top corners: negative Y delta increases height (Y-up)
+                    heightDelta = -deltaY;
+                } else {
+                    // Bottom corners: positive Y delta increases height
+                    heightDelta = deltaY;
+                }
+                
+                rectTransform.width = std::max(1.0f, s_originalTransform.width + widthDelta);
+                rectTransform.height = std::max(1.0f, s_originalTransform.height + heightDelta);
+            } else if (s_draggingEdge >= 0) {
+                // Edge resize: adjust one dimension
+                // Edge 0: top, 1: right, 2: bottom, 3: left
+                if (s_draggingEdge == 0 || s_draggingEdge == 2) {
+                    // Top/bottom edges: adjust height
+                    float heightDelta = (s_draggingEdge == 0) ? -deltaY : deltaY;
+                    rectTransform.height = std::max(1.0f, s_originalTransform.height + heightDelta);
+                } else {
+                    // Left/right edges: adjust width
+                    float widthDelta = (s_draggingEdge == 3) ? -deltaX : deltaX;
+                    rectTransform.width = std::max(1.0f, s_originalTransform.width + widthDelta);
+                }
+            }
+            
+            if (s_uiGizmoCmd) {
+                s_uiGizmoCmd->SetAfter(rectTransform);
+            }
+        }
+        
+        if ((s_draggingCorner >= 0 || s_draggingEdge >= 0) && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            s_draggingCorner = -1;
+            s_draggingEdge = -1;
+            CommitCommand();
         }
     }
 

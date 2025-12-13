@@ -33,6 +33,13 @@ namespace Editor {
             float fbWidth, float fbHeight);
         static void End2DGizmo(uint32_t uiEntityId);
 
+        // === 2D Gizmo in World Space (Child UI Elements) ===
+        static void Update2DGizmoWorldSpace(uint32_t uiEntityId,
+            const NE::Math::Mat4& view,
+            const NE::Math::Mat4& proj,
+            ImVec2 panelPos,
+            ImVec2 panelSize);
+
         static void UpdateCommandAfter(const NE::ECS::Component::UIRectTransform& rect);
 
         // World-space helper (TRS only, no width/height/pivot)
@@ -51,12 +58,15 @@ namespace Editor {
         static int s_draggingEdge;
         static ImVec2 s_dragStart;
         static NE::ECS::Component::UIRectTransform s_originalTransform;
-        static ImVec2 s_originalWorldPos;
+        static ImVec2 s_originalWorldPos;  // For 2D gizmo
+        static NE::Math::Vec3 s_originalWorldPos3D;  // For 3D world space gizmo
+        static float s_originalPivotZ3D;  // Store original pivot Z for 3D gizmo translation
 
         // === 2D Gizmo State - Rotation ===
         static bool s_isDraggingRotation;
         static float s_rotationStartAngle;
         static float s_originalRotation;
+        static float s_cumulativeRotation;  // Track cumulative rotation to handle -180/180 wrapping
         static ImVec2 s_rotationCenter;
 
         // === Undo/Redo Command State ===

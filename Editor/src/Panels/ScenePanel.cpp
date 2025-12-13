@@ -660,13 +660,35 @@ namespace Editor {
 				// Setup operation keys for 3D gizmo
 				UIGizmoHandler::SetOperation(currentOperation);
 
-				// World space canvas (3D gizmo)
+				// World space UI
 				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
 					NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
 					NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
 
-					Editor::UIGizmoHandler::Update3DGizmo(eid, view, proj, panelPos, panelSize);
-					s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
+					// Canvas uses full 3D gizmo (position, rotation, scale)
+					if (NE::ECS::Query::HasUICanvas(eid)) {
+						Editor::UIGizmoHandler::Update3DGizmo(eid, view, proj, panelPos, panelSize);
+						s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
+					}
+					// Child UI elements use 2D gizmo (corners/borders) projected to 3D space
+					else {
+						// Begin 2D gizmo if not already active
+						if (!UIGizmoHandler::IsGizmoActive()) {
+							UIGizmoHandler::Begin2DGizmo(eid);
+							s_usingUIGizmo = true;
+						}
+
+						// Update 2D gizmo in world space
+						if (UIGizmoHandler::IsGizmoActive()) {
+							UIGizmoHandler::Update2DGizmoWorldSpace(eid, view, proj, panelPos, panelSize);
+						}
+
+						// End 2D gizmo on mouse release
+						if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && UIGizmoHandler::IsGizmoActive()) {
+							UIGizmoHandler::End2DGizmo(eid);
+							s_usingUIGizmo = false;
+						}
+					}
 				}
 				// Screen space canvas (2D gizmo with corner/edge handles)
 				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||

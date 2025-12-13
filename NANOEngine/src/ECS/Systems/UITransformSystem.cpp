@@ -409,39 +409,71 @@ namespace NE::ECS::Systems {
         const Component::UIRectTransform& rect,
         const AccumulatedTransform& accumulated
     ) {
-        // compute pivot offset
+        // World space vertices are generated as a unit quad from (0,0) to (1,1) in Y-down space
+        // We need to transform this to world space (Y-up) with proper pivot handling
+        //
+        // Steps:
+        // 1. Scale the unit quad to desired size
+        // 2. Apply pivot offset (accounting for Y-axis flip from Y-down to Y-up)
+        // 3. Rotate
+        // 4. Translate to world position
+        
         Math::Vec2 pivot = rect.GetPivot();
-
-        float pivotOffsetX = -rect.width * pivot.x * accumulated.scaleX;
-        float pivotOffsetY = -rect.height * pivot.y * accumulated.scaleY;
-
-        // Scale matrix using accumulated scale
+        
+        float scaledWidth = rect.width * accumulated.scaleX;
+        float scaledHeight = rect.height * accumulated.scaleY;
+        
+        // Step 1: Scale the unit quad (0,0 to 1,1) to (0,0 to width, height)
         Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
-            rect.width * accumulated.scaleX,
-            rect.height * accumulated.scaleY,
+            scaledWidth,
+            scaledHeight,
             accumulated.scaleZ
         );
-
-        // pivot offset in local space
+        
+        // Step 2: Apply pivot offset
+        // After scaling, the quad is from (0,0) to (width, height) in Y-down space
+        // In Y-down space: (0,0) = top-left, (1,1) = bottom-right
+        // In Y-up world space: (0,0) = bottom-left, (1,1) = top-right
+        // Unity pivot: (0,0) = bottom-left, (0.5,0.5) = center, (1,1) = top-right
+        //
+        // The pivot point in the scaled quad (Y-down) is at:
+        //   X: width * pivotX  (pivotX=0 → left, pivotX=1 → right) ✓
+        //   Y: height * pivotY (pivotY=0 → top in Y-down, but should be bottom in Y-up)
+        //                      (pivotY=1 → bottom in Y-down, but should be top in Y-up)
+        //
+        // To convert Y-down to Y-up: Y_world = height - Y_ui
+        // So pivotY_world = height - (height * pivotY) = height * (1 - pivotY)
+        //
+        // To move the pivot to origin, translate by:
+        //   X: -width * pivotX
+        //   Y: -height * (1 - pivotY)  (flipped for Y-up)
+        float pivotOffsetX = -scaledWidth * pivot.x;
+        float pivotOffsetY = -scaledHeight * (1.0f - pivot.y);  // Flip Y for world space
+        
         Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(
             pivotOffsetX,
             pivotOffsetY,
             0.0f
         );
 
-        // rotation using accumulated rotations
+        // Step 3: Rotation
+        // Rotation order: X * Y * Z (same as TransformSystem)
+        // Note: Rotation matrices work with any angle value (they're periodic), so we don't need to normalize
+        // The normalization is only for display/storage of Euler angles, not for matrix building
         Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accumulated.rotationX * PI / 180.0f);
         Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accumulated.rotationY * PI / 180.0f);
         Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accumulated.rotationZ * PI / 180.0f);
-        Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
+        Math::Mat4 rotationMatrix = rotationX * rotationY * rotationZ;  // X * Y * Z order (same as TransformSystem)
 
-        // translation using accumulated position
+        // Step 4: Translation to world position (accumulated.posX/Y/Z is the pivot position)
         Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(
             accumulated.posX,
             accumulated.posY,
             accumulated.posZ
         );
 
+        // Order: Translate -> Rotate -> Pivot Offset -> Scale
+        // This means: first scale, then move pivot to origin, then rotate, then move to world position
         return translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
     }
 
