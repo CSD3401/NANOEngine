@@ -226,6 +226,45 @@ namespace Editor {
         );
     }
 
+    // Helper function to project world space point to screen space
+    static bool WorldToScreen(const NE::Math::Vec3& worldPos,
+        const NE::Math::Mat4& view,
+        const NE::Math::Mat4& proj,
+        const ImVec2& panelPos,
+        const ImVec2& panelSize,
+        ImVec2& outScreen)
+    {
+        NE::Math::Mat4 VP = proj * view;
+        
+        // Transform to clip space (manually multiply Mat4 * Vec4, avoiding Vec4 constructor)
+        float inputX = worldPos.x;
+        float inputY = worldPos.y;
+        float inputZ = worldPos.z;
+        float inputW = 1.0f;
+        
+        float clipX = VP.GetElement(0, 0) * inputX + VP.GetElement(0, 1) * inputY + VP.GetElement(0, 2) * inputZ + VP.GetElement(0, 3) * inputW;
+        float clipY = VP.GetElement(1, 0) * inputX + VP.GetElement(1, 1) * inputY + VP.GetElement(1, 2) * inputZ + VP.GetElement(1, 3) * inputW;
+        float clipW = VP.GetElement(3, 0) * inputX + VP.GetElement(3, 1) * inputY + VP.GetElement(3, 2) * inputZ + VP.GetElement(3, 3) * inputW;
+        
+        if (clipW <= 1e-5f) return false; // behind camera / invalid
+        
+        // Perspective divide
+        float invW = 1.0f / clipW;
+        float ndcX = clipX * invW;
+        float ndcY = clipY * invW;
+        
+        // Optional: quick reject if outside viewport
+        if (ndcX < -1.0f || ndcX > 1.0f || ndcY < -1.0f || ndcY > 1.0f)
+            return false;
+        
+        // Convert NDC to screen space
+        const float u = ndcX * 0.5f + 0.5f;  // [0..1]
+        const float v = ndcY * 0.5f + 0.5f;  // [0..1] (Y-up)
+        outScreen.x = panelPos.x + u * panelSize.x;
+        outScreen.y = panelPos.y + (1.0f - v) * panelSize.y;  // Flip Y for ImGui
+        return true;
+    }
+
     void UIGizmoHandler::Update3DGizmo(uint32_t uiEntityId,
         const NE::Math::Mat4& view,
         const NE::Math::Mat4& proj,
@@ -386,6 +425,84 @@ namespace Editor {
         // End tracking when user releases
         if (s_gizmoActive && !isUsing) {
             End3DGizmo(uiEntityId);
+        }
+
+        // Draw canvas bounds visualization (wireframe rectangle) for world space canvas
+        // This helps visualize where the canvas corners are for anchoring
+        if (NE::ECS::Query::HasUICanvas(uiEntityId)) {
+            auto& canvasRect = NE::ECS::Query::GetUIRectTransform(uiEntityId);
+            auto canvas = NE::ECS::Query::GetUICanvas(uiEntityId);
+            
+            if (canvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
+                // Calculate canvas corners in UI coordinate space (not scaled)
+                // The wireframe should show the UI coordinate bounds (100x100), not the scaled world bounds
+                float pivotX = canvasRect.pivotX;
+                float pivotY = canvasRect.pivotY;
+                float width = canvasRect.width;  // UI coordinate space width (e.g., 100)
+                float height = canvasRect.height; // UI coordinate space height (e.g., 100)
+                
+                // Calculate corners relative to pivot in UI coordinate space (Y-down)
+                // These will be transformed to world space, but we want to show the full UI coordinate bounds
+                NE::Math::Vec3 cornersLocal[4] = {
+                    NE::Math::Vec3(-width * pivotX, -height * (1.0f - pivotY), 0.0f),  // Top-left (Y-down)
+                    NE::Math::Vec3(width * (1.0f - pivotX), -height * (1.0f - pivotY), 0.0f),  // Top-right
+                    NE::Math::Vec3(width * (1.0f - pivotX), height * pivotY, 0.0f),  // Bottom-right
+                    NE::Math::Vec3(-width * pivotX, height * pivotY, 0.0f)   // Bottom-left
+                };
+                
+                // Build matrix with position and rotation, but WITHOUT scale
+                // This way the wireframe shows the UI coordinate space (100x100), not the scaled size (1x1)
+                constexpr float PI = 3.14159265358979f;
+                NE::Math::Mat4 translationMatrix = NE::Math::Mat4::BuildTranslation(
+                    canvasRect.x, canvasRect.y, canvasRect.z
+                );
+                NE::Math::Mat4 rotationX = NE::Math::Mat4::BuildXRotation(canvasRect.rotationX * PI / 180.0f);
+                NE::Math::Mat4 rotationY = NE::Math::Mat4::BuildYRotation(canvasRect.rotationY * PI / 180.0f);
+                NE::Math::Mat4 rotationZ = NE::Math::Mat4::BuildZRotation(canvasRect.rotationZ * PI / 180.0f);
+                NE::Math::Mat4 rotationMatrix = rotationX * rotationY * rotationZ;
+                
+                // Matrix without scale: T * R (no scale)
+                NE::Math::Mat4 canvasMatrix = translationMatrix * rotationMatrix;
+                
+                // Transform local corners to world space
+                NE::Math::Vec3 cornersWorld[4];
+                for (int i = 0; i < 4; ++i) {
+                    float cornerX = cornersLocal[i].x;
+                    float cornerY = cornersLocal[i].y;
+                    float cornerZ = cornersLocal[i].z;
+                    float cornerW = 1.0f;
+                    
+                    cornersWorld[i].x = canvasMatrix.GetElement(0, 0) * cornerX + canvasMatrix.GetElement(0, 1) * cornerY + canvasMatrix.GetElement(0, 2) * cornerZ + canvasMatrix.GetElement(0, 3) * cornerW;
+                    cornersWorld[i].y = canvasMatrix.GetElement(1, 0) * cornerX + canvasMatrix.GetElement(1, 1) * cornerY + canvasMatrix.GetElement(1, 2) * cornerZ + canvasMatrix.GetElement(1, 3) * cornerW;
+                    cornersWorld[i].z = canvasMatrix.GetElement(2, 0) * cornerX + canvasMatrix.GetElement(2, 1) * cornerY + canvasMatrix.GetElement(2, 2) * cornerZ + canvasMatrix.GetElement(2, 3) * cornerW;
+                    float w = canvasMatrix.GetElement(3, 0) * cornerX + canvasMatrix.GetElement(3, 1) * cornerY + canvasMatrix.GetElement(3, 2) * cornerZ + canvasMatrix.GetElement(3, 3) * cornerW;
+                    if (std::abs(w) > 1e-5f) {
+                        cornersWorld[i].x /= w;
+                        cornersWorld[i].y /= w;
+                        cornersWorld[i].z /= w;
+                    }
+                }
+                
+                // Project corners to screen space and draw wireframe
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                ImVec2 screenCorners[4];
+                bool cornersValid[4] = { false, false, false, false };
+                
+                for (int i = 0; i < 4; ++i) {
+                    cornersValid[i] = WorldToScreen(cornersWorld[i], view, proj, panelPos, panelSize, screenCorners[i]);
+                }
+                
+                // Draw wireframe rectangle (only draw lines between valid corners)
+                ImU32 lineColor = IM_COL32(0, 0, 255, 255);  // Dark blue, fully opaque
+                float lineThickness = 1.5f;
+                
+                for (int i = 0; i < 4; ++i) {
+                    int next = (i + 1) % 4;
+                    if (cornersValid[i] && cornersValid[next]) {
+                        drawList->AddLine(screenCorners[i], screenCorners[next], lineColor, lineThickness);
+                    }
+                }
+            }
         }
     }
 
@@ -971,45 +1088,6 @@ namespace Editor {
                 s_isDraggingRotation = false;
             }
         }
-    }
-
-    // Helper function to project world space point to screen space
-    static bool WorldToScreen(const NE::Math::Vec3& worldPos,
-        const NE::Math::Mat4& view,
-        const NE::Math::Mat4& proj,
-        const ImVec2& panelPos,
-        const ImVec2& panelSize,
-        ImVec2& outScreen)
-    {
-        NE::Math::Mat4 VP = proj * view;
-        
-        // Transform to clip space (manually multiply Mat4 * Vec4, avoiding Vec4 constructor)
-        float inputX = worldPos.x;
-        float inputY = worldPos.y;
-        float inputZ = worldPos.z;
-        float inputW = 1.0f;
-        
-        float clipX = VP.GetElement(0, 0) * inputX + VP.GetElement(0, 1) * inputY + VP.GetElement(0, 2) * inputZ + VP.GetElement(0, 3) * inputW;
-        float clipY = VP.GetElement(1, 0) * inputX + VP.GetElement(1, 1) * inputY + VP.GetElement(1, 2) * inputZ + VP.GetElement(1, 3) * inputW;
-        float clipW = VP.GetElement(3, 0) * inputX + VP.GetElement(3, 1) * inputY + VP.GetElement(3, 2) * inputZ + VP.GetElement(3, 3) * inputW;
-        
-        if (clipW <= 1e-5f) return false; // behind camera / invalid
-        
-        // Perspective divide
-        float invW = 1.0f / clipW;
-        float ndcX = clipX * invW;
-        float ndcY = clipY * invW;
-        
-        // Optional: quick reject if outside viewport
-        if (ndcX < -1.0f || ndcX > 1.0f || ndcY < -1.0f || ndcY > 1.0f)
-            return false;
-        
-        // Convert NDC to screen space
-        const float u = ndcX * 0.5f + 0.5f;  // [0..1]
-        const float v = ndcY * 0.5f + 0.5f;  // [0..1] (Y-up)
-        outScreen.x = panelPos.x + u * panelSize.x;
-        outScreen.y = panelPos.y + (1.0f - v) * panelSize.y;  // Flip Y for ImGui
-        return true;
     }
 
     void UIGizmoHandler::Update2DGizmoWorldSpace(uint32_t uiEntityId,

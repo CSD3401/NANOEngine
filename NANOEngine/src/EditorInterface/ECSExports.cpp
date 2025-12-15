@@ -275,8 +275,24 @@ namespace NE::ECS {
 			rect.x = 0.0f;
 			rect.y = 0.0f;
 			rect.z = 0.0f;
-			rect.width = 100.0f;
-			rect.height = 100.0f;
+			
+			// Check if parent is a World Space canvas and adjust default size accordingly
+			// For World Space: use smaller default (10x10 pixels = 1x1 world units with 0.1 scale)
+			// For Screen Space: use standard default (100x100 pixels)
+			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UICanvas>(parentCanvas)) {
+				auto& canvas = ecs.GetComponent<Component::UICanvas>(parentCanvas);
+				if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
+					rect.width = 10.0f;   // 10 pixels * 0.1 scale = 1 world unit (fits in 10x10 canvas)
+					rect.height = 10.0f;
+				} else {
+					rect.width = 100.0f;
+					rect.height = 100.0f;
+				}
+			} else {
+				rect.width = 100.0f;
+				rect.height = 100.0f;
+			}
+			
 			rect.parent = parentCanvas;  // Link to parent canvas (runtime)
 
 			// set parent luid for serialization

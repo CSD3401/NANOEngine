@@ -21,8 +21,12 @@ namespace NE::ECS::Systems {
     static constexpr float DEFAULT_ANCHOR_X = 0.5f;
     static constexpr float DEFAULT_ANCHOR_Y = 0.5f;
 
-    // Default world space canvas scale (so 100x100 UI = 10x10 world units)
+    // Default world space canvas scale
     static constexpr float DEFAULT_WORLD_SPACE_SCALE = 0.1f;
+    
+    // Default world space canvas size in world units
+    static constexpr float DEFAULT_WORLD_SPACE_CANVAS_WIDTH = 10.0f;
+    static constexpr float DEFAULT_WORLD_SPACE_CANVAS_HEIGHT = 10.0f;
 
     //=========================================================================
     // Lifecycle
@@ -535,7 +539,7 @@ namespace NE::ECS::Systems {
         }
 
         case Component::UICanvas::RenderMode::WORLD_SPACE: {
-            // Apply default world space scale
+            // Apply default world space scale (Unity default: 0.01)
             canvasRect.scaleX = DEFAULT_WORLD_SPACE_SCALE;
             canvasRect.scaleY = DEFAULT_WORLD_SPACE_SCALE;
             canvasRect.scaleZ = 1.f;
@@ -543,7 +547,14 @@ namespace NE::ECS::Systems {
             // Reset position to origin (user can move it)
             canvasRect.x = 0.f;
             canvasRect.y = 0.f;
-            canvasRect.z = 0.f;
+            canvasRect.z = -5.f;  // Place in front of camera
+
+            // Set default canvas size in world units (Unity defaults to 1x1 world units)
+            // This represents the UI coordinate space, not the pixel size
+            if (!canvas.hasBeenInitialized || renderModeChanged) {
+                canvasRect.width = DEFAULT_WORLD_SPACE_CANVAS_WIDTH;
+                canvasRect.height = DEFAULT_WORLD_SPACE_CANVAS_HEIGHT;
+            }
 
             // Keep rotation as is or reset
             canvasRect.rotationX = 0.f;
