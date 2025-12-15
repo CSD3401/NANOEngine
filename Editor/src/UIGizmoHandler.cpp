@@ -542,6 +542,11 @@ namespace Editor {
 
         auto& rectTransform = NE::ECS::Command::GetUIRectTransform(uiEntityId);
 
+        // Check if stretch anchors are active (Unity behavior: can't resize with gizmo when stretched)
+        bool isStretchedX = (std::abs(rectTransform.anchorMinX - rectTransform.anchorMaxX) > 0.001f);
+        bool isStretchedY = (std::abs(rectTransform.anchorMinY - rectTransform.anchorMaxY) > 0.001f);
+        bool hasStretchAnchors = isStretchedX || isStretchedY;
+
         float panelScaleX = panelSize.x / fbWidth;
         float panelScaleY = panelSize.y / fbHeight;
 
@@ -632,22 +637,26 @@ namespace Editor {
             drawList->AddRect(topLeft, bottomRight, IM_COL32(255, 255, 255, 255), 0.0f, 0, 2.0f);
         }
 
-        // Draw corner handles
-        for (int i = 0; i < 4; i++) {
-            drawList->AddRectFilled(
-                ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
-                ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
-                IM_COL32(0, 120, 255, 255)
-            );
+        // Draw corner handles - only when NOT using stretch anchors
+        if (!hasStretchAnchors) {
+            for (int i = 0; i < 4; i++) {
+                drawList->AddRectFilled(
+                    ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
+                    ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
+                    IM_COL32(0, 120, 255, 255)
+                );
+            }
         }
 
-        // Draw edge handles
-        for (int i = 0; i < 4; i++) {
-            drawList->AddRectFilled(
-                ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
-                ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
-                IM_COL32(0, 120, 255, 255)
-            );
+        // Draw edge handles - only when NOT using stretch anchors
+        if (!hasStretchAnchors) {
+            for (int i = 0; i < 4; i++) {
+                drawList->AddRectFilled(
+                    ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
+                    ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
+                    IM_COL32(0, 120, 255, 255)
+                );
+            }
         }
 
         // Draw center/pivot handle
@@ -704,41 +713,46 @@ namespace Editor {
                 hoveringHandle = true;
             }
 
-            if (!hoveringHandle) {
-                for (int i = 0; i < 4; ++i)
-                {
-                    float dx = mousePos.x - corners[i].x;
-                    float dy = mousePos.y - corners[i].y;
-                    float dist2 = dx * dx + dy * dy;
-
-                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+            // Only allow corner/edge hovering when NOT using stretch anchors
+            if (!hasStretchAnchors) {
+                if (!hoveringHandle) {
+                    for (int i = 0; i < 4; ++i)
                     {
-                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
-                        hoveringHandle = true;
-                        break;
+                        float dx = mousePos.x - corners[i].x;
+                        float dy = mousePos.y - corners[i].y;
+                        float dist2 = dx * dx + dy * dy;
+
+                        if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                        {
+                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                            hoveringHandle = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hoveringHandle)
+                {
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        float dx = mousePos.x - edges[i].x;
+                        float dy = mousePos.y - edges[i].y;
+                        float dist2 = dx * dx + dy * dy;
+
+                        if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                        {
+                            if (i == 0 || i == 2) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                            else ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                            hoveringHandle = true;
+                            break;
+                        }
                     }
                 }
             }
 
-            if (!hoveringHandle)
-            {
-                for (int i = 0; i < 4; ++i)
-                {
-                    float dx = mousePos.x - edges[i].x;
-                    float dy = mousePos.y - edges[i].y;
-                    float dist2 = dx * dx + dy * dy;
-
-                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
-                    {
-                        if (i == 0 || i == 2) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-                        else ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                        hoveringHandle = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!hoveringHandle)
+            // Center/pivot handle - only allow hovering when NOT using stretch both
+            // (Stretch horizontal/vertical still allow movement on one axis)
+            if (!hoveringHandle && !(isStretchedX && isStretchedY))
             {
                 float dx = mousePos.x - center.x;
                 float dy = mousePos.y - center.y;
@@ -777,8 +791,8 @@ namespace Editor {
                 );
             }
 
-            // Corner handles
-            if (!handleClicked) {
+            // Corner handles - only when NOT using stretch anchors
+            if (!handleClicked && !hasStretchAnchors) {
                 for (int i = 0; i < 4; ++i)
                 {
                     float dx = mousePos.x - corners[i].x;
@@ -804,8 +818,8 @@ namespace Editor {
                 }
             }
 
-            // Edge handles
-            if (!handleClicked)
+            // Edge handles - only when NOT using stretch anchors
+            if (!handleClicked && !hasStretchAnchors)
             {
                 for (int i = 0; i < 4; ++i)
                 {
@@ -832,8 +846,9 @@ namespace Editor {
                 }
             }
 
-            // Center/pivot handle (position drag)
-            if (!handleClicked)
+            // Center/pivot handle (position drag) - only when NOT using stretch both
+            // (Stretch horizontal/vertical still allow movement on one axis)
+            if (!handleClicked && !(isStretchedX && isStretchedY))
             {
                 float dx = mousePos.x - center.x;
                 float dy = mousePos.y - center.y;
@@ -921,8 +936,28 @@ namespace Editor {
             float deltaFBX = deltaPixels.x / panelScaleX;
             float deltaFBY = deltaPixels.y / panelScaleY;
 
-            rectTransform.x = s_originalTransform.x + deltaFBX;
-            rectTransform.y = s_originalTransform.y + deltaFBY;
+            // Unity behavior: Apply constraints based on stretch anchors
+            // - Stretch Horizontal: Only allow Y movement (X is constrained by anchors)
+            // - Stretch Vertical: Only allow X movement (Y is constrained by anchors)
+            // - Stretch Both: Position is locked (element fills parent)
+            if (isStretchedX && isStretchedY) {
+                // Stretch Both: Position is locked, don't apply any movement
+                // Keep original position
+                rectTransform.x = s_originalTransform.x;
+                rectTransform.y = s_originalTransform.y;
+            } else if (isStretchedX) {
+                // Stretch Horizontal: Only allow Y movement
+                rectTransform.x = s_originalTransform.x;  // Lock X
+                rectTransform.y = s_originalTransform.y + deltaFBY;  // Allow Y
+            } else if (isStretchedY) {
+                // Stretch Vertical: Only allow X movement
+                rectTransform.x = s_originalTransform.x + deltaFBX;  // Allow X
+                rectTransform.y = s_originalTransform.y;  // Lock Y
+            } else {
+                // Point anchors: Allow movement in both directions
+                rectTransform.x = s_originalTransform.x + deltaFBX;
+                rectTransform.y = s_originalTransform.y + deltaFBY;
+            }
 
             if (s_uiGizmoCmd) {
                 s_uiGizmoCmd->SetAfter(rectTransform);
@@ -1104,6 +1139,11 @@ namespace Editor {
         if (!s_gizmoActive || s_gizmoType != 1 || s_gizmoEntityId != uiEntityId) return;
 
         auto& rectTransform = NE::ECS::Command::GetUIRectTransform(uiEntityId);
+
+        // Check if stretch anchors are active (Unity behavior: can't resize with gizmo when stretched)
+        bool isStretchedX = (std::abs(rectTransform.anchorMinX - rectTransform.anchorMaxX) > 0.001f);
+        bool isStretchedY = (std::abs(rectTransform.anchorMinY - rectTransform.anchorMaxY) > 0.001f);
+        bool hasStretchAnchors = isStretchedX || isStretchedY;
 
         // Get world transform to find the pivot position in world space
         auto worldTransform = NE::ECS::Query::GetUIWorldTransform(uiEntityId);
@@ -1324,25 +1364,29 @@ namespace Editor {
             }
         }
         
-        // Draw corner handles - only for valid corners
-        for (int i = 0; i < 4; i++) {
-            if (cornersValid[i]) {
-                drawList->AddRectFilled(
-                    ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
-                    ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
-                    IM_COL32(0, 120, 255, 255)
-                );
+        // Draw corner handles - only for valid corners and when NOT using stretch anchors
+        if (!hasStretchAnchors) {
+            for (int i = 0; i < 4; i++) {
+                if (cornersValid[i]) {
+                    drawList->AddRectFilled(
+                        ImVec2(corners[i].x - handleSize * 0.5f, corners[i].y - handleSize * 0.5f),
+                        ImVec2(corners[i].x + handleSize * 0.5f, corners[i].y + handleSize * 0.5f),
+                        IM_COL32(0, 120, 255, 255)
+                    );
+                }
             }
         }
         
-        // Draw edge handles - only for valid edges
-        for (int i = 0; i < 4; i++) {
-            if (edgesValid[i]) {
-                drawList->AddRectFilled(
-                    ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
-                    ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
-                    IM_COL32(0, 120, 255, 255)
-                );
+        // Draw edge handles - only for valid edges and when NOT using stretch anchors
+        if (!hasStretchAnchors) {
+            for (int i = 0; i < 4; i++) {
+                if (edgesValid[i]) {
+                    drawList->AddRectFilled(
+                        ImVec2(edges[i].x - handleSize * 0.5f, edges[i].y - handleSize * 0.5f),
+                        ImVec2(edges[i].x + handleSize * 0.5f, edges[i].y + handleSize * 0.5f),
+                        IM_COL32(0, 120, 255, 255)
+                    );
+                }
             }
         }
         
@@ -1418,41 +1462,46 @@ namespace Editor {
                 hoveringHandle = true;
             }
             
-            if (!hoveringHandle) {
-                for (int i = 0; i < 4; ++i)
-                {
-                    float dx = mousePos.x - corners[i].x;
-                    float dy = mousePos.y - corners[i].y;
-                    float dist2 = dx * dx + dy * dy;
-                    
-                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+            // Only allow corner/edge hovering when NOT using stretch anchors
+            if (!hasStretchAnchors) {
+                if (!hoveringHandle) {
+                    for (int i = 0; i < 4; ++i)
                     {
-                        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
-                        hoveringHandle = true;
-                        break;
+                        float dx = mousePos.x - corners[i].x;
+                        float dy = mousePos.y - corners[i].y;
+                        float dist2 = dx * dx + dy * dy;
+                        
+                        if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                        {
+                            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNWSE);
+                            hoveringHandle = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!hoveringHandle)
+                {
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        float dx = mousePos.x - edges[i].x;
+                        float dy = mousePos.y - edges[i].y;
+                        float dist2 = dx * dx + dy * dy;
+                        
+                        if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
+                        {
+                            if (i == 0 || i == 2) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                            else ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                            hoveringHandle = true;
+                            break;
+                        }
                     }
                 }
             }
             
-            if (!hoveringHandle)
-            {
-                for (int i = 0; i < 4; ++i)
-                {
-                    float dx = mousePos.x - edges[i].x;
-                    float dy = mousePos.y - edges[i].y;
-                    float dist2 = dx * dx + dy * dy;
-                    
-                    if (dist2 <= (handleSize * 0.5f) * (handleSize * 0.5f))
-                    {
-                        if (i == 0 || i == 2) ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-                        else ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                        hoveringHandle = true;
-                        break;
-                    }
-                }
-            }
-            
-            if (!hoveringHandle)
+            // Center/pivot handle - only allow hovering when NOT using stretch both
+            // (Stretch horizontal/vertical still allow movement on one axis)
+            if (!hoveringHandle && !(isStretchedX && isStretchedY))
             {
                 float dx = mousePos.x - center.x;
                 float dy = mousePos.y - center.y;
@@ -1550,8 +1599,8 @@ namespace Editor {
                 );
             }
             
-            // Corner handles
-            if (!handleClicked) {
+            // Corner handles - only when NOT using stretch anchors
+            if (!handleClicked && !hasStretchAnchors) {
                 for (int i = 0; i < 4; ++i)
                 {
                     float dx = mousePos.x - corners[i].x;
@@ -1579,8 +1628,8 @@ namespace Editor {
                 }
             }
             
-            // Edge handles
-            if (!handleClicked)
+            // Edge handles - only when NOT using stretch anchors
+            if (!handleClicked && !hasStretchAnchors)
             {
                 for (int i = 0; i < 4; ++i)
                 {
@@ -1609,8 +1658,9 @@ namespace Editor {
                 }
             }
             
-            // Center/pivot handle (position drag)
-            if (!handleClicked)
+            // Center/pivot handle (position drag) - only when NOT using stretch both
+            // (Stretch horizontal/vertical still allow movement on one axis)
+            if (!handleClicked && !(isStretchedX && isStretchedY))
             {
                 float dx = mousePos.x - center.x;
                 float dy = mousePos.y - center.y;
@@ -1764,10 +1814,31 @@ namespace Editor {
             if (std::abs(parentScale.y) > 1e-5f) localDeltaY /= parentScale.y;
             if (std::abs(parentScale.z) > 1e-5f) localDeltaZ /= parentScale.z;
             
-            // Apply local delta to transform
-            rectTransform.x = s_originalTransform.x + localDeltaX;
-            rectTransform.y = s_originalTransform.y + localDeltaY;
-            rectTransform.z = s_originalTransform.z + localDeltaZ;
+            // Unity behavior: Apply constraints based on stretch anchors
+            // - Stretch Horizontal: Only allow Y movement (X is constrained by anchors)
+            // - Stretch Vertical: Only allow X movement (Y is constrained by anchors)
+            // - Stretch Both: Position is locked (element fills parent)
+            if (isStretchedX && isStretchedY) {
+                // Stretch Both: Position is locked, don't apply any movement
+                rectTransform.x = s_originalTransform.x;
+                rectTransform.y = s_originalTransform.y;
+                rectTransform.z = s_originalTransform.z;  // Z can still move (depth)
+            } else if (isStretchedX) {
+                // Stretch Horizontal: Only allow Y movement
+                rectTransform.x = s_originalTransform.x;  // Lock X
+                rectTransform.y = s_originalTransform.y + localDeltaY;  // Allow Y
+                rectTransform.z = s_originalTransform.z + localDeltaZ;  // Allow Z
+            } else if (isStretchedY) {
+                // Stretch Vertical: Only allow X movement
+                rectTransform.x = s_originalTransform.x + localDeltaX;  // Allow X
+                rectTransform.y = s_originalTransform.y;  // Lock Y
+                rectTransform.z = s_originalTransform.z + localDeltaZ;  // Allow Z
+            } else {
+                // Point anchors: Allow movement in all directions
+                rectTransform.x = s_originalTransform.x + localDeltaX;
+                rectTransform.y = s_originalTransform.y + localDeltaY;
+                rectTransform.z = s_originalTransform.z + localDeltaZ;
+            }
             
             if (s_uiGizmoCmd) {
                 s_uiGizmoCmd->SetAfter(rectTransform);
