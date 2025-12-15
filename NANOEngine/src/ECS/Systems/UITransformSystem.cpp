@@ -195,30 +195,188 @@ namespace NE::ECS::Systems {
         }
 
         //=====================================================================
-        // WORLD SPACE: Original logic - NO center anchor offset
+        // WORLD SPACE: Anchoring system similar to screen space
         // Canvas transform IS included (position, rotation, scale all apply)
+        // Anchors work relative to parent's RectTransform bounds (in world units)
         //=====================================================================
         if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
             std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
 
+            // Special case: If querying the Canvas itself (root entity, no parent)
+            if (entity == canvasEntity) {
+                auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
+                // Canvas position (rect.x, rect.y) is already the pivot position in world space
+                result.posX = rect.x;
+                result.posY = rect.y;
+                result.posZ = rect.z;
+                result.scaleX = rect.scaleX;
+                result.scaleY = rect.scaleY;
+                result.scaleZ = rect.scaleZ;
+                result.rotationX = rect.rotationX;
+                result.rotationY = rect.rotationY;
+                result.rotationZ = rect.rotationZ;
+                return result;
+            }
+
             for (size_t i = 0; i < chain.size(); ++i) {
                 Entity current = chain[i];
                 auto& rect = m_cm->GetComponent<Component::UIRectTransform>(current);
+                bool isTarget = (current == entity);
+                bool isCanvas = (current == canvasEntity);
 
-                // accumulate scale
+                // Accumulate scale
                 result.scaleX *= rect.scaleX;
                 result.scaleY *= rect.scaleY;
                 result.scaleZ *= rect.scaleZ;
 
-                // accumulate rotation
+                // Accumulate rotation
                 result.rotationX += rect.rotationX;
                 result.rotationY += rect.rotationY;
                 result.rotationZ += rect.rotationZ;
 
-                // accumulate position
-                result.posX += rect.x;
-                result.posY += rect.y;
-                result.posZ += rect.z;
+                // For canvas entity, just accumulate position directly (no anchor calculation)
+                if (isCanvas && !isTarget) {
+                    result.posX += rect.x;
+                    result.posY += rect.y;
+                    result.posZ += rect.z;
+                    continue; // Skip anchor calculation for canvas
+                }
+
+                // Get parent dimensions and pivot for anchor calculation
+                float parentWidth = 0.f;
+                float parentHeight = 0.f;
+                float parentPivotX = 0.5f;
+                float parentPivotY = 0.5f;
+
+                if (i > 0) {
+                    // Parent is another UI element - use its width/height and pivot
+                    Entity parentEntity = chain[i - 1];
+                    auto& parentRect = m_cm->GetComponent<Component::UIRectTransform>(parentEntity);
+                    parentWidth = parentRect.width;
+                    parentHeight = parentRect.height;
+                    parentPivotX = parentRect.pivotX;
+                    parentPivotY = parentRect.pivotY;
+                }
+                else {
+                    // Direct child of canvas - use canvas width/height and pivot (in world units)
+                    auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
+                    parentWidth = canvasRect.width;
+                    parentHeight = canvasRect.height;
+                    parentPivotX = canvasRect.pivotX;
+                    parentPivotY = canvasRect.pivotY;
+                }
+
+                // Calculate anchor position relative to parent pivot
+                // In world space: anchor 0.0 = left/bottom edge, 0.5 = center (pivot), 1.0 = right/top edge
+                // Anchor position relative to parent pivot: (anchorValue - parentPivot) * parentSize
+                bool isStretchedX = rect.IsStretchedX();
+                bool isStretchedY = rect.IsStretchedY();
+
+                if (isTarget) {
+                    // For the target entity, calculate position and size based on anchor mode
+                    if (isStretchedX) {
+                        // Stretched horizontally: edges are anchored, size calculated from anchor spread
+                        // Canvas width is in world units, but calculatedWidth needs to be in UI pixels
+                        // Convert canvas width to UI pixels: divide by canvas scale
+                        // Get canvas scale directly (always from canvas, not from accumulated scale)
+                        auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
+                        float canvasScaleX = canvasRect.scaleX;
+                        
+                        // Calculate in world units first (relative to canvas pivot)
+                        float anchorMinXRelativeToPivot = (rect.anchorMinX - parentPivotX) * parentWidth;
+                        float anchorMaxXRelativeToPivot = (rect.anchorMaxX - parentPivotX) * parentWidth;
+                        float leftEdge = anchorMinXRelativeToPivot + rect.offsetMinX;
+                        float rightEdge = anchorMaxXRelativeToPivot - rect.offsetMaxX;
+                        float calculatedWidthWorld = rightEdge - leftEdge;
+                        
+                        // Ensure width is positive
+                        if (calculatedWidthWorld < 0.0f) {
+                            std::swap(leftEdge, rightEdge);
+                            calculatedWidthWorld = -calculatedWidthWorld;
+                        }
+                        
+                        // Convert from world units to UI pixels (divide by canvas scale)
+                        // This ensures calculatedWidth is in the same units as rect.width (UI pixels)
+                        float calculatedWidth = calculatedWidthWorld / canvasScaleX;
+                        
+                        // Position is the pivot position (in world units)
+                        float pivotX = leftEdge + calculatedWidthWorld * rect.pivotX;
+                        result.posX += pivotX;
+                        result.calculatedWidth = calculatedWidth;
+                    }
+                    else {
+                        // Point anchor: position is anchor relative to parent pivot + offset
+                        float anchorXRelativeToPivot = (rect.anchorMinX - parentPivotX) * parentWidth;
+                        result.posX += anchorXRelativeToPivot + rect.x;
+                    }
+
+                    if (isStretchedY) {
+                        // Stretched vertically: edges are anchored, size calculated from anchor spread
+                        // In world space (Y-up): anchorMinY=0 is bottom, anchorMaxY=1 is top
+                        // Canvas height is in world units, but calculatedHeight needs to be in UI pixels
+                        // Convert canvas height to UI pixels: divide by canvas scale
+                        // Get canvas scale directly (before child's scale is applied)
+                        float canvasScaleY = 1.0f;
+                        if (i == 0) {
+                            // Direct child of canvas - get canvas scale directly
+                            auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
+                            canvasScaleY = canvasRect.scaleY;
+                        } else {
+                            // Child of another UI element - get canvas scale from canvas
+                            auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
+                            canvasScaleY = canvasRect.scaleY;
+                        }
+                        
+                        // Calculate in world units first (relative to canvas pivot)
+                        float anchorMinYRelativeToPivot = (rect.anchorMinY - parentPivotY) * parentHeight;
+                        float anchorMaxYRelativeToPivot = (rect.anchorMaxY - parentPivotY) * parentHeight;
+                        
+                        // Determine which is bottom and which is top
+                        float bottomAnchorPos = std::min(anchorMinYRelativeToPivot, anchorMaxYRelativeToPivot);
+                        float topAnchorPos = std::max(anchorMinYRelativeToPivot, anchorMaxYRelativeToPivot);
+                        
+                        // offsetMinY = bottom offset (positive = padding inward from bottom)
+                        // offsetMaxY = top offset (positive = padding inward from top)
+                        float bottomEdge = bottomAnchorPos + rect.offsetMinY;
+                        float topEdge = topAnchorPos - rect.offsetMaxY;
+                        float calculatedHeightWorld = topEdge - bottomEdge;
+                        
+                        // Ensure height is positive
+                        if (calculatedHeightWorld < 0.0f) {
+                            std::swap(bottomEdge, topEdge);
+                            calculatedHeightWorld = -calculatedHeightWorld;
+                        }
+                        
+                        // Convert from world units to UI pixels (divide by canvas scale)
+                        // This ensures calculatedHeight is in the same units as rect.height (UI pixels)
+                        // Example: canvas height = 10 world units, canvas scale = 0.1
+                        // calculatedHeightWorld = 10, calculatedHeight = 10 / 0.1 = 100 pixels
+                        // When rendered: 100 pixels * 0.1 scale = 10 world units (fills canvas)
+                        float calculatedHeight = calculatedHeightWorld / canvasScaleY;
+                        
+                        // Position is the pivot position (in world units)
+                        // In Y-up: pivotY=0 is bottom, pivotY=1 is top
+                        float pivotY = bottomEdge + calculatedHeightWorld * rect.pivotY;
+                        result.posY += pivotY;
+                        result.calculatedHeight = calculatedHeight;
+                    }
+                    else {
+                        // Point anchor: position is anchor relative to parent pivot + offset
+                        // In Y-up: anchorMinY=0 is bottom, anchorMinY=1 is top
+                        float anchorYRelativeToPivot = (rect.anchorMinY - parentPivotY) * parentHeight;
+                        result.posY += anchorYRelativeToPivot + rect.y;
+                    }
+
+                    result.posZ += rect.z;
+                }
+                else {
+                    // For parent entities, accumulate position and apply anchor offset relative to their parent pivot
+                    float anchorXRelativeToPivot = (rect.anchorMinX - parentPivotX) * parentWidth;
+                    float anchorYRelativeToPivot = (rect.anchorMinY - parentPivotY) * parentHeight;
+                    result.posX += anchorXRelativeToPivot + rect.x;
+                    result.posY += anchorYRelativeToPivot + rect.y;
+                    result.posZ += rect.z;
+                }
             }
 
             return result;
@@ -424,8 +582,12 @@ namespace NE::ECS::Systems {
         
         Math::Vec2 pivot = rect.GetPivot();
         
-        float scaledWidth = rect.width * accumulated.scaleX;
-        float scaledHeight = rect.height * accumulated.scaleY;
+        // Use calculated width/height if anchors are stretched, otherwise use rect.width/height
+        float baseWidth = (accumulated.calculatedWidth > 0.f) ? accumulated.calculatedWidth : rect.width;
+        float baseHeight = (accumulated.calculatedHeight > 0.f) ? accumulated.calculatedHeight : rect.height;
+        
+        float scaledWidth = baseWidth * accumulated.scaleX;
+        float scaledHeight = baseHeight * accumulated.scaleY;
         
         // Step 1: Scale the unit quad (0,0 to 1,1) to (0,0 to width, height)
         Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(

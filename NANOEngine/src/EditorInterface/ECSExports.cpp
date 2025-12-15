@@ -278,12 +278,20 @@ namespace NE::ECS {
 			
 			// Check if parent is a World Space canvas and adjust default size accordingly
 			// For World Space: use smaller default (10x10 pixels = 1x1 world units with 0.1 scale)
+			// This makes it easy to see the stretch effect when anchors are changed
 			// For Screen Space: use standard default (100x100 pixels)
 			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UICanvas>(parentCanvas)) {
 				auto& canvas = ecs.GetComponent<Component::UICanvas>(parentCanvas);
 				if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
-					rect.width = 10.0f;   // 10 pixels * 0.1 scale = 1 world unit (fits in 10x10 canvas)
+					rect.width = 10.0f;   // 10 pixels * 0.1 scale = 1 world unit (small, visible stretch effect)
 					rect.height = 10.0f;
+					// Ensure position and offsets are 0 for clean start
+					rect.x = 0.0f;
+					rect.y = 0.0f;
+					rect.offsetMinX = 0.0f;
+					rect.offsetMinY = 0.0f;
+					rect.offsetMaxX = 0.0f;
+					rect.offsetMaxY = 0.0f;
 				} else {
 					rect.width = 100.0f;
 					rect.height = 100.0f;

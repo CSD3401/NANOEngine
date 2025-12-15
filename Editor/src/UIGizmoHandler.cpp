@@ -1137,8 +1137,7 @@ namespace Editor {
         // Use the same logic as BuildWorldSpaceModelMatrix in UITransformSystem
         const float PI = 3.14159265358979f;
         
-        // Get accumulated transform by building parent chain
-        NE::Math::Vec3 accumulatedPos(0, 0, 0);
+        // Get accumulated rotation and scale by building parent chain (needed for rotation matrix)
         NE::Math::Vec3 accumulatedScale(1, 1, 1);
         float accumulatedRotX = 0.0f;
         float accumulatedRotY = 0.0f;
@@ -1154,12 +1153,9 @@ namespace Editor {
         }
         std::reverse(chain.begin(), chain.end());
         
-        // Accumulate transforms
+        // Accumulate rotation and scale (position comes from worldTransform which accounts for anchors)
         for (uint32_t entity : chain) {
             auto& currentRect = NE::ECS::Query::GetUIRectTransform(entity);
-            accumulatedPos.x += currentRect.x;
-            accumulatedPos.y += currentRect.y;
-            accumulatedPos.z += currentRect.z;
             accumulatedScale.x *= currentRect.scaleX;
             accumulatedScale.y *= currentRect.scaleY;
             accumulatedScale.z *= currentRect.scaleZ;
@@ -1169,32 +1165,33 @@ namespace Editor {
         }
         
         // Build model matrix using same logic as BuildWorldSpaceModelMatrix
-        // Get pivot without using Vec2 (to avoid linker issues)
+        // Use worldTransform position and size which already accounts for anchors
         float pivotX = rectTransform.pivotX;
         float pivotY = rectTransform.pivotY;
-        float scaledWidth = rectTransform.width * accumulatedScale.x;
-        float scaledHeight = rectTransform.height * accumulatedScale.y;
+        // worldTransform.width/height are already scaled and account for stretched anchors
+        float scaledWidth = worldTransform.width;
+        float scaledHeight = worldTransform.height;
         
         // Step 1: Scale
         NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scaledWidth, scaledHeight, accumulatedScale.z);
         
-        // Step 2: Pivot offset (same as BuildWorldSpaceModelMatrix)
+        // Step 2: Apply pivot offset (same as BuildWorldSpaceModelMatrix)
         float pivotOffsetX = -scaledWidth * pivotX;
         float pivotOffsetY = -scaledHeight * (1.0f - pivotY);  // Flip Y for world space
         NE::Math::Mat4 pivotMatrix = NE::Math::Mat4::BuildTranslation(pivotOffsetX, pivotOffsetY, 0.0f);
         
-        // Step 3: Rotation (full 3D)
+        // Step 3: Rotation (full 3D) - order: X * Y * Z (same as TransformSystem)
         NE::Math::Mat4 rotationX = NE::Math::Mat4::BuildXRotation(accumulatedRotX * PI / 180.0f);
         NE::Math::Mat4 rotationY = NE::Math::Mat4::BuildYRotation(accumulatedRotY * PI / 180.0f);
         NE::Math::Mat4 rotationZ = NE::Math::Mat4::BuildZRotation(accumulatedRotZ * PI / 180.0f);
-        NE::Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
+        NE::Math::Mat4 rotationMatrix = rotationX * rotationY * rotationZ;
         
-        // Step 4: Translation
+        // Step 4: Translation - use worldTransform position (already accounts for anchors)
         NE::Math::Mat4 translationMatrix = NE::Math::Mat4::BuildTranslation(
-            accumulatedPos.x, accumulatedPos.y, accumulatedPos.z
+            worldTransform.x, worldTransform.y, worldTransform.z
         );
         
-        // Full model matrix: Translate * Rotate * Pivot * Scale
+        // Full model matrix: Translate * Rotate * PivotOffset * Scale (same as BuildWorldSpaceModelMatrix)
         NE::Math::Mat4 modelMatrix = translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
         
         // Unit quad corners in local space: (0,0,0), (1,0,0), (1,1,0), (0,1,0)
@@ -1206,7 +1203,8 @@ namespace Editor {
         };
         
         // Calculate center (pivot) in screen space FIRST (needed for invalid corner fallback)
-        NE::Math::Vec3 pivotWorldPos(accumulatedPos.x, accumulatedPos.y, accumulatedPos.z);
+        // Use worldTransform position which already accounts for anchors
+        NE::Math::Vec3 pivotWorldPos(worldTransform.x, worldTransform.y, worldTransform.z);
         ImVec2 center;
         bool centerValid = WorldToScreen(pivotWorldPos, view, proj, panelPos, panelSize, center);
         

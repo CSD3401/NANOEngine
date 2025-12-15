@@ -2179,27 +2179,105 @@ namespace Editor {
 								"Stretch Horizontal", "Stretch Vertical", "Stretch Both"
 							};
 
-							static int currentPreset = 4;
+							// Detect current preset from anchor values
+							int currentPreset = -1;
+							bool isStretchedX = (comp.anchorMinX != comp.anchorMaxX);
+							bool isStretchedY = (comp.anchorMinY != comp.anchorMaxY);
+							
+							if (isStretchedX && isStretchedY) {
+								currentPreset = 11; // Stretch Both
+							}
+							else if (isStretchedX) {
+								currentPreset = 9; // Stretch Horizontal
+							}
+							else if (isStretchedY) {
+								currentPreset = 10; // Stretch Vertical
+							}
+							else {
+								// Point anchor - determine which preset
+								float anchorX = comp.anchorMinX;
+								float anchorY = comp.anchorMinY;
+								
+								if (anchorX == 0.0f && anchorY == 1.0f) currentPreset = 0; // Top Left
+								else if (anchorX == 0.5f && anchorY == 1.0f) currentPreset = 1; // Top Center
+								else if (anchorX == 1.0f && anchorY == 1.0f) currentPreset = 2; // Top Right
+								else if (anchorX == 0.0f && anchorY == 0.5f) currentPreset = 3; // Middle Left
+								else if (anchorX == 0.5f && anchorY == 0.5f) currentPreset = 4; // Center
+								else if (anchorX == 1.0f && anchorY == 0.5f) currentPreset = 5; // Middle Right
+								else if (anchorX == 0.0f && anchorY == 0.0f) currentPreset = 6; // Bottom Left
+								else if (anchorX == 0.5f && anchorY == 0.0f) currentPreset = 7; // Bottom Center
+								else if (anchorX == 1.0f && anchorY == 0.0f) currentPreset = 8; // Bottom Right
+								else currentPreset = 4; // Default to Center if no match
+							}
 
 							ImGui::SetNextItemWidth(150);
-							if (ImGui::Combo("##AnchorPresets", &currentPreset, presetNames, IM_ARRAYSIZE(presetNames)))
+							int newPreset = currentPreset;
+							if (ImGui::Combo("##AnchorPresets", &newPreset, presetNames, IM_ARRAYSIZE(presetNames)))
 							{
-								switch (currentPreset)
-								{
-								case 0: comp.anchorMinX = comp.anchorMaxX = 0.0f; comp.anchorMinY = comp.anchorMaxY = 1.0f; break;
-								case 1: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = comp.anchorMaxY = 1.0f; break;
-								case 2: comp.anchorMinX = comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 1.0f; break;
-								case 3: comp.anchorMinX = comp.anchorMaxX = 0.0f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
-								case 4: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
-								case 5: comp.anchorMinX = comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
-								case 6: comp.anchorMinX = comp.anchorMaxX = 0.0f; comp.anchorMinY = comp.anchorMaxY = 0.0f; break;
-								case 7: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = comp.anchorMaxY = 0.0f; break;
-								case 8: comp.anchorMinX = comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 0.0f; break;
-								case 9: comp.anchorMinX = 0.0f; comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
-								case 10: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
-								case 11: comp.anchorMinX = 0.0f; comp.anchorMaxX = 1.0f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
+								if (newPreset != currentPreset) {
+									// Store old values for potential position adjustment
+									float oldAnchorMinX = comp.anchorMinX;
+									float oldAnchorMaxX = comp.anchorMaxX;
+									float oldAnchorMinY = comp.anchorMinY;
+									float oldAnchorMaxY = comp.anchorMaxY;
+									
+									// Set new anchor values
+									switch (newPreset)
+									{
+									case 0: comp.anchorMinX = comp.anchorMaxX = 0.0f; comp.anchorMinY = comp.anchorMaxY = 1.0f; break;
+									case 1: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = comp.anchorMaxY = 1.0f; break;
+									case 2: comp.anchorMinX = comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 1.0f; break;
+									case 3: comp.anchorMinX = comp.anchorMaxX = 0.0f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
+									case 4: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
+									case 5: comp.anchorMinX = comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
+									case 6: comp.anchorMinX = comp.anchorMaxX = 0.0f; comp.anchorMinY = comp.anchorMaxY = 0.0f; break;
+									case 7: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = comp.anchorMaxY = 0.0f; break;
+									case 8: comp.anchorMinX = comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 0.0f; break;
+									case 9: comp.anchorMinX = 0.0f; comp.anchorMaxX = 1.0f; comp.anchorMinY = comp.anchorMaxY = 0.5f; break;
+									case 10: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
+									case 11: comp.anchorMinX = 0.0f; comp.anchorMaxX = 1.0f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
+									}
+									
+									// Reset offsets when switching to/from stretch mode
+									bool wasStretchedX = (oldAnchorMinX != oldAnchorMaxX);
+									bool wasStretchedY = (oldAnchorMinY != oldAnchorMaxY);
+									bool nowStretchedX = (comp.anchorMinX != comp.anchorMaxX);
+									bool nowStretchedY = (comp.anchorMinY != comp.anchorMaxY);
+									
+									if (nowStretchedX && !wasStretchedX) {
+										// Switching to stretch X - reset X offsets to 0 so element stretches to full width
+										comp.offsetMinX = 0.0f;
+										comp.offsetMaxX = 0.0f;
+										// Also reset X position since it's not used for stretch anchors
+										comp.x = 0.0f;
+									}
+									if (nowStretchedY && !wasStretchedY) {
+										// Switching to stretch Y - reset Y offsets to 0 so element stretches to full height
+										comp.offsetMinY = 0.0f;
+										comp.offsetMaxY = 0.0f;
+										// Also reset Y position since it's not used for stretch anchors
+										comp.y = 0.0f;
+									}
+									// Also reset offsets if already in stretch mode (e.g., switching between stretch presets)
+									if (nowStretchedX) {
+										comp.offsetMinX = 0.0f;
+										comp.offsetMaxX = 0.0f;
+									}
+									if (nowStretchedY) {
+										comp.offsetMinY = 0.0f;
+										comp.offsetMaxY = 0.0f;
+									}
+									if (!nowStretchedX && wasStretchedX) {
+										// Switching from stretch X - reset X position
+										comp.x = 0.0f;
+									}
+									if (!nowStretchedY && wasStretchedY) {
+										// Switching from stretch Y - reset Y position
+										comp.y = 0.0f;
+									}
+									
+									NE::MarkSceneDirty();
 								}
-								NE::MarkSceneDirty();
 							}
 
 							ImGui::Indent(16.0f);
