@@ -23,6 +23,7 @@ namespace Editor {
 
 		void CreateNewFolder();
 		void CreateNewMaterial();
+		void CreateNewScene();
 		void DeleteAssetWithMeta(const std::filesystem::path& assetPath);
 		void MoveAssetWithMeta(const std::filesystem::path& source, const std::filesystem::path& destination);
 
@@ -35,10 +36,11 @@ namespace Editor {
 		bool m_triggerRenameNextFrame = false;
 		std::filesystem::path m_renamingPath;
 		bool m_clickedOnItem = false;
-		std::filesystem::path m_selectedPath;
+		std::filesystem::path m_selectedPath; // to remove, use EditorScene::selectedAsset
 		bool m_renamePopupOpen = false;
 		char m_renameBuffer[256] = { 0 };
 		bool m_confirmDeletePopupOpen = false;
+		bool m_confirmChangeScenePopupOpen = false;
 
 		// Drag and drop state for moving files
 		std::filesystem::path m_draggedAssetPath;

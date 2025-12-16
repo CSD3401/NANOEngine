@@ -23,7 +23,6 @@ namespace NE {
 	SceneManagement::Scene& GetScene();
 
 	NANOENGINE_API void Initialize();
-	NANOENGINE_API void LoadStartupScene(const std::string& _startupScene);
 	NANOENGINE_API void Run(double dt);
 	NANOENGINE_API void Shutdown();
 
@@ -43,7 +42,6 @@ namespace NE {
 	//NANOENGINE_API void SaveSceneIfDirty(std::string path = "");
 	NANOENGINE_API bool IsSceneDirty();
 	NANOENGINE_API void MarkSceneDirty();
-	NANOENGINE_API void LoadTargetScene(std::string targetPath);
 
 	NANOENGINE_API const std::vector<uint32_t>& GetNumEntities();
 	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);

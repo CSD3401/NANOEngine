@@ -107,10 +107,6 @@ namespace NE {
 		//glDisable(GL_FRAMEBUFFER_SRGB);
 	}
 
-	void LoadStartupScene(const std::string& _startupScene) {
-		gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_startupScene, Resource::ResourceType::Scene));
-	}
-
 	void Run(double dt) {
 		NE_PROFILE_FUNCTION();
 		//s_window->PollEvents();
@@ -212,7 +208,7 @@ namespace NE {
 	}
 
 	void LoadScene(const std::string& _artifactPath) {
-		gSceneManager.LoadScene(_artifactPath);
+		gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
 	}
 
 	bool IsSceneDirty() {
@@ -225,10 +221,6 @@ namespace NE {
 		if (editorScene) {
 			editorScene->MarkDirty();
 		}
-	}
-
-	void LoadTargetScene(std::string targetPath) {
-		//Serialization::JsonSceneSerializer::Deserialize(*gSceneManager.GetActive(), targetPath);
 	}
 
 	const std::vector<uint32_t>& GetNumEntities() {

@@ -10,6 +10,7 @@
 #include <rapidjson/prettywriter.h>
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/EntityMeta.hpp>
+#include <ResourceManagement/ResourcePaths.hpp>
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
@@ -98,7 +99,7 @@ namespace Editor {
             m_confirmDeletePopupOpen = false;
         }
         if (ImGui::BeginPopupModal("Confirm Delete", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Are you sure you want to delete this file/folder?");
+            ImGui::Text("Confirm file/folder deletion?");
             ImGui::Separator();
 
             if (ImGui::Button("Delete")) {
@@ -108,6 +109,32 @@ namespace Editor {
             }
             ImGui::SameLine();
             if (ImGui::Button("Cancel")) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+
+        if (m_confirmChangeScenePopupOpen) {
+            ImGui::OpenPopup("Confirm Change Scene");
+            m_confirmChangeScenePopupOpen = false;
+        }
+        if (ImGui::BeginPopupModal("Confirm Change Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Confirm scene switch?");
+            ImGui::Separator();
+
+            if (ImGui::Button("Yes")) {
+                auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(m_selectedPath.string());
+                NE::LoadScene(uuid);
+                EditorScene::BuildRoot();
+                EditorScene::s_currentScenePath = m_selectedPath.string();
+                EditorScene::s_currentSceneUUID = uuid;
+
+                m_selectedPath.clear();
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("No")) {
                 ImGui::CloseCurrentPopup();
             }
 
@@ -333,17 +360,19 @@ namespace Editor {
                         EditorScene::s_selection.Clear();
                         EditorScene::selectedAsset = entryPath.string();
                     } else if (entryPath.extension() == ".scene") {
+                        m_selectedPath = entryPath;
+                        m_confirmChangeScenePopupOpen = true;
                         // NE::LoadTargetScene(entryPath.string());
                         // for (const auto& entt : NE::GetEntities()) {
                         //     EditorScene::s_entities.push_back({ entt });
                         // }
+
                     } else if (entryPath.extension() == ".nfab") {
                         EditorScene::s_selection.Clear();
                         EditorScene::selectedAsset = "";
                         NE::LoadPrefabScene(entryPath.string());
 
                         Editor::EditorScene::selectedPrefab = entryPath.string();
-                        //Editor::EditorScene::RebuildFromActiveScene();
                     }
                 }
             }
@@ -498,7 +527,7 @@ namespace Editor {
                 if (ImGui::BeginMenu("Scene")) {
 
                     if (ImGui::MenuItem("Scene")) {
-                        //CreateNewFolder();
+                        CreateNewScene();
                     }
                     if (ImGui::MenuItem("Prefab")) {
                         //CreateNewFolder();
@@ -608,6 +637,25 @@ namespace Editor {
         }
 
         Assets::AssetManager::GetInstance().GenerateMetadata(matPath.string());
+    }
+
+    void AssetBrowserPanel::CreateNewScene() {
+        namespace fs = std::filesystem;
+
+        fs::path targetDir = m_currentDirectory;
+        if (!fs::exists(targetDir))
+            return;
+
+        static int s_sceneCounter = 1;
+        fs::path scenePath;
+        do {
+            scenePath = targetDir / ("NewScene_" + std::to_string(s_sceneCounter++) + ".scene");
+        } while (fs::exists(scenePath));
+
+        std::ofstream out(scenePath);
+        out.close();
+
+        Assets::AssetManager::GetInstance().GenerateMetadata(scenePath.string());
     }
 
     void AssetBrowserPanel::DeleteAssetWithMeta(const std::filesystem::path& assetPath) {

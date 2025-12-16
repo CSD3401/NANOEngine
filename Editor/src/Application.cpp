@@ -101,7 +101,7 @@ namespace Editor {
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
 		EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
-		NE::LoadStartupScene(EditorScene::s_currentSceneUUID);
+		NE::LoadScene(EditorScene::s_currentSceneUUID);
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>();
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();

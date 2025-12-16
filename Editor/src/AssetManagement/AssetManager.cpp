@@ -186,6 +186,7 @@ namespace Editor::Assets {
                 rec.asset = CreateImporterForType(type, uuid, fsSourcePath.filename().string());
             }
 
+            
             const auto cookedPath = 
                 NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
             if (!fs::exists(cookedPath) && rec.asset) {
@@ -205,11 +206,13 @@ namespace Editor::Assets {
             rec.asset = CreateImporterForType(type, uuid, fsSourcePath.filename().string());
         }
 
-        if (rec.asset) {
-            const auto cookedPath = 
-                NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
-            rec.asset->Cook(fsSourcePath.string(), cookedPath);
-            rec.isLoaded = true;
+        if (rec.type != AssetType::Scene) {
+            if (rec.asset) {
+                const auto cookedPath =
+                    NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
+                rec.asset->Cook(fsSourcePath.string(), cookedPath);
+                rec.isLoaded = true;
+            }
         }
 
         Document outDoc;

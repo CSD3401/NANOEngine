@@ -23,6 +23,7 @@ namespace Editor {
 
         static std::vector<uint8_t> clipboard;
 
+        static void BuildRoot();
         static void RegisterRoot(NE::ECS::Entity e);
         static void UnregisterRoot(NE::ECS::Entity e);
         static void ReorderRoot(NE::ECS::Entity e, int newIndex);

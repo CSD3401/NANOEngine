@@ -6,16 +6,27 @@
 namespace Editor {
     std::vector<NE::ECS::Entity> EditorScene::s_rootOrder;
     EditorSelection EditorScene::s_selection;
-    //Assets::SceneAsset* EditorScene::s_currentScene;
     std::string EditorScene::s_currentSceneUUID;
     std::string EditorScene::s_currentScenePath("Assets/NewScene.scene"); // temp
 
     std::string EditorScene::selectedAsset;
     std::string EditorScene::selectedPrefab;
     std::vector<uint8_t> EditorScene::clipboard;
-    //std::string EditorScene::currentScenePath("Assets/NewScene.scene");
 
     NE::Graphics::EditorCamera EditorScene::m_editorCamera;
+
+    void EditorScene::BuildRoot() {
+        s_rootOrder.clear();
+
+        s_rootOrder.reserve(64);
+        auto& numEntities = NE::GetNumEntities();
+        for (auto e : numEntities) {
+            auto& h = NE::ECS::Query::GetEntityHierarchy(e);
+            if (h.parent == NE::ECS::Component::INVALID_PARENT) {
+                s_rootOrder.push_back(e);
+            }
+        }
+    }
 
     void EditorScene::RegisterRoot(NE::ECS::Entity e) {
         if (e == NE::ECS::NO_ENTITY) return;
