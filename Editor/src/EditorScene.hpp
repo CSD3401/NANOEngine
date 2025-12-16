@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include "Graphics/Core/EditorCamera.hpp"
 #include "EditorSelection.hpp"
+#include "AssetManagement/Assets/SceneAsset.hpp"
 
 namespace Editor {
     struct EditorScene {
@@ -12,8 +13,11 @@ namespace Editor {
         static std::vector<NE::ECS::Entity> s_rootOrder;
         static EditorSelection s_selection;
         static std::string selectedAsset;
-        static std::string currentScenePath;
+        //static std::string currentScenePath;
         static std::string selectedPrefab;
+        //static Assets::SceneAsset* s_currentScene;
+        static std::string s_currentSceneUUID;
+        static std::string s_currentScenePath; // temp
 
         static NE::Graphics::EditorCamera m_editorCamera;
 

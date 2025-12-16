@@ -19,7 +19,7 @@
 #include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "ECS/Systems/TransformSystem.hpp"
-#include "SceneManagement/SceneManager.hpp"
+
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
 
@@ -27,8 +27,7 @@
 
 
 namespace NE {
-	SceneManagement::Scene& GetScene();
-	extern SceneManagement::SceneManager gSceneManager;
+	//SceneManagement::Scene& GetScene();
 }
 
 namespace NE::ECS {
@@ -85,6 +84,14 @@ namespace NE::ECS {
 
 		const Component::UICanvas& GetUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
+		}
+
+		bool HasEntityMeta(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::EntityMeta>(e);
+		}
+
+		bool HasHierarchy(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Hierarchy>(e);
 		}
 
 		bool HasTransform(uint32_t e) {

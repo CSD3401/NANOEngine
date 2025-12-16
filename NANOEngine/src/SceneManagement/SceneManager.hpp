@@ -14,8 +14,8 @@ namespace NE::SceneManagement {
 		void Update(double dt);
 		void Render();
 		void ExitScene();
-		void SaveScene();
-		void SaveSceneIfDirty(const std::string& path = "");
+		//void SaveScene();
+		//void SaveSceneIfDirty(const std::string& path = "");
 
 		void BeginPlay();
 		void StopPlay();

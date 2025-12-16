@@ -1,11 +1,12 @@
 #include "SceneManager.hpp"
-#include "Serialisation/JsonSceneSerializer.hpp"
+//#include "Serialisation/JsonSceneSerializer.hpp"
 #include "Scripting/ScriptingEngine.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include <Core/SpdLogger.hpp>  // For SPD_INFO logging
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
+#include "Serialisation/Serializer.hpp"
 
 namespace hack { bool sceneRdy = false; }
 
@@ -14,46 +15,45 @@ namespace NE::SceneManagement {
 	void SceneManager::LoadScene(const std::string& path) {
 		m_loadedPath = path;
 		m_editor = std::make_unique<Scene>();
-		NE::Serialization::JsonSceneSerializer::Deserialize(*m_editor, path);
+		NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path);
 		m_editor->Init();
 		hack::sceneRdy = true;
 		Prefab::PrefabManager::Init(m_editor.get());
 		Prefab::PrefabManager::RebuildFromScene();
 		m_isPlaying = false;
 		m_runtime.reset();
-
 	}
 
-	void SceneManager::SaveScene() {
-		//if (!m_active) return;
-		//Serialization::JsonSceneSerializer::Serialize(*m_active, path);
-	}
+	//void SceneManager::SaveScene() {
+	//	//if (!m_active) return;
+	//	//Serialization::JsonSceneSerializer::Serialize(*m_active, path);
+	//}
 
-	void SceneManager::SaveSceneIfDirty(const std::string& path) {
-		// Only save in Edit mode
-		if (m_isPlaying) return;
-		
-		if (!m_editor || !m_editor->IsDirty()) return;
+	//void SceneManager::SaveSceneIfDirty(const std::string& path) {
+	//	// Only save in Edit mode
+	//	if (m_isPlaying) return;
+	//	
+	//	if (!m_editor || !m_editor->IsDirty()) return;
 
-		std::string savePath = path.empty() ? m_loadedPath : path;
-		if (savePath.empty()) return;
+	//	std::string savePath = path.empty() ? m_loadedPath : path;
+	//	if (savePath.empty()) return;
 
-		SPD_INFO("[DirtyFlag] Saving scene to: {}", savePath);
+	//	SPD_INFO("[DirtyFlag] Saving scene to: {}", savePath);
 
-		// CRITICAL: Capture current field values from script instances before serializing
-		// This ensures any changes made in the editor inspector are persisted
-		auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
-		for (NE::ECS::Entity entity : entities) {
-			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-			if (nsc.Instance) {
-				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-			}
-		}
+	//	// CRITICAL: Capture current field values from script instances before serializing
+	//	// This ensures any changes made in the editor inspector are persisted
+	//	auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
+	//	for (NE::ECS::Entity entity : entities) {
+	//		auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+	//		if (nsc.Instance) {
+	//			Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
+	//		}
+	//	}
 
-		Serialization::JsonSceneSerializer::Serialize(*m_editor, savePath);
-		m_editor->ClearDirty();
-		SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
-	}
+	//	Serialization::JsonSceneSerializer::Serialize(*m_editor, savePath);
+	//	m_editor->ClearDirty();
+	//	SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
+	//}
 
 	void SceneManager::BeginPlay() {
 		if (!m_editor || m_isPlaying) return;
@@ -69,7 +69,7 @@ namespace NE::SceneManagement {
 
 		// 1) serialize editor scene to memory
 		m_editorBackup.clear();
-		NE::Serialization::JsonSceneSerializer::SerializeToMemory(*m_editor, m_editorBackup);
+		//NE::Serialization::JsonSceneSerializer::SerializeToMemory(*m_editor, m_editorBackup);
 
 		// 2) Destroy editor scene script instances to prevent memory leaks
 		// We don't need them during play mode - only runtime scene needs active scripts
@@ -89,7 +89,7 @@ namespace NE::SceneManagement {
 		hack::sceneRdy = false;
 		// 3) create runtime scene and load from the same data
 		m_runtime = std::make_unique<Scene>();
-		NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_runtime, m_editorBackup);
+		//NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_runtime, m_editorBackup);
 		m_runtime->Init();
 		hack::sceneRdy = true;
 
@@ -133,7 +133,7 @@ namespace NE::SceneManagement {
 
 			m_editor->Exit();
 			m_editor = std::make_unique<Scene>();
-			NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_editor, m_editorBackup);
+			//NE::Serialization::JsonSceneSerializer::DeserializeFromMemory(*m_editor, m_editorBackup);
 			m_editor->Init();
 			Prefab::PrefabManager::Init(m_editor.get());
 			Prefab::PrefabManager::RebuildFromScene();
@@ -179,7 +179,7 @@ namespace NE::SceneManagement {
 
 		m_prefabScene = std::make_unique<Scene>();
 
-		NE::Serialization::JsonSceneSerializer::Deserialize(*m_prefabScene, path);
+		//NE::Serialization::JsonSceneSerializer::Deserialize(*m_prefabScene, path);
 		m_prefabScene->Init();
 
 		m_prefabPath = path;

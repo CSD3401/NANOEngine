@@ -8,11 +8,9 @@
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Graphics/OpenGL/GLFrameBuffer.hpp"
 #include "Core/Profiler.hpp"
-//#include <glad/glad.h>
 #include "SceneManagement/Scene.hpp"
-#include "../../src/Serialisation/JsonSceneSerializer.hpp"
+//#include "../../src/Serialisation/JsonSceneSerializer.hpp"
 #include "ECS/Components/Transform.hpp"
-//#include "AssetManager.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 //#include "EditorInterface/PhysicsExports.hpp"
@@ -28,6 +26,8 @@
 #include "Audio/AudioBank.hpp"
 #include "Scripting/ScriptingEngine.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
+#include "Serialisation/Serializer.hpp"
+#include "ResourceManagement/ResourcePaths.hpp"
 #include <glfw/glfw3.h>
 
 namespace {
@@ -107,8 +107,8 @@ namespace NE {
 		//glDisable(GL_FRAMEBUFFER_SRGB);
 	}
 
-	void LoadStartupScene() {
-		gSceneManager.LoadScene("Assets/NewScene.scene");
+	void LoadStartupScene(const std::string& _startupScene) {
+		gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_startupScene, Resource::ResourceType::Scene));
 	}
 
 	void Run(double dt) {
@@ -127,18 +127,14 @@ namespace NE {
 		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
 
 		TweenManager::Get().Update(static_cast<float>(dt));
-		//Graphics::GraphicsManager::EndFrame();
 
-		if (InputManager::WasKeyPressed('L')) {
+		if (InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
 			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
-
-		//s_renderContext->SwapBuffers();
 	}
 
 	void Shutdown() {
 		NE_PROFILE_FUNCTION();
-		SaveCurrentScene("Assets/NewScene.scene");
 		Physics::PhysicsManager::Shutdown();
 		Graphics::GraphicsManager::Shutdown();
 		//Physics::Command::Shutdown();
@@ -156,8 +152,7 @@ namespace NE {
 		return s_window->GetNativeWindow();
 	}
 
-	bool WindowShouldClose()
-	{
+	bool WindowShouldClose() {
 		return s_window->ShouldClose();
 	}
 
@@ -187,29 +182,37 @@ namespace NE {
 		return pickedIds;
 	}
 
-	void SaveCurrentScene(std::string path) {
-		auto* editorScene = gSceneManager.GetEditorScene();
-		if (!editorScene) return;
-		
-		SPD_INFO("[DirtyFlag] SaveCurrentScene called - Saving to: {}", path);
+	//void SaveCurrentScene(std::string path) {
+	//	auto* editorScene = gSceneManager.GetEditorScene();
+	//	if (!editorScene) return;
+	//	
+	//	SPD_INFO("[DirtyFlag] SaveCurrentScene called - Saving to: {}", path);
 
-		// CRITICAL: Capture current field values from script instances before serializing
-		// This ensures any changes made in the editor inspector are persisted
-		auto& entities = editorScene->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
-		for (NE::ECS::Entity entity : entities) {
-			auto& nsc = editorScene->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-			if (nsc.Instance) {
-				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-			}
-		}
+	//	// CRITICAL: Capture current field values from script instances before serializing
+	//	// This ensures any changes made in the editor inspector are persisted
+	//	auto& entities = editorScene->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
+	//	for (NE::ECS::Entity entity : entities) {
+	//		auto& nsc = editorScene->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
+	//		if (nsc.Instance) {
+	//			Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
+	//		}
+	//	}
 
-		Serialization::JsonSceneSerializer::Serialize(*editorScene, path);
-		editorScene->ClearDirty();
-		SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
+	//	Serialization::JsonSceneSerializer::Serialize(*editorScene, path);
+	//	editorScene->ClearDirty();
+	//	SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
+	//}
+
+	//void SaveSceneIfDirty(std::string path) {
+	//	gSceneManager.SaveSceneIfDirty(path);
+	//}
+
+	void CookScene(const std::vector<ECS::Entity>& rootNodes, const std::string& _artifactPath) {
+		NE::Serialization::SerializeScene(GetScene().GetECSCoordinator(), rootNodes, _artifactPath);
 	}
 
-	void SaveSceneIfDirty(std::string path) {
-		gSceneManager.SaveSceneIfDirty(path);
+	void LoadScene(const std::string& _artifactPath) {
+		gSceneManager.LoadScene(_artifactPath);
 	}
 
 	bool IsSceneDirty() {
@@ -225,7 +228,7 @@ namespace NE {
 	}
 
 	void LoadTargetScene(std::string targetPath) {
-		Serialization::JsonSceneSerializer::Deserialize(*gSceneManager.GetActive(), targetPath);
+		//Serialization::JsonSceneSerializer::Deserialize(*gSceneManager.GetActive(), targetPath);
 	}
 
 	const std::vector<uint32_t>& GetNumEntities() {
@@ -233,24 +236,28 @@ namespace NE {
 	}
 
 	std::string SerializePrefab(uint32_t entt, std::string targetPath) {
-		return Serialization::JsonSceneSerializer::SerializePrefab(*gSceneManager.GetActive(), entt, targetPath);
+		//return Serialization::JsonSceneSerializer::SerializePrefab(*gSceneManager.GetActive(), entt, targetPath);
+		return "";
 	}
 
 	 std::vector<uint32_t> DeserializePrefab(std::string prefabPath) {
-		 auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
-		 return newEntities;
+		 //auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
+		 //return newEntities;
+		 return std::vector<uint32_t>();
 	}
 
 	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid) {
-		auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
-		Prefab::PrefabManager::Instantiate(uuid, newEntities);
-		return newEntities;
+		//auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath);
+		//Prefab::PrefabManager::Instantiate(uuid, newEntities);
+		//return newEntities;
+		return std::vector<uint32_t>();
 	}
 
 	std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos) {
-		auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath, pos);
-		Prefab::PrefabManager::Instantiate(uuid, newEntities);
-		return newEntities;
+		//auto newEntities = Serialization::JsonSceneSerializer::DeserializePrefab(*gSceneManager.GetActive(), prefabPath, pos);
+		//Prefab::PrefabManager::Instantiate(uuid, newEntities);
+		//return newEntities;
+		return std::vector<uint32_t>();
 	}
 
 	void LoadPrefabScene(std::string prefabPath) {
@@ -258,7 +265,7 @@ namespace NE {
 	}
 
 	void SavePrefabScene(std::string prefabPath) {
-		Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), prefabPath);
+		//Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), prefabPath);
 	}
 
 	void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath) {
@@ -270,48 +277,44 @@ namespace NE {
 	}
 
 	std::vector<uint32_t> DuplicateEntity(uint32_t entity) {
-		std::vector<uint8_t> buffer;
-		NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
+		//std::vector<uint8_t> buffer;
+		//NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
 
-		if (buffer.empty())
-			return std::vector<uint32_t>{};
+		//if (buffer.empty())
+		//	return std::vector<uint32_t>{};
 
-		auto newEntities =
-			NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), buffer);
+		//auto newEntities =
+		//	NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), buffer);
 
-		if (newEntities.empty())
-			return std::vector<uint32_t>{};
-
-		auto& transform = gSceneManager.
-			GetActive()->GetECSCoordinator().
-			GetComponent<ECS::Component::Transform>(newEntities[0]);
-
-		transform.localPosition.x += 0.5f;
-		transform.localPosition.y += 0.5f;
-		transform.localPosition.z += 0.5f;
-		transform.isDirty = true;
-
-		return newEntities;
-	}
-
-	std::vector<uint8_t> CopyEntity(uint32_t entity) {
-		std::vector<uint8_t> buffer;
-		NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
-		return buffer;
-	}
-
-	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard) {
-		auto newEntities =
-			NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
+		//if (newEntities.empty())
+		//	return std::vector<uint32_t>{};
 
 		//auto& transform = gSceneManager.
 		//	GetActive()->GetECSCoordinator().
 		//	GetComponent<ECS::Component::Transform>(newEntities[0]);
 
-		//transform.localPosition = pos;
+		//transform.localPosition.x += 0.5f;
+		//transform.localPosition.y += 0.5f;
+		//transform.localPosition.z += 0.5f;
 		//transform.isDirty = true;
 
-		return newEntities;
+		//return newEntities;
+		return std::vector<uint32_t>();
+	}
+
+	std::vector<uint8_t> CopyEntity(uint32_t entity) {
+		//std::vector<uint8_t> buffer;
+		//NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
+		//return buffer;
+		return std::vector<uint8_t>();
+	}
+
+	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard) {
+		//auto newEntities =
+		//	NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
+
+		//return newEntities;
+		return std::vector<uint32_t>();
 	}
 
 	// Internal use only

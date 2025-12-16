@@ -12,6 +12,7 @@
 #include "Assets/ModelAsset.hpp"
 #include "Assets/MaterialAsset.hpp"
 #include "Assets/ShaderAsset.hpp"
+#include "Assets/SceneAsset.hpp"
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
@@ -30,10 +31,12 @@ namespace Editor::Assets {
         std::string AssetTypeToString(Editor::Assets::AssetType type) {
             switch (type) {
             case Editor::Assets::AssetType::Texture:    return "Texture";
-            case Editor::Assets::AssetType::Model:      return "Mesh";
+            case Editor::Assets::AssetType::Model:      return "Model";
             case Editor::Assets::AssetType::Shader:     return "Shader";
             case Editor::Assets::AssetType::Material:   return "Material";
             case Editor::Assets::AssetType::Audio:      return "Audio";
+            case Editor::Assets::AssetType::Scene:      return "Scene";
+            case Editor::Assets::AssetType::Prefab:     return "Prefab";
             default:                                    return "Unknown";
             }
         }
@@ -45,6 +48,7 @@ namespace Editor::Assets {
             case Assets::AssetType::Model:      return std::make_unique<Assets::ModelAsset>();
             case Assets::AssetType::Material:   return std::make_unique<Assets::MaterialAsset>();
             case Assets::AssetType::Shader:     return std::make_unique<Assets::ShaderAsset>();
+            case Assets::AssetType::Scene:      return std::make_unique<Assets::SceneAsset>();
             default:                            return nullptr;
             }
         }
@@ -56,6 +60,7 @@ namespace Editor::Assets {
             case Assets::AssetType::Material:   return NE::Resource::ResourceType::Material;
             case Assets::AssetType::Shader:     return NE::Resource::ResourceType::Shader;
             case Assets::AssetType::Scene:      return NE::Resource::ResourceType::Scene;
+            case Assets::AssetType::Prefab:     return NE::Resource::ResourceType::Prefab;
             default:                            return NE::Resource::ResourceType::Unknown;
             }
         }
@@ -438,10 +443,11 @@ namespace Editor::Assets {
     Assets::AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {
         std::string e = ToLower(std::string(extension));
         if (e == "texture")         return Assets::AssetType::Texture;
-        else if (e == "mesh")       return Assets::AssetType::Model;
+        else if (e == "model")      return Assets::AssetType::Model;
         else if (e == "shader")     return Assets::AssetType::Shader;
         else if (e == "material")   return Assets::AssetType::Material;
         else if (e == "audio")      return Assets::AssetType::Audio;
+        else if (e == "scene")      return Assets::AssetType::Scene;
         return Assets::AssetType::Unknown;
     }
 
@@ -452,6 +458,7 @@ namespace Editor::Assets {
         else if (e == ".nanoshader")                                    return Assets::AssetType::Shader;
         else if (e == ".nanomat")                                       return Assets::AssetType::Material;
         else if (e == ".wav" || e == ".mp3")                            return Assets::AssetType::Audio;
+        else if (e == ".scene")                                         return Assets::AssetType::Scene;
 		return Assets::AssetType::Unknown;
 	}
 

@@ -72,7 +72,7 @@ namespace Editor {
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
 
-		NE::LoadStartupScene();
+		NE::LoadStartupScene("");
 
 		SPD_INFO("=== Application initialization complete ===");
 		SPD_DEBUG("All panels loaded successfully");

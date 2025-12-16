@@ -3,10 +3,6 @@
 #include "Vec3.hpp"
 
 namespace NE::Math {
-    Vec4::Vec4(float a, float b, float c, float d) : x(a), y(b), z(c), w(d)
-    {
-    }
-
     float& Vec4::operator[](unsigned int i) {
         if (i == 0) return x;
         else if (i == 1) return y;

@@ -170,7 +170,6 @@
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp" />
-    <ClCompile Include="MaterialEditor.cpp" />
     <ClCompile Include="src\Serialization\Serializer.cpp" />
     <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ShaderAsset.cpp" />
@@ -216,7 +215,7 @@
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />
     <ClInclude Include="src\AssetManagement\AssetTypes.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\MaterialEditor.hpp" />
-    <ClInclude Include="MaterialEditor.hpp" />
+    <ClInclude Include="src\Serialization\JSONReflection.hpp" />
     <ClInclude Include="src\Serialization\Serializer.hpp" />
     <ClInclude Include="src\AssetManagement\AssetManager.hpp" />
     <ClInclude Include="resource.h" />

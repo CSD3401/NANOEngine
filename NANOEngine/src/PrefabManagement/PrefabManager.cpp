@@ -6,7 +6,7 @@
 #include "ECS/Core/ECSCoordinator.hpp"
 #include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Transform.hpp"
-#include "Serialisation/JsonSceneSerializer.hpp"
+//#include "Serialisation/JsonSceneSerializer.hpp"
 
 namespace NE::Prefab {
 
@@ -125,10 +125,10 @@ namespace NE::Prefab {
 
                 const auto& entVal = *it->second;
 
-                Serialization::JsonSceneSerializer::ReloadComponentsForEntity(*s_scene,
-                    e,
-                    inst.rootEntity,
-                    entVal);
+                //Serialization::JsonSceneSerializer::ReloadComponentsForEntity(*s_scene,
+                //    e,
+                //    inst.rootEntity,
+                //    entVal);
 
                 //if (ecs.HasComponent<Transform>(e) && e != inst.rootEntity) {
                 //    auto& t = ecs.GetComponent<Transform>(e);

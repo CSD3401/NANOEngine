@@ -88,7 +88,7 @@
     <ClInclude Include="src\Scripting\IScript_Compat.hpp" />
     <ClInclude Include="src\Scripting\ScriptContext.hpp" />
     <ClInclude Include="src\Scripting\ScriptContextFactory.hpp" />
-    <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
+    <ClInclude Include="src\Serialisation\BinaryReflection.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
     <ClInclude Include="src\Scripting\IScript.hpp" />
     <ClInclude Include="src\ECS\Components\NativeScript.hpp" />
@@ -166,8 +166,7 @@
     <ClInclude Include="src\ECS\Core\Signature.hpp" />
     <ClInclude Include="src\ECS\Core\SystemManager.hpp" />
     <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
-    <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
-    <ClInclude Include="src\Serialisation\ReflectionJson.hpp" />
+    <ClInclude Include="src\Serialisation\Serializer.hpp" />
     <ClInclude Include="src\Tween\Tween.hpp" />
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
@@ -204,7 +203,6 @@
     <ClCompile Include="src\Scripting\ScriptAPI.cpp" />
     <ClCompile Include="src\Scripting\ScriptContextFactory.cpp" />
     <ClCompile Include="src\Scripting\ScriptTypes.cpp" />
-    <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
     <ClCompile Include="src\Scripting\ScriptingEngine.cpp" />
     <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
@@ -249,7 +247,7 @@
     <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\Math\Vec4.cpp" />
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
-    <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
+    <ClCompile Include="src\Serialisation\Serializer.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
     <ClCompile Include="src\Tween\TweenManager.cpp" />
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
