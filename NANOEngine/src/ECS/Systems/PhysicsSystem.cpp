@@ -4,7 +4,7 @@
 #include "../../ECS/Components/Rigidbody.hpp"
 #include "../../ECS/Components/Renderer.hpp"
 #include "../../ECS/Components/EntityMeta.hpp"
-#include "EngineState.hpp"
+//#include "EngineState.hpp"
 
 namespace NE::ECS::Systems
 {
@@ -272,26 +272,26 @@ namespace NE::ECS::Systems
         JPH::EMotionType motionType = JPH::EMotionType::Static;
         bool hasRigidbody = m_componentManager->HasComponent<Component::Rigidbody>(entity);
 
-        if (hasRigidbody)
-        {
-            auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+        //if (hasRigidbody)
+        //{
+        //    auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
 
-            if (NE::GetEngineState() != EngineState::Play) {
-                motionType = JPH::EMotionType::Kinematic;
-                printf("PhysicsSystem: EDITOR MODE - Setting body to KINEMATIC for entity %d\n", entity);
-            }
-            else {
-                motionType = rb.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
-                printf("PhysicsSystem: PLAY MODE - Setting body to %s for entity %d\n",
-                    rb.isStatic ? "STATIC" : "DYNAMIC", entity);
-            }
-        }
-        else {
-            if (NE::GetEngineState() != EngineState::Play) {
-                motionType = JPH::EMotionType::Kinematic;
-                printf("PhysicsSystem: EDITOR MODE - Collider-only, setting to KINEMATIC for entity %d\n", entity);
-            }
-        }
+        //    if (NE::GetEngineState() != EngineState::Play) {
+        //        motionType = JPH::EMotionType::Kinematic;
+        //        printf("PhysicsSystem: EDITOR MODE - Setting body to KINEMATIC for entity %d\n", entity);
+        //    }
+        //    else {
+        //        motionType = rb.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
+        //        printf("PhysicsSystem: PLAY MODE - Setting body to %s for entity %d\n",
+        //            rb.isStatic ? "STATIC" : "DYNAMIC", entity);
+        //    }
+        //}
+        //else {
+        //    if (NE::GetEngineState() != EngineState::Play) {
+        //        motionType = JPH::EMotionType::Kinematic;
+        //        printf("PhysicsSystem: EDITOR MODE - Collider-only, setting to KINEMATIC for entity %d\n", entity);
+        //    }
+        //}
 
         uint32_t bodyID = 0;
 
@@ -400,46 +400,46 @@ namespace NE::ECS::Systems
 
         uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(entity);
 
-        if (m_componentManager->HasComponent<Component::Rigidbody>(entity)) {
-            auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
-            JPH::EMotionType currentMotionType = NE::Physics::PhysicsManager::GetMotionType(bodyID);
+        //if (m_componentManager->HasComponent<Component::Rigidbody>(entity)) {
+        //    auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(entity);
+        //    JPH::EMotionType currentMotionType = NE::Physics::PhysicsManager::GetMotionType(bodyID);
 
-            JPH::EMotionType desiredMotionType;
-            if (NE::GetEngineState() != EngineState::Play) {
-                desiredMotionType = JPH::EMotionType::Kinematic;
-            }
-            else {
-                desiredMotionType = rb.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
-            }
+        //    JPH::EMotionType desiredMotionType;
+        //    if (NE::GetEngineState() != EngineState::Play) {
+        //        desiredMotionType = JPH::EMotionType::Kinematic;
+        //    }
+        //    else {
+        //        desiredMotionType = rb.isStatic ? JPH::EMotionType::Static : JPH::EMotionType::Dynamic;
+        //    }
 
-            if (currentMotionType != desiredMotionType) {
-                // When transitioning, sync FROM physics TO transform
-                Math::Vec3 currentPhysicsPos, currentPhysicsRot;
-                NE::Physics::PhysicsManager::GetTransform(bodyID, currentPhysicsPos, currentPhysicsRot);
+        //    if (currentMotionType != desiredMotionType) {
+        //        // When transitioning, sync FROM physics TO transform
+        //        Math::Vec3 currentPhysicsPos, currentPhysicsRot;
+        //        NE::Physics::PhysicsManager::GetTransform(bodyID, currentPhysicsPos, currentPhysicsRot);
 
-                auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-                transform.localPosition = currentPhysicsPos;
-                transform.localRotationEuler = currentPhysicsRot;
+        //        auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
+        //        transform.localPosition = currentPhysicsPos;
+        //        transform.localRotationEuler = currentPhysicsRot;
 
-                NE::Physics::PhysicsManager::SetMotionType(bodyID, desiredMotionType);
-            }
-        }
+        //        NE::Physics::PhysicsManager::SetMotionType(bodyID, desiredMotionType);
+        //    }
+        //}
 
         // Handle collider changes (only in editor)
-        if (NE::GetEngineState() != EngineState::Play &&
-            m_componentManager->HasComponent<Component::Collider>(entity))
-        {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+        //if (NE::GetEngineState() != EngineState::Play &&
+        //    m_componentManager->HasComponent<Component::Collider>(entity))
+        //{
+        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
 
-            if (collider.isShapeDirty || collider.isPropertiesDirty) {
-                printf("Collider properties changed for entity %d\n", entity);
+        //    if (collider.isShapeDirty || collider.isPropertiesDirty) {
+        //        printf("Collider properties changed for entity %d\n", entity);
 
-                collider.isShapeDirty = false;
-                collider.isPropertiesDirty = false;
+        //        collider.isShapeDirty = false;
+        //        collider.isPropertiesDirty = false;
 
-                RecreatePhysicsBody(entity);
-            }
-        }
+        //        RecreatePhysicsBody(entity);
+        //    }
+        //}
     }
 
     void PhysicsSystem::RecreatePhysicsBody(Entity entity)

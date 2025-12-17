@@ -3,7 +3,6 @@
 #include "../Components/EntityMeta.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "Core/Profiler.hpp"
-#include "EngineState.hpp"
 #include <vector>
 
 namespace NE::ECS::Systems {

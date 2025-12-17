@@ -178,49 +178,12 @@ namespace NE {
 		return pickedIds;
 	}
 
-	//void SaveCurrentScene(std::string path) {
-	//	auto* editorScene = gSceneManager.GetEditorScene();
-	//	if (!editorScene) return;
-	//	
-	//	SPD_INFO("[DirtyFlag] SaveCurrentScene called - Saving to: {}", path);
-
-	//	// CRITICAL: Capture current field values from script instances before serializing
-	//	// This ensures any changes made in the editor inspector are persisted
-	//	auto& entities = editorScene->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
-	//	for (NE::ECS::Entity entity : entities) {
-	//		auto& nsc = editorScene->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-	//		if (nsc.Instance) {
-	//			Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-	//		}
-	//	}
-
-	//	Serialization::JsonSceneSerializer::Serialize(*editorScene, path);
-	//	editorScene->ClearDirty();
-	//	SPD_INFO("[DirtyFlag] Scene saved and marked as CLEAN");
-	//}
-
-	//void SaveSceneIfDirty(std::string path) {
-	//	gSceneManager.SaveSceneIfDirty(path);
-	//}
-
 	void CookScene(const std::vector<ECS::Entity>& rootNodes, const std::string& _artifactPath) {
 		NE::Serialization::SerializeScene(GetScene().GetECSCoordinator(), rootNodes, _artifactPath);
 	}
 
 	void LoadScene(const std::string& _artifactPath) {
 		gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
-	}
-
-	bool IsSceneDirty() {
-		auto* editorScene = gSceneManager.GetEditorScene();
-		return editorScene ? editorScene->IsDirty() : false;
-	}
-
-	void MarkSceneDirty() {
-		auto* editorScene = gSceneManager.GetEditorScene();
-		if (editorScene) {
-			editorScene->MarkDirty();
-		}
 	}
 
 	const std::vector<uint32_t>& GetNumEntities() {
@@ -314,10 +277,6 @@ namespace NE {
 		return *gSceneManager.GetActive();
 	}
 
-	std::shared_ptr<NE::Graphics::Material> LoadMaterial(std::string uuid) {
-		return Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::Material>(uuid);
-	}
-
 	bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages) {
 		uint32_t linkedProgram = 0;
 		if (!Compile(shaderStages, linkedProgram)) {
@@ -386,21 +345,29 @@ namespace NE {
 		return ofs.good();
 	}
 
-	void EditorPlay() {
-		g_EngineState = EngineState::Play;
-		gSceneManager.BeginPlay();
-		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	void StartRuntime() {
+		gSceneManager.LoadRuntime();
 	}
 
-	void EditorPause() {
-		g_EngineState = EngineState::Play;
-		gSceneManager.GetActive()->ScriptPause();
+	void StopRuntime() {
+		gSceneManager.StopRuntime();
 	}
 
-	void EditorEdit() {
-		g_EngineState = EngineState::Edit;
-		gSceneManager.StopPlay();
-	}
+	//void EditorPlay() {
+	//	g_EngineState = EngineState::Play;
+	//	gSceneManager.BeginPlay();
+	//	glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//}
+
+	//void EditorPause() {
+	//	g_EngineState = EngineState::Play;
+	//	gSceneManager.GetActive()->ScriptPause();
+	//}
+
+	//void EditorEdit() {
+	//	g_EngineState = EngineState::Edit;
+	//	gSceneManager.StopPlay();
+	//}
 
 	int GetDrawCallCount() {
 		return Graphics::GraphicsManager::drawCount;

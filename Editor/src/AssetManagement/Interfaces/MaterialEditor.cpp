@@ -1,11 +1,15 @@
 #include "MaterialEditor.hpp"
+
 #include <fstream>
-#include <Engine.hpp>
+
 #include <imgui/imgui.h>
 #include <imgui/widgets/imsearch/imsearch.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
+
+#include <EditorInterface/RendererExports.hpp>
+
 #include "../../EditorUI.hpp"
 #include "../../AssetManagement/AssetManager.hpp"
 
@@ -13,7 +17,7 @@ namespace Editor {
 
 	bool MaterialEditor::LoadMaterial(std::string filePath, std::string uuid) {
 		m_path = filePath;
-		m_material = NE::LoadMaterial(uuid);
+        m_material = NE::Renderer::Command::GetMaterial(uuid);
 
 		return true;
 	}

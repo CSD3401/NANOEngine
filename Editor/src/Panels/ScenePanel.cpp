@@ -22,6 +22,7 @@
 #include <limits>
 #include "../Util/DrawSelectedCollider.hpp"
 #include <algorithm>
+#include "../EditorState.hpp"
 
 namespace {
 	// helper function for ui
@@ -54,11 +55,10 @@ namespace Editor {
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
 
-	// --- Multi-selection gizmo support --- //
 	struct GizmoMultiTarget {
 		uint32_t entity;
-		NE::Math::Mat4 startWorld;   // world at gizmo start
-		NE::Math::Mat4 parentWorld;  // parent world at gizmo start (identity if no parent)
+		NE::Math::Mat4 startWorld;
+		NE::Math::Mat4 parentWorld;
 		std::unique_ptr<Editor::SetTransformCommand> cmd;
 	};
 
@@ -367,19 +367,26 @@ namespace Editor {
 				if (ImGui::Button("Play")) {
 					playing = true;
 					paused = false;
-					NE::EditorPlay();
+					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+					NE::StartRuntime();
+					EditorScene::BuildRoot();
+					g_EditorState = EditorState::Play;
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Pause")) {
 					if (playing) paused = !paused;
+
+					g_EditorState = EditorState::Paused;
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Stop")) {
 					playing = false;
 					paused = false;
 
-					NE::EditorEdit();
-					EditorScene::s_rootOrder.clear();
+					NE::StopRuntime();
+					g_EditorState = EditorState::Edit;
+					EditorScene::BuildRoot();
 				}
 			}
 			ImGui::End();
@@ -387,7 +394,6 @@ namespace Editor {
 			ImGui::PopStyleVar(2);
 		}
 
-		// Handle input only when scene panel is focused
 		if (ImGui::IsWindowFocused()) {
 			ImGuiIO& io = ImGui::GetIO();
 
@@ -409,17 +415,15 @@ namespace Editor {
 						m_dragEndScreen = mousePos;
 					}
 
-					// On release: perform selection
 					if (m_dragSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 						m_dragSelecting = false;
 
-						// Avoid treating a tiny drag as a click
 						ImVec2 delta = ImVec2(
 							m_dragEndScreen.x - m_dragStartScreen.x,
 							m_dragEndScreen.y - m_dragStartScreen.y
 						);
 
-						const float minBox = 4.0f; // pixels
+						const float minBox = 4.0f;
 						bool isBox = (fabsf(delta.x) > minBox || fabsf(delta.y) > minBox);
 
 						if (isBox) {
@@ -562,7 +566,6 @@ namespace Editor {
 				}
 
 				if (!transformEntities.empty()) {
-					// 1. Compute center of selection in world space
 					NE::Math::Vec3 center(0.0f, 0.0f, 0.0f);
 					for (uint32_t e : transformEntities) {
 						const auto& t = NE::ECS::Query::GetEntityTransform(e);
@@ -570,7 +573,6 @@ namespace Editor {
 					}
 					center /= static_cast<float>(transformEntities.size());
 
-					// 2. Build group gizmo matrix at that center (identity rot/scale)
 					NE::Math::Mat4 groupWorld;
 					groupWorld.SetToIdentity();
 					groupWorld.SetTranslation(center);
@@ -585,10 +587,8 @@ namespace Editor {
 					);
 					bool isUsing = ImGuizmo::IsUsing();
 
-					// Write back to Mat4
 					memcpy(groupWorld.Data(), groupMatrix, sizeof(float) * 16);
 
-					// Command mask (pos/rot/scale)
 					static uint8_t s_gizmoMask = 0;
 					auto opToMask = [](ImGuizmo::OPERATION op) {
 						using Cmd = Editor::SetTransformCommand;
@@ -600,7 +600,6 @@ namespace Editor {
 						}
 						};
 
-					// 3. On gizmo start: record start world & parent world per entity
 					if (!s_gizmoActive && isUsing) {
 						s_gizmoActive = true;
 						s_gizmoMask = opToMask(currentOperation);
@@ -608,7 +607,7 @@ namespace Editor {
 						s_gizmoTargets.clear();
 						s_gizmoPivotStartWorld = NE::Math::Mat4{};
 						s_gizmoPivotStartWorld.SetToIdentity();
-						s_gizmoPivotStartWorld.SetTranslation(center); // initial group center
+						s_gizmoPivotStartWorld.SetTranslation(center);
 
 						for (uint32_t e : transformEntities) {
 							auto before = NE::ECS::Query::GetEntityTransform(e);
@@ -636,7 +635,6 @@ namespace Editor {
 						}
 					}
 
-					// 4. While dragging: delta = newGroup * inverse(oldGroup)
 					if (s_gizmoActive && isUsing && editedThisFrame && !s_gizmoTargets.empty()) {
 						NE::Math::Mat4 invGroupStart = s_gizmoPivotStartWorld.Inverse();
 						NE::Math::Mat4 delta = groupWorld * invGroupStart;
@@ -647,7 +645,6 @@ namespace Editor {
 							NE::Math::Mat4 invParent = tgt.parentWorld.Inverse();
 							NE::Math::Mat4 newLocal = invParent * newWorld;
 
-							// Decompose local matrix
 							float tr[3], rotDeg[3], sc[3];
 							float localMatrix[16];
 							memcpy(localMatrix, newLocal.Data(), sizeof(float) * 16);
@@ -671,7 +668,6 @@ namespace Editor {
 						}
 					}
 
-					// 5. On gizmo release: push changed commands
 					if (s_gizmoActive && !isUsing) {
 						auto eq = [](auto a, auto b) {
 							return std::fabs(a.x - b.x) <= 1e-6f &&

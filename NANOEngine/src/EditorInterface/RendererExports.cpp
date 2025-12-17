@@ -52,6 +52,10 @@ namespace NE::Renderer {
 	}
 
 	namespace Command {
+		std::shared_ptr<NE::Graphics::Material> GetMaterial(const std::string& uuid) {
+			return Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::Material>(uuid);
+		}
+
 		void AssignModel(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.modelUUID = uuid;
@@ -61,26 +65,12 @@ namespace NE::Renderer {
 				r.materialUUID = "neunlitmat";
 				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>("neunlitmat");
 			}
-			
-			// Mark component and scene dirty (Edit mode only)
-			if (NE::GetEngineState() == NE::EngineState::Edit) {
-				if constexpr (requires { r.isDirty; }) r.isDirty = true;
-				NE::MarkSceneDirty();
-				SPD_DEBUG("[DirtyFlag] Model changed - Scene marked DIRTY");
-			}
 		}
 
 		void AssignMaterial(uint32_t e, const std::string& uuid) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			r.materialUUID = uuid;
 			r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
-			
-			// Mark component and scene dirty (Edit mode only)
-			if (NE::GetEngineState() == NE::EngineState::Edit) {
-				if constexpr (requires { r.isDirty; }) r.isDirty = true;
-				NE::MarkSceneDirty();
-				SPD_DEBUG("[DirtyFlag] Material changed - Scene marked DIRTY");
-			}
 		}
 
 		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }
@@ -115,14 +105,6 @@ namespace NE::Renderer {
 					img.bindlessHandle = texture->GetBindlessHandle();
 				}
 			}
-
-            // mark dirty
-            if (NE::GetEngineState() == NE::EngineState::Edit)
-            {
-                img.isDirty = true;
-                NE::MarkSceneDirty();
-                SPD_DEBUG("[DirtyFlag] UI Texture changed - Scene marked DIRTY");
-            }
         }
 	}
 }

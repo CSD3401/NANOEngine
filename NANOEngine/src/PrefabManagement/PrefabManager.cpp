@@ -1,7 +1,6 @@
 #include "PrefabManager.hpp"
 #include <unordered_set>
 #include <fstream>
-#include <rapidjson/document.h>
 #include "SceneManagement/Scene.hpp"
 #include "ECS/Core/ECSCoordinator.hpp"
 #include "ECS/Components/EntityMeta.hpp"
@@ -90,52 +89,52 @@ namespace NE::Prefab {
     }
 
     void PrefabManager::ReloadAllInstancesOfPrefab(const UUID& prefabAsset, const std::string& prefabPath) {
-        if (!s_scene) return;
-        auto& ecs = s_scene->GetECSCoordinator();
+        //if (!s_scene) return;
+        //auto& ecs = s_scene->GetECSCoordinator();
 
-        std::ifstream in(prefabPath, std::ios::binary);
-        if (!in) return;
+        //std::ifstream in(prefabPath, std::ios::binary);
+        //if (!in) return;
 
-        std::string data((std::istreambuf_iterator<char>(in)), {});
-        rapidjson::Document doc; 
-        doc.Parse(data.c_str());
-        if (!doc.IsObject() || !doc.HasMember("Entities")) return;
+        //std::string data((std::istreambuf_iterator<char>(in)), {});
+        //rapidjson::Document doc; 
+        //doc.Parse(data.c_str());
+        //if (!doc.IsObject() || !doc.HasMember("Entities")) return;
 
-        auto entitiesJson = doc["Entities"].GetArray();
+        //auto entitiesJson = doc["Entities"].GetArray();
 
-        std::unordered_map<uint64_t, const rapidjson::Value*> localToJson;
-        for (auto& entVal : entitiesJson) {
-            const auto& tJson = entVal["Transform"];
-            uint64_t lid = tJson["luid"].GetUint64();
-            localToJson[lid] = &entVal;
-        }
+        //std::unordered_map<uint64_t, const rapidjson::Value*> localToJson;
+        //for (auto& entVal : entitiesJson) {
+        //    const auto& tJson = entVal["Transform"];
+        //    uint64_t lid = tJson["luid"].GetUint64();
+        //    localToJson[lid] = &entVal;
+        //}
 
-        using NE::ECS::Component::Transform;
+        //using NE::ECS::Component::Transform;
 
-        for (auto& [instId, inst] : s_instances) {
-            if (inst.prefabAsset != prefabAsset)
-                continue;
+        //for (auto& [instId, inst] : s_instances) {
+        //    if (inst.prefabAsset != prefabAsset)
+        //        continue;
 
-            for (uint32_t e : inst.entities) {
-                auto& meta = ecs.GetComponent<ECS::Component::EntityMeta>(e);
-                uint64_t localId = meta.prefabLocalID;
-                auto it = localToJson.find(localId);
-                if (it == localToJson.end())
-                    continue;
+        //    for (uint32_t e : inst.entities) {
+        //        auto& meta = ecs.GetComponent<ECS::Component::EntityMeta>(e);
+        //        uint64_t localId = meta.prefabLocalID;
+        //        auto it = localToJson.find(localId);
+        //        if (it == localToJson.end())
+        //            continue;
 
-                const auto& entVal = *it->second;
+        //        const auto& entVal = *it->second;
 
-                //Serialization::JsonSceneSerializer::ReloadComponentsForEntity(*s_scene,
-                //    e,
-                //    inst.rootEntity,
-                //    entVal);
+        //        //Serialization::JsonSceneSerializer::ReloadComponentsForEntity(*s_scene,
+        //        //    e,
+        //        //    inst.rootEntity,
+        //        //    entVal);
 
-                //if (ecs.HasComponent<Transform>(e) && e != inst.rootEntity) {
-                //    auto& t = ecs.GetComponent<Transform>(e);
-                //    t.isDirty = true;
-                //}
-            }
-        }
+        //        //if (ecs.HasComponent<Transform>(e) && e != inst.rootEntity) {
+        //        //    auto& t = ecs.GetComponent<Transform>(e);
+        //        //    t.isDirty = true;
+        //        //}
+        //    }
+        //}
     }
 
     void PrefabManager::RebuildFromScene() {
