@@ -38,10 +38,6 @@ namespace NE {
 	
 	NANOENGINE_API void CookScene(const std::vector<ECS::Entity>& rootNodes, const std::string& _artifactPath);
 	NANOENGINE_API void LoadScene(const std::string& _artifactPath);
-	//NANOENGINE_API void SaveCurrentScene(std::string path);
-	//NANOENGINE_API void SaveSceneIfDirty(std::string path = "");
-	NANOENGINE_API bool IsSceneDirty();
-	NANOENGINE_API void MarkSceneDirty();
 
 	NANOENGINE_API const std::vector<uint32_t>& GetNumEntities();
 	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);
@@ -59,12 +55,11 @@ namespace NE {
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
-	NANOENGINE_API std::shared_ptr<NE::Graphics::Material> LoadMaterial(std::string uuid);
 	NANOENGINE_API bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages); // here for now
 
-	NANOENGINE_API void EditorPlay();
-	NANOENGINE_API void EditorPause();
-	NANOENGINE_API void EditorEdit();
+	NANOENGINE_API void StartRuntime();
+	NANOENGINE_API void StopRuntime();
+	//NANOENGINE_API void EditorPause();
 
 	NANOENGINE_API int GetDrawCallCount();
 

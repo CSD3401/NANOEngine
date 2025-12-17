@@ -350,6 +350,9 @@
     <ClInclude Include="src\Serialization\JSONReflection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\EditorState.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Editor.rc">

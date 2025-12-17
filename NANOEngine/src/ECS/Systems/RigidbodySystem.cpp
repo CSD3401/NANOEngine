@@ -10,8 +10,6 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include "../../EngineState.hpp"
-#include "../../Core/Logger.hpp"
 #include <algorithm>
 
 // Not in used atm, handled by PhysicsSystem - RF

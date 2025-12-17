@@ -215,6 +215,7 @@
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />
     <ClInclude Include="src\AssetManagement\AssetTypes.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\MaterialEditor.hpp" />
+    <ClInclude Include="src\EditorState.hpp" />
     <ClInclude Include="src\Serialization\JSONReflection.hpp" />
     <ClInclude Include="src\Serialization\Serializer.hpp" />
     <ClInclude Include="src\AssetManagement\AssetManager.hpp" />

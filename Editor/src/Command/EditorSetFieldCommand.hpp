@@ -8,7 +8,6 @@
 #include "ICommand.hpp"
 #include <Core/Reflection.hpp>
 #include <Engine.hpp>  // For MarkSceneDirty
-#include <EngineState.hpp>  // For GetEngineState
 #include <Core/SpdLogger.hpp>  // For SPD_DEBUG logging
 
 namespace Editor {
@@ -37,24 +36,12 @@ namespace Editor {
 			auto& c = m_getter(m_entity);
 			c.*m_member = m_after;
 			MarkDirtyIfPresent(c);
-
-			// Mark scene dirty for serialization (Edit mode only)
-			if (NE::GetEngineState() == NE::EngineState::Edit) {
-				NE::MarkSceneDirty();
-				//SPD_DEBUG("[DirtyFlag] Component changed via Inspector - Scene marked DIRTY");
-			}
 		}
 
 		void Undo() override {
 			auto& c = m_getter(m_entity);
 			c.*m_member = m_before;
 			MarkDirtyIfPresent(c);
-
-			// Mark scene dirty for serialization (Edit mode only)
-			if (NE::GetEngineState() == NE::EngineState::Edit) {
-				NE::MarkSceneDirty();
-				//SPD_DEBUG("[DirtyFlag] Undo operation - Scene marked DIRTY");
-			}
 		}
 
 		const char* GetName() const override { return m_name.c_str(); }

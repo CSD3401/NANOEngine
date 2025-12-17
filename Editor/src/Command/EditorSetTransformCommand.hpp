@@ -2,8 +2,7 @@
 #include <string>
 #include <memory>
 #include "ICommand.hpp"
-#include <Engine.hpp>  // For MarkSceneDirty
-#include <EngineState.hpp>  // For GetEngineState
+#include <Engine.hpp>
 #include <Core/SpdLogger.hpp>  
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/UIRectTransform.hpp>
@@ -47,12 +46,6 @@ namespace Editor {
             if (m_mask & Scl) t.localScale = v.localScale;
 
             if constexpr (requires(Owner x) { x.isDirty; }) t.isDirty = true;
-     
-            // Mark scene dirty for serialization (Edit mode only)
-            if (NE::GetEngineState() == NE::EngineState::Edit) {
-                NE::MarkSceneDirty();
-                //SPD_DEBUG("[DirtyFlag] Transform changed via Gizmo - Scene marked DIRTY");
-            }
         }
 
         uint32_t    m_entity;
@@ -128,11 +121,6 @@ namespace Editor {
             if (m_mask & Pivot) {
                 t.pivotX = v.pivotX;
                 t.pivotY = v.pivotY;
-            }
-
-            // Mark scene dirty for serialization (Edit mode only)
-            if (NE::GetEngineState() == NE::EngineState::Edit) {
-                NE::MarkSceneDirty();
             }
         }
 

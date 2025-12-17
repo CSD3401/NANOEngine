@@ -343,7 +343,6 @@ namespace Editor {
 
 					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
 					//EditorScene::SetAllDescendantsActive(entity, isActiveValue);
-					NE::MarkSceneDirty();
 				}
 
 				ImGui::SameLine();
@@ -726,12 +725,9 @@ namespace Editor {
 					auto& tempR = NE::ECS::Command::GetEntityRenderer(entity);
 					if (ImGui::Combo("Shadow Cast Mode", &currentCastMode, ShadowCastModeNames, IM_ARRAYSIZE(ShadowCastModeNames))) {
 						tempR.shadowCastMode = static_cast<NE::ECS::Component::Renderer::ShadowCastMode>(currentCastMode);
-
-						NE::MarkSceneDirty();
 					}
 
 					if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
-						NE::MarkSceneDirty();
 					}
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Light))
@@ -744,10 +740,6 @@ namespace Editor {
 					if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
-
-						// Mark scene dirty when light type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
 					}
 
 					static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
@@ -755,10 +747,6 @@ namespace Editor {
 					if (ImGui::Combo("Shadow Type", &shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.shadowType = static_cast<NE::ECS::Component::Light::ShadowType>(shadowType);
-
-						// Mark scene dirty when light type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
 					}
 
 					static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
@@ -766,10 +754,6 @@ namespace Editor {
 					if (ImGui::Combo("Shadow Update Mode", &shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.shadowUpdateMode = static_cast<NE::ECS::Component::Light::ShadowUpdateMode>(shadowUpdateMode);
-
-						// Mark scene dirty when light type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
 					}
 
 					NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
@@ -858,10 +842,6 @@ namespace Editor {
 						SPD_DEBUG("  Updated: motionType={}, isStatic={}",
 							static_cast<int>(tempRb.motionType),
 							tempRb.isStatic);
-
-						// Mark scene dirty when motion type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Rigidbody motion type changed - Scene marked DIRTY");
 					}
 
 					// Help text
@@ -975,8 +955,6 @@ namespace Editor {
 						// "None" option to remove script
 						if (ImGui::Selectable("None", comp.ScriptName.empty())) {
 							NE::ECS::Command::RemoveEntityScript(entity);
-							NE::MarkSceneDirty();
-							SPD_DEBUG("[DirtyFlag] Script removed - Scene marked DIRTY");
 						}
 
 						// List all registered scripts
@@ -985,8 +963,6 @@ namespace Editor {
 							bool isSelected = (comp.ScriptName == scriptName);
 							if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
 								NE::ECS::Command::SetEntityScript(entity, scriptName);
-								NE::MarkSceneDirty();
-								SPD_DEBUG("[DirtyFlag] Script changed - Scene marked DIRTY");
 							}
 							if (isSelected) {
 								ImGui::SetItemDefaultFocus();
@@ -1014,8 +990,6 @@ namespace Editor {
 								ImGui::Spacing();
 								if (ImGui::Button("Remove Invalid Script")) {
 									NE::ECS::Command::RemoveEntityScript(entity);
-									NE::MarkSceneDirty();
-									SPD_DEBUG("[DirtyFlag] Invalid script removed - Scene marked DIRTY");
 								}
 								ImGui::SameLine();
 								ImGui::TextDisabled("(?)");
@@ -1033,8 +1007,6 @@ namespace Editor {
 							bool enabled = comp.Instance->IsEnabled();
 							if (ImGui::Checkbox("Enabled", &enabled)) {
 								comp.Instance->SetEnabled(enabled);
-								NE::MarkSceneDirty();
-								SPD_DEBUG("[DirtyFlag] Script enabled/disabled - Scene marked DIRTY");
 							}
 
 							ImGui::Text("Status: Active");
@@ -1660,8 +1632,6 @@ namespace Editor {
 								// Call OnValidate() when a field changes (editor-only)
 								if (fieldChanged) {
 									comp.Instance->OnValidate();
-									NE::MarkSceneDirty();
-									// printf("[DirtyFlag] Script field changed - Scene marked DIRTY\n"); // Too spammy
 								}
 
 								ImGui::PopID();
@@ -1936,7 +1906,6 @@ namespace Editor {
 								g_activeCommands[key] = std::move(cmd); \
 							} \
 							if (changed) { \
-								NE::MarkSceneDirty(); \
 								auto it = g_activeCommands.find(key); \
 								if (it != g_activeCommands.end()) { \
 									using Cmd = Editor::SetFieldCommand<Owner, FieldT>; \
@@ -1975,7 +1944,6 @@ namespace Editor {
 								g_activeCommands[key] = std::move(cmd); \
 							} \
 							if (changed) { \
-								NE::MarkSceneDirty(); \
 								auto it = g_activeCommands.find(key); \
 								if (it != g_activeCommands.end()) { \
 									using Cmd = Editor::SetFieldCommand<Owner, FieldT>; \
@@ -2084,7 +2052,6 @@ namespace Editor {
 								case 10: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
 								case 11: comp.anchorMinX = 0.0f; comp.anchorMaxX = 1.0f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
 								}
-								NE::MarkSceneDirty();
 							}
 
 							ImGui::Indent(16.0f);
@@ -2235,8 +2202,6 @@ namespace Editor {
 									static_cast<int>(oldMode), currentMode);
 								SPD_INFO("Assigned material: {}", materialPath);
 							}
-
-							NE::MarkSceneDirty();
 						}
 
 						// pixel perfect toggle (if in overlay mode or camera mode)
@@ -2249,7 +2214,6 @@ namespace Editor {
 							ImGui::SetNextItemWidth(-1);
 							if (ImGui::Checkbox("##PixelPerfect", &comp.pixelPerfect))
 							{
-								NE::MarkSceneDirty();
 							}
 						}
 
@@ -2261,7 +2225,6 @@ namespace Editor {
 							ImGui::SetNextItemWidth(-1);
 							if (ImGui::DragFloat("##PlaneDistance", &comp.planeDistance, 1.0f, 0.1f, 1000.0f))
 							{
-								NE::MarkSceneDirty();
 							}
 						}
 
@@ -2272,7 +2235,6 @@ namespace Editor {
 						ImGui::SetNextItemWidth(-1);
 						if (ImGui::DragInt("##SortOrder", &comp.sortingOrder))
 						{
-							NE::MarkSceneDirty();
 						}
 
 						ImGui::Unindent();
@@ -2474,19 +2436,10 @@ namespace Editor {
 							}
 
 							// Right-click to clear texture
-							if (ImGui::BeginPopupContextItem("##TextureContext"))
-							{
-								if (ImGui::MenuItem("Clear"))
-								{
+							if (ImGui::BeginPopupContextItem("##TextureContext")) {
+								if (ImGui::MenuItem("Clear")) {
 									comp.textureUUID.clear();
-									comp.material.reset();  // Clear material
-
-									// Mark dirty
-									if (NE::GetEngineState() == NE::EngineState::Edit)
-									{
-										if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
-										NE::MarkSceneDirty();
-									}
+									comp.material.reset();
 								}
 								ImGui::EndPopup();
 							}
@@ -2520,7 +2473,6 @@ namespace Editor {
 							if (ImGui::Combo("##ImageType", &currentImageType, ImageTypes, IM_ARRAYSIZE(ImageTypes))) {
 								comp.imageType = static_cast<NE::ECS::Component::UIImage::ImageType>(currentImageType);
 								comp.isDirty = true;
-								NE::MarkSceneDirty();
 							}
 
 							// type specific options
@@ -2536,7 +2488,6 @@ namespace Editor {
 								ImGui::SetNextItemWidth(-1);
 								if (ImGui::Checkbox("##PreserveAspect", &comp.preserveAspect)) {
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// reset fill amount when switching to simple mode
@@ -2600,7 +2551,6 @@ namespace Editor {
 								ImGui::SetNextItemWidth(-1);
 								if (ImGui::DragFloat("##PixelsPerUnitMultiplier", &comp.pixelsPerUnitMultiplier, 0.1f, 0.1f, 10.0f)) {
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// reset fill amount when switching to simple mode
@@ -2631,7 +2581,6 @@ namespace Editor {
 								if (ImGui::Combo("##FillMethod", &currentFillMethod, FillMethods, IM_ARRAYSIZE(FillMethods))) {
 									comp.fillMethod = static_cast<NE::ECS::Component::UIImage::FillMethod>(currentFillMethod);
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// fill Origin (context-dependent)
@@ -2646,7 +2595,6 @@ namespace Editor {
 									if (ImGui::Combo("##FillOrigin", &origin, HOrigins, IM_ARRAYSIZE(HOrigins))) {
 										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 								else if (comp.fillMethod == NE::ECS::Component::UIImage::FillMethod::VERTICAL)
@@ -2656,7 +2604,6 @@ namespace Editor {
 									if (ImGui::Combo("##FillOrigin", &origin, VOrigins, IM_ARRAYSIZE(VOrigins))) {
 										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 								else // radial fills
@@ -2672,7 +2619,6 @@ namespace Editor {
 									if (ImGui::Combo("##FillOrigin", &origin, RadialOrigins, IM_ARRAYSIZE(RadialOrigins))) {
 										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 
@@ -2684,7 +2630,6 @@ namespace Editor {
 								{
 									comp.ClampFillAmount();
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// clockwise toggle 
@@ -2698,7 +2643,6 @@ namespace Editor {
 									if (ImGui::Checkbox("##Clockwise", &comp.fillClockwise))
 									{
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 
@@ -2709,7 +2653,6 @@ namespace Editor {
 								if (ImGui::Checkbox("##PreserveAspect", &comp.preserveAspect))
 								{
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 								break;
 							}
@@ -2730,44 +2673,28 @@ namespace Editor {
 			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
 				if (ImGui::MenuItem("Renderer")) {
 					NE::ECS::Command::AddRendererComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Renderer component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Rigidbody")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
 					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Rigidbody/Collider components - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Collider")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Collider component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Light")) {
 					NE::ECS::Command::AddLightComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Light component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("AudioSource")) {
 					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added AudioSource component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Script")) {
 					NE::ECS::Command::AddScriptComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Script component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Camera")) {
 					NE::ECS::Command::AddCameraComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Camera component - Scene marked DIRTY");
 				}
 				if (ImGui::MenuItem("Animator")) {
 					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selection.GetLastClicked());
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Animator component - Scene marked DIRTY");
 				}
 
 				ImGui::EndPopup();

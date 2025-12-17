@@ -14,11 +14,10 @@ namespace NE::SceneManagement {
 		void Update(double dt);
 		void Render();
 		void ExitScene();
-		//void SaveScene();
-		//void SaveSceneIfDirty(const std::string& path = "");
 
-		void BeginPlay();
-		void StopPlay();
+		void LoadRuntime();
+		void StopRuntime();
+
 		bool IsPlaying() const;
 
 		void LoadPrefabScene(const std::string& prefabPath);
@@ -41,8 +40,6 @@ namespace NE::SceneManagement {
 		bool m_isPlaying = false;
 		bool m_isEditingPrefab = false;
 		std::string m_prefabPath;
-
-		std::vector<uint8_t> m_editorBackup;
 	};
 
 }
