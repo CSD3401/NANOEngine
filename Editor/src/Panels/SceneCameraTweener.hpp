@@ -10,7 +10,7 @@ namespace Editor {
 		SceneCameraTweener();
 		~SceneCameraTweener();
 
-		static void TweenCameraToEntity(SelectEntityEvent const& event);
+		static void TweenCameraToEntity(Events::SelectEntityEvent const& event);
 		void SetSceneCamera(NE::Graphics::EditorCamera* camera);
 
 		static constexpr float tweenDuration = 0.5f;

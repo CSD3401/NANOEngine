@@ -5,10 +5,7 @@
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
-#include "../../Editor/src/AssetManagement/AssetManager.hpp"
 #include "../Graphics/Core/PipelineCache.hpp"
-#include "../EngineState.hpp"  // For GetEngineState
-#include "../Engine.hpp"  // For MarkSceneDirty
 #include <Core/SpdLogger.hpp>
 #include "../../include/ScriptSDK/ScriptTypes.h"
 #include <Graphics/Core/GraphicsManager.hpp>

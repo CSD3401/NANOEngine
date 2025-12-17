@@ -170,6 +170,7 @@
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp" />
+    <ClCompile Include="src\EditorState.cpp" />
     <ClCompile Include="src\Serialization\Serializer.cpp" />
     <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ShaderAsset.cpp" />

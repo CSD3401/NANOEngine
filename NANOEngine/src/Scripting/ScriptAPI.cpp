@@ -25,8 +25,6 @@
 #include "../Core/Couroutine.hpp"
 #include "../Input/InputManager.hpp"
 #include "../Events/EventBus.hpp"
-#include "../EngineState.hpp"  // Include EngineState for dirty flag logic
-#include "../Engine.hpp"  // Include Engine for MarkSceneDirty()
 #include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
 #include "SceneManagement/SceneManager.hpp"
 #include "../EditorInterface/RendererExports.hpp"  // For RenderSettings access
@@ -978,7 +976,7 @@ namespace NE {
 			try {
 				// Check if this is a UUID or a file path
 				std::vector<uint32_t> newEntities;
-				newEntities = DeserializePrefab(prefabPath);
+				//newEntities = DeserializePrefab(prefabPath);
 
 				if (newEntities.empty()) {
 					SPD_ERROR("[PrefabRef] Failed to instantiate prefab: " << prefabPath);
@@ -2133,21 +2131,23 @@ namespace NE {
 
 		template<typename T>
 		void IScript::MarkComponentDirty() {
-			// Only mark dirty in Edit mode - runtime changes should not be serialized
-			if (NE::GetEngineState() != NE::EngineState::Edit) {
-				return;
-			}
+			// what is this even for ??? ~ Irwen
 
-			if (!m_context->componentManager || !m_context->componentManager->HasComponent<T>(m_entity)) {
-				return;
-			}
+			//// Only mark dirty in Edit mode - runtime changes should not be serialized
+			//if (NE::GetEngineState() != NE::EngineState::Edit) {
+			//	return;
+			//}
 
-			auto& component = m_context->componentManager->GetComponent<T>(m_entity);
+			//if (!m_context->componentManager || !m_context->componentManager->HasComponent<T>(m_entity)) {
+			//	return;
+			//}
 
-			// Use C++20 requires to check if the component has an isDirty field
-			if constexpr (requires { component.isDirty; }) {
-				component.isDirty = true;
-			}
+			//auto& component = m_context->componentManager->GetComponent<T>(m_entity);
+
+			//// Use C++20 requires to check if the component has an isDirty field
+			//if constexpr (requires { component.isDirty; }) {
+			//	component.isDirty = true;
+			//}
 		}
 
 		// === Entity Active State Functions ===

@@ -89,14 +89,14 @@ namespace Editor::Assets {
 
         {
             AssetRecord rec;
-            rec.id = "builtin:model/plane";
+            rec.id = "builtin:model/sphere";
             rec.type = AssetType::Model;
-            rec.sourcePath = "Plane";
+            rec.sourcePath = "Sphere";
             rec.isLoaded = true;
             rec.asset = nullptr;
             m_idByPath[rec.sourcePath.string()] = rec.id;
             m_assetsByID[rec.id] = std::move(rec);
-            meshes.push_back({ "Plane",    "builtin:model/plane" });
+            meshes.push_back({ "Sphere",   "builtin:model/sphere" });
         }
 
         {
@@ -113,18 +113,6 @@ namespace Editor::Assets {
 
         {
             AssetRecord rec;
-            rec.id = "builtin:model/sphere";
-            rec.type = AssetType::Model;
-            rec.sourcePath = "Sphere";
-            rec.isLoaded = true;
-            rec.asset = nullptr;
-            m_idByPath[rec.sourcePath.string()] = rec.id;
-            m_assetsByID[rec.id] = std::move(rec);
-            meshes.push_back({ "Sphere",   "builtin:model/sphere" });
-        }
-
-        {
-            AssetRecord rec;
             rec.id = "builtin:model/capsule";
             rec.type = AssetType::Model;
             rec.sourcePath = "Capsule";
@@ -134,6 +122,19 @@ namespace Editor::Assets {
             m_assetsByID[rec.id] = std::move(rec);
             meshes.push_back({ "Capsule",  "builtin:model/capsule" });
         }
+
+        {
+            AssetRecord rec;
+            rec.id = "builtin:model/plane";
+            rec.type = AssetType::Model;
+            rec.sourcePath = "Plane";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            meshes.push_back({ "Plane",    "builtin:model/plane" });
+        }
+
     }
 
 	AssetManager& AssetManager::GetInstance() {

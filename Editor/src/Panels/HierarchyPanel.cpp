@@ -366,17 +366,42 @@ namespace Editor {
 		if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
-				CreateEntityEvent{}
+				Events::CreateEmptyEntityEvent{}
 			);
 		}
 
 		if (ImGui::BeginMenu("3D Object")) {
-			ImGui::MenuItem("Cube", "", false, false);
-			ImGui::MenuItem("Sphere", "", false, false);
-			ImGui::MenuItem("Capsule", "", false, false);
-			ImGui::MenuItem("Cylinder", "", false, false);
-			ImGui::MenuItem("Plane", "", false, false);
-			ImGui::MenuItem("Quad", "", false, false);
+			if (ImGui::MenuItem("Cube", "", false, EditorScene::selectedPrefab.empty())) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateCubeEntityEvent{}
+				);
+			}
+			if (ImGui::MenuItem("Sphere", "", false, EditorScene::selectedPrefab.empty())) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateSphereEntityEvent{}
+				);
+			}
+			if (ImGui::MenuItem("Capsule", "", false, EditorScene::selectedPrefab.empty())) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateCapsuleEntityEvent{}
+				);
+			}
+			if (ImGui::MenuItem("Cylinder", "", false, EditorScene::selectedPrefab.empty())) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateCylinderEntityEvent{}
+				);
+			}
+			if (ImGui::MenuItem("Plane", "", false, EditorScene::selectedPrefab.empty())) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreatePlaneEntityEvent{}
+				);
+			}
+			//ImGui::MenuItem("Quad", "", false, false);
 			ImGui::EndMenu();
 		}
 	}

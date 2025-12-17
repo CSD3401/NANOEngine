@@ -7,13 +7,73 @@
 
 namespace Editor {
 
-    class CreateEntityCommand final : public ICommand {
+    class CreateEmptyEntityCommand final : public ICommand {
     public:
-        CreateEntityCommand();
+        CreateEmptyEntityCommand();
 
         void Execute() override;
         void Undo() override;
-        const char* GetName() const override { return "Create Entity"; }
+        const char* GetName() const override { return "Create Empty"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateCubeEntityCommand final : public ICommand {
+    public:
+        CreateCubeEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Cube"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateSphereEntityCommand final : public ICommand {
+    public:
+        CreateSphereEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Sphere"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateCapsuleEntityCommand final : public ICommand {
+    public:
+        CreateCapsuleEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Capsule"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateCylinderEntityCommand final : public ICommand {
+    public:
+        CreateCylinderEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Cylinder"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreatePlaneEntityCommand final : public ICommand {
+    public:
+        CreatePlaneEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Plane"; }
 
     private:
         uint32_t m_entity;
