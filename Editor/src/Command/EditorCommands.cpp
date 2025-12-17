@@ -4,6 +4,7 @@
 #include "../EditorScene.hpp"
 #include <ECS/Core/Entity.hpp>
 #include <ECS/Components/Renderer.hpp>
+#include <ECS/Components/Hierarchy.hpp>
 #include <algorithm>
 #include <Core/LUIDGenerator.hpp>
 
@@ -174,10 +175,15 @@ namespace Editor {
 		//NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
-	DeleteEntityCommand::DeleteEntityCommand(uint32_t deletedEntity) : m_entity(deletedEntity) {}
+	DeleteEntityCommand::DeleteEntityCommand(std::vector<uint32_t> deletedEntity) : m_entities(deletedEntity) {}
 
-	void DeleteEntityCommand::Execute()
-	{
+	void DeleteEntityCommand::Execute() {
+		for (auto& e : m_entities) {
+			NE::ECS::Command::DestroyEntity(e);
+			EditorScene::UnregisterRoot(e);
+		}
+
+		EditorScene::s_selection.Clear();
 		//const uint32_t rootId = m_entity;
 
 		//std::vector<uint32_t> toDelete;
@@ -224,8 +230,11 @@ namespace Editor {
 		//}
 	}
 
-	void DeleteEntityCommand::Undo()
-	{
+	void DeleteEntityCommand::Undo() {
+		for (auto& e : m_entities) {
+			NE::ECS::Command::CreateEntity();
+			EditorScene::RegisterRoot(e);
+		}
 		//// sort entities so parents are recreated before children
 		//// (entities with no parent first, then their children, etc.)
 		//std::sort(m_deletedEntities.begin(), m_deletedEntities.end(),

@@ -158,9 +158,7 @@ namespace NE::ECS {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
 
 			// Check for regular Transform first
-			//if (ecs.HasComponent<NE::ECS::Component::Transform>(child)) {
-			//	return ecs.GetComponent<NE::ECS::Component::Transform>(child).parent;
-			//}
+			return ecs.GetComponent<NE::ECS::Component::Hierarchy>(child).parent;
 
 			// Check for UI RectTransform
 			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {

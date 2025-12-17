@@ -1,17 +1,21 @@
 #include "HierarchyPanel.hpp"
+
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+
+#include <Engine.hpp>
+#include <ECS/Core/Entity.hpp>
+#include <ECS/Components/EntityMeta.hpp>
+#include <ECS/Components/Hierarchy.hpp>
+
 #include "EditorInterface/ECSExports.hpp"
 #include "../EditorScene.hpp"
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
-#include <ECS/Core/Entity.hpp>
-#include <Engine.hpp>
-#include <imgui/imgui_internal.h>
+#include "../Util/HierarchyUtils.hpp"
 //#include <algorithm>
-#include <ECS/Components/EntityMeta.hpp>
 //#include "../AssetManagement/AssetManager.hpp"
 //#include <Math/Vec3.hpp>
-#include <ECS/Components/Hierarchy.hpp>
 
 
 namespace Editor {
@@ -35,6 +39,45 @@ namespace Editor {
 			}
 			return false;
 		}
+
+		std::vector<uint32_t> BuildDeleteList(const std::vector<uint32_t>& selection) {
+			// fast membership test of the original selection
+			std::unordered_set<uint32_t> selected;
+			selected.reserve(selection.size() * 2);
+			for (auto e : selection) selected.insert(e);
+
+			// 1) canonical roots (not descendants of another selected entity)
+			std::vector<uint32_t> roots;
+			roots.reserve(selection.size());
+			for (auto e : selection) {
+				if (!Utility::IsDescendantOfSelected(e, selected))
+					roots.push_back(e);
+			}
+
+			// 2) expand each root into subtree, dedupe with visited
+			std::vector<uint32_t> out;
+			std::unordered_set<uint32_t> visited;
+			visited.reserve(roots.size() * 8);
+
+			std::vector<uint32_t> stack;
+			for (auto r : roots) stack.push_back(r);
+
+			while (!stack.empty()) {
+				uint32_t e = stack.back();
+				stack.pop_back();
+
+				if (!visited.insert(e).second)
+					continue;
+
+				out.push_back(e);
+
+				auto& children = NE::ECS::Query::GetEntityHierarchy(e).children;
+				for (uint32_t c : children)
+					stack.push_back(c);
+			}
+
+			return out;
+		}
 	}
 
 	HierarchyPanel::HierarchyPanel() {
@@ -44,7 +87,49 @@ namespace Editor {
 	void HierarchyPanel::OnImGuiRender() {
 		using NE::ECS::Entity;
 
-		ImGui::Begin("Hierarchy");
+		ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
+
+		static bool filtering = false;
+		std::unordered_set<uint32_t> visible;
+		if (ImGui::BeginMenuBar()) {
+			static char s_searchBuf[128] = "";
+			ImGui::SetNextItemWidth(-1.0f);
+			ImGui::InputTextWithHint("##HierarchySearch", "Search...", s_searchBuf, IM_ARRAYSIZE(s_searchBuf));
+
+			//std::string search = s_searchBuf;
+			//std::string searchLower = ToLower(search);
+			//filtering = !searchLower.empty();
+
+			//// Build visible set when filtering
+			//auto& childrenOf0 = Editor::EditorScene::ChildrenOf(NE::ECS::NO_ENTITY);
+			//if (filtering) {
+			//	for (uint32_t root : childrenOf0)
+			//		MarkVisibleRecursive(root, searchLower, visible);
+			//}
+
+			ImGui::EndMenuBar();
+		}
+
+		if (EditorScene::selectedPrefab != "") {
+			if (ImGui::Button("<")) {
+				NE::ClosePrefabScene();
+				EditorScene::s_selection.Clear();
+				//EditorScene::RebuildFromActiveScene();
+				EditorScene::selectedPrefab = "";
+			}
+
+			ImGui::SameLine();
+			ImGui::Text(EditorScene::selectedPrefab.c_str());
+			ImGui::SameLine();
+
+			if (ImGui::Button("Save")) {
+				//NE::SavePrefabScene(EditorScene::selectedPrefab);
+				//std::string uuid = AssetManager::GetInstance().RetrieveUUID(EditorScene::selectedPrefab);
+				//NE::ReloadAllInstancesOfPrefab(uuid, EditorScene::selectedPrefab);
+			}
+
+			ImGui::Separator();
+		}
 
 		selectionChanged = false;
 		m_forceOpen.clear();
@@ -101,28 +186,48 @@ namespace Editor {
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		bool hierHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
-		// --- preview line only when hovered & we have a line ---
-		if (hierHovered &&
-			m_dragRep != NE::ECS::NO_ENTITY &&
-			m_previewInsert >= 0 &&
-			m_previewLineY >= 0.f) {
-			dl->AddLine(ImVec2(m_previewLineX1, m_previewLineY),
-				ImVec2(m_previewLineX2, m_previewLineY),
-				IM_COL32(255, 255, 0, 200), 2.0f);
-			dl->AddLine(ImVec2(m_previewLineX1, m_previewLineY - 3),
-				ImVec2(m_previewLineX1, m_previewLineY + 3),
-				IM_COL32(255, 255, 0, 200), 2.0f);
-			dl->AddLine(ImVec2(m_previewLineX2, m_previewLineY - 3),
-				ImVec2(m_previewLineX2, m_previewLineY + 3),
-				IM_COL32(255, 255, 0, 200), 2.0f);
+		if (hierHovered) {
+			if (m_dragRep != NE::ECS::NO_ENTITY) {
+				// Draw insert line logic
+				if (m_previewInsert >= 0 && m_previewLineY >= 0.f) {
+					dl->AddLine(ImVec2(m_previewLineX1, m_previewLineY),
+						ImVec2(m_previewLineX2, m_previewLineY),
+						IM_COL32(255, 255, 0, 200), 2.0f);
+					dl->AddLine(ImVec2(m_previewLineX1, m_previewLineY - 3),
+						ImVec2(m_previewLineX1, m_previewLineY + 3),
+						IM_COL32(255, 255, 0, 200), 2.0f);
+					dl->AddLine(ImVec2(m_previewLineX2, m_previewLineY - 3),
+						ImVec2(m_previewLineX2, m_previewLineY + 3),
+						IM_COL32(255, 255, 0, 200), 2.0f);
+				}
+
+				// Scrolling logic
+				ImGuiWindow* win = ImGui::GetCurrentWindow();
+				const float innerTop = win->InnerRect.Min.y;
+				const float innerBot = win->InnerRect.Max.y;
+				const float mouseY = ImGui::GetIO().MousePos.y;
+				const float margin = 18.0f;
+				const float speed = 12.0f;
+				if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+					if (mouseY < innerTop + margin) ImGui::SetScrollY(ImGui::GetScrollY() - speed);
+					else if (mouseY > innerBot - margin) ImGui::SetScrollY(ImGui::GetScrollY() + speed);
+				}
+			}
+
+			if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && !EditorScene::s_selection.Empty()) {
+				std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::DeleteEntityEvent{ toDelete }
+				);
+			}
 		}
 
-		// --- commit drag on mouse release ---
 		if (m_dragRep != NE::ECS::NO_ENTITY &&
 			ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			if (hierHovered && !m_draggedEntities.empty()) {
 				if (m_previewAsChild && m_previewParent != NE::ECS::NO_ENTITY) {
-					// Drop as children of previewParent, append as last child
 					for (auto child : m_draggedEntities) {
 						if (child == m_previewParent)
 							continue;
@@ -239,11 +344,42 @@ namespace Editor {
 		auto& meta = NE::ECS::Query::GetEntityMeta(e);
 		const char* name = meta.name.c_str();
 
+		bool isActive = meta.isActive;
+		bool isPrefab = !meta.prefabID.empty();
+
+		ImVec4 baseText = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+		ImVec4 disabled = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+		ImVec4 prefabBlue = ImVec4(0.35f, 0.65f, 1.0f, 1.0f);
+
+		ImVec4 finalColor = baseText;
+		bool useCustomColor = false;
+
+		if (isPrefab && isActive) {
+			finalColor = prefabBlue;
+			useCustomColor = true;
+		} else if (!isActive && !isPrefab) {
+			finalColor = disabled;
+			useCustomColor = true;
+		} else if (!isActive && isPrefab) {
+			const float t = 0.4f;
+			finalColor.x = disabled.x * (1.0f - t) + prefabBlue.x * t;
+			finalColor.y = disabled.y * (1.0f - t) + prefabBlue.y * t;
+			finalColor.z = disabled.z * (1.0f - t) + prefabBlue.z * t;
+			finalColor.w = 1.0f;
+			useCustomColor = true;
+		}
+
+		if (useCustomColor)
+			ImGui::PushStyleColor(ImGuiCol_Text, finalColor);
+
 		if (selectionChanged && m_forceOpen.count(e)) {
 			ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 		}
 		bool open = ImGui::TreeNodeEx((void*)(intptr_t)e, flags, "%s", name);
 		
+		if (useCustomColor)
+			ImGui::PopStyleColor();
+
 		HandleDragSource(e, preorder);
 
 		if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
@@ -252,6 +388,13 @@ namespace Editor {
 			m_clickHadCtrl = io.KeyCtrl;
 			m_clickHadShift = io.KeyShift;
 			m_clickThisFrame = true;
+		}
+
+		if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+			NANOEngine::Events::EventBus::Get().Dispatch(
+				NANOEngine::Events::EventDomain::Editor, 
+				Events::SelectEntityEvent(EditorScene::s_selection.GetLastClicked())
+			);
 		}
 
 		if (ImGui::BeginPopupContextItem("HierarchyContext")) {
@@ -363,6 +506,43 @@ namespace Editor {
 	}
 
 	void HierarchyPanel::DrawContextMenu() {
+
+		if (ImGui::MenuItem("Cut", "Ctrl+X", false, !EditorScene::s_selection.Empty())) {
+			// TODO: implement cut
+		}
+		if (ImGui::MenuItem("Copy", "Ctrl+C", false, !EditorScene::s_selection.Empty())) {
+			//EditorScene::CopySelected();
+		}
+		if (ImGui::MenuItem("Paste", "Ctrl+V", false, !EditorScene::s_selection.Empty())) {
+			//EditorScene::PasteSelected();
+		}
+		if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, !EditorScene::s_selection.Empty())) {
+			//EditorScene::DuplicateSelected();
+		}
+		if (ImGui::MenuItem("Delete", "Del", false, !EditorScene::s_selection.Empty())) {
+			//uint32_t idToDelete = contextEntityId;
+			//if (idToDelete == NE::ECS::NO_ENTITY && EditorScene::s_selectedEntity)
+			//	idToDelete = EditorScene::s_selectedEntity->linkedEntity;
+
+			//if (idToDelete != NE::ECS::NO_ENTITY) {
+			//	NANOEngine::Events::EventBus::Get().Dispatch(
+			//		NANOEngine::Events::EventDomain::Editor,
+			//		DeleteEntityEvent{ idToDelete }
+			//	);
+			//}
+			std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+
+
+			NANOEngine::Events::EventBus::Get().Dispatch(
+				NANOEngine::Events::EventDomain::Editor,
+				Events::DeleteEntityEvent{ toDelete }
+			);
+		}
+
+		ImGui::Separator();
+		ImGui::MenuItem("Find References in Scene", "", false, false);
+		ImGui::Separator();
+
 		if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,

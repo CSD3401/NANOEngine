@@ -1,5 +1,6 @@
 #pragma once
-#include <string>
+//#include <string>
+#include <vector>
 
 namespace Editor::Events {
 
@@ -11,7 +12,7 @@ namespace Editor::Events {
 	struct CreatePlaneEntityEvent {};
 
 	struct DeleteEntityEvent {
-		uint32_t deletedEntity;
+		std::vector<uint32_t> entitiesToBeDeleted;
 	};
 
 

@@ -261,6 +261,7 @@
     <ClInclude Include="src\UIGizmoHandler.hpp" />
     <ClInclude Include="src\Util\DrawSelectedCollider.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\TextureSettingsEditor.hpp" />
+    <ClInclude Include="src\Util\HierarchyUtils.hpp" />
     <ClInclude Include="vendor\include\imgui\imconfig.h" />
     <ClInclude Include="vendor\include\imgui\imgui.h" />
     <ClInclude Include="vendor\include\imgui\imgui_impl_glfw.h" />

@@ -170,8 +170,8 @@ namespace NE::ECS {
 
     void ECSCoordinator::DestroyEntity(Entity e) {
         m_entityManager->DestroyEntity(e);
-        m_systemManager->EntityDestroyed(e);     // Call OnEntityRemoved FIRST to clean up
-        m_componentManager->EntityDestroyed(e);  // Then destroy components
+        m_systemManager->EntityDestroyed(e);
+        m_componentManager->EntityDestroyed(e);
     }
 
     Signature ECSCoordinator::GetSignature(Entity entity)

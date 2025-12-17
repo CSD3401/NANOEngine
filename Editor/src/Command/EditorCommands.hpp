@@ -102,22 +102,22 @@ namespace Editor {
 
     class DeleteEntityCommand final : public ICommand {
     public:
-        DeleteEntityCommand(uint32_t deletedEntity);
+        DeleteEntityCommand(std::vector<uint32_t> deletedEntity);
 
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Delete Entity"; }
 
     private:
-        uint32_t m_entity;
+        std::vector<uint32_t> m_entities;
 
-        struct DeletedUIEntityInfo {
-            uint32_t id;
-            bool wasCanvas;
-            bool wasUIImage;
-            uint32_t parentId;  // For UI images
-        };
-        std::vector<DeletedUIEntityInfo> m_deletedEntities;
+        //struct DeletedUIEntityInfo {
+        //    uint32_t id;
+        //    bool wasCanvas;
+        //    bool wasUIImage;
+        //    uint32_t parentId;  // For UI images
+        //};
+        //std::vector<DeletedUIEntityInfo> m_deletedEntities;
     };
 
     class RenameEntityCommand : public ICommand {
