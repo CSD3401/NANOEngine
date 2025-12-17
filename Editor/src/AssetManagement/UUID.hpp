@@ -1,8 +1,9 @@
 #pragma once
 #include <string>
 
-namespace Editor {
+namespace Editor::Assets {
+	using UUID = std::string;
 
-	std::string GenerateUUID();
+	UUID GenerateUUID();
 
 }

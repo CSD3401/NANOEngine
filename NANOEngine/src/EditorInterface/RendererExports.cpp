@@ -25,17 +25,24 @@ namespace NE {
 namespace NE::Renderer {
 
 	namespace Query {
-		std::string GetModel(uint32_t e)
-		{
+		std::string GetModel(uint32_t e) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			if (r.modelUUID.empty()) return "empty uuid";
 			else return r.modelUUID;
 		}
-		std::string GetMaterial(uint32_t e)
-		{
+
+		std::string GetMaterial(uint32_t e) {
 			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 			if (r.materialUUID.empty()) return "empty uuid";
 			else return r.materialUUID;
+		}
+
+		const Graphics::RenderSettings& GetRenderSettings() {
+			return Graphics::GraphicsManager::renderSettings;
+		}
+
+		const Graphics::PostProcessingSettings& GetPostProcessingSettings() {
+			return Graphics::GraphicsManager::postProcessingSettings;
 		}
 
 		NANOENGINE_API std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef)

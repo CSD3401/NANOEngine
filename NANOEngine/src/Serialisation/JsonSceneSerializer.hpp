@@ -1,11 +1,12 @@
 #pragma once
-#include "ISceneSerializer.hpp"
 #include <vector>
+#include <string>
 #include <rapidjson/document.h>
 
 namespace NE::Math {
     struct Vec3;
 }
+namespace NE::SceneManagement { class Scene; }
 
 namespace NE::Serialization {
     class JsonSceneSerializer {

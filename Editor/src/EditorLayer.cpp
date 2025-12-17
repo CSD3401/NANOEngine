@@ -15,6 +15,9 @@
 #include "Panels/LightingPanel.hpp"
 #include <Core/SpdLogger.hpp>  // For SPD_INFO, SPD_DEBUG logging
 #include "EngineState.hpp"  // Add this include
+#include "Serialization/Serializer.hpp"
+#include "AssetManagement/AssetManager.hpp"
+#include "AssetManagement/Assets/SceneAsset.hpp"
 
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
@@ -56,7 +59,10 @@ namespace Editor {
 			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
 				if (NE::IsSceneDirty()) {
 					SPD_INFO("[DirtyFlag] Ctrl+S pressed - Saving scene");
-					NE::SaveCurrentScene(EditorScene::currentScenePath);
+					//NE::SaveCurrentScene(EditorScene::currentScenePath);
+					//Serialization::JSON::SerializeScene(EditorScene::s_currentScenePath);
+					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
 				} else {
 					SPD_DEBUG("[DirtyFlag] Ctrl+S pressed - No changes to save");
 				}
@@ -92,7 +98,7 @@ namespace Editor {
 			ImGui::SetCursorPosY(4.0f); // Center text vertically
 
 			// Scene path on the left
-			ImGui::Text("  %s", EditorScene::currentScenePath.c_str());
+			ImGui::Text("  %s", EditorScene::s_currentScenePath.c_str());
 
 			// Dirty indicator on the right
 			ImGui::SameLine();
@@ -190,7 +196,7 @@ namespace Editor {
 			if (isSceneDirty) {
 				if (ImGui::MenuItem("Save", "Ctrl+S")) {
 					SPD_INFO("[DirtyFlag] Save menu clicked - Saving scene");
-					NE::SaveCurrentScene(EditorScene::currentScenePath);
+					Serialization::JSON::SerializeScene(EditorScene::s_currentScenePath);
 				}
 			} else {
 				ImGui::BeginDisabled();
@@ -198,9 +204,9 @@ namespace Editor {
 				ImGui::EndDisabled();
 			}
 
-			if (ImGui::MenuItem("Save As...")) {
-				NE::SaveCurrentScene(EditorScene::currentScenePath);
-			}
+			//if (ImGui::MenuItem("Save As...")) {
+			//	NE::SaveCurrentScene(EditorScene::currentScenePath);
+			//}
 
 			ImGui::Separator();
 			if (ImGui::MenuItem("Exit")) {

@@ -9,7 +9,6 @@
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
-    <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp" />
     <ClCompile Include="src\ECS\Systems\ScriptSystem.cpp" />
     <ClCompile Include="src\Scripting\ScriptingEngine.cpp" />
     <ClCompile Include="src\ECS\Systems\ColliderSystem.cpp" />
@@ -54,7 +53,6 @@
     <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\Math\Vec4.cpp" />
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
-    <ClCompile Include="src\Serialisation\JsonSceneSerializer.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
     <ClCompile Include="src\Tween\TweenManager.cpp" />
     <ClCompile Include="src\Core\SpdLogger.cpp" />
@@ -82,11 +80,12 @@
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\Physics\LayerMaskBodyFilter.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
+    <ClCompile Include="src\Serialisation\Serializer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
-    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMeshHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoModelHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />
@@ -108,7 +107,6 @@
     <ClInclude Include="src\Input\InputManager.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourcePaths.hpp" />
     <ClInclude Include="src\Scripting\IScriptRegistrar.hpp" />
-    <ClInclude Include="src\Serialisation\JsonUserSettingsSerializer.hpp" />
     <ClInclude Include="src\ECS\Systems\ScriptSystem.hpp" />
     <ClInclude Include="src\Scripting\IScript.hpp" />
     <ClInclude Include="src\ECS\Components\NativeScript.hpp" />
@@ -185,9 +183,6 @@
     <ClInclude Include="src\ECS\Core\Signature.hpp" />
     <ClInclude Include="src\ECS\Core\SystemManager.hpp" />
     <ClInclude Include="src\ECS\Systems\TransformSystem.hpp" />
-    <ClInclude Include="src\Serialisation\ISceneSerializer.hpp" />
-    <ClInclude Include="src\Serialisation\JsonSceneSerializer.hpp" />
-    <ClInclude Include="src\Serialisation\ReflectionJson.hpp" />
     <ClInclude Include="src\Tween\Tween.hpp" />
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
@@ -235,8 +230,11 @@
     <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
     <ClInclude Include="src\Core\Layers.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
+    <ClInclude Include="src\ResourceManagement\ResourceTypes.hpp" />
     <ClInclude Include="src\ECS\Systems\HierarchySystem.hpp" />
     <ClInclude Include="src\ECS\Components\Hierarchy.hpp" />
+    <ClInclude Include="src\Serialisation\Serializer.hpp" />
+    <ClInclude Include="src\Serialisation\BinaryReflection.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -378,9 +376,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\Core\Frustum.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Serialisation\JsonUserSettingsSerializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Tween\TweenBase.cpp">

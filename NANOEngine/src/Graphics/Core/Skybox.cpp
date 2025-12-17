@@ -41,7 +41,8 @@ namespace NE::Graphics {
         auto ib = std::make_shared<GLIndexBuffer>(indices, sizeof(indices) / sizeof(uint32_t));
         m_Mesh = std::make_shared<GLGeometryBuffer>(vb, ib);
 
-        auto shader = Resource::ResourceManager::GetInstance().LoadResource<GLShader>("neskybox");
+        auto shader = Resource::ResourceManager::GetInstance().
+            LoadResource<GLShader>("neskybox");
         PipelineSpecification spec;
         spec.shader = shader;
         spec.CullMode = GL_BACK;

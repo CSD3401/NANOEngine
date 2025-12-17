@@ -38,14 +38,7 @@ namespace Editor {
 	}
 
 	HierarchyPanel::HierarchyPanel() {
-		EditorScene::s_rootOrder.reserve(256);
-		auto& numEntities = NE::GetNumEntities();
-		for (auto e : numEntities) {
-			auto& h = NE::ECS::Query::GetEntityHierarchy(e);
-			if (h.parent == NE::ECS::Component::INVALID_PARENT) {
-				EditorScene::s_rootOrder.push_back(e);
-			}
-		}
+		EditorScene::BuildRoot();
 	}
 
 	void HierarchyPanel::OnImGuiRender() {

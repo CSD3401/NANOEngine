@@ -6,8 +6,8 @@
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
-#include "src/EditorUI.hpp"
-#include "src/AssetManagement/AssetManager.hpp"
+#include "../../EditorUI.hpp"
+#include "../../AssetManagement/AssetManager.hpp"
 
 namespace Editor {
 
@@ -30,14 +30,14 @@ namespace Editor {
         ImGui::Separator();
 
         bool openShaderPopup = false;
-        std::string uuidToName = AssetManager::GetInstance().RetrieveFileName(mat.GetPipeline()->GetSpecification().shaderName);
+        std::string uuidToName = Assets::AssetManager::GetInstance().RetrieveFilename(mat.GetPipeline()->GetSpecification().shaderName);
         DrawAssetField("Shader", uuidToName.c_str(), "+", 0.f, &openShaderPopup);
         if (openShaderPopup) ImGui::OpenPopup("AssetPicker_Shader");
 
         if (ImGui::BeginPopup("AssetPicker_Shader")) {
             ImGui::Text("Select a Shader");
             ImGui::Separator();
-            auto& shaderList = AssetManager::GetInstance().GetAssetsOfType<AssetType::Shader>();
+            auto& shaderList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Shader);
 
             if (ImSearch::BeginSearch()) {
                 ImSearch::SearchBar();
@@ -140,7 +140,7 @@ namespace Editor {
             out.flush();
         }
 
-        AssetManager::GetInstance().ReimportAsset(m_path);
+        Assets::AssetManager::GetInstance().ReimportAsset(m_path);
 	}
 
 }

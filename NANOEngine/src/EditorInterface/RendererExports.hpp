@@ -19,6 +19,8 @@ namespace NE::Renderer {
 	namespace Query {
 		NANOENGINE_API std::string GetModel(uint32_t e);
 		NANOENGINE_API std::string GetMaterial(uint32_t e);
+		NANOENGINE_API const Graphics::RenderSettings& GetRenderSettings();
+		NANOENGINE_API const Graphics::PostProcessingSettings& GetPostProcessingSettings();
 	}
 
 	namespace Command {

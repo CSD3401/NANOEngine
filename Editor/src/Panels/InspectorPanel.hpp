@@ -5,7 +5,7 @@
 #include <string>
 #include <memory>
 #include <Graphics/Core/Material.hpp>
-#include "../../MaterialEditor.hpp"
+#include "../AssetManagement/Interfaces/MaterialEditor.hpp"
 
 namespace Editor {
 	class InspectorPanel : public IPanel {

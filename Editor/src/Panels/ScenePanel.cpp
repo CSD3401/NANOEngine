@@ -299,7 +299,7 @@ namespace Editor {
 				//Editor::EditorScene::selectedAsset.clear();
 			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
-				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 
 				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					ImVec2 mousePos = ImGui::GetMousePos();
@@ -321,7 +321,7 @@ namespace Editor {
 				}
 			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
 				std::string dropped((const char*)modalPayload->Data, modalPayload->DataSize - 1);
-				std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 
 				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 					ImVec2 mousePos = ImGui::GetMousePos();

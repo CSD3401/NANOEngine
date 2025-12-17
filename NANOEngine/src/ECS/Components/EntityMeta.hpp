@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "../../Core/Reflection.hpp"
+#include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 

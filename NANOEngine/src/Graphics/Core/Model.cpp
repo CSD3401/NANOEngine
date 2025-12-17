@@ -3,7 +3,7 @@
 #include "../OpenGL/GLVertexBuffer.hpp"
 #include "../OpenGL/GLIndexBuffer.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
-#include "ResourceManagement/BinaryHeaders/NanoMeshHeader.hpp"
+#include "ResourceManagement/BinaryHeaders/NanoModelHeader.hpp"
 
 namespace {
     struct CookVertex {
@@ -132,8 +132,8 @@ namespace NE::Graphics {
 
         const auto* hdr = blob.as<Resource::NanoMeshHeader>(0);
         if (!hdr) return false;
-        if (hdr->magic != Resource::NMSH_MAGIC) return false;
-        if (hdr->version != Resource::CURRENT_NANOMESH_FORMAT_VERSION) return false;
+        if (hdr->magic != Resource::NMOD_MAGIC) return false;
+        if (hdr->version != Resource::CURRENT_NANOMODEL_FORMAT_VERSION) return false;
 
         const size_t subTableOff = sizeof(Resource::NanoMeshHeader);
         const size_t subTableSize = static_cast<size_t>(hdr->submeshCount) * sizeof(Resource::NanoSubmeshDesc);

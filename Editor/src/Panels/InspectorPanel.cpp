@@ -190,7 +190,7 @@ namespace {
 		}
 	}
 
-	bool LoadModelImportSettings(std::string metaPath, Editor::ModelImportSettings& settings) {
+	bool LoadModelImportSettings(std::string metaPath, Editor::Assets::ModelImportSettings& settings) {
 		using namespace rapidjson;
 		using namespace NE::Serialization;
 
@@ -221,7 +221,7 @@ namespace {
 		return true;
 	}
 
-	bool LoadTextureImportSettings(std::string metaPath, Editor::TextureImportSettings& settings) {
+	bool LoadTextureImportSettings(std::string metaPath, Editor::Assets::TextureImportSettings& settings) {
 		using namespace rapidjson;
 		using namespace NE::Serialization;
 
@@ -671,7 +671,7 @@ namespace Editor {
 					ImGui::SeparatorText("Renderer");
 					// Model field
 					bool openPopup = false;
-					DrawAssetField("Model", AssetManager::GetInstance().RetrieveFileName(comp.modelUUID), "+", 0.f, &openPopup);
+					DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
 					if (openPopup) {
 						ImGui::OpenPopup("AssetPicker_Model");
 					}
@@ -679,7 +679,7 @@ namespace Editor {
 					if (ImGui::BeginDragDropTarget()) {
 						if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
 							std::string dropped((const char*)p->Data, p->DataSize - 1);
-							auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+							auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 							NE::Renderer::Command::AssignModel(entity, uuid);
 						}
 						ImGui::EndDragDropTarget();
@@ -689,8 +689,7 @@ namespace Editor {
 					if (ImGui::BeginPopup("AssetPicker_Model")) {
 						ImGui::Text("Select a Model");
 						ImGui::Separator();
-						//auto& modelList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Mesh>();
-						auto& modelList = AssetManager::GetInstance().GetAssetsOfType<AssetType::Mesh>();
+						auto& modelList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Model);
 
 						if (ImSearch::BeginSearch()) {
 							ImSearch::SearchBar();
@@ -710,13 +709,13 @@ namespace Editor {
 
 					// Material field
 					char bufMat[256];
-					strncpy_s(bufMat, AssetManager::GetInstance().RetrieveFileName(comp.materialUUID).c_str(), sizeof(bufMat));
+					strncpy_s(bufMat, Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID).c_str(), sizeof(bufMat));
 					ImGui::InputText("Material", bufMat, sizeof(bufMat));
 
 					if (ImGui::BeginDragDropTarget()) {
 						if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 							std::string dropped((const char*)p->Data, p->DataSize - 1);
-							auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+							auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 							NE::Renderer::Command::AssignMaterial(entity, uuid);
 						}
 						ImGui::EndDragDropTarget();
@@ -1245,7 +1244,7 @@ namespace Editor {
 									// Material reference field
 									// Get current material UUID
 									std::string materialUUID = fval;
-									std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+									std::string displayName = materialUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(materialUUID);
 
 									// Display the material reference field
 									ImGui::Text("%s (Material)", fname.c_str());
@@ -1263,7 +1262,7 @@ namespace Editor {
 											std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
 											SPD_DEBUG("[MaterialRef] Dropped path: {}", droppedPath);
 
-											std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+											std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
 											SPD_DEBUG("[MaterialRef] Retrieved UUID: {}", droppedUUID);
 
 											if (!droppedUUID.empty()) {
@@ -1436,7 +1435,7 @@ namespace Editor {
 											else if (elementType == "materialref") {
 												// Material reference support for vector<materialref>
 												std::string materialUUID = elemValue;
-												std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+												std::string displayName = materialUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(materialUUID);
 
 												// Button shows material name or "None" - make it a drop target
 												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
@@ -1449,7 +1448,7 @@ namespace Editor {
 														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
 														SPD_DEBUG("[MaterialRef Vector] Dropped path: {}", droppedPath);
 
-														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
 														SPD_DEBUG("[MaterialRef Vector] Retrieved UUID: {}", droppedUUID);
 
 														if (!droppedUUID.empty()) {
@@ -1489,7 +1488,7 @@ namespace Editor {
 											else if (elementType == "prefabref") {
 												// Prefab reference support for vector<prefabref>
 												std::string prefabUUID = elemValue;
-												std::string displayName = prefabUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(prefabUUID);
+												std::string displayName = prefabUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(prefabUUID);
 
 												// Button shows prefab name or "None" - make it a drop target
 												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
@@ -1502,7 +1501,7 @@ namespace Editor {
 														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
 														SPD_DEBUG("[PrefabRef Vector] Dropped path: {}", droppedPath);
 
-														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
 														SPD_DEBUG("[PrefabRef Vector] Retrieved UUID: {}", droppedUUID);
 
 														if (!droppedUUID.empty()) {
@@ -2222,7 +2221,7 @@ namespace Editor {
 							auto oldMode = comp.renderMode;
 							comp.renderMode = static_cast<decltype(comp.renderMode)>(currentMode);
 							std::string materialPath = GetUIMaterialPathForRenderMode(comp.renderMode);
-							std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+							std::string materialUUID = Assets::AssetManager::GetInstance().RetrieveUUID(materialPath);
 
 							if (materialUUID.empty()) {
 								SPD_ERROR("[InspectorPanel] Failed to find material for render mode: {}", materialPath);
@@ -2401,7 +2400,7 @@ namespace Editor {
 
 							std::string texLabel = comp.textureUUID.empty()
 								? ""
-								: AssetManager::GetInstance().RetrieveFileName(comp.textureUUID);
+								: Assets::AssetManager::GetInstance().RetrieveFilename(comp.textureUUID);
 
 							char bufTex[256];
 							strncpy_s(bufTex, texLabel.c_str(), sizeof(bufTex));
@@ -2412,7 +2411,7 @@ namespace Editor {
 								if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH"))
 								{
 									std::string dropped((const char*)p->Data, p->DataSize - 1); // dropped = "Assets/Textures/MyTexture.jpg"
-									auto textureUUID = AssetManager::GetInstance().RetrieveUUID(dropped); // convert file path to UUID --> uuid = "abc123def456" (from MyTexture.jpg.meta file)
+									auto textureUUID = Assets::AssetManager::GetInstance().RetrieveUUID(dropped); // convert file path to UUID --> uuid = "abc123def456" (from MyTexture.jpg.meta file)
 
 									// find parent canvas to determine render mode
 									auto& rectTransform = NE::ECS::Command::GetUIRectTransform(entity);
@@ -2455,7 +2454,7 @@ namespace Editor {
 									}
 
 									// convert material path to UUID
-									std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+									std::string materialUUID = Assets::AssetManager::GetInstance().RetrieveUUID(materialPath);
 
 									if (materialUUID.empty())
 									{
@@ -2788,7 +2787,7 @@ namespace Editor {
 				//RenderMaterialSettings();
 				if (!m_materialEditor || m_lastPath != assetPath.string()) {
 					m_materialEditor = std::make_unique<MaterialEditor>();
-					if (m_materialEditor->LoadMaterial(assetPath.string(), AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
+					if (m_materialEditor->LoadMaterial(assetPath.string(), Assets::AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
 						m_lastPath = assetPath.string();
 					else
 						m_materialEditor.reset();
@@ -2802,99 +2801,99 @@ namespace Editor {
 	}
 
 	void InspectorPanel::RenderTextureImportSettings(std::string metaPath) {
-		static std::string s_LastMetaPath;
-		static TextureImportSettings s_Settings{};
-		static bool s_Loaded = false;
-		static bool s_dirty = false;
+		//static std::string s_LastMetaPath;
+		//static TextureImportSettings s_Settings{};
+		//static bool s_Loaded = false;
+		//static bool s_dirty = false;
 
-		if (!s_Loaded || metaPath != s_LastMetaPath) {
-			if (!LoadTextureImportSettings(metaPath, s_Settings)) {
-				ImGui::TextUnformatted("Failed to load texture import settings.");
-				return;
-			}
+		//if (!s_Loaded || metaPath != s_LastMetaPath) {
+		//	if (!LoadTextureImportSettings(metaPath, s_Settings)) {
+		//		ImGui::TextUnformatted("Failed to load texture import settings.");
+		//		return;
+		//	}
 
-			s_LastMetaPath = metaPath;
-			s_Loaded = true;
-		}
+		//	s_LastMetaPath = metaPath;
+		//	s_Loaded = true;
+		//}
 
-		static const char* TextureTypeNames[] = { "Default", "Normal Map", "Sprite" };
-		static const char* TextureShapeNames[] = { "2D", "Cube", "2D Array" };
-		static const char* TextureWrapMode[] = { "Repeat", "Clamp", "Mirror", "MirrorOnce", "PerAxis" };
-		static const char* TextureFilterMode[] = { "Point", "Bilinear", "Trilinear" };
-		static const char* AlphaSourceNames[] = { "InputTextureAlpha", "GrayscaleSource", "None" };
+		//static const char* TextureTypeNames[] = { "Default", "Normal Map", "Sprite" };
+		//static const char* TextureShapeNames[] = { "2D", "Cube", "2D Array" };
+		//static const char* TextureWrapMode[] = { "Repeat", "Clamp", "Mirror", "MirrorOnce", "PerAxis" };
+		//static const char* TextureFilterMode[] = { "Point", "Bilinear", "Trilinear" };
+		//static const char* AlphaSourceNames[] = { "InputTextureAlpha", "GrayscaleSource", "None" };
 
-		// ----- Texture Type -----
-		int currentType = static_cast<int>(s_Settings.type); // assuming enum starts at 0
-		if (ImGui::Combo("Texture Type", &currentType, TextureTypeNames, IM_ARRAYSIZE(TextureTypeNames))) {
-			s_Settings.type = static_cast<TexType>(currentType);
-			s_dirty = true;
-		}
+		//// ----- Texture Type -----
+		//int currentType = static_cast<int>(s_Settings.type); // assuming enum starts at 0
+		//if (ImGui::Combo("Texture Type", &currentType, TextureTypeNames, IM_ARRAYSIZE(TextureTypeNames))) {
+		//	s_Settings.type = static_cast<TexType>(currentType);
+		//	s_dirty = true;
+		//}
 
-		// ----- Shape -----
-		int currentShape = static_cast<int>(s_Settings.shape); // TextureShape enum
-		if (ImGui::Combo("Texture Shape", &currentShape, TextureShapeNames, IM_ARRAYSIZE(TextureShapeNames))) {
-			s_Settings.shape = static_cast<TexShape>(currentShape);
-			s_dirty = true;
-		}
+		//// ----- Shape -----
+		//int currentShape = static_cast<int>(s_Settings.shape); // TextureShape enum
+		//if (ImGui::Combo("Texture Shape", &currentShape, TextureShapeNames, IM_ARRAYSIZE(TextureShapeNames))) {
+		//	s_Settings.shape = static_cast<TexShape>(currentShape);
+		//	s_dirty = true;
+		//}
 
-		// ----- sRGB -----
-		bool isSRGB = s_Settings.sRGB;
-		if (Editor::DrawCheckbox("sRGB (Color Texture)", isSRGB)) {
-			s_Settings.sRGB = isSRGB;
-			s_dirty = true;
-		}
+		//// ----- sRGB -----
+		//bool isSRGB = s_Settings.sRGB;
+		//if (Editor::DrawCheckbox("sRGB (Color Texture)", isSRGB)) {
+		//	s_Settings.sRGB = isSRGB;
+		//	s_dirty = true;
+		//}
 
-		// ----- Alpha Source -----
-		int currentAlpha = static_cast<int>(s_Settings.alphaSource); // AlphaSource enum
-		if (ImGui::Combo("Alpha Source", &currentAlpha, AlphaSourceNames, IM_ARRAYSIZE(AlphaSourceNames))) {
-			s_Settings.alphaSource = static_cast<TexAlphaSource>(currentAlpha);
-			s_dirty = true;
-		}
+		//// ----- Alpha Source -----
+		//int currentAlpha = static_cast<int>(s_Settings.alphaSource); // AlphaSource enum
+		//if (ImGui::Combo("Alpha Source", &currentAlpha, AlphaSourceNames, IM_ARRAYSIZE(AlphaSourceNames))) {
+		//	s_Settings.alphaSource = static_cast<TexAlphaSource>(currentAlpha);
+		//	s_dirty = true;
+		//}
 
-		// ----- Advanced -----
-		if (ImGui::TreeNode("Advanced")) {
-			bool generateMips = s_Settings.mips.generateMipmap;
-			bool preserveCoverage = s_Settings.mips.preserveCoverage;
+		//// ----- Advanced -----
+		//if (ImGui::TreeNode("Advanced")) {
+		//	bool generateMips = s_Settings.mips.generateMipmap;
+		//	bool preserveCoverage = s_Settings.mips.preserveCoverage;
 
-			if (Editor::DrawCheckbox("Generate Mipmaps", generateMips)) {
-				s_Settings.mips.generateMipmap = generateMips;
-				s_dirty = true;
-			}
+		//	if (Editor::DrawCheckbox("Generate Mipmaps", generateMips)) {
+		//		s_Settings.mips.generateMipmap = generateMips;
+		//		s_dirty = true;
+		//	}
 
-			if (Editor::DrawCheckbox("Preserve Coverage", preserveCoverage)) {
-				s_Settings.mips.preserveCoverage = preserveCoverage;
-				s_dirty = true;
-			}
+		//	if (Editor::DrawCheckbox("Preserve Coverage", preserveCoverage)) {
+		//		s_Settings.mips.preserveCoverage = preserveCoverage;
+		//		s_dirty = true;
+		//	}
 
-			ImGui::TreePop();
-		}
+		//	ImGui::TreePop();
+		//}
 
-		// ----- Filter -----
-		int currentFilter = static_cast<int>(s_Settings.filterMode); // FilterMode enum
-		if (ImGui::Combo("Filter Mode", &currentFilter, TextureFilterMode, IM_ARRAYSIZE(TextureFilterMode))) {
-			s_Settings.filterMode = static_cast<TexFilterMode>(currentFilter);
-			s_dirty = true;
-		}
+		//// ----- Filter -----
+		//int currentFilter = static_cast<int>(s_Settings.filterMode); // FilterMode enum
+		//if (ImGui::Combo("Filter Mode", &currentFilter, TextureFilterMode, IM_ARRAYSIZE(TextureFilterMode))) {
+		//	s_Settings.filterMode = static_cast<TexFilterMode>(currentFilter);
+		//	s_dirty = true;
+		//}
 
-		// ----- Wrap -----
-		int currentWrap = static_cast<int>(s_Settings.wrapMode); // WrapMode enum
-		if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
-			s_Settings.wrapMode = static_cast<TexWrapMode>(currentWrap);
-			s_dirty = true;
-		}
+		//// ----- Wrap -----
+		//int currentWrap = static_cast<int>(s_Settings.wrapMode); // WrapMode enum
+		//if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
+		//	s_Settings.wrapMode = static_cast<TexWrapMode>(currentWrap);
+		//	s_dirty = true;
+		//}
 
-		ImGui::BeginDisabled(!s_dirty);
-		if (ImGui::Button("Apply")) {
-			if (!AssetManager::GetInstance().SaveTextureImportSettings(metaPath, s_Settings)) {
-				SPD_WARNING("Failed to save texture import settings for: " << metaPath);
-			}
-			else {
-				AssetManager::GetInstance().ReimportAsset(metaPath);
-			}
+		//ImGui::BeginDisabled(!s_dirty);
+		//if (ImGui::Button("Apply")) {
+		//	if (!AssetManager::GetInstance().SaveTextureImportSettings(metaPath, s_Settings)) {
+		//		SPD_WARNING("Failed to save texture import settings for: " << metaPath);
+		//	}
+		//	else {
+		//		AssetManager::GetInstance().ReimportAsset(metaPath);
+		//	}
 
-			s_dirty = false;
-		}
-		ImGui::EndDisabled();
+		//	s_dirty = false;
+		//}
+		//ImGui::EndDisabled();
 	}
 
 	void InspectorPanel::RenderModelImportSettings(const std::string& metaPath) {
@@ -2902,7 +2901,7 @@ namespace Editor {
 		//static ModelImportSettings s_Settings{};
 		//static bool s_Loaded = false;
 
-		ModelImportSettings settings{};
+		Assets::ModelImportSettings settings{};
 		if (!LoadModelImportSettings(metaPath, settings)) {
 			ImGui::TextUnformatted("Failed to load model import settings.");
 			return;
@@ -2971,7 +2970,7 @@ namespace Editor {
 				int meshOptIndex = static_cast<int>(settings.mesh.meshOptimizationMode);
 				DrawComboEnum("Mesh Optimization", meshOptIndex, MeshOptNames, IM_ARRAYSIZE(MeshOptNames));
 				settings.mesh.meshOptimizationMode =
-					static_cast<MeshImportSettings::MeshOptimizationMode>(meshOptIndex);
+					static_cast<Assets::MeshImportSettings::MeshOptimizationMode>(meshOptIndex);
 
 				Editor::DrawCheckbox("Generate Colliders", settings.mesh.generateColliders);
 				Editor::DrawCheckbox("Generate Mesh LODs", settings.mesh.generateMeshLODs);
@@ -2982,19 +2981,19 @@ namespace Editor {
 				const char* IndexFormatNames[] = { "Auto", "UInt16", "UInt32" };
 				int indexFmtIndex = static_cast<int>(settings.mesh.indexFormat);
 				DrawComboEnum("Index Format", indexFmtIndex, IndexFormatNames, IM_ARRAYSIZE(IndexFormatNames));
-				settings.mesh.indexFormat = static_cast<MeshImportSettings::IndexFormat>(indexFmtIndex);
+				settings.mesh.indexFormat = static_cast<Assets::MeshImportSettings::IndexFormat>(indexFmtIndex);
 
 				const char* NormalModeNames[] = { "Import", "Calculate", "None" };
 				int normalIndex = static_cast<int>(settings.mesh.normalMode);
 				DrawComboEnum("Normals", normalIndex, NormalModeNames, IM_ARRAYSIZE(NormalModeNames));
-				settings.mesh.normalMode = static_cast<MeshImportSettings::NormalMode>(normalIndex);
+				settings.mesh.normalMode = static_cast<Assets::MeshImportSettings::NormalMode>(normalIndex);
 
 				ImGui::DragFloat("Smoothing Angle", &settings.mesh.smoothingAngle, 1.0f, 0.0f, 180.0f);
 
 				const char* TangentModeNames[] = { "Import", "Calculate (MikkTSpace)", "None" };
 				int tangentIndex = static_cast<int>(settings.mesh.tangentMode);
 				DrawComboEnum("Tangents", tangentIndex, TangentModeNames, IM_ARRAYSIZE(TangentModeNames));
-				settings.mesh.tangentMode = static_cast<MeshImportSettings::TangentMode>(tangentIndex);
+				settings.mesh.tangentMode = static_cast<Assets::MeshImportSettings::TangentMode>(tangentIndex);
 
 				Editor::DrawCheckbox("Swap UVs", settings.mesh.swapUVs);
 			}
@@ -3007,7 +3006,7 @@ namespace Editor {
 				const char* AnimTypeNames[] = { "None", "Generic", "Humanoid" };
 				int animTypeIndex = static_cast<int>(settings.rig.animationType);
 				DrawComboEnum("Animation Type", animTypeIndex, AnimTypeNames, IM_ARRAYSIZE(AnimTypeNames));
-				settings.rig.animationType = static_cast<RigImportSettings::AnimationType>(animTypeIndex);
+				settings.rig.animationType = static_cast<Assets::RigImportSettings::AnimationType>(animTypeIndex);
 
 				Editor::DrawCheckbox("Strip Unused Bones", settings.rig.stripBones);
 			}
@@ -3041,7 +3040,7 @@ namespace Editor {
 				int matModeIndex = static_cast<int>(settings.material.creationMode);
 				DrawComboEnum("Material Creation", matModeIndex, MaterialModeNames, IM_ARRAYSIZE(MaterialModeNames));
 				settings.material.creationMode =
-					static_cast<MaterialImportSettings::MaterialCreationMode>(matModeIndex);
+					static_cast<Assets::MaterialImportSettings::MaterialCreationMode>(matModeIndex);
 			}
 			break;
 		}
