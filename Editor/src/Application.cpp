@@ -1,5 +1,5 @@
 #include "Application.hpp"
-// Needed for once shared instance of GLFW
+// Needed for one shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
 //#include "Core/Logger.hpp"
@@ -41,13 +41,6 @@ namespace Editor {
 
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
-
-		// Testing the SpdLogger with some demo messages
-		SPD_INFO("=== NANOEngine Application Started ===");
-		SPD_DEBUG("Initialization in progress...");
-		SPD_INFO("Graphics API: OpenGL");
-		SPD_DEBUG("Window creation completed");
-		SPD_INFO("ImGui integration active");
 
 		GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
 
@@ -110,10 +103,6 @@ namespace Editor {
 		editorLayer.AddPanel<LoggerPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
-
-		SPD_INFO("=== Application initialization complete ===");
-		SPD_DEBUG("All panels loaded successfully");
-		SPD_INFO("Ready for user interaction");
 	}
 
 	void Application::Run()
