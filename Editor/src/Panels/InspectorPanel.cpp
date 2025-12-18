@@ -323,8 +323,7 @@ namespace Editor {
 		componentTypeRegistry = NE::ECS::Query::GetRegisteredComponentTypes();
 	}
 
-	void InspectorPanel::OnImGuiRender()
-	{
+	void InspectorPanel::OnImGuiRender() {
 		ImGui::Begin("Inspector", nullptr);
 
 		if (EditorScene::s_selection.GetLastClicked() != NE::ECS::NO_ENTITY) {
@@ -338,8 +337,8 @@ namespace Editor {
 				auto& metaRO = NE::ECS::Command::GetEntityMeta(entity);
 
 				bool isActiveValue = metaRO.isActive;
-				if (ImGui::Checkbox("isActive", &isActiveValue)) {
-					//metaRO.isActive = isActiveValue;
+				if (DrawCheckbox("##isActive", isActiveValue)) {
+					metaRO.isActive = isActiveValue;
 
 					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
 					//EditorScene::SetAllDescendantsActive(entity, isActiveValue);
@@ -503,7 +502,7 @@ namespace Editor {
 				// =========================================
 				// TAG COMBO
 				// =========================================
-				const char* previewTag = "Under Dev";   // Should later come from metaRO.tag
+				const char* previewTag = "Under Dev";
 
 				ImGui::PushID("EntityTag");
 				ImGui::PushItemWidth(comboWidth);
