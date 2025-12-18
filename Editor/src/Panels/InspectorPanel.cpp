@@ -2974,12 +2974,13 @@ namespace Editor {
 						ImGui::Text("Colors");
 						ImGui::Indent();
 
-						// Normal Color
+						// Normal Color - label on left, color picker on right
+						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Normal");
 						ImGui::SameLine(labelWidth);
 						float normalColor[4] = { comp.normalColor.x, comp.normalColor.y, comp.normalColor.z, comp.normalColor.w };
-						if (ImGui::ColorEdit4("##NormalColor", normalColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
-						{
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::ColorEdit4("##NormalColor", normalColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
 							comp.normalColor.x = normalColor[0];
 							comp.normalColor.y = normalColor[1];
 							comp.normalColor.z = normalColor[2];
@@ -2988,11 +2989,12 @@ namespace Editor {
 						}
 
 						// Hover Color
+						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Hovered");
 						ImGui::SameLine(labelWidth);
 						float hoverColor[4] = { comp.hoverColor.x, comp.hoverColor.y, comp.hoverColor.z, comp.hoverColor.w };
-						if (ImGui::ColorEdit4("##HoverColor", hoverColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
-						{
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::ColorEdit4("##HoverColor", hoverColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
 							comp.hoverColor.x = hoverColor[0];
 							comp.hoverColor.y = hoverColor[1];
 							comp.hoverColor.z = hoverColor[2];
@@ -3001,11 +3003,12 @@ namespace Editor {
 						}
 
 						// Pressed Color
+						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Pressed");
 						ImGui::SameLine(labelWidth);
 						float pressedColor[4] = { comp.pressedColor.x, comp.pressedColor.y, comp.pressedColor.z, comp.pressedColor.w };
-						if (ImGui::ColorEdit4("##PressedColor", pressedColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
-						{
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::ColorEdit4("##PressedColor", pressedColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
 							comp.pressedColor.x = pressedColor[0];
 							comp.pressedColor.y = pressedColor[1];
 							comp.pressedColor.z = pressedColor[2];
@@ -3014,11 +3017,12 @@ namespace Editor {
 						}
 
 						// Disabled Color
+						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Disabled");
 						ImGui::SameLine(labelWidth);
 						float disabledColor[4] = { comp.disabledColor.x, comp.disabledColor.y, comp.disabledColor.z, comp.disabledColor.w };
-						if (ImGui::ColorEdit4("##DisabledColor", disabledColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
-						{
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::ColorEdit4("##DisabledColor", disabledColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
 							comp.disabledColor.x = disabledColor[0];
 							comp.disabledColor.y = disabledColor[1];
 							comp.disabledColor.z = disabledColor[2];

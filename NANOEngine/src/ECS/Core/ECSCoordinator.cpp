@@ -127,6 +127,7 @@ namespace NE::ECS {
         m_uiInteractionSystem = m_systemManager->RegisterSystem<Systems::UIInteractionSystem>(m_componentManager.get());
         {
             Signature sig;
+            sig.set(GetComponentType<Component::UIRectTransform>());
             sig.set(GetComponentType<Component::UIButton>());
             SetSystemSignature<Systems::UIInteractionSystem>(sig);
         }

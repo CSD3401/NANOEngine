@@ -16,6 +16,8 @@
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/UIImage.hpp"
+#include "../ECS/Components/UIButton.hpp"
+#include "../ECS/Components/UIText.hpp"
 
 #include "../Graphics/Core/Model.hpp"
 #include "../ECS/Components/ComponentKey.hpp"
@@ -144,7 +146,9 @@ namespace {
 		NE::ECS::Component::Camera,
 		NE::ECS::Component::UIRectTransform,
 		NE::ECS::Component::UICanvas,
-		NE::ECS::Component::UIImage
+		NE::ECS::Component::UIImage,
+		NE::ECS::Component::UIButton,
+		NE::ECS::Component::UIText
 	>;
 
 	template <class F>

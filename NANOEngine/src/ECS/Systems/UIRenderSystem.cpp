@@ -205,8 +205,12 @@ namespace NE::ECS::Systems {
         if (m_cm->HasComponent<UIButton>(entity)) {
             const auto& button = m_cm->GetComponent<UIButton>(entity);
             if (button.transitionType == UIButton::TransitionType::COLOR_TINT) {
+                // Get the button color based on current state
+                // GetCurrentColor() handles interactable check and returns disabledColor if not interactable
                 NE::Math::Vec4 buttonColor = button.GetCurrentColor();
-                // Multiply image color by button state color (tint)
+                
+                // Always multiply image color by button state color (tint)
+                // This works for all states including disabled - disabled color tints the image
                 finalColor.x = img.color.x * buttonColor.x;
                 finalColor.y = img.color.y * buttonColor.y;
                 finalColor.z = img.color.z * buttonColor.z;

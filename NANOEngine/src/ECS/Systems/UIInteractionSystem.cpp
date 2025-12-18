@@ -72,7 +72,7 @@ namespace NE::ECS::Systems {
             else if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
                 ProcessWorldSpaceButtons(canvasEntity);
             }
-            // TODO: Process screen space camera mode later if needed
+            // Screen Space Camera mode uses same interaction as Screen Space Overlay (if needed)
         }
 
         // Update pressed state tracking for next frame
@@ -91,6 +91,23 @@ namespace NE::ECS::Systems {
 
     void UIInteractionSystem::OnEntityAdded(Entity e) {
         m_entities.Insert(e);
+        
+        // When an entity with UIButton is added (e.g., loaded from file),
+        // ensure it's properly initialized
+        if (m_cm->HasComponent<Component::UIButton>(e)) {
+            auto& button = m_cm->GetComponent<Component::UIButton>(e);
+            
+            // Reset state to NORMAL when entity is added/loaded
+            // This ensures buttons start in a clean state after loading
+            if (button.interactable) {
+                button.currentState = Component::UIButton::State::NORMAL;
+            } else {
+                button.currentState = Component::UIButton::State::DISABLED;
+            }
+            
+            // Initialize press tracking
+            m_wasPressedLastFrame[e] = false;
+        }
     }
 
     void UIInteractionSystem::OnEntityRemoved(Entity e) {
@@ -555,14 +572,25 @@ namespace NE::ECS::Systems {
         float halfWidth = worldTransform.width * 0.5f;
         float halfHeight = worldTransform.height * 0.5f;
         
-        // Get rotation from the world transform (we need accumulated rotation)
-        // For now, assume the quad is axis-aligned (rotation handled later if needed)
-        // The quad's normal is the forward direction (0, 0, 1) in local space
-        // In world space, we need to account for rotation
+        // Calculate plane normal based on camera view direction
+        // UI elements in world space typically face the camera
+        // The plane normal is the negative of the camera's forward direction
+        // For a typical perspective camera looking down -Z, forward is (0, 0, -1), so normal is (0, 0, 1)
+        // But we'll use the ray direction to determine the plane orientation
+        // Actually, for UI elements, they're typically perpendicular to the camera's view direction
+        // So we'll use the camera's forward direction from the view matrix
         
-        // For simplicity, assume the UI element is facing the camera (normal = -Z in world space)
-        // This is typical for UI elements in world space
-        NE::Math::Vec3 planeNormal(0.0f, 0.0f, -1.0f); // Facing camera (negative Z)
+        // Extract camera forward from view matrix (negative of third column, normalized)
+        // View matrix: third column is the camera's forward direction in world space (negated)
+        NE::Math::Vec3 cameraForward(
+            -s_cameraView.GetElement(0, 2),
+            -s_cameraView.GetElement(1, 2),
+            -s_cameraView.GetElement(2, 2)
+        );
+        cameraForward.Normalize();
+        
+        // Plane normal is the camera's forward (UI elements face the camera)
+        NE::Math::Vec3 planeNormal = cameraForward;
         
         // Calculate plane equation: dot(normal, point) = d
         // We use the pivot as a point on the plane
@@ -591,7 +619,20 @@ namespace NE::ECS::Systems {
         // Convert intersection point to local space relative to pivot
         NE::Math::Vec3 localPoint = outIntersectionPoint - pivotPos;
         
-        // Check bounds (assuming axis-aligned for now)
+        // Account for Z-axis rotation if present
+        float rotationZ = worldTransform.accumulatedRotationZ;
+        if (std::abs(rotationZ) > 0.001f) {
+            // Rotate the local point back to unrotated space
+            float radians = rotationZ * 3.14159265359f / 180.0f;
+            float cosR = std::cos(radians);
+            float sinR = std::sin(radians);
+            float rotatedX = localPoint.x * cosR + localPoint.y * sinR;
+            float rotatedY = -localPoint.x * sinR + localPoint.y * cosR;
+            localPoint.x = rotatedX;
+            localPoint.y = rotatedY;
+        }
+        
+        // Check bounds
         // The quad extends from -halfWidth to +halfWidth in X, -halfHeight to +halfHeight in Y
         if (std::abs(localPoint.x) <= halfWidth && std::abs(localPoint.y) <= halfHeight) {
             return true;

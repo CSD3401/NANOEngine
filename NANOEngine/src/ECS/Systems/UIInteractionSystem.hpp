@@ -63,7 +63,7 @@ namespace NE::ECS::Systems {
             bool isPressed
         );
 
-        // Process all buttons in a canvas (screen space)
+        // Process all buttons in a canvas (screen space overlay)
         void ProcessScreenSpaceButtons(Entity canvasEntity);
 
         // Process all buttons in a canvas (world space)
