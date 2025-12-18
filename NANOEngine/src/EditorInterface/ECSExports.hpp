@@ -7,6 +7,11 @@
 #include "../NANOEngineAPI.hpp"
 #include "../Core/Reflection.hpp"
 
+// Forward declare Mat4 for function parameters
+namespace NE::Math {
+	struct Mat4;
+}
+
 namespace NE::ECS {
 	// Forward Decl
 	namespace Component {
@@ -84,6 +89,9 @@ namespace NE::ECS {
 		
 		// Set viewport bounds for screen space overlay UI interaction
 		NANOENGINE_API void SetUIViewportBounds(float x, float y, float width, float height);
+		
+		// Set camera matrices for world space UI interaction
+		NANOENGINE_API void SetUICameraMatrices(const NE::Math::Mat4& view, const NE::Math::Mat4& projection);
 	}
 
 	namespace Command {

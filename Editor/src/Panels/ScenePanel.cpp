@@ -107,6 +107,11 @@ namespace Editor {
 		// Set viewport bounds for UI interaction system (screen space overlay)
 		// Viewport bounds are in GLFW window coordinates (matching GLFW mouse coordinates)
 		NE::ECS::Query::SetUIViewportBounds(panelPosX, panelPosY, panelSize.x, panelSize.y);
+		
+		// Set camera matrices for world space UI interaction
+		NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
+		NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
+		NE::ECS::Query::SetUICameraMatrices(view, proj);
 
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
@@ -681,12 +686,12 @@ namespace Editor {
 
 				// World space UI
 				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
-					NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
-					NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
+					NE::Math::Mat4 worldView = EditorScene::m_editorCamera.GetViewMatrix();
+					NE::Math::Mat4 worldProj = EditorScene::m_editorCamera.GetProjectionMatrix();
 
 					// Canvas uses full 3D gizmo (position, rotation, scale)
 					if (NE::ECS::Query::HasUICanvas(eid)) {
-						Editor::UIGizmoHandler::Update3DGizmo(eid, view, proj, panelPos, panelSize);
+						Editor::UIGizmoHandler::Update3DGizmo(eid, worldView, worldProj, panelPos, panelSize);
 						s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
 					}
 					// Child UI elements use 2D gizmo (corners/borders) projected to 3D space

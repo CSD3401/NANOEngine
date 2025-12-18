@@ -2,10 +2,14 @@
 #include "../Components/UIImage.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Core/Logger.hpp"
+#include "../../Math/Vec3.hpp"
+#include "../../Math/Vec4.hpp"
+#include "../../Math/Mat4.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 
 namespace NE::ECS::Systems {
 
@@ -15,6 +19,11 @@ namespace NE::ECS::Systems {
     float UIInteractionSystem::s_viewportWidth = 0.0f;
     float UIInteractionSystem::s_viewportHeight = 0.0f;
     bool UIInteractionSystem::s_viewportSet = false;
+    
+    // Static camera matrices (set by editor or scene)
+    NE::Math::Mat4 UIInteractionSystem::s_cameraView;
+    NE::Math::Mat4 UIInteractionSystem::s_cameraProjection;
+    bool UIInteractionSystem::s_cameraMatricesSet = false;
 
     UIInteractionSystem::UIInteractionSystem(ComponentManager* cm, UITransformSystem* transformSystem)
         : m_cm(cm), m_transformSystem(transformSystem)
@@ -27,6 +36,12 @@ namespace NE::ECS::Systems {
         s_viewportWidth = width;
         s_viewportHeight = height;
         s_viewportSet = (width > 0.0f && height > 0.0f);
+    }
+    
+    void UIInteractionSystem::SetCameraMatrices(const NE::Math::Mat4& view, const NE::Math::Mat4& projection) {
+        s_cameraView = view;
+        s_cameraProjection = projection;
+        s_cameraMatricesSet = true;
     }
 
     void UIInteractionSystem::Init() {
@@ -50,14 +65,14 @@ namespace NE::ECS::Systems {
 
             auto& canvas = m_cm->GetComponent<Component::UICanvas>(canvasEntity);
 
-            // Only process Screen Space Overlay for now
+            // Process based on render mode
             if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY) {
                 ProcessScreenSpaceButtons(canvasEntity);
             }
-            // TODO: Process world space buttons later
-            // else if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
-            //     ProcessWorldSpaceButtons(canvasEntity);
-            // }
+            else if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
+                ProcessWorldSpaceButtons(canvasEntity);
+            }
+            // TODO: Process screen space camera mode later if needed
         }
 
         // Update pressed state tracking for next frame
@@ -468,9 +483,207 @@ namespace NE::ECS::Systems {
         }
     }
 
+    UIInteractionSystem::Ray UIInteractionSystem::ScreenToRay(
+        double mouseX, double mouseY,
+        const NE::Math::Mat4& viewMatrix,
+        const NE::Math::Mat4& projMatrix,
+        float viewportX, float viewportY,
+        float viewportWidth, float viewportHeight)
+    {
+        Ray ray;
+        
+        // Convert mouse coordinates to normalized device coordinates (NDC)
+        // NDC: X and Y range from -1 to 1, with (0,0) at center
+        float ndcX = ((mouseX - viewportX) / viewportWidth) * 2.0f - 1.0f;
+        float ndcY = 1.0f - ((mouseY - viewportY) / viewportHeight) * 2.0f; // Flip Y (screen Y-down to NDC Y-up)
+        
+        // Create two points in clip space (near and far planes)
+        NE::Math::Vec4 nearPoint(ndcX, ndcY, -1.0f, 1.0f); // Near plane in NDC
+        NE::Math::Vec4 farPoint(ndcX, ndcY, 1.0f, 1.0f);   // Far plane in NDC
+        
+        // Get inverse view-projection matrix
+        NE::Math::Mat4 viewProj = projMatrix * viewMatrix;
+        NE::Math::Mat4 invViewProj = viewProj.Inverse();
+        
+        // Transform to world space (manual matrix-vector multiplication)
+        auto Mat4MulVec4 = [](const NE::Math::Mat4& m, const NE::Math::Vec4& v) -> NE::Math::Vec4 {
+            return NE::Math::Vec4(
+                m.GetElement(0, 0) * v.x + m.GetElement(0, 1) * v.y + m.GetElement(0, 2) * v.z + m.GetElement(0, 3) * v.w,
+                m.GetElement(1, 0) * v.x + m.GetElement(1, 1) * v.y + m.GetElement(1, 2) * v.z + m.GetElement(1, 3) * v.w,
+                m.GetElement(2, 0) * v.x + m.GetElement(2, 1) * v.y + m.GetElement(2, 2) * v.z + m.GetElement(2, 3) * v.w,
+                m.GetElement(3, 0) * v.x + m.GetElement(3, 1) * v.y + m.GetElement(3, 2) * v.z + m.GetElement(3, 3) * v.w
+            );
+        };
+        
+        NE::Math::Vec4 nearWorld = Mat4MulVec4(invViewProj, nearPoint);
+        NE::Math::Vec4 farWorld = Mat4MulVec4(invViewProj, farPoint);
+        
+        // Perspective divide
+        if (std::abs(nearWorld.w) > 1e-5f) {
+            nearWorld.x /= nearWorld.w;
+            nearWorld.y /= nearWorld.w;
+            nearWorld.z /= nearWorld.w;
+        }
+        if (std::abs(farWorld.w) > 1e-5f) {
+            farWorld.x /= farWorld.w;
+            farWorld.y /= farWorld.w;
+            farWorld.z /= farWorld.w;
+        }
+        
+        // Ray origin is the near point, direction is from near to far
+        ray.origin = NE::Math::Vec3(nearWorld.x, nearWorld.y, nearWorld.z);
+        NE::Math::Vec3 farPos(farWorld.x, farWorld.y, farWorld.z);
+        ray.direction = (farPos - ray.origin).Normalized();
+        
+        return ray;
+    }
+    
+    bool UIInteractionSystem::RayIntersectsUIElement(
+        const Ray& ray,
+        const UITransformSystem::WorldTransform& worldTransform,
+        const Component::UIRectTransform& rect,
+        NE::Math::Vec3& outIntersectionPoint)
+    {
+        // UI element is a quad in world space
+        // We need to find the plane of the quad and intersect the ray with it
+        
+        // The UI element's pivot position in world space
+        NE::Math::Vec3 pivotPos(worldTransform.x, worldTransform.y, worldTransform.z);
+        
+        // Calculate the quad's corners in world space
+        // The quad is centered at the pivot, with size worldTransform.width x worldTransform.height
+        float halfWidth = worldTransform.width * 0.5f;
+        float halfHeight = worldTransform.height * 0.5f;
+        
+        // Get rotation from the world transform (we need accumulated rotation)
+        // For now, assume the quad is axis-aligned (rotation handled later if needed)
+        // The quad's normal is the forward direction (0, 0, 1) in local space
+        // In world space, we need to account for rotation
+        
+        // For simplicity, assume the UI element is facing the camera (normal = -Z in world space)
+        // This is typical for UI elements in world space
+        NE::Math::Vec3 planeNormal(0.0f, 0.0f, -1.0f); // Facing camera (negative Z)
+        
+        // Calculate plane equation: dot(normal, point) = d
+        // We use the pivot as a point on the plane
+        float planeD = planeNormal.Dot(pivotPos);
+        
+        // Ray-plane intersection: t = (d - dot(normal, origin)) / dot(normal, direction)
+        float denominator = planeNormal.Dot(ray.direction);
+        
+        // Ray is parallel to plane
+        if (std::abs(denominator) < 1e-5f) {
+            return false;
+        }
+        
+        float numerator = planeD - planeNormal.Dot(ray.origin);
+        float t = numerator / denominator;
+        
+        // Intersection is behind the ray origin
+        if (t < 0.0f) {
+            return false;
+        }
+        
+        // Calculate intersection point
+        outIntersectionPoint = ray.origin + ray.direction * t;
+        
+        // Check if intersection point is within the quad bounds
+        // Convert intersection point to local space relative to pivot
+        NE::Math::Vec3 localPoint = outIntersectionPoint - pivotPos;
+        
+        // Check bounds (assuming axis-aligned for now)
+        // The quad extends from -halfWidth to +halfWidth in X, -halfHeight to +halfHeight in Y
+        if (std::abs(localPoint.x) <= halfWidth && std::abs(localPoint.y) <= halfHeight) {
+            return true;
+        }
+        
+        return false;
+    }
+    
     void UIInteractionSystem::ProcessWorldSpaceButtons(Entity canvasEntity) {
-        // TODO: Implement world space button interaction using raycast
-        // This will be implemented in a future step
+        if (!m_transformSystem) return;
+        if (!s_cameraMatricesSet) return; // Need camera matrices for raycasting
+        
+        // Get canvas component
+        auto& canvas = m_cm->GetComponent<Component::UICanvas>(canvasEntity);
+        
+        // Get mouse position (in window/screen pixels from GLFW)
+        auto [mouseX, mouseY] = NE::InputManager::MousePos();
+        bool isMouseDown = NE::InputManager::IsMouseDown(0);
+        
+        // Get viewport bounds (use same as screen space if available)
+        float viewportX = s_viewportSet ? s_viewportX : 0.0f;
+        float viewportY = s_viewportSet ? s_viewportY : 0.0f;
+        float viewportWidth = s_viewportSet ? s_viewportWidth : static_cast<float>(NE::Graphics::GraphicsManager::GetWindowWidth());
+        float viewportHeight = s_viewportSet ? s_viewportHeight : static_cast<float>(NE::Graphics::GraphicsManager::GetWindowHeight());
+        
+        // Convert screen coordinates to world space ray
+        Ray ray = ScreenToRay(mouseX, mouseY, s_cameraView, s_cameraProjection, 
+                             viewportX, viewportY, viewportWidth, viewportHeight);
+        
+        // Collect all child entities of this canvas that have UIButton
+        std::vector<Entity> buttonEntities;
+        const auto& allButtonEntities = m_cm->GetEntitiesWithComponent<Component::UIButton>();
+        
+        for (Entity entity : allButtonEntities) {
+            Entity buttonCanvas = FindCanvasForEntity(entity);
+            if (buttonCanvas == canvasEntity) {
+                buttonEntities.push_back(entity);
+            }
+        }
+        
+        // Sort by Z-order (process back-to-front, so front elements get priority)
+        std::sort(buttonEntities.begin(), buttonEntities.end(),
+            [this](Entity a, Entity b) {
+                if (!m_cm->HasComponent<Component::UIRectTransform>(a) ||
+                    !m_cm->HasComponent<Component::UIRectTransform>(b)) {
+                    return false;
+                }
+                auto& rectA = m_cm->GetComponent<Component::UIRectTransform>(a);
+                auto& rectB = m_cm->GetComponent<Component::UIRectTransform>(b);
+                return rectA.z > rectB.z; // Higher Z = processed first (top layer)
+            });
+        
+        // Find the front-most button that the ray intersects
+        Entity hoveredButton = NE::ECS::NO_ENTITY;
+        Entity pressedButton = NE::ECS::NO_ENTITY;
+        float closestIntersection = std::numeric_limits<float>::max();
+        
+        for (Entity entity : buttonEntities) {
+            if (!m_cm->HasComponent<Component::UIRectTransform>(entity)) continue;
+            if (!m_cm->HasComponent<Component::UIButton>(entity)) continue;
+            
+            // Get world transform for this button
+            UITransformSystem::WorldTransform worldTransform = 
+                m_transformSystem->CalculateWorldTransform(entity, canvasEntity, canvas);
+            
+            // Get rect transform for pivot values
+            auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
+            
+            // Check ray intersection
+            NE::Math::Vec3 intersectionPoint;
+            if (RayIntersectsUIElement(ray, worldTransform, rect, intersectionPoint)) {
+                // Calculate distance from ray origin to intersection
+                float distance = (intersectionPoint - ray.origin).Length();
+                
+                // Keep the closest intersection (front-most)
+                if (distance < closestIntersection) {
+                    closestIntersection = distance;
+                    hoveredButton = entity;
+                    if (isMouseDown) {
+                        pressedButton = entity;
+                    }
+                }
+            }
+        }
+        
+        // Update all button states
+        for (Entity entity : buttonEntities) {
+            bool isHovering = (entity == hoveredButton);
+            bool isPressed = (entity == pressedButton) && isMouseDown;
+            
+            UpdateButtonState(entity, isHovering, isPressed);
+        }
     }
 
 } // namespace NE::ECS::Systems

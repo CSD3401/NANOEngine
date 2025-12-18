@@ -24,6 +24,7 @@
 #include "Core/LUIDGenerator.hpp"
 #include "ECS/Systems/TransformSystem.hpp"
 #include "SceneManagement/SceneManager.hpp"
+#include "../Math/Mat4.hpp"
 
 
 
@@ -219,6 +220,13 @@ namespace NE::ECS {
 			auto& ecs = GetScene().GetECSCoordinator();
 			if (ecs.m_uiInteractionSystem) {
 				ecs.m_uiInteractionSystem->SetViewportBounds(x, y, width, height);
+			}
+		}
+		
+		void SetUICameraMatrices(const NE::Math::Mat4& view, const NE::Math::Mat4& projection) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (ecs.m_uiInteractionSystem) {
+				ecs.m_uiInteractionSystem->SetCameraMatrices(view, projection);
 			}
 		}
 	}

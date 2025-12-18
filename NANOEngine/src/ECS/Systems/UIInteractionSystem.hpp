@@ -32,6 +32,9 @@ namespace NE::ECS::Systems {
         // Set viewport bounds for screen space overlay UI (called by editor)
         // This accounts for the panel/viewport where the UI is rendered
         static void SetViewportBounds(float x, float y, float width, float height);
+        
+        // Set camera matrices for world space UI interaction (called by editor or scene)
+        static void SetCameraMatrices(const NE::Math::Mat4& view, const NE::Math::Mat4& projection);
 
     private:
         ComponentManager* m_cm = nullptr;
@@ -63,8 +66,29 @@ namespace NE::ECS::Systems {
         // Process all buttons in a canvas (screen space)
         void ProcessScreenSpaceButtons(Entity canvasEntity);
 
-        // Process all buttons in a canvas (world space) - TODO: implement later
+        // Process all buttons in a canvas (world space)
         void ProcessWorldSpaceButtons(Entity canvasEntity);
+        
+        // World Space UI: Raycast-based detection
+        struct Ray {
+            NE::Math::Vec3 origin;
+            NE::Math::Vec3 direction;
+        };
+        
+        // Convert screen coordinates to a world space ray
+        Ray ScreenToRay(double mouseX, double mouseY, 
+                       const NE::Math::Mat4& viewMatrix, 
+                       const NE::Math::Mat4& projMatrix,
+                       float viewportX, float viewportY, 
+                       float viewportWidth, float viewportHeight);
+        
+        // Check if a ray intersects with a UI element plane
+        bool RayIntersectsUIElement(
+            const Ray& ray,
+            const UITransformSystem::WorldTransform& worldTransform,
+            const Component::UIRectTransform& rect,
+            NE::Math::Vec3& outIntersectionPoint
+        );
 
         // Track which button was pressed last frame (for click detection)
         std::unordered_map<Entity, bool> m_wasPressedLastFrame;
@@ -75,6 +99,11 @@ namespace NE::ECS::Systems {
         static float s_viewportWidth;
         static float s_viewportHeight;
         static bool s_viewportSet;
+        
+        // Camera matrices for world space UI interaction (set by editor or scene)
+        static NE::Math::Mat4 s_cameraView;
+        static NE::Math::Mat4 s_cameraProjection;
+        static bool s_cameraMatricesSet;
     };
 
 } // namespace NE::ECS::Systems

@@ -653,7 +653,7 @@ namespace NE::ECS::Systems {
         float scaledHeight = baseHeight * accumulated.scaleY;
         
         // Step 1: Scale the unit quad (0,0 to 1,1) to (0,0 to width, height)
-        Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
+        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(
             scaledWidth,
             scaledHeight,
             accumulated.scaleZ
@@ -679,7 +679,7 @@ namespace NE::ECS::Systems {
         float pivotOffsetX = -scaledWidth * pivot.x;
         float pivotOffsetY = -scaledHeight * (1.0f - pivot.y);  // Flip Y for world space
         
-        Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(
+        NE::Math::Mat4 pivotMatrix = NE::Math::Mat4::BuildTranslation(
             pivotOffsetX,
             pivotOffsetY,
             0.0f
@@ -689,13 +689,13 @@ namespace NE::ECS::Systems {
         // Rotation order: X * Y * Z (same as TransformSystem)
         // Note: Rotation matrices work with any angle value (they're periodic), so we don't need to normalize
         // The normalization is only for display/storage of Euler angles, not for matrix building
-        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accumulated.rotationX * PI / 180.0f);
-        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accumulated.rotationY * PI / 180.0f);
-        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accumulated.rotationZ * PI / 180.0f);
-        Math::Mat4 rotationMatrix = rotationX * rotationY * rotationZ;  // X * Y * Z order (same as TransformSystem)
+        NE::Math::Mat4 rotationX = NE::Math::Mat4::BuildXRotation(accumulated.rotationX * PI / 180.0f);
+        NE::Math::Mat4 rotationY = NE::Math::Mat4::BuildYRotation(accumulated.rotationY * PI / 180.0f);
+        NE::Math::Mat4 rotationZ = NE::Math::Mat4::BuildZRotation(accumulated.rotationZ * PI / 180.0f);
+        NE::Math::Mat4 rotationMatrix = rotationX * rotationY * rotationZ;  // X * Y * Z order (same as TransformSystem)
 
         // Step 4: Translation to world position (accumulated.posX/Y/Z is the pivot position)
-        Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(
+        NE::Math::Mat4 translationMatrix = NE::Math::Mat4::BuildTranslation(
             accumulated.posX,
             accumulated.posY,
             accumulated.posZ
