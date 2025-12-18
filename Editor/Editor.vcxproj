@@ -170,6 +170,7 @@
     <ClCompile Include="src\AssetManagement\Assets\MaterialAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp" />
+    <ClCompile Include="src\EditorState.cpp" />
     <ClCompile Include="src\Serialization\Serializer.cpp" />
     <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ShaderAsset.cpp" />
@@ -260,6 +261,7 @@
     <ClInclude Include="src\UIGizmoHandler.hpp" />
     <ClInclude Include="src\Util\DrawSelectedCollider.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\TextureSettingsEditor.hpp" />
+    <ClInclude Include="src\Util\HierarchyUtils.hpp" />
     <ClInclude Include="vendor\include\imgui\imconfig.h" />
     <ClInclude Include="vendor\include\imgui\imgui.h" />
     <ClInclude Include="vendor\include\imgui\imgui_impl_glfw.h" />

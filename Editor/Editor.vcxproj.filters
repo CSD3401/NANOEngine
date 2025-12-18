@@ -162,6 +162,9 @@
     <ClCompile Include="src\Serialization\Serializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\EditorState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ImGuiLayer.hpp">
@@ -351,6 +354,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\EditorState.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Util\HierarchyUtils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

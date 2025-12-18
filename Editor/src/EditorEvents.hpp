@@ -1,15 +1,24 @@
 #pragma once
-#include <string>
+//#include <string>
+#include <vector>
 
-namespace Editor {
+namespace Editor::Events {
 
-	struct CreateEntityEvent {};
+	struct CreateEmptyEntityEvent {};
+	struct CreateCubeEntityEvent {};
+	struct CreateSphereEntityEvent {};
+	struct CreateCapsuleEntityEvent {};
+	struct CreateCylinderEntityEvent {};
+	struct CreatePlaneEntityEvent {};
+
+	struct DeleteEntityEvent {
+		std::vector<uint32_t> entitiesToBeDeleted;
+	};
+
+
 	struct CreateUICanvasEntityEvent {};
 	struct CreateUIImageEntityEvent {
 		uint32_t parentCanvas;  // Which canvas to parent to
-	};
-	struct DeleteEntityEvent {
-		uint32_t deletedEntity;
 	};
 	struct SelectEntityEvent {
 		uint32_t selectedEntity;
