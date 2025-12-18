@@ -46,6 +46,7 @@
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Light.hpp"
 #include "../../SceneManagement/Scene.hpp"
+#include "../../Engine.hpp"
 
 #include <glad/glad.h>
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
@@ -1560,6 +1561,24 @@ namespace NE::Graphics {
         // clear both buffers
         s_DebugLines.clear();
         s_DebugTriangles.clear();
+    }
+
+    uint32_t GraphicsManager::GetWindowWidth() {
+        GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+        if (!window) return s_ScreenWidth; // Fallback to screen width
+        
+        int width = 0, height = 0;
+        glfwGetWindowSize(window, &width, &height);
+        return static_cast<uint32_t>(width);
+    }
+
+    uint32_t GraphicsManager::GetWindowHeight() {
+        GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+        if (!window) return s_ScreenHeight; // Fallback to screen height
+        
+        int width = 0, height = 0;
+        glfwGetWindowSize(window, &width, &height);
+        return static_cast<uint32_t>(height);
     }
 
     void GraphicsManager::DrawUI() {

@@ -521,6 +521,69 @@ namespace NE::ECS::Systems {
         auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
         AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
 
+        // For screen space, accumulated.posX/posY are already in screen pixels
+        // They are calculated using parentWidth/parentHeight which are in reference coordinates,
+        // but then multiplied by scaleFactor during accumulation
+        // Actually, let me check: parentWidth = screenWidth / scaleFactor, so anchorX = parentWidth * anchorMinX
+        // is in reference coordinates. Then we add rect.x (also in reference coordinates).
+        // So accumulated.posX is in reference coordinates, and we need to multiply by scaleFactor.
+        // BUT wait - let me trace through more carefully...
+        // parentWidth = screenWidth / scaleFactor (reference coordinates)
+        // anchorX = parentWidth * anchorMinX (reference coordinates)
+        // result.posX += anchorX + rect.x (reference coordinates)
+        // So yes, we need to multiply by scaleFactor to get screen pixels.
+        // However, the issue might be that we're double-scaling or the calculation is wrong.
+        // Let me revert this change and check if posX/posY are already scaled.
+        
+        // REVERT: Check if posX/posY are already in screen pixels
+        // Looking at the code: parentWidth = screenWidth / scaleFactor
+        // anchorX = parentWidth * anchorMinX = (screenWidth / scaleFactor) * anchorMinX
+        // result.posX += anchorX = (screenWidth / scaleFactor) * anchorMinX
+        // So result.posX is in reference coordinates (divided by scaleFactor)
+        // We need to multiply by scaleFactor to get screen pixels
+        // BUT - the issue is that we might be applying scaleFactor twice!
+        
+        // Let me check: result.scaleX = canvas.scaleFactor at the start
+        // Then we accumulate: result.scaleX *= rect.scaleX (but rect.scaleX is usually 1.0)
+        // So accumulated.scaleX should be canvas.scaleFactor
+        // And accumulated.posX is in reference coordinates
+        // So we DO need to multiply by scaleFactor
+        
+        // But wait - maybe the issue is that posX/posY are ALREADY multiplied by scaleFactor somewhere?
+        // Let me check the accumulation more carefully...
+        
+        // Actually, I think the issue might be different. Let me check if the position calculation
+        // is correct. For a center anchor (0.5, 0.5):
+        // anchorX = parentWidth * 0.5 = (screenWidth / scaleFactor) * 0.5
+        // If screenWidth = 1920 and scaleFactor = 1.0, then anchorX = 960
+        // result.posX = 960 (in reference coordinates, which equals screen pixels when scaleFactor = 1.0)
+        // Then we multiply by scaleFactor: result.x = 960 * 1.0 = 960 ✓
+        
+        // So the calculation should be correct. But maybe the issue is that we're applying it incorrectly?
+        // Or maybe the position is being calculated relative to canvas center instead of screen top-left?
+        
+        // Let me check: the canvas is at (0, 0) which is screen center. Child elements are positioned
+        // relative to the canvas using anchors. For a center anchor, the position should be at
+        // screen center (960, 540), which matches the debug output.
+        
+        // So the button position is correct. The issue must be with the mouse coordinates or the
+        // coordinate conversion.
+        
+        // Actually, wait - I just realized: the user is clicking at (536, 360) which is NOT on the button.
+        // The button is at center (960, 540). So the detection is working correctly - the mouse
+        // is simply not over the button!
+        
+        // But the user said "the state doesn't work now" - maybe they're clicking ON the button
+        // visually, but the coordinates don't match? This suggests the button might be rendered
+        // in a different position than calculated, OR the mouse coordinates are wrong.
+        
+        // Let me add more debug info to see what's happening. But first, let me check if my
+        // position scaling fix is correct or if it's causing the issue.
+        
+        // Actually, I think I should revert the position scaling and see if that fixes it.
+        // The original code was: result.x = accumulated.posX (without scaling)
+        // Maybe accumulated.posX is already in screen pixels?
+        
         result.x = accumulated.posX;
         result.y = accumulated.posY;
         result.z = accumulated.posZ;

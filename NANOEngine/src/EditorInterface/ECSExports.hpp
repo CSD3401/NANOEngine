@@ -18,6 +18,8 @@ namespace NE::ECS {
 		struct EntityMeta;
 		struct AudioSource;
 		struct NativeScript;
+		struct UIButton;
+		struct UIText;
 		struct Animator;
 		struct Camera;
 		struct PhysicsBody;
@@ -50,6 +52,7 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
+		NANOENGINE_API bool HasUIButton(uint32_t e);
 
 		// --- Component Existence Checks ---
 		NANOENGINE_API bool HasTransform(uint32_t e);
@@ -78,12 +81,16 @@ namespace NE::ECS {
 			float accumulatedScaleY = 1.f;
 		};
 		NANOENGINE_API UIWorldTransform GetUIWorldTransform(uint32_t entity);
+		
+		// Set viewport bounds for screen space overlay UI interaction
+		NANOENGINE_API void SetUIViewportBounds(float x, float y, float width, float height);
 	}
 
 	namespace Command {
 		NANOENGINE_API uint32_t CreateEntity();
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
+		NANOENGINE_API uint32_t CreateUIButtonEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays = true);
 
@@ -107,6 +114,7 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API Component::UIButton& GetUIButton(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
 
 		// --- Script Management ---

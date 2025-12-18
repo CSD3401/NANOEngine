@@ -88,6 +88,25 @@ namespace Editor {
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
+		
+		// Get window-relative position for UI interaction system
+		// GLFW mouse coordinates are relative to the GLFW window (0,0 at top-left of window)
+		// We need to convert the panel position from screen coordinates to GLFW window coordinates
+		
+		// Get the main viewport (GLFW window) position in screen coordinates
+		ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+		ImVec2 mainViewportPos = mainViewport->Pos; // GLFW window position in screen coordinates
+		
+		// panelPos is in screen coordinates, mainViewportPos is also in screen coordinates
+		// The difference gives us the position relative to the GLFW window
+		// Note: ImGui coordinates are already in screen pixels, and GLFW mouse coordinates
+		// are also in window pixels, so we don't need DPI scaling here
+		float panelPosX = panelPos.x - mainViewportPos.x;
+		float panelPosY = panelPos.y - mainViewportPos.y;
+		
+		// Set viewport bounds for UI interaction system (screen space overlay)
+		// Viewport bounds are in GLFW window coordinates (matching GLFW mouse coordinates)
+		NE::ECS::Query::SetUIViewportBounds(panelPosX, panelPosY, panelSize.x, panelSize.y);
 
 		float deltaTime = ImGui::GetIO().DeltaTime;
 

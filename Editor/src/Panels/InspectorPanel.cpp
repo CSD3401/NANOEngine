@@ -16,6 +16,7 @@
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
 #include <ECS/Components/UIImage.hpp>
+#include <ECS/Components/UIButton.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
 #include <Core/Reflection.hpp>
@@ -73,6 +74,18 @@ namespace {
 			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
 			ImGui::EndGroup();
 			return changed;
+		}
+		else if constexpr (std::is_same_v<T, NE::Math::Vec4>) {
+			// Vec4 is used for colors - use ColorEdit4
+			float color[4] = { value.x, value.y, value.z, value.w };
+			if (ImGui::ColorEdit4(desc.name.data(), color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+				value.x = color[0];
+				value.y = color[1];
+				value.z = color[2];
+				value.w = color[3];
+				return true;
+			}
+			return false;
 		}
 		else if constexpr (std::is_same_v<T, std::string>) {
 			// String support added here -> check w irwen
@@ -2911,6 +2924,110 @@ namespace Editor {
 							ImGui::Unindent(16.0f);
 							ImGui::Unindent();
 						}
+					}
+				}
+				else if (typeIdx == typeid(NE::ECS::Component::UIButton))
+				{
+					if (!NE::ECS::Query::HasUIButton(entity)) continue;
+					auto& comp = NE::ECS::Command::GetUIButton(entity);
+
+					if (ImGui::CollapsingHeader("Button", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::Indent();
+
+						const float labelWidth = 140.0f;
+
+						// Interactable
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Interactable");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::Checkbox("##Interactable", &comp.interactable))
+						{
+							if (!comp.interactable) {
+								comp.currentState = NE::ECS::Component::UIButton::State::DISABLED;
+							} else {
+								comp.currentState = NE::ECS::Component::UIButton::State::NORMAL;
+							}
+							NE::MarkSceneDirty();
+						}
+
+						// Transition Type
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Transition");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						static const char* TransitionTypes[] = {
+							"Color Tint",
+							"Sprite Swap",
+							"Animation"
+						};
+						int currentTransition = static_cast<int>(comp.transitionType);
+						if (ImGui::Combo("##Transition", &currentTransition, TransitionTypes, IM_ARRAYSIZE(TransitionTypes)))
+						{
+							comp.transitionType = static_cast<decltype(comp.transitionType)>(currentTransition);
+							NE::MarkSceneDirty();
+						}
+
+						// Color States
+						ImGui::Spacing();
+						ImGui::Text("Colors");
+						ImGui::Indent();
+
+						// Normal Color
+						ImGui::Text("Normal");
+						ImGui::SameLine(labelWidth);
+						float normalColor[4] = { comp.normalColor.x, comp.normalColor.y, comp.normalColor.z, comp.normalColor.w };
+						if (ImGui::ColorEdit4("##NormalColor", normalColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
+						{
+							comp.normalColor.x = normalColor[0];
+							comp.normalColor.y = normalColor[1];
+							comp.normalColor.z = normalColor[2];
+							comp.normalColor.w = normalColor[3];
+							NE::MarkSceneDirty();
+						}
+
+						// Hover Color
+						ImGui::Text("Hovered");
+						ImGui::SameLine(labelWidth);
+						float hoverColor[4] = { comp.hoverColor.x, comp.hoverColor.y, comp.hoverColor.z, comp.hoverColor.w };
+						if (ImGui::ColorEdit4("##HoverColor", hoverColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
+						{
+							comp.hoverColor.x = hoverColor[0];
+							comp.hoverColor.y = hoverColor[1];
+							comp.hoverColor.z = hoverColor[2];
+							comp.hoverColor.w = hoverColor[3];
+							NE::MarkSceneDirty();
+						}
+
+						// Pressed Color
+						ImGui::Text("Pressed");
+						ImGui::SameLine(labelWidth);
+						float pressedColor[4] = { comp.pressedColor.x, comp.pressedColor.y, comp.pressedColor.z, comp.pressedColor.w };
+						if (ImGui::ColorEdit4("##PressedColor", pressedColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
+						{
+							comp.pressedColor.x = pressedColor[0];
+							comp.pressedColor.y = pressedColor[1];
+							comp.pressedColor.z = pressedColor[2];
+							comp.pressedColor.w = pressedColor[3];
+							NE::MarkSceneDirty();
+						}
+
+						// Disabled Color
+						ImGui::Text("Disabled");
+						ImGui::SameLine(labelWidth);
+						float disabledColor[4] = { comp.disabledColor.x, comp.disabledColor.y, comp.disabledColor.z, comp.disabledColor.w };
+						if (ImGui::ColorEdit4("##DisabledColor", disabledColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf))
+						{
+							comp.disabledColor.x = disabledColor[0];
+							comp.disabledColor.y = disabledColor[1];
+							comp.disabledColor.z = disabledColor[2];
+							comp.disabledColor.w = disabledColor[3];
+							NE::MarkSceneDirty();
+						}
+
+						ImGui::Unindent();
+						ImGui::Unindent();
 					}
 				}
 			}

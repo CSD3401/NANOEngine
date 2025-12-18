@@ -11,6 +11,8 @@
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIButton.hpp"
+#include "../Components/UIText.hpp"
 #include "../Components/Camera.hpp"
 
 #include "../Systems/TransformSystem.hpp"
@@ -22,6 +24,7 @@
 #include "../Systems/ScriptSystem.hpp"
 #include "../Systems/UIRenderSystem.hpp"
 #include "../Systems/UITransformSystem.hpp"
+#include "../Systems/UIInteractionSystem.hpp"
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/PhysicsSystem.hpp"
 
@@ -49,6 +52,8 @@ namespace NE::ECS {
         RegisterComponent<Component::UIRectTransform>();
         RegisterComponent<Component::UICanvas>();
         RegisterComponent<Component::UIImage>();
+        RegisterComponent<Component::UIButton>();
+        RegisterComponent<Component::UIText>();
         RegisterComponent<Component::Animator>();
 		RegisterComponent<Component::Camera>();
         
@@ -118,6 +123,16 @@ namespace NE::ECS {
         
         // Set the transform system reference in the render system
         m_uiRenderSystem->SetTransformSystem(m_uiTransformSystem.get());
+
+        m_uiInteractionSystem = m_systemManager->RegisterSystem<Systems::UIInteractionSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::UIButton>());
+            SetSystemSignature<Systems::UIInteractionSystem>(sig);
+        }
+        
+        // Set the transform system reference in the interaction system
+        m_uiInteractionSystem->SetTransformSystem(m_uiTransformSystem.get());
 
         m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
         {

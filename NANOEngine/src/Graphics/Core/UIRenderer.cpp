@@ -18,6 +18,7 @@ namespace NE::Graphics {
     unsigned int UIRenderer::s_VBO = 0;
     unsigned int UIRenderer::s_EBO = 0;
     unsigned int UIRenderer::s_Shader = 0;
+    unsigned int UIRenderer::s_WorldSpaceShader = 0;  // Fallback shader for world space UI without material
     unsigned int UIRenderer::s_CompositeShader = 0;
     unsigned int UIRenderer::s_CompositeVAO = 0;
     unsigned int UIRenderer::s_CompositeVBO = 0;
@@ -74,6 +75,34 @@ namespace NE::Graphics {
         FragColor = uColor;
     })";
 
+    // World space vertex shader (uses model/view/projection matrices)
+    static const char* UIWorldSpaceVertexShaderSource = R"(#version 460 core
+    layout(location = 0) in vec3 aPos;
+    layout(location = 1) in vec2 aUV;
+
+    out vec2 vUV;
+
+    uniform mat4 uModel;
+    uniform mat4 uView;
+    uniform mat4 uProj;
+
+    void main() {
+        mat4 MVP = uProj * uView * uModel;
+        gl_Position = MVP * vec4(aPos, 1.0);
+        vUV = aUV;
+    })";
+
+    // World space fragment shader (solid color)
+    static const char* UIWorldSpaceFragmentShaderSource = R"(#version 460 core
+    in vec2 vUV;
+    out vec4 FragColor;
+
+    uniform vec4 uColor;
+
+    void main() {
+        FragColor = uColor;
+    })";
+
     void UIRenderer::Init(uint32_t width, uint32_t height, RenderViewManager* renderViewManager) {
         // saves screen size
         s_ScreenW = width;
@@ -104,6 +133,31 @@ namespace NE::Graphics {
             glAttachShader(s_Shader, fs);
             glLinkProgram(s_Shader);
             CheckLink(s_Shader, "UI Program");
+
+            glDeleteShader(vs);
+            glDeleteShader(fs);
+        }
+
+        // compile world space shader (for fallback when no material is assigned)
+        {
+            // compile vertex shader
+            unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource(vs, 1, &UIWorldSpaceVertexShaderSource, nullptr);
+            glCompileShader(vs);
+            CheckCompile(vs, "UI World Space VS");
+
+            // Compile fragment shader
+            unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource(fs, 1, &UIWorldSpaceFragmentShaderSource, nullptr);
+            glCompileShader(fs);
+            CheckCompile(fs, "UI World Space FS");
+
+            // link shader program
+            s_WorldSpaceShader = glCreateProgram();
+            glAttachShader(s_WorldSpaceShader, vs);
+            glAttachShader(s_WorldSpaceShader, fs);
+            glLinkProgram(s_WorldSpaceShader);
+            CheckLink(s_WorldSpaceShader, "UI World Space Program");
 
             glDeleteShader(vs);
             glDeleteShader(fs);
@@ -448,17 +502,6 @@ namespace NE::Graphics {
         // render each command based on mode
         for (const auto& cmd : overlayCommands)
         {
-            if (!cmd.material) continue;
-
-            auto pipeline = cmd.material->GetPipeline();
-            if (!pipeline) continue;
-
-            auto shader = pipeline->GetSpecification().shader;
-            if (!shader) continue;
-
-            shader->Bind();
-            cmd.material->Bind();
-
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
 
@@ -479,19 +522,39 @@ namespace NE::Graphics {
                 glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
             }
 
-            // set uniforms
-            if (cmd.bindlessTextureHandle != 0) 
+            // Use material shader if available, otherwise use fallback solid color shader
+            if (cmd.material)
             {
-                shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
-                shader->SetUniformInt("u_HasBaseMap", 1);
-            }
-            else 
-            {
-                shader->SetUniformInt("u_HasBaseMap", 0);
-            }
+                auto pipeline = cmd.material->GetPipeline();
+                if (!pipeline) continue;
 
-            shader->SetUniformVec4("uColor", cmd.color);
-            shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                auto shader = pipeline->GetSpecification().shader;
+                if (!shader) continue;
+
+                shader->Bind();
+                cmd.material->Bind();
+
+                // set uniforms
+                if (cmd.bindlessTextureHandle != 0) 
+                {
+                    shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
+                    shader->SetUniformInt("u_HasBaseMap", 1);
+                }
+                else 
+                {
+                    shader->SetUniformInt("u_HasBaseMap", 0);
+                }
+
+                shader->SetUniformVec4("uColor", cmd.color);
+                shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+            }
+            else
+            {
+                // Fallback: Use simple solid color shader when no material is assigned
+                glUseProgram(s_Shader);
+                glUniform2f(glGetUniformLocation(s_Shader, "uScreenSize"), (float)s_ScreenW, (float)s_ScreenH);
+                glUniform4f(glGetUniformLocation(s_Shader, "uColor"), cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+            }
 
             // draw
             if (cmd.useCustomVertices && !cmd.vertices.empty())
@@ -559,17 +622,6 @@ namespace NE::Graphics {
         // Render each world space UI command
         for (const auto& cmd : commands)
         {
-            if (!cmd.material) continue;
-
-            auto pipeline = cmd.material->GetPipeline();
-            if (!pipeline) continue;
-
-            auto shader = pipeline->GetSpecification().shader;
-            if (!shader) continue;
-
-            shader->Bind();
-            cmd.material->Bind();
-
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
 
@@ -588,30 +640,72 @@ namespace NE::Graphics {
                 glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
             }
 
-            // set world space uniforms
-            if (cmd.bindlessTextureHandle != 0)
+            // Use material shader if available, otherwise use fallback world space shader
+            if (cmd.material)
             {
-                shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
-                shader->SetUniformInt("u_HasBaseMap", 1);
+                auto pipeline = cmd.material->GetPipeline();
+                if (!pipeline) continue;
+
+                auto shader = pipeline->GetSpecification().shader;
+                if (!shader) continue;
+
+                shader->Bind();
+                cmd.material->Bind();
+
+                // set world space uniforms
+                if (cmd.bindlessTextureHandle != 0)
+                {
+                    shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
+                    shader->SetUniformInt("u_HasBaseMap", 1);
+                }
+                else
+                {
+                    shader->SetUniformInt("u_HasBaseMap", 0);
+                }
+                shader->SetUniformVec4("uColor", cmd.color);
+
+                // set uniforms based on render mode
+                if (cmd.renderMode == 1)  // camera mode
+                {
+                    shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                    shader->SetUniformMat4("uProj", cmd.projMatrix);
+                    shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
+                }
+                else if (cmd.renderMode == 2)  // world space
+                {
+                    shader->SetUniformMat4("uModel", cmd.modelMatrix);
+                    shader->SetUniformMat4("uView", cmd.viewMatrix);
+                    shader->SetUniformMat4("uProj", cmd.projMatrix);
+                }
             }
             else
             {
-                shader->SetUniformInt("u_HasBaseMap", 0);
-            }
-            shader->SetUniformVec4("uColor", cmd.color);
-
-            // set uniforms based on render mode
-            if (cmd.renderMode == 1)  // camera mode
-            {
-                shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
-                shader->SetUniformMat4("uProj", cmd.projMatrix);
-                shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
-            }
-            else if (cmd.renderMode == 2)  // world space
-            {
-                shader->SetUniformMat4("uModel", cmd.modelMatrix);
-                shader->SetUniformMat4("uView", cmd.viewMatrix);
-                shader->SetUniformMat4("uProj", cmd.projMatrix);
+                // Fallback: Use simple world space shader when no material is assigned
+                glUseProgram(s_WorldSpaceShader);
+                glUniform4f(glGetUniformLocation(s_WorldSpaceShader, "uColor"), cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+                
+                // set uniforms based on render mode
+                if (cmd.renderMode == 1)  // camera mode - not supported in fallback, skip
+                {
+                    continue;
+                }
+                else if (cmd.renderMode == 2)  // world space
+                {
+                    // Set matrix uniforms using glUniformMatrix4fv
+                    GLint modelLoc = glGetUniformLocation(s_WorldSpaceShader, "uModel");
+                    GLint viewLoc = glGetUniformLocation(s_WorldSpaceShader, "uView");
+                    GLint projLoc = glGetUniformLocation(s_WorldSpaceShader, "uProj");
+                    
+                    if (modelLoc != -1) {
+                        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, cmd.modelMatrix.a);
+                    }
+                    if (viewLoc != -1) {
+                        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, cmd.viewMatrix.a);
+                    }
+                    if (projLoc != -1) {
+                        glUniformMatrix4fv(projLoc, 1, GL_FALSE, cmd.projMatrix.a);
+                    }
+                }
             }
 
             // draw
@@ -677,7 +771,7 @@ namespace NE::Graphics {
 
         // bind UI framebuffer texture
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment()); // FBO’s color attachment is a texture containing your rendered UI
+        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment()); // FBOï¿½s color attachment is a texture containing your rendered UI
         glUniform1i(glGetUniformLocation(s_CompositeShader, "uUITexture"), 0); // bind to texture unit 0 (kiv to change to bindless)
 
         // draw fullscreen quad

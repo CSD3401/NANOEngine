@@ -34,6 +34,13 @@ namespace Editor {
             }
         );
 
+        NANOEngine::Events::EventBus::Get().Subscribe<CreateUIButtonEntityEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const CreateUIButtonEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUIButtonEntityCommand>(e.parentCanvas));
+            }
+        );
+
         NANOEngine::Events::EventBus::Get().Subscribe<DeleteEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const DeleteEntityEvent& e) {

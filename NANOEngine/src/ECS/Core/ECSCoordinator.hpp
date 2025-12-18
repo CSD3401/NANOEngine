@@ -13,6 +13,7 @@ namespace NE::ECS::Systems {
 	class ScriptSystem;
     class UIRenderSystem;
     class UITransformSystem;
+    class UIInteractionSystem;
     class AnimatorSystem;
 	class CameraSystem;
     class PhysicsSystem;
@@ -120,6 +121,7 @@ namespace NE::ECS {
 		std::shared_ptr<Systems::ScriptSystem> m_scriptSystem;
 		std::shared_ptr<Systems::UIRenderSystem> m_uiRenderSystem;
 		std::shared_ptr<Systems::UITransformSystem> m_uiTransformSystem;
+		std::shared_ptr<Systems::UIInteractionSystem> m_uiInteractionSystem;
         std::shared_ptr<Systems::AnimatorSystem> m_animatorSystem;
         std::shared_ptr<Systems::CameraSystem> m_cameraSystem;
 

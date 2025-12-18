@@ -457,6 +457,10 @@ namespace Editor {
 					if (ImGui::MenuItem("Text")) {
 					}
 					if (ImGui::MenuItem("Button")) {
+						NANOEngine::Events::EventBus::Get().Dispatch(
+							NANOEngine::Events::EventDomain::Editor,
+							CreateUIButtonEntityEvent{ EditorScene::s_selectedEntity->linkedEntity }
+						);
 					}
 				}
 			}

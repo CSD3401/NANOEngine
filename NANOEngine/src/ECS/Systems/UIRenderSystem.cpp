@@ -2,6 +2,7 @@
 #include "UITransformSystem.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIButton.hpp"
 #include "../../Graphics/Core/UIDrawCommand.hpp"
 #include "../../Graphics/Core/UIRenderer.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
@@ -198,7 +199,21 @@ namespace NE::ECS::Systems {
         cmd.z = worldTransform.z;
         cmd.width = worldTransform.width;
         cmd.height = worldTransform.height;
-        cmd.color = img.color;
+        
+        // Apply button state color if this entity has a button component
+        NE::Math::Vec4 finalColor = img.color;
+        if (m_cm->HasComponent<UIButton>(entity)) {
+            const auto& button = m_cm->GetComponent<UIButton>(entity);
+            if (button.transitionType == UIButton::TransitionType::COLOR_TINT) {
+                NE::Math::Vec4 buttonColor = button.GetCurrentColor();
+                // Multiply image color by button state color (tint)
+                finalColor.x = img.color.x * buttonColor.x;
+                finalColor.y = img.color.y * buttonColor.y;
+                finalColor.z = img.color.z * buttonColor.z;
+                finalColor.w = img.color.w * buttonColor.w;
+            }
+        }
+        cmd.color = finalColor;
         cmd.order = canvas.sortingOrder;
         cmd.entityId = entity;
         cmd.renderMode = static_cast<int>(canvas.renderMode);

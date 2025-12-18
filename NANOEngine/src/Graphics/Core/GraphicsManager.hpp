@@ -78,6 +78,8 @@ namespace NE::Graphics {
 
         static uint32_t GetScreenWidth();
         static uint32_t GetScreenHeight();
+        static uint32_t GetWindowWidth();
+        static uint32_t GetWindowHeight();
         static IStateCache* GetStateCache();
         
 		static RenderViewHandle CreateRenderView(uint32_t width, uint32_t height, bool enablePicking = true);

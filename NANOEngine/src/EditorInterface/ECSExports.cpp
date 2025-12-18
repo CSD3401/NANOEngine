@@ -11,10 +11,12 @@
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
+#include "../ECS/Components/UIButton.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
 #include "../ECS/Systems/UITransformSystem.hpp"
+#include "../ECS/Systems/UIInteractionSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include <limits>
 #include "../ECS/Components/Animator.hpp"
@@ -101,6 +103,10 @@ namespace NE::ECS {
 
 		bool HasUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		bool HasUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIButton>(e);
 		}
 
 		bool HasRenderer(uint32_t e) {
@@ -207,6 +213,13 @@ namespace NE::ECS {
 			}
 
 			return result;
+		}
+		
+		void SetUIViewportBounds(float x, float y, float width, float height) {
+			auto& ecs = GetScene().GetECSCoordinator();
+			if (ecs.m_uiInteractionSystem) {
+				ecs.m_uiInteractionSystem->SetViewportBounds(x, y, width, height);
+			}
 		}
 	}
 
@@ -323,6 +336,75 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		uint32_t CreateUIButtonEntity(uint32_t parentCanvas) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			uint32_t newEntity = ecs.CreateEntity();
+			ecs.AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name = "Button", .luid = Core::LUIDGenerator::Generate("en") });
+
+			// setup RectTransform with parent linkage (same as UIImage)
+			Component::UIRectTransform rect;
+			rect.luid = Core::LUIDGenerator::Generate("rect");
+			rect.x = 0.0f;
+			rect.y = 0.0f;
+			rect.z = 0.0f;
+			
+			// Check if parent is a World Space canvas and adjust default size accordingly
+			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UICanvas>(parentCanvas)) {
+				auto& canvas = ecs.GetComponent<Component::UICanvas>(parentCanvas);
+				if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
+					rect.width = 10.0f;
+					rect.height = 10.0f;
+					rect.x = 0.0f;
+					rect.y = 0.0f;
+					rect.offsetMinX = 0.0f;
+					rect.offsetMinY = 0.0f;
+					rect.offsetMaxX = 0.0f;
+					rect.offsetMaxY = 0.0f;
+				} else {
+					rect.width = 160.0f;  // Standard button size
+					rect.height = 30.0f;
+				}
+			} else {
+				rect.width = 160.0f;
+				rect.height = 30.0f;
+			}
+			
+			rect.parent = parentCanvas;
+
+			// set parent luid for serialization
+			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
+				rect.parentLuid = ecs.GetComponent<Component::UIRectTransform>(parentCanvas).luid;
+			}
+			else {
+				rect.parentLuid = 0;
+			}
+
+			ecs.AddComponent(newEntity, rect);
+
+			// Add UIImage component for button background
+			Component::UIImage img;
+			img.luid = Core::LUIDGenerator::Generate("img");
+			img.color = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);  // Default white button color
+			ecs.AddComponent(newEntity, img);
+
+			// Add UIButton component
+			Component::UIButton button;
+			button.luid = Core::LUIDGenerator::Generate("btn");
+			button.interactable = true;
+			button.currentState = Component::UIButton::State::NORMAL;
+			// Default colors (will tint the UIImage) - using very distinct colors for easy testing
+			button.normalColor = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);  // White (no tint)
+			button.hoverColor = NE::Math::Vec4(0.0f, 1.0f, 0.0f, 1.0f);   // Bright green (very visible)
+			button.pressedColor = NE::Math::Vec4(1.0f, 0.0f, 0.0f, 1.0f); // Bright red (very visible)
+			button.disabledColor = NE::Math::Vec4(0.5f, 0.5f, 0.5f, 0.5f); // Gray
+			ecs.AddComponent(newEntity, button);
+
+			return newEntity;
+		}
+
 		void DestroyEntity(uint32_t e) {
 			GetScene().GetECSCoordinator().DestroyEntity(e);
 		}
@@ -398,6 +480,11 @@ namespace NE::ECS {
 		Component::UICanvas& GetUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
+
+		Component::UIButton& GetUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
+		}
+
 		Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}

@@ -18,6 +18,7 @@
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
 #include "ECS/Systems//UITransformSystem.hpp"
+#include "ECS/Systems/UIInteractionSystem.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
@@ -55,6 +56,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_uiTransformSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
+		m_ecsCoordinator.m_uiInteractionSystem->Init();
 
 		m_ecsCoordinator.m_animatorSystem->Init();
 		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
@@ -77,6 +79,8 @@ namespace NE::SceneManagement {
 #pragma endregion
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
+		m_ecsCoordinator.m_uiTransformSystem->Update(dt);
+		m_ecsCoordinator.m_uiInteractionSystem->Update(dt);  // Update interaction before rendering
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);

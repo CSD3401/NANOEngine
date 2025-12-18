@@ -56,6 +56,7 @@
     <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
     <ClInclude Include="src\ECS\Components\UIText.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\UIInteractionSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
     <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
@@ -183,6 +184,7 @@
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\Core\Couroutine.cpp" />
     <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\UIInteractionSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\ECS\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
