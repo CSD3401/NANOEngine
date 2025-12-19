@@ -201,6 +201,8 @@ namespace NE::ECS::Systems {
         cmd.height = worldTransform.height;
         
         // Apply button state color if this entity has a button component
+        // Unity pattern: Final Color = UIImage Color * Button State Color
+        // This allows UIImage color to act as a base tint, and button states to modify it
         NE::Math::Vec4 finalColor = img.color;
         if (m_cm->HasComponent<UIButton>(entity)) {
             const auto& button = m_cm->GetComponent<UIButton>(entity);
@@ -209,8 +211,9 @@ namespace NE::ECS::Systems {
                 // GetCurrentColor() handles interactable check and returns disabledColor if not interactable
                 NE::Math::Vec4 buttonColor = button.GetCurrentColor();
                 
-                // Always multiply image color by button state color (tint)
-                // This works for all states including disabled - disabled color tints the image
+                // Multiply image color by button state color (component-wise)
+                // This matches Unity's behavior: base image color is tinted by button state
+                // Example: UIImage color (0.8, 0.8, 0.8) * Button hover (0.5, 1.0, 0.5) = (0.4, 0.8, 0.4)
                 finalColor.x = img.color.x * buttonColor.x;
                 finalColor.y = img.color.y * buttonColor.y;
                 finalColor.z = img.color.z * buttonColor.z;

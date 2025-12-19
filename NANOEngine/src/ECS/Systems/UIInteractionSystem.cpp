@@ -1,10 +1,13 @@
 #include "UIInteractionSystem.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/NativeScript.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Core/Logger.hpp"
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Vec4.hpp"
 #include "../../Math/Mat4.hpp"
+#include "../../Events/EventBus.hpp"
+#include "../../Events/UIButtonEvents.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -75,14 +78,12 @@ namespace NE::ECS::Systems {
             // Screen Space Camera mode uses same interaction as Screen Space Overlay (if needed)
         }
 
-        // Update pressed state tracking for next frame
-        const auto& buttonEntities = m_cm->GetEntitiesWithComponent<Component::UIButton>();
-        for (Entity entity : buttonEntities) {
-            if (m_cm->HasComponent<Component::UIButton>(entity)) {
-                auto& button = m_cm->GetComponent<Component::UIButton>(entity);
-                m_wasPressedLastFrame[entity] = (button.currentState == Component::UIButton::State::PRESSED);
-            }
-        }
+        // Note: m_wasPressedLastFrame is set in UpdateButtonState() when button enters PRESSED state
+        // We keep it set until ProcessButtonClicks() checks it (on mouse release)
+        // Don't clear it here - let ProcessButtonClicks handle it
+        
+        // Process button clicks (detect onClick events)
+        ProcessButtonClicks();
     }
 
     void UIInteractionSystem::Exit() {
@@ -183,47 +184,6 @@ namespace NE::ECS::Systems {
         float mouseXf = static_cast<float>(mouseX);
         float mouseYf = static_cast<float>(mouseY);
 
-        // DEBUG: Log coordinates when mouse is pressed (only once per press to avoid spam)
-        static bool s_wasMouseDown = false;
-        static bool s_loggedThisPress = false;
-        bool isMouseDownNow = NE::InputManager::IsMouseDown(0);
-        
-        if (isMouseDownNow && !s_wasMouseDown) {
-            // Mouse just pressed - log coordinates
-            s_loggedThisPress = false;
-        }
-        
-        if (isMouseDownNow && !s_loggedThisPress) {
-            std::cout << "\n=== UI INTERACTION DEBUG ===" << std::endl;
-            std::cout << "Mouse (window space): (" << mouseX << ", " << mouseY << ")" << std::endl;
-            std::cout << "Mouse (screen space): (" << std::fixed << std::setprecision(2) << mouseXf << ", " << mouseYf << ")" << std::endl;
-            std::cout << "World Transform:" << std::endl;
-            std::cout << "  Pivot: (" << pivotX << ", " << pivotY << ")" << std::endl;
-            std::cout << "  Size: " << width << " x " << height << std::endl;
-            std::cout << "  Pivot Norm: (" << pivotXNorm << ", " << pivotYNorm << ")" << std::endl;
-            std::cout << "Button Bounds:" << std::endl;
-            std::cout << "  Top-Left: (" << topLeftX << ", " << topLeftY << ")" << std::endl;
-            std::cout << "  Left: " << left << ", Right: " << right << std::endl;
-            std::cout << "  Top: " << top << ", Bottom: " << bottom << std::endl;
-            std::cout << "  Center: (" << (left + right) / 2.0f << ", " << (top + bottom) / 2.0f << ")" << std::endl;
-            
-            bool inBoundsX = (mouseXf >= (left - 0.5f) && mouseXf <= (right + 0.5f));
-            bool inBoundsY = (mouseYf >= (top - 0.5f) && mouseYf <= (bottom + 0.5f));
-            std::cout << "Point Check:" << std::endl;
-            std::cout << "  X in bounds: " << (inBoundsX ? "YES" : "NO") 
-                      << " (mouseX=" << mouseXf << ", left=" << left << ", right=" << right << ")" << std::endl;
-            std::cout << "  Y in bounds: " << (inBoundsY ? "YES" : "NO") 
-                      << " (mouseY=" << mouseYf << ", top=" << top << ", bottom=" << bottom << ")" << std::endl;
-            std::cout << "  Distance from center: (" << (mouseXf - (left + right) / 2.0f) 
-                      << ", " << (mouseYf - (top + bottom) / 2.0f) << ")" << std::endl;
-            std::cout << "  Result: " << (inBoundsX && inBoundsY ? "INSIDE" : "OUTSIDE") << std::endl;
-            std::cout << "============================\n" << std::endl;
-            
-            s_loggedThisPress = true;
-        }
-        
-        s_wasMouseDown = isMouseDownNow;
-
         // Check if mouse is within bounds
         // Mouse coordinates from InputManager are in window/screen pixels (top-left origin, Y-down)
         // World transform coordinates are in screen pixels (already scaled by scaleFactor)
@@ -256,8 +216,16 @@ namespace NE::ECS::Systems {
         // PRESSED -> NORMAL (mouse up, not hovering)
         // HOVERED -> NORMAL (mouse leaves)
 
+        // Track previous state to detect state changes
+        Component::UIButton::State previousState = button.currentState;
+
         if (isPressed && isHovering) {
             button.currentState = Component::UIButton::State::PRESSED;
+            // Track that this button was pressed (for click detection)
+            // Set the flag when button enters PRESSED state
+            if (previousState != Component::UIButton::State::PRESSED) {
+                m_wasPressedLastFrame[entity] = true;
+            }
         } else if (isHovering) {
             button.currentState = Component::UIButton::State::HOVERED;
         } else {
@@ -365,34 +333,6 @@ namespace NE::ECS::Systems {
             // If window size == screen size, mouseXScreen and mouseYScreen are already correct (no conversion needed)
         }
         
-        // DEBUG: Log coordinate conversion (only when mouse is pressed)
-        static bool s_wasMouseDown = false;
-        static bool s_loggedConversion = false;
-        if (isMouseDown && !s_wasMouseDown) {
-            s_loggedConversion = false;
-        }
-        if (isMouseDown && !s_loggedConversion) {
-            std::cout << "\n=== COORDINATE CONVERSION DEBUG ===" << std::endl;
-            std::cout << "Window Size: " << windowWidth << " x " << windowHeight << std::endl;
-            std::cout << "Screen Size: " << screenWidth << " x " << screenHeight << std::endl;
-            std::cout << "Mouse (window): (" << mouseX << ", " << mouseY << ")" << std::endl;
-            if (s_viewportSet) {
-                std::cout << "Viewport: (" << s_viewportX << ", " << s_viewportY 
-                          << "), Size: (" << s_viewportWidth << ", " << s_viewportHeight << ")" << std::endl;
-                bool inViewport = (mouseX >= s_viewportX && mouseX < s_viewportX + s_viewportWidth &&
-                                   mouseY >= s_viewportY && mouseY < s_viewportY + s_viewportHeight);
-                std::cout << "Mouse in viewport: " << (inViewport ? "YES" : "NO") << std::endl;
-                if (inViewport) {
-                    float normX = (mouseX - s_viewportX) / s_viewportWidth;
-                    float normY = (mouseY - s_viewportY) / s_viewportHeight;
-                    std::cout << "Normalized: (" << normX << ", " << normY << ")" << std::endl;
-                    std::cout << "Converted to screen: (" << (normX * screenWidth) << ", " << (normY * screenHeight) << ")" << std::endl;
-                }
-            }
-            s_loggedConversion = true;
-        }
-        s_wasMouseDown = isMouseDown;
-        
         // Note: mouseXScreen and mouseYScreen are already converted to screen space above
         // (either via viewport conversion or direct scaling)
         // No additional conversion needed here
@@ -429,14 +369,6 @@ namespace NE::ECS::Systems {
         // First button that contains the mouse gets the interaction
         Entity hoveredButton = NE::ECS::NO_ENTITY;
         Entity pressedButton = NE::ECS::NO_ENTITY;
-
-        // DEBUG: Log all buttons being checked
-        static bool s_loggedButtons = false;
-        if (isMouseDown && !s_loggedButtons) {
-            std::cout << "\n=== CHECKING BUTTONS ===" << std::endl;
-            std::cout << "Total buttons: " << buttonEntities.size() << std::endl;
-            s_loggedButtons = true;
-        }
         
         for (Entity entity : buttonEntities) {
             if (!m_cm->HasComponent<Component::UIRectTransform>(entity)) continue;
@@ -451,15 +383,6 @@ namespace NE::ECS::Systems {
 
             // Get rotation (for future rotation support)
             float rotationZ = worldTransform.accumulatedRotationZ;
-
-            // DEBUG: Log button info
-            if (isMouseDown && !s_loggedButtons) {
-                float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
-                float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
-                std::cout << "Button " << entity << ": pivot=(" << worldTransform.x << ", " << worldTransform.y 
-                          << "), topLeft=(" << topLeftX << ", " << topLeftY << "), size=(" 
-                          << worldTransform.width << ", " << worldTransform.height << ")" << std::endl;
-            }
 
             // Check if mouse is within button bounds
             // Mouse coordinates have been converted to screen space above
@@ -482,15 +405,6 @@ namespace NE::ECS::Systems {
             }
         }
         
-        if (isMouseDown && s_loggedButtons) {
-            // Reset flag when mouse is released
-            static bool s_wasMouseDownLastFrame = false;
-            if (!isMouseDown && s_wasMouseDownLastFrame) {
-                s_loggedButtons = false;
-            }
-            s_wasMouseDownLastFrame = isMouseDown;
-        }
-
         // Update all button states
         for (Entity entity : buttonEntities) {
             bool isHovering = (entity == hoveredButton);
@@ -724,6 +638,66 @@ namespace NE::ECS::Systems {
             bool isPressed = (entity == pressedButton) && isMouseDown;
             
             UpdateButtonState(entity, isHovering, isPressed);
+        }
+    }
+
+    void UIInteractionSystem::ProcessButtonClicks() {
+        // Get all button entities once
+        const auto& buttonEntities = m_cm->GetEntitiesWithComponent<Component::UIButton>();
+        
+        // Clear click flags from previous frame (so scripts can check wasClickedThisFrame)
+        for (Entity entity : buttonEntities) {
+            if (m_cm->HasComponent<Component::UIButton>(entity)) {
+                auto& button = m_cm->GetComponent<Component::UIButton>(entity);
+                button.wasClickedThisFrame = false;
+            }
+        }
+        
+        // Detect clicks: button was pressed last frame, released this frame, and still hovering
+        bool isMouseDown = NE::InputManager::IsMouseDown(0);
+        bool wasMouseReleased = NE::InputManager::WasMouseReleased(0);
+        
+        // Only process clicks on mouse release
+        if (!wasMouseReleased) return;
+        for (Entity entity : buttonEntities) {
+            if (!m_cm->HasComponent<Component::UIButton>(entity)) continue;
+            
+            auto& button = m_cm->GetComponent<Component::UIButton>(entity);
+            
+            // Skip if button is not interactable
+            if (!button.interactable) continue;
+            
+            // Check if button was pressed last frame (when mouse was down)
+            bool wasPressed = m_wasPressedLastFrame[entity];
+            
+            // Check if button is currently hovering (mouse released while on button)
+            // Accept both HOVERED and NORMAL states (NORMAL can happen if mouse is exactly on edge)
+            bool isCurrentlyHovering = (button.currentState == Component::UIButton::State::HOVERED || 
+                                       button.currentState == Component::UIButton::State::NORMAL);
+            
+            // Click detected: was pressed last frame, mouse released this frame, still hovering
+            if (wasPressed && wasMouseReleased && isCurrentlyHovering) {
+                // Set click flag for scripts to check
+                button.wasClickedThisFrame = true;
+                
+                // Clear the pressed flag (click has been processed)
+                m_wasPressedLastFrame[entity] = false;
+                
+                // Fire onClick event via event system
+                NANOEngine::Events::UIButtonClickEvent clickEvent{ entity, button.onClickEventId };
+                
+                // Dispatch to Engine domain (for C++ systems to subscribe)
+                NANOEngine::Events::EventBus::Get().Dispatch(
+                    NANOEngine::Events::EventDomain::Engine,
+                    clickEvent
+                );
+                
+                // Also dispatch to Script domain (for scripts to subscribe)
+                NANOEngine::Events::EventBus::Get().Dispatch(
+                    NANOEngine::Events::EventDomain::Script,
+                    clickEvent
+                );
+            }
         }
     }
 

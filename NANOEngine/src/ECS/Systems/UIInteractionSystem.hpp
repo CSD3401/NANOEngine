@@ -62,6 +62,9 @@ namespace NE::ECS::Systems {
             bool isHovering,
             bool isPressed
         );
+        
+        // Detect and fire onClick events for buttons
+        void ProcessButtonClicks();
 
         // Process all buttons in a canvas (screen space overlay)
         void ProcessScreenSpaceButtons(Entity canvasEntity);
@@ -92,6 +95,9 @@ namespace NE::ECS::Systems {
 
         // Track which button was pressed last frame (for click detection)
         std::unordered_map<Entity, bool> m_wasPressedLastFrame;
+        
+        // Track which button was being pressed when mouse was down (for click detection)
+        std::unordered_map<Entity, bool> m_wasPressedOnButton;
         
         // Viewport bounds for screen space overlay UI (set by editor)
         static float s_viewportX;

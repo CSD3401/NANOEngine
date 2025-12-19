@@ -33,6 +33,9 @@ namespace NE::ECS::Component {
 
         // Callback/event system
         uint32_t onClickEventId = 0; // For event system integration
+        
+        // Runtime flag for testing/scripts (cleared each frame)
+        bool wasClickedThisFrame = false; // Set to true when button is clicked, scripts can check this
 
         // Reflection
         NE_REFLECT_BEGIN(UIButton)
