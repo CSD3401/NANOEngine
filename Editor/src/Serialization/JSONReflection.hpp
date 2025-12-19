@@ -2,6 +2,7 @@
 
 #include <rapidjson/document.h>
 #include <filesystem>
+#include <variant>
 
 #include <Math/Vec2.hpp>
 #include <Math/Vec3.hpp>
@@ -12,6 +13,11 @@ namespace Editor {
 	using rapidjson::Value;
 
     namespace Serialization {
+
+        // forward decl for ToJson using Reflectable
+        template <NE::Core::Reflectable T>
+        Value ToJSON(const T& obj, Alloc& a);
+
         // Primitives and stdlib
         template <typename T>
         Value ToJSON(const T& v, Alloc&) requires std::is_arithmetic_v<T> {
@@ -39,6 +45,25 @@ namespace Editor {
                 arr.PushBack(ToJSON(item, a), a);
             }
             return arr;
+        }
+
+        // std::variant
+        template <typename... Ts>
+        Value ToJSON(const std::variant<Ts...>& v, Alloc& a) {
+            Value obj(rapidjson::kObjectType);
+            obj.AddMember("index", static_cast<uint32_t>(v.index()), a);
+
+            Value payload = std::visit([&](auto&& alt) -> Value {
+                using T = std::remove_cvref_t<decltype(alt)>;
+
+                if constexpr (NE::Core::Reflectable<T>) {
+                    return ToJSON(alt, a);
+                }
+                }, v
+            );
+
+            obj.AddMember("value", payload, a);
+            return obj;
         }
 
         // enums
@@ -87,6 +112,10 @@ namespace Editor {
     }
 
     namespace Deserialization {
+        // forward decl
+        template <NE::Core::Reflectable T>
+        void FromJSON(const Value& v, T& out);
+
         template <typename T>
         void FromJSON(const Value& v, T& out) requires std::is_arithmetic_v<T> {
             if constexpr (std::is_floating_point_v<T>) out = static_cast<T>(v.GetDouble());

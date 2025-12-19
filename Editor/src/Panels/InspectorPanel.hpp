@@ -20,6 +20,9 @@ namespace Editor {
 
 		void RenderModelImportSettings(const std::string& metaPath);
 
+		void DrawRendererComponent(uint32_t entity);
+		void DrawColliderComponent(uint32_t entity);
+
 		// temp implementation
 		//std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
 		//std::string m_loadedPath;

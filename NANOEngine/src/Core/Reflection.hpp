@@ -4,13 +4,28 @@
 #include <tuple>
 #include <utility>
 #include <string_view>
+#include <variant>
 
 namespace NE::Core {
+    template <class T>
+    concept Reflectable = requires { T::Reflect(); };
+
+    namespace {
+        template<typename T, typename F>
+        void InvokeField(const T& obj, const auto& desc, F&& f) {
+            if constexpr (NE::Core::Reflectable<T>) {
+                f(desc, obj.*(desc.member));
+            } else if constexpr (requires { std::visit([](auto&&) {}, obj.*(desc.member)); }) {
+                f(desc, obj.*(desc.member));
+            } else {
+                f(desc, obj.*(desc.member));
+            }
+        }
+    }
 
     enum class FieldFlags : std::uint8_t {
         None = 0,
         HiddenInEditor = 1 << 0,
-        // You can add more later, e.g. ReadOnly = 1 << 1, etc.
     };
 
     constexpr FieldFlags operator|(FieldFlags a, FieldFlags b) {
@@ -36,14 +51,11 @@ namespace NE::Core {
         FieldFlags flags;
     };
 
-    template <class T>
-    concept Reflectable = requires { T::Reflect(); };
-
     template <Reflectable T, class F>
     constexpr void ForEachFieldView(const T& obj, F&& f) {
         constexpr auto fields = T::Reflect();
         std::apply([&](auto&&... d) {
-            ((f(d, std::as_const(obj).*(d.member))), ...);
+            ((InvokeField(obj, d, f)), ...);
             }, fields);
     }
 

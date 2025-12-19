@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include "Graphics/OpenGL/GLTexture.hpp"
+#include <Core/Reflection.hpp>
 
 namespace NE::Math {
     struct Vec3;
@@ -39,14 +40,21 @@ namespace Editor {
     bool DrawHDRColorField(const char* label, HDRColor& hdr);
 
     // Enum Combo
-    template<typename EnumType>
-    bool DrawEnumCombo(const std::string& label, EnumType& value, const char* const* items, int itemsCount)
-    {
-        int val = static_cast<int>(value);
-        bool changed = ImGui::Combo(label.c_str(), &val, items, itemsCount);
-        if (changed) value = static_cast<EnumType>(val);
-        return changed;
-    }
+    //template<typename EnumType>
+    //bool DrawEnumCombo(const std::string& label, EnumType& value, const char* const* items, int itemsCount)
+    //{
+    //    int val = static_cast<int>(value);
+    //    bool changed = ImGui::Combo(label.c_str(), &val, items, itemsCount);
+    //    if (changed) value = static_cast<EnumType>(val);
+    //    return changed;
+    //}
+
+    bool DrawEnumPillCombo(
+        const char* label,
+        int& currentIndex,
+        const char* const* items,
+        int itemsCount,
+        float rightWidth = 180.0f);
 
     // New Styling
     bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned);
