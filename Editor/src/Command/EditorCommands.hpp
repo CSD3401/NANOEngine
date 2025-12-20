@@ -120,7 +120,7 @@ namespace Editor {
         //std::vector<DeletedUIEntityInfo> m_deletedEntities;
     };
 
-    class RenameEntityCommand : public ICommand {
+    class RenameEntityCommand final : public ICommand {
     public:
         RenameEntityCommand(uint32_t entity, const std::string& newName)
             : m_Entity(entity), m_NewName(newName) {}
@@ -138,5 +138,17 @@ namespace Editor {
     private:
         uint32_t m_Entity;
         std::string m_OldName, m_NewName;
+    };
+
+    class SetEntityLayerCommand final : public ICommand {
+    public:
+        SetEntityLayerCommand(uint32_t entity, uint8_t before, uint8_t after);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Change Layer"; }
+    private:
+        uint32_t m_entity;
+        uint8_t m_before, m_after;
     };
 }

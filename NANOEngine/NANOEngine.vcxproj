@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LayerRegistry.hpp" />
+    <ClInclude Include="src\Core\Tag.hpp" />
     <ClInclude Include="src\ECS\Components\Hierarchy.hpp" />
     <ClInclude Include="src\ECS\Systems\HierarchySystem.hpp" />
     <ClInclude Include="src\Core\Layers.hpp" />
@@ -167,6 +169,7 @@
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="LayerRegistry.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />

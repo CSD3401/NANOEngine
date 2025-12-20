@@ -6,7 +6,7 @@ namespace NE::Physics {
 
 	class LayerMaskBodyFilter : public JPH::ObjectLayerFilter {
     public:
-        explicit LayerMaskBodyFilter(NE::Core::Layers::Mask mask)
+        explicit LayerMaskBodyFilter(NE::Core::LayerMask mask)
             : mLayerMask(mask) {
         }
 
@@ -17,7 +17,7 @@ namespace NE::Physics {
         }
 
     private:
-        NE::Core::Layers::Mask mLayerMask;
+        NE::Core::LayerMask mLayerMask;
 	};
 
 }

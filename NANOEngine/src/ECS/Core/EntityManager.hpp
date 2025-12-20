@@ -3,9 +3,11 @@
 
 #include <vector>
 #include <array>
+
 #include "Entity.hpp"
 #include "Component.hpp"
 #include "Signature.hpp"
+#include "Core/Layers.hpp"
 
 namespace NE::ECS {
 
@@ -24,7 +26,12 @@ namespace NE::ECS {
 		void SetSignature(Entity entity, Signature sig);
 
 		std::vector<Entity>& GetUsedEntities() { return m_usedEntities; }
+
+		Core::LayerID GetLayer(Entity entity) const noexcept;
+		void SetLayer(Entity entity, Core::LayerID layer) noexcept;
+		Core::LayerMask GetLayerBit(Entity entity) const noexcept;
 	private:
+		std::vector<Core::LayerID> m_layer;
 		std::vector<Entity> m_usedEntities{}; // TEMP;
 		std::vector<Entity> m_availableEntities{};
 		std::array<Signature, MAX_ENTITIES> m_signatures{};

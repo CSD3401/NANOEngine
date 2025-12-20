@@ -13,7 +13,6 @@ namespace Editor {
 		InspectorPanel();
 
 		void OnImGuiRender() override;
-
 	private:
 
 		void RenderTextureImportSettings(std::string metaPath);
@@ -23,10 +22,8 @@ namespace Editor {
 		void DrawRendererComponent(uint32_t entity);
 		void DrawColliderComponent(uint32_t entity);
 
-		// temp implementation
-		//std::shared_ptr<NE::Graphics::Material> m_loadedMaterial;
-		//std::string m_loadedPath;
 		std::unique_ptr<MaterialEditor> m_materialEditor;
 		std::string m_lastPath;
+
 	};
 }

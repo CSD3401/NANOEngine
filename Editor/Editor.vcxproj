@@ -164,6 +164,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Layers\LayerDatabase.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\ModelSettingsEditor.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\IAsset.cpp" />
@@ -171,6 +172,7 @@
     <ClCompile Include="src\AssetManagement\Assets\ModelAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp" />
     <ClCompile Include="src\EditorState.cpp" />
+    <ClCompile Include="src\Layers\LayerModal.cpp" />
     <ClCompile Include="src\Serialization\Serializer.cpp" />
     <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ShaderAsset.cpp" />
@@ -199,6 +201,7 @@
     <ClCompile Include="src\ThumbnailManager.cpp" />
     <ClCompile Include="src\UIGizmoHandler.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\TextureSettingsEditor.cpp" />
+    <ClCompile Include="src\TagDatabase.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui_draw.cpp" />
     <ClCompile Include="vendor\include\imgui\imgui_impl_glfw.cpp" />
@@ -212,11 +215,14 @@
     <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Layers\LayerDatabase.hpp" />
     <ClInclude Include="src\AssetManagement\AssetRecord.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />
     <ClInclude Include="src\AssetManagement\AssetTypes.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\MaterialEditor.hpp" />
     <ClInclude Include="src\EditorState.hpp" />
+    <ClInclude Include="src\Layers\LayerDefs.hpp" />
+    <ClInclude Include="src\Layers\LayerModal.hpp" />
     <ClInclude Include="src\Serialization\JSONReflection.hpp" />
     <ClInclude Include="src\Serialization\Serializer.hpp" />
     <ClInclude Include="src\AssetManagement\AssetManager.hpp" />
@@ -235,7 +241,6 @@
     <ClInclude Include="src\Command\EditorSetFieldCommand.hpp" />
     <ClInclude Include="src\Command\EditorSetTransformCommand.hpp" />
     <ClInclude Include="src\EditorEvents.hpp" />
-    <ClInclude Include="src\EditorLayers.hpp" />
     <ClInclude Include="src\EditorSelection.hpp" />
     <ClInclude Include="src\EditorScene.hpp" />
     <ClInclude Include="src\Command\CommandHistory.hpp" />
@@ -262,6 +267,7 @@
     <ClInclude Include="src\Util\DrawSelectedCollider.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\TextureSettingsEditor.hpp" />
     <ClInclude Include="src\Util\HierarchyUtils.hpp" />
+    <ClInclude Include="src\TagDatabase.hpp" />
     <ClInclude Include="vendor\include\imgui\imconfig.h" />
     <ClInclude Include="vendor\include\imgui\imgui.h" />
     <ClInclude Include="vendor\include\imgui\imgui_impl_glfw.h" />

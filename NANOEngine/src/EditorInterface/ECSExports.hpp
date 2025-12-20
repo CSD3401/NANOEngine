@@ -9,6 +9,7 @@
 #include "ECS/Core/Entity.hpp"
 #include "SceneManagement/SceneManager.hpp"
 #include "Engine.hpp"
+#include "Core/Layers.hpp"
 
 //namespace NE {
 //	SceneManagement::Scene& GetScene();
@@ -114,6 +115,9 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::Camera>(uint32_t e) { return HasCamera(e); }
 
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
+
+		NANOENGINE_API const Core::LayerID GetLayer(Entity e);
+		NANOENGINE_API const Core::LayerMask GetLayerBit(Entity e);
 	}
 
 	namespace Command {
@@ -164,6 +168,8 @@ namespace NE::ECS {
 
 		NANOENGINE_API void AddAnimatorComponent(uint32_t e);              // <-- ADD
 		NANOENGINE_API Component::Animator& GetEntityAnimator(uint32_t e);
+
+		NANOENGINE_API void SetLayer(Entity e, Core::LayerID layer);
 	}
 
 }
