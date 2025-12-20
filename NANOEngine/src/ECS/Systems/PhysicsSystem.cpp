@@ -320,60 +320,60 @@ namespace NE::ECS::Systems
 
             Math::Vec3 worldRotation{ pitch, yaw, roll };
 
-            switch (collider.shapeType) {
-            case Component::Collider::ShapeType::Box:
-                bodyID = NE::Physics::PhysicsManager::CreateBoxBody(
-                    worldPosition, worldRotation,
-                    collider.halfExtents * 2.0f,
-                    motionType, entity, meta.layer
-                );
-                break;
+            //switch (collider.shapeType) {
+            //case Component::Collider::ShapeType::Box:
+            //    bodyID = NE::Physics::PhysicsManager::CreateBoxBody(
+            //        worldPosition, worldRotation,
+            //        collider.halfExtents * 2.0f,
+            //        motionType, entity, meta.layer
+            //    );
+            //    break;
 
-            case Component::Collider::ShapeType::Sphere:
-                bodyID = NE::Physics::PhysicsManager::CreateSphereBody(
-                    worldPosition, worldRotation,
-                    collider.radius,
-                    motionType, entity, meta.layer
-                );
-                break;
+            //case Component::Collider::ShapeType::Sphere:
+            //    bodyID = NE::Physics::PhysicsManager::CreateSphereBody(
+            //        worldPosition, worldRotation,
+            //        collider.radius,
+            //        motionType, entity, meta.layer
+            //    );
+            //    break;
 
-            case Component::Collider::ShapeType::Capsule:
-                bodyID = NE::Physics::PhysicsManager::CreateCapsuleBody(
-                    worldPosition, worldRotation,
-                    collider.height * 0.5f,
-                    collider.radius,
-                    motionType, entity, meta.layer
-                );
-                break;
-            case Component::Collider::ShapeType::Mesh: {
-                auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-                std::vector<Math::Vec3> outVerts;
-                std::vector<uint32_t> outIndices;
-                renderer.model->GetPhysicsMesh(outVerts, outIndices);
-                //rb.isStatic = true;
-                //rb.motionType = 0U;
-                //rb.mass = 1.f;
-                bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices, entity, meta.layer);
+            //case Component::Collider::ShapeType::Capsule:
+            //    bodyID = NE::Physics::PhysicsManager::CreateCapsuleBody(
+            //        worldPosition, worldRotation,
+            //        collider.height * 0.5f,
+            //        collider.radius,
+            //        motionType, entity, meta.layer
+            //    );
+            //    break;
+            //case Component::Collider::ShapeType::Mesh: {
+            //    auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
+            //    std::vector<Math::Vec3> outVerts;
+            //    std::vector<uint32_t> outIndices;
+            //    renderer.model->GetPhysicsMesh(outVerts, outIndices);
+            //    //rb.isStatic = true;
+            //    //rb.motionType = 0U;
+            //    //rb.mass = 1.f;
+            //    bodyID = NE::Physics::PhysicsManager::CreateMeshShape(renderer.modelUUID, outVerts, outIndices, entity, meta.layer);
 
-                if (bodyID != 0) {
-                    //Math::Vec3 worldRotationDeg{
-                    //    JPH::RadiansToDegrees(pitch),
-                    //    JPH::RadiansToDegrees(yaw),
-                    //    JPH::RadiansToDegrees(roll)
-                    //};
+            //    if (bodyID != 0) {
+            //        //Math::Vec3 worldRotationDeg{
+            //        //    JPH::RadiansToDegrees(pitch),
+            //        //    JPH::RadiansToDegrees(yaw),
+            //        //    JPH::RadiansToDegrees(roll)
+            //        //};
 
-                    NE::Physics::PhysicsManager::SetTransform(
-                        bodyID,
-                        worldPosition,
-                        Math::Vec3(pitch, yaw, roll)
-                    );
-                }
-            }
-            break;
-            case Component::Collider::ShapeType::None:
-                break;
-            }
-            
+            //        NE::Physics::PhysicsManager::SetTransform(
+            //            bodyID,
+            //            worldPosition,
+            //            Math::Vec3(pitch, yaw, roll)
+            //        );
+            //    }
+            //}
+            //break;
+            //case Component::Collider::ShapeType::None:
+            //    break;
+            //}
+            //
         }
 
         if (bodyID != 0)

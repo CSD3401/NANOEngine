@@ -78,6 +78,7 @@
     <ClCompile Include="src\Physics\LayerMaskBodyFilter.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
     <ClCompile Include="src\Serialisation\Serializer.cpp" />
+    <ClCompile Include="LayerRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -227,6 +228,8 @@
     <ClInclude Include="src\ECS\Components\Hierarchy.hpp" />
     <ClInclude Include="src\Serialisation\Serializer.hpp" />
     <ClInclude Include="src\Serialisation\BinaryReflection.hpp" />
+    <ClInclude Include="src\Core\Tag.hpp" />
+    <ClInclude Include="LayerRegistry.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -341,9 +344,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Physics\JoltDebugRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EngineState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\EditorInterface\ECSExports.cpp">
