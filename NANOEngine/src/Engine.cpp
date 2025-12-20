@@ -98,17 +98,15 @@ namespace NE {
 		glEnable(GL_CULL_FACE);
 
 		Graphics::GraphicsManager::Init();
-		Physics::PhysicsManager::Init();
+		Physics::PhysicsManager::GetInstance().Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
-		//Physics::PhysicsManager::TestPhysicsSetup();
-		//glDisable(GL_FRAMEBUFFER_SRGB);
 	}
 
 	void Run(double dt) {
 		NE_PROFILE_FUNCTION();
 		//s_window->PollEvents();
 
-		Physics::PhysicsManager::Update(static_cast<float>(dt));
+		//Physics::PhysicsManager::Update(static_cast<float>(dt));
 		//Physics::Command::Update(static_cast<float>(dt));
 
 		gSceneManager.Update(dt);
@@ -128,7 +126,7 @@ namespace NE {
 
 	void Shutdown() {
 		NE_PROFILE_FUNCTION();
-		Physics::PhysicsManager::Shutdown();
+		//Physics::PhysicsManager::Shutdown();
 		Graphics::GraphicsManager::Shutdown();
 		//Physics::Command::Shutdown();
 		

@@ -61,7 +61,6 @@
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
-    <ClCompile Include="src\ECS\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="src\Physics\PhysicsContactListener.cpp" />
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
@@ -195,7 +194,6 @@
     <ClInclude Include="src\ECS\Components\Animator.hpp" />
     <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
-    <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
     <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
@@ -341,9 +339,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Physics\JoltDebugRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EngineState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\EditorInterface\ECSExports.cpp">

@@ -11,7 +11,6 @@
 #include "ECS/Systems/AnimatorSystem.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
 #include "ECS/Systems/CameraSystem.hpp"
-#include "ECS/Systems/PhysicsSystem.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
 #include "ECS/Systems/UITransformSystem.hpp"
@@ -71,7 +70,6 @@ namespace NE::SceneManagement {
 
 	void Scene::UpdateRuntime(double dt) {
 		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
-		m_ecsCoordinator.m_physicsSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
@@ -105,7 +103,6 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::ScriptStart() {
-		m_ecsCoordinator.m_physicsSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->StartScripts();
 	}
 
@@ -115,7 +112,6 @@ namespace NE::SceneManagement {
 
 	void Scene::ScriptStop() {
 		m_ecsCoordinator.m_scriptSystem->StopScripts();
-		m_ecsCoordinator.m_physicsSystem->Exit();
 	}
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator() {

@@ -825,12 +825,6 @@ namespace Editor {
 						bool changedZ = Editor::DrawCheckbox("Z", comp.constrainZ);
 
 						if (changedX || changedY || changedZ) {
-							NE::Physics::Command::LockConstraints(
-								entity,
-								comp.constrainX,
-								comp.constrainY,
-								comp.constrainZ
-							);
 						}
 
 						ImGui::TreePop();
@@ -3003,14 +2997,14 @@ namespace Editor {
 		ImGui::SeparatorText("Collider");
 		
 		static const char* ColliderTypeNames[] = { "None", "Box", "Sphere", "Capsule", "Cylinder", "Mesh" };
-		int currCollider = static_cast<int>(comp.colliderType);
+		int currCollider = static_cast<int>(comp.type);
 
 		if (DrawEnumPillCombo("Collider Type", currCollider, ColliderTypeNames, IM_ARRAYSIZE(ColliderTypeNames), 100.0f)) {
 			auto newType =
 				static_cast<Collider::ColliderType>(currCollider);
 
-			if (newType != comp.colliderType) {
-				comp.colliderType = newType;
+			if (newType != comp.type) {
+				comp.type = newType;
 
 				switch (newType) {
 				case Collider::ColliderType::None:
@@ -3035,7 +3029,7 @@ namespace Editor {
 			}
 		}
 
-		if (comp.colliderType == Collider::ColliderType::None) return;
+		if (comp.type == Collider::ColliderType::None) return;
 
 		NE::Core::ForEachFieldView<Collider>(comp,
 			[&](auto const& desc, auto const& currentValue) {

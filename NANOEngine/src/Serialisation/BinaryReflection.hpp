@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <variant>
 
 #include "Math/Vec2.hpp"
 #include "Math/Vec3.hpp"
@@ -35,6 +36,9 @@ namespace NE {
             b[7] = (std::uint8_t)((v >> 56) & 0xFF);
             AppendBytes(out, b, sizeof(b));
         }
+
+        template <NE::Core::Reflectable T>
+        inline size_t ToBinary(ByteBuffer& out, const T& obj);
 
 	    // Primitives and std types
         inline size_t ToBinary(ByteBuffer& out, const std::uint64_t& v) {
@@ -97,6 +101,24 @@ namespace NE {
                 for (const auto& e : vec)
                     ToBinary(out, e);
             }
+
+            return out.size() - before;
+        }
+
+        template <typename... Ts>
+        inline size_t ToBinary(ByteBuffer& out, const std::variant<Ts...>& v) {
+            const size_t before = out.size();
+
+            uint32_t index = static_cast<uint32_t>(v.index());
+            ToBinary(out, index);
+
+            std::visit([&](auto&& alt) {
+                using T = std::remove_cvref_t<decltype(alt)>;
+
+                if constexpr (NE::Core::Reflectable<T>) {
+                    ToBinary(out, alt);
+                }
+            }, v);
 
             return out.size() - before;
         }
@@ -172,6 +194,9 @@ namespace NE {
             return true;
         }
 
+        template <NE::Core::Reflectable T>
+        inline bool FromBinary(const uint8_t*& it, const uint8_t* end, T& obj);
+
         // primitives and std types
         inline bool FromBinary(const uint8_t*& it, const uint8_t* end, std::uint64_t& v) {
             return ReadU64LE(it, end, v);
@@ -220,7 +245,7 @@ namespace NE {
             return true;
         }
 
-        // vector
+        // std::vector
         template <typename T>
         inline bool FromBinary(const uint8_t*& it, const uint8_t* end, std::vector<T>& vec) {
             std::uint64_t count = 0;
@@ -239,6 +264,32 @@ namespace NE {
                         return false;
                 return true;
             }
+        }
+
+        // std::variant
+        template <typename... Ts>
+        inline bool FromBinary(const uint8_t*& it, const uint8_t* end, std::variant<Ts...>& v) {
+            uint32_t index = 0;
+            if (!FromBinary(it, end, index) || index >= sizeof...(Ts))
+                return false;
+
+            bool success = false;
+
+            [&] <std::size_t... Is>(std::index_sequence<Is...>) {
+                ((index == Is ? (v.template emplace<Is>(), success = true, false) : false) || ...);
+            }(std::make_index_sequence<sizeof...(Ts)>{});
+
+            if (!success)
+                return false;
+
+            return std::visit([&](auto&& value) -> bool {
+                using T = std::remove_cvref_t<decltype(value)>;
+
+                if constexpr (NE::Core::Reflectable<T>) {
+                    return FromBinary(it, end, value);
+                }
+
+            }, v);
         }
 
         // enums

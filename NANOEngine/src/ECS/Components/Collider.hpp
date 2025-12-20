@@ -73,11 +73,14 @@ namespace NE::ECS::Component {
 
         ColliderData data;
         Math::Vec3 center{ 0.f, 0.f, 0.f };
-        ColliderType colliderType{ ColliderType::None };
+        ColliderType type{ ColliderType::None };
         bool isTrigger = false;
 
+        // Internal
+        bool isDirty = false;
+
         NE_REFLECT_BEGIN(Collider)
-            NE_REFLECT_FIELD_HIDDEN(colliderType), // Hidden due to no enum reflection support but for disk serialization
+            NE_REFLECT_FIELD_HIDDEN(type), // Hidden due to no enum reflection support but for disk serialization
             NE_REFLECT_FIELD(isTrigger),
             NE_REFLECT_FIELD(center),
             NE_REFLECT_FIELD_HIDDEN(data) // Hidden due to no std::variant reflection support but for disk serialization

@@ -60,7 +60,6 @@
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
-    <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
     <ClInclude Include="src\EditorInterface\PhysicsExports.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
@@ -181,7 +180,6 @@
     <ClCompile Include="src\Core\Couroutine.cpp" />
     <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
-    <ClCompile Include="src\ECS\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
     <ClCompile Include="src\Graphics\Core\UIRenderer.cpp" />

@@ -138,6 +138,21 @@ namespace Editor {
             }
         }
 
+        template <typename... Ts>
+        Value FromJSON(const Value& v, std::variant<Ts...>& out) {
+            if (!v.IsObject() || !v.HasMember("index") || !v.HasMember("value")) {
+                out = std::variant<Ts...>{};  // Default
+                return;
+            }
+
+            uint32_t index = v["index"].GetUint();
+            const Value& payload = v["value"];
+
+            [&] <size_t... I>(std::index_sequence<I...>) {
+                ((I == index ? (FromJSON(payload, out = std::variant_alternative_t<I, std::variant<Ts...>>{})) : void()), ...);
+            } (std::make_index_sequence<sizeof...(Ts)>{});
+        }
+
         // enums
         template <typename E>
         void FromJSON(const Value& v, E& e) requires std::is_enum_v<E> {

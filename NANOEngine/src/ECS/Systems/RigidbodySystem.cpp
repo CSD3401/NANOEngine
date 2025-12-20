@@ -42,39 +42,39 @@ namespace NE::ECS::Systems {
 				continue;
 			}
 
-			auto& collider = m_componentManager->GetComponent<Component::Collider>(e);
+			//auto& collider = m_componentManager->GetComponent<Component::Collider>(e);
 
-			// Clamp values prevent negative size
-			collider.halfExtents.x = std::max(0.1f, collider.halfExtents.x);
-			collider.halfExtents.y = std::max(0.1f, collider.halfExtents.y);
-			collider.halfExtents.z = std::max(0.1f, collider.halfExtents.z);
-			collider.radius = std::max(0.1f, collider.radius);
-			collider.height = std::max(0.1f, collider.height);
+			//// Clamp values prevent negative size
+			//collider.halfExtents.x = std::max(0.1f, collider.halfExtents.x);
+			//collider.halfExtents.y = std::max(0.1f, collider.halfExtents.y);
+			//collider.halfExtents.z = std::max(0.1f, collider.halfExtents.z);
+			//collider.radius = std::max(0.1f, collider.radius);
+			//collider.height = std::max(0.1f, collider.height);
 
-			bool needsRecreation = false;
+			//bool needsRecreation = false;
 
-			// Check shape type change
-			if (collider.shapeType != collider.previousShapeType) {
-				printf("Shape type changed for entity %d\n", e);
-				needsRecreation = true;
-				collider.previousShapeType = collider.shapeType;
-			}
-			// Check any property changes
-			else if (collider.halfExtents != collider.previousHalfExtents ||
-				collider.radius != collider.previousRadius ||
-				collider.height != collider.previousHeight) {
-				printf("Collider properties changed for entity %d\n", e);
-				needsRecreation = true;
+			//// Check shape type change
+			//if (collider.shapeType != collider.previousShapeType) {
+			//	printf("Shape type changed for entity %d\n", e);
+			//	needsRecreation = true;
+			//	collider.previousShapeType = collider.shapeType;
+			//}
+			//// Check any property changes
+			//else if (collider.halfExtents != collider.previousHalfExtents ||
+			//	collider.radius != collider.previousRadius ||
+			//	collider.height != collider.previousHeight) {
+			//	printf("Collider properties changed for entity %d\n", e);
+			//	needsRecreation = true;
 
-				// Update all previous values
-				collider.previousHalfExtents = collider.halfExtents;
-				collider.previousRadius = collider.radius;
-				collider.previousHeight = collider.height;
-			}
+			//	// Update all previous values
+			//	collider.previousHalfExtents = collider.halfExtents;
+			//	collider.previousRadius = collider.radius;
+			//	collider.previousHeight = collider.height;
+			//}
 
-			if (needsRecreation) {
-				RecreatePhysicsBody(e);
-			}
+			//if (needsRecreation) {
+			//	RecreatePhysicsBody(e);
+			//}
 		}
 	}
 	
@@ -87,8 +87,8 @@ namespace NE::ECS::Systems {
 		// Store current motion type
 		JPH::EMotionType oldMotionType = JPH::EMotionType::Dynamic;
 		if (rb.bodyID != 0) {
-			oldMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
-			Physics::PhysicsManager::DestroyBody(rb.bodyID);
+			//oldMotionType = Physics::PhysicsManager::GetMotionType(rb.bodyID);
+			//Physics::PhysicsManager::DestroyBody(rb.bodyID);
 			rb.bodyID = 0; // Clear old ID
 		}
 
