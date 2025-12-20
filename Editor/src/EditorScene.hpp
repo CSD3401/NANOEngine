@@ -6,6 +6,7 @@
 #include "Graphics/Core/EditorCamera.hpp"
 #include "EditorSelection.hpp"
 #include "AssetManagement/Assets/SceneAsset.hpp"
+#include "Layers/LayerDatabase.hpp"
 
 namespace Editor {
     struct EditorScene {
@@ -18,6 +19,8 @@ namespace Editor {
         //static Assets::SceneAsset* s_currentScene;
         static std::string s_currentSceneUUID;
         static std::string s_currentScenePath; // temp
+
+        static Layers::LayerDatabase layerDatabase;
 
         static NE::Graphics::EditorCamera m_editorCamera;
 

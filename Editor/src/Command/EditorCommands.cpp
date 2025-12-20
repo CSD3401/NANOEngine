@@ -9,54 +9,14 @@
 #include <Core/LUIDGenerator.hpp>
 
 namespace Editor {
-
 	CreateEmptyEntityCommand::CreateEmptyEntityCommand() : m_entity(0) {}
 
 	void CreateEmptyEntityCommand::Execute() {
 		m_entity = NE::ECS::Command::CreateEntity();
 		EditorScene::s_rootOrder.push_back(m_entity);
-		//EditorScene::s_entities.push_back(EditorEntity{ m_entity });
-
-		//Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
-
-		//Editor::Node node{};
-		//node.id = m_entity;
-		//node.parent = NE::ECS::NO_ENTITY;
-		//node.orderKey = static_cast<float>(EditorScene::s_roots.size());
-
-		//EditorScene::s_nodes[m_entity] = node;
-		//EditorScene::s_roots.push_back(m_entity);
-
-		//Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
 	}
 
-	void CreateEmptyEntityCommand::Undo()
-	{
-		//const uint32_t id = m_entity;
-
-		// temp
-		//auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
-		//	[id = m_entity](const EditorEntity& entt) {
-		//		return entt.linkedEntity == id;
-		//	});
-
-		//if (it != EditorScene::s_entities.end()) {
-		//	EditorScene::s_entities.erase(it);
-		//}
-
-		//EditorScene::s_nodes.erase(id);
-
-		//auto& roots = EditorScene::s_roots;
-		//roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
-
-		//for (auto& [parent, vec] : EditorScene::s_children) {
-		//	vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
-		//}
-
-		//if (Editor::EditorScene::s_selectedEntity &&
-		//	Editor::EditorScene::s_selectedEntity->linkedEntity == id) {
-		//	Editor::EditorScene::s_selectedEntity = nullptr;
-		//}
+	void CreateEmptyEntityCommand::Undo() {
 		EditorScene::UnregisterRoot(m_entity);
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
@@ -88,7 +48,7 @@ namespace Editor {
 		//		return entt.linkedEntity == id;
 		//	});
 
-		//if (it != EditorScene::s_entities.end()) 
+		//if (it != EditorScene::s_entities.end())
 		//{
 		//	EditorScene::s_entities.erase(it);
 		//}
@@ -101,7 +61,7 @@ namespace Editor {
 		//roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
 
 		//// remove from any parent's children list
-		//for (auto& [parent, vec] : EditorScene::s_children) 
+		//for (auto& [parent, vec] : EditorScene::s_children)
 		//{
 		//	vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
 		//}
@@ -148,7 +108,7 @@ namespace Editor {
 		//		return entt.linkedEntity == id;
 		//	});
 
-		//if (it != EditorScene::s_entities.end()) 
+		//if (it != EditorScene::s_entities.end())
 		//{
 		//	EditorScene::s_entities.erase(it);
 		//}
@@ -161,7 +121,7 @@ namespace Editor {
 		//roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
 
 		//// remove from all parent's children lists
-		//for (auto& [parent, vec] : EditorScene::s_children) 
+		//for (auto& [parent, vec] : EditorScene::s_children)
 		//{
 		//	vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
 		//}
@@ -247,7 +207,7 @@ namespace Editor {
 
 		//std::unordered_map<uint32_t, uint32_t> oldToNewId; // map old id to new id
 
-		//for (const auto& info : m_deletedEntities) 
+		//for (const auto& info : m_deletedEntities)
 		//{
 		//	uint32_t newEntity;
 		//	uint32_t newParentId = NE::ECS::NO_ENTITY;
@@ -255,11 +215,11 @@ namespace Editor {
 		//	{
 		//		// If the parent was also deleted & recreated, remap to the NEW id
 		//		auto it = oldToNewId.find(info.parentId);
-		//		if (it != oldToNewId.end()) 
+		//		if (it != oldToNewId.end())
 		//		{
 		//			newParentId = it->second; // parent was recreated
 		//		}
-		//		else 
+		//		else
 		//		{
 		//			newParentId = info.parentId; // parent still exists, keep original id
 		//		}
@@ -270,11 +230,11 @@ namespace Editor {
 		//	{
 		//		newEntity = NE::ECS::Command::CreateUICanvasEntity();
 		//	}
-		//	else if (info.wasUIImage) 
+		//	else if (info.wasUIImage)
 		//	{
 		//		newEntity = NE::ECS::Command::CreateUIImageEntity(newParentId);
 		//	}
-		//	else 
+		//	else
 		//	{
 		//		// just regular 3D entity
 		//		newEntity = NE::ECS::Command::CreateEntity();
@@ -289,7 +249,7 @@ namespace Editor {
 		//	Editor::Node node{};
 		//	node.id = newEntity;
 
-		//	if (newParentId != NE::ECS::NO_ENTITY) 
+		//	if (newParentId != NE::ECS::NO_ENTITY)
 		//	{
 		//		// has a parent
 		//		node.parent = newParentId;
@@ -297,7 +257,7 @@ namespace Editor {
 		//		node.orderKey = static_cast<float>(children.size());
 		//		children.push_back(newEntity);
 		//	}
-		//	else 
+		//	else
 		//	{
 		//		// root entity
 		//		node.parent = NE::ECS::NO_ENTITY;
@@ -312,9 +272,9 @@ namespace Editor {
 		//if (!m_deletedEntities.empty())
 		//{
 		//	// find the root entity (the one with no parent)
-		//	for (const auto& info : m_deletedEntities) 
+		//	for (const auto& info : m_deletedEntities)
 		//	{
-		//		if (info.parentId == NE::ECS::NO_ENTITY) 
+		//		if (info.parentId == NE::ECS::NO_ENTITY)
 		//		{
 		//			m_entity = oldToNewId[info.id];
 		//			break;
@@ -399,4 +359,18 @@ namespace Editor {
 		EditorScene::UnregisterRoot(m_entity);
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
+
+	SetEntityLayerCommand::SetEntityLayerCommand(
+		uint32_t entity, uint8_t before, uint8_t after)
+		: m_entity(entity), m_before(before), m_after(after) {
+	}
+
+	void SetEntityLayerCommand::Execute() {
+		NE::ECS::Command::SetLayer(m_entity, static_cast<NE::Core::LayerID>(m_after));
+	}
+
+	void SetEntityLayerCommand::Undo() {
+		NE::ECS::Command::SetLayer(m_entity, static_cast<NE::Core::LayerID>(m_before));
+	}
+
 }

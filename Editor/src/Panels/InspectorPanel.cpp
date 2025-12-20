@@ -44,7 +44,11 @@
 #include <rapidjson/document.h>
 #include <Serialisation/ReflectionJson.hpp>
 #include <rapidjson/istreamwrapper.h>
-#include "../EditorLayers.hpp"
+#include "../Command/EditorCommands.hpp"
+#include "../Layers/LayerDatabase.hpp"
+#include "../Layers/LayerModal.hpp"
+
+bool openLayerSettings = false;
 
 namespace {
 	// the widget maker
@@ -221,36 +225,83 @@ namespace {
 		return true;
 	}
 
-	bool LoadTextureImportSettings(std::string metaPath, Editor::Assets::TextureImportSettings& settings) {
-		using namespace rapidjson;
-		using namespace NE::Serialization;
+	//bool LoadTextureImportSettings(std::string metaPath, Editor::Assets::TextureImportSettings& settings) {
+	//	using namespace rapidjson;
+	//	using namespace NE::Serialization;
 
-		if (!std::filesystem::exists(metaPath))
-			return false;
+	//	if (!std::filesystem::exists(metaPath))
+	//		return false;
 
-		std::ifstream ifs(metaPath);
-		if (!ifs) {
-			SPD_WARNING("Failed to read meta file: " << metaPath);
-			return false;
+	//	std::ifstream ifs(metaPath);
+	//	if (!ifs) {
+	//		SPD_WARNING("Failed to read meta file: " << metaPath);
+	//		return false;
+	//	}
+
+	//	IStreamWrapper isw(ifs);
+	//	Document doc;
+	//	doc.ParseStream(isw);
+
+	//	if (doc.HasParseError() || !doc.IsObject()) {
+	//		SPD_WARNING("Failed to parse JSON in meta file: " << metaPath);
+	//		return false;
+	//	}
+
+	//	if (!doc.HasMember("textureImport") || !doc["textureImport"].IsObject())
+	//		return true;
+
+	//	const auto& jSettings = doc["textureImport"];
+	//	from_json(jSettings, settings);
+
+	//	return true;
+	//}
+
+	// temp
+	// Returns true if layer changed
+	static bool DrawLayerCombo_UnityStyle(
+		const char* label,
+		NE::Core::LayerID& ioLayer,
+		Editor::Layers::LayerDatabase & db,
+		float comboWidth = 180.0f)
+	{
+		bool changed = false;
+
+		// Preview text
+		std::string_view currentName = db.GetName(ioLayer);
+		const char* preview = (!currentName.empty()) ? currentName.data() : "<Unassigned>";
+
+		ImGui::PushID(label);
+		ImGui::PushItemWidth(comboWidth);
+		
+		if (ImGui::BeginCombo(label, preview)) {
+			db.ForEachUsed([&](NE::Core::LayerID id, std::string_view name) {
+				const bool selected = (id == ioLayer);
+
+				std::string label = std::to_string((int)id);
+				label += ": ";
+				label += name;
+
+				if (ImGui::Selectable(label.c_str(), selected)) {
+					ioLayer = id;
+					changed = true;
+				}
+				if (selected) ImGui::SetItemDefaultFocus();
+				});
+
+			ImGui::Separator();
+
+			if (ImGui::Selectable("Add Layer...")) {
+				openLayerSettings = true;
+			}
+
+			ImGui::EndCombo();
 		}
 
-		IStreamWrapper isw(ifs);
-		Document doc;
-		doc.ParseStream(isw);
-
-		if (doc.HasParseError() || !doc.IsObject()) {
-			SPD_WARNING("Failed to parse JSON in meta file: " << metaPath);
-			return false;
-		}
-
-		if (!doc.HasMember("textureImport") || !doc["textureImport"].IsObject())
-			return true;
-
-		const auto& jSettings = doc["textureImport"];
-		from_json(jSettings, settings);
-
-		return true;
+		ImGui::PopItemWidth();
+		ImGui::PopID();
+		return changed;
 	}
+
 
 	// helpers for UI
 	// get the correct material path based on canvas render mode
@@ -435,73 +486,8 @@ namespace Editor {
 					}
 				}
 
-				//const char* previewTag[1] = { "Under Dev" };
-
-				//ImGui::PushID("EntityTag");
-				//if (ImGui::BeginCombo("Tag", *previewTag)) {
-				//	int tagCount = 0;
-				//	for (int i = 0; i < tagCount; ++i) {
-				//		bool selected = (i == 0);
-
-				//		if (selected)
-				//			ImGui::SetItemDefaultFocus();
-				//	}
-				//	ImGui::EndCombo();
-				//}
-				//ImGui::PopID();
-
-				//ImGui::SameLine();
-
-				//using LayerFieldT = uint8_t;
-
-				//int currentLayer = (int)metaRO.layer;
-				//int newLayer = currentLayer;
-
-				//const char* preview = Editor::Layers::GetLayerName(currentLayer);
-
-				//ImGui::PushID("EntityLayer");
-				//if (ImGui::BeginCombo("Layer", preview)) {
-				//	int layerCount = Editor::Layers::GetLayerCount();
-				//	for (int i = 0; i < layerCount; ++i) {
-				//		bool selected = (i == currentLayer);
-				//		if (ImGui::Selectable(Editor::Layers::GetLayerName(i), selected)) {
-				//			newLayer = i;
-				//		}
-				//		if (selected)
-				//			ImGui::SetItemDefaultFocus();
-				//	}
-				//	ImGui::EndCombo();
-				//}
-				//ImGui::PopID();
-
-				//if (newLayer != currentLayer) {
-				//	FieldKey layerKey{
-				//		entity,
-				//		&typeid(Owner),
-				//		MemberPointerHasher<Owner, LayerFieldT>{}(&Owner::layer)
-				//	};
-
-				//	using Cmd = Editor::SetFieldCommand<Owner, LayerFieldT>;
-				//	auto cmd = std::make_unique<Cmd>(
-				//		entity,
-				//		std::string("Change Layer"),
-				//		&Owner::layer,
-				//		metaRO.layer,
-				//		static_cast<LayerFieldT>(newLayer),
-				//		&NE::ECS::Command::GetEntityMeta
-				//	);
-
-				//	Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
-				//}
-
-				// =========================================
-// Shared width for both Tag & Layer combos
-// =========================================
 				const float comboWidth = 140.0f;
 
-				// =========================================
-				// TAG COMBO
-				// =========================================
 				const char* previewTag = "Under Dev";
 
 				ImGui::PushID("EntityTag");
@@ -520,56 +506,22 @@ namespace Editor {
 
 				ImGui::SameLine();
 
-				// =========================================
-				// LAYER COMBO
-				// =========================================
-				using LayerFieldT = uint8_t;
+				// Draw Layer
+				NE::Core::LayerID layer = static_cast<int>(NE::ECS::Query::GetLayer(entity));
+				NE::Core::LayerID before = layer;
 
-				int currentLayer = (int)metaRO.layer;
-				int newLayer = currentLayer;
-
-				const char* preview = Editor::Layers::GetLayerName(currentLayer);
-
-				ImGui::PushID("EntityLayer");
-				ImGui::PushItemWidth(comboWidth);
-
-				if (ImGui::BeginCombo("Layer", preview)) {
-					int layerCount = Editor::Layers::GetLayerCount();
-					for (int i = 0; i < layerCount; ++i) {
-						bool selected = (i == currentLayer);
-						if (ImGui::Selectable(Editor::Layers::GetLayerName(i), selected))
-							newLayer = i;
-
-						if (selected)
-							ImGui::SetItemDefaultFocus();
-					}
-					ImGui::EndCombo();
+				if (DrawLayerCombo_UnityStyle("Layer", layer, EditorScene::layerDatabase, comboWidth)) {
+					auto cmd = std::make_unique<Editor::SetEntityLayerCommand>(
+						entity,
+						static_cast<uint8_t>(before),
+						static_cast<uint8_t>(layer)
+					);
+					Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
 				}
 
-				ImGui::PopItemWidth();
-				ImGui::PopID();
-
-				// =========================================
-				// CHANGE COMMAND
-				// =========================================
-				if (newLayer != currentLayer) {
-					FieldKey layerKey{
-						entity,
-						&typeid(Owner),
-						MemberPointerHasher<Owner, LayerFieldT>{}(&Owner::layer)
-					};
-
-					using Cmd = Editor::SetFieldCommand<Owner, LayerFieldT>;
-					auto cmd = std::make_unique<Cmd>(
-						entity,
-						std::string("Change Layer"),
-						&Owner::layer,
-						metaRO.layer,
-						static_cast<LayerFieldT>(newLayer),
-						&NE::ECS::Command::GetEntityMeta
-					);
-
-					Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+				if (openLayerSettings) {
+					ImGui::OpenPopup("LayerSettings");
+					openLayerSettings = false;
 				}
 
 				if (metaRO.prefabID != "") {
@@ -2723,7 +2675,13 @@ namespace Editor {
 					m_materialEditor->RenderSettings();
 			}
 		}
+
+		auto r = Layers::DrawLayerModal(EditorScene::layerDatabase, "LayerSettings");
+		if (r.applied) {
+			// Save to disk, bake runtime collision table, etc.
+		}
 		ImGui::End();
+
 	}
 
 	void InspectorPanel::RenderTextureImportSettings(std::string metaPath) {
