@@ -8,13 +8,16 @@
 #include <glfw/glfw3.h>
 #include "Command/CommandHistory.hpp"
 #include "Panels/InspectorPanel.hpp"
-#include "Panels/AnimationPanel.hpp"
-#include "Panels/AnimationRuntimePanel.hpp"
-#include "Panels/AnimationGraphPanel.hpp"
+//#include "Panels/AnimationPanel.hpp"
+//#include "Panels/AnimationRuntimePanel.hpp"
+//#include "Panels/AnimationGraphPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LightingPanel.hpp"
-#include <Core/SpdLogger.hpp>  // For SPD_INFO, SPD_DEBUG logging
-#include "EngineState.hpp"  // Add this include
+#include <Core/SpdLogger.hpp>
+#include "Serialization/Serializer.hpp"
+#include "AssetManagement/AssetManager.hpp"
+#include "AssetManagement/Assets/SceneAsset.hpp"
+#include "EditorState.hpp"
 
 namespace Editor {
 	void EditorLayer::OnImGuiRender() {
@@ -54,12 +57,8 @@ namespace Editor {
 		// Save shortcut (Ctrl+S) - Check globally, not just when window focused
 		if ((ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)) {
 			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
-				if (NE::IsSceneDirty()) {
-					SPD_INFO("[DirtyFlag] Ctrl+S pressed - Saving scene");
-					NE::SaveCurrentScene(EditorScene::currentScenePath);
-				} else {
-					SPD_DEBUG("[DirtyFlag] Ctrl+S pressed - No changes to save");
-				}
+				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
 			} else if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
 				CommandHistory::GetInstance().Undo();
 			} else if (ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
@@ -70,11 +69,11 @@ namespace Editor {
 				!ImGui::IsAnyItemFocused()) {
 				bool canEditHierarchy = EditorScene::selectedPrefab.empty();
 				if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-					EditorScene::DuplicateSelected();
+					//EditorScene::DuplicateSelected();
 				} else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-					EditorScene::CopySelected();
+					//EditorScene::CopySelected();
 				} else if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
-					EditorScene::PasteSelected();
+					//EditorScene::PasteSelected();
 				}
 			}
 		}
@@ -92,7 +91,7 @@ namespace Editor {
 			ImGui::SetCursorPosY(4.0f); // Center text vertically
 
 			// Scene path on the left
-			ImGui::Text("  %s", EditorScene::currentScenePath.c_str());
+			ImGui::Text("  %s", EditorScene::s_currentScenePath.c_str());
 
 			// Dirty indicator on the right
 			ImGui::SameLine();
@@ -101,16 +100,16 @@ namespace Editor {
 				ImGui::SetCursorPosX(rightOffset);
 			}
 
-			bool isSceneDirty = NE::IsSceneDirty();
-			if (isSceneDirty) {
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.0f, 1.0f)); // Orange
-				ImGui::Text("* UNSAVED");
-				ImGui::PopStyleColor();
-			} else {
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // Green
-				ImGui::Text("Saved");
-				ImGui::PopStyleColor();
-			}
+			//bool isSceneDirty = NE::IsSceneDirty();
+			//if (isSceneDirty) {
+			//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.0f, 1.0f)); // Orange
+			//	ImGui::Text("* UNSAVED");
+			//	ImGui::PopStyleColor();
+			//} else {
+			//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // Green
+			//	ImGui::Text("Saved");
+			//	ImGui::PopStyleColor();
+			//}
 		}
 		ImGui::EndChild();
 
@@ -186,26 +185,26 @@ namespace Editor {
 			ImGui::Separator();
 
 			// FIXED: Single Save menu item with proper dirty check
-			bool isSceneDirty = NE::IsSceneDirty();
-			if (isSceneDirty) {
-				if (ImGui::MenuItem("Save", "Ctrl+S")) {
-					SPD_INFO("[DirtyFlag] Save menu clicked - Saving scene");
-					NE::SaveCurrentScene(EditorScene::currentScenePath);
-				}
-			} else {
-				ImGui::BeginDisabled();
-				ImGui::MenuItem("Save", "Ctrl+S");
-				ImGui::EndDisabled();
-			}
+			//bool isSceneDirty = NE::IsSceneDirty();
+			//if (isSceneDirty) {
+			//	if (ImGui::MenuItem("Save", "Ctrl+S")) {
+			//		SPD_INFO("[DirtyFlag] Save menu clicked - Saving scene");
+			//		Serialization::JSON::SerializeScene(EditorScene::s_currentScenePath);
+			//	}
+			//} else {
+			//	ImGui::BeginDisabled();
+			//	ImGui::MenuItem("Save", "Ctrl+S");
+			//	ImGui::EndDisabled();
+			//}
 
-			if (ImGui::MenuItem("Save As...")) {
-				NE::SaveCurrentScene(EditorScene::currentScenePath);
-			}
+			//if (ImGui::MenuItem("Save As...")) {
+			//	NE::SaveCurrentScene(EditorScene::currentScenePath);
+			//}
 
 			ImGui::Separator();
 			if (ImGui::MenuItem("Exit")) {
 				// Safety check: If playing, prompt to stop first
-				if (NE::GetEngineState() == NE::EngineState::Play) {
+				if (g_EditorState == EditorState::Play) {
 					ImGui::OpenPopup("ExitWhilePlayingModal");
 				} else {
 					PostQuitMessage(0);
@@ -251,13 +250,13 @@ namespace Editor {
 			}
 			if (ImGui::BeginMenu("Animation")) {
 				if (ImGui::MenuItem("Animation", nullptr, false)) {
-					AddPanel<AnimationPanel>();
+					//AddPanel<AnimationPanel>();
 				}
 				if (ImGui::MenuItem("Animator", nullptr, false)) {
-					AddPanel<AnimatorGraphPanel>();
+					//AddPanel<AnimatorGraphPanel>();
 				}
 				if (ImGui::MenuItem("Animation Runtime", nullptr, false)) {
-					AddPanel<AnimatorRuntimePanel>();
+					//AddPanel<AnimatorRuntimePanel>();
 				}
 				ImGui::EndMenu();
 			}
@@ -278,9 +277,9 @@ namespace Editor {
 			ImGui::Spacing();
 
 			if (ImGui::Button("Stop and Exit", ImVec2(120, 0))) {
-				NE::EditorEdit();  // Stop the scene
+				NE::StopRuntime();
 				ImGui::CloseCurrentPopup();
-				PostQuitMessage(0);  // Then exit
+				PostQuitMessage(0);
 			}
 
 			ImGui::SameLine();
@@ -376,10 +375,8 @@ namespace Editor {
 		ImGui::SameLine(0, spacing);
 		btnPos.x += buttonSize + spacing;
 
-		// Close - with safety check for playing state
 		if (ImGui::InvisibleButton("##close", ImVec2(buttonSize, buttonSize))) {
-			// Safety check: If playing, prompt to stop first
-			if (NE::GetEngineState() == NE::EngineState::Play) {
+			if (g_EditorState == EditorState::Play) {
 				ImGui::OpenPopup("ExitWhilePlayingModal");
 			} else {
 				PostQuitMessage(0);

@@ -19,14 +19,15 @@
 #include "Scripting/ScriptingEngine.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "ECS/Systems/TransformSystem.hpp"
-#include "SceneManagement/SceneManager.hpp"
+
+#include "ECS/Components/Hierarchy.hpp"
+#include "ECS/Systems/HierarchySystem.hpp"
 
 
 
 
 namespace NE {
-	SceneManagement::Scene& GetScene();
-	extern SceneManagement::SceneManager gSceneManager;
+	//SceneManagement::Scene& GetScene();
 }
 
 namespace NE::ECS {
@@ -85,6 +86,14 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
+		bool HasEntityMeta(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::EntityMeta>(e);
+		}
+
+		bool HasHierarchy(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
 		bool HasTransform(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Transform>(e);
 		}
@@ -141,13 +150,15 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
+		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
 		uint32_t GetParent(uint32_t child) {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
 
 			// Check for regular Transform first
-			if (ecs.HasComponent<NE::ECS::Component::Transform>(child)) {
-				return ecs.GetComponent<NE::ECS::Component::Transform>(child).parent;
-			}
+			return ecs.GetComponent<NE::ECS::Component::Hierarchy>(child).parent;
 
 			// Check for UI RectTransform
 			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
@@ -162,21 +173,29 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
-				Component::EntityMeta{ .name = "Unnamed Entity", .luid = Core::LUIDGenerator::Generate("en") });
+				Component::EntityMeta{ .name = "New Entity", .luid = Core::LUIDGenerator::Generate("en") });
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity, 
+				Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
 
-			if (gSceneManager.GetCurrentPrefabPath().empty()) {
-				GetScene().GetECSCoordinator().AddComponent(
-					newEntity, 
-					Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
-			} else {
-				auto& rootT = GetScene().GetECSCoordinator().GetComponent<Component::Transform>(0);
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{ .luid = Core::LUIDGenerator::Generate("hr") });
 
-				GetScene().GetECSCoordinator().AddComponent(
-					newEntity,
-					Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr"), .parent = 0, .parentLuid = rootT.luid });
+			//if (gSceneManager.GetCurrentPrefabPath().empty()) {
+			//	GetScene().GetECSCoordinator().AddComponent(
+			//		newEntity, 
+			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
+			//} else {
+			//	auto& rootT = GetScene().GetECSCoordinator().GetComponent<Component::Transform>(0);
 
-				rootT.children.push_back(newEntity);
-			}
+			//	GetScene().GetECSCoordinator().AddComponent(
+			//		newEntity,
+			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr"), .parent = 0, .parentLuid = rootT.luid });
+
+			//	rootT.children.push_back(newEntity);
+			//}
+
 
 			return newEntity;
 		}
@@ -247,6 +266,10 @@ namespace NE::ECS {
 
 		void DestroyEntity(uint32_t e) {
 			GetScene().GetECSCoordinator().DestroyEntity(e);
+		}
+
+		void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos) {
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(_child, _newParent, _insertIndex, _keepWorldPos);
 		}
 
 		void AddLightComponent(uint32_t e) {
@@ -324,9 +347,13 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
-		void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
-			NE::GetScene().GetECSCoordinator().m_transformSystem->SetParent(child, parent);
+		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
 		}
+
+		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
+		//	NE::GetScene().GetECSCoordinator().m_transformSystem->SetParent(child, parent);
+		//}
 
 		// === Script Management Implementation ===
 		

@@ -87,6 +87,9 @@ namespace NE::Graphics {
 		static void DisableCamera(RenderViewHandle viewHandle);
 
         static uint32_t ReadPixel(uint32_t x, uint32_t y);
+        static void ReadPixelRect(uint32_t x, uint32_t y,
+            uint32_t width, uint32_t height,
+            std::vector<uint32_t>& outIds);
 
 		// Used for ImGui texture display
 		static uint32_t GetSceneColorAttachment();

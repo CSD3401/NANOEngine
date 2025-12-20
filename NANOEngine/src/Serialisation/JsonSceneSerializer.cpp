@@ -16,6 +16,7 @@
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/UIImage.hpp"
+#include "../ECS/Components/Hierarchy.hpp"
 
 #include "../Graphics/Core/Model.hpp"
 #include "../ECS/Components/ComponentKey.hpp"
@@ -144,7 +145,8 @@ namespace {
 		NE::ECS::Component::Camera,
 		NE::ECS::Component::UIRectTransform,
 		NE::ECS::Component::UICanvas,
-		NE::ECS::Component::UIImage
+		NE::ECS::Component::UIImage,
+		NE::ECS::Component::Hierarchy
 	>;
 
 	template <class F>
@@ -154,7 +156,7 @@ namespace {
 			}, ComponentTypes{});
 	}
 
-	static void CollectPrefabSubtree(NE::ECS::ECSCoordinator& ecs,
+	void CollectPrefabSubtree(NE::ECS::ECSCoordinator& ecs,
 		uint32_t root,
 		std::vector<uint32_t>& out)
 	{
@@ -166,13 +168,13 @@ namespace {
 		out.push_back(root);
 
 		auto& t = ecs.GetComponent<Transform>(root);
-		for (uint32_t child : t.children) {
-			// Defensive: skip invalid / missing transform children
-			if (!ecs.HasComponent<Transform>(child))
-				continue;
+		//for (uint32_t child : t.children) {
+		//	// Defensive: skip invalid / missing transform children
+		//	if (!ecs.HasComponent<Transform>(child))
+		//		continue;
 
-			CollectPrefabSubtree(ecs, child, out);
-		}
+		//	CollectPrefabSubtree(ecs, child, out);
+		//}
 	}
 }
 
@@ -187,6 +189,9 @@ namespace NE::Serialization {
 
 		auto& rs = Graphics::GraphicsManager::renderSettings;
 		doc.AddMember("RenderSettings", NE::Serialization::to_json(rs, a), a);
+
+		auto& pps = Graphics::GraphicsManager::postProcessingSettings;
+		doc.AddMember("PostProcessingSettings", NE::Serialization::to_json(pps, a), a);
 
 		Value entities(kArrayType);
 
@@ -251,6 +256,11 @@ namespace NE::Serialization {
 			NE::Serialization::from_json(doc["RenderSettings"], rs);
 		}
 
+		if (doc.HasMember("PostProcessingSettings")) {
+			auto& pps = Graphics::GraphicsManager::postProcessingSettings;
+			NE::Serialization::from_json(doc["PostProcessingSettings"], pps);
+		}
+
 		if (!doc.IsObject() || !doc.HasMember("Entities")) return;
 
 		for (auto& entVal : doc["Entities"].GetArray()) {
@@ -263,329 +273,330 @@ namespace NE::Serialization {
 	}
 
 	std::string JsonSceneSerializer::SerializePrefab(SceneManagement::Scene& scene, uint32_t rootEnt, const std::string& directoryPath) {
-		using namespace rapidjson;
-		auto& ecs = scene.GetECSCoordinator();
+		//using namespace rapidjson;
+		//auto& ecs = scene.GetECSCoordinator();
 
-		using NE::ECS::Component::EntityMeta;
-		using NE::ECS::Component::Transform;
+		//using NE::ECS::Component::EntityMeta;
+		//using NE::ECS::Component::Transform;
 
-		if (!ecs.HasComponent<Transform>(rootEnt))
-			return "";
+		//if (!ecs.HasComponent<Transform>(rootEnt))
+		//	return "";
 
-		std::vector<uint32_t> entities;
-		entities.reserve(16);
-		CollectPrefabSubtree(ecs, rootEnt, entities);
+		//std::vector<uint32_t> entities;
+		//entities.reserve(16);
+		//CollectPrefabSubtree(ecs, rootEnt, entities);
 
-		if (entities.empty())
-			return "";
+		//if (entities.empty())
+		//	return "";
 
-		std::ofstream out;
+		//std::ofstream out;
 
-		std::unordered_map<uint32_t, uint64_t> entityToLocalId;
-		entityToLocalId.reserve(entities.size());
+		//std::unordered_map<uint32_t, uint64_t> entityToLocalId;
+		//entityToLocalId.reserve(entities.size());
 
-		uint64_t nextId = 1;
-		for (uint32_t e : entities) {
-			entityToLocalId[e] = nextId++;
-		}
+		//uint64_t nextId = 1;
+		//for (uint32_t e : entities) {
+		//	entityToLocalId[e] = nextId++;
+		//}
 
-		Document doc;
-		doc.SetObject();
-		auto& a = doc.GetAllocator();
-		Value entitiesArr(kArrayType);
+		//Document doc;
+		//doc.SetObject();
+		//auto& a = doc.GetAllocator();
+		//Value entitiesArr(kArrayType);
 
-		for (uint32_t e : entities) {
-			Value ent(kObjectType);
+		//for (uint32_t e : entities) {
+		//	Value ent(kObjectType);
 
-			ForEachComponentType([&]<typename C>() {
-				WriteComponentIfPresent<C>(ecs, e, ent, a);
-			});
+		//	ForEachComponentType([&]<typename C>() {
+		//		WriteComponentIfPresent<C>(ecs, e, ent, a);
+		//	});
 
-			if (ent.HasMember(ComponentKey<EntityMeta>::value)) {
-				auto& eJson = ent[ComponentKey<EntityMeta>::value];
-				const auto& eM = ecs.GetComponent<EntityMeta>(e);
+		//	if (ent.HasMember(ComponentKey<EntityMeta>::value)) {
+		//		auto& eJson = ent[ComponentKey<EntityMeta>::value];
+		//		const auto& eM = ecs.GetComponent<EntityMeta>(e);
 
-				const uint64_t myId = entityToLocalId[e];
+		//		const uint64_t myId = entityToLocalId[e];
 
-				if (eJson.HasMember("prefabLocalID"))
-					eJson["prefabLocalID"].SetUint64(myId);
-				else
-					eJson.AddMember("prefabLocalID", myId, a);
-			}
+		//		if (eJson.HasMember("prefabLocalID"))
+		//			eJson["prefabLocalID"].SetUint64(myId);
+		//		else
+		//			eJson.AddMember("prefabLocalID", myId, a);
+		//	}
 
-			if (ent.HasMember(ComponentKey<Transform>::value)) {
-				auto& tJson = ent[ComponentKey<Transform>::value];
-				const auto& t = ecs.GetComponent<Transform>(e);
+		//	if (ent.HasMember(ComponentKey<Transform>::value)) {
+		//		auto& tJson = ent[ComponentKey<Transform>::value];
+		//		const auto& t = ecs.GetComponent<Transform>(e);
 
-				const uint64_t myId = entityToLocalId[e];
+		//		const uint64_t myId = entityToLocalId[e];
 
-				uint64_t parentId = 0;
-				if (t.parent != NE::ECS::Component::INVALID_PARENT) {
-					auto it = entityToLocalId.find(t.parent);
-					if (it != entityToLocalId.end())
-						parentId = it->second;
-				}
+		//		uint64_t parentId = 0;
+		//		if (t.parent != NE::ECS::Component::INVALID_PARENT) {
+		//			auto it = entityToLocalId.find(t.parent);
+		//			if (it != entityToLocalId.end())
+		//				parentId = it->second;
+		//		}
 
-				if (tJson.HasMember("luid"))
-					tJson["luid"].SetUint64(myId);
-				else
-					tJson.AddMember("luid", myId, a);
+		//		if (tJson.HasMember("luid"))
+		//			tJson["luid"].SetUint64(myId);
+		//		else
+		//			tJson.AddMember("luid", myId, a);
 
-				if (tJson.HasMember("parentLuid"))
-					tJson["parentLuid"].SetUint64(parentId);
-				else
-					tJson.AddMember("parentLuid", parentId, a);
-			}
+		//		if (tJson.HasMember("parentLuid"))
+		//			tJson["parentLuid"].SetUint64(parentId);
+		//		else
+		//			tJson.AddMember("parentLuid", parentId, a);
+		//	}
 
-			entitiesArr.PushBack(ent, a);
-		}
+		//	entitiesArr.PushBack(ent, a);
+		//}
 
-		doc.AddMember("Entities", entitiesArr, a);
+		//doc.AddMember("Entities", entitiesArr, a);
 
-		rapidjson::StringBuffer sb;
-		rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
-		doc.Accept(wr);
+		//rapidjson::StringBuffer sb;
+		//rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
+		//doc.Accept(wr);
 
-		out.open(directoryPath, std::ios::binary | std::ios::in | std::ios::out);
-		if (out) {
-			out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
-		}
+		//out.open(directoryPath, std::ios::binary | std::ios::in | std::ios::out);
+		//if (out) {
+		//	out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
+		//}
 
-		return directoryPath;
+		//return directoryPath;
+		return {};
 	}
 
 	std::vector<uint32_t> JsonSceneSerializer::DeserializePrefab(SceneManagement::Scene& scene, const std::string& path) {
 		std::vector<uint32_t> ret{};
-		std::ifstream in(path, std::ios::binary);
-		if (!in) return ret;
+		//std::ifstream in(path, std::ios::binary);
+		//if (!in) return ret;
 
-		std::string data((std::istreambuf_iterator<char>(in)), {});
-		Document doc;
-		doc.Parse(data.c_str());
-		if (!doc.IsObject() || !doc.HasMember("Entities"))
-			return ret;
+		//std::string data((std::istreambuf_iterator<char>(in)), {});
+		//Document doc;
+		//doc.Parse(data.c_str());
+		//if (!doc.IsObject() || !doc.HasMember("Entities"))
+		//	return ret;
 
-		auto& ecs = scene.GetECSCoordinator();
-		auto entities = doc["Entities"].GetArray();
-		const size_t count = entities.Size();
+		//auto& ecs = scene.GetECSCoordinator();
+		//auto entities = doc["Entities"].GetArray();
+		//const size_t count = entities.Size();
 
-		using NE::ECS::Component::Transform;
+		//using NE::ECS::Component::Transform;
 
-		std::vector<NE::ECS::Entity> created(count, NE::ECS::NO_ENTITY);
-		std::vector<uint64_t> prefabLuid(count, 0);
-		std::vector<uint64_t> prefabParentLuid(count, 0);
-		std::vector<bool> hasTransform(count, false);
+		//std::vector<NE::ECS::Entity> created(count, NE::ECS::NO_ENTITY);
+		//std::vector<uint64_t> prefabLuid(count, 0);
+		//std::vector<uint64_t> prefabParentLuid(count, 0);
+		//std::vector<bool> hasTransform(count, false);
 
-		for (size_t i = 0; i < count; ++i) {
-			auto& entVal = entities[i];
+		//for (size_t i = 0; i < count; ++i) {
+		//	auto& entVal = entities[i];
 
-			if (entVal.HasMember(ComponentKey<Transform>::value)) {
-				auto& tJson = entVal[ComponentKey<Transform>::value];
+		//	if (entVal.HasMember(ComponentKey<Transform>::value)) {
+		//		auto& tJson = entVal[ComponentKey<Transform>::value];
 
-				if (tJson.HasMember("luid") && tJson["luid"].IsUint64())
-					prefabLuid[i] = tJson["luid"].GetUint64();
+		//		if (tJson.HasMember("luid") && tJson["luid"].IsUint64())
+		//			prefabLuid[i] = tJson["luid"].GetUint64();
 
-				if (tJson.HasMember("parentLuid") && tJson["parentLuid"].IsUint64())
-					prefabParentLuid[i] = tJson["parentLuid"].GetUint64();
+		//		if (tJson.HasMember("parentLuid") && tJson["parentLuid"].IsUint64())
+		//			prefabParentLuid[i] = tJson["parentLuid"].GetUint64();
 
-				hasTransform[i] = true;
+		//		hasTransform[i] = true;
 
-				uint64_t newLuid = Core::LUIDGenerator::Generate("tr");
-				tJson["luid"].SetUint64(newLuid);
+		//		uint64_t newLuid = Core::LUIDGenerator::Generate("tr");
+		//		tJson["luid"].SetUint64(newLuid);
 
-				tJson["parentLuid"].SetUint64(0);
-			}
+		//		tJson["parentLuid"].SetUint64(0);
+		//	}
 
-			NE::ECS::Entity e = ecs.CreateEntity();
-			ret.push_back(e);
-			created[i] = e;
+		//	NE::ECS::Entity e = ecs.CreateEntity();
+		//	ret.push_back(e);
+		//	created[i] = e;
 
-			ForEachComponentType([&]<typename C>() {
-				ReadComponentIfPresent<C>(ecs, e, entVal);
-			});
-		}
+		//	ForEachComponentType([&]<typename C>() {
+		//		ReadComponentIfPresent<C>(ecs, e, entVal);
+		//	});
+		//}
 
-		std::unordered_map<uint64_t, NE::ECS::Entity> prefabToEntity;
-		prefabToEntity.reserve(count);
+		//std::unordered_map<uint64_t, NE::ECS::Entity> prefabToEntity;
+		//prefabToEntity.reserve(count);
 
-		for (size_t i = 0; i < count; ++i) {
-			if (!hasTransform[i]) continue;
-			if (prefabLuid[i] == 0) continue;
-			prefabToEntity[prefabLuid[i]] = created[i];
-		}
+		//for (size_t i = 0; i < count; ++i) {
+		//	if (!hasTransform[i]) continue;
+		//	if (prefabLuid[i] == 0) continue;
+		//	prefabToEntity[prefabLuid[i]] = created[i];
+		//}
 
-		for (size_t i = 0; i < count; ++i) {
-			if (!hasTransform[i]) continue;
+		//for (size_t i = 0; i < count; ++i) {
+		//	if (!hasTransform[i]) continue;
 
-			uint64_t parentLocal = prefabParentLuid[i];
-			if (parentLocal == 0)
-				continue;
+		//	uint64_t parentLocal = prefabParentLuid[i];
+		//	if (parentLocal == 0)
+		//		continue;
 
-			auto it = prefabToEntity.find(parentLocal);
-			if (it == prefabToEntity.end())
-				continue;
+		//	auto it = prefabToEntity.find(parentLocal);
+		//	if (it == prefabToEntity.end())
+		//		continue;
 
-			NE::ECS::Entity child = created[i];
-			NE::ECS::Entity parent = it->second;
+		//	NE::ECS::Entity child = created[i];
+		//	NE::ECS::Entity parent = it->second;
 
-			auto& childT = ecs.GetComponent<Transform>(child);
-			auto& parentT = ecs.GetComponent<Transform>(parent);
+		//	auto& childT = ecs.GetComponent<Transform>(child);
+		//	auto& parentT = ecs.GetComponent<Transform>(parent);
 
-			if (childT.parent != NE::ECS::Component::INVALID_PARENT) {
-				auto& oldParentT = ecs.GetComponent<Transform>(childT.parent);
-				auto& vec = oldParentT.children;
-				vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
-			}
+		//	if (childT.parent != NE::ECS::Component::INVALID_PARENT) {
+		//		auto& oldParentT = ecs.GetComponent<Transform>(childT.parent);
+		//		auto& vec = oldParentT.children;
+		//		vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
+		//	}
 
-			childT.parent = parent;
-			parentT.children.push_back(child);
-			childT.parentLuid = parentT.luid;
+		//	childT.parent = parent;
+		//	parentT.children.push_back(child);
+		//	childT.parentLuid = parentT.luid;
 
-			childT.isDirty = true;
-		}
+		//	childT.isDirty = true;
+		//}
 
-		// Initialize script instances for all entities with NativeScript components
-		auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
-		if (scriptSystem) {
-			for (size_t i = 0; i < count; ++i) {
-				NE::ECS::Entity entity = created[i];
-				if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
-					auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
+		//// Initialize script instances for all entities with NativeScript components
+		//auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
+		//if (scriptSystem) {
+		//	for (size_t i = 0; i < count; ++i) {
+		//		NE::ECS::Entity entity = created[i];
+		//		if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
+		//			auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
 
-					// Only initialize if we have a script name but no instance
-					if (!script.ScriptName.empty() && !script.Instance) {
-						auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
-						if (factory) {
-							script.CreateScript = factory;
-							script.DestroyScript = [](IScript* instance) { delete instance; };
-							script.Instance = nullptr; // Will be created by ScriptSystem
-							scriptSystem->OnEntityAdded(entity); // Force initialization
-						}
-					}
-				}
-			}
-		}
+		//			// Only initialize if we have a script name but no instance
+		//			if (!script.ScriptName.empty() && !script.Instance) {
+		//				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
+		//				if (factory) {
+		//					script.CreateScript = factory;
+		//					script.DestroyScript = [](IScript* instance) { delete instance; };
+		//					script.Instance = nullptr; // Will be created by ScriptSystem
+		//					scriptSystem->OnEntityAdded(entity); // Force initialization
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
 
 		return ret;
 	}
 
 	std::vector<uint32_t> JsonSceneSerializer::DeserializePrefab(SceneManagement::Scene& scene, const std::string& path, NE::Math::Vec3 camForwardPos) {
 		std::vector<uint32_t> ret{};
-		std::ifstream in(path, std::ios::binary);
-		if (!in) return ret;
+		//std::ifstream in(path, std::ios::binary);
+		//if (!in) return ret;
 
-		std::string data((std::istreambuf_iterator<char>(in)), {});
-		Document doc;
-		doc.Parse(data.c_str());
-		if (!doc.IsObject() || !doc.HasMember("Entities"))
-			return ret;
+		//std::string data((std::istreambuf_iterator<char>(in)), {});
+		//Document doc;
+		//doc.Parse(data.c_str());
+		//if (!doc.IsObject() || !doc.HasMember("Entities"))
+		//	return ret;
 
-		auto& ecs = scene.GetECSCoordinator();
-		auto entities = doc["Entities"].GetArray();
-		const size_t count = entities.Size();
+		//auto& ecs = scene.GetECSCoordinator();
+		//auto entities = doc["Entities"].GetArray();
+		//const size_t count = entities.Size();
 
-		using NE::ECS::Component::Transform;
+		//using NE::ECS::Component::Transform;
 
-		std::vector<NE::ECS::Entity> created(count, NE::ECS::NO_ENTITY);
-		std::vector<uint64_t> prefabLuid(count, 0);
-		std::vector<uint64_t> prefabParentLuid(count, 0);
-		std::vector<bool> hasTransform(count, false);
+		//std::vector<NE::ECS::Entity> created(count, NE::ECS::NO_ENTITY);
+		//std::vector<uint64_t> prefabLuid(count, 0);
+		//std::vector<uint64_t> prefabParentLuid(count, 0);
+		//std::vector<bool> hasTransform(count, false);
 
-		for (size_t i = 0; i < count; ++i) {
-			auto& entVal = entities[i];
+		//for (size_t i = 0; i < count; ++i) {
+		//	auto& entVal = entities[i];
 
-			if (entVal.HasMember(ComponentKey<Transform>::value)) {
-				auto& tJson = entVal[ComponentKey<Transform>::value];
+		//	if (entVal.HasMember(ComponentKey<Transform>::value)) {
+		//		auto& tJson = entVal[ComponentKey<Transform>::value];
 
-				if (tJson.HasMember("luid") && tJson["luid"].IsUint64())
-					prefabLuid[i] = tJson["luid"].GetUint64();
+		//		if (tJson.HasMember("luid") && tJson["luid"].IsUint64())
+		//			prefabLuid[i] = tJson["luid"].GetUint64();
 
-				if (tJson.HasMember("parentLuid") && tJson["parentLuid"].IsUint64())
-					prefabParentLuid[i] = tJson["parentLuid"].GetUint64();
+		//		if (tJson.HasMember("parentLuid") && tJson["parentLuid"].IsUint64())
+		//			prefabParentLuid[i] = tJson["parentLuid"].GetUint64();
 
-				hasTransform[i] = true;
+		//		hasTransform[i] = true;
 
-				uint64_t newLuid = Core::LUIDGenerator::Generate("tr");
-				tJson["luid"].SetUint64(newLuid);
+		//		uint64_t newLuid = Core::LUIDGenerator::Generate("tr");
+		//		tJson["luid"].SetUint64(newLuid);
 
-				tJson["parentLuid"].SetUint64(0);
+		//		tJson["parentLuid"].SetUint64(0);
 
-				if (prefabParentLuid[i] == 0) {
-					tJson["Position"]["x"].SetFloat(camForwardPos.x);
-					tJson["Position"]["y"].SetFloat(camForwardPos.y);
-					tJson["Position"]["z"].SetFloat(camForwardPos.z);
-				}
-			}
+		//		if (prefabParentLuid[i] == 0) {
+		//			tJson["Position"]["x"].SetFloat(camForwardPos.x);
+		//			tJson["Position"]["y"].SetFloat(camForwardPos.y);
+		//			tJson["Position"]["z"].SetFloat(camForwardPos.z);
+		//		}
+		//	}
 
-			NE::ECS::Entity e = ecs.CreateEntity();
-			ret.push_back(e);
-			created[i] = e;
+		//	NE::ECS::Entity e = ecs.CreateEntity();
+		//	ret.push_back(e);
+		//	created[i] = e;
 
-			ForEachComponentType([&]<typename C>() {
-				ReadComponentIfPresent<C>(ecs, e, entVal);
-			});
-		}
+		//	ForEachComponentType([&]<typename C>() {
+		//		ReadComponentIfPresent<C>(ecs, e, entVal);
+		//	});
+		//}
 
-		std::unordered_map<uint64_t, NE::ECS::Entity> prefabToEntity;
-		prefabToEntity.reserve(count);
+		//std::unordered_map<uint64_t, NE::ECS::Entity> prefabToEntity;
+		//prefabToEntity.reserve(count);
 
-		for (size_t i = 0; i < count; ++i) {
-			if (!hasTransform[i]) continue;
-			if (prefabLuid[i] == 0) continue;
-			prefabToEntity[prefabLuid[i]] = created[i];
-		}
+		//for (size_t i = 0; i < count; ++i) {
+		//	if (!hasTransform[i]) continue;
+		//	if (prefabLuid[i] == 0) continue;
+		//	prefabToEntity[prefabLuid[i]] = created[i];
+		//}
 
-		for (size_t i = 0; i < count; ++i) {
-			if (!hasTransform[i]) continue;
+		//for (size_t i = 0; i < count; ++i) {
+		//	if (!hasTransform[i]) continue;
 
-			uint64_t parentLocal = prefabParentLuid[i];
-			if (parentLocal == 0)
-				continue;
+		//	uint64_t parentLocal = prefabParentLuid[i];
+		//	if (parentLocal == 0)
+		//		continue;
 
-			auto it = prefabToEntity.find(parentLocal);
-			if (it == prefabToEntity.end())
-				continue;
+		//	auto it = prefabToEntity.find(parentLocal);
+		//	if (it == prefabToEntity.end())
+		//		continue;
 
-			NE::ECS::Entity child = created[i];
-			NE::ECS::Entity parent = it->second;
+		//	NE::ECS::Entity child = created[i];
+		//	NE::ECS::Entity parent = it->second;
 
-			auto& childT = ecs.GetComponent<Transform>(child);
-			auto& parentT = ecs.GetComponent<Transform>(parent);
+		//	auto& childT = ecs.GetComponent<Transform>(child);
+		//	auto& parentT = ecs.GetComponent<Transform>(parent);
 
-			if (childT.parent != NE::ECS::Component::INVALID_PARENT) {
-				auto& oldParentT = ecs.GetComponent<Transform>(childT.parent);
-				auto& vec = oldParentT.children;
-				vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
-			}
+		//	if (childT.parent != NE::ECS::Component::INVALID_PARENT) {
+		//		auto& oldParentT = ecs.GetComponent<Transform>(childT.parent);
+		//		auto& vec = oldParentT.children;
+		//		vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
+		//	}
 
-			childT.parent = parent;
-			parentT.children.push_back(child);
-			childT.parentLuid = parentT.luid;
+		//	childT.parent = parent;
+		//	parentT.children.push_back(child);
+		//	childT.parentLuid = parentT.luid;
 
-			childT.isDirty = true;
-		}
+		//	childT.isDirty = true;
+		//}
 
-		// Initialize script instances for all entities with NativeScript components
-		auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
-		if (scriptSystem) {
-			for (size_t i = 0; i < count; ++i) {
-				NE::ECS::Entity entity = created[i];
-				if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
-					auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
+		//// Initialize script instances for all entities with NativeScript components
+		//auto* scriptSystem = scene.GetECSCoordinator().m_scriptSystem.get();
+		//if (scriptSystem) {
+		//	for (size_t i = 0; i < count; ++i) {
+		//		NE::ECS::Entity entity = created[i];
+		//		if (ecs.HasComponent<ECS::Component::NativeScript>(entity)) {
+		//			auto& script = ecs.GetComponent<ECS::Component::NativeScript>(entity);
 
-					// Only initialize if we have a script name but no instance
-					if (!script.ScriptName.empty() && !script.Instance) {
-						auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
-						if (factory) {
-							script.CreateScript = factory;
-							script.DestroyScript = [](IScript* instance) { delete instance; };
-							script.Instance = nullptr; // Will be created by ScriptSystem
-							scriptSystem->OnEntityAdded(entity); // Force initialization
-						}
-					}
-				}
-			}
-		}
+		//			// Only initialize if we have a script name but no instance
+		//			if (!script.ScriptName.empty() && !script.Instance) {
+		//				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(script.ScriptName);
+		//				if (factory) {
+		//					script.CreateScript = factory;
+		//					script.DestroyScript = [](IScript* instance) { delete instance; };
+		//					script.Instance = nullptr; // Will be created by ScriptSystem
+		//					scriptSystem->OnEntityAdded(entity); // Force initialization
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
 
 		return ret;
 	}
@@ -642,88 +653,88 @@ namespace NE::Serialization {
 		uint32_t rootEnt,
 		std::vector<uint8_t>& outBuffer)
 	{
-		using namespace rapidjson;
-		auto& ecs = scene.GetECSCoordinator();
+		//using namespace rapidjson;
+		//auto& ecs = scene.GetECSCoordinator();
 
-		using NE::ECS::Component::EntityMeta;
-		using NE::ECS::Component::Transform;
+		//using NE::ECS::Component::EntityMeta;
+		//using NE::ECS::Component::Transform;
 
-		if (!ecs.HasComponent<Transform>(rootEnt))
-			return;
+		//if (!ecs.HasComponent<Transform>(rootEnt))
+		//	return;
 
-		std::vector<uint32_t> entities;
-		entities.reserve(16);
-		CollectPrefabSubtree(ecs, rootEnt, entities);
+		//std::vector<uint32_t> entities;
+		//entities.reserve(16);
+		//CollectPrefabSubtree(ecs, rootEnt, entities);
 
-		if (entities.empty())
-			return;
+		//if (entities.empty())
+		//	return;
 
-		std::unordered_map<uint32_t, uint64_t> entityToLocalId;
-		entityToLocalId.reserve(entities.size());
+		//std::unordered_map<uint32_t, uint64_t> entityToLocalId;
+		//entityToLocalId.reserve(entities.size());
 
-		uint64_t nextId = 1;
-		for (uint32_t e : entities) {
-			entityToLocalId[e] = nextId++;
-		}
+		//uint64_t nextId = 1;
+		//for (uint32_t e : entities) {
+		//	entityToLocalId[e] = nextId++;
+		//}
 
-		Document doc;
-		doc.SetObject();
-		auto& a = doc.GetAllocator();
-		Value entitiesArr(kArrayType);
+		//Document doc;
+		//doc.SetObject();
+		//auto& a = doc.GetAllocator();
+		//Value entitiesArr(kArrayType);
 
-		for (uint32_t e : entities) {
-			Value ent(kObjectType);
+		//for (uint32_t e : entities) {
+		//	Value ent(kObjectType);
 
-			ForEachComponentType([&]<typename C>() {
-				WriteComponentIfPresent<C>(ecs, e, ent, a);
-			});
+		//	ForEachComponentType([&]<typename C>() {
+		//		WriteComponentIfPresent<C>(ecs, e, ent, a);
+		//	});
 
-			if (ent.HasMember(ComponentKey<EntityMeta>::value)) {
-				auto& eJson = ent[ComponentKey<EntityMeta>::value];
-				const uint64_t myId = entityToLocalId[e];
+		//	if (ent.HasMember(ComponentKey<EntityMeta>::value)) {
+		//		auto& eJson = ent[ComponentKey<EntityMeta>::value];
+		//		const uint64_t myId = entityToLocalId[e];
 
-				if (eJson.HasMember("prefabLocalID"))
-					eJson["prefabLocalID"].SetUint64(myId);
-				else
-					eJson.AddMember("prefabLocalID", myId, a);
-			}
+		//		if (eJson.HasMember("prefabLocalID"))
+		//			eJson["prefabLocalID"].SetUint64(myId);
+		//		else
+		//			eJson.AddMember("prefabLocalID", myId, a);
+		//	}
 
-			if (ent.HasMember(ComponentKey<Transform>::value)) {
-				auto& tJson = ent[ComponentKey<Transform>::value];
-				const auto& t = ecs.GetComponent<Transform>(e);
+		//	if (ent.HasMember(ComponentKey<Transform>::value)) {
+		//		auto& tJson = ent[ComponentKey<Transform>::value];
+		//		const auto& t = ecs.GetComponent<Transform>(e);
 
-				const uint64_t myId = entityToLocalId[e];
+		//		const uint64_t myId = entityToLocalId[e];
 
-				uint64_t parentId = 0;
-				if (t.parent != NE::ECS::Component::INVALID_PARENT) {
-					auto it = entityToLocalId.find(t.parent);
-					if (it != entityToLocalId.end())
-						parentId = it->second;
-				}
+		//		uint64_t parentId = 0;
+		//		if (t.parent != NE::ECS::Component::INVALID_PARENT) {
+		//			auto it = entityToLocalId.find(t.parent);
+		//			if (it != entityToLocalId.end())
+		//				parentId = it->second;
+		//		}
 
-				if (tJson.HasMember("luid"))
-					tJson["luid"].SetUint64(myId);
-				else
-					tJson.AddMember("luid", myId, a);
+		//		if (tJson.HasMember("luid"))
+		//			tJson["luid"].SetUint64(myId);
+		//		else
+		//			tJson.AddMember("luid", myId, a);
 
-				if (tJson.HasMember("parentLuid"))
-					tJson["parentLuid"].SetUint64(parentId);
-				else
-					tJson.AddMember("parentLuid", parentId, a);
-			}
+		//		if (tJson.HasMember("parentLuid"))
+		//			tJson["parentLuid"].SetUint64(parentId);
+		//		else
+		//			tJson.AddMember("parentLuid", parentId, a);
+		//	}
 
-			entitiesArr.PushBack(ent, a);
-		}
+		//	entitiesArr.PushBack(ent, a);
+		//}
 
-		doc.AddMember("Entities", entitiesArr, a);
+		//doc.AddMember("Entities", entitiesArr, a);
 
-		rapidjson::StringBuffer sb;
-		rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
-		doc.Accept(wr);
+		//rapidjson::StringBuffer sb;
+		//rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
+		//doc.Accept(wr);
 
-		outBuffer.clear();
-		outBuffer.resize(sb.GetSize());
-		std::memcpy(outBuffer.data(), sb.GetString(), sb.GetSize());
+		//outBuffer.clear();
+		//outBuffer.resize(sb.GetSize());
+		//std::memcpy(outBuffer.data(), sb.GetString(), sb.GetSize());
 	}
 
 	std::vector<uint32_t> JsonSceneSerializer::DeserializePrefabFromMemory(SceneManagement::Scene& scene,
@@ -731,93 +742,93 @@ namespace NE::Serialization {
 		size_t size)
 	{
 		std::vector<uint32_t> ret{};
-		if (!data || size == 0)
-			return ret;
+		//if (!data || size == 0)
+		//	return ret;
 
-		using namespace rapidjson;
+		//using namespace rapidjson;
 
-		std::string jsonStr(reinterpret_cast<const char*>(data), size);
-		Document doc;
-		doc.Parse(jsonStr.c_str());
-		if (!doc.IsObject() || !doc.HasMember("Entities"))
-			return ret;
+		//std::string jsonStr(reinterpret_cast<const char*>(data), size);
+		//Document doc;
+		//doc.Parse(jsonStr.c_str());
+		//if (!doc.IsObject() || !doc.HasMember("Entities"))
+		//	return ret;
 
-		auto& ecs = scene.GetECSCoordinator();
-		auto entities = doc["Entities"].GetArray();
-		const size_t count = entities.Size();
+		//auto& ecs = scene.GetECSCoordinator();
+		//auto entities = doc["Entities"].GetArray();
+		//const size_t count = entities.Size();
 
-		using NE::ECS::Component::Transform;
+		//using NE::ECS::Component::Transform;
 
-		std::vector<NE::ECS::Entity> created(count, NE::ECS::NO_ENTITY);
-		std::vector<uint64_t> prefabLuid(count, 0);
-		std::vector<uint64_t> prefabParentLuid(count, 0);
-		std::vector<bool> hasTransform(count, false);
+		//std::vector<NE::ECS::Entity> created(count, NE::ECS::NO_ENTITY);
+		//std::vector<uint64_t> prefabLuid(count, 0);
+		//std::vector<uint64_t> prefabParentLuid(count, 0);
+		//std::vector<bool> hasTransform(count, false);
 
-		for (size_t i = 0; i < count; ++i) {
-			auto& entVal = entities[i];
+		//for (size_t i = 0; i < count; ++i) {
+		//	auto& entVal = entities[i];
 
-			if (entVal.HasMember(ComponentKey<Transform>::value)) {
-				auto& tJson = entVal[ComponentKey<Transform>::value];
+		//	if (entVal.HasMember(ComponentKey<Transform>::value)) {
+		//		auto& tJson = entVal[ComponentKey<Transform>::value];
 
-				if (tJson.HasMember("luid") && tJson["luid"].IsUint64())
-					prefabLuid[i] = tJson["luid"].GetUint64();
+		//		if (tJson.HasMember("luid") && tJson["luid"].IsUint64())
+		//			prefabLuid[i] = tJson["luid"].GetUint64();
 
-				if (tJson.HasMember("parentLuid") && tJson["parentLuid"].IsUint64())
-					prefabParentLuid[i] = tJson["parentLuid"].GetUint64();
+		//		if (tJson.HasMember("parentLuid") && tJson["parentLuid"].IsUint64())
+		//			prefabParentLuid[i] = tJson["parentLuid"].GetUint64();
 
-				hasTransform[i] = true;
+		//		hasTransform[i] = true;
 
-				uint64_t newLuid = Core::LUIDGenerator::Generate("tr");
-				tJson["luid"].SetUint64(newLuid);
-				tJson["parentLuid"].SetUint64(0);
-			}
+		//		uint64_t newLuid = Core::LUIDGenerator::Generate("tr");
+		//		tJson["luid"].SetUint64(newLuid);
+		//		tJson["parentLuid"].SetUint64(0);
+		//	}
 
-			NE::ECS::Entity e = ecs.CreateEntity();
-			ret.push_back(e);
-			created[i] = e;
+		//	NE::ECS::Entity e = ecs.CreateEntity();
+		//	ret.push_back(e);
+		//	created[i] = e;
 
-			ForEachComponentType([&]<typename C>() {
-				ReadComponentIfPresent<C>(ecs, e, entVal);
-			});
-		}
+		//	ForEachComponentType([&]<typename C>() {
+		//		ReadComponentIfPresent<C>(ecs, e, entVal);
+		//	});
+		//}
 
-		std::unordered_map<uint64_t, NE::ECS::Entity> prefabToEntity;
-		prefabToEntity.reserve(count);
+		//std::unordered_map<uint64_t, NE::ECS::Entity> prefabToEntity;
+		//prefabToEntity.reserve(count);
 
-		for (size_t i = 0; i < count; ++i) {
-			if (!hasTransform[i]) continue;
-			if (prefabLuid[i] == 0) continue;
-			prefabToEntity[prefabLuid[i]] = created[i];
-		}
+		//for (size_t i = 0; i < count; ++i) {
+		//	if (!hasTransform[i]) continue;
+		//	if (prefabLuid[i] == 0) continue;
+		//	prefabToEntity[prefabLuid[i]] = created[i];
+		//}
 
-		for (size_t i = 0; i < count; ++i) {
-			if (!hasTransform[i]) continue;
+		//for (size_t i = 0; i < count; ++i) {
+		//	if (!hasTransform[i]) continue;
 
-			uint64_t parentLocal = prefabParentLuid[i];
-			if (parentLocal == 0)
-				continue;
+		//	uint64_t parentLocal = prefabParentLuid[i];
+		//	if (parentLocal == 0)
+		//		continue;
 
-			auto it = prefabToEntity.find(parentLocal);
-			if (it == prefabToEntity.end())
-				continue;
+		//	auto it = prefabToEntity.find(parentLocal);
+		//	if (it == prefabToEntity.end())
+		//		continue;
 
-			NE::ECS::Entity child = created[i];
-			NE::ECS::Entity parent = it->second;
+		//	NE::ECS::Entity child = created[i];
+		//	NE::ECS::Entity parent = it->second;
 
-			auto& childT = ecs.GetComponent<Transform>(child);
-			auto& parentT = ecs.GetComponent<Transform>(parent);
+		//	auto& childT = ecs.GetComponent<Transform>(child);
+		//	auto& parentT = ecs.GetComponent<Transform>(parent);
 
-			if (childT.parent != NE::ECS::Component::INVALID_PARENT) {
-				auto& oldParentT = ecs.GetComponent<Transform>(childT.parent);
-				auto& vec = oldParentT.children;
-				vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
-			}
+		//	if (childT.parent != NE::ECS::Component::INVALID_PARENT) {
+		//		auto& oldParentT = ecs.GetComponent<Transform>(childT.parent);
+		//		auto& vec = oldParentT.children;
+		//		vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
+		//	}
 
-			childT.parent = parent;
-			parentT.children.push_back(child);
-			childT.parentLuid = parentT.luid;
-			childT.isDirty = true;
-		}
+		//	childT.parent = parent;
+		//	parentT.children.push_back(child);
+		//	childT.parentLuid = parentT.luid;
+		//	childT.isDirty = true;
+		//}
 
 		return ret;
 	}

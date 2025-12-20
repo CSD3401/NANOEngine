@@ -38,9 +38,11 @@ namespace NE::ECS::Systems {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
         if (!renderer.materialUUID.empty())
-            renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
+            renderer.material = Resource::ResourceManager::GetInstance().
+            LoadResource<Graphics::Material>(renderer.materialUUID);
         if (!renderer.modelUUID.empty())
-            renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
+            renderer.model = Resource::ResourceManager::GetInstance().
+            LoadResource<Graphics::Model>(renderer.modelUUID);
     }
 
     void RenderSystem::OnEntityRemoved(Entity)

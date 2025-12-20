@@ -22,6 +22,9 @@ namespace NE::Graphics::OpenGL {
 
         unsigned int GLName() const { return m_ID; }
 
+        static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::Texture; }
+        Resource::ResourceType GetType() const override { return GetStaticType(); }
+
         std::string uuid; // for material serialization
     private:
         unsigned int m_ID = 0;

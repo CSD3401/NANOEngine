@@ -3,6 +3,7 @@
 
 #include "BinaryView.hpp"
 #include "NANOEngineAPI.hpp"
+#include "ResourceTypes.hpp"
 
 namespace NE::Resource {
 
@@ -11,6 +12,8 @@ namespace NE::Resource {
 
 		virtual bool Preload(BinaryView blob) = 0;
 		virtual void Finalize() = 0;
+
+		virtual ResourceType GetType() const = 0;
 	};
 
 }

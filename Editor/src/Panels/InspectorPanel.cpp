@@ -190,7 +190,7 @@ namespace {
 		}
 	}
 
-	bool LoadModelImportSettings(std::string metaPath, Editor::ModelImportSettings& settings) {
+	bool LoadModelImportSettings(std::string metaPath, Editor::Assets::ModelImportSettings& settings) {
 		using namespace rapidjson;
 		using namespace NE::Serialization;
 
@@ -221,7 +221,7 @@ namespace {
 		return true;
 	}
 
-	bool LoadTextureImportSettings(std::string metaPath, Editor::TextureImportSettings& settings) {
+	bool LoadTextureImportSettings(std::string metaPath, Editor::Assets::TextureImportSettings& settings) {
 		using namespace rapidjson;
 		using namespace NE::Serialization;
 
@@ -323,13 +323,11 @@ namespace Editor {
 		componentTypeRegistry = NE::ECS::Query::GetRegisteredComponentTypes();
 	}
 
-	void InspectorPanel::OnImGuiRender()
-	{
+	void InspectorPanel::OnImGuiRender() {
 		ImGui::Begin("Inspector", nullptr);
 
-		if (EditorScene::s_selectedEntity)
-		{
-			uint32_t entity = EditorScene::s_selectedEntity->linkedEntity;
+		if (EditorScene::s_selection.GetLastClicked() != NE::ECS::NO_ENTITY) {
+			uint32_t entity = EditorScene::s_selection.GetLastClicked();
 
 			// Entity name field only (isActive is now handled by EntityMeta component)
 			{
@@ -339,12 +337,11 @@ namespace Editor {
 				auto& metaRO = NE::ECS::Command::GetEntityMeta(entity);
 
 				bool isActiveValue = metaRO.isActive;
-				if (ImGui::Checkbox("isActive", &isActiveValue)) {
-					//metaRO.isActive = isActiveValue;
+				if (DrawCheckbox("##isActive", isActiveValue)) {
+					metaRO.isActive = isActiveValue;
 
 					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
-					EditorScene::SetAllDescendantsActive(entity, isActiveValue);
-					NE::MarkSceneDirty();
+					//EditorScene::SetAllDescendantsActive(entity, isActiveValue);
 				}
 
 				ImGui::SameLine();
@@ -505,7 +502,7 @@ namespace Editor {
 				// =========================================
 				// TAG COMBO
 				// =========================================
-				const char* previewTag = "Under Dev";   // Should later come from metaRO.tag
+				const char* previewTag = "Under Dev";
 
 				ImGui::PushID("EntityTag");
 				ImGui::PushItemWidth(comboWidth);
@@ -672,7 +669,7 @@ namespace Editor {
 					ImGui::SeparatorText("Renderer");
 					// Model field
 					bool openPopup = false;
-					DrawAssetField("Model", AssetManager::GetInstance().RetrieveFileName(comp.modelUUID), "+", 0.f, &openPopup);
+					DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
 					if (openPopup) {
 						ImGui::OpenPopup("AssetPicker_Model");
 					}
@@ -680,7 +677,7 @@ namespace Editor {
 					if (ImGui::BeginDragDropTarget()) {
 						if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
 							std::string dropped((const char*)p->Data, p->DataSize - 1);
-							auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+							auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 							NE::Renderer::Command::AssignModel(entity, uuid);
 						}
 						ImGui::EndDragDropTarget();
@@ -690,8 +687,7 @@ namespace Editor {
 					if (ImGui::BeginPopup("AssetPicker_Model")) {
 						ImGui::Text("Select a Model");
 						ImGui::Separator();
-						//auto& modelList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Mesh>();
-						auto& modelList = AssetManager::GetInstance().GetAssetsOfType<AssetType::Mesh>();
+						auto& modelList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Model);
 
 						if (ImSearch::BeginSearch()) {
 							ImSearch::SearchBar();
@@ -711,13 +707,13 @@ namespace Editor {
 
 					// Material field
 					char bufMat[256];
-					strncpy_s(bufMat, AssetManager::GetInstance().RetrieveFileName(comp.materialUUID).c_str(), sizeof(bufMat));
+					strncpy_s(bufMat, Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID).c_str(), sizeof(bufMat));
 					ImGui::InputText("Material", bufMat, sizeof(bufMat));
 
 					if (ImGui::BeginDragDropTarget()) {
 						if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 							std::string dropped((const char*)p->Data, p->DataSize - 1);
-							auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+							auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 							NE::Renderer::Command::AssignMaterial(entity, uuid);
 						}
 						ImGui::EndDragDropTarget();
@@ -728,12 +724,9 @@ namespace Editor {
 					auto& tempR = NE::ECS::Command::GetEntityRenderer(entity);
 					if (ImGui::Combo("Shadow Cast Mode", &currentCastMode, ShadowCastModeNames, IM_ARRAYSIZE(ShadowCastModeNames))) {
 						tempR.shadowCastMode = static_cast<NE::ECS::Component::Renderer::ShadowCastMode>(currentCastMode);
-
-						NE::MarkSceneDirty();
 					}
 
 					if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
-						NE::MarkSceneDirty();
 					}
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Light))
@@ -746,10 +739,6 @@ namespace Editor {
 					if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
-
-						// Mark scene dirty when light type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
 					}
 
 					static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
@@ -757,10 +746,6 @@ namespace Editor {
 					if (ImGui::Combo("Shadow Type", &shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.shadowType = static_cast<NE::ECS::Component::Light::ShadowType>(shadowType);
-
-						// Mark scene dirty when light type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
 					}
 
 					static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
@@ -768,10 +753,6 @@ namespace Editor {
 					if (ImGui::Combo("Shadow Update Mode", &shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames))) {
 						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
 						tempLight.shadowUpdateMode = static_cast<NE::ECS::Component::Light::ShadowUpdateMode>(shadowUpdateMode);
-
-						// Mark scene dirty when light type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Light type changed - Scene marked DIRTY");
 					}
 
 					NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
@@ -860,10 +841,6 @@ namespace Editor {
 						SPD_DEBUG("  Updated: motionType={}, isStatic={}",
 							static_cast<int>(tempRb.motionType),
 							tempRb.isStatic);
-
-						// Mark scene dirty when motion type changes
-						NE::MarkSceneDirty();
-						SPD_DEBUG("[DirtyFlag] Rigidbody motion type changed - Scene marked DIRTY");
 					}
 
 					// Help text
@@ -977,8 +954,6 @@ namespace Editor {
 						// "None" option to remove script
 						if (ImGui::Selectable("None", comp.ScriptName.empty())) {
 							NE::ECS::Command::RemoveEntityScript(entity);
-							NE::MarkSceneDirty();
-							SPD_DEBUG("[DirtyFlag] Script removed - Scene marked DIRTY");
 						}
 
 						// List all registered scripts
@@ -987,8 +962,6 @@ namespace Editor {
 							bool isSelected = (comp.ScriptName == scriptName);
 							if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
 								NE::ECS::Command::SetEntityScript(entity, scriptName);
-								NE::MarkSceneDirty();
-								SPD_DEBUG("[DirtyFlag] Script changed - Scene marked DIRTY");
 							}
 							if (isSelected) {
 								ImGui::SetItemDefaultFocus();
@@ -1016,8 +989,6 @@ namespace Editor {
 								ImGui::Spacing();
 								if (ImGui::Button("Remove Invalid Script")) {
 									NE::ECS::Command::RemoveEntityScript(entity);
-									NE::MarkSceneDirty();
-									SPD_DEBUG("[DirtyFlag] Invalid script removed - Scene marked DIRTY");
 								}
 								ImGui::SameLine();
 								ImGui::TextDisabled("(?)");
@@ -1035,8 +1006,6 @@ namespace Editor {
 							bool enabled = comp.Instance->IsEnabled();
 							if (ImGui::Checkbox("Enabled", &enabled)) {
 								comp.Instance->SetEnabled(enabled);
-								NE::MarkSceneDirty();
-								SPD_DEBUG("[DirtyFlag] Script enabled/disabled - Scene marked DIRTY");
 							}
 
 							ImGui::Text("Status: Active");
@@ -1246,7 +1215,7 @@ namespace Editor {
 									// Material reference field
 									// Get current material UUID
 									std::string materialUUID = fval;
-									std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+									std::string displayName = materialUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(materialUUID);
 
 									// Display the material reference field
 									ImGui::Text("%s (Material)", fname.c_str());
@@ -1264,7 +1233,7 @@ namespace Editor {
 											std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
 											SPD_DEBUG("[MaterialRef] Dropped path: {}", droppedPath);
 
-											std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+											std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
 											SPD_DEBUG("[MaterialRef] Retrieved UUID: {}", droppedUUID);
 
 											if (!droppedUUID.empty()) {
@@ -1437,7 +1406,7 @@ namespace Editor {
 											else if (elementType == "materialref") {
 												// Material reference support for vector<materialref>
 												std::string materialUUID = elemValue;
-												std::string displayName = materialUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(materialUUID);
+												std::string displayName = materialUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(materialUUID);
 
 												// Button shows material name or "None" - make it a drop target
 												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
@@ -1450,7 +1419,7 @@ namespace Editor {
 														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
 														SPD_DEBUG("[MaterialRef Vector] Dropped path: {}", droppedPath);
 
-														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
 														SPD_DEBUG("[MaterialRef Vector] Retrieved UUID: {}", droppedUUID);
 
 														if (!droppedUUID.empty()) {
@@ -1490,7 +1459,7 @@ namespace Editor {
 											else if (elementType == "prefabref") {
 												// Prefab reference support for vector<prefabref>
 												std::string prefabUUID = elemValue;
-												std::string displayName = prefabUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(prefabUUID);
+												std::string displayName = prefabUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(prefabUUID);
 
 												// Button shows prefab name or "None" - make it a drop target
 												ImGui::Button(displayName.c_str(), ImVec2(150, 0));
@@ -1503,7 +1472,7 @@ namespace Editor {
 														std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
 														SPD_DEBUG("[PrefabRef Vector] Dropped path: {}", droppedPath);
 
-														std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
+														std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
 														SPD_DEBUG("[PrefabRef Vector] Retrieved UUID: {}", droppedUUID);
 
 														if (!droppedUUID.empty()) {
@@ -1662,8 +1631,6 @@ namespace Editor {
 								// Call OnValidate() when a field changes (editor-only)
 								if (fieldChanged) {
 									comp.Instance->OnValidate();
-									NE::MarkSceneDirty();
-									// printf("[DirtyFlag] Script field changed - Scene marked DIRTY\n"); // Too spammy
 								}
 
 								ImGui::PopID();
@@ -1938,7 +1905,6 @@ namespace Editor {
 								g_activeCommands[key] = std::move(cmd); \
 							} \
 							if (changed) { \
-								NE::MarkSceneDirty(); \
 								auto it = g_activeCommands.find(key); \
 								if (it != g_activeCommands.end()) { \
 									using Cmd = Editor::SetFieldCommand<Owner, FieldT>; \
@@ -1977,7 +1943,6 @@ namespace Editor {
 								g_activeCommands[key] = std::move(cmd); \
 							} \
 							if (changed) { \
-								NE::MarkSceneDirty(); \
 								auto it = g_activeCommands.find(key); \
 								if (it != g_activeCommands.end()) { \
 									using Cmd = Editor::SetFieldCommand<Owner, FieldT>; \
@@ -2086,7 +2051,6 @@ namespace Editor {
 								case 10: comp.anchorMinX = comp.anchorMaxX = 0.5f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
 								case 11: comp.anchorMinX = 0.0f; comp.anchorMaxX = 1.0f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
 								}
-								NE::MarkSceneDirty();
 							}
 
 							ImGui::Indent(16.0f);
@@ -2223,7 +2187,7 @@ namespace Editor {
 							auto oldMode = comp.renderMode;
 							comp.renderMode = static_cast<decltype(comp.renderMode)>(currentMode);
 							std::string materialPath = GetUIMaterialPathForRenderMode(comp.renderMode);
-							std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+							std::string materialUUID = Assets::AssetManager::GetInstance().RetrieveUUID(materialPath);
 
 							if (materialUUID.empty()) {
 								SPD_ERROR("[InspectorPanel] Failed to find material for render mode: {}", materialPath);
@@ -2237,8 +2201,6 @@ namespace Editor {
 									static_cast<int>(oldMode), currentMode);
 								SPD_INFO("Assigned material: {}", materialPath);
 							}
-
-							NE::MarkSceneDirty();
 						}
 
 						// pixel perfect toggle (if in overlay mode or camera mode)
@@ -2251,7 +2213,6 @@ namespace Editor {
 							ImGui::SetNextItemWidth(-1);
 							if (ImGui::Checkbox("##PixelPerfect", &comp.pixelPerfect))
 							{
-								NE::MarkSceneDirty();
 							}
 						}
 
@@ -2263,7 +2224,6 @@ namespace Editor {
 							ImGui::SetNextItemWidth(-1);
 							if (ImGui::DragFloat("##PlaneDistance", &comp.planeDistance, 1.0f, 0.1f, 1000.0f))
 							{
-								NE::MarkSceneDirty();
 							}
 						}
 
@@ -2274,7 +2234,6 @@ namespace Editor {
 						ImGui::SetNextItemWidth(-1);
 						if (ImGui::DragInt("##SortOrder", &comp.sortingOrder))
 						{
-							NE::MarkSceneDirty();
 						}
 
 						ImGui::Unindent();
@@ -2402,7 +2361,7 @@ namespace Editor {
 
 							std::string texLabel = comp.textureUUID.empty()
 								? ""
-								: AssetManager::GetInstance().RetrieveFileName(comp.textureUUID);
+								: Assets::AssetManager::GetInstance().RetrieveFilename(comp.textureUUID);
 
 							char bufTex[256];
 							strncpy_s(bufTex, texLabel.c_str(), sizeof(bufTex));
@@ -2413,7 +2372,7 @@ namespace Editor {
 								if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH"))
 								{
 									std::string dropped((const char*)p->Data, p->DataSize - 1); // dropped = "Assets/Textures/MyTexture.jpg"
-									auto textureUUID = AssetManager::GetInstance().RetrieveUUID(dropped); // convert file path to UUID --> uuid = "abc123def456" (from MyTexture.jpg.meta file)
+									auto textureUUID = Assets::AssetManager::GetInstance().RetrieveUUID(dropped); // convert file path to UUID --> uuid = "abc123def456" (from MyTexture.jpg.meta file)
 
 									// find parent canvas to determine render mode
 									auto& rectTransform = NE::ECS::Command::GetUIRectTransform(entity);
@@ -2456,7 +2415,7 @@ namespace Editor {
 									}
 
 									// convert material path to UUID
-									std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+									std::string materialUUID = Assets::AssetManager::GetInstance().RetrieveUUID(materialPath);
 
 									if (materialUUID.empty())
 									{
@@ -2476,19 +2435,10 @@ namespace Editor {
 							}
 
 							// Right-click to clear texture
-							if (ImGui::BeginPopupContextItem("##TextureContext"))
-							{
-								if (ImGui::MenuItem("Clear"))
-								{
+							if (ImGui::BeginPopupContextItem("##TextureContext")) {
+								if (ImGui::MenuItem("Clear")) {
 									comp.textureUUID.clear();
-									comp.material.reset();  // Clear material
-
-									// Mark dirty
-									if (NE::GetEngineState() == NE::EngineState::Edit)
-									{
-										if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
-										NE::MarkSceneDirty();
-									}
+									comp.material.reset();
 								}
 								ImGui::EndPopup();
 							}
@@ -2522,7 +2472,6 @@ namespace Editor {
 							if (ImGui::Combo("##ImageType", &currentImageType, ImageTypes, IM_ARRAYSIZE(ImageTypes))) {
 								comp.imageType = static_cast<NE::ECS::Component::UIImage::ImageType>(currentImageType);
 								comp.isDirty = true;
-								NE::MarkSceneDirty();
 							}
 
 							// type specific options
@@ -2538,7 +2487,6 @@ namespace Editor {
 								ImGui::SetNextItemWidth(-1);
 								if (ImGui::Checkbox("##PreserveAspect", &comp.preserveAspect)) {
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// reset fill amount when switching to simple mode
@@ -2602,7 +2550,6 @@ namespace Editor {
 								ImGui::SetNextItemWidth(-1);
 								if (ImGui::DragFloat("##PixelsPerUnitMultiplier", &comp.pixelsPerUnitMultiplier, 0.1f, 0.1f, 10.0f)) {
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// reset fill amount when switching to simple mode
@@ -2633,7 +2580,6 @@ namespace Editor {
 								if (ImGui::Combo("##FillMethod", &currentFillMethod, FillMethods, IM_ARRAYSIZE(FillMethods))) {
 									comp.fillMethod = static_cast<NE::ECS::Component::UIImage::FillMethod>(currentFillMethod);
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// fill Origin (context-dependent)
@@ -2648,7 +2594,6 @@ namespace Editor {
 									if (ImGui::Combo("##FillOrigin", &origin, HOrigins, IM_ARRAYSIZE(HOrigins))) {
 										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 								else if (comp.fillMethod == NE::ECS::Component::UIImage::FillMethod::VERTICAL)
@@ -2658,7 +2603,6 @@ namespace Editor {
 									if (ImGui::Combo("##FillOrigin", &origin, VOrigins, IM_ARRAYSIZE(VOrigins))) {
 										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 								else // radial fills
@@ -2674,7 +2618,6 @@ namespace Editor {
 									if (ImGui::Combo("##FillOrigin", &origin, RadialOrigins, IM_ARRAYSIZE(RadialOrigins))) {
 										comp.fillOrigin = static_cast<NE::ECS::Component::UIImage::FillOrigin>(origin);
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 
@@ -2686,7 +2629,6 @@ namespace Editor {
 								{
 									comp.ClampFillAmount();
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 
 								// clockwise toggle 
@@ -2700,7 +2642,6 @@ namespace Editor {
 									if (ImGui::Checkbox("##Clockwise", &comp.fillClockwise))
 									{
 										comp.isDirty = true;
-										NE::MarkSceneDirty();
 									}
 								}
 
@@ -2711,7 +2652,6 @@ namespace Editor {
 								if (ImGui::Checkbox("##PreserveAspect", &comp.preserveAspect))
 								{
 									comp.isDirty = true;
-									NE::MarkSceneDirty();
 								}
 								break;
 							}
@@ -2731,45 +2671,29 @@ namespace Editor {
 
 			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
 				if (ImGui::MenuItem("Renderer")) {
-					NE::ECS::Command::AddRendererComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Renderer component - Scene marked DIRTY");
+					NE::ECS::Command::AddRendererComponent(EditorScene::s_selection.GetLastClicked());
 				}
 				if (ImGui::MenuItem("Rigidbody")) {
-					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Rigidbody/Collider components - Scene marked DIRTY");
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
+					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selection.GetLastClicked());
 				}
 				if (ImGui::MenuItem("Collider")) {
-					NE::ECS::Command::AddColliderComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Collider component - Scene marked DIRTY");
+					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
 				}
 				if (ImGui::MenuItem("Light")) {
-					NE::ECS::Command::AddLightComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Light component - Scene marked DIRTY");
+					NE::ECS::Command::AddLightComponent(EditorScene::s_selection.GetLastClicked());
 				}
 				if (ImGui::MenuItem("AudioSource")) {
-					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added AudioSource component - Scene marked DIRTY");
+					NE::ECS::Command::AddAudioSourceComponent(EditorScene::s_selection.GetLastClicked());
 				}
 				if (ImGui::MenuItem("Script")) {
-					NE::ECS::Command::AddScriptComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Script component - Scene marked DIRTY");
+					NE::ECS::Command::AddScriptComponent(EditorScene::s_selection.GetLastClicked());
 				}
 				if (ImGui::MenuItem("Camera")) {
-					NE::ECS::Command::AddCameraComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Camera component - Scene marked DIRTY");
+					NE::ECS::Command::AddCameraComponent(EditorScene::s_selection.GetLastClicked());
 				}
 				if (ImGui::MenuItem("Animator")) {
-					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selectedEntity->linkedEntity);
-					NE::MarkSceneDirty();
-					SPD_DEBUG("[DirtyFlag] Added Animator component - Scene marked DIRTY");
+					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selection.GetLastClicked());
 				}
 
 				ImGui::EndPopup();
@@ -2789,7 +2713,7 @@ namespace Editor {
 				//RenderMaterialSettings();
 				if (!m_materialEditor || m_lastPath != assetPath.string()) {
 					m_materialEditor = std::make_unique<MaterialEditor>();
-					if (m_materialEditor->LoadMaterial(assetPath.string(), AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
+					if (m_materialEditor->LoadMaterial(assetPath.string(), Assets::AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
 						m_lastPath = assetPath.string();
 					else
 						m_materialEditor.reset();
@@ -2803,99 +2727,99 @@ namespace Editor {
 	}
 
 	void InspectorPanel::RenderTextureImportSettings(std::string metaPath) {
-		static std::string s_LastMetaPath;
-		static TextureImportSettings s_Settings{};
-		static bool s_Loaded = false;
-		static bool s_dirty = false;
+		//static std::string s_LastMetaPath;
+		//static TextureImportSettings s_Settings{};
+		//static bool s_Loaded = false;
+		//static bool s_dirty = false;
 
-		if (!s_Loaded || metaPath != s_LastMetaPath) {
-			if (!LoadTextureImportSettings(metaPath, s_Settings)) {
-				ImGui::TextUnformatted("Failed to load texture import settings.");
-				return;
-			}
+		//if (!s_Loaded || metaPath != s_LastMetaPath) {
+		//	if (!LoadTextureImportSettings(metaPath, s_Settings)) {
+		//		ImGui::TextUnformatted("Failed to load texture import settings.");
+		//		return;
+		//	}
 
-			s_LastMetaPath = metaPath;
-			s_Loaded = true;
-		}
+		//	s_LastMetaPath = metaPath;
+		//	s_Loaded = true;
+		//}
 
-		static const char* TextureTypeNames[] = { "Default", "Normal Map", "Sprite" };
-		static const char* TextureShapeNames[] = { "2D", "Cube", "2D Array" };
-		static const char* TextureWrapMode[] = { "Repeat", "Clamp", "Mirror", "MirrorOnce", "PerAxis" };
-		static const char* TextureFilterMode[] = { "Point", "Bilinear", "Trilinear" };
-		static const char* AlphaSourceNames[] = { "InputTextureAlpha", "GrayscaleSource", "None" };
+		//static const char* TextureTypeNames[] = { "Default", "Normal Map", "Sprite" };
+		//static const char* TextureShapeNames[] = { "2D", "Cube", "2D Array" };
+		//static const char* TextureWrapMode[] = { "Repeat", "Clamp", "Mirror", "MirrorOnce", "PerAxis" };
+		//static const char* TextureFilterMode[] = { "Point", "Bilinear", "Trilinear" };
+		//static const char* AlphaSourceNames[] = { "InputTextureAlpha", "GrayscaleSource", "None" };
 
-		// ----- Texture Type -----
-		int currentType = static_cast<int>(s_Settings.type); // assuming enum starts at 0
-		if (ImGui::Combo("Texture Type", &currentType, TextureTypeNames, IM_ARRAYSIZE(TextureTypeNames))) {
-			s_Settings.type = static_cast<TexType>(currentType);
-			s_dirty = true;
-		}
+		//// ----- Texture Type -----
+		//int currentType = static_cast<int>(s_Settings.type); // assuming enum starts at 0
+		//if (ImGui::Combo("Texture Type", &currentType, TextureTypeNames, IM_ARRAYSIZE(TextureTypeNames))) {
+		//	s_Settings.type = static_cast<TexType>(currentType);
+		//	s_dirty = true;
+		//}
 
-		// ----- Shape -----
-		int currentShape = static_cast<int>(s_Settings.shape); // TextureShape enum
-		if (ImGui::Combo("Texture Shape", &currentShape, TextureShapeNames, IM_ARRAYSIZE(TextureShapeNames))) {
-			s_Settings.shape = static_cast<TexShape>(currentShape);
-			s_dirty = true;
-		}
+		//// ----- Shape -----
+		//int currentShape = static_cast<int>(s_Settings.shape); // TextureShape enum
+		//if (ImGui::Combo("Texture Shape", &currentShape, TextureShapeNames, IM_ARRAYSIZE(TextureShapeNames))) {
+		//	s_Settings.shape = static_cast<TexShape>(currentShape);
+		//	s_dirty = true;
+		//}
 
-		// ----- sRGB -----
-		bool isSRGB = s_Settings.sRGB;
-		if (Editor::DrawCheckbox("sRGB (Color Texture)", isSRGB)) {
-			s_Settings.sRGB = isSRGB;
-			s_dirty = true;
-		}
+		//// ----- sRGB -----
+		//bool isSRGB = s_Settings.sRGB;
+		//if (Editor::DrawCheckbox("sRGB (Color Texture)", isSRGB)) {
+		//	s_Settings.sRGB = isSRGB;
+		//	s_dirty = true;
+		//}
 
-		// ----- Alpha Source -----
-		int currentAlpha = static_cast<int>(s_Settings.alphaSource); // AlphaSource enum
-		if (ImGui::Combo("Alpha Source", &currentAlpha, AlphaSourceNames, IM_ARRAYSIZE(AlphaSourceNames))) {
-			s_Settings.alphaSource = static_cast<TexAlphaSource>(currentAlpha);
-			s_dirty = true;
-		}
+		//// ----- Alpha Source -----
+		//int currentAlpha = static_cast<int>(s_Settings.alphaSource); // AlphaSource enum
+		//if (ImGui::Combo("Alpha Source", &currentAlpha, AlphaSourceNames, IM_ARRAYSIZE(AlphaSourceNames))) {
+		//	s_Settings.alphaSource = static_cast<TexAlphaSource>(currentAlpha);
+		//	s_dirty = true;
+		//}
 
-		// ----- Advanced -----
-		if (ImGui::TreeNode("Advanced")) {
-			bool generateMips = s_Settings.mips.generateMipmap;
-			bool preserveCoverage = s_Settings.mips.preserveCoverage;
+		//// ----- Advanced -----
+		//if (ImGui::TreeNode("Advanced")) {
+		//	bool generateMips = s_Settings.mips.generateMipmap;
+		//	bool preserveCoverage = s_Settings.mips.preserveCoverage;
 
-			if (Editor::DrawCheckbox("Generate Mipmaps", generateMips)) {
-				s_Settings.mips.generateMipmap = generateMips;
-				s_dirty = true;
-			}
+		//	if (Editor::DrawCheckbox("Generate Mipmaps", generateMips)) {
+		//		s_Settings.mips.generateMipmap = generateMips;
+		//		s_dirty = true;
+		//	}
 
-			if (Editor::DrawCheckbox("Preserve Coverage", preserveCoverage)) {
-				s_Settings.mips.preserveCoverage = preserveCoverage;
-				s_dirty = true;
-			}
+		//	if (Editor::DrawCheckbox("Preserve Coverage", preserveCoverage)) {
+		//		s_Settings.mips.preserveCoverage = preserveCoverage;
+		//		s_dirty = true;
+		//	}
 
-			ImGui::TreePop();
-		}
+		//	ImGui::TreePop();
+		//}
 
-		// ----- Filter -----
-		int currentFilter = static_cast<int>(s_Settings.filterMode); // FilterMode enum
-		if (ImGui::Combo("Filter Mode", &currentFilter, TextureFilterMode, IM_ARRAYSIZE(TextureFilterMode))) {
-			s_Settings.filterMode = static_cast<TexFilterMode>(currentFilter);
-			s_dirty = true;
-		}
+		//// ----- Filter -----
+		//int currentFilter = static_cast<int>(s_Settings.filterMode); // FilterMode enum
+		//if (ImGui::Combo("Filter Mode", &currentFilter, TextureFilterMode, IM_ARRAYSIZE(TextureFilterMode))) {
+		//	s_Settings.filterMode = static_cast<TexFilterMode>(currentFilter);
+		//	s_dirty = true;
+		//}
 
-		// ----- Wrap -----
-		int currentWrap = static_cast<int>(s_Settings.wrapMode); // WrapMode enum
-		if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
-			s_Settings.wrapMode = static_cast<TexWrapMode>(currentWrap);
-			s_dirty = true;
-		}
+		//// ----- Wrap -----
+		//int currentWrap = static_cast<int>(s_Settings.wrapMode); // WrapMode enum
+		//if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
+		//	s_Settings.wrapMode = static_cast<TexWrapMode>(currentWrap);
+		//	s_dirty = true;
+		//}
 
-		ImGui::BeginDisabled(!s_dirty);
-		if (ImGui::Button("Apply")) {
-			if (!AssetManager::GetInstance().SaveTextureImportSettings(metaPath, s_Settings)) {
-				SPD_WARNING("Failed to save texture import settings for: " << metaPath);
-			}
-			else {
-				AssetManager::GetInstance().ReimportAsset(metaPath);
-			}
+		//ImGui::BeginDisabled(!s_dirty);
+		//if (ImGui::Button("Apply")) {
+		//	if (!AssetManager::GetInstance().SaveTextureImportSettings(metaPath, s_Settings)) {
+		//		SPD_WARNING("Failed to save texture import settings for: " << metaPath);
+		//	}
+		//	else {
+		//		AssetManager::GetInstance().ReimportAsset(metaPath);
+		//	}
 
-			s_dirty = false;
-		}
-		ImGui::EndDisabled();
+		//	s_dirty = false;
+		//}
+		//ImGui::EndDisabled();
 	}
 
 	void InspectorPanel::RenderModelImportSettings(const std::string& metaPath) {
@@ -2903,7 +2827,7 @@ namespace Editor {
 		//static ModelImportSettings s_Settings{};
 		//static bool s_Loaded = false;
 
-		ModelImportSettings settings{};
+		Assets::ModelImportSettings settings{};
 		if (!LoadModelImportSettings(metaPath, settings)) {
 			ImGui::TextUnformatted("Failed to load model import settings.");
 			return;
@@ -2972,7 +2896,7 @@ namespace Editor {
 				int meshOptIndex = static_cast<int>(settings.mesh.meshOptimizationMode);
 				DrawComboEnum("Mesh Optimization", meshOptIndex, MeshOptNames, IM_ARRAYSIZE(MeshOptNames));
 				settings.mesh.meshOptimizationMode =
-					static_cast<MeshImportSettings::MeshOptimizationMode>(meshOptIndex);
+					static_cast<Assets::MeshImportSettings::MeshOptimizationMode>(meshOptIndex);
 
 				Editor::DrawCheckbox("Generate Colliders", settings.mesh.generateColliders);
 				Editor::DrawCheckbox("Generate Mesh LODs", settings.mesh.generateMeshLODs);
@@ -2983,19 +2907,19 @@ namespace Editor {
 				const char* IndexFormatNames[] = { "Auto", "UInt16", "UInt32" };
 				int indexFmtIndex = static_cast<int>(settings.mesh.indexFormat);
 				DrawComboEnum("Index Format", indexFmtIndex, IndexFormatNames, IM_ARRAYSIZE(IndexFormatNames));
-				settings.mesh.indexFormat = static_cast<MeshImportSettings::IndexFormat>(indexFmtIndex);
+				settings.mesh.indexFormat = static_cast<Assets::MeshImportSettings::IndexFormat>(indexFmtIndex);
 
 				const char* NormalModeNames[] = { "Import", "Calculate", "None" };
 				int normalIndex = static_cast<int>(settings.mesh.normalMode);
 				DrawComboEnum("Normals", normalIndex, NormalModeNames, IM_ARRAYSIZE(NormalModeNames));
-				settings.mesh.normalMode = static_cast<MeshImportSettings::NormalMode>(normalIndex);
+				settings.mesh.normalMode = static_cast<Assets::MeshImportSettings::NormalMode>(normalIndex);
 
 				ImGui::DragFloat("Smoothing Angle", &settings.mesh.smoothingAngle, 1.0f, 0.0f, 180.0f);
 
 				const char* TangentModeNames[] = { "Import", "Calculate (MikkTSpace)", "None" };
 				int tangentIndex = static_cast<int>(settings.mesh.tangentMode);
 				DrawComboEnum("Tangents", tangentIndex, TangentModeNames, IM_ARRAYSIZE(TangentModeNames));
-				settings.mesh.tangentMode = static_cast<MeshImportSettings::TangentMode>(tangentIndex);
+				settings.mesh.tangentMode = static_cast<Assets::MeshImportSettings::TangentMode>(tangentIndex);
 
 				Editor::DrawCheckbox("Swap UVs", settings.mesh.swapUVs);
 			}
@@ -3008,7 +2932,7 @@ namespace Editor {
 				const char* AnimTypeNames[] = { "None", "Generic", "Humanoid" };
 				int animTypeIndex = static_cast<int>(settings.rig.animationType);
 				DrawComboEnum("Animation Type", animTypeIndex, AnimTypeNames, IM_ARRAYSIZE(AnimTypeNames));
-				settings.rig.animationType = static_cast<RigImportSettings::AnimationType>(animTypeIndex);
+				settings.rig.animationType = static_cast<Assets::RigImportSettings::AnimationType>(animTypeIndex);
 
 				Editor::DrawCheckbox("Strip Unused Bones", settings.rig.stripBones);
 			}
@@ -3042,7 +2966,7 @@ namespace Editor {
 				int matModeIndex = static_cast<int>(settings.material.creationMode);
 				DrawComboEnum("Material Creation", matModeIndex, MaterialModeNames, IM_ARRAYSIZE(MaterialModeNames));
 				settings.material.creationMode =
-					static_cast<MaterialImportSettings::MaterialCreationMode>(matModeIndex);
+					static_cast<Assets::MaterialImportSettings::MaterialCreationMode>(matModeIndex);
 			}
 			break;
 		}

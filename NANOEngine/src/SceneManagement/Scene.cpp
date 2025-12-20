@@ -1,51 +1,43 @@
 #include "Scene.hpp"
-#include "../../src/Graphics/Core/GraphicsManager.hpp"
-#include "../../src/Graphics/Core/GizmosRenderer.hpp"
-#include "../ECS/Systems/TransformSystem.hpp"
-#include "../ECS/Systems/RenderSystem.hpp"
-#include "../ECS/Systems/LightSystem.hpp"
-#include "../ECS/Systems/RigidbodySystem.hpp"
-#include "../ECS/Systems/ColliderSystem.hpp"
-#include "../ECS/Systems/AudioSystem.hpp"
-#include "../ECS/Systems/AnimatorSystem.hpp"
-#include "../Animation/TransformClipIO.hpp"
 #include <filesystem>
-#include "../ECS/Systems/CameraSystem.hpp"
-#include "../ECS/Systems/PhysicsSystem.hpp"
-#include "../ECS/Components/Transform.hpp"
-#include "../ECS/Components/Renderer.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/GizmosRenderer.hpp"
+#include "ECS/Systems/TransformSystem.hpp"
+#include "ECS/Systems/RenderSystem.hpp"
+#include "ECS/Systems/LightSystem.hpp"
+#include "ECS/Systems/RigidbodySystem.hpp"
+#include "ECS/Systems/ColliderSystem.hpp"
+#include "ECS/Systems/AudioSystem.hpp"
+#include "ECS/Systems/AnimatorSystem.hpp"
+#include "ECS/Systems/HierarchySystem.hpp"
+#include "ECS/Systems/CameraSystem.hpp"
+#include "ECS/Systems/PhysicsSystem.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
-#include "ECS/Components/NativeScript.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
-#include "ECS/Systems//UITransformSystem.hpp"
-#include "../ECS/Components/UIRectTransform.hpp"
-#include "../ECS/Components/UIImage.hpp"
-#include "../ECS/Components/UICanvas.hpp"
+#include "ECS/Systems/UITransformSystem.hpp"
+#include "../Animation/TransformClipIO.hpp"
 #include "Core/Couroutine.hpp"
-#include "Core/SpdLogger.hpp"  // For console logging
-#include "PrefabManagement/PrefabManager.hpp"
-#include "EngineState.hpp"
 
-static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
-	namespace fs = std::filesystem;
-	const char* root = "Assets/Animations";
-	if (!fs::exists(root)) return;
-	for (auto& e : fs::recursive_directory_iterator(root)) {
-		if (e.path().extension() == ".neclip") {
-			auto clip = std::make_shared<NE::Animation::TransformClip>();
-			if (NE::Animation::LoadTransformClip(*clip, e.path().string())) {
-				// Use the file path as the registry key
-				sys->RegisterClip(e.path().string(), clip);
-			}
-		}
-	}
-}
+//static void LoadAllClipsIntoAnimator(NE::ECS::Systems::AnimatorSystem* sys) {
+//	namespace fs = std::filesystem;
+//	const char* root = "Assets/Animations";
+//	if (!fs::exists(root)) return;
+//	for (auto& e : fs::recursive_directory_iterator(root)) {
+//		if (e.path().extension() == ".neclip") {
+//			auto clip = std::make_shared<NE::Animation::TransformClip>();
+//			if (NE::Animation::LoadTransformClip(*clip, e.path().string())) {
+//				// Use the file path as the registry key
+//				sys->RegisterClip(e.path().string(), clip);
+//			}
+//		}
+//	}
+//}
 namespace NE::SceneManagement {
 
 	void Scene::Init() {
 		// input
 		m_ecsCoordinator.m_rigidbodySystem->Init();
-		//m_ecsCoordinator.m_colliderSystem->Init();
+		m_ecsCoordinator.m_hierarchySystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_cameraSystem->Init();
@@ -57,30 +49,40 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_uiRenderSystem->Init();
 
 		m_ecsCoordinator.m_animatorSystem->Init();
-		LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
+		//LoadAllClipsIntoAnimator(m_ecsCoordinator.m_animatorSystem.get());
 	}
 
-	void Scene::Update(double dt)
-	{
+	void Scene::UpdateEdit(double dt) {
 		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
-		if (g_EngineState == EngineState::Play)
-			m_ecsCoordinator.m_physicsSystem->Update(dt);
-		//m_ecsCoordinator.m_colliderSystem->Update(dt);
+		//if (g_EngineState == EngineState::Play)
+		//	m_ecsCoordinator.m_physicsSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
 		m_ecsCoordinator.m_renderSystem->Update(dt);
-		//Graphics::GraphicsManager::DrawDebugLines(); // commented out, as when included, scene::render will not render the lines and triangles as itll be cleared after drawdebuglines/triangles ends
-		//Graphics::GraphicsManager::DrawDebugTriangles();
-#pragma region test gizmos renderer
-		//Graphics::GizmosRenderer::TestGizmosRenderer();
-#pragma endregion
+
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
-		Engine_UpdateCoroutines(static_cast<float>(dt)); //couroutine ticks
+		Engine_UpdateCoroutines(static_cast<float>(dt));
+	}
+
+	void Scene::UpdateRuntime(double dt) {
+		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
+		m_ecsCoordinator.m_physicsSystem->Update(dt);
+		m_ecsCoordinator.m_transformSystem->Update(dt);
+		m_ecsCoordinator.m_lightSystem->Update(dt);
+		m_ecsCoordinator.m_cameraSystem->Update(dt);
+		m_ecsCoordinator.m_renderSystem->Update(dt);
+
+		m_ecsCoordinator.m_audioSystem->Update(dt);
+
+		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
+		m_ecsCoordinator.m_animatorSystem->Update(dt);
+		m_ecsCoordinator.m_scriptSystem->Update(dt);
+		Engine_UpdateCoroutines(static_cast<float>(dt));
 	}
 
 	void Scene::Render() {
@@ -92,7 +94,6 @@ namespace NE::SceneManagement {
 
 	void Scene::Exit() {
 		m_ecsCoordinator.m_rigidbodySystem->Exit();
-		//m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_transformSystem->Exit();
 		m_ecsCoordinator.m_lightSystem->Exit();
 		m_ecsCoordinator.m_cameraSystem->Exit();
@@ -115,21 +116,6 @@ namespace NE::SceneManagement {
 	void Scene::ScriptStop() {
 		m_ecsCoordinator.m_scriptSystem->StopScripts();
 		m_ecsCoordinator.m_physicsSystem->Exit();
-	}
-
-	void Scene::MarkDirty() {
-		if (!m_isDirty) {
-			m_isDirty = true;
-			SPD_INFO("[DirtyFlag] Scene marked as DIRTY - has unsaved changes");
-		}
-	}
-
-	void Scene::MarkComponentsDirty() {
-		// Check all components and if any are dirty, mark the scene as dirty
-		// This should be called periodically in Edit mode
-		// For now, we'll mark scene dirty whenever called - 
-		// a more optimized version would scan component pools
-		m_isDirty = true;
 	}
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator() {

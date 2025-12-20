@@ -8,17 +8,21 @@
 #include "Graphics/Core/Material.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
-
+#include "ECS/Core/Entity.hpp"
 #include "Graphics/OpenGL/GLShader.hpp"
 
 namespace NE {
-
+	namespace SceneManagement {
+		class Scene;
+	}
 	namespace Asset {
 		class AudioBank;
 	}
 
+	// internal usage
+	SceneManagement::Scene& GetScene();
+
 	NANOENGINE_API void Initialize();
-	NANOENGINE_API void LoadStartupScene();
 	NANOENGINE_API void Run(double dt);
 	NANOENGINE_API void Shutdown();
 
@@ -30,12 +34,10 @@ namespace NE {
 	NANOENGINE_API void SetEditorCamera(void* camera);
 
 	NANOENGINE_API uint32_t GetPickedEntity(uint32_t x, uint32_t y);
+	NANOENGINE_API std::vector<uint32_t> GetPickedEntities(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 	
-	NANOENGINE_API void SaveCurrentScene(std::string path);
-	NANOENGINE_API void SaveSceneIfDirty(std::string path = "");
-	NANOENGINE_API bool IsSceneDirty();
-	NANOENGINE_API void MarkSceneDirty();
-	NANOENGINE_API void LoadTargetScene(std::string targetPath);
+	NANOENGINE_API void CookScene(const std::vector<ECS::Entity>& rootNodes, const std::string& _artifactPath);
+	NANOENGINE_API void LoadScene(const std::string& _artifactPath);
 
 	NANOENGINE_API const std::vector<uint32_t>& GetNumEntities();
 	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);
@@ -53,12 +55,11 @@ namespace NE {
 
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
-	NANOENGINE_API std::shared_ptr<NE::Graphics::Material> LoadMaterial(std::string uuid);
 	NANOENGINE_API bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages); // here for now
 
-	NANOENGINE_API void EditorPlay();
-	NANOENGINE_API void EditorPause();
-	NANOENGINE_API void EditorEdit();
+	NANOENGINE_API void StartRuntime();
+	NANOENGINE_API void StopRuntime();
+	//NANOENGINE_API void EditorPause();
 
 	NANOENGINE_API int GetDrawCallCount();
 

@@ -64,7 +64,8 @@ namespace NE::Graphics {
     }
 
     void Material::SetTexture(const std::string& uName, const std::string& uuid) {
-        m_Textures[uName] = Resource::ResourceManager::GetInstance().LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
+        m_Textures[uName] = Resource::ResourceManager::GetInstance().
+            LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
         if (uuid != "")
             m_Textures[uName]->MakeResident();
     }
@@ -101,7 +102,8 @@ namespace NE::Graphics {
     }
 
     void Material::SetShader(const std::string& shaderUUID) {
-        auto shader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>(shaderUUID);
+        auto shader = Resource::ResourceManager::GetInstance().
+            LoadResource<OpenGL::GLShader>(shaderUUID);
         auto spec = m_Pipeline->GetSpecification();
         spec.shader = shader;
         spec.shaderName = shaderUUID;
@@ -228,7 +230,8 @@ namespace NE::Graphics {
 
         PipelineSpecification spec{};
         spec.shaderName = m_stage.shaderName;
-        spec.shader = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>(spec.shaderName);
+        spec.shader = Resource::ResourceManager::GetInstance().
+            LoadResource<Graphics::OpenGL::GLShader>(spec.shaderName);
         spec.EnableDepthTest = m_stage.depthTest;
         spec.EnableBlending = m_stage.blend;
         spec.CullMode = m_stage.cullMode;

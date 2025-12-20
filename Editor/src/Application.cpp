@@ -1,5 +1,5 @@
 #include "Application.hpp"
-// Needed for once shared instance of GLFW
+// Needed for one shared instance of GLFW
 #define GLFW_DLL
 #include "glfw/glfw3.h"
 //#include "Core/Logger.hpp"
@@ -25,6 +25,7 @@
 #include <stb_image/stb_image.h>
 #include <Input/InputManager.hpp>
 #include "EditorScene.hpp"
+#include "AssetManagement/AssetManager.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -40,13 +41,6 @@ namespace Editor {
 
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
-
-		// Testing the SpdLogger with some demo messages
-		SPD_INFO("=== NANOEngine Application Started ===");
-		SPD_DEBUG("Initialization in progress...");
-		SPD_INFO("Graphics API: OpenGL");
-		SPD_DEBUG("Window creation completed");
-		SPD_INFO("ImGui integration active");
 
 		GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
 
@@ -99,7 +93,8 @@ namespace Editor {
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
-		NE::LoadStartupScene();
+		EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
+		NE::LoadScene(EditorScene::s_currentSceneUUID);
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>();
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
@@ -108,10 +103,6 @@ namespace Editor {
 		editorLayer.AddPanel<LoggerPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
-
-		SPD_INFO("=== Application initialization complete ===");
-		SPD_DEBUG("All panels loaded successfully");
-		SPD_INFO("Ready for user interaction");
 	}
 
 	void Application::Run()

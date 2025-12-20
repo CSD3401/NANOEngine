@@ -1,3 +1,5 @@
+#pragma once
+
 namespace NE::ECS::Component {
     struct EntityMeta;
     struct Transform;
@@ -10,6 +12,7 @@ namespace NE::ECS::Component {
     struct UIRectTransform;
 	struct UICanvas;
 	struct UIImage;
+    struct Hierarchy;
 }
 
 
@@ -21,6 +24,7 @@ template <typename T> struct ComponentKey;
 
 NE_COMPONENT_KEY(NE::ECS::Component::EntityMeta, "EntityMeta")
 NE_COMPONENT_KEY(NE::ECS::Component::Transform, "Transform")
+NE_COMPONENT_KEY(NE::ECS::Component::Hierarchy, "Hierarchy")
 NE_COMPONENT_KEY(NE::ECS::Component::Renderer, "Renderer")
 NE_COMPONENT_KEY(NE::ECS::Component::Light, "Light")
 NE_COMPONENT_KEY(NE::ECS::Component::Collider, "Collider")

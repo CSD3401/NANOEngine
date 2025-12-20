@@ -18,7 +18,7 @@ namespace NE::Math {
                 float r, g, b, a;
             };
         };
-        Vec4(float a = 0, float b = 0, float c = 0, float d = 0);
+        Vec4(float a, float b, float c, float d) : x(a), y(b), z(c), w(d) { }
         Vec4(const Vec4& rhs) = default;
         ~Vec4() = default;
 

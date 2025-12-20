@@ -57,8 +57,13 @@ namespace NE::Graphics::OpenGL {
         }
 
         // Specify the color attachments for rendering
-        GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-        glDrawBuffers(2, attachments);
+        if (enablePicking) {
+            GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+            glDrawBuffers(2, attachments);
+        } else {
+            GLenum attachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &attachment);
+        }
 
         // --- Depth attachment as TEXTURE ---
         glGenTextures(1, &m_DepthAttachment);
@@ -112,8 +117,13 @@ namespace NE::Graphics::OpenGL {
         }
 
         // Specify the color attachments for rendering
-        GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-        glDrawBuffers(2, attachments);
+        if (enablePicking) {
+            GLenum attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+            glDrawBuffers(2, attachments);
+        } else {
+            GLenum attachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &attachment);
+        }
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             LOG_ERROR("Framebuffer is incomplete!");
@@ -212,6 +222,57 @@ namespace NE::Graphics::OpenGL {
 
         return id;
 	}
+
+    void GLFrameBuffer::ReadPixelRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, std::vector<uint32_t>& outIds) {
+        if (width == 0 || height == 0) {
+            outIds.clear();
+            return;
+        }
+
+        const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+        const size_t byteCount = pixelCount * 4;
+
+        std::vector<uint8_t> raw;
+        raw.resize(byteCount);
+        //outIds.resize(pixelCount);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+        glReadBuffer(GL_COLOR_ATTACHMENT1);
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+        glReadPixels(
+            x, y,
+            width, height,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            raw.data()
+        );
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        for (size_t i = 0; i < pixelCount; ++i) {
+            uint8_t r = raw[i * 4 + 0];
+            uint8_t g = raw[i * 4 + 1];
+            uint8_t b = raw[i * 4 + 2];
+
+            uint32_t id = r | (g << 8) | (b << 16);
+
+            if (id > ECS::MAX_ENTITIES || id == ECS::NO_ENTITY)
+                continue;
+
+            bool found = false;
+            for (uint32_t existingId : outIds) {
+                if (existingId == id) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                outIds.push_back(id);
+            }
+        }
+    }
 
     void GLFrameBuffer::BlitToScreen(int windowWidth, int windowHeight) 
     {

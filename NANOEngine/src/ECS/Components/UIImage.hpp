@@ -3,9 +3,9 @@
 
 #include <string>
 #include <memory>
-#include "../../Graphics/Core/Material.hpp"
-#include "../../Math/Vec4.hpp"
-#include "../../Core/Reflection.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Math/Vec4.hpp"
+#include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 

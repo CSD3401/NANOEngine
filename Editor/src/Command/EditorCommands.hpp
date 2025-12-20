@@ -7,13 +7,73 @@
 
 namespace Editor {
 
-    class CreateEntityCommand final : public ICommand {
+    class CreateEmptyEntityCommand final : public ICommand {
     public:
-        CreateEntityCommand();
+        CreateEmptyEntityCommand();
 
         void Execute() override;
         void Undo() override;
-        const char* GetName() const override { return "Create Entity"; }
+        const char* GetName() const override { return "Create Empty"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateCubeEntityCommand final : public ICommand {
+    public:
+        CreateCubeEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Cube"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateSphereEntityCommand final : public ICommand {
+    public:
+        CreateSphereEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Sphere"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateCapsuleEntityCommand final : public ICommand {
+    public:
+        CreateCapsuleEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Capsule"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreateCylinderEntityCommand final : public ICommand {
+    public:
+        CreateCylinderEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Cylinder"; }
+
+    private:
+        uint32_t m_entity;
+    };
+
+    class CreatePlaneEntityCommand final : public ICommand {
+    public:
+        CreatePlaneEntityCommand();
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Plane"; }
 
     private:
         uint32_t m_entity;
@@ -42,22 +102,22 @@ namespace Editor {
 
     class DeleteEntityCommand final : public ICommand {
     public:
-        DeleteEntityCommand(uint32_t deletedEntity);
+        DeleteEntityCommand(std::vector<uint32_t> deletedEntity);
 
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Delete Entity"; }
 
     private:
-        uint32_t m_entity;
+        std::vector<uint32_t> m_entities;
 
-        struct DeletedUIEntityInfo {
-            uint32_t id;
-            bool wasCanvas;
-            bool wasUIImage;
-            uint32_t parentId;  // For UI images
-        };
-        std::vector<DeletedUIEntityInfo> m_deletedEntities;
+        //struct DeletedUIEntityInfo {
+        //    uint32_t id;
+        //    bool wasCanvas;
+        //    bool wasUIImage;
+        //    uint32_t parentId;  // For UI images
+        //};
+        //std::vector<DeletedUIEntityInfo> m_deletedEntities;
     };
 
     class RenameEntityCommand : public ICommand {

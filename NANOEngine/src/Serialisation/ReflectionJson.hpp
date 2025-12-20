@@ -7,7 +7,6 @@
 #include <rapidjson/document.h>
 #include "../../src/Math/Vec3.hpp"
 #include "../../src/Math/Vec4.hpp" 
-#include "../Core/Reflection.hpp"
 #include "../Core/SpdLogger.hpp"
 #include "ECS/Components/Light.hpp" //temp
 #include "ECS/Components/NativeScript.hpp"

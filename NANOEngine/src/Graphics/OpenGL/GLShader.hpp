@@ -36,6 +36,9 @@ namespace NE::Graphics::OpenGL {
 
 		bool Preload(NE::Resource::BinaryView blob) override;
 		void Finalize() override;
+		static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::Shader; }
+		Resource::ResourceType GetType() const override { return GetStaticType(); }
+
 		const uint32_t GetProgramID() const override { return m_programID; }
 
 		std::vector<UniformDesc> EnumerateActiveUniforms() const;

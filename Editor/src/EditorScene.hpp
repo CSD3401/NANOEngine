@@ -3,52 +3,33 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include "EditorEntity.hpp"
 #include "Graphics/Core/EditorCamera.hpp"
+#include "EditorSelection.hpp"
+#include "AssetManagement/Assets/SceneAsset.hpp"
 
 namespace Editor {
-
-    //const std::string
-
-    struct Node {
-        uint32_t id = 0;        // editor id == linkedEntity
-        uint32_t parent = 0;    // 0 => root
-        float    orderKey = 0;  // sibling order
-    };
-
     struct EditorScene {
     public:
-        static std::vector<EditorEntity> s_entities; // to be removed soon
-        static EditorEntity* s_selectedEntity;
+        static std::vector<NE::ECS::Entity> s_rootOrder;
+        static EditorSelection s_selection;
         static std::string selectedAsset;
-        static std::string currentScenePath;
+        //static std::string currentScenePath;
         static std::string selectedPrefab;
+        //static Assets::SceneAsset* s_currentScene;
+        static std::string s_currentSceneUUID;
+        static std::string s_currentScenePath; // temp
 
         static NE::Graphics::EditorCamera m_editorCamera;
 
         static std::vector<uint8_t> clipboard;
 
-        // NEW: hierarchy index
-        static std::unordered_map<uint32_t, Node> s_nodes;                // id -> node
-        static std::unordered_map<uint32_t, std::vector<uint32_t>> s_children; // parent -> children ids
-        static std::vector<uint32_t> s_roots;
-        static std::unordered_set<uint32_t> s_forceOpen;
+        static void BuildRoot();
+        static void RegisterRoot(NE::ECS::Entity e);
+        static void UnregisterRoot(NE::ECS::Entity e);
+        static void ReorderRoot(NE::ECS::Entity e, int newIndex);
 
-        static bool ReorderWithinSiblings(uint32_t parent, uint32_t child, int insertIndex);
-        static bool AttachAsChild(uint32_t newParent, uint32_t child, int insertIndex);
-        static bool UnparentToRoot(uint32_t child, int insertIndex = -1);
-        static void BuildHierarchyFromECS();
-        static void GetAllDescendants(uint32_t id, std::vector<uint32_t>& out);
-        static void SetAllDescendantsActive(uint32_t id, bool& active);
-        // Helpers
-        static void RebuildFromActiveScene();
-        static const std::vector<uint32_t>& ChildrenOf(uint32_t parent);
-
-
-        static void DuplicateSelected();
-        static void CopySelected();
-        static void PasteSelected();
-        static void ForceOpenParents(uint32_t child);
+        static void SetParent(NE::ECS::Entity child, NE::ECS::Entity newParent, int insertIndex, bool keepWorld = true);
+        static void OnParentChanged(NE::ECS::Entity e, NE::ECS::Entity oldParent, NE::ECS::Entity newParent);
     };
 
 }

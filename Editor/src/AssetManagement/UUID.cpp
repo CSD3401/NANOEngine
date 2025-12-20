@@ -3,9 +3,9 @@
 #include <random>
 #include <sstream>
 
-namespace Editor {
+namespace Editor::Assets {
 
-	std::string Editor::GenerateUUID() {
+    UUID GenerateUUID() {
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_int_distribution<> dis(0, 15);

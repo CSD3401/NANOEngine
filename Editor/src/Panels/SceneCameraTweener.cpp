@@ -14,7 +14,7 @@ namespace Editor {
 
 	SceneCameraTweener::SceneCameraTweener()
 	{
-		NANOEngine::Events::EventBus::Get().Subscribe<SelectEntityEvent>(NANOEngine::Events::EventDomain::Editor, TweenCameraToEntity);
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::SelectEntityEvent>(NANOEngine::Events::EventDomain::Editor, TweenCameraToEntity);
 	}
 
 	SceneCameraTweener::~SceneCameraTweener()
@@ -22,7 +22,7 @@ namespace Editor {
 		// Unsubscribe if required in the future...
 	}
 
-	void SceneCameraTweener::TweenCameraToEntity(SelectEntityEvent const& event)
+	void SceneCameraTweener::TweenCameraToEntity(Events::SelectEntityEvent const& event)
 	{
 		if (!sceneCamera)
 		{

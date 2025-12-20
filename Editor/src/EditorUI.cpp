@@ -391,7 +391,7 @@ namespace Editor {
         if (ImGui::BeginDragDropTarget()) {
             if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH")) {
                 std::string dropped((const char*)p->Data, p->DataSize - 1);
-                auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+                auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
                 assignById(uuid);
                 changed = true;
             }
@@ -401,7 +401,7 @@ namespace Editor {
         if (ImGui::BeginPopup("AssetPicker_Texture")) {
             ImGui::Text("Select a texture");
             ImGui::Separator();
-            auto& textureList = AssetManager::GetInstance().GetInstance().GetAssetsOfType<AssetType::Texture>();
+            auto& textureList = Assets::AssetManager::GetInstance().GetInstance().GetAssetsOfType(Assets::AssetType::Texture);
 
             if (ImSearch::BeginSearch()) {
                 ImSearch::SearchBar();
