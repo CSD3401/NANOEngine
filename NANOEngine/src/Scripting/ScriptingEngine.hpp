@@ -14,6 +14,12 @@
 #pragma warning(pop)
 #include "ECS/Components/NativeScript.hpp"
 
+// Forward declarations
+namespace NE::ECS {
+    class ComponentManager;
+    class EntityManager;
+}
+
 namespace NE::Scripting {
 
     // Function pointer type for the registration function that game DLLs must export
@@ -142,6 +148,70 @@ namespace NE::Scripting {
         void OnScriptComponentDestroyed(NE::ECS::Entity entity);
 
         void DestroyAllScriptInstances();
+
+        // === Instance Management (ECS Refactor) ===
+        /**
+         * Set ECS system references (called by ScriptSystem on initialization).
+         * @param componentManager Pointer to the component manager
+         * @param entityManager Pointer to the entity manager
+         */
+        NANOENGINE_API void SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager);
+
+        /**
+         * Create script instance for an entity based on component data.
+         * @param entity The entity to create the script instance for
+         * @param nsc The NativeScript component containing script name and serialized data
+         * @return true if instance was created successfully, false otherwise
+         */
+        NANOENGINE_API bool CreateScriptInstance(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
+
+        /**
+         * Destroy script instance for an entity.
+         * @param entity The entity whose script instance should be destroyed
+         */
+        NANOENGINE_API void DestroyScriptInstance(NE::ECS::Entity entity);
+
+        /**
+         * Get script instance for an entity.
+         * @param entity The entity to get the script instance for
+         * @return Pointer to script instance, or nullptr if not found
+         */
+        NANOENGINE_API IScript* GetScriptInstance(NE::ECS::Entity entity) const;
+
+        /**
+         * Check if entity has a script instance.
+         * @param entity The entity to check
+         * @return true if entity has an instance, false otherwise
+         */
+        NANOENGINE_API bool HasScriptInstance(NE::ECS::Entity entity) const;
+
+        /**
+         * Update all script instances (called by ScriptSystem).
+         * @param deltaTime Time elapsed since last update
+         */
+        NANOENGINE_API void UpdateScriptInstances(double deltaTime);
+
+        /**
+         * Initialize (Awake + Initialize) script instance for an entity.
+         * @param entity The entity to initialize the script for
+         */
+        NANOENGINE_API void InitializeScriptInstance(NE::ECS::Entity entity);
+
+        /**
+         * Start scripts (enable them) for play mode.
+         */
+        NANOENGINE_API void StartAllScriptInstances();
+
+        /**
+         * Pause scripts (disable them) for pause mode.
+         */
+        NANOENGINE_API void PauseAllScriptInstances();
+
+        /**
+         * Stop scripts (disable and save state) for stop mode.
+         */
+        NANOENGINE_API void StopAllScriptInstances();
+
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;
@@ -149,6 +219,14 @@ namespace NE::Scripting {
         // === Script Registration ===
         std::unordered_map<std::string, std::function<IScript* ()>> m_scriptFactories;
         mutable std::mutex m_mutex;
+
+        // === Instance Management ===
+        // Maps Entity -> Script Instance (runtime data, managed by ScriptEngine)
+        std::unordered_map<NE::ECS::Entity, IScript*> m_scriptInstances;
+
+        // ECS references (set by ScriptSystem)
+        NE::ECS::ComponentManager* m_componentManager = nullptr;
+        NE::ECS::EntityManager* m_entityManager = nullptr;
 
         // === Single DLL Management ===
         struct {

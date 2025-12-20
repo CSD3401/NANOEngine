@@ -507,20 +507,23 @@ namespace NE::Scripting {
             auto& nsc = GetScene().GetECSCoordinator().GetComponentManager()
                 .GetComponent<ECS::Component::NativeScript>(entity);
 
-            if (!nsc.Instance) continue;
+            auto it = m_scriptInstances.find(entity);
+            if (it == m_scriptInstances.end()) continue;
+
+            IScript* instance = it->second;
 
             SPD_INFO("Saving state for entity " << (int)entity << " (" << nsc.ScriptName << ")");
 
             ScriptState state;
             state.scriptName = nsc.ScriptName;
-            state.isEnabled = nsc.Instance->IsEnabled();
+            state.isEnabled = instance->IsEnabled();
 
             SaveSerializedFields(nsc);
             state.fields = nsc.SerializedFields;
             stateToRestore[entity] = state;
 
             // Disable script before destroying to prevent execution during cleanup
-            nsc.Instance->SetEnabled(false);
+            instance->SetEnabled(false);
         }
 
         return stateToRestore;
@@ -534,18 +537,15 @@ namespace NE::Scripting {
         Engine_ClearAllCoroutines();
 
         // Now safe to destroy script instances
-        auto entities = GetScene().GetECSCoordinator().GetComponentManager()
-            .GetEntitiesWithComponent<ECS::Component::NativeScript>();
+        // Make a copy of the keys to avoid iterator invalidation
+        std::vector<NE::ECS::Entity> entities;
+        entities.reserve(m_scriptInstances.size());
+        for (auto& [entity, instance] : m_scriptInstances) {
+            entities.push_back(entity);
+        }
 
         for (NE::ECS::Entity entity : entities) {
-            auto& nsc = GetScene().GetECSCoordinator().GetComponentManager()
-                .GetComponent<ECS::Component::NativeScript>(entity);
-
-            if (!nsc.Instance) continue;
-
             OnScriptComponentDestroyed(entity);
-            nsc.CreateScript = nullptr;
-            nsc.DestroyScript = nullptr;
         }
     }
 
@@ -582,36 +582,38 @@ namespace NE::Scripting {
             }
 
             auto& nsc = componentMgr.GetComponent<ECS::Component::NativeScript>(entity);
-            nsc.CreateScript = GetScriptFactory(state.scriptName);
-            nsc.DestroyScript = [](IScript* script) { delete script; };
 
-            if (!nsc.CreateScript) {
+            auto factory = GetScriptFactory(state.scriptName);
+            if (!factory) {
                 SPD_ERROR("Script factory not found for '" << state.scriptName << "', skipping");
-                nsc.Instance = nullptr;
                 continue;
             }
 
             try {
-                nsc.Instance = nsc.CreateScript();
+                // Create instance using the new method
+                IScript* instance = factory();
 
-                if (!nsc.Instance) {
+                if (!instance) {
                     SPD_ERROR("Failed to create script instance for '" << state.scriptName << "'");
                     continue;
                 }
 
-                Scripting::LinkScriptToEngine(nsc.Instance, &componentMgr, &entityMgr);
-                nsc.Instance->_SetEntity(entity);
-                nsc.Instance->Awake();
-                nsc.Instance->Initialize(entity);
+                Scripting::LinkScriptToEngine(instance, &componentMgr, &entityMgr);
+                instance->_SetEntity(entity);
+                instance->Awake();
+                instance->Initialize(entity);
 
                 nsc.SerializedFields = state.fields;
+
+                // Store instance in map
+                m_scriptInstances[entity] = instance;
+
                 RestoreSerializedFields(nsc);
 
-                nsc.Instance->SetEnabled(false);
+                instance->SetEnabled(false);
             }
             catch (const std::exception& e) {
                 SPD_ERROR("Exception creating script '" << state.scriptName << "': " << e.what());
-                nsc.Instance = nullptr;
             }
         }
     }
@@ -620,16 +622,9 @@ namespace NE::Scripting {
         const std::unordered_map<NE::ECS::Entity, ScriptState>& stateToRestore) {
 
         for (auto const& [entity, state] : stateToRestore) {
-            auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
-
-            if (!componentMgr.HasComponent<ECS::Component::NativeScript>(entity)) {
-                continue;
-            }
-
-            auto& nsc = componentMgr.GetComponent<ECS::Component::NativeScript>(entity);
-
-            if (nsc.Instance) {
-                nsc.Instance->SetEnabled(state.isEnabled);
+            auto it = m_scriptInstances.find(entity);
+            if (it != m_scriptInstances.end()) {
+                it->second->SetEnabled(state.isEnabled);
             }
         }
     }
@@ -660,17 +655,30 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::SaveSerializedFields(NE::ECS::Component::NativeScript& nsc) {
-        if (!nsc.Instance) return;
+        // Find the instance by iterating through instances (we don't have entity here in old code path)
+        // This is for backward compatibility with old hot-reload code
+        IScript* instance = nullptr;
+        for (auto& [entity, inst] : m_scriptInstances) {
+            if (m_componentManager && m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+                auto& entityNsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
+                if (&entityNsc == &nsc) {
+                    instance = inst;
+                    break;
+                }
+            }
+        }
+
+        if (!instance) return;
 
         // Clear existing serialized fields
         nsc.SerializedFields.clear();
 
         // Get all exposed field names from the script
-        auto fieldNames = nsc.Instance->GetExposedFieldNames();
+        auto fieldNames = instance->GetExposedFieldNames();
 
         // Save each field's current value as a string
         for (const auto& fieldName : fieldNames) {
-            std::string value = nsc.Instance->GetFieldValueAsString(fieldName);
+            std::string value = instance->GetFieldValueAsString(fieldName);
             nsc.SerializedFields[fieldName] = value;
         }
 
@@ -678,11 +686,25 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc) {
-        if (!nsc.Instance || nsc.SerializedFields.empty()) return;
+        if (nsc.SerializedFields.empty()) return;
+
+        // Find the instance by iterating through instances
+        IScript* instance = nullptr;
+        for (auto& [entity, inst] : m_scriptInstances) {
+            if (m_componentManager && m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+                auto& entityNsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
+                if (&entityNsc == &nsc) {
+                    instance = inst;
+                    break;
+                }
+            }
+        }
+
+        if (!instance) return;
 
         // Restore each serialized field value
         for (const auto& [fieldName, value] : nsc.SerializedFields) {
-            bool success = nsc.Instance->SetFieldValueFromString(fieldName, value);
+            bool success = instance->SetFieldValueFromString(fieldName, value);
             if (!success) {
                 SPD_WARNING("Failed to restore field '" << fieldName << "' for script '" << nsc.ScriptName << "'");
             }
@@ -693,21 +715,180 @@ namespace NE::Scripting {
     
     void ScriptingEngine::OnScriptComponentDestroyed(NE::ECS::Entity entity) {
         auto& nsc = GetScene().GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-        if (nsc.Instance) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            IScript* instance = it->second;
+
             // Only call OnDestroy if the script was actually started
             // Editor scene scripts are never started, so skip OnDestroy for them
-            if (nsc.Instance->_HasStarted()) {
-                nsc.Instance->OnDestroy();
+            if (instance->_HasStarted()) {
+                instance->OnDestroy();
             }
 
             // Always clean up the instance itself
-            if (nsc.DestroyScript) {
-                nsc.DestroyScript(nsc.Instance);
-            } else {
-                delete nsc.Instance; // Fallback
-            }
-            nsc.Instance = nullptr;
+            delete instance;
+            m_scriptInstances.erase(it);
+
             SPD_INFO("Destroyed script '" << nsc.ScriptName << "' for entity " << (int)entity);
+        }
+    }
+
+    // === Instance Management (ECS Refactor) ===
+
+    void ScriptingEngine::SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager) {
+        m_componentManager = componentManager;
+        m_entityManager = entityManager;
+        SPD_INFO("ScriptEngine: ECS references set");
+    }
+
+    bool ScriptingEngine::CreateScriptInstance(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc) {
+        // Check if instance already exists
+        if (m_scriptInstances.find(entity) != m_scriptInstances.end()) {
+            SPD_WARNING("Script instance already exists for entity " << (int)entity);
+            return false;
+        }
+
+        // Check if script name is empty
+        if (nsc.ScriptName.empty()) {
+            return false;
+        }
+
+        // Get the factory function for this script
+        auto factory = GetScriptFactory(nsc.ScriptName);
+        if (!factory) {
+            SPD_WARNING("Cannot create script '" << nsc.ScriptName
+                << "' for entity " << (int)entity
+                << " - script not found in DLL. It may have been deleted or renamed.");
+            return false;
+        }
+
+        // Create the instance
+        IScript* instance = factory();
+        if (!instance) {
+            SPD_ERROR("Failed to create script instance for '" << nsc.ScriptName << "'");
+            return false;
+        }
+
+        // Link to engine
+        Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager);
+        instance->_SetEntity(entity);
+
+        // Store the instance
+        m_scriptInstances[entity] = instance;
+
+        SPD_INFO("Created script instance '" << nsc.ScriptName << "' for entity " << (int)entity);
+        return true;
+    }
+
+    void ScriptingEngine::DestroyScriptInstance(NE::ECS::Entity entity) {
+        auto it = m_scriptInstances.find(entity);
+        if (it == m_scriptInstances.end()) {
+            return; // No instance to destroy
+        }
+
+        IScript* instance = it->second;
+
+        // Only call OnDestroy if the script was started
+        if (instance->_HasStarted()) {
+            instance->OnDestroy();
+        }
+
+        // Clean up the instance
+        delete instance;
+        m_scriptInstances.erase(it);
+
+        SPD_INFO("Destroyed script instance for entity " << (int)entity);
+    }
+
+    IScript* ScriptingEngine::GetScriptInstance(NE::ECS::Entity entity) const {
+        auto it = m_scriptInstances.find(entity);
+        return (it != m_scriptInstances.end()) ? it->second : nullptr;
+    }
+
+    bool ScriptingEngine::HasScriptInstance(NE::ECS::Entity entity) const {
+        return m_scriptInstances.find(entity) != m_scriptInstances.end();
+    }
+
+    void ScriptingEngine::InitializeScriptInstance(NE::ECS::Entity entity) {
+        auto it = m_scriptInstances.find(entity);
+        if (it == m_scriptInstances.end()) {
+            return;
+        }
+
+        IScript* instance = it->second;
+
+        // Call Awake() first (even if disabled)
+        instance->Awake();
+
+        // Then Initialize()
+        instance->Initialize(entity);
+
+        // Restore serialized field values if they exist
+        if (m_componentManager && m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+            auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
+            RestoreSerializedFields(nsc);
+        }
+
+        // Start disabled
+        instance->SetEnabled(false);
+
+        SPD_INFO("Initialized script instance for entity " << (int)entity);
+    }
+
+    void ScriptingEngine::UpdateScriptInstances(double deltaTime) {
+        for (auto& [entity, instance] : m_scriptInstances) {
+            if (!instance) continue;
+
+            if (instance->IsEnabled()) {
+                // Call Start() before first Update() if not yet called
+                if (!instance->_HasStarted()) {
+                    instance->Start();
+                    instance->_MarkStartCalled();
+                }
+
+                instance->Update(deltaTime);
+            }
+        }
+    }
+
+    void ScriptingEngine::StartAllScriptInstances() {
+        SPD_INFO("ScriptEngine: Starting all script instances...");
+        for (auto& [entity, instance] : m_scriptInstances) {
+            if (instance) {
+                instance->_RefreshComponentReferences();
+                instance->SetEnabled(true);
+            }
+        }
+    }
+
+    void ScriptingEngine::PauseAllScriptInstances() {
+        SPD_INFO("ScriptEngine: Pausing all script instances...");
+        for (auto& [entity, instance] : m_scriptInstances) {
+            if (instance) {
+                instance->SetEnabled(false);
+            }
+        }
+    }
+
+    void ScriptingEngine::StopAllScriptInstances() {
+        SPD_INFO("ScriptEngine: Stopping all script instances...");
+
+        if (!m_componentManager) {
+            SPD_WARNING("ComponentManager not set, cannot save serialized fields");
+            return;
+        }
+
+        for (auto& [entity, instance] : m_scriptInstances) {
+            if (instance) {
+                // Disable the script
+                instance->SetEnabled(false);
+
+                // Save field values for potential restoration
+                if (m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+                    auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
+                    SaveSerializedFields(nsc);
+                }
+            }
         }
     }
 

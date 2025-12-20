@@ -2302,13 +2302,23 @@ namespace NE {
 		// Scene Management API IMPLEMENTATION (SDK → Engine bridge)
 		//=========================================================================
 
-		// To be reworked
-		//void SwitchScene(const std::string& path) {
-		//	gSceneManager.StopPlay();
-		//	gSceneManager.ExitScene();
-		//	gSceneManager.LoadScene(path);
-		//	gSceneManager.BeginPlay();
-		//}
+		void SwitchScene(const std::string& path) {
+			bool wasPlaying = gSceneManager.IsPlaying();
+
+			// Stop runtime if currently playing
+			if (wasPlaying) {
+				gSceneManager.StopRuntime();
+			}
+
+			// Exit current scene and load new one
+			gSceneManager.ExitScene();
+			gSceneManager.LoadScene(path);
+
+			// Resume playing if we were in play mode
+			if (wasPlaying) {
+				gSceneManager.LoadRuntime();
+			}
+		}
 
 		//=========================================================================
 		// LOGGING API IMPLEMENTATION (SDK → Engine bridge)

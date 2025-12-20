@@ -371,28 +371,21 @@ namespace NE::ECS {
 			}
 
 			auto& script = GetEntityScript(e);
-			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
-			
-			if (scriptSystem) {
-				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(scriptName);
-				if (factory) {
-					// Clean up existing script if any
-					if (script.Instance && script.DestroyScript) {
-						script.DestroyScript(script.Instance);
-					} else if (script.Instance) {
-						delete script.Instance;
-					}
 
-					// Set new script
-					script.ScriptName = scriptName;
-					script.CreateScript = factory;
-					script.DestroyScript = [](IScript* instance) { delete instance; };
-					script.Instance = nullptr; // Will be created by ScriptSystem
-					scriptSystem->OnEntityAdded(e); // Force initialization
-					return true;
-				}
+			// Verify script exists before setting
+			if (!Scripting::ScriptingEngine::GetInstance().IsScriptRegistered(scriptName)) {
+				return false;
 			}
-			return false;
+
+			// Clean up existing instance if any (via ScriptEngine)
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(e);
+
+			// Set new script name and mark as dirty
+			script.ScriptName = scriptName;
+			script.IsDirty = true;
+
+			// ScriptSystem will handle instance creation in its next Update
+			return true;
 		}
 
 		void RemoveEntityScript(uint32_t e) {
@@ -401,19 +394,15 @@ namespace NE::ECS {
 			}
 
 			auto& script = GetEntityScript(e);
-			
-			// Clean up existing script
-			if (script.Instance && script.DestroyScript) {
-				script.DestroyScript(script.Instance);
-			} else if (script.Instance) {
-				delete script.Instance;
-			}
 
-			// Reset component
+			// Clean up existing instance via ScriptEngine
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(e);
+
+			// Reset component data
 			script.ScriptName.clear();
-			script.Instance = nullptr;
-			script.CreateScript = nullptr;
-			script.DestroyScript = nullptr;
+			script.SerializedFields.clear();
+			script.EntityReferenceFields.clear();
+			script.IsDirty = false; // No script to recreate
 		}
 
 		bool IsScriptRegistered(const std::string& scriptName) {

@@ -25,17 +25,20 @@ namespace NE::SceneManagement {
 	void SceneManager::LoadRuntime() {
 		if (!m_editor || m_isPlaying) return;
 
+		// Save all script field values before destroying editor scene
 		auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
 		for (NE::ECS::Entity entity : entities) {
 			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-			if (nsc.Instance) {
-				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-			}
+			// ScriptEngine will find the instance internally if it exists
+			Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
 		}
+
+		// Destroy all script instances from editor scene
 		Scripting::ScriptingEngine::GetInstance().DestroyAllScriptInstances();
 
 		hack::sceneRdy = false;
 
+		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
 		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
 		m_runtime->Init();
@@ -44,6 +47,7 @@ namespace NE::SceneManagement {
 
 		m_isPlaying = true;
 
+		// Start scripts in runtime scene
 		m_runtime->ScriptStart();
 	}
 

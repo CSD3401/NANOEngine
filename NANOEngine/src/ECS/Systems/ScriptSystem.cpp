@@ -2,112 +2,95 @@
 #include <iostream>
 #include <filesystem>
 #include "../Components/NativeScript.hpp"
-#include "../../Scripting/IScript.hpp"  // Explicitly include IScript definition
+#include "../../Scripting/IScript.hpp"
 #include "../Components/EntityMeta.hpp"
-#include "../Components/Transform.hpp"  // CRITICAL: Add Transform header for hierarchy checking
+#include "../Components/Transform.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Core/Couroutine.hpp"
 #include "Events/EventBus.hpp"
 #include "../../Scripting/ScriptingEngine.hpp"
-#include "../../Scripting/ScriptContextFactory.hpp"
 
 namespace hack { extern bool sceneRdy; }
 
 namespace NE::ECS::Systems {
 	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em)
 		: m_componentManager(cm), m_entityManager(em) {
+
+		// Set ECS references in ScriptEngine so it can manage instances
+		Scripting::ScriptingEngine::GetInstance().SetECSReferences(cm, em);
 	}
 
 	void ScriptSystem::OnEntityAdded(Entity entity) {
-
-		if (hack::sceneRdy) {
-			// Logic for when an entity relevant to the script system is added
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-			if (nsc.CreateScript && !nsc.Instance) {
-				nsc.Instance = nsc.CreateScript();
-				Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager); // Link to engine systems via new API
-				nsc.Instance->_SetEntity(entity);
-
-				// Call Awake() first (even if disabled)
-				nsc.Instance->Awake();
-
-				// Then Initialize()
-				nsc.Instance->Initialize(entity);
-
-				// Restore serialized field values if they exist
-				Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
-
-				nsc.Instance->SetEnabled(false); // Start disabled
-				SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
-			}
-			else if (!nsc.ScriptName.empty()) {
-				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
-
-				if (factory) {
-					if (nsc.Instance && nsc.DestroyScript) {
-						nsc.DestroyScript(nsc.Instance);
-					}
-					else if (nsc.Instance) {
-						delete nsc.Instance;
-					}
-
-					nsc.CreateScript = factory;
-					nsc.DestroyScript = [](IScript* instance) { delete instance; };
-					nsc.Instance = nsc.CreateScript();
-					Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager);
-					nsc.Instance->_SetEntity(entity);
-
-					nsc.Instance->Awake();
-
-					nsc.Instance->Initialize(entity);
-
-					Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
-
-					nsc.Instance->SetEnabled(false);
-					SPD_INFO("Initialized script '" << nsc.ScriptName << "' for entity " << (int)entity);
-				}
-				else {
-					// Script not found in DLL
-					SPD_WARNING("Cannot initialize script '" << nsc.ScriptName
-						<< "' for entity " << (int)entity
-						<< " - script not found in DLL. It may have been deleted or renamed.");
-				}
-			}
+		// Only manage component data, delegate instance creation to ScriptEngine
+		if (!hack::sceneRdy) {
+			return;
 		}
 
+		auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
+		// Check if script name is valid
+		if (nsc.ScriptName.empty()) {
+			SPD_WARNING("NativeScript component on entity " << (int)entity << " has empty ScriptName");
+			return;
+		}
+
+		// Create script instance via ScriptEngine
+		if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
+			// Initialize the script instance
+			Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
+
+			// Clear dirty flag after successful creation
+			nsc.IsDirty = false;
+		}
 	}
 
-    void ScriptSystem::OnEntityRemoved(Entity entity) {
-        // Clean up script instance when entity is removed
-        if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
-            return;
-        }
+	void ScriptSystem::OnEntityRemoved(Entity entity) {
+		// Delegate instance cleanup to ScriptEngine
+		if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
+			return;
+		}
 
-        auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+		// Destroy script instance via ScriptEngine
+		Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(entity);
+	}
 
-        // Destroy script instance if it exists
-        if (nsc.Instance) {
-            // Call OnDestroy and properly clean up
-            Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-        }
-
-        // Clear function pointers to prevent stale DLL references
-        nsc.CreateScript = nullptr;
-        nsc.DestroyScript = nullptr;
-    }
-    
 	void ScriptSystem::Init() {
 		SPD_INFO("ScriptSystem::Init() - Starting initialization");
 
-		// Logic to initialize the system when a scene loads
+		// Initialize existing scripts in the scene
+		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		InitializeExistingScripts();
+		for (Entity entity : entities) {
+			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+
+			// Skip if script name is empty
+			if (nsc.ScriptName.empty()) {
+				continue;
+			}
+
+			// Create script instance via ScriptEngine
+			if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
+				// Initialize the script instance
+				Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
+
+				// Clear dirty flag after successful creation
+				nsc.IsDirty = false;
+
+				SPD_INFO("Initialized existing script '" << nsc.ScriptName
+					<< "' for entity " << (int)entity << " during ScriptSystem::Init()");
+			}
+			else {
+				SPD_WARNING("Failed to initialize script '" << nsc.ScriptName
+					<< "' for entity " << (int)entity);
+			}
+		}
 
 		SPD_INFO("ScriptSystem::Init() - Completed");
 	}
 
 	void ScriptSystem::Exit() {
+		SPD_INFO("ScriptSystem::Exit() - Starting cleanup");
+
 		// CRITICAL: Clear these FIRST before ANY cleanup
 		// Prevents dangling function pointers to script code
 		NANOEngine::Events::ClearScriptEventListeners();
@@ -120,180 +103,72 @@ namespace NE::ECS::Systems {
 				continue;
 			}
 
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-
-			// Destroy script instances
-			if (nsc.Instance) {
-				// Call OnDestroy and properly clean up
-				Scripting::ScriptingEngine::GetInstance().OnScriptComponentDestroyed(entity);
-			}
-
-			// Clear function pointers to prevent stale DLL references
-			nsc.CreateScript = nullptr;
-			nsc.DestroyScript = nullptr;
+			// Destroy script instance via ScriptEngine
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(entity);
 		}
-	}
 
-	void ScriptSystem::InitializeExistingScripts() {
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
-
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-
-			if (!nsc.ScriptName.empty()) {
-				nsc.CreateScript = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(nsc.ScriptName);
-
-				// Check if script factory was found
-				if (nsc.CreateScript) {
-					nsc.DestroyScript = [](IScript* s) { delete s; };
-				}
-				else {
-					// Script no longer exists in DLL - log warning but keep ScriptName
-					// This allows the editor to show the missing script and offer to remove it
-					SPD_WARNING("Script '" << nsc.ScriptName << "' not found in DLL for entity " << entity << ". The script may have been deleted or renamed.");
-					// Don't clear ScriptName - let the editor handle it
-					// This prevents silent data loss and lets user decide what to do
-				}
-			}
-
-			if (nsc.CreateScript && !nsc.Instance) {
-				nsc.Instance = nsc.CreateScript();
-				Scripting::LinkScriptToEngine(nsc.Instance, m_componentManager, m_entityManager);
-				nsc.Instance->_SetEntity(entity);
-
-				nsc.Instance->Awake();
-				nsc.Instance->Initialize(entity);
-
-				Scripting::ScriptingEngine::GetInstance().RestoreSerializedFields(nsc);
-
-				nsc.Instance->SetEnabled(false);
-
-				SPD_INFO("Initialized existing script '" << nsc.ScriptName
-					<< "' for entity " << (int)entity << " during ScriptSystem::Init()");
-			}
-		}
+		SPD_INFO("ScriptSystem::Exit() - Completed");
 	}
 
 	void ScriptSystem::StartScripts()
 	{
 		SPD_INFO("ScriptSystem: Entering Play Mode...");
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-
-			if (nsc.Instance) {
-				nsc.Instance->_RefreshComponentReferences();
-				nsc.Instance->SetEnabled(true);
-			}
-		}
+		// Delegate to ScriptEngine
+		Scripting::ScriptingEngine::GetInstance().StartAllScriptInstances();
 	}
 
 	void ScriptSystem::PauseScripts()
 	{
 		SPD_INFO("ScriptSystem: Pausing Play Mode...");
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-
-			if (nsc.Instance) {
-				nsc.Instance->SetEnabled(false);
-				SPD_INFO("Paused script '" << nsc.ScriptName << "' for entity " << (int)entity);
-			}
-		}
+		// Delegate to ScriptEngine
+		Scripting::ScriptingEngine::GetInstance().PauseAllScriptInstances();
 	}
 
 	void ScriptSystem::StopScripts()
 	{
 		SPD_INFO("ScriptSystem: Exiting Play Mode...");
-		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		for (Entity entity : entities) {
-			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-
-			if (nsc.Instance) {
-				// Disable the script
-				nsc.Instance->SetEnabled(false);
-
-				// Save field values for potential restoration
-				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-
-				SPD_INFO("Stopped script '" << nsc.ScriptName << "' for entity " << (int)entity);
-			}
-		}
-
-		// Note: Instances are NOT destroyed here.
-		// The runtime scene will be destroyed via Exit(), which properly cleans up instances.
-		// For editor scene, scripts were never started, so just disabling is fine.
+		// Delegate to ScriptEngine
+		Scripting::ScriptingEngine::GetInstance().StopAllScriptInstances();
 	}
 
 	void ScriptSystem::Update(double deltaTime) {
 		// --- Check for compile request ---
 		if (Scripting::ScriptingEngine::GetInstance().m_compileQueued.load()) {
-			Scripting::ScriptingEngine::GetInstance().m_compileQueued.store(false); // Consume the flag
-			Scripting::ScriptingEngine::GetInstance().HotCompileAndReload(); // Run the compile and reload
+			Scripting::ScriptingEngine::GetInstance().m_compileQueued.store(false);
+			Scripting::ScriptingEngine::GetInstance().HotCompileAndReload();
 		}
 
 		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		// Update all active scripts
+		// First pass: Check for dirty components and recreate instances if needed
 		for (Entity entity : entities) {
-			// CRITICAL FIX: Check if entity is active IN HIERARCHY (not just own isActive!)
-			  // This prevents scripts from running when parent is disabled (Unity-style)
-			bool shouldUpdate = true;
-
-			if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
-				//const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
-
-				//// First check: entity's own isActive flag
-				//if (!meta.isActive) {
-				//	shouldUpdate = false;
-				//}
-				//// Second check: walk up parent chain to see if any parent is disabled
-				//else if (m_componentManager->HasComponent<Component::Transform>(entity)) {
-				//	const auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
-				//	Entity currentParent = transform.parent;
-
-				//	while (currentParent != Component::INVALID_PARENT) {
-				//		if (m_componentManager->HasComponent<Component::EntityMeta>(currentParent)) {
-				//			const auto& parentMeta = m_componentManager->GetComponent<Component::EntityMeta>(currentParent);
-				//			if (!parentMeta.isActive) {
-				//				shouldUpdate = false;
-				//				break; // Parent is disabled, so we're inactive in hierarchy
-				//			}
-				//		}
-
-				//		// Move up to next parent
-				//		if (m_componentManager->HasComponent<Component::Transform>(currentParent)) {
-				//			const auto& parentTransform = m_componentManager->GetComponent<Component::Transform>(currentParent);
-				//			currentParent = parentTransform.parent;
-				//		}
-				//		else {
-				//			break;
-				//		}
-				//	}
-				//}
-			}
-
-			// Skip this entity if inactive in hierarchy
-			if (!shouldUpdate) {
-				continue;
-			}
-
 			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
-			// Guard against null instance (can happen if script was deleted from DLL)
-			if (nsc.Instance) {
-				if (nsc.Instance->IsEnabled()) {
-					// Call Start() before first Update() if not yet called
-					if (!nsc.Instance->_HasStarted()) {
-						nsc.Instance->Start();
-						nsc.Instance->_MarkStartCalled();
-					}
 
-					nsc.Instance->Update(deltaTime);
+			// If component is dirty, recreate the script instance
+			if (nsc.IsDirty) {
+				SPD_INFO("NativeScript component for entity " << (int)entity
+					<< " is dirty, recreating script instance");
+
+				// Destroy old instance
+				Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(entity);
+
+				// Create new instance if script name is not empty
+				if (!nsc.ScriptName.empty()) {
+					if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
+						Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
+					}
 				}
+
+				// Clear dirty flag
+				nsc.IsDirty = false;
 			}
 		}
+
+		// Second pass: Delegate script updates to ScriptEngine
+		// ScriptEngine will handle all the runtime logic (Start, Update, hierarchy checks, etc.)
+		Scripting::ScriptingEngine::GetInstance().UpdateScriptInstances(deltaTime);
 	}
 }

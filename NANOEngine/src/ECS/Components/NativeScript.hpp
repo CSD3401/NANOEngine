@@ -1,21 +1,25 @@
 #pragma once
-#include "../../Scripting/IScript.hpp"
 #include "../../Core/Reflection.hpp"
 #include <string>
-#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 
 namespace NE::ECS::Component {
+    /**
+     * @struct NativeScript
+     * @brief Pure data component for script attachment
+     *
+     * Following ECS methodology: this component contains ONLY data.
+     * All runtime instances are managed by ScriptEngine.
+     * ScriptSystem updates this data and delegates instance operations to ScriptEngine.
+     *
+     * To assign a script to an entity, use:
+     *   - From Editor/UI: NE::ECS::Command::SetEntityScript(entity, scriptName)
+     *   - From code: Set ScriptName directly and mark IsDirty = true
+     */
     struct NativeScript {
-        std::string ScriptName; // The name of the script class, e.g., "PlayerScript"
-
-        IScript* Instance = nullptr;
-
-        // Function pointers to create and destroy the script instance.
-        // These will be provided by the ScriptingEngine.
-        std::function<IScript* ()> CreateScript;
-        std::function<void(IScript*)> DestroyScript;
+        // The name of the script class, e.g., "PlayerScript"
+        std::string ScriptName;
 
         // Serialized field values (field name -> string value)
         // Populated when saving scene, restored when loading scene
@@ -25,23 +29,12 @@ namespace NE::ECS::Component {
         // Includes: transformref, rigidbodyref, audiosourceref, vector<entity>
         std::unordered_set<std::string> EntityReferenceFields;
 
-        // Binds the functions from the ScriptingEngine to this component.
-        // This is called by the user when adding the component.
-        void Bind(const std::string& name) {
-            ScriptName = name;
-            // The actual function pointers will be looked up and assigned
-            // by the ScriptingEngine. We just store the name for now.
-        }
-        uint64_t luid;
+        // Dirty flag - set when ScriptName changes or component is modified
+        // ScriptSystem checks this to know when to recreate instances
+        bool IsDirty = true;
 
-        // Destructor to safely clear function pointers
-        // This prevents crashes when DLLs are unloaded before components are destroyed
-        ~NativeScript() {
-            // Clear function pointers to prevent accessing unloaded DLL memory
-            CreateScript = nullptr;
-            DestroyScript = nullptr;
-            // Note: Instance should have been cleaned up by ScriptSystem before this point
-        }
+        // LUID for serialization
+        uint64_t luid;
 
         NE_REFLECT_BEGIN(NativeScript)
             NE_REFLECT_FIELD(ScriptName)

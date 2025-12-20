@@ -31,12 +31,9 @@ namespace NE::ECS::Systems {
 		void Update(double deltaTime) override;
 		void Exit() override;
 
-		void InitializeExistingScripts();
-
 		void StartScripts(); //Play
 		void PauseScripts(); //Pause
 		void StopScripts(); //Stop
-
 
 	private:
 		ComponentManager* m_componentManager;
