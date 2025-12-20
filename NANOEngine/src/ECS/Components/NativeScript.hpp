@@ -38,6 +38,8 @@ namespace NE::ECS::Component {
 
         NE_REFLECT_BEGIN(NativeScript)
             NE_REFLECT_FIELD(ScriptName)
+            //NE_REFLECT_FIELD(SerializedFields)
+            //NE_REFLECT_FIELD(EntityReferenceFields)
         NE_REFLECT_END()
     };
 }

@@ -27,6 +27,7 @@
 
 #include "JSONReflection.hpp"
 #include "../EditorScene.hpp"
+#include <Scripting/ScriptingEngine.hpp>
 
 namespace Editor {
 	namespace Serialization {
@@ -88,6 +89,15 @@ namespace Editor {
 				using rapidjson::Document;
 				using rapidjson::StringBuffer;
 				using rapidjson::PrettyWriter;
+
+				// Save all script instance field values to components before serialization
+				auto& allEntities = NE::GetScene().GetECSCoordinator().GetUsedEntities();
+				for (NE::ECS::Entity entity : allEntities) {
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::NativeScript>(entity)) {
+						auto& nsc = NE::ECS::Query::GetComponent<NE::ECS::Component::NativeScript>(entity);
+						NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
+					}
+				}
 
 				Document doc;
 				doc.SetObject();
