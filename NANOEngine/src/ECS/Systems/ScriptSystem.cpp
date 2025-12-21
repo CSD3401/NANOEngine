@@ -10,8 +10,6 @@
 #include "Events/EventBus.hpp"
 #include "../../Scripting/ScriptingEngine.hpp"
 
-namespace hack { extern bool sceneRdy; }
-
 namespace NE::ECS::Systems {
 	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em)
 		: m_componentManager(cm), m_entityManager(em) {
@@ -22,7 +20,7 @@ namespace NE::ECS::Systems {
 
 	void ScriptSystem::OnEntityAdded(Entity entity) {
 		// Only manage component data, delegate instance creation to ScriptEngine
-		if (!hack::sceneRdy) {
+		if (!Scripting::ScriptingEngine::GetInstance().ShouldCreateInstancesOnEntityAdded()) {
 			return;
 		}
 
@@ -39,7 +37,8 @@ namespace NE::ECS::Systems {
 			// Initialize the script instance
 			Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
 
-			// Clear dirty flag after successful creation
+			// Update tracking and clear dirty flag after successful creation
+			nsc._lastScriptName = nsc.ScriptName;
 			nsc.IsDirty = false;
 		}
 	}
@@ -73,7 +72,8 @@ namespace NE::ECS::Systems {
 				// Initialize the script instance
 				Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
 
-				// Clear dirty flag after successful creation
+				// Update tracking and clear dirty flag after successful creation
+				nsc._lastScriptName = nsc.ScriptName;
 				nsc.IsDirty = false;
 
 				SPD_INFO("Initialized existing script '" << nsc.ScriptName
@@ -143,17 +143,23 @@ namespace NE::ECS::Systems {
 
 		const auto& entities = m_componentManager->GetEntitiesWithComponent<Component::NativeScript>();
 
-		// First pass: Check for dirty components and recreate instances if needed
+		// First pass: Check for script type changes or initial creation
 		for (Entity entity : entities) {
 			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-			// If component is dirty, recreate the script instance
-			if (nsc.IsDirty) {
-				SPD_INFO("NativeScript component for entity " << (int)entity
-					<< " is dirty, recreating script instance");
+			// Detect if script TYPE changed (different script class assigned)
+			bool scriptTypeChanged = (nsc.ScriptName != nsc._lastScriptName);
 
-				// Destroy old instance
+			if (scriptTypeChanged) {
+				SPD_INFO("Script type changed for entity " << (int)entity
+					<< " from '" << nsc._lastScriptName << "' to '" << nsc.ScriptName << "'");
+
+				// Destroy old instance (if any)
 				Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(entity);
+
+				// Clear old serialized data (fields from previous script type are incompatible)
+				nsc.SerializedFields.clear();
+				nsc.EntityReferenceFields.clear();
 
 				// Create new instance if script name is not empty
 				if (!nsc.ScriptName.empty()) {
@@ -162,9 +168,25 @@ namespace NE::ECS::Systems {
 					}
 				}
 
-				// Clear dirty flag
+				// Update tracking
+				nsc._lastScriptName = nsc.ScriptName;
 				nsc.IsDirty = false;
 			}
+			else if (nsc._lastScriptName.empty() && !nsc.ScriptName.empty()) {
+				// Initial creation (first time this component has a script assigned)
+				// Only triggers when _lastScriptName is empty (never been initialized)
+				SPD_INFO("Creating initial script instance for entity " << (int)entity
+					<< " script '" << nsc.ScriptName << "'");
+
+				if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
+					Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
+				}
+
+				// Update tracking
+				nsc._lastScriptName = nsc.ScriptName;
+				nsc.IsDirty = false;
+			}
+			// else: Field edits or other changes - instance already exists with updated values, no action needed
 		}
 
 		// Second pass: Delegate script updates to ScriptEngine

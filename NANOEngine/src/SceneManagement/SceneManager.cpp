@@ -6,16 +6,15 @@
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Serialisation/Serializer.hpp"
 
-namespace hack { bool sceneRdy = false; }
-
 namespace NE::SceneManagement {
 
 	void SceneManager::LoadScene(const std::string& path) {
 		m_loadedPath = path;
 		m_editor = std::make_unique<Scene>();
+		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path);
 		m_editor->Init();
-		hack::sceneRdy = true;
+		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		Prefab::PrefabManager::Init(m_editor.get());
 		Prefab::PrefabManager::RebuildFromScene();
 		m_isPlaying = false;
@@ -25,65 +24,29 @@ namespace NE::SceneManagement {
 	void SceneManager::LoadRuntime() {
 		if (!m_editor || m_isPlaying) return;
 
-		// Step 1: Save all editor script field values to their components
-		auto& editorEntities = m_editor->GetECSCoordinator().GetComponentManager()
-			.GetEntitiesWithComponent<ECS::Component::NativeScript>();
+		// Save editor script field values and transfer to runtime
+		auto& editorComponentMgr = m_editor->GetECSCoordinator().GetComponentManager();
+		Scripting::ScriptingEngine::GetInstance().SaveSceneScriptFields(editorComponentMgr);
 
-		// Build map of LUID -> SerializedFields from editor scene
-		std::unordered_map<uint64_t, std::unordered_map<std::string, std::string>> editorFieldsByLUID;
-		std::unordered_map<uint64_t, std::unordered_set<std::string>> editorRefFieldsByLUID;
-
-		for (NE::ECS::Entity entity : editorEntities) {
-			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager()
-				.GetComponent<ECS::Component::NativeScript>(entity);
-
-			// Save current instance field values to component
-			Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-
-			// Store in LUID map for transfer to runtime
-			editorFieldsByLUID[nsc.luid] = nsc.SerializedFields;
-			editorRefFieldsByLUID[nsc.luid] = nsc.EntityReferenceFields;
-		}
-
-		// Step 2: Destroy all script instances from editor scene
+		// Destroy all editor script instances
 		Scripting::ScriptingEngine::GetInstance().DestroyAllScriptInstances();
 
-		hack::sceneRdy = false;
-
-		// Step 3: Load runtime scene from file
+		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
+		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
 
-		// Step 4: Transfer editor field values to runtime components (before Init)
-		auto& runtimeEntities = m_runtime->GetECSCoordinator().GetComponentManager()
-			.GetEntitiesWithComponent<ECS::Component::NativeScript>();
+		// Transfer editor field values to runtime scene (before Init)
+		auto& runtimeComponentMgr = m_runtime->GetECSCoordinator().GetComponentManager();
+		Scripting::ScriptingEngine::GetInstance().TransferScriptFields(editorComponentMgr, runtimeComponentMgr);
 
-		for (NE::ECS::Entity entity : runtimeEntities) {
-			auto& runtimeNsc = m_runtime->GetECSCoordinator().GetComponentManager()
-				.GetComponent<ECS::Component::NativeScript>(entity);
-
-			// Find matching editor component by LUID
-			auto fieldsIt = editorFieldsByLUID.find(runtimeNsc.luid);
-			if (fieldsIt != editorFieldsByLUID.end()) {
-				// Copy editor's field values to runtime component
-				runtimeNsc.SerializedFields = fieldsIt->second;
-			}
-
-			auto refFieldsIt = editorRefFieldsByLUID.find(runtimeNsc.luid);
-			if (refFieldsIt != editorRefFieldsByLUID.end()) {
-				// Copy entity reference field markers
-				runtimeNsc.EntityReferenceFields = refFieldsIt->second;
-			}
-		}
-
-		// Step 5: Initialize runtime scene (will create instances with transferred field values)
+		// Initialize runtime scene (creates instances with transferred field values)
 		m_runtime->Init();
-
-		hack::sceneRdy = true;
+		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 
 		m_isPlaying = true;
 
-		// Step 6: Start scripts in runtime scene
+		// Start scripts in runtime scene
 		m_runtime->ScriptStart();
 	}
 
@@ -93,38 +56,17 @@ namespace NE::SceneManagement {
 		if (m_runtime) {
 			m_runtime->ScriptStop();
 			m_runtime->Exit();
-			hack::sceneRdy = false;
 		}
 
 		m_runtime.reset();
-
 		m_isPlaying = false;
 
 		// Recreate editor scene script instances for inspection
-		// These will be disabled (no Update calls) but allow field editing in inspector
+		// (disabled, no Update calls, but allow field editing in inspector)
 		if (m_editor) {
-			// CRITICAL: Reset ECS references to editor scene's managers
-			// (they were pointing to the now-destroyed runtime scene)
-			Scripting::ScriptingEngine::GetInstance().SetECSReferences(
-				&m_editor->GetECSCoordinator().GetComponentManager(),
-				&m_editor->GetECSCoordinator().GetEntityManager()
-			);
-
-			auto& entities = m_editor->GetECSCoordinator().GetComponentManager()
-				.GetEntitiesWithComponent<ECS::Component::NativeScript>();
-
-			for (NE::ECS::Entity entity : entities) {
-				auto& nsc = m_editor->GetECSCoordinator().GetComponentManager()
-					.GetComponent<ECS::Component::NativeScript>(entity);
-
-				// Skip empty script names
-				if (nsc.ScriptName.empty()) continue;
-
-				// Create instance (ScriptEngine will initialize and restore serialized fields)
-				if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
-					Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
-				}
-			}
+			auto& componentMgr = m_editor->GetECSCoordinator().GetComponentManager();
+			auto& entityMgr = m_editor->GetECSCoordinator().GetEntityManager();
+			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr);
 		}
 	}
 

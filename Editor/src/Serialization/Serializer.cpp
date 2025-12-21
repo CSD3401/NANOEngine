@@ -91,10 +91,13 @@ namespace Editor {
 				using rapidjson::PrettyWriter;
 
 				// Save all script instance field values to components before serialization
-				auto& allEntities = NE::GetScene().GetECSCoordinator().GetUsedEntities();
+				auto& coordinator = NE::GetScene().GetECSCoordinator();
+				auto& componentManager = coordinator.GetComponentManager();
+				auto& allEntities = coordinator.GetUsedEntities();
+
 				for (NE::ECS::Entity entity : allEntities) {
-					if (NE::ECS::Query::HasComponent<NE::ECS::Component::NativeScript>(entity)) {
-						auto& nsc = NE::ECS::Query::GetComponent<NE::ECS::Component::NativeScript>(entity);
+					if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
+						auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
 						NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
 					}
 				}

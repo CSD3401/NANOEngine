@@ -19,6 +19,7 @@
 #include "../ECS/Components/Renderer.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
+#include "../ECS/Components/Hierarchy.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
@@ -348,59 +349,55 @@ namespace NE {
 		//=========================================================================
 
 		Entity IScript::GetParent(Entity entity) const {
-			//CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+			CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
 
-			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
-			//    return INVALID_ENTITY;
+			if (!m_context->componentManager->HasComponent<ECS::Component::Hierarchy>(targetEntity))
+				return INVALID_ENTITY;
 
-			//auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
-			//return transform.parent;
-			return 0;
+			auto& hierarchy = m_context->componentManager->GetComponent<ECS::Component::Hierarchy>(targetEntity);
+			return (hierarchy.parent == ECS::Component::INVALID_PARENT) ? INVALID_ENTITY : hierarchy.parent;
 		}
 
 		size_t IScript::GetChildCount(Entity entity) const {
-			//CHECK_CONTEXT_OR_RETURN(0);
+			CHECK_CONTEXT_OR_RETURN(0);
 
-			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
-			//    return 0;
+			if (!m_context->componentManager->HasComponent<ECS::Component::Hierarchy>(targetEntity))
+				return 0;
 
-			//auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
-			//return transform.children.size();
-			return 0;
+			auto& hierarchy = m_context->componentManager->GetComponent<ECS::Component::Hierarchy>(targetEntity);
+			return hierarchy.children.size();
 		}
 
 		Entity IScript::GetChild(size_t index, Entity entity) const {
-			//CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
+			CHECK_CONTEXT_OR_RETURN(INVALID_ENTITY);
 
-			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
-			//    return INVALID_ENTITY;
+			if (!m_context->componentManager->HasComponent<ECS::Component::Hierarchy>(targetEntity))
+				return INVALID_ENTITY;
 
-			//auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			auto& hierarchy = m_context->componentManager->GetComponent<ECS::Component::Hierarchy>(targetEntity);
 
-			//if (index >= transform.children.size())
-			//    return INVALID_ENTITY;
+			if (index >= hierarchy.children.size())
+				return INVALID_ENTITY;
 
-			//return transform.children[index];
-			return 0;
+			return hierarchy.children[index];
 		}
 
 		std::vector<Entity> IScript::GetChildren(Entity entity) const {
-			//CHECK_CONTEXT_OR_RETURN(std::vector<Entity>());
+			CHECK_CONTEXT_OR_RETURN(std::vector<Entity>());
 
-			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
-			//    return std::vector<Entity>();
+			if (!m_context->componentManager->HasComponent<ECS::Component::Hierarchy>(targetEntity))
+				return std::vector<Entity>();
 
-			//auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
-			//return transform.children;
-			return std::vector<Entity>();
+			auto& hierarchy = m_context->componentManager->GetComponent<ECS::Component::Hierarchy>(targetEntity);
+			return hierarchy.children;
 		}
 
 		//=========================================================================
@@ -2150,6 +2147,75 @@ namespace NE {
 			//}
 		}
 
+		// === Entity Metadata Functions ===
+
+		std::string IScript::GetEntityName(Entity entity) const {
+			if (!m_context->componentManager) return "";
+
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
+				return "";
+
+			return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).name;
+		}
+
+		void IScript::SetEntityName(const std::string& name, Entity entity) {
+			if (!m_context->componentManager) return;
+
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+				auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+				meta.name = name;
+			}
+		}
+
+		uint8_t IScript::GetLayer(Entity entity) const {
+			if (!m_context->componentManager) return 0;
+
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
+				return 0;
+
+			return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).layer;
+		}
+
+		void IScript::SetLayer(uint8_t layer, Entity entity) {
+			if (!m_context->componentManager) return;
+
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+				auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+				meta.layer = layer;
+			}
+		}
+
+		bool IScript::IsPrefabInstance(Entity entity) const {
+			if (!m_context->componentManager) return false;
+
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
+				return false;
+
+			const auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+			return !meta.prefabID.empty();
+		}
+
+		bool IScript::IsPrefabRoot(Entity entity) const {
+			if (!m_context->componentManager) return false;
+
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
+				return false;
+
+			return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).isPrefabRoot;
+		}
+
 		// === Entity Active State Functions ===
 
 		bool IScript::IsActive(Entity e) const {
@@ -2162,140 +2228,133 @@ namespace NE {
 		}
 
 		void IScript::SetActive(bool active, Entity entity) {
-			//if (!m_context->componentManager) return;
+			if (!m_context->componentManager) return;
 
-			//Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-			//	auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+			if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+				auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
 
-			//	// Only update if changed
-			//	if (meta.isActive != active) {
-			//		meta.isActive = active;
+				// Only update if changed
+				if (meta.isActive != active) {
+					meta.isActive = active;
 
-			//		// 1. Update rendering visibility
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
-			//			auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
-			//			renderer.visible = active && IsActiveInHierarchy();
-			//		}
+					// 1. Update rendering visibility
+					if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
+						auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
+						renderer.visible = active && IsActiveInHierarchy();
+					}
 
-			//		// 2. Update physics state
-			//		if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
-			//			uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
+					// 2. Update physics state
+					if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
+						uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
 
-			//			if (active && IsActiveInHierarchy()) {
-			//				// Reactivate physics body only if parent hierarchy is also active
-			//				NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//			} else {
-			//				// Deactivate physics body (stops collision and physics simulation)
-			//				NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//			}
-			//		}
+						if (active && IsActiveInHierarchy()) {
+							// Reactivate physics body only if parent hierarchy is also active
+							NE::Physics::PhysicsManager::ActivateBody(bodyID);
+						} else {
+							// Deactivate physics body (stops collision and physics simulation)
+							NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+						}
+					}
 
-			//		// 3. Update script enabled state (NEW!)
-			//   // When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
-		 //  // No need to manually disable here - the hierarchy check in ScriptSystem handles it
+					// 3. Update script enabled state
+					// When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
+					// No need to manually disable here - the hierarchy check in ScriptSystem handles it
 
-			//		// 4. Recursively propagate to all children (Unity-style)
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(e)) {
-			//			auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(e);
-			//			PropagateActiveStateToChildren(transform.children, active);
-			//		}
-
-			//		// Mark scene dirty ONLY when called from a running script in Edit mode
-			//		// Not during scene deserialization or Play mode
-			//		if (NE::GetEngineState() == NE::EngineState::Edit && m_hasStarted) {
-			//			NE::MarkSceneDirty();
-			//		}
-			//	}
-			//}
+					// 4. Recursively propagate to all children (Unity-style)
+					if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(e)) {
+						auto& hierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(e);
+						PropagateActiveStateToChildren(hierarchy.children, active);
+					}
+				}
+			}
 		}
 
 		bool IScript::IsActiveInHierarchy() const {
-			//if (!m_context || !m_context->componentManager) return false;
+			if (!m_context || !m_context->componentManager) return false;
 
-			//// Check if this entity is active
-			//if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
-			//	return true; // Default to active if no EntityMeta
-			//}
+			// Check if this entity is active
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(m_entity)) {
+				return true; // Default to active if no EntityMeta
+			}
 
-			//auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
-			//if (!meta.isActive) {
-			//	return false; // This entity is disabled
-			//}
+			auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(m_entity);
+			if (!meta.isActive) {
+				return false; // This entity is disabled
+			}
 
-			//// Check if any parent in the hierarchy is disabled
-			//if (!m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(m_entity)) {
-			//	return true; // No parent, just check self
-			//}
+			// Check if any parent in the hierarchy is disabled
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(m_entity)) {
+				return true; // No parent, just check self
+			}
 
-			//auto& transform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(m_entity);
-			//if (transform.parent == NE::ECS::Component::INVALID_PARENT) {
-			//	return true; // No parent, entity is active
-			//}
+			auto& hierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(m_entity);
+			if (hierarchy.parent == NE::ECS::Component::INVALID_PARENT) {
+				return true; // No parent, entity is active
+			}
 
-			//// Recursively check parent active state
-			//Entity currentParent = transform.parent;
-			//while (currentParent != NE::ECS::Component::INVALID_PARENT) {
-			//	if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(currentParent)) {
-			//		break; // Parent has no EntityMeta, assume active
-			//	}
+			// Recursively check parent active state
+			Entity currentParent = hierarchy.parent;
+			while (currentParent != NE::ECS::Component::INVALID_PARENT) {
+				if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(currentParent)) {
+					break; // Parent has no EntityMeta, assume active
+				}
 
-			//	auto& parentMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(currentParent);
-			//	if (!parentMeta.isActive) {
-			//		return false; // Parent is disabled, so this entity is inactive in hierarchy
-			//	}
+				auto& parentMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(currentParent);
+				if (!parentMeta.isActive) {
+					return false; // Parent is disabled, so this entity is inactive in hierarchy
+				}
 
-			//	// Move up the hierarchy
-			//	if (!m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(currentParent)) {
-			//		break; // No transform on parent, we're done
-			//	}
+				// Move up the hierarchy
+				if (!m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(currentParent)) {
+					break; // No hierarchy on parent, we're done
+				}
 
-			//	auto& parentTransform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(currentParent);
-			//	currentParent = parentTransform.parent;
-			//}
+				auto& parentHierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(currentParent);
+				currentParent = parentHierarchy.parent;
+			}
 
-			//return true; // All parents are active
-			return true;
+			return true; // All parents are active
 		}
 
 		void IScript::PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const {
-			//if (!m_context || !m_context->componentManager) return;
+			if (!m_context || !m_context->componentManager) return;
 
-			//for (Entity childEntity : children) {
-			//	// Get child's own isActive state
-			//	if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
-			//		continue;
-			//	}
+			for (Entity childEntity : children) {
+				// Get child's own isActive state
+				if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
+					continue;
+				}
 
-			//	auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
+				auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
 
-			//	// Determine effective active state: parent must be active AND child must be active
-			//	bool effectiveActive = parentActive && childMeta.isActive;
+				// Determine effective active state: parent must be active AND child must be active
+				bool effectiveActive = parentActive && childMeta.isActive;
 
-			//	// Update child's rendering
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
-			//		auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
-			//		renderer.visible = effectiveActive;
-			//	}
+				// Update child's rendering
+				if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
+					auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
+					renderer.visible = effectiveActive;
+				}
 
-			//	// Update child's physics
-			//	if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
-			//		uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
+				// Update child's physics
+				if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
+					uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
 
-			//		if (effectiveActive) {
-			//			NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//		} else {
-			//			NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//		}
-			//	}
+					if (effectiveActive) {
+						NE::Physics::PhysicsManager::ActivateBody(bodyID);
+					} else {
+						NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+					}
+				}
 
-			//	// Recursively propagate to grandchildren
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Transform>(childEntity)) {
-			//		auto& childTransform = m_context->componentManager->GetComponent<NE::ECS::Component::Transform>(childEntity);
-			//		PropagateActiveStateToChildren(childTransform.children, effectiveActive);
-			//	}
-			//}
+				// Recursively propagate to grandchildren
+				if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(childEntity)) {
+					auto& childHierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(childEntity);
+					PropagateActiveStateToChildren(childHierarchy.children, effectiveActive);
+				}
+			}
 		}
 
 		//=========================================================================

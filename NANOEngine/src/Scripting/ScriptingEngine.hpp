@@ -135,12 +135,12 @@ namespace NE::Scripting {
         /**
          * Save script field values to component for hot-reload preservation.
          */
-        void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
+        NANOENGINE_API void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
 
         /**
          * Restore script field values from component after hot-reload.
          */
-        void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
+        NANOENGINE_API void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
 
         /**
          * Destroy script instance and call cleanup (used before hot-reload).
@@ -212,6 +212,53 @@ namespace NE::Scripting {
          */
         NANOENGINE_API void StopAllScriptInstances();
 
+        // === Scene Script Management Helpers ===
+        /**
+         * Disable automatic script instance creation during scene loading.
+         * Call before deserializing a scene to prevent premature instantiation.
+         */
+        NANOENGINE_API void BeginSceneLoad();
+
+        /**
+         * Re-enable automatic script instance creation after scene loading.
+         * Call after scene Init() to allow normal script creation.
+         */
+        NANOENGINE_API void EndSceneLoad();
+
+        /**
+         * Check if entity callbacks should create instances.
+         * @return true if instances should be created, false during scene load
+         */
+        NANOENGINE_API bool ShouldCreateInstancesOnEntityAdded() const;
+
+        /**
+         * Save all script field values to components for a scene.
+         * Used before switching between editor/runtime scenes.
+         * @param componentManager Component manager containing NativeScript components
+         */
+        NANOENGINE_API void SaveSceneScriptFields(NE::ECS::ComponentManager& componentManager);
+
+        /**
+         * Transfer script field values from source scene to target scene via LUID matching.
+         * Used when loading runtime from editor scene.
+         * @param sourceComponentManager Source scene (usually editor)
+         * @param targetComponentManager Target scene (usually runtime)
+         */
+        NANOENGINE_API void TransferScriptFields(
+            NE::ECS::ComponentManager& sourceComponentManager,
+            NE::ECS::ComponentManager& targetComponentManager);
+
+        /**
+         * Recreate script instances for all entities with NativeScript components.
+         * Used when restoring editor scene after stopping runtime.
+         * @param componentManager Component manager for the scene
+         * @param componentManager Component manager to create instances from
+         * @param entityManager Entity manager for entity validation
+         */
+        NANOENGINE_API void RecreateScriptInstances(
+            NE::ECS::ComponentManager& componentManager,
+            NE::ECS::EntityManager& entityManager);
+
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;
@@ -237,6 +284,7 @@ namespace NE::Scripting {
 
         // === State Tracking ===
         bool m_initialized;
+        bool m_allowEntityAddedCallbacks = true;  // Controls OnEntityAdded behavior during scene load
         std::string m_lastError;
 
         // === Hot Reload System ===

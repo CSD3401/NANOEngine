@@ -892,4 +892,104 @@ namespace NE::Scripting {
         }
     }
 
+    // === Scene Script Management Helpers ===
+
+    void ScriptingEngine::BeginSceneLoad() {
+        m_allowEntityAddedCallbacks = false;
+    }
+
+    void ScriptingEngine::EndSceneLoad() {
+        m_allowEntityAddedCallbacks = true;
+    }
+
+    bool ScriptingEngine::ShouldCreateInstancesOnEntityAdded() const {
+        return m_allowEntityAddedCallbacks;
+    }
+
+    void ScriptingEngine::SaveSceneScriptFields(NE::ECS::ComponentManager& componentManager) {
+        auto& entities = componentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
+
+        SPD_INFO("SaveSceneScriptFields: Processing " << entities.size() << " entities with NativeScript components");
+
+        for (NE::ECS::Entity entity : entities) {
+            auto& nsc = componentManager.GetComponent<ECS::Component::NativeScript>(entity);
+
+            // Only save if there's an instance for this entity
+            auto it = m_scriptInstances.find(entity);
+            if (it != m_scriptInstances.end() && it->second) {
+                SPD_INFO("  Saving fields for entity " << (int)entity << " script '" << nsc.ScriptName << "'");
+                SaveSerializedFields(nsc);
+            } else {
+                SPD_WARNING("  No instance found for entity " << (int)entity << " script '" << nsc.ScriptName << "' - skipping save");
+            }
+        }
+    }
+
+    void ScriptingEngine::TransferScriptFields(
+        NE::ECS::ComponentManager& sourceComponentManager,
+        NE::ECS::ComponentManager& targetComponentManager) {
+
+        // Build map of LUID -> SerializedFields from source scene
+        std::unordered_map<uint64_t, std::unordered_map<std::string, std::string>> fieldsByLUID;
+        std::unordered_map<uint64_t, std::unordered_set<std::string>> refFieldsByLUID;
+
+        auto& sourceEntities = sourceComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
+        SPD_INFO("TransferScriptFields: Source has " << sourceEntities.size() << " entities");
+
+        for (NE::ECS::Entity entity : sourceEntities) {
+            auto& nsc = sourceComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
+
+            SPD_INFO("  Source LUID " << nsc.luid << " (entity " << (int)entity << "): " << nsc.SerializedFields.size() << " fields");
+
+            // Store fields by LUID for matching
+            fieldsByLUID[nsc.luid] = nsc.SerializedFields;
+            refFieldsByLUID[nsc.luid] = nsc.EntityReferenceFields;
+        }
+
+        // Apply to target scene by matching LUIDs
+        auto& targetEntities = targetComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
+        SPD_INFO("TransferScriptFields: Target has " << targetEntities.size() << " entities");
+
+        for (NE::ECS::Entity entity : targetEntities) {
+            auto& targetNsc = targetComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
+
+            // Find matching source component by LUID
+            auto fieldsIt = fieldsByLUID.find(targetNsc.luid);
+            if (fieldsIt != fieldsByLUID.end()) {
+                SPD_INFO("  Target LUID " << targetNsc.luid << " (entity " << (int)entity << "): Transferred " << fieldsIt->second.size() << " fields");
+                targetNsc.SerializedFields = fieldsIt->second;
+            } else {
+                SPD_WARNING("  Target LUID " << targetNsc.luid << " (entity " << (int)entity << "): No matching source found");
+            }
+
+            auto refFieldsIt = refFieldsByLUID.find(targetNsc.luid);
+            if (refFieldsIt != refFieldsByLUID.end()) {
+                targetNsc.EntityReferenceFields = refFieldsIt->second;
+            }
+        }
+    }
+
+    void ScriptingEngine::RecreateScriptInstances(
+        NE::ECS::ComponentManager& componentManager,
+        NE::ECS::EntityManager& entityManager) {
+
+        // Temporarily set ECS references (in case they're pointing to old scene)
+        m_componentManager = &componentManager;
+        m_entityManager = &entityManager;
+
+        auto& entities = componentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
+
+        for (NE::ECS::Entity entity : entities) {
+            auto& nsc = componentManager.GetComponent<ECS::Component::NativeScript>(entity);
+
+            // Skip empty script names
+            if (nsc.ScriptName.empty()) continue;
+
+            // Create instance (will initialize and restore serialized fields)
+            if (CreateScriptInstance(entity, nsc)) {
+                InitializeScriptInstance(entity);
+            }
+        }
+    }
+
 } // namespace NE::Scripting

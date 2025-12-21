@@ -29,17 +29,22 @@ namespace NE::ECS::Component {
         // Includes: transformref, rigidbodyref, audiosourceref, vector<entity>
         std::unordered_set<std::string> EntityReferenceFields;
 
-        // Dirty flag - set when ScriptName changes or component is modified
-        // ScriptSystem checks this to know when to recreate instances
+        // Dirty flag - set when component is first created
+        // ScriptSystem checks this to know when to create initial instance
         bool IsDirty = true;
+
+        // Internal tracking to detect script type changes
+        // When ScriptName != _lastScriptName, the script type changed and instance needs recreation
+        std::string _lastScriptName;
 
         // LUID for serialization
         uint64_t luid;
 
         NE_REFLECT_BEGIN(NativeScript)
             NE_REFLECT_FIELD(ScriptName)
-            //NE_REFLECT_FIELD(SerializedFields)
-            //NE_REFLECT_FIELD(EntityReferenceFields)
+            // NOTE: SerializedFields and EntityReferenceFields use custom serialization
+            // See ReflectionJson.hpp to_json/from_json(NativeScript) for LUID conversion
+            // They are intentionally excluded from reflection macro
         NE_REFLECT_END()
     };
 }
