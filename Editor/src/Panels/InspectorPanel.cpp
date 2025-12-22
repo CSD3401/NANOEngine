@@ -2885,44 +2885,6 @@ namespace Editor {
 		}
 	}
 
-	//void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
-	//	auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
-	//	ImGui::SeparatorText("Rigidbody");
-
-	//	NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
-	//		[&](auto const& desc, auto const& currentValue) {
-	//			using FieldT = std::decay_t<decltype(currentValue)>;
-
-	//			FieldT edited = currentValue;
-
-	//			if (DrawField(desc, edited)) {
-	//				SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
-	//					entity, desc, currentValue, edited
-	//				);
-	//			}
-	//		});
-
-	//	if (ImGui::TreeNode("Constraints")) {
-	//		ImGui::Text("Position ");
-	//		ImGui::SameLine();
-	//		Editor::DrawCheckbox("X##Pos", comp.freezePosX);
-	//		ImGui::SameLine();
-	//		Editor::DrawCheckbox("Y##Pos", comp.freezePosY);
-	//		ImGui::SameLine();
-	//		Editor::DrawCheckbox("Z##Pos", comp.freezePosZ);
-
-	//		ImGui::Text("Rotation ");
-	//		ImGui::SameLine();
-	//		Editor::DrawCheckbox("X##Rot", comp.freezeRotX);
-	//		ImGui::SameLine();
-	//		Editor::DrawCheckbox("Y##Rot", comp.freezeRotY);
-	//		ImGui::SameLine();
-	//		Editor::DrawCheckbox("Z##Rot", comp.freezeRotZ);
-
-	//		ImGui::TreePop();
-	//	}
-	//}
-
 	void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
 
