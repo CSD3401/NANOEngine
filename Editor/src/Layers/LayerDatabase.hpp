@@ -23,7 +23,7 @@ namespace Editor::Layers {
 
 		template<typename Fn>
 		void ForEachUsed(Fn&& fn) const {
-			for (NE::Core::LayerID i = 0; i < NE::Core::MAX_USER_LAYERS; ++i) {
+			for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i) {
 				if (!m_data.slots[i].used) continue;
 				if (m_data.slots[i].name.empty()) continue;
 				fn(i, std::string_view(m_data.slots[i].name));

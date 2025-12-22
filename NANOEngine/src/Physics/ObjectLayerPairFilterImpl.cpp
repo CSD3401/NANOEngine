@@ -6,7 +6,7 @@ namespace NE::Physics {
 	}
 
 	bool ObjectLayerPairFilterImpl::ShouldCollide(JPH::ObjectLayer a, JPH::ObjectLayer b) const {
-		if (a >= NE::Core::MAX_LAYERS || b >= NE::Core::MAX_LAYERS)
+		if (a >= 64 || b >= 64) // hardcoded for now
 			return false;
 
 		uint8_t rawA = static_cast<uint8_t>(a % 32);

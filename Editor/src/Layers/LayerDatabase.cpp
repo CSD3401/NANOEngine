@@ -15,7 +15,7 @@ namespace Editor::Layers {
         m_data.slots[0].used = true;
         m_data.slots[0].name = "Default";
 
-        for (size_t i = 0; i < NE::Core::MAX_USER_LAYERS; ++i) {
+        for (size_t i = 0; i < NE::Core::MAX_LAYERS; ++i) {
             m_data.collideWith[i] = ~NE::Core::LayerMask{ 0 };
         }
         RebuildNameMap();
@@ -116,7 +116,7 @@ namespace Editor::Layers {
     }
 
     bool LayerDatabase::IsValidLayerId(NE::Core::LayerID id) const noexcept {
-        return id < NE::Core::MAX_USER_LAYERS;
+        return id < NE::Core::MAX_LAYERS;
     }
 
     std::string LayerDatabase::Normalize(std::string_view s) {
@@ -130,16 +130,16 @@ namespace Editor::Layers {
     }
 
     NE::Core::LayerID LayerDatabase::FindFreeSlot() const {
-        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_USER_LAYERS; ++i)
+        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i)
             if (!m_data.slots[i].used) return i;
         return NE::Core::INVALID_LAYER;
     }
 
     void LayerDatabase::RebuildNameMap() {
         m_nameToId.clear();
-        m_nameToId.reserve(NE::Core::MAX_USER_LAYERS);
+        m_nameToId.reserve(NE::Core::MAX_LAYERS);
 
-        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_USER_LAYERS; ++i) {
+        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i) {
             if (!m_data.slots[i].used) continue;
             if (m_data.slots[i].name.empty()) continue;
             m_nameToId.emplace(Normalize(m_data.slots[i].name), i);

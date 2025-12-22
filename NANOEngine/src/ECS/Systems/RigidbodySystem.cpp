@@ -30,7 +30,7 @@ namespace NE::ECS::Systems {
 			auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
-			Physics::PhysicsManager::GetInstance().CreateBody(meta.luid, t, rb, col, static_cast<uint8_t>(m_entityManager->GetLayer(e)));
+			Physics::PhysicsManager::GetInstance().CreateBody(e, meta.luid, t, rb, col, static_cast<uint8_t>(m_entityManager->GetLayer(e)));
 		}
 	}
 

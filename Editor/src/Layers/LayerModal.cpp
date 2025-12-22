@@ -32,8 +32,8 @@ namespace Editor::Layers {
 
         struct State {
             bool initialized = false;
-            std::array<std::array<char, kBufSize>, NE::Core::MAX_USER_LAYERS> buf{};
-            std::array<bool, NE::Core::MAX_USER_LAYERS> dup{};
+            std::array<std::array<char, kBufSize>, NE::Core::MAX_LAYERS> buf{};
+            std::array<bool, NE::Core::MAX_LAYERS> dup{};
             bool showError = false;
             char error[160]{};
         };
@@ -44,7 +44,7 @@ namespace Editor::Layers {
             res.open = true;
 
             if (!s.initialized) {
-                for (NE::Core::LayerID i = 0; i < NE::Core::MAX_USER_LAYERS; ++i) {
+                for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i) {
                     std::memset(s.buf[i].data(), 0, s.buf[i].size());
 
                     std::string_view name = db.GetName(i);
@@ -62,9 +62,9 @@ namespace Editor::Layers {
             {
                 s.dup.fill(false);
                 std::unordered_map<std::string, int> seen;
-                seen.reserve(NE::Core::MAX_USER_LAYERS);
+                seen.reserve(NE::Core::MAX_LAYERS);
 
-                for (int i = 0; i < (int)NE::Core::MAX_USER_LAYERS; ++i) {
+                for (int i = 0; i < (int)NE::Core::MAX_LAYERS; ++i) {
                     std::string_view raw = TrimSV(s.buf[i].data());
                     if (raw.empty()) continue;
 
@@ -92,7 +92,7 @@ namespace Editor::Layers {
                 ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 40.0f);
                 ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
 
-                for (int i = 0; i < (int)NE::Core::MAX_USER_LAYERS; ++i) {
+                for (int i = 0; i < (int)NE::Core::MAX_LAYERS; ++i) {
                     NE::Core::LayerID id = (NE::Core::LayerID)i;
 
                     ImGui::TableNextRow();
@@ -149,7 +149,7 @@ namespace Editor::Layers {
                 s.error[0] = '\0';
 
                 bool ok = true;
-                for (int i = 0; i < (int)NE::Core::MAX_USER_LAYERS; ++i) {
+                for (int i = 0; i < (int)NE::Core::MAX_LAYERS; ++i) {
                     NE::Core::LayerID id = (NE::Core::LayerID)i;
                     if (IsReservedLayer(id))
                         continue;

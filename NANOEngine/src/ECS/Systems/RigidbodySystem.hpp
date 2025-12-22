@@ -23,22 +23,6 @@ namespace NE::ECS::Systems {
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
 
-		// Recreates physics body
-		//void OnShapeChange(Entity entity, 
-		//	Component::Collider::ShapeType oldShape,
-		//	Component::Collider::ShapeType newShape);
-
-		//void OnPropertyChange(Entity entity);
-
-		void CreatePhysicsBodyFromComponent(Entity entity,
-			Component::Transform& transform,
-			Component::Rigidbody& rb,
-			Component::Collider& collider,
-			JPH::EMotionType motionType);
-
-		void CheckForColliderChanges();
-		void RecreatePhysicsBody(Entity entity);
-
 		void Init() override;
 		void Update(double deltaTime) override;
 		void Exit() override;

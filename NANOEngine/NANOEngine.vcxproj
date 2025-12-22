@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Physics\ForceMode.hpp" />
+    <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\BroadPhaseLayerInterfaceImpl.hpp" />
     <ClInclude Include="LayerRegistry.hpp" />
     <ClInclude Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.hpp" />
@@ -44,6 +46,8 @@
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
     <ClInclude Include="src\Physics\PhysicsSettings.hpp" />
+    <ClInclude Include="src\Physics\Ray.hpp" />
+    <ClInclude Include="src\Physics\RaycastHit.hpp" />
     <ClInclude Include="src\PrefabManagement\PrefabManager.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderViewManager.hpp" />
     <ClInclude Include="src\Graphics\Core\InstanceData.hpp" />
@@ -172,6 +176,7 @@
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
     <ClCompile Include="LayerRegistry.cpp" />
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />

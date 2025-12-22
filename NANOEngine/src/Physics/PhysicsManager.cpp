@@ -29,12 +29,15 @@
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include "Core/SpdLogger.hpp"
 
+#include "Ray.hpp"
+#include "RaycastHit.hpp"
 #include "ECS/Components/Collider.hpp"
 #include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ObjectLayerPairFilterImpl.hpp"
 #include "BroadPhaseLayerInterfaceImpl.hpp"
 #include "ObjectVsBroadPhaseLayerFilterImpl.hpp"
+#include "ObjectLayerFilterImpl.hpp"
 
 namespace NE::Physics {
     namespace {
@@ -213,7 +216,7 @@ namespace NE::Physics {
         m_shapes.erase(entityLUID);
     }
 
-    void PhysicsManager::CreateBody(uint64_t luid, const ECS::Component::Transform& t, 
+    void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
         const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID) {
 
         auto itShape = m_shapes.find(luid);
@@ -242,10 +245,10 @@ namespace NE::Physics {
         );
 
         settings.mGravityFactor = rb.useGravity ? 1.0f : 0.0f;
-
         settings.mLinearDamping = rb.linearDamping;
         settings.mAngularDamping = rb.angularDamping;
-
+        settings.mIsSensor = col.isTrigger;
+        
         if (motion == JPH::EMotionType::Dynamic) {
             settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
             settings.mMassPropertiesOverride.mMass = rb.mass;
@@ -257,11 +260,12 @@ namespace NE::Physics {
 
         const JPH::BodyID id = body->GetID();
         bi.AddBody(id, JPH::EActivation::Activate);
+        bi.SetUserData(id, static_cast<JPH::uint64>(entity));
 
         m_bodies[luid] = id;
     }
 
-    void PhysicsManager::CreateBody(uint64_t luid, const ECS::Component::Transform& t, 
+    void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
         const ECS::Component::Collider& col, uint8_t layerID) {
 
         auto itShape = m_shapes.find(luid);
@@ -289,12 +293,15 @@ namespace NE::Physics {
             objLayer
         );
 
+        settings.mIsSensor = col.isTrigger;
+
         JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
         JPH::Body* body = bi.CreateBody(settings);
         if (!body) return;
 
         const JPH::BodyID id = body->GetID();
         bi.AddBody(id, JPH::EActivation::DontActivate);
+        bi.SetUserData(id, static_cast<JPH::uint64>(entity));
 
         m_bodies[luid] = id;
     }
@@ -333,6 +340,73 @@ namespace NE::Physics {
 
         //m_physicsSystem->DrawBodies(ds, m_debugRenderer.get());
         //m_physicsSystem->DrawConstraints(ds, m_debugRenderer.get());
+    }
+
+    bool PhysicsManager::Raycast(Math::Vec3 origin, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask) {
+        JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
+        float dirLength = joltDir.Length();
+
+        joltDir /= dirLength;
+
+        JPH::RRayCast joltRay{ ToJoltVec3(origin), ToJoltVec3(direction * maxDistance) };
+
+        ObjectLayerFilterImpl layerFilter(layerMask);
+
+        JPH::RayCastResult result;
+        bool hasHit = m_physicsSystem->GetNarrowPhaseQuery().CastRay(
+            joltRay,
+            result,
+            JPH::BroadPhaseLayerFilter(),
+            layerFilter,
+            JPH::BodyFilter()
+        );
+
+        if (hasHit && !result.mBodyID.IsInvalid()) {
+            outHitInfo.distance = result.mFraction * maxDistance;
+
+            JPH::RVec3 hitPoint = joltRay.mOrigin + joltRay.mDirection * result.mFraction;
+            outHitInfo.point = Math::Vec3(
+                hitPoint.GetX(),
+                hitPoint.GetY(),
+                hitPoint.GetZ()
+            );
+
+            JPH::BodyLockRead lock(m_physicsSystem->GetBodyLockInterface(), result.mBodyID);
+            if (lock.Succeeded()) {
+                const JPH::Body& body = lock.GetBody();
+
+                JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+                outHitInfo.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
+
+                outHitInfo.colliderEntityID = static_cast<NE::ECS::Entity>(body.GetUserData());
+            }
+
+            //SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
+        }
+
+        return hasHit;
+    }
+
+    bool PhysicsManager::Raycast(Ray ray, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask) {
+        return Raycast(ray.origin, ray.direction, outHitInfo, maxDistance, layerMask);
+    }
+
+    void PhysicsManager::AddForce(uint64_t entityLUID, Math::Vec3 force, ForceMode forceMode) {
+        auto it = m_bodies.find(entityLUID);
+        if (it != m_bodies.end()) {
+            switch (forceMode) {
+                case ForceMode::Impulse: {
+                    m_physicsSystem->GetBodyInterface().AddImpulse(it->second, ToJoltVec3(force));
+                } break;
+                //case ForceMode::Acceleration: {
+                //} break;
+                //case ForceMode::VelocityChange: {
+                //} break;
+                default: {
+                    m_physicsSystem->GetBodyInterface().AddForce(it->second, ToJoltVec3(force));
+                }
+            }
+        }
     }
     
     void PhysicsManager::OnPlay() {
