@@ -12,6 +12,7 @@
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/UIButton.hpp"
+#include "../ECS/Components/UIText.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -86,11 +87,15 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
 		}
 
-		const Component::UICanvas& GetUICanvas(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
-		}
+	const Component::UICanvas& GetUICanvas(uint32_t e) {
+		return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
+	}
 
-		bool HasTransform(uint32_t e) {
+	const Component::UIText& GetUIText(uint32_t e) {
+		return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIText>(e);
+	}
+
+	bool HasTransform(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Transform>(e);
 		}
 
@@ -106,11 +111,15 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
 		}
 
-		bool HasUIButton(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIButton>(e);
-		}
+	bool HasUIButton(uint32_t e) {
+		return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIButton>(e);
+	}
 
-		bool HasRenderer(uint32_t e) {
+	bool HasUIText(uint32_t e) {
+		return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIText>(e);
+	}
+
+	bool HasRenderer(uint32_t e) {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e);
 		}
 
@@ -413,6 +422,73 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		uint32_t CreateUITextEntity(uint32_t parentCanvas) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			uint32_t newEntity = ecs.CreateEntity();
+			ecs.AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name = "Text", .luid = Core::LUIDGenerator::Generate("en") });
+
+			// Setup RectTransform with parent linkage
+			Component::UIRectTransform rect;
+			rect.luid = Core::LUIDGenerator::Generate("rect");
+			rect.x = 0.0f;
+			rect.y = 0.0f;
+			rect.z = 0.0f;
+			
+			// Check if parent is a World Space canvas and adjust default size accordingly
+			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UICanvas>(parentCanvas)) {
+				auto& canvas = ecs.GetComponent<Component::UICanvas>(parentCanvas);
+				if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
+					rect.width = 10.0f;
+					rect.height = 10.0f;
+					rect.x = 0.0f;
+					rect.y = 0.0f;
+					rect.offsetMinX = 0.0f;
+					rect.offsetMinY = 0.0f;
+					rect.offsetMaxX = 0.0f;
+					rect.offsetMaxY = 0.0f;
+				} else {
+					rect.width = 200.0f;  // Default text width
+					rect.height = 30.0f;  // Default text height
+				}
+			} else {
+				rect.width = 200.0f;
+				rect.height = 30.0f;
+			}
+			
+			rect.parent = parentCanvas;
+
+			// Set parent luid for serialization
+			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
+				rect.parentLuid = ecs.GetComponent<Component::UIRectTransform>(parentCanvas).luid;
+			}
+			else {
+				rect.parentLuid = 0;
+			}
+
+			ecs.AddComponent(newEntity, rect);
+
+			// Add UIText component
+			Component::UIText text;
+			text.luid = Core::LUIDGenerator::Generate("txt");
+			text.text = "New Text";
+			text.fontSize = 16.0f;
+			text.color = NE::Math::Vec4(0.0f, 0.0f, 0.0f, 1.0f); // Black text
+			text.fontStyle = Component::UIText::FontStyle::NORMAL;
+			text.horizontalAlign = Component::UIText::Alignment::LEFT;
+			text.verticalAlign = Component::UIText::VerticalAlignment::MIDDLE;
+			text.horizontalOverflow = Component::UIText::OverflowMode::VISIBLE;
+			text.verticalOverflow = Component::UIText::OverflowMode::TRUNCATE;
+			text.wordWrap = false;
+			text.bestFit = false;
+			text.raycastTarget = true;
+			ecs.AddComponent(newEntity, text);
+
+			return newEntity;
+		}
+
 		void DestroyEntity(uint32_t e) {
 			GetScene().GetECSCoordinator().DestroyEntity(e);
 		}
@@ -489,11 +565,15 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
-		Component::UIButton& GetUIButton(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
-		}
+	Component::UIButton& GetUIButton(uint32_t e) {
+		return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
+	}
 
-		Component::Camera& GetEntityCamera(uint32_t e) {
+	Component::UIText& GetUIText(uint32_t e) {
+		return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIText>(e);
+	}
+
+	Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 

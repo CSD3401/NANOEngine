@@ -51,6 +51,17 @@ namespace Editor {
         uint32_t m_parentCanvas;
     };
 
+    class CreateUITextEntityCommand final : public ICommand {
+    public:
+        CreateUITextEntityCommand(uint32_t parentCanvas);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Text"; }
+    private:
+        uint32_t m_entity;
+        uint32_t m_parentCanvas;
+    };
+
     class DeleteEntityCommand final : public ICommand {
     public:
         DeleteEntityCommand(uint32_t deletedEntity);

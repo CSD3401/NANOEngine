@@ -52,12 +52,14 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API const Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API const Component::UIText& GetUIText(uint32_t e);
 
 		NANOENGINE_API bool HasTransform(uint32_t e);
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
 		NANOENGINE_API bool HasUIButton(uint32_t e);
+		NANOENGINE_API bool HasUIText(uint32_t e);
 
 		// --- Component Existence Checks ---
 		NANOENGINE_API bool HasTransform(uint32_t e);
@@ -99,6 +101,7 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API uint32_t CreateUIButtonEntity(uint32_t parentCanvas);
+		NANOENGINE_API uint32_t CreateUITextEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays = true);
 
@@ -123,6 +126,7 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
 		NANOENGINE_API Component::UIButton& GetUIButton(uint32_t e);
+		NANOENGINE_API Component::UIText& GetUIText(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
 
 		// --- Script Management ---

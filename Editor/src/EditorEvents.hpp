@@ -11,6 +11,9 @@ namespace Editor {
 	struct CreateUIButtonEntityEvent {
 		uint32_t parentCanvas;  // Which canvas to parent to
 	};
+	struct CreateUITextEntityEvent {
+		uint32_t parentCanvas;  // Which canvas to parent to
+	};
 	struct DeleteEntityEvent {
 		uint32_t deletedEntity;
 	};

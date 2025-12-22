@@ -17,6 +17,7 @@
 #include <ECS/Components/UICanvas.hpp>
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/UIButton.hpp>
+#include <ECS/Components/UIText.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
 #include <Core/Reflection.hpp>
@@ -3034,9 +3035,185 @@ namespace Editor {
 						ImGui::Unindent();
 					}
 				}
-			}
+			{
+				if (!NE::ECS::Query::HasUIText(entity)) continue;
+				auto& comp = NE::ECS::Command::GetUIText(entity);
 
-			if (ImGui::Button("Add Component"))
+				if (ImGui::CollapsingHeader("Text", ImGuiTreeNodeFlags_DefaultOpen))
+				{
+					ImGui::Indent();
+
+					const float labelWidth = 160.0f;
+
+					// Text Content
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Text");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					char textBuffer[1024];
+					strncpy_s(textBuffer, sizeof(textBuffer), comp.text.c_str(), sizeof(textBuffer));
+					textBuffer[sizeof(textBuffer) - 1] = '\0';
+					if (ImGui::InputTextMultiline("##Text", textBuffer, sizeof(textBuffer), ImVec2(-1, ImGui::GetTextLineHeight() * 3))) {
+						comp.text = textBuffer;
+						NE::MarkSceneDirty();
+					}
+
+					// Font Size
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Font Size");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::DragFloat("##FontSize", &comp.fontSize, 1.0f, 1.0f, 200.0f)) {
+						NE::MarkSceneDirty();
+					}
+
+					// Color
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Color");
+					ImGui::SameLine(labelWidth);
+					float textColor[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::ColorEdit4("##TextColor", textColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+						comp.color.x = textColor[0];
+						comp.color.y = textColor[1];
+						comp.color.z = textColor[2];
+						comp.color.w = textColor[3];
+						NE::MarkSceneDirty();
+					}
+
+					// Font Style
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Font Style");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					static const char* FontStyles[] = { "Normal", "Bold", "Italic", "Bold And Italic" };
+					int currentFontStyle = static_cast<int>(comp.fontStyle);
+					if (ImGui::Combo("##FontStyle", &currentFontStyle, FontStyles, IM_ARRAYSIZE(FontStyles))) {
+						comp.fontStyle = static_cast<decltype(comp.fontStyle)>(currentFontStyle);
+						NE::MarkSceneDirty();
+					}
+
+					// Horizontal Alignment
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Horizontal Align");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					static const char* HAligns[] = { "Left", "Center", "Right", "Justify" };
+					int currentHAlign = static_cast<int>(comp.horizontalAlign);
+					if (ImGui::Combo("##HAlign", &currentHAlign, HAligns, IM_ARRAYSIZE(HAligns))) {
+						comp.horizontalAlign = static_cast<decltype(comp.horizontalAlign)>(currentHAlign);
+						NE::MarkSceneDirty();
+					}
+
+					// Vertical Alignment
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Vertical Align");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					static const char* VAligns[] = { "Top", "Middle", "Bottom" };
+					int currentVAlign = static_cast<int>(comp.verticalAlign);
+					if (ImGui::Combo("##VAlign", &currentVAlign, VAligns, IM_ARRAYSIZE(VAligns))) {
+						comp.verticalAlign = static_cast<decltype(comp.verticalAlign)>(currentVAlign);
+						NE::MarkSceneDirty();
+					}
+
+					// Word Wrap
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Word Wrap");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::Checkbox("##WordWrap", &comp.wordWrap)) {
+						NE::MarkSceneDirty();
+					}
+
+					// Horizontal Overflow
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Horizontal Overflow");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					static const char* HOverflows[] = { "Wrap", "Visible", "Truncate" };
+					int currentHOverflow = static_cast<int>(comp.horizontalOverflow);
+					if (ImGui::Combo("##HOverflow", &currentHOverflow, HOverflows, IM_ARRAYSIZE(HOverflows))) {
+						comp.horizontalOverflow = static_cast<decltype(comp.horizontalOverflow)>(currentHOverflow);
+						NE::MarkSceneDirty();
+					}
+
+					// Vertical Overflow
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Vertical Overflow");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					static const char* VOverflows[] = { "Wrap", "Visible", "Truncate" };
+					int currentVOverflow = static_cast<int>(comp.verticalOverflow);
+					if (ImGui::Combo("##VOverflow", &currentVOverflow, VOverflows, IM_ARRAYSIZE(VOverflows))) {
+						comp.verticalOverflow = static_cast<decltype(comp.verticalOverflow)>(currentVOverflow);
+						NE::MarkSceneDirty();
+					}
+
+					// Best Fit
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Best Fit");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::Checkbox("##BestFit", &comp.bestFit)) {
+						NE::MarkSceneDirty();
+					}
+
+					if (comp.bestFit) {
+						ImGui::Indent();
+						// Min Size
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Min Size");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::DragFloat("##MinSize", &comp.minSize, 1.0f, 1.0f, 200.0f)) {
+							NE::MarkSceneDirty();
+						}
+
+						// Max Size
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Max Size");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::DragFloat("##MaxSize", &comp.maxSize, 1.0f, 1.0f, 200.0f)) {
+							NE::MarkSceneDirty();
+						}
+						ImGui::Unindent();
+					}
+
+					// Line Spacing
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Line Spacing");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::DragFloat("##LineSpacing", &comp.lineSpacing, 0.1f, 0.1f, 5.0f)) {
+						NE::MarkSceneDirty();
+					}
+
+					// Character Spacing
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Character Spacing");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::DragFloat("##CharSpacing", &comp.characterSpacing, 1.0f, -50.0f, 50.0f)) {
+						NE::MarkSceneDirty();
+					}
+
+					// Raycast Target
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Raycast Target");
+					ImGui::SameLine(labelWidth);
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::Checkbox("##RaycastTarget", &comp.raycastTarget)) {
+						NE::MarkSceneDirty();
+					}
+
+					ImGui::Unindent();
+				}
+			}
+		}
+
+		if (ImGui::Button("Add Component"))
 			{
 				ImGui::OpenPopup("ComponentList");
 			}
