@@ -341,6 +341,7 @@ namespace NE::Graphics {
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
+        InitDebugPrimitives();
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
 
 #pragma region EXPERIMENTAL
@@ -1530,6 +1531,7 @@ namespace NE::Graphics {
         }
 
         // single upload to GPU
+        glBindVertexArray(debugVAO);
         glBindBuffer(GL_ARRAY_BUFFER, debugVBO);
         glBufferData(GL_ARRAY_BUFFER,
             totalFloats * sizeof(float),

@@ -16,6 +16,9 @@ namespace Editor {
         float  intensity; // HDR intensity multiplier
     };
 
+    bool BeginPillCombo(const char* id, const char* preview);
+    void EndPillCombo();
+
     // A pretty Vec3 control with color coding and reset buttons
     bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f);
 

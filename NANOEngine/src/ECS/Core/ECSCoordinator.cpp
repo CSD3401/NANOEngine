@@ -76,15 +76,16 @@ namespace NE::ECS {
             SetSystemSignature<Systems::LightSystem>(sig);
         }
 
-        m_rigidbodySystem = m_systemManager->RegisterSystem<Systems::RigidbodySystem>(m_componentManager.get());
+        m_rigidbodySystem = m_systemManager->RegisterSystem<Systems::RigidbodySystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
+            sig.set(GetComponentType<Component::Collider>());
             sig.set(GetComponentType<Component::Rigidbody>());
             SetSystemSignature<Systems::RigidbodySystem>(sig);
         }
 
-        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get());
+        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get(), m_entityManager.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());

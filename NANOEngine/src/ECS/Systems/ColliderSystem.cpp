@@ -4,14 +4,11 @@
 #include "../Components/Collider.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
-//#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-//#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-//#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
 
 namespace NE::ECS::Systems {
 
-	ColliderSystem::ColliderSystem(ComponentManager* cm) : m_componentManager(cm) { }
+	ColliderSystem::ColliderSystem(ComponentManager* cm, EntityManager* em) : m_componentManager(cm), m_entityManager(em) { }
 
 	void ColliderSystem::OnEntityAdded(Entity e) {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
@@ -19,22 +16,38 @@ namespace NE::ECS::Systems {
 		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
 	}
 
-	void ColliderSystem::OnEntityRemoved(Entity entity) {
-
+	void ColliderSystem::OnEntityRemoved(Entity e) {
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		Physics::PhysicsManager::GetInstance().RemoveShape(meta.luid);
 	}
 
 	void ColliderSystem::Init() {
+		auto& allEntities = m_entities.GetDenseContainer();
 
+		for (auto& e : allEntities) {
+			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
+			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
+
+			if (!m_componentManager->HasComponent<Component::Rigidbody>(e))
+				Physics::PhysicsManager::GetInstance().CreateBody(meta.luid, t, col, static_cast<uint8_t>(m_entityManager->GetLayer(e)));
+		}
 	}
 
 	void ColliderSystem::Update(double) {
 		auto& allEntities = m_entities.GetDenseContainer();
 
 		for (auto& e : allEntities) {
+			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 			if (col.isDirty) {
-				Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(e, col);
+				Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
+				col.isDirty = false;
 			}
+
+			if (col.type != Component::Collider::ColliderType::None && col.type != Component::Collider::ColliderType::Mesh)
+				Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t);
 		}
 	}
 

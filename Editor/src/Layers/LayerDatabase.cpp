@@ -15,7 +15,7 @@ namespace Editor::Layers {
         m_data.slots[0].used = true;
         m_data.slots[0].name = "Default";
 
-        for (size_t i = 0; i < NE::Core::MAX_LAYERS; ++i) {
+        for (size_t i = 0; i < NE::Core::MAX_USER_LAYERS; ++i) {
             m_data.collideWith[i] = ~NE::Core::LayerMask{ 0 };
         }
         RebuildNameMap();
@@ -23,11 +23,11 @@ namespace Editor::Layers {
 
     NE::Core::LayerID LayerDatabase::CreateLayer(std::string_view name) {
         auto key = Normalize(name);
-        if (key.empty()) return NE::Core::DEFAULT_LAYER;
+        if (key.empty()) return NE::Core::INVALID_LAYER;
         if (m_nameToId.find(key) != m_nameToId.end()) return m_nameToId[key];
 
         auto id = FindFreeSlot();
-        if (id == NE::Core::DEFAULT_LAYER) return id;
+        if (id == NE::Core::INVALID_LAYER) return id;
 
         m_data.slots[id].used = true;
         m_data.slots[id].name = std::string(name);
@@ -112,11 +112,11 @@ namespace Editor::Layers {
     NE::Core::LayerID LayerDatabase::FindByName(std::string_view name) const {
         auto key = Normalize(name);
         auto it = m_nameToId.find(key);
-        return (it == m_nameToId.end()) ? NE::Core::DEFAULT_LAYER : it->second;
+        return (it == m_nameToId.end()) ? NE::Core::INVALID_LAYER : it->second;
     }
 
     bool LayerDatabase::IsValidLayerId(NE::Core::LayerID id) const noexcept {
-        return id < NE::Core::MAX_LAYERS;
+        return id < NE::Core::MAX_USER_LAYERS;
     }
 
     std::string LayerDatabase::Normalize(std::string_view s) {
@@ -130,16 +130,16 @@ namespace Editor::Layers {
     }
 
     NE::Core::LayerID LayerDatabase::FindFreeSlot() const {
-        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i)
+        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_USER_LAYERS; ++i)
             if (!m_data.slots[i].used) return i;
-        return NE::Core::DEFAULT_LAYER;
+        return NE::Core::INVALID_LAYER;
     }
 
     void LayerDatabase::RebuildNameMap() {
         m_nameToId.clear();
-        m_nameToId.reserve(NE::Core::MAX_LAYERS);
+        m_nameToId.reserve(NE::Core::MAX_USER_LAYERS);
 
-        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i) {
+        for (NE::Core::LayerID i = 0; i < NE::Core::MAX_USER_LAYERS; ++i) {
             if (!m_data.slots[i].used) continue;
             if (m_data.slots[i].name.empty()) continue;
             m_nameToId.emplace(Normalize(m_data.slots[i].name), i);

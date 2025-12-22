@@ -270,7 +270,7 @@ namespace {
 
 	// temp
 	// Returns true if layer changed
-	static bool DrawLayerCombo_UnityStyle(
+	bool DrawLayerCombo_UnityStyle(
 		const char* label,
 		NE::Core::LayerID& ioLayer,
 		Editor::Layers::LayerDatabase & db,
@@ -284,8 +284,7 @@ namespace {
 
 		ImGui::PushID(label);
 		ImGui::PushItemWidth(comboWidth);
-		
-		if (ImGui::BeginCombo(label, preview)) {
+		if (Editor::BeginPillCombo(label, preview)) {
 			db.ForEachUsed([&](NE::Core::LayerID id, std::string_view name) {
 				const bool selected = (id == ioLayer);
 
@@ -306,7 +305,7 @@ namespace {
 				openLayerSettings = true;
 			}
 
-			ImGui::EndCombo();
+			Editor::EndPillCombo();
 		}
 
 		ImGui::PopItemWidth();
@@ -718,70 +717,8 @@ namespace Editor {
 					//	});
 
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody))
-				{
-					auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
-					ImGui::SeparatorText("Rigidbody");
-
-					// Motion Type dropdown (primary control)
-					static const char* MotionTypeNames[] = { "Static", "Kinematic", "Dynamic" };
-					int currentMotionType = static_cast<int>(comp.motionType);
-					if (ImGui::Combo("Motion Type", &currentMotionType, MotionTypeNames, IM_ARRAYSIZE(MotionTypeNames))) {
-						auto& tempRb = NE::ECS::Command::GetEntityRigidbody(entity);
-
-						// Log the motion type change
-						SPD_DEBUG("Motion Type changed for entity {}: {} -> {}",
-							entity,
-							MotionTypeNames[static_cast<int>(comp.motionType)],
-							MotionTypeNames[currentMotionType]);
-
-						tempRb.motionType = static_cast<uint8_t>(currentMotionType);
-
-						// Update isStatic to stay in sync
-						tempRb.isStatic = (currentMotionType == 0);
-
-						SPD_DEBUG("  Updated: motionType={}, isStatic={}",
-							static_cast<int>(tempRb.motionType),
-							tempRb.isStatic);
-					}
-
-					// Help text
-					ImGui::TextDisabled("Static: Ground/Walls (Layer 0)");
-					ImGui::TextDisabled("Dynamic: Player/Physics Objects (Layer 1)");
-					ImGui::TextDisabled("Kinematic: Moving Platforms (Layer 1)");
-					ImGui::Spacing();
-
-					// Other Rigidbody fields (mass, useGravity, etc.)
-					  // Note: isStatic is NOT shown here - Motion Type controls it
-					NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using FieldT = std::decay_t<decltype(currentValue)>;
-
-							// Skip isStatic field (controlled by Motion Type dropdown)
-							if (std::string(desc.name) == "isStatic") {
-								return;
-							}
-
-							FieldT edited = currentValue;
-
-							if (DrawField(desc, edited)) {
-								SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
-									entity, desc, currentValue, edited
-								);
-							}
-						});
-
-					if (ImGui::TreeNode("Constraints")) {
-						bool changedX = Editor::DrawCheckbox("X", comp.constrainX);
-						bool changedY = Editor::DrawCheckbox("Y", comp.constrainY);
-						bool changedZ = Editor::DrawCheckbox("Z", comp.constrainZ);
-
-						if (changedX || changedY || changedZ) {
-						}
-
-						ImGui::TreePop();
-					}
-
+				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
+					DrawRigidbodyComponent(entity);
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::AudioSource))
 				{
@@ -2948,6 +2885,45 @@ namespace Editor {
 		}
 	}
 
+	void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
+		ImGui::SeparatorText("Rigidbody");
+
+		NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			});
+
+		if (ImGui::TreeNode("Constraints")) {
+			ImGui::Text("Position ");
+			ImGui::SameLine();
+			Editor::DrawCheckbox("X", comp.freezePosX);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Y", comp.freezePosY);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Z", comp.freezePosZ);
+
+			ImGui::Text("Rotation ");
+			ImGui::SameLine();
+			Editor::DrawCheckbox("X", comp.freezeRotX);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Y", comp.freezeRotY);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Z", comp.freezeRotZ);
+
+			ImGui::TreePop();
+		}
+
+	}
+
 	void InspectorPanel::DrawColliderComponent(uint32_t entity) {
 		using Collider = NE::ECS::Component::Collider;
 
@@ -2984,6 +2960,8 @@ namespace Editor {
 					comp.data.emplace<Collider::MeshColliderData>();
 					break;
 				}
+
+				comp.isDirty = true;
 			}
 		}
 

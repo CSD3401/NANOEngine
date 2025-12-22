@@ -1,7 +1,7 @@
 #pragma once
 #include <Jolt/Jolt.h>
 #include <Jolt/Renderer/DebugRenderer.h>
-#include "../Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
 
 #pragma warning(push)
 #pragma warning(disable: 4100)

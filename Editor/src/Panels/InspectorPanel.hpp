@@ -20,6 +20,7 @@ namespace Editor {
 		void RenderModelImportSettings(const std::string& metaPath);
 
 		void DrawRendererComponent(uint32_t entity);
+		void DrawRigidbodyComponent(uint32_t entity);
 		void DrawColliderComponent(uint32_t entity);
 
 		std::unique_ptr<MaterialEditor> m_materialEditor;

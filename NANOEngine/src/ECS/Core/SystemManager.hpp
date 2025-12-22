@@ -19,6 +19,15 @@ namespace NE::ECS {
         }
 
         template<typename T>
+        std::shared_ptr<T> RegisterSystem(ComponentManager* cm, EntityManager* em) {
+            std::type_index typeIdx = typeid(T);
+            assert(m_systems.find(typeIdx) == m_systems.end() && "System already registered.");
+            auto system = std::make_shared<T>(cm, em);
+            m_systems[typeIdx] = system;
+            return system;
+        }
+
+        template<typename T>
         void SetSystemSignature(Signature signature) {
             std::type_index typeIdx = typeid(T);
             assert(m_systems.find(typeIdx) != m_systems.end() && "System not registered.");

@@ -11,8 +11,8 @@ namespace Editor::Layers {
     };
 
     struct LayerDatabaseData {
-        LayerSlot slots[NE::Core::MAX_LAYERS];
-        NE::Core::LayerMask collideWith[NE::Core::MAX_LAYERS]{};
+        LayerSlot slots[NE::Core::MAX_USER_LAYERS];
+        NE::Core::LayerMask collideWith[NE::Core::MAX_USER_LAYERS]{};
     };
 
 }
