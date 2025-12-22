@@ -248,6 +248,18 @@ namespace NE::Physics {
         settings.mLinearDamping = rb.linearDamping;
         settings.mAngularDamping = rb.angularDamping;
         settings.mIsSensor = col.isTrigger;
+
+        JPH::EAllowedDOFs allowedDOFs = JPH::EAllowedDOFs::All;
+
+        if (rb.freezePosX) allowedDOFs &= ~JPH::EAllowedDOFs::TranslationX;
+        if (rb.freezePosY) allowedDOFs &= ~JPH::EAllowedDOFs::TranslationY;
+        if (rb.freezePosZ) allowedDOFs &= ~JPH::EAllowedDOFs::TranslationZ;
+
+        if (rb.freezeRotX) allowedDOFs &= ~JPH::EAllowedDOFs::RotationX;
+        if (rb.freezeRotY) allowedDOFs &= ~JPH::EAllowedDOFs::RotationY;
+        if (rb.freezeRotZ) allowedDOFs &= ~JPH::EAllowedDOFs::RotationZ;
+
+        settings.mAllowedDOFs = allowedDOFs;
         
         if (motion == JPH::EMotionType::Dynamic) {
             settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;

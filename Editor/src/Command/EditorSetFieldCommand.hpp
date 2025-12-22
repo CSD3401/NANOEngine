@@ -34,11 +34,15 @@ namespace Editor {
 		void Execute() override {
 			auto& c = m_getter(m_entity);
 			c.*m_member = m_after;
+
+            MarkDirtyIfPresent(c);
 		}
 
 		void Undo() override {
 			auto& c = m_getter(m_entity);
 			c.*m_member = m_before;
+
+            MarkDirtyIfPresent(c);
 		}
 
 		const char* GetName() const override { return m_name.c_str(); }
@@ -60,6 +64,11 @@ namespace Editor {
 		const T& After()  const { return m_after; }
 
 	private:
+        template <typename C>
+        static void MarkDirtyIfPresent(C& comp) {
+            if constexpr (requires(C x) { x.isDirty; }) comp.isDirty = true;
+        }
+
 		uint32_t m_entity;
 		std::string m_name;
 		MemberPtr m_member;
