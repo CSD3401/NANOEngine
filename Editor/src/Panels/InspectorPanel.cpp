@@ -2885,43 +2885,121 @@ namespace Editor {
 		}
 	}
 
+	//void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
+	//	auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
+	//	ImGui::SeparatorText("Rigidbody");
+
+	//	NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
+	//		[&](auto const& desc, auto const& currentValue) {
+	//			using FieldT = std::decay_t<decltype(currentValue)>;
+
+	//			FieldT edited = currentValue;
+
+	//			if (DrawField(desc, edited)) {
+	//				SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
+	//					entity, desc, currentValue, edited
+	//				);
+	//			}
+	//		});
+
+	//	if (ImGui::TreeNode("Constraints")) {
+	//		ImGui::Text("Position ");
+	//		ImGui::SameLine();
+	//		Editor::DrawCheckbox("X##Pos", comp.freezePosX);
+	//		ImGui::SameLine();
+	//		Editor::DrawCheckbox("Y##Pos", comp.freezePosY);
+	//		ImGui::SameLine();
+	//		Editor::DrawCheckbox("Z##Pos", comp.freezePosZ);
+
+	//		ImGui::Text("Rotation ");
+	//		ImGui::SameLine();
+	//		Editor::DrawCheckbox("X##Rot", comp.freezeRotX);
+	//		ImGui::SameLine();
+	//		Editor::DrawCheckbox("Y##Rot", comp.freezeRotY);
+	//		ImGui::SameLine();
+	//		Editor::DrawCheckbox("Z##Rot", comp.freezeRotZ);
+
+	//		ImGui::TreePop();
+	//	}
+	//}
+
 	void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
-		ImGui::SeparatorText("Rigidbody");
 
-		NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
-			[&](auto const& desc, auto const& currentValue) {
-				using FieldT = std::decay_t<decltype(currentValue)>;
+		ImGui::PushID((int)entity);
 
-				FieldT edited = currentValue;
+		ImGuiTreeNodeFlags headerFlags =
+			ImGuiTreeNodeFlags_DefaultOpen |
+			ImGuiTreeNodeFlags_Framed |
+			ImGuiTreeNodeFlags_SpanAvailWidth |
+			ImGuiTreeNodeFlags_AllowOverlap;
 
-				if (DrawField(desc, edited)) {
-					SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
-						entity, desc, currentValue, edited
-					);
-				}
-			});
+		const bool open = ImGui::CollapsingHeader("Rigidbody", headerFlags);
 
-		if (ImGui::TreeNode("Constraints")) {
-			ImGui::Text("Position ");
-			ImGui::SameLine();
-			Editor::DrawCheckbox("X##Pos", comp.freezePosX);
-			ImGui::SameLine();
-			Editor::DrawCheckbox("Y##Pos", comp.freezePosY);
-			ImGui::SameLine();
-			Editor::DrawCheckbox("Z##Pos", comp.freezePosZ);
+		const float btnSize = ImGui::GetFrameHeight(); // square button
+		const float rightX = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
 
-			ImGui::Text("Rotation ");
-			ImGui::SameLine();
-			Editor::DrawCheckbox("X##Rot", comp.freezeRotX);
-			ImGui::SameLine();
-			Editor::DrawCheckbox("Y##Rot", comp.freezeRotY);
-			ImGui::SameLine();
-			Editor::DrawCheckbox("Z##Rot", comp.freezeRotZ);
+		ImGui::SameLine(0.0f, 0.0f);
+		ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - btnSize);
 
-			ImGui::TreePop();
+		if (ImGui::Button("O", ImVec2(btnSize, btnSize))) {
+			ImGui::OpenPopup("RigidbodyOptions");
 		}
 
+		bool removeComponent = false;
+		if (ImGui::BeginPopup("RigidbodyOptions")) {
+			if (ImGui::MenuItem("Remove Component")) {
+				removeComponent = true;
+			}
+			ImGui::EndPopup();
+		}
+		
+		if (removeComponent) {
+			NE::ECS::Command::RemoveRigidbodyComponent(entity);
+			ImGui::PopID();
+			return;
+		}
+
+		if (open) {
+			ImGui::Indent();
+
+			NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
+				[&](auto const& desc, auto const& currentValue) {
+					using FieldT = std::decay_t<decltype(currentValue)>;
+
+					FieldT edited = currentValue;
+
+					if (DrawField(desc, edited)) {
+						SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
+							entity, desc, currentValue, edited
+						);
+					}
+				});
+
+			if (ImGui::TreeNode("Constraints")) {
+				ImGui::TextUnformatted("Position");
+				ImGui::SameLine();
+				Editor::DrawCheckbox("X##Pos", comp.freezePosX);
+				ImGui::SameLine();
+				Editor::DrawCheckbox("Y##Pos", comp.freezePosY);
+				ImGui::SameLine();
+				Editor::DrawCheckbox("Z##Pos", comp.freezePosZ);
+
+				ImGui::TextUnformatted("Rotation");
+				ImGui::SameLine();
+				Editor::DrawCheckbox("X##Rot", comp.freezeRotX);
+				ImGui::SameLine();
+				Editor::DrawCheckbox("Y##Rot", comp.freezeRotY);
+				ImGui::SameLine();
+				Editor::DrawCheckbox("Z##Rot", comp.freezeRotZ);
+
+				ImGui::TreePop();
+			}
+
+			ImGui::Unindent();
+		}
+
+		ImGui::PopID();
 	}
 
 	void InspectorPanel::DrawColliderComponent(uint32_t entity) {

@@ -135,6 +135,13 @@ namespace NE::ECS {
 		NANOENGINE_API void AddScriptComponent(uint32_t e);
 		NANOENGINE_API void AddCameraComponent(uint32_t e);
 
+		NANOENGINE_API void RemoveLightComponent(uint32_t e);
+		NANOENGINE_API void RemoveRendererComponent(uint32_t e);
+		NANOENGINE_API void RemoveRigidbodyComponent(uint32_t e);
+		NANOENGINE_API void RemoveColliderComponent(uint32_t e);
+		NANOENGINE_API void RemoveAudioSourceComponent(uint32_t e);
+		NANOENGINE_API void RemoveCameraComponent(uint32_t e);
+
 		template <typename C>
 		void AddComponent(Entity e) {
 			NE::GetScene().GetECSCoordinator().AddComponent<C>(e, C{});
