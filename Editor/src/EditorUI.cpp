@@ -6,6 +6,59 @@
 
 namespace Editor {
 
+    bool BeginPillCombo(const char* id, const char* preview) {
+        ImGuiStyle& s = ImGui::GetStyle();
+
+        // Make it pill-shaped: rounding based on height
+        const float h = ImGui::GetFrameHeight();
+        const float rounding = h * 0.5f;
+
+        // Slightly tighter and cleaner
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, rounding);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(s.FramePadding.x + 2.0f, s.FramePadding.y));
+        ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, s.PopupRounding > 0.0f ? s.PopupRounding : rounding);
+
+        // Subtle colors (uses existing theme but softens)
+        ImVec4 frame = ImGui::GetStyleColorVec4(ImGuiCol_FrameBg);
+        ImVec4 hov = ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered);
+        ImVec4 act = ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive);
+
+        frame.w = ImClamp(frame.w * 1.10f, 0.0f, 1.0f);
+        hov.w = ImClamp(hov.w * 1.05f, 0.0f, 1.0f);
+        act.w = ImClamp(act.w * 1.05f, 0.0f, 1.0f);
+
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, frame);
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, hov);
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, act);
+
+        // Optional: reduce border harshness
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1, 1, 1, 0.10f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+
+        bool opened = ImGui::BeginCombo(id, preview, ImGuiComboFlags_HeightLargest);
+
+        // If not opened, still need to pop the style we pushed
+        if (!opened) {
+            ImGui::PopStyleVar(1);            // FrameBorderSize
+            ImGui::PopStyleColor(1);          // Border
+
+            ImGui::PopStyleColor(3);          // frame/hover/active
+            ImGui::PopStyleVar(3);            // rounding/padding/popup rounding
+        }
+
+        return opened;
+    }
+
+    void EndPillCombo() {
+        ImGui::EndCombo();
+
+        ImGui::PopStyleVar(1);    // FrameBorderSize
+        ImGui::PopStyleColor(1);  // Border
+
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(3);
+    }
+
     bool DrawHDRColorPicker(const char* id, HDRColor& hdr)
     {
         bool changed = false;
@@ -193,6 +246,51 @@ namespace Editor {
         ImGui::Text("%s", label.c_str());
         ImGui::SameLine();
         changed = ImGui::InputFloat(("##" + label).c_str(), &value, step);
+        return changed;
+    }
+
+    bool DrawEnumPillCombo(const char* label, int& currentIndex, const char* const* items, int itemsCount, float rightWidth) {
+        if (!items || itemsCount <= 0) return false;
+        currentIndex = ImClamp(currentIndex, 0, itemsCount - 1);
+
+        ImGui::PushID(label);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+
+        // Put combo on the same line
+        ImGui::SameLine();
+
+        // Width we want for the combo
+        const float avail = ImGui::GetContentRegionAvail().x;
+        float w = rightWidth <= 0.0f ? avail : ImMin(rightWidth, avail);
+
+        // Align to the RIGHT edge of the window's content region
+        const float contentRightX = ImGui::GetWindowContentRegionMax().x; // local (window) space
+        float targetX = contentRightX - w;
+
+        // Don't go left of the current cursor (prevents overlap with label)
+        targetX = ImMax(targetX, ImGui::GetCursorPosX());
+
+        ImGui::SetCursorPosX(targetX);
+        ImGui::SetNextItemWidth(w);
+
+        bool changed = false;
+        const char* preview = items[currentIndex];
+
+        if (BeginPillCombo("##enum_combo", preview)) {
+            for (int i = 0; i < itemsCount; ++i) {
+                bool selected = (i == currentIndex);
+                if (ImGui::Selectable(items[i], selected)) {
+                    currentIndex = i;
+                    changed = true;
+                }
+                if (selected) ImGui::SetItemDefaultFocus();
+            }
+            EndPillCombo();
+        }
+
+        ImGui::PopID();
         return changed;
     }
 

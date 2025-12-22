@@ -23,11 +23,11 @@ namespace Editor::Layers {
 
     NE::Core::LayerID LayerDatabase::CreateLayer(std::string_view name) {
         auto key = Normalize(name);
-        if (key.empty()) return NE::Core::DEFAULT_LAYER;
+        if (key.empty()) return NE::Core::INVALID_LAYER;
         if (m_nameToId.find(key) != m_nameToId.end()) return m_nameToId[key];
 
         auto id = FindFreeSlot();
-        if (id == NE::Core::DEFAULT_LAYER) return id;
+        if (id == NE::Core::INVALID_LAYER) return id;
 
         m_data.slots[id].used = true;
         m_data.slots[id].name = std::string(name);
@@ -112,7 +112,7 @@ namespace Editor::Layers {
     NE::Core::LayerID LayerDatabase::FindByName(std::string_view name) const {
         auto key = Normalize(name);
         auto it = m_nameToId.find(key);
-        return (it == m_nameToId.end()) ? NE::Core::DEFAULT_LAYER : it->second;
+        return (it == m_nameToId.end()) ? NE::Core::INVALID_LAYER : it->second;
     }
 
     bool LayerDatabase::IsValidLayerId(NE::Core::LayerID id) const noexcept {
@@ -132,7 +132,7 @@ namespace Editor::Layers {
     NE::Core::LayerID LayerDatabase::FindFreeSlot() const {
         for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i)
             if (!m_data.slots[i].used) return i;
-        return NE::Core::DEFAULT_LAYER;
+        return NE::Core::INVALID_LAYER;
     }
 
     void LayerDatabase::RebuildNameMap() {

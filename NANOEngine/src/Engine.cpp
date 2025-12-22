@@ -95,26 +95,26 @@ namespace NE {
 		s_renderContext->Init(s_window->GetNativeWindow());
 
 		// here for now
-		glEnable(GL_CULL_FACE);
+		//glEnable(GL_CULL_FACE);
 
 		Graphics::GraphicsManager::Init();
-		Physics::PhysicsManager::Init();
+		Physics::PhysicsManager::GetInstance().Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
-		//Physics::PhysicsManager::TestPhysicsSetup();
-		//glDisable(GL_FRAMEBUFFER_SRGB);
 	}
 
 	void Run(double dt) {
 		NE_PROFILE_FUNCTION();
 		//s_window->PollEvents();
 
-		Physics::PhysicsManager::Update(static_cast<float>(dt));
-		//Physics::Command::Update(static_cast<float>(dt));
-
+		//Physics::PhysicsManager::Update(static_cast<float>(dt));
+		Physics::PhysicsManager::GetInstance().DrawBodies();
+		Physics::JoltDebugRenderer::BeginFrame();
+		
 		gSceneManager.Update(dt);
 
 		Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
 
+		Physics::JoltDebugRenderer::EndFrame();
 		gSceneManager.Render();
 
 		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
@@ -127,10 +127,8 @@ namespace NE {
 	}
 
 	void Shutdown() {
-		NE_PROFILE_FUNCTION();
-		Physics::PhysicsManager::Shutdown();
 		Graphics::GraphicsManager::Shutdown();
-		//Physics::Command::Shutdown();
+		Physics::PhysicsManager::GetInstance().Shutdown();
 		
 
 		gSceneManager.ExitScene();

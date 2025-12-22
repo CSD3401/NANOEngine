@@ -1,53 +1,91 @@
-#pragma once
+#ifndef COLLIDER_HPP
+#define COLLIDER_HPP
 
-#include "../../Math/Vec3.hpp"
-#include "../../Core/Reflection.hpp"
-#include <functional>
-#include "../../ECS/Core/Entity.hpp"
+#include <variant>
+#include <cstdint>
+
+#include "Math/Vec3.hpp"
+#include "Core/Reflection.hpp"
 
 
 namespace NE::ECS::Component {
 
     struct Collider {
-        enum class ShapeType {
+        struct NoColliderData {
+            NE_REFLECT_BEGIN(NoColliderData)
+            NE_REFLECT_END()
+        };
+
+        struct BoxColliderData {
+            Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f };
+            NE_REFLECT_BEGIN(BoxColliderData)
+                NE_REFLECT_FIELD(halfExtents)
+            NE_REFLECT_END()
+        };
+
+        struct SphereColliderData {
+            float radius{ 0.5f };
+            NE_REFLECT_BEGIN(SphereColliderData)
+                NE_REFLECT_FIELD(radius)
+            NE_REFLECT_END()
+        };
+
+        struct CapsuleColliderData {
+            float radius{ 0.5f };
+            float height{ 1.0f };
+            NE_REFLECT_BEGIN(CapsuleColliderData)
+                NE_REFLECT_FIELD(radius),
+                NE_REFLECT_FIELD(height)
+            NE_REFLECT_END()
+        };
+
+        struct CylinderColliderData {
+            float radius{ 0.5f };
+            float height{ 1.0f };
+            NE_REFLECT_BEGIN(CylinderColliderData)
+                NE_REFLECT_FIELD(radius),
+                NE_REFLECT_FIELD(height)
+            NE_REFLECT_END()
+        };
+
+        struct MeshColliderData {
+            NE_REFLECT_BEGIN(MeshColliderData)
+            NE_REFLECT_END()
+        };
+
+        using ColliderData = std::variant<
+            NoColliderData,
+            BoxColliderData,
+            SphereColliderData,
+            CapsuleColliderData,
+            CylinderColliderData,
+            MeshColliderData
+        >;
+
+        enum class ColliderType : uint8_t {
+            None,
             Box,
             Sphere,
             Capsule,
-            Mesh,
-            None 
+            Cylinder,
+            Mesh
         };
 
-        // Exposed
-        ShapeType shapeType{ ShapeType::Box };
-        Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f }; // For box
-        float radius{ 0.5f };                      // For sphere/capsule
-        float height{ 1.0f };                      // For capsule
+        ColliderData data;
+        Math::Vec3 center{ 0.f, 0.f, 0.f };
+        ColliderType type{ ColliderType::None };
+        bool isTrigger = false;
 
-		// INTERNAL NOT FOR REFLECTION
-        
-        // Collision callbacks (like Unity's MonoBehaviour)
-        std::function<void(Entity otherEntity)> onCollisionEnter;
-        std::function<void(Entity otherEntity)> onCollisionStay;
-        std::function<void(Entity otherEntity)> onCollisionExit;
-
-        // Dirty flags for change detection
-        bool isShapeDirty = true;    // True for new colliders
-        bool isPropertiesDirty = true;
-
-        // Store previous values for comparison
-        ShapeType previousShapeType = ShapeType::Box;
-        Math::Vec3 previousHalfExtents{ 0.5f, 0.5f, 0.5f };
-        float previousRadius = 0.5f;
-        float previousHeight = 1.0f;
-
-
+        // Internal
+        bool isDirty = false;
 
         NE_REFLECT_BEGIN(Collider)
-            NE_REFLECT_FIELD(shapeType),
-            NE_REFLECT_FIELD(halfExtents),
-            NE_REFLECT_FIELD(radius),
-            NE_REFLECT_FIELD(height)
+            NE_REFLECT_FIELD_HIDDEN(type), // Hidden due to no enum reflection support but for disk serialization
+            NE_REFLECT_FIELD(isTrigger),
+            NE_REFLECT_FIELD(center),
+            NE_REFLECT_FIELD_HIDDEN(data) // Hidden due to no std::variant reflection support but for disk serialization
         NE_REFLECT_END()
     };
-
 }
+
+#endif

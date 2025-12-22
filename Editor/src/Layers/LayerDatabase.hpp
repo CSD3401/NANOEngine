@@ -7,8 +7,6 @@
 namespace Editor::Layers {
 	class LayerDatabase {
 	public:
-		static constexpr size_t MaxLayers = NE::Core::MAX_LAYERS;
-
 		LayerDatabase();
 
 		NE::Core::LayerID CreateLayer(std::string_view name);

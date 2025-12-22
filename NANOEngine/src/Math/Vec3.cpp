@@ -186,6 +186,10 @@ namespace NE::Math {
 		return *this;
 	}
 
+	bool Vec3::Zero() const {
+		return x == 0 && y == 0 && z == 0;
+	}
+
 	std::ostream& operator<<(std::ostream& os, const Vec3& rhs) {
 		os << "[ " << rhs.x << ", " << rhs.y << ", " << rhs.z << " ]";
 		return os;

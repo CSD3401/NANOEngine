@@ -52,42 +52,42 @@ namespace NE::ECS::Systems
     void PhysicsSystem::Init() {
         const auto& entities = GetEntities();
 
-        for (auto& entity : entities) {
-            bool hasCollider = m_componentManager->HasComponent<Component::Collider>(entity);
-            bool hasRigidbody = m_componentManager->HasComponent<Component::Rigidbody>(entity);
+        //for (auto& entity : entities) {
+        //    bool hasCollider = m_componentManager->HasComponent<Component::Collider>(entity);
+        //    bool hasRigidbody = m_componentManager->HasComponent<Component::Rigidbody>(entity);
 
-            if ((hasCollider || hasRigidbody)) {
-                // Initialize collider callbacks if collider exists
-                if (hasCollider) {
-                    auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+        //    if ((hasCollider || hasRigidbody)) {
+        //        // Initialize collider callbacks if collider exists
+        //        if (hasCollider) {
+        //            auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
 
-                    // Register collision callbacks
-                    collider.onCollisionEnter = [entity](Entity otherEntity) {
-                        printf("COLLISION ENTER: Entity %d collided with Entity %d\n", entity, otherEntity);
-                        };
+        //            // Register collision callbacks
+        //            collider.onCollisionEnter = [entity](Entity otherEntity) {
+        //                printf("COLLISION ENTER: Entity %d collided with Entity %d\n", entity, otherEntity);
+        //                };
 
-                    collider.onCollisionStay = [entity](Entity otherEntity) {
-                        printf("COLLISION STAY: Entity %d with Entity %d\n", entity, otherEntity);
-                        };
+        //            collider.onCollisionStay = [entity](Entity otherEntity) {
+        //                printf("COLLISION STAY: Entity %d with Entity %d\n", entity, otherEntity);
+        //                };
 
-                    collider.onCollisionExit = [entity](Entity otherEntity) {
-                        printf("COLLISION EXIT: Entity %d stopped colliding with Entity %d\n", entity, otherEntity);
-                        };
+        //            collider.onCollisionExit = [entity](Entity otherEntity) {
+        //                printf("COLLISION EXIT: Entity %d stopped colliding with Entity %d\n", entity, otherEntity);
+        //                };
 
-                    collider.previousShapeType = collider.shapeType;
-                    collider.previousHalfExtents = collider.halfExtents;
-                    collider.previousRadius = collider.radius;
-                    collider.previousHeight = collider.height;
+        //            collider.previousShapeType = collider.shapeType;
+        //            collider.previousHalfExtents = collider.halfExtents;
+        //            collider.previousRadius = collider.radius;
+        //            collider.previousHeight = collider.height;
 
-                    collider.isShapeDirty = false;
-                    collider.isPropertiesDirty = false;
-                }
+        //            collider.isShapeDirty = false;
+        //            collider.isPropertiesDirty = false;
+        //        }
 
-                if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
-                    CreatePhysicsBody(entity);
-                }
-            }
-        }
+        //        if (!NE::Physics::PhysicsManager::EntityHasPhysicsBody(entity)) {
+        //            CreatePhysicsBody(entity);
+        //        }
+        //    }
+        //}
 
     
     }
@@ -105,59 +105,59 @@ namespace NE::ECS::Systems
 
     void PhysicsSystem::HandleCollisionEnter(const NE::Physics::CollisionInfo& collision)
     {
-        if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
-        {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
-            if (collider.onCollisionEnter)
-            {
-                collider.onCollisionEnter(collision.entityB);
-            }
-        }
+        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
+        //{
+        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
+        //    if (collider.onCollisionEnter)
+        //    {
+        //        collider.onCollisionEnter(collision.entityB);
+        //    }
+        //}
 
-        if (m_componentManager->HasComponent<Component::Collider>(collision.entityB))
-        {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
-            if (collider.onCollisionEnter) {
-                collider.onCollisionEnter(collision.entityA);
-            }
-        }
+        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityB))
+        //{
+        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
+        //    if (collider.onCollisionEnter) {
+        //        collider.onCollisionEnter(collision.entityA);
+        //    }
+        //}
     }
 
     void PhysicsSystem::HandleCollisionStay(const NE::Physics::CollisionInfo& collision)
     {
-        if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
-        {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
-            if (collider.onCollisionStay) {
-                collider.onCollisionStay(collision.entityB);
-            }
-        }
+        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
+        //{
+        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
+        //    if (collider.onCollisionStay) {
+        //        collider.onCollisionStay(collision.entityB);
+        //    }
+        //}
 
-        if (m_componentManager->HasComponent<Component::Collider>(collision.entityB))
-        {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
-            if (collider.onCollisionStay) {
-                collider.onCollisionStay(collision.entityA);
-            }
-        }
+        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityB))
+        //{
+        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
+        //    if (collider.onCollisionStay) {
+        //        collider.onCollisionStay(collision.entityA);
+        //    }
+        //}
     }
 
     void PhysicsSystem::HandleCollisionExit(const NE::Physics::CollisionInfo& collision)
     {
-        if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
-        {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
-            if (collider.onCollisionExit) {
-                collider.onCollisionExit(collision.entityB);
-            }
-        }
+        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
+        //{
+        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
+        //    if (collider.onCollisionExit) {
+        //        collider.onCollisionExit(collision.entityB);
+        //    }
+        //}
 
-        if (m_componentManager->HasComponent<Component::Collider>(collision.entityB)) {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
-            if (collider.onCollisionExit) {
-                collider.onCollisionExit(collision.entityA);
-            }
-        }
+        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityB)) {
+        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
+        //    if (collider.onCollisionExit) {
+        //        collider.onCollisionExit(collision.entityA);
+        //    }
+        //}
     }
 
     void PhysicsSystem::SyncCollidersToPhysics()
@@ -259,14 +259,14 @@ namespace NE::ECS::Systems
         auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
         if (m_componentManager->HasComponent<Component::Collider>(entity)) {
-            auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
-            collider.previousShapeType = collider.shapeType;
-            collider.previousHalfExtents = collider.halfExtents;
-            collider.previousRadius = collider.radius;
-            collider.previousHeight = collider.height;
+            //auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+            //collider.previousShapeType = collider.shapeType;
+            //collider.previousHalfExtents = collider.halfExtents;
+            //collider.previousRadius = collider.radius;
+            //collider.previousHeight = collider.height;
 
-            collider.isShapeDirty = false;
-            collider.isPropertiesDirty = false;
+            //collider.isShapeDirty = false;
+            //collider.isPropertiesDirty = false;
         }
 
         JPH::EMotionType motionType = JPH::EMotionType::Static;
@@ -373,7 +373,7 @@ namespace NE::ECS::Systems
             //case Component::Collider::ShapeType::None:
             //    break;
             //}
-            //
+            
         }
 
         if (bodyID != 0)

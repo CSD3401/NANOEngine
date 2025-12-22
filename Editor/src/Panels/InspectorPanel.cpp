@@ -65,20 +65,16 @@ namespace {
 
 		if constexpr (std::is_same_v<T, bool>) {
 			return ImGui::Checkbox(desc.name.data(), &value);
-		}
-		else if constexpr (std::is_same_v<T, int>) {
+		} else if constexpr (std::is_same_v<T, int>) {
 			return ImGui::DragInt(desc.name.data(), &value);
-		}
-		else if constexpr (std::is_same_v<T, float>) {
+		} else if constexpr (std::is_same_v<T, float>) {
 			return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
-		}
-		else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
+		} else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
 			ImGui::BeginGroup();
 			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
 			ImGui::EndGroup();
 			return changed;
-		}
-		else if constexpr (std::is_same_v<T, std::string>) {
+		} else if constexpr (std::is_same_v<T, std::string>) {
 			// String support added here -> check w irwen
 			char buffer[256];
 			strncpy_s(buffer, sizeof(buffer), value.c_str(), sizeof(buffer));
@@ -89,8 +85,7 @@ namespace {
 				return true;
 			}
 			return false;
-		}
-		else {
+		} else {
 			ImGui::Text("%s (unsupported)", desc.name.data());
 			return false;
 		}
@@ -120,23 +115,18 @@ namespace {
 		auto getter = [=](uint32_t e) -> Owner& {
 			if constexpr (std::is_same_v<Owner, NE::ECS::Component::Transform>) {
 				return NE::ECS::Command::GetEntityTransform(e);
-			}
-			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Collider>) {
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Collider>) {
 				return NE::ECS::Command::GetEntityCollider(e);
-			}
-			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Rigidbody>) {
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Rigidbody>) {
 				return NE::ECS::Command::GetEntityRigidbody(e);
-			}
-			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Renderer>) {
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Renderer>) {
 				return NE::ECS::Command::GetEntityRenderer(e);
-			}
-			else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
 				return NE::ECS::Command::GetEntityLight(e);
-			}
-			else {
+			} else {
 				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
 			}
-			};
+		};
 
 		auto cmd = std::make_unique<Cmd>(entity,
 			std::string(desc.name),
@@ -144,6 +134,28 @@ namespace {
 			before,
 			after,
 			getter);
+
+		Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+	}
+
+	// just for collider component only due to std::variant usage
+	template <typename Alt, typename FieldT>
+	static void SubmitSetColliderVariantFieldCommand(
+		uint32_t entity,
+		std::string_view fieldName,
+		FieldT Alt::* member,
+		const FieldT& before,
+		const FieldT& after)
+	{
+		using Cmd = Editor::SetColliderVariantFieldCommand<Alt, FieldT>;
+
+		auto cmd = std::make_unique<Cmd>(
+			entity,
+			std::string(fieldName),
+			member,
+			before,
+			after
+		);
 
 		Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
 	}
@@ -258,7 +270,7 @@ namespace {
 
 	// temp
 	// Returns true if layer changed
-	static bool DrawLayerCombo_UnityStyle(
+	bool DrawLayerCombo_UnityStyle(
 		const char* label,
 		NE::Core::LayerID& ioLayer,
 		Editor::Layers::LayerDatabase & db,
@@ -272,8 +284,7 @@ namespace {
 
 		ImGui::PushID(label);
 		ImGui::PushItemWidth(comboWidth);
-		
-		if (ImGui::BeginCombo(label, preview)) {
+		if (Editor::BeginPillCombo(label, preview)) {
 			db.ForEachUsed([&](NE::Core::LayerID id, std::string_view name) {
 				const bool selected = (id == ioLayer);
 
@@ -294,7 +305,7 @@ namespace {
 				openLayerSettings = true;
 			}
 
-			ImGui::EndCombo();
+			Editor::EndPillCombo();
 		}
 
 		ImGui::PopItemWidth();
@@ -615,71 +626,8 @@ namespace Editor {
 							}
 						});
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Renderer))
-				{
-					auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
-					ImGui::SeparatorText("Renderer");
-					// Model field
-					bool openPopup = false;
-					DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
-					if (openPopup) {
-						ImGui::OpenPopup("AssetPicker_Model");
-					}
-
-					if (ImGui::BeginDragDropTarget()) {
-						if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
-							std::string dropped((const char*)p->Data, p->DataSize - 1);
-							auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-							NE::Renderer::Command::AssignModel(entity, uuid);
-						}
-						ImGui::EndDragDropTarget();
-					}
-
-					static std::string searchQuery;
-					if (ImGui::BeginPopup("AssetPicker_Model")) {
-						ImGui::Text("Select a Model");
-						ImGui::Separator();
-						auto& modelList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Model);
-
-						if (ImSearch::BeginSearch()) {
-							ImSearch::SearchBar();
-							for (const auto& [modelName, uuid] : modelList) {
-								ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
-									if (ImGui::Selectable(modelName.c_str())) {
-										NE::Renderer::Command::AssignModel(entity, uuid);
-										ImGui::CloseCurrentPopup();
-									}
-									});
-							}
-
-							ImSearch::EndSearch();
-						}
-						ImGui::EndPopup();
-					}
-
-					// Material field
-					char bufMat[256];
-					strncpy_s(bufMat, Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID).c_str(), sizeof(bufMat));
-					ImGui::InputText("Material", bufMat, sizeof(bufMat));
-
-					if (ImGui::BeginDragDropTarget()) {
-						if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
-							std::string dropped((const char*)p->Data, p->DataSize - 1);
-							auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-							NE::Renderer::Command::AssignMaterial(entity, uuid);
-						}
-						ImGui::EndDragDropTarget();
-					}
-
-					static const char* ShadowCastModeNames[] = { "Off", "On", "TwoSided", "ShadowsOnly" };
-					int currentCastMode = static_cast<int>(comp.shadowCastMode);
-					auto& tempR = NE::ECS::Command::GetEntityRenderer(entity);
-					if (ImGui::Combo("Shadow Cast Mode", &currentCastMode, ShadowCastModeNames, IM_ARRAYSIZE(ShadowCastModeNames))) {
-						tempR.shadowCastMode = static_cast<NE::ECS::Component::Renderer::ShadowCastMode>(currentCastMode);
-					}
-
-					if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
-					}
+				else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
+					DrawRendererComponent(entity);
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Light))
 				{
@@ -720,124 +668,57 @@ namespace Editor {
 							}
 						});
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Collider))
-				{
-					auto& comp = NE::ECS::Command::GetEntityCollider(entity);
-					ImGui::SeparatorText("Collider");
+				else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
+					DrawColliderComponent(entity);
 
-					// Dropdown shapes
-					static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "Mesh", "None" };
-					int currShape = static_cast<int>(comp.shapeType);
-					if (ImGui::Combo("Shape Type", &currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames)))
-					{
-						auto newShapeType = static_cast<NE::ECS::Component::Collider::ShapeType>(currShape);
+					//auto& comp = NE::ECS::Command::GetEntityCollider(entity);
+					//ImGui::SeparatorText("Collider");
 
-						// Create a field descriptor for shapeType
-						using ColliderType = NE::ECS::Component::Collider;
-						NE::Core::FieldDescriptor<ColliderType, ColliderType::ShapeType> shapeDesc{
-							"Shape Type", &ColliderType::shapeType
-						};
+					//// Dropdown shapes
+					//static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "Mesh", "None" };
+					//int currShape = static_cast<int>(comp.shapeType);
+					//if (ImGui::Combo("Shape Type", &currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames)))
+					//{
+					//	auto newShapeType = static_cast<NE::ECS::Component::Collider::ShapeType>(currShape);
 
-						// Submit command
-						SubmitSetFieldCommand<ColliderType, ColliderType::ShapeType>(
-							entity, shapeDesc, comp.shapeType, newShapeType
-						);
+					//	// Create a field descriptor for shapeType
+					//	using ColliderType = NE::ECS::Component::Collider;
+					//	NE::Core::FieldDescriptor<ColliderType, ColliderType::ShapeType> shapeDesc{
+					//		"Shape Type", &ColliderType::shapeType
+					//	};
 
-						// Also mark the collider as dirty
-						comp.isShapeDirty = true;
+					//	// Submit command
+					//	SubmitSetFieldCommand<ColliderType, ColliderType::ShapeType>(
+					//		entity, shapeDesc, comp.shapeType, newShapeType
+					//	);
 
-						// NOTE: SubmitSetFieldCommand already marks scene dirty via SetFieldCommand
-					}
+					//	// Also mark the collider as dirty
+					//	comp.isShapeDirty = true;
 
-					// Collider fields - shape properties
-					NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using FieldT = std::decay_t<decltype(currentValue)>;
-							using ColliderType = NE::ECS::Component::Collider;
+					//	// NOTE: SubmitSetFieldCommand already marks scene dirty via SetFieldCommand
+					//}
 
-							FieldT edited = currentValue;
+					//// Collider fields - shape properties
+					//NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
+					//	[&](auto const& desc, auto const& currentValue) {
+					//		using FieldT = std::decay_t<decltype(currentValue)>;
+					//		using ColliderType = NE::ECS::Component::Collider;
 
-							if (DrawField(desc, edited))
-							{
-								SubmitSetFieldCommand<ColliderType, FieldT>(
-									entity, desc, currentValue, edited);
+					//		FieldT edited = currentValue;
 
-								// Mark properties as dirty when any collider field changes
-								comp.isPropertiesDirty = true;
-							}
-						});
+					//		if (DrawField(desc, edited))
+					//		{
+					//			SubmitSetFieldCommand<ColliderType, FieldT>(
+					//				entity, desc, currentValue, edited);
+
+					//			// Mark properties as dirty when any collider field changes
+					//			comp.isPropertiesDirty = true;
+					//		}
+					//	});
 
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody))
-				{
-					auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
-					ImGui::SeparatorText("Rigidbody");
-
-					// Motion Type dropdown (primary control)
-					static const char* MotionTypeNames[] = { "Static", "Kinematic", "Dynamic" };
-					int currentMotionType = static_cast<int>(comp.motionType);
-					if (ImGui::Combo("Motion Type", &currentMotionType, MotionTypeNames, IM_ARRAYSIZE(MotionTypeNames))) {
-						auto& tempRb = NE::ECS::Command::GetEntityRigidbody(entity);
-
-						// Log the motion type change
-						SPD_DEBUG("Motion Type changed for entity {}: {} -> {}",
-							entity,
-							MotionTypeNames[static_cast<int>(comp.motionType)],
-							MotionTypeNames[currentMotionType]);
-
-						tempRb.motionType = static_cast<uint8_t>(currentMotionType);
-
-						// Update isStatic to stay in sync
-						tempRb.isStatic = (currentMotionType == 0);
-
-						SPD_DEBUG("  Updated: motionType={}, isStatic={}",
-							static_cast<int>(tempRb.motionType),
-							tempRb.isStatic);
-					}
-
-					// Help text
-					ImGui::TextDisabled("Static: Ground/Walls (Layer 0)");
-					ImGui::TextDisabled("Dynamic: Player/Physics Objects (Layer 1)");
-					ImGui::TextDisabled("Kinematic: Moving Platforms (Layer 1)");
-					ImGui::Spacing();
-
-					// Other Rigidbody fields (mass, useGravity, etc.)
-					  // Note: isStatic is NOT shown here - Motion Type controls it
-					NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using FieldT = std::decay_t<decltype(currentValue)>;
-
-							// Skip isStatic field (controlled by Motion Type dropdown)
-							if (std::string(desc.name) == "isStatic") {
-								return;
-							}
-
-							FieldT edited = currentValue;
-
-							if (DrawField(desc, edited)) {
-								SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
-									entity, desc, currentValue, edited
-								);
-							}
-						});
-
-					if (ImGui::TreeNode("Constraints")) {
-						bool changedX = Editor::DrawCheckbox("X", comp.constrainX);
-						bool changedY = Editor::DrawCheckbox("Y", comp.constrainY);
-						bool changedZ = Editor::DrawCheckbox("Z", comp.constrainZ);
-
-						if (changedX || changedY || changedZ) {
-							NE::Physics::Command::LockConstraints(
-								entity,
-								comp.constrainX,
-								comp.constrainY,
-								comp.constrainZ
-							);
-						}
-
-						ImGui::TreePop();
-					}
-
+				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
+					DrawRigidbodyComponent(entity);
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::AudioSource))
 				{
@@ -2936,5 +2817,189 @@ namespace Editor {
 		if (ImGui::Button("Apply")) {
 			//SaveModelImportSettings(metaPath, settings);
 		}
+	}
+
+	void InspectorPanel::DrawRendererComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
+		ImGui::SeparatorText("Renderer");
+		// Model field
+		bool openPopup = false;
+		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
+		if (openPopup) {
+			ImGui::OpenPopup("AssetPicker_Model");
+		}
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+				std::string dropped((const char*)p->Data, p->DataSize - 1);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				NE::Renderer::Command::AssignModel(entity, uuid);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		static std::string searchQuery;
+		if (ImGui::BeginPopup("AssetPicker_Model")) {
+			ImGui::Text("Select a Model");
+			ImGui::Separator();
+			auto& modelList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Model);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [modelName, uuid] : modelList) {
+					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
+						if (ImGui::Selectable(modelName.c_str())) {
+							NE::Renderer::Command::AssignModel(entity, uuid);
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
+		}
+
+		// Material field
+		char bufMat[256];
+		strncpy_s(bufMat, Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID).c_str(), sizeof(bufMat));
+		ImGui::InputText("Material", bufMat, sizeof(bufMat));
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
+				std::string dropped((const char*)p->Data, p->DataSize - 1);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				NE::Renderer::Command::AssignMaterial(entity, uuid);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		static const char* ShadowCastModeNames[] = { "Off", "On", "TwoSided", "ShadowsOnly" };
+		int currentCastMode = static_cast<int>(comp.shadowCastMode);
+		auto& tempR = NE::ECS::Command::GetEntityRenderer(entity);
+		if (ImGui::Combo("Shadow Cast Mode", &currentCastMode, ShadowCastModeNames, IM_ARRAYSIZE(ShadowCastModeNames))) {
+			tempR.shadowCastMode = static_cast<NE::ECS::Component::Renderer::ShadowCastMode>(currentCastMode);
+		}
+
+		if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
+		}
+	}
+
+	void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
+		ImGui::SeparatorText("Rigidbody");
+
+		NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			});
+
+		if (ImGui::TreeNode("Constraints")) {
+			ImGui::Text("Position ");
+			ImGui::SameLine();
+			Editor::DrawCheckbox("X", comp.freezePosX);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Y", comp.freezePosY);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Z", comp.freezePosZ);
+
+			ImGui::Text("Rotation ");
+			ImGui::SameLine();
+			Editor::DrawCheckbox("X", comp.freezeRotX);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Y", comp.freezeRotY);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Z", comp.freezeRotZ);
+
+			ImGui::TreePop();
+		}
+
+	}
+
+	void InspectorPanel::DrawColliderComponent(uint32_t entity) {
+		using Collider = NE::ECS::Component::Collider;
+
+		auto& comp = NE::ECS::Command::GetEntityCollider(entity);
+		ImGui::SeparatorText("Collider");
+		
+		static const char* ColliderTypeNames[] = { "None", "Box", "Sphere", "Capsule", "Cylinder", "Mesh" };
+		int currCollider = static_cast<int>(comp.type);
+
+		if (DrawEnumPillCombo("Collider Type", currCollider, ColliderTypeNames, IM_ARRAYSIZE(ColliderTypeNames), 100.0f)) {
+			auto newType =
+				static_cast<Collider::ColliderType>(currCollider);
+
+			if (newType != comp.type) {
+				comp.type = newType;
+
+				switch (newType) {
+				case Collider::ColliderType::None:
+					comp.data.emplace<Collider::NoColliderData>();
+					break;
+				case Collider::ColliderType::Box:
+					comp.data.emplace<Collider::BoxColliderData>();
+					break;
+				case Collider::ColliderType::Sphere:
+					comp.data.emplace<Collider::SphereColliderData>();
+					break;
+				case Collider::ColliderType::Capsule:
+					comp.data.emplace<Collider::CapsuleColliderData>();
+					break;
+				case Collider::ColliderType::Cylinder:
+					comp.data.emplace<Collider::CylinderColliderData>();
+					break;
+				case Collider::ColliderType::Mesh:
+					comp.data.emplace<Collider::MeshColliderData>();
+					break;
+				}
+
+				comp.isDirty = true;
+			}
+		}
+
+		if (comp.type == Collider::ColliderType::None) return;
+
+		NE::Core::ForEachFieldView<Collider>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<Collider, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			}
+		);
+
+		std::visit([&](auto& shape) {
+			using Alt = std::decay_t<decltype(shape)>;
+
+			NE::Core::ForEachFieldView<Alt>(shape, [&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+				if (DrawField(desc, edited)) {
+					SubmitSetColliderVariantFieldCommand<Alt, FieldT>(
+						entity,
+						desc.name,
+						desc.member,
+						currentValue,
+						edited
+					);
+				}
+				});
+
+			}, comp.data
+		);
 	}
 }
