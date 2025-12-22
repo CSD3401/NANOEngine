@@ -2905,19 +2905,19 @@ namespace Editor {
 		if (ImGui::TreeNode("Constraints")) {
 			ImGui::Text("Position ");
 			ImGui::SameLine();
-			Editor::DrawCheckbox("X", comp.freezePosX);
+			Editor::DrawCheckbox("X##Pos", comp.freezePosX);
 			ImGui::SameLine();
-			Editor::DrawCheckbox("Y", comp.freezePosY);
+			Editor::DrawCheckbox("Y##Pos", comp.freezePosY);
 			ImGui::SameLine();
-			Editor::DrawCheckbox("Z", comp.freezePosZ);
+			Editor::DrawCheckbox("Z##Pos", comp.freezePosZ);
 
 			ImGui::Text("Rotation ");
 			ImGui::SameLine();
-			Editor::DrawCheckbox("X", comp.freezeRotX);
+			Editor::DrawCheckbox("X##Rot", comp.freezeRotX);
 			ImGui::SameLine();
-			Editor::DrawCheckbox("Y", comp.freezeRotY);
+			Editor::DrawCheckbox("Y##Rot", comp.freezeRotY);
 			ImGui::SameLine();
-			Editor::DrawCheckbox("Z", comp.freezeRotZ);
+			Editor::DrawCheckbox("Z##Rot", comp.freezeRotZ);
 
 			ImGui::TreePop();
 		}
