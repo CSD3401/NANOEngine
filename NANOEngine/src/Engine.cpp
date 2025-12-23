@@ -255,16 +255,16 @@ namespace NE {
 	std::vector<uint8_t> CopyEntity(uint32_t entity) {
 		//std::vector<uint8_t> buffer;
 		//NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
-		//return buffer;
-		return std::vector<uint8_t>();
+		std::vector<uint8_t> buffer;
+		NE::Serialization::SerializeEntitiesToMemory(gSceneManager.GetActive()->GetECSCoordinator(), entity, buffer);
+		return buffer;
 	}
 
-	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard) {
+	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
 		//auto newEntities =
 		//	NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
 
-		//return newEntities;
-		return std::vector<uint32_t>();
+		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
 	}
 
 	// Internal use only

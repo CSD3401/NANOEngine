@@ -3,7 +3,7 @@
 #include "../Components/EntityMeta.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "Core/Profiler.hpp"
-#include <vector>
+#include "Core/LUIDGenerator.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -26,6 +26,9 @@ namespace NE::ECS::Systems {
 
 		t.localMatrix = translation * rotation * scale;
 		t.worldMatrix = t.localMatrix;
+
+		if (t.luid == 0)
+			t.luid = Core::LUIDGenerator::Generate("tr");
 	}
 
 	void TransformSystem::OnEntityRemoved(Entity) {

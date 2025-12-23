@@ -511,10 +511,10 @@ namespace Editor {
 			// TODO: implement cut
 		}
 		if (ImGui::MenuItem("Copy", "Ctrl+C", false, !EditorScene::s_selection.Empty())) {
-			//EditorScene::CopySelected();
+			EditorScene::CopySelected();
 		}
-		if (ImGui::MenuItem("Paste", "Ctrl+V", false, !EditorScene::s_selection.Empty())) {
-			//EditorScene::PasteSelected();
+		if (ImGui::MenuItem("Paste", "Ctrl+V", false, !EditorScene::clipboard.empty())) {
+			EditorScene::PasteSelected();
 		}
 		if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, !EditorScene::s_selection.Empty())) {
 			//EditorScene::DuplicateSelected();

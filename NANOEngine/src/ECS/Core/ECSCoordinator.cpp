@@ -28,6 +28,7 @@
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
+#include "Core/LUIDGenerator.hpp"
 
 
 
@@ -148,6 +149,7 @@ namespace NE::ECS {
 
     Entity ECSCoordinator::CreateEntity() {
         Entity entt = m_entityManager->CreateEntity();
+        AddComponent(entt, Component::EntityMeta{ .luid = Core::LUIDGenerator::Generate("en") });
 
         return entt;
     }
