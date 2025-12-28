@@ -15,8 +15,8 @@ namespace NE::ECS::Component {
         // Text Content
         std::string text = "New Text";
         std::string fontUUID;
-        float fontSize = 16.0f;
-        NE::Math::Vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
+        float fontSize = 24.0f;  // Increased default size for better visibility
+        NE::Math::Vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };  // White color for better visibility on dark backgrounds
 
         // Font Style
         enum class FontStyle {

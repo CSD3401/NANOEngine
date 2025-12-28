@@ -3035,13 +3035,14 @@ namespace Editor {
 						ImGui::Unindent();
 					}
 				}
-			{
-				if (!NE::ECS::Query::HasUIText(entity)) continue;
-				auto& comp = NE::ECS::Command::GetUIText(entity);
-
-				if (ImGui::CollapsingHeader("Text", ImGuiTreeNodeFlags_DefaultOpen))
+				else if (typeIdx == typeid(NE::ECS::Component::UIText))
 				{
-					ImGui::Indent();
+					if (!NE::ECS::Query::HasUIText(entity)) continue;
+					auto& comp = NE::ECS::Command::GetUIText(entity);
+
+					if (ImGui::CollapsingHeader("Text", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::Indent();
 
 					const float labelWidth = 160.0f;
 

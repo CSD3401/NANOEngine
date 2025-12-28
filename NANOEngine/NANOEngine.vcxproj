@@ -112,6 +112,8 @@
     <ClInclude Include="src\ECS\Systems\LightSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\Model.hpp" />
     <ClInclude Include="src\Graphics\Core\Skybox.hpp" />
+    <ClInclude Include="src\Graphics\Core\Font.hpp" />
+    <ClInclude Include="src\Graphics\Core\UITextMeshGenerator.hpp" />
     <ClInclude Include="src\ECS\Systems\RenderSystem.hpp" />
     <ClInclude Include="src\Events\EventBus.hpp" />
     <ClInclude Include="src\SceneManagement\Scene.hpp" />
@@ -177,6 +179,8 @@
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
+    <ClCompile Include="src\Graphics\Core\Font.cpp" />
+    <ClCompile Include="src\Graphics\Core\UITextMeshGenerator.cpp" />
     <ClCompile Include="src\Physics\LayerMaskBodyFilter.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />

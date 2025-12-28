@@ -69,10 +69,20 @@ namespace NE::Graphics {
     out vec4 FragColor;
 
     uniform vec4 uColor;
+    uniform sampler2D u_BaseMap;
+    uniform int u_HasBaseMap;
 
     void main() {
-        // Simple solid color - no texture needed!
-        FragColor = uColor;
+        if (u_HasBaseMap != 0) {
+            vec4 texColor = texture(u_BaseMap, vUV);
+            // For text: use texture alpha as mask, apply uColor as the actual text color
+            // Texture RGB is white (1,1,1), alpha contains the glyph shape
+            // Final color = uColor with texture alpha as mask
+            FragColor = vec4(uColor.rgb, uColor.a * texColor.a);
+        } else {
+            // No texture - use color directly
+            FragColor = uColor;
+        }
     })";
 
     // World space vertex shader (uses model/view/projection matrices)
@@ -550,10 +560,20 @@ namespace NE::Graphics {
             }
             else
             {
-                // Fallback: Use simple solid color shader when no material is assigned
+                // Fallback: Use simple shader when no material is assigned (supports texture for text)
                 glUseProgram(s_Shader);
                 glUniform2f(glGetUniformLocation(s_Shader, "uScreenSize"), (float)s_ScreenW, (float)s_ScreenH);
                 glUniform4f(glGetUniformLocation(s_Shader, "uColor"), cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+                
+                // Support texture sampling for text rendering
+                GLint baseMapLoc = glGetUniformLocation(s_Shader, "u_BaseMap");
+                GLint hasBaseMapLoc = glGetUniformLocation(s_Shader, "u_HasBaseMap");
+                if (cmd.bindlessTextureHandle != 0 && baseMapLoc != -1 && hasBaseMapLoc != -1) {
+                    glUniformHandleui64ARB(baseMapLoc, cmd.bindlessTextureHandle);
+                    glUniform1i(hasBaseMapLoc, 1);
+                } else if (hasBaseMapLoc != -1) {
+                    glUniform1i(hasBaseMapLoc, 0);
+                }
             }
 
             // draw

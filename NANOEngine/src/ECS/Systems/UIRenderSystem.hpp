@@ -6,11 +6,16 @@
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIText.hpp"
 #include "../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/UIImageMeshGenerator.hpp"
+#include "../../Graphics/Core/UITextMeshGenerator.hpp"
+#include "../../Graphics/Core/Font.hpp"
 #include "UITransformSystem.hpp"
 #include <vector>
 #include <string>
+#include <unordered_map>
+#include <memory>
 
 namespace NE::ECS::Systems {
 
@@ -34,6 +39,9 @@ namespace NE::ECS::Systems {
     private:
         ComponentManager* m_cm = nullptr;
         UITransformSystem* m_transformSystem = nullptr;
+
+        // Font cache to keep fonts alive
+        std::unordered_map<uint32_t, std::shared_ptr<NE::Graphics::Font>> m_fontCache;
 
         //=================================================================
         // Rendering

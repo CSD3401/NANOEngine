@@ -2,12 +2,15 @@
 #include "UITransformSystem.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIText.hpp"
 #include "../Components/UIButton.hpp"
 #include "../../Graphics/Core/UIDrawCommand.hpp"
 #include "../../Graphics/Core/UIRenderer.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
+#include "../../Graphics/Core/Font.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "Core/SpdLogger.hpp"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -35,11 +38,58 @@ namespace NE::ECS::Systems {
         const auto& entities = GetEntities();
 
         for (Entity e : entities) {
-            if (!m_cm->HasComponent<UIImage>(e)) continue;
+            // Load UIImage resources
+            if (m_cm->HasComponent<UIImage>(e)) {
+                auto& img = m_cm->GetComponent<UIImage>(e);
 
+                if (!img.textureUUID.empty() && img.bindlessHandle == 0) {
+                    auto texture = NE::Resource::ResourceManager::GetInstance()
+                        .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
+                    if (texture) {
+                        img.bindlessHandle = texture->GetBindlessHandle();
+                    }
+                }
+
+                if (!img.materialUUID.empty() && !img.material) {
+                    img.material = NE::Resource::ResourceManager::GetInstance()
+                        .LoadResource<NE::Graphics::Material>(img.materialUUID);
+                }
+            }
+
+            // Load UIText fonts
+            if (m_cm->HasComponent<UIText>(e)) {
+                auto& text = m_cm->GetComponent<UIText>(e);
+
+                if (text.fontHandle == 0) {
+                    // Create a cache key based on font size (for now, using fontSize as key)
+                    // TODO: Use fontUUID when font assets are properly set up
+                    uint32_t cacheKey = static_cast<uint32_t>(text.fontSize * 100.0f); // Use fontSize as key
+                    
+                    // Check if font is already cached
+                    auto cacheIt = m_fontCache.find(cacheKey);
+                    if (cacheIt != m_fontCache.end()) {
+                        text.fontHandle = cacheKey; // Store cache key instead of raw pointer
+                    } else {
+                        // Load font and cache it
+                        auto font = std::make_shared<NE::Graphics::Font>();
+                        if (font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize)) {
+                            m_fontCache[cacheKey] = font;
+                            text.fontHandle = cacheKey;
+                        } else {
+                            SPD_WARNING("Failed to load font for UIText entity: " << e);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void UIRenderSystem::OnEntityAdded(Entity e) {
+        // Handle UIImage
+        if (m_cm->HasComponent<UIImage>(e)) {
             auto& img = m_cm->GetComponent<UIImage>(e);
 
-            if (!img.textureUUID.empty() && img.bindlessHandle == 0) {
+            if (!img.textureUUID.empty()) {
                 auto texture = NE::Resource::ResourceManager::GetInstance()
                     .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
                 if (texture) {
@@ -47,32 +97,43 @@ namespace NE::ECS::Systems {
                 }
             }
 
-            if (!img.materialUUID.empty() && !img.material) {
+            if (!img.materialUUID.empty()) {
                 img.material = NE::Resource::ResourceManager::GetInstance()
                     .LoadResource<NE::Graphics::Material>(img.materialUUID);
             }
+
+            img.isDirty = true;
         }
-    }
 
-    void UIRenderSystem::OnEntityAdded(Entity e) {
-        if (!m_cm->HasComponent<UIImage>(e)) return;
+        // Handle UIText
+        if (m_cm->HasComponent<UIText>(e)) {
+            auto& text = m_cm->GetComponent<UIText>(e);
 
-        auto& img = m_cm->GetComponent<UIImage>(e);
-
-        if (!img.textureUUID.empty()) {
-            auto texture = NE::Resource::ResourceManager::GetInstance()
-                .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
-            if (texture) {
-                img.bindlessHandle = texture->GetBindlessHandle();
+            // Always check if font needs to be reloaded (fontSize might have changed)
+            uint32_t currentCacheKey = static_cast<uint32_t>(text.fontSize * 100.0f);
+            
+            // If fontHandle doesn't match current fontSize, invalidate it
+            if (text.fontHandle != 0 && text.fontHandle != currentCacheKey) {
+                text.fontHandle = 0;  // Invalidate to force reload
+            }
+            
+            if (text.fontHandle == 0) {
+                // Check if font with this size is already cached
+                auto cacheIt = m_fontCache.find(currentCacheKey);
+                if (cacheIt != m_fontCache.end()) {
+                    text.fontHandle = currentCacheKey;
+                } else {
+                    // Load font and cache it
+                    auto font = std::make_shared<NE::Graphics::Font>();
+                    if (font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize)) {
+                        m_fontCache[currentCacheKey] = font;
+                        text.fontHandle = currentCacheKey;
+                    } else {
+                        SPD_WARNING("Failed to load font for UIText entity: " << e);
+                    }
+                }
             }
         }
-
-        if (!img.materialUUID.empty()) {
-            img.material = NE::Resource::ResourceManager::GetInstance()
-                .LoadResource<NE::Graphics::Material>(img.materialUUID);
-        }
-
-        img.isDirty = true;
     }
 
     void UIRenderSystem::OnEntityRemoved(Entity e) {}
@@ -95,7 +156,8 @@ namespace NE::ECS::Systems {
         for (Entity e : entities) {
             if (e == canvasEntity) continue;
             if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
-            if (!m_cm->HasComponent<UIImage>(e)) continue;
+            // Collect entities with either UIImage OR UIText
+            if (!m_cm->HasComponent<UIImage>(e) && !m_cm->HasComponent<UIText>(e)) continue;
             if (m_cm->HasComponent<UICanvas>(e)) continue;
 
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
@@ -258,7 +320,6 @@ namespace NE::ECS::Systems {
         }
 
         for (Entity e : canvasChildren) {
-            auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
             if (!m_transformSystem) continue;
@@ -269,16 +330,118 @@ namespace NE::ECS::Systems {
 
             std::vector<NE::Graphics::UIVertex> vertices;
 
-            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                vertices = GenerateWorldSpaceVertices(img);
-            }
-            else {
-                vertices = GenerateScreenSpaceVertices(e, worldTransform, img);
-            }
+            // Handle UIImage
+            if (m_cm->HasComponent<UIImage>(e)) {
+                auto& img = m_cm->GetComponent<UIImage>(e);
 
-            if (vertices.empty()) continue;
+                if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                    vertices = GenerateWorldSpaceVertices(img);
+                }
+                else {
+                    vertices = GenerateScreenSpaceVertices(e, worldTransform, img);
+                }
 
-            SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, accumulated, vertices, viewMatrix, projMatrix);
+                if (!vertices.empty()) {
+                    SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, accumulated, vertices, viewMatrix, projMatrix);
+                }
+            }
+            // Handle UIText
+            else if (m_cm->HasComponent<UIText>(e)) {
+                auto& text = m_cm->GetComponent<UIText>(e);
+
+                // Get font from cache - check if cached font matches current fontSize
+                std::shared_ptr<NE::Graphics::Font> font;
+                uint32_t currentCacheKey = static_cast<uint32_t>(text.fontSize * 100.0f);
+                
+                if (text.fontHandle != 0) {
+                    // Check if cached font matches current fontSize
+                    if (text.fontHandle == currentCacheKey) {
+                        auto cacheIt = m_fontCache.find(static_cast<uint32_t>(text.fontHandle));
+                        if (cacheIt != m_fontCache.end()) {
+                            font = cacheIt->second;
+                        }
+                    } else {
+                        // Font size changed - invalidate old cache entry
+                        text.fontHandle = 0;
+                    }
+                }
+                
+                // If not in cache or font size changed, load new font
+                if (!font) {
+                    auto cacheIt = m_fontCache.find(currentCacheKey);
+                    if (cacheIt != m_fontCache.end()) {
+                        // Font with this size already cached
+                        font = cacheIt->second;
+                        text.fontHandle = currentCacheKey;
+                    } else {
+                        // Load new font with current fontSize
+                        font = std::make_shared<NE::Graphics::Font>();
+                        if (font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize)) {
+                            m_fontCache[currentCacheKey] = font;
+                            text.fontHandle = currentCacheKey;
+                        } else {
+                            continue; // Skip if font can't be loaded
+                        }
+                    }
+                }
+
+                // Safety check: ensure font is valid
+                if (!font) {
+                    continue; // Skip if font is invalid
+                }
+
+                // Calculate top-left position from pivot
+                float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
+                float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
+
+                // Generate text vertices
+                vertices = NE::Graphics::UITextMeshGenerator::GenerateVertices(
+                    text,
+                    *font,
+                    topLeftX,
+                    topLeftY,
+                    worldTransform.z,
+                    worldTransform.width,
+                    worldTransform.height,
+                    text.color
+                );
+
+                if (!vertices.empty()) {
+                    // Apply rotation if needed
+                    if (std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
+                        float pivotX = worldTransform.x;
+                        float pivotY = worldTransform.y;
+                        RotateVertices2D(vertices, pivotX, pivotY, worldTransform.accumulatedRotationZ);
+                    }
+
+                    // Submit text draw command
+                    NE::Graphics::UIDrawCommand cmd;
+                    cmd.x = topLeftX;
+                    cmd.y = topLeftY;
+                    cmd.z = worldTransform.z;
+                    cmd.width = worldTransform.width;
+                    cmd.height = worldTransform.height;
+                    cmd.color = text.color;
+                    cmd.order = canvas.sortingOrder;
+                    cmd.entityId = e;
+                    cmd.renderMode = static_cast<int>(canvas.renderMode);
+                    cmd.planeDistance = canvas.planeDistance;
+                    cmd.vertices = vertices;
+                    cmd.useCustomVertices = true;
+
+                    // Get font atlas texture handle
+                    cmd.bindlessTextureHandle = font->GetAtlasTextureHandle();
+
+                    if (viewMatrix) cmd.viewMatrix = *viewMatrix;
+                    if (projMatrix) cmd.projMatrix = *projMatrix;
+
+                    if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && m_transformSystem) {
+                        cmd.modelMatrix = m_transformSystem->BuildWorldSpaceModelMatrix(e, canvasEntity, rect, accumulated);
+                    }
+
+                    NE::Graphics::UIRenderer::Submit(cmd);
+                }
+            }
         }
     }
 

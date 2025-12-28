@@ -25,6 +25,7 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "Input/InputManager.hpp"
 #include "Graphics/OpenGL/GLTexture.hpp"
+#include "Graphics/Core/Font.hpp"
 #include "Audio/AudioBank.hpp"
 #include "Scripting/ScriptingEngine.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
