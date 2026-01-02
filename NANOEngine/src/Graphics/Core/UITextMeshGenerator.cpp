@@ -116,41 +116,41 @@ namespace NE::Graphics {
 
         // Generate quad (2 triangles, 6 vertices)
         // Top-left origin system (Y-down)
-        // UV coordinates from font atlas
+        // UV coordinates from font atlas (flip V coordinates to fix upside-down text)
         vertices.push_back(CreateVertex(
             charX, charY, z,
-            metrics.u0, metrics.v1, // Top-left of glyph in atlas
+            metrics.u0, metrics.v0, // Top-left of glyph in atlas
             color
         ));
 
         vertices.push_back(CreateVertex(
             charX + charWidth, charY, z,
-            metrics.u1, metrics.v1, // Top-right of glyph in atlas
+            metrics.u1, metrics.v0, // Top-right of glyph in atlas
             color
         ));
 
         vertices.push_back(CreateVertex(
             charX + charWidth, charY + charHeight, z,
-            metrics.u1, metrics.v0, // Bottom-right of glyph in atlas
+            metrics.u1, metrics.v1, // Bottom-right of glyph in atlas
             color
         ));
 
         // Second triangle
         vertices.push_back(CreateVertex(
             charX, charY, z,
-            metrics.u0, metrics.v1, // Top-left
+            metrics.u0, metrics.v0, // Top-left
             color
         ));
 
         vertices.push_back(CreateVertex(
             charX + charWidth, charY + charHeight, z,
-            metrics.u1, metrics.v0, // Bottom-right
+            metrics.u1, metrics.v1, // Bottom-right
             color
         ));
 
         vertices.push_back(CreateVertex(
             charX, charY + charHeight, z,
-            metrics.u0, metrics.v0, // Bottom-left of glyph in atlas
+            metrics.u0, metrics.v1, // Bottom-left of glyph in atlas
             color
         ));
     }

@@ -3044,174 +3044,356 @@ namespace Editor {
 					{
 						ImGui::Indent();
 
-					const float labelWidth = 160.0f;
+						const float labelWidth = 160.0f;
 
-					// Text Content
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Text");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					char textBuffer[1024];
-					strncpy_s(textBuffer, sizeof(textBuffer), comp.text.c_str(), sizeof(textBuffer));
-					textBuffer[sizeof(textBuffer) - 1] = '\0';
-					if (ImGui::InputTextMultiline("##Text", textBuffer, sizeof(textBuffer), ImVec2(-1, ImGui::GetTextLineHeight() * 3))) {
-						comp.text = textBuffer;
-						NE::MarkSceneDirty();
-					}
-
-					// Font Size
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Font Size");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::DragFloat("##FontSize", &comp.fontSize, 1.0f, 1.0f, 200.0f)) {
-						NE::MarkSceneDirty();
-					}
-
-					// Color
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Color");
-					ImGui::SameLine(labelWidth);
-					float textColor[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::ColorEdit4("##TextColor", textColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
-						comp.color.x = textColor[0];
-						comp.color.y = textColor[1];
-						comp.color.z = textColor[2];
-						comp.color.w = textColor[3];
-						NE::MarkSceneDirty();
-					}
-
-					// Font Style
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Font Style");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					static const char* FontStyles[] = { "Normal", "Bold", "Italic", "Bold And Italic" };
-					int currentFontStyle = static_cast<int>(comp.fontStyle);
-					if (ImGui::Combo("##FontStyle", &currentFontStyle, FontStyles, IM_ARRAYSIZE(FontStyles))) {
-						comp.fontStyle = static_cast<decltype(comp.fontStyle)>(currentFontStyle);
-						NE::MarkSceneDirty();
-					}
-
-					// Horizontal Alignment
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Horizontal Align");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					static const char* HAligns[] = { "Left", "Center", "Right", "Justify" };
-					int currentHAlign = static_cast<int>(comp.horizontalAlign);
-					if (ImGui::Combo("##HAlign", &currentHAlign, HAligns, IM_ARRAYSIZE(HAligns))) {
-						comp.horizontalAlign = static_cast<decltype(comp.horizontalAlign)>(currentHAlign);
-						NE::MarkSceneDirty();
-					}
-
-					// Vertical Alignment
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Vertical Align");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					static const char* VAligns[] = { "Top", "Middle", "Bottom" };
-					int currentVAlign = static_cast<int>(comp.verticalAlign);
-					if (ImGui::Combo("##VAlign", &currentVAlign, VAligns, IM_ARRAYSIZE(VAligns))) {
-						comp.verticalAlign = static_cast<decltype(comp.verticalAlign)>(currentVAlign);
-						NE::MarkSceneDirty();
-					}
-
-					// Word Wrap
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Word Wrap");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::Checkbox("##WordWrap", &comp.wordWrap)) {
-						NE::MarkSceneDirty();
-					}
-
-					// Horizontal Overflow
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Horizontal Overflow");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					static const char* HOverflows[] = { "Wrap", "Visible", "Truncate" };
-					int currentHOverflow = static_cast<int>(comp.horizontalOverflow);
-					if (ImGui::Combo("##HOverflow", &currentHOverflow, HOverflows, IM_ARRAYSIZE(HOverflows))) {
-						comp.horizontalOverflow = static_cast<decltype(comp.horizontalOverflow)>(currentHOverflow);
-						NE::MarkSceneDirty();
-					}
-
-					// Vertical Overflow
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Vertical Overflow");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					static const char* VOverflows[] = { "Wrap", "Visible", "Truncate" };
-					int currentVOverflow = static_cast<int>(comp.verticalOverflow);
-					if (ImGui::Combo("##VOverflow", &currentVOverflow, VOverflows, IM_ARRAYSIZE(VOverflows))) {
-						comp.verticalOverflow = static_cast<decltype(comp.verticalOverflow)>(currentVOverflow);
-						NE::MarkSceneDirty();
-					}
-
-					// Best Fit
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Best Fit");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::Checkbox("##BestFit", &comp.bestFit)) {
-						NE::MarkSceneDirty();
-					}
-
-					if (comp.bestFit) {
-						ImGui::Indent();
-						// Min Size
+						// Text Input - Editable multiline text box (like Unity)
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Min Size");
-						ImGui::SameLine(labelWidth);
-						ImGui::SetNextItemWidth(-1);
-						if (ImGui::DragFloat("##MinSize", &comp.minSize, 1.0f, 1.0f, 200.0f)) {
+						ImGui::Text("Text Input");
+						
+						// Large editable text box
+						char textBuffer[4096];
+						strncpy_s(textBuffer, sizeof(textBuffer), comp.text.c_str(), sizeof(textBuffer));
+						textBuffer[sizeof(textBuffer) - 1] = '\0';
+						
+						// Calculate height for multiline input (about 4-5 lines)
+						float textBoxHeight = ImGui::GetTextLineHeight() * 5.0f;
+						
+						if (ImGui::InputTextMultiline("##NewText", textBuffer, sizeof(textBuffer), 
+							ImVec2(-1, textBoxHeight), ImGuiInputTextFlags_None)) {
+							comp.text = textBuffer;
 							NE::MarkSceneDirty();
 						}
 
-						// Max Size
+						ImGui::Spacing();
+
+						// Font Asset
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Max Size");
+						ImGui::Text("Font Asset");
 						ImGui::SameLine(labelWidth);
 						ImGui::SetNextItemWidth(-1);
-						if (ImGui::DragFloat("##MaxSize", &comp.maxSize, 1.0f, 1.0f, 200.0f)) {
+						
+						std::string fontLabel = comp.fontUUID.empty()
+							? "None"
+							: AssetManager::GetInstance().RetrieveFileName(comp.fontUUID);
+						
+						char bufFont[256];
+						strncpy_s(bufFont, fontLabel.c_str(), sizeof(bufFont));
+						bufFont[sizeof(bufFont) - 1] = '\0';
+						ImGui::InputText("##FontAsset", bufFont, sizeof(bufFont), ImGuiInputTextFlags_ReadOnly);
+
+						if (ImGui::BeginDragDropTarget()) {
+							if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH")) {
+								std::string dropped((const char*)p->Data, p->DataSize - 1);
+								auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+								if (!uuid.empty()) {
+									comp.fontUUID = uuid;
+									NE::MarkSceneDirty();
+								}
+							}
+							ImGui::EndDragDropTarget();
+						}
+
+						// Right-click to clear font
+						if (ImGui::BeginPopupContextItem("##FontContext")) {
+							if (ImGui::MenuItem("Clear")) {
+								comp.fontUUID.clear();
+								NE::MarkSceneDirty();
+							}
+							ImGui::EndPopup();
+						}
+
+						// Font Style - Toggle buttons (like Unity)
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Font Style");
+						ImGui::SameLine(labelWidth);
+						
+						// Convert enum to bool flags for UI
+						bool isBold = (comp.fontStyle == NE::ECS::Component::UIText::FontStyle::BOLD) ||
+									  (comp.fontStyle == NE::ECS::Component::UIText::FontStyle::BOLD_AND_ITALIC);
+						bool isItalic = (comp.fontStyle == NE::ECS::Component::UIText::FontStyle::ITALIC) ||
+										(comp.fontStyle == NE::ECS::Component::UIText::FontStyle::BOLD_AND_ITALIC);
+						
+						ImGui::BeginGroup();
+						
+						// Bold button
+						ImGui::PushStyleColor(ImGuiCol_Button, isBold ? ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] : ImGui::GetStyle().Colors[ImGuiCol_Button]);
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+						ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+						if (ImGui::Button("B", ImVec2(30, 0))) {
+							isBold = !isBold;
+							// Update enum based on button states
+							if (isBold && isItalic) {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::BOLD_AND_ITALIC;
+							} else if (isBold) {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::BOLD;
+							} else if (isItalic) {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::ITALIC;
+							} else {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::NORMAL;
+							}
+							NE::MarkSceneDirty();
+						}
+						ImGui::PopStyleColor(3);
+						
+						ImGui::SameLine();
+						
+						// Italic button
+						ImGui::PushStyleColor(ImGuiCol_Button, isItalic ? ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] : ImGui::GetStyle().Colors[ImGuiCol_Button]);
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+						ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+						if (ImGui::Button("I", ImVec2(30, 0))) {
+							isItalic = !isItalic;
+							// Update enum based on button states
+							if (isBold && isItalic) {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::BOLD_AND_ITALIC;
+							} else if (isBold) {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::BOLD;
+							} else if (isItalic) {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::ITALIC;
+							} else {
+								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::NORMAL;
+							}
+							NE::MarkSceneDirty();
+						}
+						ImGui::PopStyleColor(3);
+						
+						ImGui::EndGroup();
+
+						// Font Size
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Font Size");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::DragFloat("##FontSize", &comp.fontSize, 1.0f, 1.0f, 200.0f)) {
+							NE::MarkSceneDirty();
+						}
+
+						// Auto Size (indented under Font Size)
+						ImGui::Indent();
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Auto Size");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::Checkbox("##AutoSize", &comp.bestFit)) {
+							NE::MarkSceneDirty();
+						}
+
+						// Min/Max Size (shown when Auto Size is enabled)
+						if (comp.bestFit) {
+							ImGui::Indent();
+							// Min Size
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Min Size");
+							ImGui::SameLine(labelWidth);
+							ImGui::SetNextItemWidth(-1);
+							if (ImGui::DragFloat("##MinSize", &comp.minSize, 1.0f, 1.0f, 200.0f)) {
+								NE::MarkSceneDirty();
+							}
+
+							// Max Size
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Max Size");
+							ImGui::SameLine(labelWidth);
+							ImGui::SetNextItemWidth(-1);
+							if (ImGui::DragFloat("##MaxSize", &comp.maxSize, 1.0f, 1.0f, 200.0f)) {
+								NE::MarkSceneDirty();
+							}
+							ImGui::Unindent();
+						}
+						ImGui::Unindent();
+
+						// Spacing Options (em) - section header with indented items
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Spacing Options (em)");
+						ImGui::Indent();
+						
+						// Character Spacing (indented)
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Character");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::DragFloat("##CharSpacing", &comp.characterSpacing, 0.1f, -50.0f, 50.0f, "%.1f")) {
+							NE::MarkSceneDirty();
+						}
+
+						// Word Spacing (indented)
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Word");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::DragFloat("##WordSpacing", &comp.wordSpacing, 0.1f, -50.0f, 50.0f, "%.1f")) {
+							NE::MarkSceneDirty();
+						}
+
+						// Line Spacing (indented)
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Line");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::DragFloat("##LineSpacing", &comp.lineSpacing, 0.1f, 0.1f, 5.0f, "%.1f")) {
+							NE::MarkSceneDirty();
+						}
+
+						// Paragraph Spacing (indented)
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Paragraph");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::DragFloat("##ParagraphSpacing", &comp.paragraphSpacing, 0.1f, 0.0f, 50.0f, "%.1f")) {
 							NE::MarkSceneDirty();
 						}
 						ImGui::Unindent();
-					}
 
-					// Line Spacing
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Line Spacing");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::DragFloat("##LineSpacing", &comp.lineSpacing, 0.1f, 0.1f, 5.0f)) {
-						NE::MarkSceneDirty();
-					}
+						// Alignment - 3x3 clickable button grid (like Unity)
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Alignment");
+						ImGui::SameLine(labelWidth);
+						
+						ImGui::BeginGroup();
+						
+						const float buttonSize = 20.0f;
+						const float horizontalSpacing = 1.0f;  // Spacing between buttons in same row
+						const float verticalSpacing = 1.0f;   // Spacing between rows
+						
+						int currentHAlign = static_cast<int>(comp.horizontalAlign);
+						int currentVAlign = static_cast<int>(comp.verticalAlign);
+						
+						// Store starting positions for grid
+						float gridStartX = ImGui::GetCursorPosX();
+						float row1Y = ImGui::GetCursorPosY();
+						
+						// Top row: Left-Top, Center-Top, Right-Top
+						for (int h = 0; h < 3; ++h) {
+							bool isSelected = (currentHAlign == h && currentVAlign == 0);
+							ImGui::PushStyleColor(ImGuiCol_Button, isSelected ? ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] : ImGui::GetStyle().Colors[ImGuiCol_Button]);
+							
+							char id[32];
+							sprintf_s(id, "##Align_%d_%d", h, 0);
+							if (ImGui::Button(id, ImVec2(buttonSize, buttonSize))) {
+								comp.horizontalAlign = static_cast<NE::ECS::Component::UIText::Alignment>(h);
+								comp.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::TOP;
+								NE::MarkSceneDirty();
+							}
+							
+							if (ImGui::IsItemHovered()) {
+								const char* hNames[] = { "Left", "Center", "Right" };
+								ImGui::SetTooltip("%s - Top", hNames[h]);
+							}
+							
+							ImGui::PopStyleColor();
+							
+							if (h < 2) ImGui::SameLine(0, horizontalSpacing);
+						}
+						
+						// Middle row: Left-Middle, Center-Middle, Right-Middle
+						// Position: below first row with vertical spacing
+						float row2Y = row1Y + buttonSize + verticalSpacing;
+						ImGui::SetCursorPosX(gridStartX);
+						ImGui::SetCursorPosY(row2Y);
+						
+						for (int h = 0; h < 3; ++h) {
+							bool isSelected = (currentHAlign == h && currentVAlign == 1);
+							ImGui::PushStyleColor(ImGuiCol_Button, isSelected ? ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] : ImGui::GetStyle().Colors[ImGuiCol_Button]);
+							
+							char id[32];
+							sprintf_s(id, "##Align_%d_%d", h, 1);
+							if (ImGui::Button(id, ImVec2(buttonSize, buttonSize))) {
+								comp.horizontalAlign = static_cast<NE::ECS::Component::UIText::Alignment>(h);
+								comp.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+								NE::MarkSceneDirty();
+							}
+							
+							if (ImGui::IsItemHovered()) {
+								const char* hNames[] = { "Left", "Center", "Right" };
+								ImGui::SetTooltip("%s - Middle", hNames[h]);
+							}
+							
+							ImGui::PopStyleColor();
+							
+							if (h < 2) ImGui::SameLine(0, horizontalSpacing);
+						}
+						
+						// Bottom row: Left-Bottom, Center-Bottom, Right-Bottom
+						// Position: below second row with vertical spacing
+						float row3Y = row2Y + buttonSize + verticalSpacing;
+						ImGui::SetCursorPosX(gridStartX);
+						ImGui::SetCursorPosY(row3Y);
+						
+						for (int h = 0; h < 3; ++h) {
+							bool isSelected = (currentHAlign == h && currentVAlign == 2);
+							ImGui::PushStyleColor(ImGuiCol_Button, isSelected ? ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] : ImGui::GetStyle().Colors[ImGuiCol_Button]);
+							
+							char id[32];
+							sprintf_s(id, "##Align_%d_%d", h, 2);
+							if (ImGui::Button(id, ImVec2(buttonSize, buttonSize))) {
+								comp.horizontalAlign = static_cast<NE::ECS::Component::UIText::Alignment>(h);
+								comp.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::BOTTOM;
+								NE::MarkSceneDirty();
+							}
+							
+							if (ImGui::IsItemHovered()) {
+								const char* hNames[] = { "Left", "Center", "Right" };
+								ImGui::SetTooltip("%s - Bottom", hNames[h]);
+							}
+							
+							ImGui::PopStyleColor();
+							
+							if (h < 2) ImGui::SameLine(0, horizontalSpacing);
+						}
+						
+						ImGui::EndGroup();
 
-					// Character Spacing
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Character Spacing");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::DragFloat("##CharSpacing", &comp.characterSpacing, 1.0f, -50.0f, 50.0f)) {
-						NE::MarkSceneDirty();
-					}
+						// Wrapping
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wrapping");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::Checkbox("##WordWrap", &comp.wordWrap)) {
+							NE::MarkSceneDirty();
+						}
 
-					// Raycast Target
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Raycast Target");
-					ImGui::SameLine(labelWidth);
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::Checkbox("##RaycastTarget", &comp.raycastTarget)) {
-						NE::MarkSceneDirty();
-					}
+						// Overflow
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Overflow");
+						ImGui::Indent();
 
-					ImGui::Unindent();
+						// Horizontal Overflow
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Horizontal");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						static const char* HOverflows[] = { "Wrap", "Visible", "Truncate" };
+						int currentHOverflow = static_cast<int>(comp.horizontalOverflow);
+						if (ImGui::Combo("##HOverflow", &currentHOverflow, HOverflows, IM_ARRAYSIZE(HOverflows))) {
+							comp.horizontalOverflow = static_cast<decltype(comp.horizontalOverflow)>(currentHOverflow);
+							NE::MarkSceneDirty();
+						}
+
+						// Vertical Overflow
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Vertical");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						static const char* VOverflows[] = { "Wrap", "Visible", "Truncate" };
+						int currentVOverflow = static_cast<int>(comp.verticalOverflow);
+						if (ImGui::Combo("##VOverflow", &currentVOverflow, VOverflows, IM_ARRAYSIZE(VOverflows))) {
+							comp.verticalOverflow = static_cast<decltype(comp.verticalOverflow)>(currentVOverflow);
+							NE::MarkSceneDirty();
+						}
+						ImGui::Unindent();
+
+						// Raycast Target
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Raycast Target");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						if (ImGui::Checkbox("##RaycastTarget", &comp.raycastTarget)) {
+							NE::MarkSceneDirty();
+						}
+
+						ImGui::Unindent();
+					}
 				}
-			}
 		}
 
 		if (ImGui::Button("Add Component"))

@@ -62,6 +62,7 @@ namespace NE::ECS::Component {
         // Text Spacing
         float lineSpacing = 1.0f;
         float characterSpacing = 0.0f;
+        float wordSpacing = 0.0f;
         float paragraphSpacing = 0.0f;
 
         // Rich Text
@@ -91,6 +92,7 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(maxSize),
             NE_REFLECT_FIELD(lineSpacing),
             NE_REFLECT_FIELD(characterSpacing),
+            NE_REFLECT_FIELD(wordSpacing),
             NE_REFLECT_FIELD(paragraphSpacing),
             NE_REFLECT_FIELD(richText),
             NE_REFLECT_FIELD(materialUUID),
