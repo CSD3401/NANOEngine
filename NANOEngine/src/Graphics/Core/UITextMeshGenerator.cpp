@@ -180,71 +180,6 @@ namespace NE::Graphics {
             break;
         }
         
-        // Debug: Comprehensive alignment and bounds logging
-        static int debugCounter = 0;
-        if (debugCounter++ % 60 == 0) { // Log every 60 frames to avoid spam
-            const char* vAlignNames[] = { "TOP", "MIDDLE", "BOTTOM" };
-            const char* hAlignNames[] = { "LEFT", "CENTER", "RIGHT", "JUSTIFY" };
-            
-            // Check if text exceeds container bounds
-            bool exceedsHorizontally = (textBlockLeft < containerLeft) || (textBlockRight > containerRight);
-            bool exceedsVertically = (textBlockTop < containerTop) || (textBlockBottom > containerBottom);
-            bool isWithinBounds = !exceedsHorizontally && !exceedsVertically;
-            
-            std::cout << std::fixed << std::setprecision(2);
-            
-            std::cout << "\n=== UIText Alignment Debug ===" << std::endl;
-            std::cout << "Container Boundaries:" << std::endl;
-            std::cout << "  Left=" << containerLeft << ", Right=" << containerRight 
-                      << ", Top=" << containerTop << ", Bottom=" << containerBottom << std::endl;
-            std::cout << "  Width=" << width << ", Height=" << height << std::endl;
-            std::cout << std::endl;
-            
-            std::cout << "Text Block Boundaries:" << std::endl;
-            std::cout << "  Left=" << textBlockLeft << ", Right=" << textBlockRight 
-                      << ", Top=" << textBlockTop << ", Bottom=" << textBlockBottom << std::endl;
-            std::cout << "  Width=" << actualTextWidth << ", Height=" << totalTextHeight << std::endl;
-            std::cout << std::endl;
-            
-            std::cout << "Alignment Settings:" << std::endl;
-            std::cout << "  Horizontal=" << hAlignNames[static_cast<int>(text.horizontalAlign)] 
-                      << ", Vertical=" << vAlignNames[static_cast<int>(text.verticalAlign)] << std::endl;
-            std::cout << std::endl;
-            
-            std::cout << "Position Calculations:" << std::endl;
-            std::cout << "  First Line Top=" << firstLineTop 
-                      << ", First Line Baseline=" << firstLineBaseline << std::endl;
-            std::cout << "  Font Metrics: Ascender=" << ascender << ", Descender=" << descender 
-                      << ", LineHeight=" << lineHeight << std::endl;
-            std::cout << "  Actual Glyph Extents: Ascender=" << actualAscender 
-                      << ", Descender=" << actualDescender << std::endl;
-            std::cout << "  Max BearingY=" << maxBearingY << ", Max GlyphHeight=" << maxGlyphHeight 
-                      << ", Max Extent Below=" << maxExtentBelowBaseline << std::endl;
-            std::cout << std::endl;
-            
-            std::cout << "Bounds Check:" << std::endl;
-            std::cout << "  Text within bounds=" << (isWithinBounds ? "YES" : "NO") << std::endl;
-            
-            if (exceedsHorizontally) {
-                if (textBlockLeft < containerLeft) {
-                    std::cout << "  WARNING: Text exceeds LEFT by " << (containerLeft - textBlockLeft) << std::endl;
-                }
-                if (textBlockRight > containerRight) {
-                    std::cout << "  WARNING: Text exceeds RIGHT by " << (textBlockRight - containerRight) << std::endl;
-                }
-            }
-            if (exceedsVertically) {
-                if (textBlockTop < containerTop) {
-                    std::cout << "  WARNING: Text exceeds TOP by " << (containerTop - textBlockTop) << std::endl;
-                }
-                if (textBlockBottom > containerBottom) {
-                    std::cout << "  WARNING: Text exceeds BOTTOM by " << (textBlockBottom - containerBottom) << std::endl;
-                }
-            }
-            
-            std::cout << "  Line Count=" << lines.size() << std::endl;
-            std::cout << "==============================\n" << std::endl;
-        }
 
         for (const auto& line : lines) {
             // Check vertical overflow TRUNCATE - skip lines that exceed container height
@@ -268,7 +203,7 @@ namespace NE::Graphics {
             // Track actual rendered bounds for this line
             float lineActualTop = currentY;
             float lineActualBottom = currentY;
-            
+
             // Generate quads for each character in the line
             for (size_t i = 0; i < line.text.length(); ++i) {
                 uint32_t codepoint = static_cast<unsigned char>(line.text[i]);
@@ -293,6 +228,13 @@ namespace NE::Graphics {
                 float charRight = charX + metrics->width;
                 
                 // Calculate actual character bounds (charY is top of character quad)
+                // Fix baseline alignment: ensure all characters sit on the same baseline
+                // The baseline is where characters "sit" - all should align here
+                // Position character so its baseline aligns with text baseline (currentY)
+                // The glyph's baseline is 'metrics->bearingY' pixels below its top
+                // So: charY + metrics->bearingY = currentY (baseline)
+                // Therefore: charY = currentY - metrics->bearingY
+                // This ensures all characters have their baseline at the same Y position
                 float charY = currentY - metrics->bearingY;
                 float charTop = charY;
                 float charBottom = charY + metrics->height;
@@ -320,11 +262,12 @@ namespace NE::Graphics {
                 }
 
                 // Generate quad for this character (with clipping if needed)
+                // Pass actualAscender to normalize character alignment
                 if (text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && width > 0.0f) {
-                    GenerateCharacterQuadClipped(vertices, *metrics, currentX, currentY, z, color, containerLeft, containerRight);
+                    GenerateCharacterQuadClipped(vertices, *metrics, currentX, currentY, z, color, containerLeft, containerRight, actualAscender);
                 } else {
                     // VISIBLE mode - render fully
-                    GenerateCharacterQuad(vertices, *metrics, currentX, currentY, z, color);
+                    GenerateCharacterQuad(vertices, *metrics, currentX, currentY, z, color, actualAscender);
                 }
 
                 // Advance cursor
@@ -340,18 +283,7 @@ namespace NE::Graphics {
                 currentX += text.characterSpacing;
             }
 
-            // Debug: Log actual line bounds
-            static int lineDebugCounter = 0;
-            if (lineDebugCounter++ % 60 == 0) {
-                std::cout << std::fixed << std::setprecision(2);
-                std::cout << "Line Actual Bounds: Top=" << lineActualTop 
-                          << ", Bottom=" << lineActualBottom 
-                          << ", Height=" << (lineActualBottom - lineActualTop) << std::endl;
-                std::cout << "  Baseline=" << (currentY - lineHeight) 
-                          << ", Expected Top=" << ((currentY - lineHeight) - actualAscender)
-                          << ", Expected Bottom=" << ((currentY - lineHeight) + actualDescender) << std::endl;
-            }
-            
+
             // Move to next line
             currentY += lineHeight;
         }
@@ -375,15 +307,19 @@ namespace NE::Graphics {
         std::vector<UIVertex>& vertices,
         const GlyphMetrics& metrics,
         float x, float y, float z,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        float normalizedAscender
     ) {
         // Calculate character position
         // bearingX: horizontal offset from cursor (can be negative for some characters)
-        // For Y: in top-down system, we position from baseline
-        // bearingY from stb_truetype is the offset from baseline (positive = above baseline)
-        // In top-down: baseline is at y, so we subtract bearingY to get top of character
+        // For Y: position character so its baseline aligns with text baseline
+        // The baseline is where characters "sit" - all should align here
+        // The glyph's baseline is 'metrics.bearingY' pixels below its top
+        // So: charY + metrics.bearingY = y (baseline)
+        // Therefore: charY = y - metrics.bearingY
+        // This ensures all characters have their baseline at the same Y position
         float charX = x + metrics.bearingX;
-        float charY = y - metrics.bearingY; // bearingY is distance from baseline upward
+        float charY = y - metrics.bearingY;
 
         // Character quad dimensions
         float charWidth = metrics.width;
@@ -436,11 +372,17 @@ namespace NE::Graphics {
         float x, float y, float z,
         const Math::Vec4& color,
         float clipLeft,
-        float clipRight
+        float clipRight,
+        float normalizedAscender
     ) {
         // Calculate character position
+        // Use normalized ascender to ensure consistent baseline alignment
         float charX = x + metrics.bearingX;
-        float charY = y - metrics.bearingY;
+        // All characters use the same top offset (normalizedAscender) from baseline
+        float charY = y - normalizedAscender;
+        // Adjust for glyph's actual baseline position
+        float baselineAdjustment = normalizedAscender - metrics.bearingY;
+        charY += baselineAdjustment;
         float charWidth = metrics.width;
         float charHeight = metrics.height;
         float charRight = charX + charWidth;

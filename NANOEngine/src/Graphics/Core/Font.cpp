@@ -255,11 +255,25 @@ namespace NE::Graphics {
             int advanceWidth, leftSideBearing;
             stbtt_GetCodepointHMetrics(&font, c, &advanceWidth, &leftSideBearing);
 
-            // yoff is the offset from the top of the bitmap to the baseline
-            // bearingY should be the distance from baseline to top of character (positive = above baseline)
-            // In stb_truetype: yoff is typically negative (baseline is below top of bitmap)
-            // So bearingY = -yoff gives us the distance from baseline to top
-            float bearingY = -yoff * m_scale;
+            // Get glyph bounding box for more accurate metrics
+            int x0, y0, x1, y1;
+            bool hasBox = stbtt_GetCodepointBox(&font, c, &x0, &y0, &x1, &y1) != 0;
+            
+            // Calculate bearingY: distance from baseline to top of character
+            // Option 1: Use bounding box if available (more accurate)
+            // Option 2: Fall back to yoff from bitmap
+            float bearingY;
+            if (hasBox) {
+                // y1 is the top of the glyph in font units (positive = above baseline)
+                // Scale it to match our font size
+                bearingY = static_cast<float>(y1) * m_scale;
+            } else {
+                // Fallback: yoff is the offset from the top of the bitmap to the baseline
+                // bearingY should be the distance from baseline to top of character (positive = above baseline)
+                // In stb_truetype: yoff is typically negative (baseline is below top of bitmap)
+                // So bearingY = -yoff gives us the distance from baseline to top
+                bearingY = -yoff * m_scale;
+            }
 
             GlyphMetrics metrics;
             metrics.width = static_cast<float>(w);

@@ -35,7 +35,8 @@ namespace NE::Graphics {
             std::vector<UIVertex>& vertices,
             const GlyphMetrics& metrics,
             float x, float y, float z,
-            const Math::Vec4& color
+            const Math::Vec4& color,
+            float normalizedAscender
         );
 
         // Generate vertices for a single character with horizontal clipping
@@ -45,7 +46,8 @@ namespace NE::Graphics {
             float x, float y, float z,
             const Math::Vec4& color,
             float clipLeft,
-            float clipRight
+            float clipRight,
+            float normalizedAscender
         );
 
         // Calculate text layout (word wrapping, alignment)
