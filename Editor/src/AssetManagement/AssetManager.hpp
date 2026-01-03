@@ -40,6 +40,7 @@ namespace Editor {
 		bool CookShader(const std::string& sourcePath, const std::string& outPath);
 		bool CookMaterial(const std::string& sourcePath, const std::string& outPath);
 		bool CookMesh(const std::string& sourcePath, const std::string& outPath);
+		bool CookFont(const std::string& sourcePath, const std::string& outPath);
 
 		std::unordered_map<UUID, AssetMetadata> m_assets;
 	};

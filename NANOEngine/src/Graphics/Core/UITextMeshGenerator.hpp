@@ -54,6 +54,7 @@ namespace NE::Graphics {
         struct TextLine {
             std::string text;
             float width;
+            bool isParagraphStart = false; // True if this is the first line of a paragraph
         };
         static std::vector<TextLine> CalculateTextLines(
             const std::string& text,

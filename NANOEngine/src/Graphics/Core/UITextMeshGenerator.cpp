@@ -186,7 +186,14 @@ namespace NE::Graphics {
 
         // Track which line we're on for ellipsis rendering
         size_t lineIndex = 0;
+        bool isFirstLine = true;
         for (const auto& line : lines) {
+            // Add paragraph spacing if this is the start of a new paragraph (and not the first line)
+            if (line.isParagraphStart && !isFirstLine) {
+                currentY += text.paragraphSpacing * font.GetLineHeight();
+            }
+            isFirstLine = false;
+            
             // Check vertical overflow TRUNCATE - skip lines that exceed container height
             if (text.verticalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && height > 0.0f) {
                 // currentY is the baseline, so line top is baseline - actualAscender
@@ -593,16 +600,19 @@ namespace NE::Graphics {
         }
 
         // Process each paragraph
-        for (const auto& paragraph : paragraphs) {
+        for (size_t paraIndex = 0; paraIndex < paragraphs.size(); ++paraIndex) {
+            const auto& paragraph = paragraphs[paraIndex];
+            bool isFirstLineOfParagraph = true;
+            
             if (paragraph.empty()) {
-                lines.push_back({ "", 0.0f });
+                lines.push_back({ "", 0.0f, isFirstLineOfParagraph });
                 continue;
             }
 
             if (!wordWrap || maxWidth <= 0.0f) {
                 // No wrapping - single line
                 float lineWidth = font.MeasureTextWidth(paragraph);
-                lines.push_back({ paragraph, lineWidth });
+                lines.push_back({ paragraph, lineWidth, isFirstLineOfParagraph });
             } else {
                 // Word wrapping
                 std::string currentLine;
@@ -646,7 +656,8 @@ namespace NE::Graphics {
                             currentLineWidth = totalWidth;
                         } else {
                             // Start new line
-                            lines.push_back({ currentLine, currentLineWidth });
+                            lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
+                            isFirstLineOfParagraph = false;
                             currentLine = word;
                             currentLineWidth = wordWidth;
                         }
@@ -655,7 +666,7 @@ namespace NE::Graphics {
 
                 // Add last line
                 if (!currentLine.empty()) {
-                    lines.push_back({ currentLine, currentLineWidth });
+                    lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
                 }
             }
         }

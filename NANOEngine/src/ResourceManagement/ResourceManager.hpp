@@ -3,6 +3,7 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include <vector>
 
 #include "IResource.hpp"
 #include "ResourcePaths.hpp"

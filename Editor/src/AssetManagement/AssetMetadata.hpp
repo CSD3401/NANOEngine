@@ -14,6 +14,7 @@ namespace Editor {
 		Shader,
 		Material,
 		Audio,
+		Font,
 		Prefab
 	};
 

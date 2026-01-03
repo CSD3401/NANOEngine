@@ -223,6 +223,7 @@ namespace Editor {
                     if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
                     if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
                     if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
                     if (payload) {
                         const char* pathStr = static_cast<const char*>(payload->Data);
@@ -312,6 +313,10 @@ namespace Editor {
                         ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
                         hasSpecialPayload = true;
                     }
+                    else if (entryPath.extension() == ".ttf" || entryPath.extension() == ".otf" || entryPath.extension() == ".ttc") {
+                        ImGui::SetDragDropPayload("FONT_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+                        hasSpecialPayload = true;
+                    }
                 }
 
                 // If no special payload was set, use the generic ASSET_MOVE
@@ -356,6 +361,7 @@ namespace Editor {
                     if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
                     if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
                     if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+                    if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
                     if (payload) {
                         const char* pathStr = static_cast<const char*>(payload->Data);

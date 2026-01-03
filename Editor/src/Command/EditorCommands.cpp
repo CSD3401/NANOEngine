@@ -1,7 +1,9 @@
 #include "EditorCommands.hpp"
 #include "EditorInterface/ECSExports.hpp"
 #include "../EditorScene.hpp"
+#include "../AssetManagement/AssetManager.hpp"
 #include <ECS/Core/Entity.hpp>
+#include <ECS/Components/UIText.hpp>
 #include <algorithm>
 
 namespace Editor {
@@ -290,6 +292,20 @@ namespace Editor {
 		m_entity = NE::ECS::Command::CreateUITextEntity(m_parentCanvas);
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
 		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
+
+		// Set default Roboto font
+		if (NE::ECS::Query::HasUIText(m_entity)) {
+			auto& text = NE::ECS::Command::GetUIText(m_entity);
+			if (text.fontUUID.empty()) {
+				// Get UUID for Roboto font
+				std::string robotoPath = "Assets/Fonts/Roboto-Regular.ttf";
+				std::string robotoUUID = AssetManager::GetInstance().RetrieveUUID(robotoPath);
+				if (!robotoUUID.empty()) {
+					text.fontUUID = robotoUUID;
+					text.fontPath = robotoPath;  // Store the file path
+				}
+			}
+		}
 
 		// setup as child node in hierarchy
 		Editor::Node node{};

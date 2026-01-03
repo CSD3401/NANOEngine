@@ -3080,26 +3080,32 @@ namespace Editor {
 						bufFont[sizeof(bufFont) - 1] = '\0';
 						ImGui::InputText("##FontAsset", bufFont, sizeof(bufFont), ImGuiInputTextFlags_ReadOnly);
 
-						if (ImGui::BeginDragDropTarget()) {
-							if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH")) {
-								std::string dropped((const char*)p->Data, p->DataSize - 1);
-								auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
-								if (!uuid.empty()) {
-									comp.fontUUID = uuid;
-									NE::MarkSceneDirty();
-								}
-							}
-							ImGui::EndDragDropTarget();
-						}
-
-						// Right-click to clear font
-						if (ImGui::BeginPopupContextItem("##FontContext")) {
-							if (ImGui::MenuItem("Clear")) {
-								comp.fontUUID.clear();
+					if (ImGui::BeginDragDropTarget()) {
+						if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH")) {
+							std::string dropped((const char*)p->Data, p->DataSize - 1);
+							auto uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+							if (!uuid.empty()) {
+								// Invalidate fontHandle to force reload with new font
+								comp.fontHandle = 0;
+								comp.fontUUID = uuid;
+								comp.fontPath = dropped;  // Store the file path for loading
 								NE::MarkSceneDirty();
 							}
-							ImGui::EndPopup();
 						}
+						ImGui::EndDragDropTarget();
+					}
+
+					// Right-click to clear font
+					if (ImGui::BeginPopupContextItem("##FontContext")) {
+						if (ImGui::MenuItem("Clear")) {
+							// Invalidate fontHandle to force reload
+							comp.fontHandle = 0;
+							comp.fontUUID.clear();
+							comp.fontPath.clear();
+							NE::MarkSceneDirty();
+						}
+						ImGui::EndPopup();
+					}
 
 						// Font Style - Toggle buttons (like Unity)
 						ImGui::AlignTextToFramePadding();
@@ -3130,6 +3136,8 @@ namespace Editor {
 							} else {
 								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::NORMAL;
 							}
+							// Invalidate fontHandle to force reload with new style
+							comp.fontHandle = 0;
 							NE::MarkSceneDirty();
 						}
 						ImGui::PopStyleColor(3);
@@ -3152,11 +3160,27 @@ namespace Editor {
 							} else {
 								comp.fontStyle = NE::ECS::Component::UIText::FontStyle::NORMAL;
 							}
+							// Invalidate fontHandle to force reload with new style
+							comp.fontHandle = 0;
 							NE::MarkSceneDirty();
 						}
 						ImGui::PopStyleColor(3);
 						
 						ImGui::EndGroup();
+
+						// Font Color
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Color");
+						ImGui::SameLine(labelWidth);
+						ImGui::SetNextItemWidth(-1);
+						float textColor[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
+						if (ImGui::ColorEdit4("##TextColor", textColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+							comp.color.x = textColor[0];
+							comp.color.y = textColor[1];
+							comp.color.z = textColor[2];
+							comp.color.w = textColor[3];
+							NE::MarkSceneDirty();
+						}
 
 						// Font Size
 						ImGui::AlignTextToFramePadding();

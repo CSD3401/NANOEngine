@@ -89,8 +89,10 @@ namespace NE::Graphics {
         SPD_INFO("Font atlas generated: " << m_atlasWidth << "x" << m_atlasHeight << " with " << m_glyphs.size() << " glyphs");
     }
 
-    bool Font::LoadFromFile(const std::string& filePath, float fontSize) {
+    bool Font::LoadFromFile(const std::string& filePath, float fontSize, bool isBold, bool isItalic) {
         m_fontSize = fontSize;
+        m_isBold = isBold;
+        m_isItalic = isItalic;
 
         // Read font file
         std::ifstream file(filePath, std::ios::binary | std::ios::ate);
@@ -149,6 +151,47 @@ namespace NE::Graphics {
         return true;
     }
 
+    bool Font::LoadFromBinaryData(const std::vector<uint8_t>& fontData, float fontSize, bool isBold, bool isItalic) {
+        m_fontSize = fontSize;
+        m_fontData = fontData;
+        m_isBold = isBold;
+        m_isItalic = isItalic;
+
+        // Generate atlas
+        if (!GenerateAtlas()) {
+            SPD_WARNING("Font::LoadFromBinaryData: Failed to generate atlas");
+            return false;
+        }
+
+        // Create texture (same as Finalize)
+        if (m_atlasData.empty() || m_atlasWidth == 0 || m_atlasHeight == 0) {
+            SPD_WARNING("Font::LoadFromBinaryData: Invalid atlas data");
+            return false;
+        }
+
+        glGenTextures(1, &m_atlasTextureID);
+        glBindTexture(GL_TEXTURE_2D, m_atlasTextureID);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+            static_cast<GLsizei>(m_atlasWidth),
+            static_cast<GLsizei>(m_atlasHeight),
+            0, GL_RGBA, GL_UNSIGNED_BYTE, m_atlasData.data());
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        // Create bindless handle
+        m_atlasTextureHandle = glGetTextureHandleARB(m_atlasTextureID);
+        glMakeTextureHandleResidentARB(m_atlasTextureHandle);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        SPD_INFO("Font loaded from binary data (size: " << fontSize << ")");
+        return true;
+    }
+
     bool Font::GenerateAtlas() {
         if (m_fontData.empty()) {
             return false;
@@ -197,12 +240,21 @@ namespace NE::Graphics {
 
             for (int c = beginChar; c < endChar; ++c) {
                 int w, h, xoff, yoff;
-                unsigned char* bitmap = stbtt_GetCodepointBitmap(&font, 0, m_scale, c, &w, &h, &xoff, &yoff);
+                unsigned char* bitmap = nullptr;
+                
+                // Always get normal bitmap - we'll apply transformations manually
+                bitmap = stbtt_GetCodepointBitmap(&font, 0, m_scale, c, &w, &h, &xoff, &yoff);
+                
                 if (bitmap) {
                     STBTT_free(bitmap, nullptr);
+                    // Account for bold and italic offsets
+                    int boldOffset = m_isBold ? 2 : 0;
+                    float italicShear = m_isItalic ? 0.3f : 0.0f; // Increased from 0.15f for more slant
+                    int italicOffset = m_isItalic ? static_cast<int>(std::ceil(h * italicShear)) : 0;
+                    int finalWidth = w + boldOffset + italicOffset;
                     rowHeight = std::max(rowHeight, h + padding * 2);
 
-                    if (currentX + w + padding * 2 > static_cast<int>(m_atlasWidth)) {
+                    if (currentX + finalWidth + padding * 2 > static_cast<int>(m_atlasWidth)) {
                         currentX = padding;
                         currentY += rowHeight;
                         rowHeight = h + padding * 2;
@@ -215,7 +267,7 @@ namespace NE::Graphics {
                         break;
                     }
 
-                    currentX += w + padding * 2;
+                    currentX += finalWidth + padding * 2;
                     maxWidth = std::max(maxWidth, currentX);
                 }
             }
@@ -239,17 +291,31 @@ namespace NE::Graphics {
 
         for (int c = beginChar; c < endChar; ++c) {
             int w, h, xoff, yoff;
-            unsigned char* bitmap = stbtt_GetCodepointBitmap(&font, 0, m_scale, c, &w, &h, &xoff, &yoff);
+            unsigned char* bitmap = nullptr;
+            
+            // Always get the normal bitmap - we'll apply italic shear manually
+            bitmap = stbtt_GetCodepointBitmap(&font, 0, m_scale, c, &w, &h, &xoff, &yoff);
+            
             if (!bitmap) continue;
 
+            // For italic, we need extra width for the shear effect
+            // Italic shear: shift each row by (row_index * shear_factor)
+            float italicShear = m_isItalic ? 0.15f : 0.0f; // Shear factor (pixels per row)
+            int italicOffset = m_isItalic ? static_cast<int>(std::ceil(h * italicShear)) : 0;
+            
+            // For bold, we need extra width for the bold effect
+            int boldOffset = m_isBold ? 2 : 0;
+            int finalWidth = w + boldOffset + italicOffset;
+            int finalHeight = h;
+
             // Check if glyph fits on current line
-            if (currentX + w + padding * 2 > static_cast<int>(m_atlasWidth)) {
+            if (currentX + finalWidth + padding * 2 > static_cast<int>(m_atlasWidth)) {
                 currentX = padding;
                 currentY += rowHeight;
                 rowHeight = 0;
             }
 
-            rowHeight = std::max(rowHeight, h + padding * 2);
+            rowHeight = std::max(rowHeight, finalHeight + padding * 2);
 
             // Get glyph metrics
             int advanceWidth, leftSideBearing;
@@ -276,25 +342,93 @@ namespace NE::Graphics {
             }
 
             GlyphMetrics metrics;
-            metrics.width = static_cast<float>(w);
-            metrics.height = static_cast<float>(h);
+            metrics.width = static_cast<float>(finalWidth);
+            metrics.height = static_cast<float>(finalHeight);
             metrics.advanceX = advanceWidth * m_scale;
             metrics.bearingX = leftSideBearing * m_scale;
             metrics.bearingY = bearingY;
             metrics.u0 = static_cast<float>(currentX) / static_cast<float>(m_atlasWidth);
             metrics.v0 = static_cast<float>(currentY) / static_cast<float>(m_atlasHeight);
-            metrics.u1 = static_cast<float>(currentX + w) / static_cast<float>(m_atlasWidth);
-            metrics.v1 = static_cast<float>(currentY + h) / static_cast<float>(m_atlasHeight);
+            metrics.u1 = static_cast<float>(currentX + finalWidth) / static_cast<float>(m_atlasWidth);
+            metrics.v1 = static_cast<float>(currentY + finalHeight) / static_cast<float>(m_atlasHeight);
 
-            // Copy bitmap to atlas (convert grayscale to RGBA)
-            for (int j = 0; j < h; ++j) {
-                for (int i = 0; i < w; ++i) {
+            // Create a temporary buffer for the final glyph (with transformations if needed)
+            std::vector<unsigned char> finalBitmap(finalWidth * finalHeight, 0);
+            
+            // Apply italic shear transformation if needed
+            if (m_isItalic) {
+                // Italic shear: shift each row horizontally by an amount proportional to its distance from bottom
+                // Shear factor: shift_x = (height - row_index) * shear_factor
+                // This creates a backward slant (\) instead of forward (/)
+                float italicShear = 0.3f; // Shear factor (pixels per row) - increased for more slant
+                for (int j = 0; j < h; ++j) {
+                    // Shift based on distance from bottom (h - j) to create backward slant
+                    float rowShift = static_cast<float>(h - j) * italicShear;
+                    int baseX = static_cast<int>(rowShift);
+                    float frac = rowShift - baseX;
+                    
+                    for (int i = 0; i < w; ++i) {
+                        int targetX = i + baseX;
+                        if (targetX >= 0 && targetX < finalWidth && j < finalHeight) {
+                            unsigned char alpha = bitmap[j * w + i];
+                            
+                            // Apply subpixel positioning for smoother italic
+                            if (frac > 0.001f && targetX + 1 < finalWidth) {
+                                // Blend between two pixels
+                                unsigned char& dst1 = finalBitmap[j * finalWidth + targetX];
+                                unsigned char& dst2 = finalBitmap[j * finalWidth + targetX + 1];
+                                dst1 = std::max(dst1, static_cast<unsigned char>(alpha * (1.0f - frac)));
+                                dst2 = std::max(dst2, static_cast<unsigned char>(alpha * frac));
+                            } else {
+                                finalBitmap[j * finalWidth + targetX] = std::max(
+                                    finalBitmap[j * finalWidth + targetX], alpha);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // No italic - just copy the bitmap
+                for (int j = 0; j < h; ++j) {
+                    for (int i = 0; i < w; ++i) {
+                        if (i < finalWidth && j < finalHeight) {
+                            finalBitmap[j * finalWidth + i] = bitmap[j * w + i];
+                        }
+                    }
+                }
+            }
+
+            // Apply bold effect by rendering multiple times with slight offsets
+            if (m_isBold) {
+                // Render the glyph multiple times with slight horizontal offsets
+                for (int offset = 1; offset <= 2; ++offset) {
+                    for (int j = 0; j < h; ++j) {
+                        for (int i = 0; i < w; ++i) {
+                            int targetX = i + offset;
+                            if (m_isItalic) {
+                                // Apply italic shift (backward slant)
+                                float rowShift = static_cast<float>(h - j) * 0.3f;
+                                targetX += static_cast<int>(rowShift);
+                            }
+                            if (targetX >= 0 && targetX < finalWidth && j < finalHeight) {
+                                unsigned char srcAlpha = bitmap[j * w + i];
+                                unsigned char& dstAlpha = finalBitmap[j * finalWidth + targetX];
+                                // Combine alpha values (max blending for bold effect)
+                                dstAlpha = std::max(dstAlpha, srcAlpha);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Copy final bitmap to atlas (convert grayscale to RGBA)
+            for (int j = 0; j < finalHeight; ++j) {
+                for (int i = 0; i < finalWidth; ++i) {
                     int atlasX = currentX + i;
                     int atlasY = currentY + j;
                     if (atlasX >= 0 && atlasX < static_cast<int>(m_atlasWidth) &&
                         atlasY >= 0 && atlasY < static_cast<int>(m_atlasHeight)) {
                         size_t atlasIdx = (atlasY * m_atlasWidth + atlasX) * 4;
-                        unsigned char alpha = bitmap[j * w + i];
+                        unsigned char alpha = finalBitmap[j * finalWidth + i];
                         m_atlasData[atlasIdx + 0] = 255; // R
                         m_atlasData[atlasIdx + 1] = 255; // G
                         m_atlasData[atlasIdx + 2] = 255; // B
@@ -305,7 +439,7 @@ namespace NE::Graphics {
 
             m_glyphs[static_cast<uint32_t>(c)] = metrics;
 
-            currentX += w + padding * 2;
+            currentX += finalWidth + padding * 2;
 
             STBTT_free(bitmap, nullptr);
         }

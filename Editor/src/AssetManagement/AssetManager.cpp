@@ -222,6 +222,7 @@ namespace {
         case Editor::AssetType::Shader:     return "Shader";
         case Editor::AssetType::Material:   return "Material";
         case Editor::AssetType::Audio:      return "Audio";
+        case Editor::AssetType::Font:       return "Font";
         default:                            return "Unknown";
         }
     }
@@ -346,6 +347,9 @@ namespace Editor {
             case AssetType::Audio:
                 GetAssetsOfType<AssetType::Audio>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
                 break;
+            case AssetType::Font:
+                GetAssetsOfType<AssetType::Font>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
+                break;
             default:
                 break;
             }
@@ -355,11 +359,17 @@ namespace Editor {
         }
 
         std::string uuid = GenerateUUID();
-        std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
-
         AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
         metadata.uuid = uuid;
         metadata.type = assetType;
+        
+        // Compute artifact path based on asset type
+        std::string outPath;
+        if (assetType == AssetType::Font) {
+            outPath = NE::Resource::ComputeFontArtifactPathFromUUID(uuid);
+        } else {
+            outPath = NE::Resource::ComputeArtifactPathFromUUID(uuid);
+        }
 
         Document doc;
         doc.SetObject();
@@ -407,6 +417,11 @@ namespace Editor {
         }
         case AssetType::Audio: {
             // TODO: audio import settings later
+            break;
+        }
+        case AssetType::Font: {
+            CookFont(sourcePath, outPath);
+            GetAssetsOfType<AssetType::Font>().push_back({ fsSourcePath.filename().string(), metadata.uuid });
             break;
         }
         default:
@@ -464,9 +479,15 @@ namespace Editor {
                 metadata.sourcePath = doc["sourcePath"].GetString();
 
 
-            std::string outPath = NE::Resource::ComputeArtifactPathFromUUID(metadata.uuid);
-
             AssetType assetType = GetAssetTypeFromExtension(fsSourcePath.extension().string());
+            
+            // Compute artifact path based on asset type
+            std::string outPath;
+            if (assetType == AssetType::Font) {
+                outPath = NE::Resource::ComputeFontArtifactPathFromUUID(metadata.uuid);
+            } else {
+                outPath = NE::Resource::ComputeArtifactPathFromUUID(metadata.uuid);
+            }
             switch (assetType) {
             case AssetType::Texture: {
                 
@@ -493,6 +514,10 @@ namespace Editor {
             }
             case AssetType::Audio: {
 
+                break;
+            }
+            case AssetType::Font: {
+                CookFont(fsSourcePath.string(), outPath);
                 break;
             }
             default:
@@ -585,6 +610,7 @@ namespace Editor {
         else if (e == "shader") return AssetType::Shader;
         else if (e == "material") return AssetType::Material;
         else if (e == "audio") return AssetType::Audio;
+        else if (e == "font") return AssetType::Font;
         return AssetType::Unknown;
     }
 
@@ -595,6 +621,7 @@ namespace Editor {
         else if (e == ".nanoshader") return AssetType::Shader;
         else if (e == ".nanomat") return AssetType::Material;
         else if (e == ".wav" || e == ".mp3") return AssetType::Audio;
+        else if (e == ".ttf" || e == ".otf" || e == ".ttc") return AssetType::Font;
 		return AssetType::Unknown;
 	}
 
@@ -670,6 +697,47 @@ namespace Editor {
         auto shaderStages = Preprocess(source);
 
         return NE::CookShader(sourcePath, outPath, shaderStages);
+    }
+
+    bool AssetManager::CookFont(const std::string& sourcePath, const std::string& outPath) {
+        std::filesystem::path src = sourcePath;
+        std::filesystem::path out = outPath;
+        std::filesystem::create_directories(out.parent_path());
+
+        // Read the font file as binary
+        std::ifstream inFile(src, std::ios::binary | std::ios::ate);
+        if (!inFile) {
+            std::fprintf(stderr, "[CookFont] Failed to open source file: %s\n", src.string().c_str());
+            return false;
+        }
+
+        std::streamsize fileSize = inFile.tellg();
+        if (fileSize <= 0) {
+            std::fprintf(stderr, "[CookFont] Invalid file size: %s\n", src.string().c_str());
+            return false;
+        }
+
+        inFile.seekg(0, std::ios::beg);
+        std::vector<uint8_t> fontData(static_cast<size_t>(fileSize));
+        if (!inFile.read(reinterpret_cast<char*>(fontData.data()), fileSize)) {
+            std::fprintf(stderr, "[CookFont] Failed to read source file: %s\n", src.string().c_str());
+            return false;
+        }
+        inFile.close();
+
+        // Write the font data to the output file
+        std::ofstream outFile(out, std::ios::binary);
+        if (!outFile) {
+            std::fprintf(stderr, "[CookFont] Failed to create output file: %s\n", out.string().c_str());
+            return false;
+        }
+
+        outFile.write(reinterpret_cast<const char*>(fontData.data()), fontData.size());
+        outFile.close();
+
+        std::printf("[CookFont] OK: %s -> %s (%zu bytes)\n", 
+            src.string().c_str(), out.string().c_str(), fontData.size());
+        return true;
     }
 
     bool AssetManager::CookMaterial(const std::string& sourcePath, const std::string& outPath) {

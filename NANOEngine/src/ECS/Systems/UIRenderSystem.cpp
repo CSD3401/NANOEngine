@@ -8,9 +8,13 @@
 #include "../../Graphics/Core/UIRenderer.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
+#include "../../ResourceManagement/ResourceManager.hpp"
+#include "../../ResourceManagement/ResourcePaths.hpp"
 #include "../../Graphics/Core/Font.hpp"
-#include "ResourceManagement/ResourceManager.hpp"
 #include "Core/SpdLogger.hpp"
+#include <functional>
+#include <fstream>
+#include <vector>
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -33,6 +37,90 @@ namespace NE::ECS::Systems {
 
     UIRenderSystem::UIRenderSystem(ComponentManager* cm, UITransformSystem* transformSystem) 
         : m_cm(cm), m_transformSystem(transformSystem) {}
+
+    // Helper function to generate cache key from fontUUID, fontSize, and fontStyle
+    static uint32_t GenerateFontCacheKey(const std::string& fontUUID, float fontSize, UIText::FontStyle fontStyle) {
+        std::hash<std::string> hasher;
+        uint32_t uuidHash = static_cast<uint32_t>(hasher(fontUUID));
+        uint32_t sizeKey = static_cast<uint32_t>(fontSize * 100.0f);
+        uint32_t styleKey = static_cast<uint32_t>(static_cast<int>(fontStyle));
+        // Combine UUID hash, size key, and style key
+        return uuidHash ^ (sizeKey << 16) ^ (sizeKey >> 16) ^ (styleKey << 8) ^ (styleKey >> 24);
+    }
+
+    // Calculate optimal font size for auto-sizing (best fit)
+    static float CalculateOptimalFontSize(
+        UIText& text,
+        float containerWidth,
+        float containerHeight,
+        const std::string& fontPath,
+        const std::vector<uint8_t>& fontData
+    ) {
+        if (text.text.empty() || containerWidth <= 0.0f || containerHeight <= 0.0f) {
+            return text.fontSize;
+        }
+
+        // Extract bold and italic flags
+        bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
+                      (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+        bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
+                        (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+
+        // Check if word wrap is enabled
+        bool wordWrap = text.wordWrap || (text.horizontalOverflow == UIText::OverflowMode::WRAP);
+        float maxWidth = wordWrap ? containerWidth : 0.0f;
+
+        // Binary search for optimal font size
+        float minSize = text.minSize;
+        float maxSize = text.maxSize;
+        float bestSize = minSize;
+
+        // Binary search
+        const float epsilon = 0.5f;
+        int iterations = 0;
+        const int maxIterations = 20; // Prevent infinite loops
+
+        while (maxSize - minSize > epsilon && iterations < maxIterations) {
+            float testSize = (minSize + maxSize) * 0.5f;
+            
+            // Create temporary font to measure text
+            std::shared_ptr<NE::Graphics::Font> testFont = std::make_shared<NE::Graphics::Font>();
+            bool loaded = false;
+            
+            if (!fontData.empty()) {
+                loaded = testFont->LoadFromBinaryData(fontData, testSize, isBold, isItalic);
+            } else if (!fontPath.empty()) {
+                loaded = testFont->LoadFromFile(fontPath, testSize, isBold, isItalic);
+            } else {
+                loaded = testFont->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", testSize, isBold, isItalic);
+            }
+
+            if (!loaded) {
+                // If font can't be loaded, try smaller size
+                maxSize = testSize;
+                iterations++;
+                continue;
+            }
+
+            // Measure text dimensions
+            float textWidth = testFont->MeasureTextWidth(text.text);
+            float textHeight = testFont->MeasureTextHeight(text.text, maxWidth);
+
+            if (textWidth <= containerWidth && textHeight <= containerHeight) {
+                // Text fits, try larger size
+                bestSize = testSize;
+                minSize = testSize;
+            } else {
+                // Text doesn't fit, try smaller size
+                maxSize = testSize;
+            }
+            
+            iterations++;
+        }
+
+        // Clamp to min/max bounds
+        return std::max(text.minSize, std::min(text.maxSize, bestSize));
+    }
 
     void UIRenderSystem::Init() {
         const auto& entities = GetEntities();
@@ -60,23 +148,70 @@ namespace NE::ECS::Systems {
             if (m_cm->HasComponent<UIText>(e)) {
                 auto& text = m_cm->GetComponent<UIText>(e);
 
+                // Extract bold and italic flags from fontStyle
+                bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
+                              (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+                bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
+                                (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+
+                // Generate cache key from fontUUID, fontSize, and fontStyle
+                uint32_t currentCacheKey = GenerateFontCacheKey(text.fontUUID, text.fontSize, text.fontStyle);
+                
+                // If fontHandle doesn't match current cache key, invalidate it
+                if (text.fontHandle != 0 && text.fontHandle != currentCacheKey) {
+                    text.fontHandle = 0;  // Invalidate to force reload
+                }
+
                 if (text.fontHandle == 0) {
-                    // Create a cache key based on font size (for now, using fontSize as key)
-                    // TODO: Use fontUUID when font assets are properly set up
-                    uint32_t cacheKey = static_cast<uint32_t>(text.fontSize * 100.0f); // Use fontSize as key
-                    
                     // Check if font is already cached
-                    auto cacheIt = m_fontCache.find(cacheKey);
+                    auto cacheIt = m_fontCache.find(currentCacheKey);
                     if (cacheIt != m_fontCache.end()) {
-                        text.fontHandle = cacheKey; // Store cache key instead of raw pointer
+                        text.fontHandle = currentCacheKey;
                     } else {
-                        // Load font and cache it
-                        auto font = std::make_shared<NE::Graphics::Font>();
-                        if (font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize)) {
-                            m_fontCache[cacheKey] = font;
-                            text.fontHandle = cacheKey;
+                        // Try to load font from cooked binary using UUID
+                        std::shared_ptr<NE::Graphics::Font> font;
+                        if (!text.fontUUID.empty()) {
+                            // Load font binary data and create font with correct fontSize and style
+                            std::string fontPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
+                            std::ifstream fontFile(fontPath, std::ios::binary | std::ios::ate);
+                            if (fontFile) {
+                                std::streamsize fileSize = fontFile.tellg();
+                                if (fileSize > 0) {
+                                    fontFile.seekg(0, std::ios::beg);
+                                    std::vector<uint8_t> fontData(static_cast<size_t>(fileSize));
+                                    if (fontFile.read(reinterpret_cast<char*>(fontData.data()), fileSize)) {
+                                        font = std::make_shared<NE::Graphics::Font>();
+                                        if (!font->LoadFromBinaryData(fontData, text.fontSize, isBold, isItalic)) {
+                                            font = nullptr;
+                                        }
+                                    }
+                                }
+                                fontFile.close();
+                            }
+                        }
+                        
+                        // If UUID loading failed, fall back to file path (for backward compatibility)
+                        if (!font && !text.fontPath.empty()) {
+                            font = std::make_shared<NE::Graphics::Font>();
+                            if (!font->LoadFromFile(text.fontPath, text.fontSize, isBold, isItalic)) {
+                                font = nullptr;
+                            }
+                        }
+                        
+                        // If still no font, use default Roboto
+                        if (!font) {
+                            font = std::make_shared<NE::Graphics::Font>();
+                            if (!font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize, isBold, isItalic)) {
+                                SPD_WARNING("Failed to load font for UIText entity: " << e);
+                            } else {
+                                // Cache the font only if it loaded successfully
+                                m_fontCache[currentCacheKey] = font;
+                                text.fontHandle = currentCacheKey;
+                            }
                         } else {
-                            SPD_WARNING("Failed to load font for UIText entity: " << e);
+                            // Cache the font loaded from UUID or file path
+                            m_fontCache[currentCacheKey] = font;
+                            text.fontHandle = currentCacheKey;
                         }
                     }
                 }
@@ -109,27 +244,70 @@ namespace NE::ECS::Systems {
         if (m_cm->HasComponent<UIText>(e)) {
             auto& text = m_cm->GetComponent<UIText>(e);
 
-            // Always check if font needs to be reloaded (fontSize might have changed)
-            uint32_t currentCacheKey = static_cast<uint32_t>(text.fontSize * 100.0f);
+            // Extract bold and italic flags from fontStyle
+            bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
+                          (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+            bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
+                            (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+
+            // Generate cache key from fontUUID, fontSize, and fontStyle
+            uint32_t currentCacheKey = GenerateFontCacheKey(text.fontUUID, text.fontSize, text.fontStyle);
             
-            // If fontHandle doesn't match current fontSize, invalidate it
+            // If fontHandle doesn't match current cache key, invalidate it
             if (text.fontHandle != 0 && text.fontHandle != currentCacheKey) {
                 text.fontHandle = 0;  // Invalidate to force reload
             }
             
             if (text.fontHandle == 0) {
-                // Check if font with this size is already cached
+                // Check if font is already cached
                 auto cacheIt = m_fontCache.find(currentCacheKey);
                 if (cacheIt != m_fontCache.end()) {
                     text.fontHandle = currentCacheKey;
                 } else {
-                    // Load font and cache it
-                    auto font = std::make_shared<NE::Graphics::Font>();
-                    if (font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize)) {
+                    // Try to load font from cooked binary using UUID
+                    std::shared_ptr<NE::Graphics::Font> font;
+                    if (!text.fontUUID.empty()) {
+                        // Load font binary data and create font with correct fontSize and style
+                        std::string fontPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
+                        std::ifstream fontFile(fontPath, std::ios::binary | std::ios::ate);
+                        if (fontFile) {
+                            std::streamsize fileSize = fontFile.tellg();
+                            if (fileSize > 0) {
+                                fontFile.seekg(0, std::ios::beg);
+                                std::vector<uint8_t> fontData(static_cast<size_t>(fileSize));
+                                if (fontFile.read(reinterpret_cast<char*>(fontData.data()), fileSize)) {
+                                    font = std::make_shared<NE::Graphics::Font>();
+                                    if (!font->LoadFromBinaryData(fontData, text.fontSize, isBold, isItalic)) {
+                                        font = nullptr;
+                                    }
+                                }
+                            }
+                            fontFile.close();
+                        }
+                    }
+                    
+                    // If UUID loading failed, fall back to file path (for backward compatibility)
+                    if (!font && !text.fontPath.empty()) {
+                        font = std::make_shared<NE::Graphics::Font>();
+                        if (!font->LoadFromFile(text.fontPath, text.fontSize, isBold, isItalic)) {
+                            font = nullptr;
+                        }
+                    }
+                    
+                    // If still no font, use default Roboto
+                    if (!font) {
+                        font = std::make_shared<NE::Graphics::Font>();
+                        if (!font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize, isBold, isItalic)) {
+                            SPD_WARNING("Failed to load font for UIText entity: " << e);
+                        } else {
+                            // Cache the font only if it loaded successfully
+                            m_fontCache[currentCacheKey] = font;
+                            text.fontHandle = currentCacheKey;
+                        }
+                    } else {
+                        // Cache the font loaded from UUID or file path
                         m_fontCache[currentCacheKey] = font;
                         text.fontHandle = currentCacheKey;
-                    } else {
-                        SPD_WARNING("Failed to load font for UIText entity: " << e);
                     }
                 }
             }
@@ -349,39 +527,119 @@ namespace NE::ECS::Systems {
             else if (m_cm->HasComponent<UIText>(e)) {
                 auto& text = m_cm->GetComponent<UIText>(e);
 
-                // Get font from cache - check if cached font matches current fontSize
+                // Auto-size (best fit) calculation
+                if (text.bestFit && worldTransform.width > 0.0f && worldTransform.height > 0.0f) {
+                    // Load font data for measurement
+                    std::vector<uint8_t> fontData;
+                    std::string fontPath;
+                    
+                    if (!text.fontUUID.empty()) {
+                        std::string artifactPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
+                        std::ifstream fontFile(artifactPath, std::ios::binary | std::ios::ate);
+                        if (fontFile) {
+                            std::streamsize fileSize = fontFile.tellg();
+                            if (fileSize > 0) {
+                                fontFile.seekg(0, std::ios::beg);
+                                fontData.resize(static_cast<size_t>(fileSize));
+                                fontFile.read(reinterpret_cast<char*>(fontData.data()), fileSize);
+                            }
+                            fontFile.close();
+                        }
+                    } else if (!text.fontPath.empty()) {
+                        fontPath = text.fontPath;
+                    } else {
+                        fontPath = "Assets/Fonts/Roboto-Regular.ttf";
+                    }
+
+                    // Calculate optimal font size
+                    float optimalSize = CalculateOptimalFontSize(
+                        text,
+                        worldTransform.width,
+                        worldTransform.height,
+                        fontPath,
+                        fontData
+                    );
+
+                    // Update fontSize if it changed
+                    if (std::abs(text.fontSize - optimalSize) > 0.1f) {
+                        text.fontSize = optimalSize;
+                        text.fontHandle = 0; // Invalidate to force reload with new size
+                    }
+                }
+
+                // Extract bold and italic flags from fontStyle
+                bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
+                              (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+                bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
+                                (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
+
+                // Generate cache key from fontUUID, fontSize, and fontStyle
+                uint32_t currentCacheKey = GenerateFontCacheKey(text.fontUUID, text.fontSize, text.fontStyle);
+                
+                // Get font from cache
                 std::shared_ptr<NE::Graphics::Font> font;
-                uint32_t currentCacheKey = static_cast<uint32_t>(text.fontSize * 100.0f);
                 
                 if (text.fontHandle != 0) {
-                    // Check if cached font matches current fontSize
+                    // Check if cached font matches current cache key
                     if (text.fontHandle == currentCacheKey) {
                         auto cacheIt = m_fontCache.find(static_cast<uint32_t>(text.fontHandle));
                         if (cacheIt != m_fontCache.end()) {
                             font = cacheIt->second;
                         }
                     } else {
-                        // Font size changed - invalidate old cache entry
+                        // Font UUID, size, or style changed - invalidate old cache entry
                         text.fontHandle = 0;
                     }
                 }
                 
-                // If not in cache or font size changed, load new font
+                // If not in cache, load new font
                 if (!font) {
                     auto cacheIt = m_fontCache.find(currentCacheKey);
                     if (cacheIt != m_fontCache.end()) {
-                        // Font with this size already cached
+                        // Font already cached
                         font = cacheIt->second;
                         text.fontHandle = currentCacheKey;
                     } else {
-                        // Load new font with current fontSize
-                        font = std::make_shared<NE::Graphics::Font>();
-                        if (font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize)) {
-                            m_fontCache[currentCacheKey] = font;
-                            text.fontHandle = currentCacheKey;
-                        } else {
-                            continue; // Skip if font can't be loaded
+                        // Try to load font from cooked binary using UUID
+                        if (!text.fontUUID.empty()) {
+                            // Load font binary data and create font with correct fontSize and style
+                            std::string fontPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
+                            std::ifstream fontFile(fontPath, std::ios::binary | std::ios::ate);
+                            if (fontFile) {
+                                std::streamsize fileSize = fontFile.tellg();
+                                if (fileSize > 0) {
+                                    fontFile.seekg(0, std::ios::beg);
+                                    std::vector<uint8_t> fontData(static_cast<size_t>(fileSize));
+                                    if (fontFile.read(reinterpret_cast<char*>(fontData.data()), fileSize)) {
+                                        font = std::make_shared<NE::Graphics::Font>();
+                                        if (!font->LoadFromBinaryData(fontData, text.fontSize, isBold, isItalic)) {
+                                            font = nullptr;
+                                        }
+                                    }
+                                }
+                                fontFile.close();
+                            }
                         }
+                        
+                        // If UUID loading failed, fall back to file path (for backward compatibility)
+                        if (!font && !text.fontPath.empty()) {
+                            font = std::make_shared<NE::Graphics::Font>();
+                            if (!font->LoadFromFile(text.fontPath, text.fontSize, isBold, isItalic)) {
+                                font = nullptr;
+                            }
+                        }
+                        
+                        // If still no font, use default Roboto
+                        if (!font) {
+                            font = std::make_shared<NE::Graphics::Font>();
+                            if (!font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize, isBold, isItalic)) {
+                                continue; // Skip if font can't be loaded
+                            }
+                        }
+                        
+                        // Cache the font
+                        m_fontCache[currentCacheKey] = font;
+                        text.fontHandle = currentCacheKey;
                     }
                 }
 

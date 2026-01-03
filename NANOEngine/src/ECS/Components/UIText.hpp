@@ -15,6 +15,7 @@ namespace NE::ECS::Component {
         // Text Content
         std::string text = "New Text";
         std::string fontUUID;
+        std::string fontPath;  // Source file path for the font (used for loading)
         float fontSize = 36.0f;  // Default font size
         NE::Math::Vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };  // White color for better visibility on dark backgrounds
 
@@ -79,12 +80,14 @@ namespace NE::ECS::Component {
         float textWidth = 0.0f;
         float textHeight = 0.0f;
 
-        // Reflection - Note: Enum fields are excluded as reflection system may not support them
+        // Reflection - Note: Enum fields are serialized as their underlying integer type
         NE_REFLECT_BEGIN(UIText)
             NE_REFLECT_FIELD_HIDDEN(luid),
             NE_REFLECT_FIELD(text),
             NE_REFLECT_FIELD(fontUUID),
+            NE_REFLECT_FIELD(fontPath),
             NE_REFLECT_FIELD(fontSize),
+            NE_REFLECT_FIELD(fontStyle),
             NE_REFLECT_FIELD(color),
             NE_REFLECT_FIELD(wordWrap),
             NE_REFLECT_FIELD(bestFit),

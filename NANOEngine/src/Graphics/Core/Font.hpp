@@ -35,7 +35,10 @@ namespace NE::Graphics {
         void Finalize() override;
 
         // Direct file loading (for TTF/OTF files)
-        bool LoadFromFile(const std::string& filePath, float fontSize = 16.0f);
+        bool LoadFromFile(const std::string& filePath, float fontSize = 16.0f, bool isBold = false, bool isItalic = false);
+        
+        // Load from binary data with specific fontSize (for cooked fonts)
+        bool LoadFromBinaryData(const std::vector<uint8_t>& fontData, float fontSize, bool isBold = false, bool isItalic = false);
 
         // Get glyph metrics for a character
         const GlyphMetrics* GetGlyphMetrics(uint32_t codepoint) const;
@@ -64,6 +67,8 @@ namespace NE::Graphics {
         std::vector<uint8_t> m_fontData;
         float m_fontSize = 16.0f;
         float m_scale = 1.0f;
+        bool m_isBold = false;
+        bool m_isItalic = false;
         
         // Font metrics
         float m_lineHeight = 0.0f;
