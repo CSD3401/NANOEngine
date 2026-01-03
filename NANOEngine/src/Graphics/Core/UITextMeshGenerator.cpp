@@ -1,7 +1,9 @@
 #include "UITextMeshGenerator.hpp"
-#include "Core/SpdLogger.hpp"
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
+#include <iostream>
 
 namespace NE::Graphics {
 
@@ -19,29 +21,254 @@ namespace NE::Graphics {
         std::vector<UIVertex> vertices;
 
         // Calculate text lines (with word wrapping if enabled)
-        float maxWidth = (text.wordWrap && width > 0.0f) ? width : 0.0f;
-        std::vector<TextLine> lines = CalculateTextLines(text.text, font, maxWidth, text.wordWrap);
+        // Handle horizontal overflow WRAP mode - enable word wrap if overflow is WRAP
+        bool shouldWrap = text.wordWrap || (text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::WRAP);
+        float maxWidth = (shouldWrap && width > 0.0f) ? width : 0.0f;
+        std::vector<TextLine> lines = CalculateTextLines(text.text, font, maxWidth, shouldWrap);
 
         if (lines.empty()) {
             return {};
         }
 
-        // Calculate vertical alignment offset
-        float totalTextHeight = static_cast<float>(lines.size()) * font.GetLineHeight();
-        float verticalOffset = CalculateVerticalOffset(lines, font, height, text.verticalAlign);
+        // Handle vertical overflow TRUNCATE - limit lines based on height
+        float lineHeight = font.GetLineHeight() * text.lineSpacing;
+        size_t maxLines = lines.size();
+        if (text.verticalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && height > 0.0f) {
+            maxLines = static_cast<size_t>(std::floor(height / lineHeight));
+            if (maxLines < lines.size()) {
+                lines.resize(maxLines);
+            }
+        }
+
+        if (lines.empty()) {
+            return {};
+        }
+
+        // Calculate actual rendered bounds by checking all glyphs
+        // Font-level ascender/descender might not match actual glyph extents
+        float maxBearingY = 0.0f;  // Maximum distance above baseline
+        float maxGlyphHeight = 0.0f;  // Maximum glyph height
+        float maxExtentBelowBaseline = 0.0f;  // Maximum extent below baseline
+        
+        // Pre-pass: Calculate actual glyph extents for all characters
+        for (const auto& line : lines) {
+            for (size_t i = 0; i < line.text.length(); ++i) {
+                uint32_t codepoint = static_cast<unsigned char>(line.text[i]);
+                if (codepoint < 32 && codepoint != '\n') continue;
+                
+                const GlyphMetrics* metrics = font.GetGlyphMetrics(codepoint);
+                if (!metrics) continue;
+                
+                // bearingY is distance from baseline upward (positive = above baseline)
+                maxBearingY = std::max(maxBearingY, metrics->bearingY);
+                
+                // Glyph height
+                maxGlyphHeight = std::max(maxGlyphHeight, metrics->height);
+                
+                // Extent below baseline = glyphHeight - bearingY
+                // This is how far the glyph extends below the baseline
+                float extentBelow = metrics->height - metrics->bearingY;
+                maxExtentBelowBaseline = std::max(maxExtentBelowBaseline, extentBelow);
+            }
+        }
+        
+        // Use actual glyph extents instead of font-level metrics
+        // This ensures we account for glyphs that extend beyond font metrics
+        float actualAscender = maxBearingY > 0.0f ? maxBearingY : font.GetAscender();
+        float actualDescender = maxExtentBelowBaseline > 0.0f ? maxExtentBelowBaseline : std::abs(font.GetDescender());
+        
+        // Calculate total visual height using actual glyph extents
+        // For single line: actualAscender + actualDescender
+        // For multiple lines: actualAscender + (lines-1) * lineHeight + actualDescender
+        float totalTextHeight;
+        if (lines.size() == 1) {
+            totalTextHeight = actualAscender + actualDescender;
+        } else {
+            totalTextHeight = actualAscender + (static_cast<float>(lines.size() - 1) * lineHeight) + actualDescender;
+        }
+        
+        // Keep font metrics for reference
+        float ascender = font.GetAscender();
+        float descender = std::abs(font.GetDescender());
+        
+        // Calculate vertical offset to position text block correctly within container
+        // This offset positions the TOP of the text block (baseline - ascender)
+        float verticalOffset = 0.0f;
+        switch (text.verticalAlign) {
+        case NE::ECS::Component::UIText::VerticalAlignment::TOP:
+            // Top of text block (baseline - ascender) aligns with container top
+            verticalOffset = 0.0f;
+            break;
+            
+        case NE::ECS::Component::UIText::VerticalAlignment::MIDDLE:
+            // Center of text block aligns with container center
+            verticalOffset = (height - totalTextHeight) * 0.5f;
+            break;
+            
+        case NE::ECS::Component::UIText::VerticalAlignment::BOTTOM:
+            // Bottom of text block (baseline + descender) aligns with container bottom
+            verticalOffset = height - totalTextHeight;
+            break;
+        }
+
+        // Container boundaries for clipping
+        float containerLeft = x;
+        float containerRight = x + width;
+        float containerTop = y;
+        float containerBottom = y + height;
 
         // Generate vertices for each line
         // Start from top (y is top-left in top-down coordinate system)
-        // Add baseline offset to position text correctly
-        float baselineOffset = font.GetAscender();
-        float currentY = y + verticalOffset + baselineOffset;
+        // For BOTTOM alignment: position so text block bottom aligns with container bottom
+        // For TOP alignment: position so text block top aligns with container top
+        // For MIDDLE alignment: center the text block
+        float firstLineBaseline;
+        switch (text.verticalAlign) {
+        case NE::ECS::Component::UIText::VerticalAlignment::TOP: {
+            // Text block top at container top, baseline is below by actualAscender
+            firstLineBaseline = y + actualAscender;
+            break;
+        }
+        case NE::ECS::Component::UIText::VerticalAlignment::MIDDLE: {
+            // Center text block: container center - (totalTextHeight / 2) + actualAscender
+            firstLineBaseline = y + (height - totalTextHeight) * 0.5f + actualAscender;
+            break;
+        }
+        case NE::ECS::Component::UIText::VerticalAlignment::BOTTOM: {
+            // Text block bottom at container bottom
+            // Text block top = container bottom - totalTextHeight
+            // Baseline = text block top + actualAscender = container bottom - totalTextHeight + actualAscender
+            firstLineBaseline = y + height - totalTextHeight + actualAscender;
+            break;
+        }
+        }
+        
+        float firstLineTop = firstLineBaseline - actualAscender;
+        float currentY = firstLineBaseline; // Baseline of first line
+        
+        // Calculate text block boundaries
+        // Text block top is at first line top (baseline - ascender)
+        // Text block bottom is at first line top + totalTextHeight
+        float textBlockTop = firstLineTop;
+        float textBlockBottom = firstLineTop + totalTextHeight;
+        float textBlockLeft = x;
+        float textBlockRight = x + width; // Will be updated with actual text width if needed
+        
+        // Calculate actual text width (max line width)
+        float actualTextWidth = 0.0f;
+        for (const auto& line : lines) {
+            if (line.width > actualTextWidth) {
+                actualTextWidth = line.width;
+            }
+        }
+        
+        // Determine horizontal text block bounds based on alignment
+        switch (text.horizontalAlign) {
+        case NE::ECS::Component::UIText::Alignment::LEFT:
+            textBlockRight = textBlockLeft + actualTextWidth;
+            break;
+        case NE::ECS::Component::UIText::Alignment::CENTER:
+            textBlockLeft = x + (width - actualTextWidth) * 0.5f;
+            textBlockRight = textBlockLeft + actualTextWidth;
+            break;
+        case NE::ECS::Component::UIText::Alignment::RIGHT:
+            textBlockLeft = x + width - actualTextWidth;
+            textBlockRight = x + width;
+            break;
+        default:
+            textBlockRight = textBlockLeft + actualTextWidth;
+            break;
+        }
+        
+        // Debug: Comprehensive alignment and bounds logging
+        static int debugCounter = 0;
+        if (debugCounter++ % 60 == 0) { // Log every 60 frames to avoid spam
+            const char* vAlignNames[] = { "TOP", "MIDDLE", "BOTTOM" };
+            const char* hAlignNames[] = { "LEFT", "CENTER", "RIGHT", "JUSTIFY" };
+            
+            // Check if text exceeds container bounds
+            bool exceedsHorizontally = (textBlockLeft < containerLeft) || (textBlockRight > containerRight);
+            bool exceedsVertically = (textBlockTop < containerTop) || (textBlockBottom > containerBottom);
+            bool isWithinBounds = !exceedsHorizontally && !exceedsVertically;
+            
+            std::cout << std::fixed << std::setprecision(2);
+            
+            std::cout << "\n=== UIText Alignment Debug ===" << std::endl;
+            std::cout << "Container Boundaries:" << std::endl;
+            std::cout << "  Left=" << containerLeft << ", Right=" << containerRight 
+                      << ", Top=" << containerTop << ", Bottom=" << containerBottom << std::endl;
+            std::cout << "  Width=" << width << ", Height=" << height << std::endl;
+            std::cout << std::endl;
+            
+            std::cout << "Text Block Boundaries:" << std::endl;
+            std::cout << "  Left=" << textBlockLeft << ", Right=" << textBlockRight 
+                      << ", Top=" << textBlockTop << ", Bottom=" << textBlockBottom << std::endl;
+            std::cout << "  Width=" << actualTextWidth << ", Height=" << totalTextHeight << std::endl;
+            std::cout << std::endl;
+            
+            std::cout << "Alignment Settings:" << std::endl;
+            std::cout << "  Horizontal=" << hAlignNames[static_cast<int>(text.horizontalAlign)] 
+                      << ", Vertical=" << vAlignNames[static_cast<int>(text.verticalAlign)] << std::endl;
+            std::cout << std::endl;
+            
+            std::cout << "Position Calculations:" << std::endl;
+            std::cout << "  First Line Top=" << firstLineTop 
+                      << ", First Line Baseline=" << firstLineBaseline << std::endl;
+            std::cout << "  Font Metrics: Ascender=" << ascender << ", Descender=" << descender 
+                      << ", LineHeight=" << lineHeight << std::endl;
+            std::cout << "  Actual Glyph Extents: Ascender=" << actualAscender 
+                      << ", Descender=" << actualDescender << std::endl;
+            std::cout << "  Max BearingY=" << maxBearingY << ", Max GlyphHeight=" << maxGlyphHeight 
+                      << ", Max Extent Below=" << maxExtentBelowBaseline << std::endl;
+            std::cout << std::endl;
+            
+            std::cout << "Bounds Check:" << std::endl;
+            std::cout << "  Text within bounds=" << (isWithinBounds ? "YES" : "NO") << std::endl;
+            
+            if (exceedsHorizontally) {
+                if (textBlockLeft < containerLeft) {
+                    std::cout << "  WARNING: Text exceeds LEFT by " << (containerLeft - textBlockLeft) << std::endl;
+                }
+                if (textBlockRight > containerRight) {
+                    std::cout << "  WARNING: Text exceeds RIGHT by " << (textBlockRight - containerRight) << std::endl;
+                }
+            }
+            if (exceedsVertically) {
+                if (textBlockTop < containerTop) {
+                    std::cout << "  WARNING: Text exceeds TOP by " << (containerTop - textBlockTop) << std::endl;
+                }
+                if (textBlockBottom > containerBottom) {
+                    std::cout << "  WARNING: Text exceeds BOTTOM by " << (textBlockBottom - containerBottom) << std::endl;
+                }
+            }
+            
+            std::cout << "  Line Count=" << lines.size() << std::endl;
+            std::cout << "==============================\n" << std::endl;
+        }
 
         for (const auto& line : lines) {
+            // Check vertical overflow TRUNCATE - skip lines that exceed container height
+            if (text.verticalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && height > 0.0f) {
+                // currentY is the baseline, so line top is baseline - actualAscender
+                float lineTop = currentY - actualAscender;
+                float lineBottom = currentY + actualDescender; // Bottom of line is baseline + actualDescender
+                
+                // Skip if line is completely outside container
+                if (lineBottom > containerBottom || lineTop < containerTop) {
+                    currentY += lineHeight;
+                    continue;
+                }
+            }
+
             // Calculate horizontal alignment offset
             float horizontalOffset = CalculateHorizontalOffset(line, font, width, text.horizontalAlign);
 
             float currentX = x + horizontalOffset;
 
+            // Track actual rendered bounds for this line
+            float lineActualTop = currentY;
+            float lineActualBottom = currentY;
+            
             // Generate quads for each character in the line
             for (size_t i = 0; i < line.text.length(); ++i) {
                 uint32_t codepoint = static_cast<unsigned char>(line.text[i]);
@@ -61,8 +288,44 @@ namespace NE::Graphics {
                     continue;
                 }
 
-                // Generate quad for this character
-                GenerateCharacterQuad(vertices, *metrics, currentX, currentY, z, color);
+                // Calculate character position
+                float charX = currentX + metrics->bearingX;
+                float charRight = charX + metrics->width;
+                
+                // Calculate actual character bounds (charY is top of character quad)
+                float charY = currentY - metrics->bearingY;
+                float charTop = charY;
+                float charBottom = charY + metrics->height;
+                
+                // Update line bounds
+                if (i == 0 || charTop < lineActualTop) {
+                    lineActualTop = charTop;
+                }
+                if (i == 0 || charBottom > lineActualBottom) {
+                    lineActualBottom = charBottom;
+                }
+
+                // Handle horizontal overflow TRUNCATE - skip characters that exceed width
+                if (text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && width > 0.0f) {
+                    // Skip if character is completely outside container
+                    if (charX >= containerRight) {
+                        break; // Stop rendering this line
+                    }
+                    
+                    // Clip character if it partially exceeds bounds
+                    if (charRight > containerRight) {
+                        // Character exceeds bounds - we could clip it, but for simplicity, just stop
+                        break;
+                    }
+                }
+
+                // Generate quad for this character (with clipping if needed)
+                if (text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && width > 0.0f) {
+                    GenerateCharacterQuadClipped(vertices, *metrics, currentX, currentY, z, color, containerLeft, containerRight);
+                } else {
+                    // VISIBLE mode - render fully
+                    GenerateCharacterQuad(vertices, *metrics, currentX, currentY, z, color);
+                }
 
                 // Advance cursor
                 currentX += metrics->advanceX;
@@ -77,8 +340,20 @@ namespace NE::Graphics {
                 currentX += text.characterSpacing;
             }
 
+            // Debug: Log actual line bounds
+            static int lineDebugCounter = 0;
+            if (lineDebugCounter++ % 60 == 0) {
+                std::cout << std::fixed << std::setprecision(2);
+                std::cout << "Line Actual Bounds: Top=" << lineActualTop 
+                          << ", Bottom=" << lineActualBottom 
+                          << ", Height=" << (lineActualBottom - lineActualTop) << std::endl;
+                std::cout << "  Baseline=" << (currentY - lineHeight) 
+                          << ", Expected Top=" << ((currentY - lineHeight) - actualAscender)
+                          << ", Expected Bottom=" << ((currentY - lineHeight) + actualDescender) << std::endl;
+            }
+            
             // Move to next line
-            currentY += font.GetLineHeight() * text.lineSpacing;
+            currentY += lineHeight;
         }
 
         return vertices;
@@ -151,6 +426,80 @@ namespace NE::Graphics {
         vertices.push_back(CreateVertex(
             charX, charY + charHeight, z,
             metrics.u0, metrics.v1, // Bottom-left of glyph in atlas
+            color
+        ));
+    }
+
+    void UITextMeshGenerator::GenerateCharacterQuadClipped(
+        std::vector<UIVertex>& vertices,
+        const GlyphMetrics& metrics,
+        float x, float y, float z,
+        const Math::Vec4& color,
+        float clipLeft,
+        float clipRight
+    ) {
+        // Calculate character position
+        float charX = x + metrics.bearingX;
+        float charY = y - metrics.bearingY;
+        float charWidth = metrics.width;
+        float charHeight = metrics.height;
+        float charRight = charX + charWidth;
+
+        // Clip horizontally if needed
+        float clippedLeft = std::max(charX, clipLeft);
+        float clippedRight = std::min(charRight, clipRight);
+        float clippedWidth = clippedRight - clippedLeft;
+
+        // If character is completely outside clip bounds, don't render
+        if (clippedWidth <= 0.0f || clippedLeft >= clipRight) {
+            return;
+        }
+
+        // Calculate UV clipping (proportional to position clipping)
+        float uClipLeft = metrics.u0;
+        float uClipRight = metrics.u1;
+        if (charWidth > 0.0f) {
+            float uRatio = (clippedLeft - charX) / charWidth;
+            uClipLeft = metrics.u0 + (metrics.u1 - metrics.u0) * uRatio;
+            uRatio = (clippedRight - charX) / charWidth;
+            uClipRight = metrics.u0 + (metrics.u1 - metrics.u0) * uRatio;
+        }
+
+        // Generate clipped quad (2 triangles, 6 vertices)
+        vertices.push_back(CreateVertex(
+            clippedLeft, charY, z,
+            uClipLeft, metrics.v0, // Top-left (clipped)
+            color
+        ));
+
+        vertices.push_back(CreateVertex(
+            clippedRight, charY, z,
+            uClipRight, metrics.v0, // Top-right (clipped)
+            color
+        ));
+
+        vertices.push_back(CreateVertex(
+            clippedRight, charY + charHeight, z,
+            uClipRight, metrics.v1, // Bottom-right (clipped)
+            color
+        ));
+
+        // Second triangle
+        vertices.push_back(CreateVertex(
+            clippedLeft, charY, z,
+            uClipLeft, metrics.v0, // Top-left (clipped)
+            color
+        ));
+
+        vertices.push_back(CreateVertex(
+            clippedRight, charY + charHeight, z,
+            uClipRight, metrics.v1, // Bottom-right (clipped)
+            color
+        ));
+
+        vertices.push_back(CreateVertex(
+            clippedLeft, charY + charHeight, z,
+            uClipLeft, metrics.v1, // Bottom-left (clipped)
             color
         ));
     }
@@ -293,22 +642,32 @@ namespace NE::Graphics {
         const std::vector<TextLine>& lines,
         const Font& font,
         float containerHeight,
-        NE::ECS::Component::UIText::VerticalAlignment alignment
+        NE::ECS::Component::UIText::VerticalAlignment alignment,
+        float lineSpacing
     ) {
         if (containerHeight <= 0.0f || lines.empty()) {
             return 0.0f;
         }
 
-        float totalTextHeight = static_cast<float>(lines.size()) * font.GetLineHeight();
+        // Calculate total text height from baseline to baseline
+        // Note: lineHeight already includes ascender + descender + lineGap
+        float totalTextHeight = static_cast<float>(lines.size()) * font.GetLineHeight() * lineSpacing;
 
         switch (alignment) {
         case NE::ECS::Component::UIText::VerticalAlignment::TOP:
+            // Top alignment: position top of text at container top
+            // The baseline is below the top by the ascender amount
+            // So we return 0, and baselineOffset will be added later
             return 0.0f;
 
         case NE::ECS::Component::UIText::VerticalAlignment::MIDDLE:
+            // Middle alignment: center the text block vertically
+            // The offset positions the top of the text block
             return (containerHeight - totalTextHeight) * 0.5f;
 
         case NE::ECS::Component::UIText::VerticalAlignment::BOTTOM:
+            // Bottom alignment: position bottom of text at container bottom
+            // The offset positions the top of the text block
             return containerHeight - totalTextHeight;
 
         default:

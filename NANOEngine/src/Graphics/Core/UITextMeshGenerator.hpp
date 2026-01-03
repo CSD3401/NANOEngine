@@ -38,6 +38,16 @@ namespace NE::Graphics {
             const Math::Vec4& color
         );
 
+        // Generate vertices for a single character with horizontal clipping
+        static void GenerateCharacterQuadClipped(
+            std::vector<UIVertex>& vertices,
+            const GlyphMetrics& metrics,
+            float x, float y, float z,
+            const Math::Vec4& color,
+            float clipLeft,
+            float clipRight
+        );
+
         // Calculate text layout (word wrapping, alignment)
         struct TextLine {
             std::string text;
@@ -63,7 +73,8 @@ namespace NE::Graphics {
             const std::vector<TextLine>& lines,
             const Font& font,
             float containerHeight,
-            NE::ECS::Component::UIText::VerticalAlignment alignment
+            NE::ECS::Component::UIText::VerticalAlignment alignment,
+            float lineSpacing = 1.0f
         );
     };
 

@@ -450,12 +450,12 @@ namespace NE::ECS {
 					rect.offsetMaxX = 0.0f;
 					rect.offsetMaxY = 0.0f;
 				} else {
-					rect.width = 200.0f;  // Default text width
-					rect.height = 30.0f;  // Default text height
+					rect.width = 400.0f;  // Default text width (increased for 36pt font)
+					rect.height = 60.0f;  // Default text height (increased for 36pt font)
 				}
 			} else {
-				rect.width = 200.0f;
-				rect.height = 30.0f;
+				rect.width = 400.0f;  // Default text width (increased for 36pt font)
+				rect.height = 60.0f;  // Default text height (increased for 36pt font)
 			}
 			
 			rect.parent = parentCanvas;
@@ -474,7 +474,7 @@ namespace NE::ECS {
 			Component::UIText text;
 			text.luid = Core::LUIDGenerator::Generate("txt");
 			text.text = "New Text";
-			text.fontSize = 16.0f;
+			text.fontSize = 36.0f;
 			text.color = NE::Math::Vec4(0.0f, 0.0f, 0.0f, 1.0f); // Black text
 			text.fontStyle = Component::UIText::FontStyle::NORMAL;
 			text.horizontalAlign = Component::UIText::Alignment::LEFT;
