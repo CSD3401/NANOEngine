@@ -3050,17 +3050,16 @@ namespace Editor {
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Text Input");
 						
-						// Large editable text box
-						char textBuffer[4096];
-						strncpy_s(textBuffer, sizeof(textBuffer), comp.text.c_str(), sizeof(textBuffer));
-						textBuffer[sizeof(textBuffer) - 1] = '\0';
-						
+						// Large editable text box - use string-based input to properly handle special characters
 						// Calculate height for multiline input (about 4-5 lines)
 						float textBoxHeight = ImGui::GetTextLineHeight() * 5.0f;
 						
-						if (ImGui::InputTextMultiline("##NewText", textBuffer, sizeof(textBuffer), 
-							ImVec2(-1, textBoxHeight), ImGuiInputTextFlags_None)) {
-							comp.text = textBuffer;
+						// Use ImGui::InputTextMultiline with string to properly handle UTF-8 and special characters
+						std::string textInput = comp.text;
+						if (ImGui::InputTextMultiline("##NewText", &textInput, 
+							ImVec2(-1, textBoxHeight), 
+							ImGuiInputTextFlags_None)) {
+							comp.text = textInput;
 							NE::MarkSceneDirty();
 						}
 

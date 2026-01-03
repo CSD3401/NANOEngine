@@ -33,9 +33,12 @@ namespace NE::Graphics {
         // Handle vertical overflow TRUNCATE - limit lines based on height
         float lineHeight = font.GetLineHeight() * text.lineSpacing;
         size_t maxLines = lines.size();
+        bool wasVerticallyTruncated = false;
         if (text.verticalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && height > 0.0f) {
-            maxLines = static_cast<size_t>(std::floor(height / lineHeight));
-            if (maxLines < lines.size()) {
+            size_t calculatedMaxLines = static_cast<size_t>(std::floor(height / lineHeight));
+            if (calculatedMaxLines < lines.size()) {
+                maxLines = calculatedMaxLines;
+                wasVerticallyTruncated = true;
                 lines.resize(maxLines);
             }
         }
@@ -77,15 +80,11 @@ namespace NE::Graphics {
         float actualAscender = maxBearingY > 0.0f ? maxBearingY : font.GetAscender();
         float actualDescender = maxExtentBelowBaseline > 0.0f ? maxExtentBelowBaseline : std::abs(font.GetDescender());
         
-        // Calculate total visual height using actual glyph extents
-        // For single line: actualAscender + actualDescender
-        // For multiple lines: actualAscender + (lines-1) * lineHeight + actualDescender
-        float totalTextHeight;
-        if (lines.size() == 1) {
-            totalTextHeight = actualAscender + actualDescender;
-        } else {
-            totalTextHeight = actualAscender + (static_cast<float>(lines.size() - 1) * lineHeight) + actualDescender;
-        }
+        // Calculate total visual height using lineHeight which already accounts for full glyph extents
+        // lineHeight includes ascender + descender + line gap, so we can use it directly
+        // For single line: use lineHeight
+        // For multiple lines: use lineHeight for each line
+        float totalTextHeight = static_cast<float>(lines.size()) * lineHeight;
         
         // Keep font metrics for reference
         float ascender = font.GetAscender();
@@ -138,7 +137,11 @@ namespace NE::Graphics {
             // Text block bottom at container bottom
             // Text block top = container bottom - totalTextHeight
             // Baseline = text block top + actualAscender = container bottom - totalTextHeight + actualAscender
-            firstLineBaseline = y + height - totalTextHeight + actualAscender;
+            // Ensure text doesn't go above container - clamp to minimum
+            float calculatedBaseline = y + height - totalTextHeight + actualAscender;
+            // Minimum baseline position is at container top + actualAscender (so text starts at top)
+            float minBaseline = y + actualAscender;
+            firstLineBaseline = std::max(calculatedBaseline, minBaseline);
             break;
         }
         }
@@ -181,6 +184,8 @@ namespace NE::Graphics {
         }
         
 
+        // Track which line we're on for ellipsis rendering
+        size_t lineIndex = 0;
         for (const auto& line : lines) {
             // Check vertical overflow TRUNCATE - skip lines that exceed container height
             if (text.verticalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && height > 0.0f) {
@@ -194,6 +199,10 @@ namespace NE::Graphics {
                     continue;
                 }
             }
+            
+            // Check if this is the last line and text was vertically truncated
+            bool isLastLine = (lineIndex == lines.size() - 1);
+            bool shouldShowVerticalEllipsis = wasVerticallyTruncated && isLastLine;
 
             // Calculate horizontal alignment offset
             float horizontalOffset = CalculateHorizontalOffset(line, font, width, text.horizontalAlign);
@@ -204,6 +213,10 @@ namespace NE::Graphics {
             float lineActualTop = currentY;
             float lineActualBottom = currentY;
 
+            // Track if this line was horizontally truncated
+            bool wasHorizontallyTruncated = false;
+            size_t lastRenderedCharIndex = 0;
+
             // Generate quads for each character in the line
             for (size_t i = 0; i < line.text.length(); ++i) {
                 uint32_t codepoint = static_cast<unsigned char>(line.text[i]);
@@ -213,19 +226,65 @@ namespace NE::Graphics {
                     continue;
                 }
 
-                const GlyphMetrics* metrics = font.GetGlyphMetrics(codepoint);
-                if (!metrics) {
-                    // Use space width as fallback
+                // Handle space characters specially - they should advance cursor but not render
+                bool isSpace = (codepoint == ' ');
+                
+                if (isSpace) {
+                    // Get space metrics
                     const GlyphMetrics* spaceMetrics = font.GetGlyphMetrics(' ');
                     if (spaceMetrics) {
+                        // Advance cursor by space width
                         currentX += spaceMetrics->advanceX;
+                        // Add word spacing for spaces
+                        currentX += text.wordSpacing * font.GetLineHeight();
+                    } else {
+                        // Fallback: use a reasonable default space width (about 1/4 of font size)
+                        // This ensures spaces always create gaps even if font doesn't have space metrics
+                        float defaultSpaceWidth = font.GetLineHeight() * 0.25f;
+                        currentX += defaultSpaceWidth;
+                        currentX += text.wordSpacing * font.GetLineHeight();
                     }
+                    
+                    // Add kerning if next character exists
+                    if (i + 1 < line.text.length()) {
+                        uint32_t nextCodepoint = static_cast<unsigned char>(line.text[i + 1]);
+                        currentX += font.GetKerning(codepoint, nextCodepoint);
+                    }
+                    
+                    // Add character spacing
+                    currentX += text.characterSpacing;
+                    
+                    // Don't render a quad for spaces
                     continue;
                 }
-
+                
+                const GlyphMetrics* metrics = font.GetGlyphMetrics(codepoint);
+                if (!metrics) {
+                    // For non-space characters without metrics, skip them
+                    continue;
+                }
+                
                 // Calculate character position
                 float charX = currentX + metrics->bearingX;
                 float charRight = charX + metrics->width;
+                
+                // For invisible characters (zero width), just advance cursor without rendering
+                if (metrics->width <= 0.0f) {
+                    // Advance cursor for invisible character
+                    currentX += metrics->advanceX;
+                    
+                    // Add kerning if next character exists
+                    if (i + 1 < line.text.length()) {
+                        uint32_t nextCodepoint = static_cast<unsigned char>(line.text[i + 1]);
+                        currentX += font.GetKerning(codepoint, nextCodepoint);
+                    }
+                    
+                    // Add character spacing
+                    currentX += text.characterSpacing;
+                    
+                    // Don't render a quad for invisible characters
+                    continue;
+                }
                 
                 // Calculate actual character bounds (charY is top of character quad)
                 // Fix baseline alignment: ensure all characters sit on the same baseline
@@ -249,14 +308,22 @@ namespace NE::Graphics {
 
                 // Handle horizontal overflow TRUNCATE - skip characters that exceed width
                 if (text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && width > 0.0f) {
-                    // Skip if character is completely outside container
-                    if (charX >= containerRight) {
+                    // Check if we need space for ellipsis
+                    const GlyphMetrics* dotMetrics = font.GetGlyphMetrics('.');
+                    float ellipsisWidth = 0.0f;
+                    if (dotMetrics) {
+                        ellipsisWidth = dotMetrics->advanceX * 3.0f; // Three dots
+                    }
+                    
+                    // Skip if character is completely outside container (with ellipsis space)
+                    if (charX >= containerRight - ellipsisWidth) {
+                        wasHorizontallyTruncated = true;
                         break; // Stop rendering this line
                     }
                     
-                    // Clip character if it partially exceeds bounds
-                    if (charRight > containerRight) {
-                        // Character exceeds bounds - we could clip it, but for simplicity, just stop
+                    // Clip character if it partially exceeds bounds (with ellipsis space)
+                    if (charRight > containerRight - ellipsisWidth) {
+                        wasHorizontallyTruncated = true;
                         break;
                     }
                 }
@@ -269,6 +336,8 @@ namespace NE::Graphics {
                     // VISIBLE mode - render fully
                     GenerateCharacterQuad(vertices, *metrics, currentX, currentY, z, color, actualAscender);
                 }
+
+                lastRenderedCharIndex = i;
 
                 // Advance cursor
                 currentX += metrics->advanceX;
@@ -283,9 +352,55 @@ namespace NE::Graphics {
                 currentX += text.characterSpacing;
             }
 
+            // Render ellipsis if text was horizontally truncated
+            if (wasHorizontallyTruncated && text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE) {
+                const GlyphMetrics* dotMetrics = font.GetGlyphMetrics('.');
+                if (dotMetrics) {
+                    // Render three dots for ellipsis
+                    for (int dot = 0; dot < 3; ++dot) {
+                        float dotX = currentX + dotMetrics->bearingX;
+                        float dotRight = dotX + dotMetrics->width;
+                        
+                        // Only render if ellipsis fits
+                        if (dotRight <= containerRight) {
+                            GenerateCharacterQuad(vertices, *dotMetrics, currentX, currentY, z, color, actualAscender);
+                            currentX += dotMetrics->advanceX;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Render vertical ellipsis if text was vertically truncated and this is the last line
+            // Only show if horizontal ellipsis wasn't already shown (to avoid double ellipsis)
+            if (shouldShowVerticalEllipsis && !wasHorizontallyTruncated && text.verticalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE) {
+                const GlyphMetrics* dotMetrics = font.GetGlyphMetrics('.');
+                if (dotMetrics) {
+                    // Check if we have space for ellipsis at the end of the line
+                    float ellipsisWidth = dotMetrics->advanceX * 3.0f;
+                    if (currentX + ellipsisWidth <= containerRight) {
+                        // Render three dots for ellipsis at end of line
+                        for (int dot = 0; dot < 3; ++dot) {
+                            float dotX = currentX + dotMetrics->bearingX;
+                            float dotRight = dotX + dotMetrics->width;
+                            
+                            // Only render if ellipsis fits
+                            if (dotRight <= containerRight) {
+                                GenerateCharacterQuad(vertices, *dotMetrics, currentX, currentY, z, color, actualAscender);
+                                currentX += dotMetrics->advanceX;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
 
             // Move to next line
             currentY += lineHeight;
+            lineIndex++;
         }
 
         return vertices;
