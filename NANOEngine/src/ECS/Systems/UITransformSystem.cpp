@@ -395,11 +395,13 @@ namespace NE::ECS::Systems {
         // For Canvas, rect.x/y already represents the pivot position in screen space
         // We should NOT add pivot offset again - the position IS the pivot position
         // This is because Canvas has no parent anchor to offset from
+        // Canvas position should NOT be scaled - it's always in screen pixels
         if (entity == canvasEntity) {
             auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
-            // Canvas position (rect.x, rect.y) is already the pivot position
-            result.posX = rect.x * result.scaleX;
-            result.posY = rect.y * result.scaleY;
+            // Canvas position (rect.x, rect.y) is already the pivot position in screen pixels
+            // Don't scale it - canvas should always be at screen center regardless of scale factor
+            result.posX = rect.x;
+            result.posY = rect.y;
             result.posZ = rect.z;
             return result;
         }
@@ -580,12 +582,12 @@ namespace NE::ECS::Systems {
         // Let me add more debug info to see what's happening. But first, let me check if my
         // position scaling fix is correct or if it's causing the issue.
         
-        // Actually, I think I should revert the position scaling and see if that fixes it.
-        // The original code was: result.x = accumulated.posX (without scaling)
-        // Maybe accumulated.posX is already in screen pixels?
-        
-        result.x = accumulated.posX;
-        result.y = accumulated.posY;
+        // For screen space, accumulated.posX/posY are in reference coordinates
+        // (calculated using parentWidth/parentHeight which are screen dimensions divided by scaleFactor)
+        // We need to multiply by scaleFactor to convert to screen pixels
+        // This matches how width/height are scaled: result.width = rect.width * accumulated.scaleX
+        result.x = accumulated.posX * accumulated.scaleX;
+        result.y = accumulated.posY * accumulated.scaleY;
         result.z = accumulated.posZ;
         
         // Use calculated width/height if anchors are stretched, otherwise use rect.width/height
@@ -720,7 +722,8 @@ namespace NE::ECS::Systems {
             (canvas.renderMode != canvas.lastInitializedMode);
 
         if (canvas.hasBeenInitialized && !renderModeChanged) {
-            // Already initialized and mode hasn't changed - only update screen space position
+            // Already initialized and mode hasn't changed - update screen space position and dimensions
+            // Always update width/height to match actual screen size (needed for gizmo calculations)
             if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
                 canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
             {
@@ -729,8 +732,10 @@ namespace NE::ECS::Systems {
                 float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
                 canvasRect.x = screenWidth * DEFAULT_ANCHOR_X;
                 canvasRect.y = screenHeight * DEFAULT_ANCHOR_Y;
-                canvasRect.width = canvas.referenceWidth;
-                canvasRect.height = canvas.referenceHeight;
+                // Always update width/height to actual screen dimensions (needed for gizmo)
+                // The reference resolution is only used for scale factor calculation
+                canvasRect.width = screenWidth;
+                canvasRect.height = screenHeight;
             }
             return;
         }
@@ -753,8 +758,10 @@ namespace NE::ECS::Systems {
             canvasRect.scaleY = 1.f;
             canvasRect.scaleZ = 1.f;
 
-            canvasRect.width = canvas.referenceWidth;
-            canvasRect.height = canvas.referenceHeight;
+            // Canvas size should represent actual screen dimensions, not reference resolution
+            // The reference resolution is only used to calculate scaleFactor
+            canvasRect.width = screenWidth;
+            canvasRect.height = screenHeight;
 
             // Reset rotation
             canvasRect.rotationX = 0.f;
@@ -802,25 +809,10 @@ namespace NE::ECS::Systems {
         float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
         float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
 
-        switch (canvas.scaleMode) {
-        case Component::UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE: {
-            float widthScale = screenWidth / canvas.referenceWidth;
-            float heightScale = screenHeight / canvas.referenceHeight;
-            return std::min(widthScale, heightScale);
-        }
-
-        case Component::UICanvas::ScaleMode::CONSTANT_PIXEL_SIZE: {
-            return 1.0f;
-        }
-
-        case Component::UICanvas::ScaleMode::CONSTANT_PHYSICAL_SIZE: {
-            float referenceDPI = 96.0f;
-            float currentDPI = 96.0f;
-            return currentDPI / referenceDPI;
-        }
-        }
-
-        return 1.0f;
+        // Always scale with screen size
+        float widthScale = screenWidth / canvas.referenceWidth;
+        float heightScale = screenHeight / canvas.referenceHeight;
+        return std::min(widthScale, heightScale);
     }
 
 } // namespace NE::ECS::Systems

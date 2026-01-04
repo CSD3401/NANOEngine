@@ -14,17 +14,10 @@ namespace NE::ECS::Component {
             WORLD_SPACE           // Exists in 3D world
         };
 
-        enum class ScaleMode {
-            CONSTANT_PIXEL_SIZE,
-            SCALE_WITH_SCREEN_SIZE,
-            CONSTANT_PHYSICAL_SIZE
-        };
-
         // LUID for serialization
         uint64_t luid;
 
         RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY;
-        ScaleMode scaleMode = ScaleMode::SCALE_WITH_SCREEN_SIZE;
 
         // for Camera mode
         float planeDistance = 100.0f;  // Distance from camera
@@ -42,7 +35,6 @@ namespace NE::ECS::Component {
         NE_REFLECT_BEGIN(UICanvas)
             NE_REFLECT_FIELD_HIDDEN(luid),
             NE_REFLECT_FIELD(renderMode),
-            NE_REFLECT_FIELD(scaleMode),
             NE_REFLECT_FIELD(planeDistance),
             NE_REFLECT_FIELD(referenceWidth),
             NE_REFLECT_FIELD(referenceHeight),

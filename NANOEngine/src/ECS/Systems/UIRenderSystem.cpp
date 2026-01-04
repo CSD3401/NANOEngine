@@ -15,7 +15,6 @@
 #include <functional>
 #include <fstream>
 #include <vector>
-#include <iostream>
 #include <algorithm>
 #include <cmath>
 
@@ -130,11 +129,17 @@ namespace NE::ECS::Systems {
             if (m_cm->HasComponent<UIImage>(e)) {
                 auto& img = m_cm->GetComponent<UIImage>(e);
 
-                if (!img.textureUUID.empty() && img.bindlessHandle == 0) {
+                if (!img.textureUUID.empty()) {
                     auto texture = NE::Resource::ResourceManager::GetInstance()
                         .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
                     if (texture) {
-                        img.bindlessHandle = texture->GetBindlessHandle();
+                        // Always cache texture dimensions (even if already loaded) for preserve aspect ratio
+                        img.cachedTextureWidth = static_cast<float>(texture->GetWidth());
+                        img.cachedTextureHeight = static_cast<float>(texture->GetHeight());
+                        
+                        if (img.bindlessHandle == 0) {
+                            img.bindlessHandle = texture->GetBindlessHandle();
+                        }
                     }
                 }
 
@@ -229,6 +234,9 @@ namespace NE::ECS::Systems {
                     .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
                 if (texture) {
                     img.bindlessHandle = texture->GetBindlessHandle();
+                    // Cache texture dimensions for preserve aspect ratio
+                    img.cachedTextureWidth = static_cast<float>(texture->GetWidth());
+                    img.cachedTextureHeight = static_cast<float>(texture->GetHeight());
                 }
             }
 
@@ -405,13 +413,37 @@ namespace NE::ECS::Systems {
         return vertices;
     }
 
-    std::vector<NE::Graphics::UIVertex> UIRenderSystem::GenerateWorldSpaceVertices(const Component::UIImage& img) {
-        return NE::Graphics::UIImageMeshGenerator::GenerateVertices(
+    std::vector<NE::Graphics::UIVertex> UIRenderSystem::GenerateWorldSpaceVertices(
+        const Component::UIImage& img,
+        float width,
+        float height
+    ) {
+        // For world space, generate vertices with actual dimensions (GenerateVertices handles preserve aspect)
+        // Then normalize to unit quad space (0,0 to 1,1) so the model matrix can scale correctly
+        auto vertices = NE::Graphics::UIImageMeshGenerator::GenerateVertices(
             img,
             0.0f, 0.0f, 0.0f,
-            1.0f, 1.0f,
+            width,
+            height,
             img.color
         );
+        
+        // Normalize vertex positions to unit quad space (0,0 to 1,1)
+        // GenerateVertices already applied preserve aspect with offsets, so normalizing preserves those offsets
+        for (auto& vertex : vertices) {
+            vertex.x /= width;
+            vertex.y /= height;
+        }
+        
+        // For world space, flip V coordinates to fix Y-axis
+        // The mesh generator sets: y=0 (top) → V=0, y=1 (bottom) → V=1 (for screen space)
+        // For world space in Y-down coordinate system, we need: y=0 (top) → V=1, y=1 (bottom) → V=0
+        // So we flip V: v_flipped = 1.0f - v_original
+        for (auto& vertex : vertices) {
+            vertex.v = 1.0f - vertex.v;
+        }
+        
+        return vertices;
     }
 
 
@@ -470,10 +502,17 @@ namespace NE::ECS::Systems {
         cmd.bindlessTextureHandle = img.bindlessHandle;
 
         cmd.vertices = vertices;
-        cmd.useCustomVertices = !vertices.empty() &&
-            (img.imageType != UIImage::ImageType::SIMPLE ||
-                img.fillAmount < 1.0f ||
-                std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON);
+        // For world space, always use custom vertices to ensure Y-axis flip is applied
+        // For screen space, use custom vertices for special cases (filled, sliced, tiled, preserve aspect, rotation)
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+            cmd.useCustomVertices = !vertices.empty();
+        } else {
+            cmd.useCustomVertices = !vertices.empty() &&
+                (img.imageType != UIImage::ImageType::SIMPLE ||
+                    img.fillAmount < 1.0f ||
+                    img.preserveAspect ||
+                    std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON);
+        }
 
         if (viewMatrix) cmd.viewMatrix = *viewMatrix;
         if (projMatrix) cmd.projMatrix = *projMatrix;
@@ -513,7 +552,7 @@ namespace NE::ECS::Systems {
                 auto& img = m_cm->GetComponent<UIImage>(e);
 
                 if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                    vertices = GenerateWorldSpaceVertices(img);
+                    vertices = GenerateWorldSpaceVertices(img, worldTransform.width, worldTransform.height);
                 }
                 else {
                     vertices = GenerateScreenSpaceVertices(e, worldTransform, img);
@@ -784,9 +823,6 @@ namespace NE::ECS::Systems {
                 if (GetCameraMatrices(viewMatrix, projMatrix)) {
                     pView = &viewMatrix;
                     pProj = &projMatrix;
-                }
-                else {
-                    std::cerr << "[UIRenderSystem] Warning: Canvas requires camera but none found!" << std::endl;
                 }
             }
 

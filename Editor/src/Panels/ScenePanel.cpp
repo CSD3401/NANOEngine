@@ -723,9 +723,17 @@ namespace Editor {
 						s_usingUIGizmo = true;
 					}
 
-					// Update 2D gizmo
+					// Update 2D gizmo - use canvas dimensions which represent actual screen size
 					if (UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::Update2DGizmo(eid, panelPos, panelSize, 1920.f, 1080.f);
+						// worldTransform.x/y are in screen pixels (actual screen size, e.g., 1920x1080)
+						// We need fbWidth/fbHeight to match the actual screen dimensions for correct conversion
+						// The canvas width/height are set to actual screen size in SetupCanvasDefaults
+						// IMPORTANT: Read canvas dimensions from the canvas entity, not the selected entity!
+						auto& canvasRect = NE::ECS::Query::GetUIRectTransform(canvasEntityId);
+						float screenWidth = canvasRect.width;
+						float screenHeight = canvasRect.height;
+						
+						UIGizmoHandler::Update2DGizmo(eid, panelPos, panelSize, screenWidth, screenHeight);
 					}
 
 					// End 2D gizmo on mouse release

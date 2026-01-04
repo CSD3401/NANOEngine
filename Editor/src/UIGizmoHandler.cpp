@@ -562,6 +562,8 @@ namespace Editor {
         float scaledHeight = worldTransform.height;
 
         // Calculate top-left from pivot (Unity-style: pivot (0,0) = bottom-left)
+        // worldTransform.x/y is the pivot position in screen pixels (1920x1080 space)
+        // These are already in absolute screen coordinates (canvas position is included via anchor calculation)
         float topLeftX = worldPivotX - scaledWidth * rectTransform.pivotX;
         float topLeftY = worldPivotY - scaledHeight * (1.0f - rectTransform.pivotY);
 

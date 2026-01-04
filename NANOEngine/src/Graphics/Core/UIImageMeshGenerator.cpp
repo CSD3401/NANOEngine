@@ -1,5 +1,7 @@
 #include "UIImageMeshGenerator.hpp"
 #include <algorithm>
+#include "../../ResourceManagement/ResourceManager.hpp"
+#include "../OpenGL/GLTexture.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -14,10 +16,30 @@ namespace NE::Graphics {
         const Math::Vec4& color
     ) {
         using ImageType = NE::ECS::Component::UIImage::ImageType;
+        
+        // Get texture dimensions (use cached if available, otherwise try to load)
+        float textureWidth = image.cachedTextureWidth;
+        float textureHeight = image.cachedTextureHeight;
+        
+        // Fallback: if dimensions are missing but we have a texture UUID, try to load them
+        if ((textureWidth <= 0.0f || textureHeight <= 0.0f) && !image.textureUUID.empty()) {
+            auto texture = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::OpenGL::GLTexture>(image.textureUUID);
+            if (texture) {
+                textureWidth = static_cast<float>(texture->GetWidth());
+                textureHeight = static_cast<float>(texture->GetHeight());
+                // Cache them for next time (mutable allows modification through const reference)
+                if (textureWidth > 0.0f && textureHeight > 0.0f) {
+                    const_cast<NE::ECS::Component::UIImage&>(image).cachedTextureWidth = textureWidth;
+                    const_cast<NE::ECS::Component::UIImage&>(image).cachedTextureHeight = textureHeight;
+                }
+            }
+        }
 
         switch (image.imageType) {
         case ImageType::SIMPLE:
-            return GenerateSimple(x, y, z, width, height, color);
+            return GenerateSimple(x, y, z, width, height, color, 
+                image.preserveAspect, textureWidth, textureHeight);
 
         case ImageType::SLICED:
             return GenerateSliced(image, x, y, z, width, height, color);
@@ -26,10 +48,12 @@ namespace NE::Graphics {
             return GenerateTiled(image, x, y, z, width, height, color);
 
         case ImageType::FILLED:
-            return GenerateFilled(image, x, y, z, width, height, color);
+            return GenerateFilled(image, x, y, z, width, height, color,
+                textureWidth, textureHeight);
 
         default:
-            return GenerateSimple(x, y, z, width, height, color);
+            return GenerateSimple(x, y, z, width, height, color, 
+                image.preserveAspect, textureWidth, textureHeight);
         }
     }
 
@@ -48,8 +72,37 @@ namespace NE::Graphics {
     std::vector<UIVertex> UIImageMeshGenerator::GenerateSimple(
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        bool preserveAspect,
+        float textureWidth,
+        float textureHeight
     ) {
+        float renderWidth = width;
+        float renderHeight = height;
+        float offsetX = 0.0f;
+        float offsetY = 0.0f;
+        
+        // Preserve aspect ratio: scale image to fit container while maintaining original aspect
+        if (preserveAspect && textureWidth > 0.0f && textureHeight > 0.0f) {
+            float textureAspect = textureWidth / textureHeight;
+            float containerAspect = width / height;
+            
+            if (textureAspect > containerAspect) {
+                // Texture is wider - fit to width, center vertically
+                renderWidth = width;
+                renderHeight = width / textureAspect;
+                offsetY = (height - renderHeight) * 0.5f;
+            } else {
+                // Texture is taller - fit to height, center horizontally
+                renderHeight = height;
+                renderWidth = height * textureAspect;
+                offsetX = (width - renderWidth) * 0.5f;
+            }
+        }
+        
+        float finalX = x + offsetX;
+        float finalY = y + offsetY;
+        
         // Standard quad: 2 triangles, 6 vertices
         // In top-left origin system (Y-down):
         //   (x, y) = top-left corner (Y is small at top)
@@ -60,14 +113,15 @@ namespace NE::Graphics {
         vertices.reserve(6);
 
         // Triangle 1: Top-left, Top-right, Bottom-right
-        vertices.push_back(CreateVertex(x, y, z, 0.0f, 1.0f, color)); // Top-left: UV(0,1) = top-left of texture
-        vertices.push_back(CreateVertex(x + width, y, z, 1.0f, 1.0f, color)); // Top-right: UV(1,1) = top-right of texture
-        vertices.push_back(CreateVertex(x + width, y + height, z, 1.0f, 0.0f, color)); // Bottom-right: UV(1,0) = bottom-right of texture
+        // Flip Y-axis: top screen (small Y) maps to V=0 (bottom of texture), bottom screen (large Y) maps to V=1 (top of texture)
+        vertices.push_back(CreateVertex(finalX, finalY, z, 0.0f, 0.0f, color)); // Top-left: UV(0,0) = bottom-left of texture
+        vertices.push_back(CreateVertex(finalX + renderWidth, finalY, z, 1.0f, 0.0f, color)); // Top-right: UV(1,0) = bottom-right of texture
+        vertices.push_back(CreateVertex(finalX + renderWidth, finalY + renderHeight, z, 1.0f, 1.0f, color)); // Bottom-right: UV(1,1) = top-right of texture
 
         // Triangle 2: Top-left, Bottom-right, Bottom-left
-        vertices.push_back(CreateVertex(x, y, z, 0.0f, 1.0f, color)); // Top-left: UV(0,1) = top-left of texture
-        vertices.push_back(CreateVertex(x + width, y + height, z, 1.0f, 0.0f, color)); // Bottom-right: UV(1,0) = bottom-right of texture
-        vertices.push_back(CreateVertex(x, y + height, z, 0.0f, 0.0f, color)); // Bottom-left: UV(0,0) = bottom-left of texture
+        vertices.push_back(CreateVertex(finalX, finalY, z, 0.0f, 0.0f, color)); // Top-left: UV(0,0) = bottom-left of texture
+        vertices.push_back(CreateVertex(finalX + renderWidth, finalY + renderHeight, z, 1.0f, 1.0f, color)); // Bottom-right: UV(1,1) = top-right of texture
+        vertices.push_back(CreateVertex(finalX, finalY + renderHeight, z, 0.0f, 1.0f, color)); // Bottom-left: UV(0,1) = top-left of texture
 
         return vertices;
     }
@@ -124,10 +178,11 @@ namespace NE::Graphics {
         float u2 = (width - right) / width;
         float u3 = 1.0f;
 
-        float v0 = 1.0f; // Bottom in UV space
-        float v1 = 1.0f - (bottom / height);
-        float v2 = (top / height);
-        float v3 = 0.0f; // Top in UV space
+        // Flip Y-axis: top screen maps to V=0, bottom screen maps to V=1
+        float v0 = 0.0f; // Top screen (y0) maps to bottom of texture (V=0)
+        float v1 = bottom / height; // Bottom border maps to V=bottom/height
+        float v2 = 1.0f - (top / height); // Top border maps to V=1-top/height
+        float v3 = 1.0f; // Bottom screen (y3) maps to top of texture (V=1)
 
         // Helper lambda to add a quad
         auto AddQuad = [&](float qx0, float qy0, float qx1, float qy1,
@@ -190,15 +245,16 @@ namespace NE::Graphics {
                 float qu1 = (qx1 - qx0) / tileWidth;
                 float qv1 = (qy1 - qy0) / tileHeight;
 
+                // Flip Y-axis: top screen maps to V=0, bottom screen maps to V=1
                 // Triangle 1
-                vertices.push_back(CreateVertex(qx0, qy0, z, 0.0f, qv1, color));
-                vertices.push_back(CreateVertex(qx1, qy0, z, qu1, qv1, color));
-                vertices.push_back(CreateVertex(qx1, qy1, z, qu1, 0.0f, color));
+                vertices.push_back(CreateVertex(qx0, qy0, z, 0.0f, 0.0f, color)); // Top-left: V=0
+                vertices.push_back(CreateVertex(qx1, qy0, z, qu1, 0.0f, color)); // Top-right: V=0
+                vertices.push_back(CreateVertex(qx1, qy1, z, qu1, qv1, color)); // Bottom-right: V=qv1
 
                 // Triangle 2
-                vertices.push_back(CreateVertex(qx0, qy0, z, 0.0f, qv1, color));
-                vertices.push_back(CreateVertex(qx1, qy1, z, qu1, 0.0f, color));
-                vertices.push_back(CreateVertex(qx0, qy1, z, 0.0f, 0.0f, color));
+                vertices.push_back(CreateVertex(qx0, qy0, z, 0.0f, 0.0f, color)); // Top-left: V=0
+                vertices.push_back(CreateVertex(qx1, qy1, z, qu1, qv1, color)); // Bottom-right: V=qv1
+                vertices.push_back(CreateVertex(qx0, qy1, z, 0.0f, qv1, color)); // Bottom-left: V=qv1
             }
         }
 
@@ -209,24 +265,53 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        float textureWidth,
+        float textureHeight
     ) {
         using FillMethod = NE::ECS::Component::UIImage::FillMethod;
+        
+        float renderWidth = width;
+        float renderHeight = height;
+        float offsetX = 0.0f;
+        float offsetY = 0.0f;
+        
+        // Preserve aspect ratio: scale image to fit container while maintaining original aspect
+        if (image.preserveAspect && textureWidth > 0.0f && textureHeight > 0.0f) {
+            float textureAspect = textureWidth / textureHeight;
+            float containerAspect = width / height;
+            
+            if (textureAspect > containerAspect) {
+                // Texture is wider - fit to width, center vertically
+                renderWidth = width;
+                renderHeight = width / textureAspect;
+                offsetY = (height - renderHeight) * 0.5f;
+            } else {
+                // Texture is taller - fit to height, center horizontally
+                renderHeight = height;
+                renderWidth = height * textureAspect;
+                offsetX = (width - renderWidth) * 0.5f;
+            }
+        }
+        
+        float finalX = x + offsetX;
+        float finalY = y + offsetY;
 
         switch (image.fillMethod) {
         case FillMethod::HORIZONTAL:
-            return GenerateHorizontalFill(image, x, y, z, width, height, color);
+            return GenerateHorizontalFill(image, finalX, finalY, z, renderWidth, renderHeight, color);
 
         case FillMethod::VERTICAL:
-            return GenerateVerticalFill(image, x, y, z, width, height, color);
+            return GenerateVerticalFill(image, finalX, finalY, z, renderWidth, renderHeight, color);
 
         case FillMethod::RADIAL_90:
         case FillMethod::RADIAL_180:
         case FillMethod::RADIAL_360:
-            return GenerateRadialFill(image, x, y, z, width, height, color);
+            return GenerateRadialFill(image, finalX, finalY, z, renderWidth, renderHeight, color);
 
         default:
-            return GenerateSimple(x, y, z, width, height, color);
+            return GenerateSimple(finalX, finalY, z, renderWidth, renderHeight, color, 
+                image.preserveAspect, textureWidth, textureHeight);
         }
     }
 
@@ -259,15 +344,15 @@ namespace NE::Graphics {
             u1 = 1.0f;
         }
 
-        // Triangle 1
-        vertices.push_back(CreateVertex(startX, y, z, u0, 1.0f, color));
-        vertices.push_back(CreateVertex(endX, y, z, u1, 1.0f, color));
-        vertices.push_back(CreateVertex(endX, y + height, z, u1, 0.0f, color));
+        // Triangle 1 - Flip Y-axis: top screen maps to V=0, bottom screen maps to V=1
+        vertices.push_back(CreateVertex(startX, y, z, u0, 0.0f, color));
+        vertices.push_back(CreateVertex(endX, y, z, u1, 0.0f, color));
+        vertices.push_back(CreateVertex(endX, y + height, z, u1, 1.0f, color));
 
         // Triangle 2
-        vertices.push_back(CreateVertex(startX, y, z, u0, 1.0f, color));
-        vertices.push_back(CreateVertex(endX, y + height, z, u1, 0.0f, color));
-        vertices.push_back(CreateVertex(startX, y + height, z, u0, 0.0f, color));
+        vertices.push_back(CreateVertex(startX, y, z, u0, 0.0f, color));
+        vertices.push_back(CreateVertex(endX, y + height, z, u1, 1.0f, color));
+        vertices.push_back(CreateVertex(startX, y + height, z, u0, 1.0f, color));
 
         return vertices;
     }
@@ -290,18 +375,19 @@ namespace NE::Graphics {
         float fillHeight = height * image.fillAmount;
         float startY = y;
         float endY = y + fillHeight;
-        float v0 = 1.0f;
-        float v1 = 1.0f - image.fillAmount;
+        // Flip Y-axis: top screen maps to V=0, bottom screen maps to V=1
+        float v0 = 0.0f;
+        float v1 = image.fillAmount;
 
         // Fill from top
         if (image.fillOrigin == FillOrigin::TOP) {
             startY = y + height - fillHeight;
             endY = y + height;
-            v0 = image.fillAmount;
-            v1 = 0.0f;
+            v0 = 1.0f - image.fillAmount;
+            v1 = 1.0f;
         }
 
-        // Triangle 1
+        // Triangle 1 - V coordinates already flipped in v0/v1 calculation above
         vertices.push_back(CreateVertex(x, startY, z, 0.0f, v0, color));
         vertices.push_back(CreateVertex(x + width, startY, z, 1.0f, v0, color));
         vertices.push_back(CreateVertex(x + width, endY, z, 1.0f, v1, color));
@@ -374,11 +460,11 @@ namespace NE::Graphics {
             float x2 = centerX + std::cos(angle2) * width * 0.5f;
             float y2 = centerY + std::sin(angle2) * height * 0.5f;
 
-            // Calculate UVs
+            // Calculate UVs - Flip Y-axis: top screen maps to V=0, bottom screen maps to V=1
             float u1 = 0.5f + std::cos(angle1) * 0.5f;
-            float v1 = 0.5f + std::sin(angle1) * 0.5f;
+            float v1 = 0.5f - std::sin(angle1) * 0.5f; // Flip Y: subtract instead of add
             float u2 = 0.5f + std::cos(angle2) * 0.5f;
-            float v2 = 0.5f + std::sin(angle2) * 0.5f;
+            float v2 = 0.5f - std::sin(angle2) * 0.5f; // Flip Y: subtract instead of add
 
             // Create triangle from center
             vertices.push_back(CreateVertex(centerX, centerY, z, centerU, centerV, color));

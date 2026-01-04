@@ -21,11 +21,16 @@ namespace NE::Graphics::OpenGL {
         void MakeResident() override;
 
         unsigned int GLName() const { return m_ID; }
+        
+        uint32_t GetWidth() const { return m_width; }
+        uint32_t GetHeight() const { return m_height; }
 
         std::string uuid; // for material serialization
     private:
         unsigned int m_ID = 0;
         uint64_t m_Handle = 0;
+        uint32_t m_width = 0;   // Store width after Finalize
+        uint32_t m_height = 0;  // Store height after Finalize
 
         struct ParsedTexture {
             uint32_t w = 0, h = 0;

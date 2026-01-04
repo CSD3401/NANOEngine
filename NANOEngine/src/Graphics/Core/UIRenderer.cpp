@@ -234,45 +234,46 @@ namespace NE::Graphics {
         case 1: // camera - screen space 2d (shader handles transform)
         {
             // format: x, y, z, u, v, r, g, b, a (9 floats per vertex)
-            // bottom-left
+            // Flip Y-axis: top screen (small Y) maps to V=0 (bottom of texture), bottom screen (large Y) maps to V=1 (top of texture)
+            // bottom-left (screen top-left corner)
             verts[0] = cmd.x;
             verts[1] = cmd.y;
             verts[2] = cmd.z;
             verts[3] = 0.0f; // u
-            verts[4] = 1.0f; // v (flip V for OpenGL)
+            verts[4] = 0.0f; // v (top screen maps to bottom of texture)
             verts[5] = cmd.color.x; // r
             verts[6] = cmd.color.y; // g
             verts[7] = cmd.color.z; // b
             verts[8] = cmd.color.w; // a
 
-            // bottom-right
+            // bottom-right (screen top-right corner)
             verts[9] = cmd.x + cmd.width;
             verts[10] = cmd.y;
             verts[11] = cmd.z;
-            verts[12] = 1.0f;
-            verts[13] = 1.0f;
+            verts[12] = 1.0f; // u
+            verts[13] = 0.0f; // v (top screen maps to bottom of texture)
             verts[14] = cmd.color.x;
             verts[15] = cmd.color.y;
             verts[16] = cmd.color.z;
             verts[17] = cmd.color.w;
 
-            // top-right
+            // top-right (screen bottom-right corner)
             verts[18] = cmd.x + cmd.width;
             verts[19] = cmd.y + cmd.height;
             verts[20] = cmd.z;
-            verts[21] = 1.0f;
-            verts[22] = 0.0f;
+            verts[21] = 1.0f; // u
+            verts[22] = 1.0f; // v (bottom screen maps to top of texture)
             verts[23] = cmd.color.x;
             verts[24] = cmd.color.y;
             verts[25] = cmd.color.z;
             verts[26] = cmd.color.w;
 
-            // top-left
+            // top-left (screen bottom-left corner)
             verts[27] = cmd.x;
             verts[28] = cmd.y + cmd.height;
             verts[29] = cmd.z;
-            verts[30] = 0.0f;
-            verts[31] = 0.0f;
+            verts[30] = 0.0f; // u
+            verts[31] = 1.0f; // v (bottom screen maps to top of texture)
             verts[32] = cmd.color.x;
             verts[33] = cmd.color.y;
             verts[34] = cmd.color.z;
@@ -283,45 +284,46 @@ namespace NE::Graphics {
         case 2: // world - unit quad (0-1, model matrix scales it)
         {
             // unit quad for world space
-            // bottom-left
+            // Flip Y-axis: top screen (small Y) maps to V=0, bottom screen (large Y) maps to V=1
+            // bottom-left (0, 0) - top of quad
             verts[0] = 0.0f;
             verts[1] = 0.0f;
             verts[2] = 0.0f;
-            verts[3] = 0.0f;
-            verts[4] = 1.0f;
+            verts[3] = 0.0f; // u
+            verts[4] = 0.0f; // v (top maps to bottom of texture)
             verts[5] = cmd.color.x;
             verts[6] = cmd.color.y;
             verts[7] = cmd.color.z;
             verts[8] = cmd.color.w;
 
-            // bottom-right
+            // bottom-right (1, 0) - top of quad
             verts[9] = 1.0f;
             verts[10] = 0.0f;
             verts[11] = 0.0f;
-            verts[12] = 1.0f;
-            verts[13] = 1.0f;
+            verts[12] = 1.0f; // u
+            verts[13] = 0.0f; // v (top maps to bottom of texture)
             verts[14] = cmd.color.x;
             verts[15] = cmd.color.y;
             verts[16] = cmd.color.z;
             verts[17] = cmd.color.w;
 
-            // top-right
+            // top-right (1, 1) - bottom of quad
             verts[18] = 1.0f;
             verts[19] = 1.0f;
             verts[20] = 0.0f;
-            verts[21] = 1.0f;
-            verts[22] = 0.0f;
+            verts[21] = 1.0f; // u
+            verts[22] = 1.0f; // v (bottom maps to top of texture)
             verts[23] = cmd.color.x;
             verts[24] = cmd.color.y;
             verts[25] = cmd.color.z;
             verts[26] = cmd.color.w;
 
-            // top-left
+            // top-left (0, 1) - bottom of quad
             verts[27] = 0.0f;
             verts[28] = 1.0f;
             verts[29] = 0.0f;
-            verts[30] = 0.0f;
-            verts[31] = 0.0f;
+            verts[30] = 0.0f; // u
+            verts[31] = 1.0f; // v (bottom maps to top of texture)
             verts[32] = cmd.color.x;
             verts[33] = cmd.color.y;
             verts[34] = cmd.color.z;

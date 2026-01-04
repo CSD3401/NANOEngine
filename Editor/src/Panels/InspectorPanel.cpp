@@ -28,6 +28,7 @@
 #include <imgui/widgets/imsearch/imsearch.h>
 #include "../EditorUI.hpp"
 #include "../Command/EditorSetFieldCommand.hpp"
+#include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
 #include <unordered_map>
 #include <typeinfo>
@@ -1905,6 +1906,57 @@ namespace Editor {
 					if (ImGui::CollapsingHeader("Rect Transform", ImGuiTreeNodeFlags_DefaultOpen))
 					{
 						ImGui::Indent();
+						
+						// Static maps to track preset and stretch mode per entity (persist across frames)
+						static std::unordered_map<uint32_t, int> entityPresetMap;
+						static std::unordered_map<uint32_t, bool> entityStretchedXMap;
+						static std::unordered_map<uint32_t, bool> entityStretchedYMap;
+						
+						// Clean up stale entries: remove entries for entities that no longer exist
+						// This ensures that when entities are deleted and recreated, old state is cleared
+						{
+							// Clean up preset map
+							auto it = entityPresetMap.begin();
+							while (it != entityPresetMap.end()) {
+								if (!NE::ECS::Query::HasUIRectTransform(it->first)) {
+									it = entityPresetMap.erase(it);
+								} else {
+									++it;
+								}
+							}
+							
+							// Clean up stretched X map
+							auto itX = entityStretchedXMap.begin();
+							while (itX != entityStretchedXMap.end()) {
+								if (!NE::ECS::Query::HasUIRectTransform(itX->first)) {
+									itX = entityStretchedXMap.erase(itX);
+								} else {
+									++itX;
+								}
+							}
+							
+							// Clean up stretched Y map
+							auto itY = entityStretchedYMap.begin();
+							while (itY != entityStretchedYMap.end()) {
+								if (!NE::ECS::Query::HasUIRectTransform(itY->first)) {
+									itY = entityStretchedYMap.erase(itY);
+								} else {
+									++itY;
+								}
+							}
+							
+							// If current entity has stale state (was deleted and recreated), clear it
+							// This happens when an entity is deleted and a new one is created with the same ID
+							if (entityPresetMap.count(entity) && !NE::ECS::Query::HasUIRectTransform(entity)) {
+								entityPresetMap.erase(entity);
+							}
+							if (entityStretchedXMap.count(entity) && !NE::ECS::Query::HasUIRectTransform(entity)) {
+								entityStretchedXMap.erase(entity);
+							}
+							if (entityStretchedYMap.count(entity) && !NE::ECS::Query::HasUIRectTransform(entity)) {
+								entityStretchedYMap.erase(entity);
+							}
+						}
 
 						// Check render mode - walk up hierarchy to find canvas
 						bool isOverlay = false;
@@ -2049,8 +2101,19 @@ namespace Editor {
 
 						// Size/Offset section - changes based on anchor mode
 						{
-							bool isStretchedX = (comp.anchorMinX != comp.anchorMaxX);
-							bool isStretchedY = (comp.anchorMinY != comp.anchorMaxY);
+							// Use stored stretch mode if available and entity still exists, otherwise detect from anchors
+							bool isStretchedX = (entityStretchedXMap.count(entity) && NE::ECS::Query::HasUIRectTransform(entity)) ? 
+								entityStretchedXMap[entity] : (comp.anchorMinX != comp.anchorMaxX);
+							bool isStretchedY = (entityStretchedYMap.count(entity) && NE::ECS::Query::HasUIRectTransform(entity)) ? 
+								entityStretchedYMap[entity] : (comp.anchorMinY != comp.anchorMaxY);
+							
+							// Update stored values if they don't exist (initialization)
+							if (!entityStretchedXMap.count(entity)) {
+								entityStretchedXMap[entity] = isStretchedX;
+							}
+							if (!entityStretchedYMap.count(entity)) {
+								entityStretchedYMap[entity] = isStretchedY;
+							}
 
 							if (isStretchedX || isStretchedY) {
 								// Stretched mode: Show Left/Right/Top/Bottom offsets (like Unity)
@@ -2193,7 +2256,8 @@ namespace Editor {
 								"Stretch Horizontal", "Stretch Vertical", "Stretch Both"
 							};
 
-							// Detect current preset from anchor values
+							// Always detect preset from current anchor values (this ensures undo/redo updates the dropdown)
+							// The stored preset map is only used to prevent auto-switching when manually editing anchors
 							int currentPreset = -1;
 							bool isStretchedX = (comp.anchorMinX != comp.anchorMaxX);
 							bool isStretchedY = (comp.anchorMinY != comp.anchorMaxY);
@@ -2223,18 +2287,31 @@ namespace Editor {
 								else if (anchorX == 1.0f && anchorY == 0.0f) currentPreset = 8; // Bottom Right
 								else currentPreset = 4; // Default to Center if no match
 							}
+							
+							// Update stored preset map to match detected preset (for undo/redo sync)
+							entityPresetMap[entity] = currentPreset;
 
 							ImGui::SetNextItemWidth(150);
 							int newPreset = currentPreset;
+							
+							// Track combo state for undo/redo
+							using RectOwner = NE::ECS::Component::UIRectTransform;
+							FieldKey anchorPresetKey{
+								entity,
+								&typeid(RectOwner),
+								0xFFFFFFFF  // Use a unique hash for anchor preset (not a real field)
+							};
+							
+							// Capture "before" state BEFORE combo call (for undo/redo)
+							RectOwner beforeState = comp;
+							bool wasStretchedX = (entityStretchedXMap.count(entity) && NE::ECS::Query::HasUIRectTransform(entity)) ? 
+								entityStretchedXMap[entity] : (comp.anchorMinX != comp.anchorMaxX);
+							bool wasStretchedY = (entityStretchedYMap.count(entity) && NE::ECS::Query::HasUIRectTransform(entity)) ? 
+								entityStretchedYMap[entity] : (comp.anchorMinY != comp.anchorMaxY);
+							
 							if (ImGui::Combo("##AnchorPresets", &newPreset, presetNames, IM_ARRAYSIZE(presetNames)))
 							{
 								if (newPreset != currentPreset) {
-									// Store old values for potential position adjustment
-									float oldAnchorMinX = comp.anchorMinX;
-									float oldAnchorMaxX = comp.anchorMaxX;
-									float oldAnchorMinY = comp.anchorMinY;
-									float oldAnchorMaxY = comp.anchorMaxY;
-									
 									// Set new anchor values
 									switch (newPreset)
 									{
@@ -2252,12 +2329,14 @@ namespace Editor {
 									case 11: comp.anchorMinX = 0.0f; comp.anchorMaxX = 1.0f; comp.anchorMinY = 0.0f; comp.anchorMaxY = 1.0f; break;
 									}
 									
-									// Reset offsets when switching to/from stretch mode
-									bool wasStretchedX = (oldAnchorMinX != oldAnchorMaxX);
-									bool wasStretchedY = (oldAnchorMinY != oldAnchorMaxY);
+									// Update stored preset and stretch modes
+									entityPresetMap[entity] = newPreset;
 									bool nowStretchedX = (comp.anchorMinX != comp.anchorMaxX);
 									bool nowStretchedY = (comp.anchorMinY != comp.anchorMaxY);
+									entityStretchedXMap[entity] = nowStretchedX;
+									entityStretchedYMap[entity] = nowStretchedY;
 									
+									// Only reset offsets when transitioning between stretch and non-stretch modes
 									if (nowStretchedX && !wasStretchedX) {
 										// Switching to stretch X - reset X offsets to 0 so element stretches to full width
 										comp.offsetMinX = 0.0f;
@@ -2272,15 +2351,6 @@ namespace Editor {
 										// Also reset Y position since it's not used for stretch anchors
 										comp.y = 0.0f;
 									}
-									// Also reset offsets if already in stretch mode (e.g., switching between stretch presets)
-									if (nowStretchedX) {
-										comp.offsetMinX = 0.0f;
-										comp.offsetMaxX = 0.0f;
-									}
-									if (nowStretchedY) {
-										comp.offsetMinY = 0.0f;
-										comp.offsetMaxY = 0.0f;
-									}
 									if (!nowStretchedX && wasStretchedX) {
 										// Switching from stretch X - reset X position
 										comp.x = 0.0f;
@@ -2289,8 +2359,18 @@ namespace Editor {
 										// Switching from stretch Y - reset Y position
 										comp.y = 0.0f;
 									}
+									// Note: We do NOT reset offsets when switching between stretch presets (e.g., Stretch Horizontal to Stretch Both)
 									
-									NE::MarkSceneDirty();
+									// Create and execute command immediately (combos change instantly, no need to wait for deactivation)
+									auto cmd = std::make_unique<Editor::SetUIRectTransformCommand>(
+										entity,
+										std::string("Change Anchor Preset"),
+										beforeState,  // before
+										comp,         // after
+										&NE::ECS::Command::GetUIRectTransform,
+										Editor::SetUIRectTransformCommand::Anchor
+									);
+									Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
 								}
 							}
 
@@ -2419,14 +2499,38 @@ namespace Editor {
 						ImGui::SetNextItemWidth(-1);
 						static const char* RenderModes[] = {
 							"Screen Space - Overlay",
-							"Screen Space - Camera",
 							"World Space"
 						};
+						// Map enum to combo index (skip SCREEN_SPACE_CAMERA = 1)
 						int currentMode = static_cast<int>(comp.renderMode);
-						if (ImGui::Combo("##RenderMode", &currentMode, RenderModes, IM_ARRAYSIZE(RenderModes)))
+						int comboIndex = (currentMode == 0) ? 0 : 1; // 0 = Overlay, 1 = World Space (skip Camera = 1)
+						
+						// Track combo state for undo/redo
+						using CanvasOwner = NE::ECS::Component::UICanvas;
+						using CanvasFieldT = NE::ECS::Component::UICanvas::RenderMode;
+						
+						// Capture "before" state BEFORE combo call (for undo/redo)
+						CanvasFieldT oldMode = comp.renderMode;
+						
+						if (ImGui::Combo("##RenderMode", &comboIndex, RenderModes, IM_ARRAYSIZE(RenderModes)))
 						{
-							auto oldMode = comp.renderMode;
-							comp.renderMode = static_cast<decltype(comp.renderMode)>(currentMode);
+							// Map combo index back to enum (0 = Overlay, 1 = World Space)
+							comp.renderMode = (comboIndex == 0) ? 
+								NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY : 
+								NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE;
+							
+							// Create and execute command immediately (combos change instantly, no need to wait for deactivation)
+							using Cmd = Editor::SetFieldCommand<CanvasOwner, CanvasFieldT>;
+							auto cmd = std::make_unique<Cmd>(
+								entity,
+								std::string("Change Canvas Render Mode"),
+								&CanvasOwner::renderMode,
+								oldMode,  // before
+								comp.renderMode,  // after
+								&NE::ECS::Command::GetUICanvas
+							);
+							Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+							
 							std::string materialPath = GetUIMaterialPathForRenderMode(comp.renderMode);
 							std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
 
@@ -2439,11 +2543,9 @@ namespace Editor {
 								RebuildChildMaterials(entity, materialUUID);
 
 								SPD_INFO("[InspectorPanel] Canvas render mode changed: {} -> {}",
-									static_cast<int>(oldMode), currentMode);
+									static_cast<int>(oldMode), static_cast<int>(comp.renderMode));
 								SPD_INFO("Assigned material: {}", materialPath);
 							}
-
-							NE::MarkSceneDirty();
 						}
 
 						// pixel perfect toggle (if in overlay mode or camera mode)
@@ -2490,98 +2592,42 @@ namespace Editor {
 					{
 						ImGui::Indent();
 
-						const float labelWidth = 140.0f;
+						// Reference Resolution
+						ImGui::Text("Reference Resolution");
+						ImGui::Indent();
 
-						// UI scale mode
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("UI Scale Mode");
-						ImGui::SameLine(labelWidth);
-						ImGui::SetNextItemWidth(-1);
-						static const char* ScaleModes[] = {
-							"Constant Pixel Size",
-							"Scale With Screen Size",
-							"Constant Physical Size"
-						};
-						int currentScaleMode = static_cast<int>(comp.scaleMode);
-						if (ImGui::Combo("##UIScaleMode", &currentScaleMode, ScaleModes, IM_ARRAYSIZE(ScaleModes))) {
-							comp.scaleMode = static_cast<decltype(comp.scaleMode)>(currentScaleMode);
-						}
-
-						ImGui::Spacing();
-
-						// show different options based on UI Scale Mode
-						switch (comp.scaleMode) {
-						case NE::ECS::Component::UICanvas::ScaleMode::CONSTANT_PIXEL_SIZE:
+						ImGui::BeginGroup();
 						{
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Scale Factor");
-							ImGui::SameLine(labelWidth);
+							ImGui::Columns(3, "RefResColumns", false);
+							ImGui::SetColumnWidth(0, 20.0f);
+							ImGui::SetColumnWidth(1, 100.0f);
+
+							ImGui::Text("X"); ImGui::NextColumn();
 							ImGui::SetNextItemWidth(-1);
-							ImGui::DragFloat("##ScaleFactor", &comp.scaleFactor, 0.01f, 0.01f, 10.0f);
-
-							//ImGui::TextDisabled("Reference Pixels Per Unit");
-							//float refPixels = 100.0f; // Add this to your component if needed
-							//ImGui::DragFloat("##RefPixels", &refPixels, 1.0f, 1.0f, 1000.0f);
-							break;
-						}
-
-						case NE::ECS::Component::UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE:
-						{
-							ImGui::Text("Reference Resolution");
-							ImGui::Indent();
-
-							ImGui::BeginGroup();
-							{
-								ImGui::Columns(3, "RefResColumns", false);
-								ImGui::SetColumnWidth(0, 20.0f);
-								ImGui::SetColumnWidth(1, 100.0f);
-
-								ImGui::Text("X"); ImGui::NextColumn();
-								ImGui::SetNextItemWidth(-1);
-								ImGui::DragFloat("##RefResX", &comp.referenceWidth, 1.0f, 1.0f, 10000.0f);
-								ImGui::NextColumn(); ImGui::NextColumn();
-
-								ImGui::Text("Y"); ImGui::NextColumn();
-								ImGui::SetNextItemWidth(-1);
-								ImGui::DragFloat("##RefResY", &comp.referenceHeight, 1.0f, 1.0f, 10000.0f);
-								ImGui::NextColumn();
-
-								ImGui::Columns(1);
+							if (ImGui::DragFloat("##RefResX", &comp.referenceWidth, 1.0f, 1.0f, 10000.0f)) {
+								NE::MarkSceneDirty();
 							}
-							ImGui::EndGroup();
+							ImGui::NextColumn(); ImGui::NextColumn();
 
-							ImGui::Unindent();
+							ImGui::Text("Y"); ImGui::NextColumn();
+							ImGui::SetNextItemWidth(-1);
+							if (ImGui::DragFloat("##RefResY", &comp.referenceHeight, 1.0f, 1.0f, 10000.0f)) {
+								NE::MarkSceneDirty();
+							}
+							ImGui::NextColumn();
 
-							//ImGui::Spacing();
-							//ImGui::Text("Screen Match Mode");
-							//static const char* MatchModes[] = { "Match Width Or Height", "Expand", "Shrink" };
-							//int matchMode = 0; // Add this to your component if needed
-							//ImGui::Combo("##ScreenMatchMode", &matchMode, MatchModes, IM_ARRAYSIZE(MatchModes));
-
-							//ImGui::DragFloat("Match", &comp.screenMatchMode, 0.01f, 0.0f, 1.0f);
-							//ImGui::SameLine();
-							//ImGui::TextDisabled("(0=Width, 1=Height)");
-							break;
+							ImGui::Columns(1);
 						}
+						ImGui::EndGroup();
 
-						case NE::ECS::Component::UICanvas::ScaleMode::CONSTANT_PHYSICAL_SIZE:
-						{
-							//static const char* PhysicalUnits[] = {
-							//    "Centimeters",
-							//    "Millimeters",
-							//    "Inches",
-							//    "Points",
-							//    "Picas"
-							//};
-							//int currentUnit = static_cast<int>(comp.physicalUnit);
-							//ImGui::Combo("Physical Unit", &currentUnit, PhysicalUnits, IM_ARRAYSIZE(PhysicalUnits));
-							//comp.physicalUnit = static_cast<NE::ECS::Component::UICanvas::PhysicalUnit>(currentUnit);
-
-							//ImGui::DragFloat("Fallback Screen DPI", &comp.fallbackScreenDPI, 1.0f, 1.0f, 1000.0f);
-							//ImGui::DragFloat("Default Sprite DPI", &comp.defaultSpriteDPI, 1.0f, 1.0f, 1000.0f);
-							break;
-						}
-						}
+						ImGui::Unindent();
+						
+						// Display current scale factor (read-only, for debugging)
+						ImGui::Spacing();
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Scale Factor");
+						ImGui::SameLine(140.0f);
+						ImGui::Text("%.3f", comp.scaleFactor);
 
 						ImGui::Unindent();
 					}
@@ -2683,18 +2729,21 @@ namespace Editor {
 							// Right-click to clear texture
 							if (ImGui::BeginPopupContextItem("##TextureContext"))
 							{
-								if (ImGui::MenuItem("Clear"))
-								{
-									comp.textureUUID.clear();
-									comp.material.reset();  // Clear material
+							if (ImGui::MenuItem("Clear"))
+							{
+								comp.textureUUID.clear();
+								comp.material.reset();  // Clear material
+								comp.bindlessHandle = 0;
+								comp.cachedTextureWidth = 0.0f;
+								comp.cachedTextureHeight = 0.0f;
 
-									// Mark dirty
-									if (NE::GetEngineState() == NE::EngineState::Edit)
-									{
-										if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
-										NE::MarkSceneDirty();
-									}
+								// Mark dirty
+								if (NE::GetEngineState() == NE::EngineState::Edit)
+								{
+									if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
+									NE::MarkSceneDirty();
 								}
+							}
 								ImGui::EndPopup();
 							}
 						}

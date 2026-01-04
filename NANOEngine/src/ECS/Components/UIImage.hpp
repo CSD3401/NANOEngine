@@ -76,6 +76,10 @@ namespace NE::ECS::Component {
         uint64_t bindlessHandle = 0;
         std::shared_ptr<NE::Graphics::Material> material;
         bool isDirty = false;
+        
+        // Cached texture dimensions for preserve aspect ratio calculation
+        mutable float cachedTextureWidth = 0.0f;
+        mutable float cachedTextureHeight = 0.0f;
 
         // Reflection - serialize persistent data only
         NE_REFLECT_BEGIN(UIImage)

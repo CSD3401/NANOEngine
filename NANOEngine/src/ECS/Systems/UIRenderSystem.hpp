@@ -65,7 +65,9 @@ namespace NE::ECS::Systems {
         );
 
         std::vector<NE::Graphics::UIVertex> GenerateWorldSpaceVertices(
-            const Component::UIImage& img
+            const Component::UIImage& img,
+            float width,
+            float height
         );
 
 

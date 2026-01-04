@@ -128,6 +128,10 @@ namespace NE::Graphics::OpenGL {
         m_Handle = glGetTextureHandleARB(m_ID);
         glMakeTextureHandleResidentARB(m_Handle);
 
+        // Store dimensions before clearing staging data
+        m_width = m_stage.w;
+        m_height = m_stage.h;
+
         // clear TLS staging
         m_stage = ParsedTexture{};
     }

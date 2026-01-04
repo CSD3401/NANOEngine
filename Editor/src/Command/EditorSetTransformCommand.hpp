@@ -73,7 +73,8 @@ namespace Editor {
             Scl = 1 << 2,  // scaleX, scaleY, scaleZ
             Size = 1 << 3,  // width, height
             Pivot = 1 << 4,  // pivotX, pivotY
-            All = Pos | Rot | Scl | Size | Pivot
+            Anchor = 1 << 5,  // anchorMinX, anchorMaxX, anchorMinY, anchorMaxY, offsetMinX, offsetMinY, offsetMaxX, offsetMaxY
+            All = Pos | Rot | Scl | Size | Pivot | Anchor
         };
 
         SetUIRectTransformCommand(uint32_t entity,
@@ -128,6 +129,16 @@ namespace Editor {
             if (m_mask & Pivot) {
                 t.pivotX = v.pivotX;
                 t.pivotY = v.pivotY;
+            }
+            if (m_mask & Anchor) {
+                t.anchorMinX = v.anchorMinX;
+                t.anchorMaxX = v.anchorMaxX;
+                t.anchorMinY = v.anchorMinY;
+                t.anchorMaxY = v.anchorMaxY;
+                t.offsetMinX = v.offsetMinX;
+                t.offsetMinY = v.offsetMinY;
+                t.offsetMaxX = v.offsetMaxX;
+                t.offsetMaxY = v.offsetMaxY;
             }
 
             // Mark scene dirty for serialization (Edit mode only)

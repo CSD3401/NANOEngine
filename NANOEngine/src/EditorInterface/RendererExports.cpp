@@ -106,6 +106,9 @@ namespace NE::Renderer {
 				auto texture = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
 				if (texture) {
 					img.bindlessHandle = texture->GetBindlessHandle();
+					// Cache texture dimensions for preserve aspect ratio
+					img.cachedTextureWidth = static_cast<float>(texture->GetWidth());
+					img.cachedTextureHeight = static_cast<float>(texture->GetHeight());
 				}
 			}
 
