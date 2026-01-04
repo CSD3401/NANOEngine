@@ -22,16 +22,10 @@ namespace NE::Graphics::OpenGL {
 
         unsigned int GLName() const { return m_ID; }
 
-        // Get texture dimensions
-        uint32_t GetWidth() const { return m_width; }
-        uint32_t GetHeight() const { return m_height; }
-
         std::string uuid; // for material serialization
     private:
         unsigned int m_ID = 0;
         uint64_t m_Handle = 0;
-        uint32_t m_width = 0;
-        uint32_t m_height = 0;
 
         struct ParsedTexture {
             uint32_t w = 0, h = 0;

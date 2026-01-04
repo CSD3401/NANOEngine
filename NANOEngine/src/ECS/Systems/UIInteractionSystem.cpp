@@ -75,6 +75,7 @@ namespace NE::ECS::Systems {
             else if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
                 ProcessWorldSpaceButtons(canvasEntity);
             }
+            // Screen Space Camera mode uses same interaction as Screen Space Overlay (if needed)
         }
 
         // Note: m_wasPressedLastFrame is set in UpdateButtonState() when button enters PRESSED state

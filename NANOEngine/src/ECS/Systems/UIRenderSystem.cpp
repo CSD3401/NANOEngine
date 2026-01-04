@@ -130,19 +130,11 @@ namespace NE::ECS::Systems {
             if (m_cm->HasComponent<UIImage>(e)) {
                 auto& img = m_cm->GetComponent<UIImage>(e);
 
-                if (!img.textureUUID.empty()) {
-                    // Load texture if handle is missing, or update dimensions if they're missing
-                    if (img.bindlessHandle == 0 || img.cachedTextureWidth == 0.0f || img.cachedTextureHeight == 0.0f) {
-                        auto texture = NE::Resource::ResourceManager::GetInstance()
-                            .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
-                        if (texture) {
-                            if (img.bindlessHandle == 0) {
-                                img.bindlessHandle = texture->GetBindlessHandle();
-                            }
-                            // Cache texture dimensions for preserve aspect ratio
-                            img.cachedTextureWidth = static_cast<float>(texture->GetWidth());
-                            img.cachedTextureHeight = static_cast<float>(texture->GetHeight());
-                        }
+                if (!img.textureUUID.empty() && img.bindlessHandle == 0) {
+                    auto texture = NE::Resource::ResourceManager::GetInstance()
+                        .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
+                    if (texture) {
+                        img.bindlessHandle = texture->GetBindlessHandle();
                     }
                 }
 
@@ -392,21 +384,6 @@ namespace NE::ECS::Systems {
         float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
         float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
         
-        // Use cached texture dimensions (set during Init)
-        // If not cached yet, try to load and cache them now
-        float textureWidth = img.cachedTextureWidth;
-        float textureHeight = img.cachedTextureHeight;
-        if ((textureWidth == 0.0f || textureHeight == 0.0f) && !img.textureUUID.empty()) {
-            auto texture = NE::Resource::ResourceManager::GetInstance()
-                .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
-            if (texture) {
-                textureWidth = static_cast<float>(texture->GetWidth());
-                textureHeight = static_cast<float>(texture->GetHeight());
-                img.cachedTextureWidth = textureWidth;
-                img.cachedTextureHeight = textureHeight;
-            }
-        }
-        
         auto vertices = NE::Graphics::UIImageMeshGenerator::GenerateVertices(
             img,
             topLeftX,
@@ -414,9 +391,7 @@ namespace NE::ECS::Systems {
             worldTransform.z,
             worldTransform.width,
             worldTransform.height,
-            img.color,
-            textureWidth,
-            textureHeight
+            img.color
         );
 
         if (!vertices.empty() && std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
@@ -431,17 +406,11 @@ namespace NE::ECS::Systems {
     }
 
     std::vector<NE::Graphics::UIVertex> UIRenderSystem::GenerateWorldSpaceVertices(const Component::UIImage& img) {
-        // Use cached texture dimensions
-        float textureWidth = img.cachedTextureWidth;
-        float textureHeight = img.cachedTextureHeight;
-        
         return NE::Graphics::UIImageMeshGenerator::GenerateVertices(
             img,
             0.0f, 0.0f, 0.0f,
             1.0f, 1.0f,
-            img.color,
-            textureWidth,
-            textureHeight
+            img.color
         );
     }
 
@@ -503,7 +472,6 @@ namespace NE::ECS::Systems {
         cmd.vertices = vertices;
         cmd.useCustomVertices = !vertices.empty() &&
             (img.imageType != UIImage::ImageType::SIMPLE ||
-                img.preserveAspect ||
                 img.fillAmount < 1.0f ||
                 std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON);
 
@@ -811,7 +779,8 @@ namespace NE::ECS::Systems {
             Math::Mat4* pView = nullptr;
             Math::Mat4* pProj = nullptr;
 
-            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+            if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA ||
+                canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
                 if (GetCameraMatrices(viewMatrix, projMatrix)) {
                     pView = &viewMatrix;
                     pProj = &projMatrix;

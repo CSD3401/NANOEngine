@@ -27,8 +27,8 @@ namespace NE::Graphics {
         uint32_t entityId = 0;
 
         // more specific datas
-        int renderMode = 0; // 0=overlay, 1=world
-        float planeDistance = 100.0f; // deprecated (was for camera mode)
+        int renderMode = 0; // 0=overlay, 1=camera, 2=world
+        float planeDistance = 100.0f; // for camera mode
         Math::Mat4 viewMatrix{};
         Math::Mat4 projMatrix{};
         Math::Mat4 modelMatrix{}; // for world mode

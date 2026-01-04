@@ -23,9 +23,7 @@ namespace NE::Graphics {
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
             float width, float height,
-            const Math::Vec4& color,
-            float textureWidth = 0.0f,
-            float textureHeight = 0.0f
+            const Math::Vec4& color
         );
 
     private:
@@ -33,10 +31,7 @@ namespace NE::Graphics {
         static std::vector<UIVertex> GenerateSimple(
             float x, float y, float z,
             float width, float height,
-            const Math::Vec4& color,
-            bool preserveAspect = false,
-            float textureWidth = 0.0f,
-            float textureHeight = 0.0f
+            const Math::Vec4& color
         );
 
         // 9-slice scaling
@@ -60,10 +55,7 @@ namespace NE::Graphics {
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
             float width, float height,
-            const Math::Vec4& color,
-            bool preserveAspect = false,
-            float textureWidth = 0.0f,
-            float textureHeight = 0.0f
+            const Math::Vec4& color
         );
 
         // Specific fill methods
