@@ -607,8 +607,7 @@ namespace NE::ECS::Systems {
         result.accumulatedScaleY = accumulated.scaleY;
 
         // Pixel-perfect snapping for screen space only
-        if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-            canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+        if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY) {
             if (canvas.pixelPerfect) {
                 ApplyPixelPerfectSnapping(result);
             }
@@ -721,8 +720,7 @@ namespace NE::ECS::Systems {
 
         if (canvas.hasBeenInitialized && !renderModeChanged) {
             // Already initialized and mode hasn't changed - only update screen space position
-            if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-                canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
+            if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY)
             {
                 auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
                 float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
@@ -739,8 +737,7 @@ namespace NE::ECS::Systems {
         auto& canvasRect = m_cm->GetComponent<Component::UIRectTransform>(canvasEntity);
 
         switch (canvas.renderMode) {
-        case Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY:
-        case Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA: {
+        case Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY: {
             float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
             float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
 

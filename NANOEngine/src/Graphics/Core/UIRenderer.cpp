@@ -596,24 +596,19 @@ namespace NE::Graphics {
 
     void UIRenderer::Draw3DUIFrame(RenderViewHandle targetView) {
 
-        // filter to camera mode (1) and world space (2) only
+        // filter to world space (1) only
         std::vector<UIDrawCommand> commands;
         for (const auto& cmd : s_Commands)
         {
-            if (cmd.renderMode == 1 || cmd.renderMode == 2)
+            if (cmd.renderMode == 1)  // World space only
                 commands.push_back(cmd);
         }
 
         if (commands.empty()) return;
 
-        // Sort by render mode first (camera before world), then by order
+        // Sort by order
         std::sort(commands.begin(), commands.end(),
             [](const UIDrawCommand& a, const UIDrawCommand& b) {
-                // Camera mode (1) renders before world space (2)
-                if (a.renderMode != b.renderMode) {
-                    return a.renderMode < b.renderMode;
-                }
-                // Same mode: sort by order
                 return a.order < b.order;
             });
 
@@ -685,13 +680,7 @@ namespace NE::Graphics {
                 shader->SetUniformVec4("uColor", cmd.color);
 
                 // set uniforms based on render mode
-                if (cmd.renderMode == 1)  // camera mode
-                {
-                    shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
-                    shader->SetUniformMat4("uProj", cmd.projMatrix);
-                    shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
-                }
-                else if (cmd.renderMode == 2)  // world space
+                if (cmd.renderMode == 1)  // world space
                 {
                     shader->SetUniformMat4("uModel", cmd.modelMatrix);
                     shader->SetUniformMat4("uView", cmd.viewMatrix);
@@ -705,11 +694,7 @@ namespace NE::Graphics {
                 glUniform4f(glGetUniformLocation(s_WorldSpaceShader, "uColor"), cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
                 
                 // set uniforms based on render mode
-                if (cmd.renderMode == 1)  // camera mode - not supported in fallback, skip
-                {
-                    continue;
-                }
-                else if (cmd.renderMode == 2)  // world space
+                if (cmd.renderMode == 1)  // world space
                 {
                     // Set matrix uniforms using glUniformMatrix4fv
                     GLint modelLoc = glGetUniformLocation(s_WorldSpaceShader, "uModel");
@@ -755,7 +740,7 @@ namespace NE::Graphics {
         bool hasScreenSpaceUI = false;
         for (const auto& cmd : s_Commands)
         {
-            if (cmd.renderMode < 2) // 0 or 1
+            if (cmd.renderMode == 0) // Screen space overlay
             {
                 hasScreenSpaceUI = true;
                 break;

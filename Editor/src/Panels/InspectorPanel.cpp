@@ -272,8 +272,6 @@ namespace {
 		switch (mode) {
 		case NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY:
 			return "Assets/UI_Overlay.nanomat";
-		case NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA:
-			return "Assets/UI_Camera.nanomat";
 		case NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE:
 			return "Assets/UI_World.nanomat";
 		default:
@@ -2419,7 +2417,6 @@ namespace Editor {
 						ImGui::SetNextItemWidth(-1);
 						static const char* RenderModes[] = {
 							"Screen Space - Overlay",
-							"Screen Space - Camera",
 							"World Space"
 						};
 						int currentMode = static_cast<int>(comp.renderMode);
@@ -2432,7 +2429,7 @@ namespace Editor {
 
 							if (materialUUID.empty()) {
 								SPD_ERROR("[InspectorPanel] Failed to find material for render mode: {}", materialPath);
-								SPD_ERROR("Make sure UI_Overlay.nanomat, UI_Camera.nanomat, and UI_World.nanomat exist in Assets/");
+								SPD_ERROR("Make sure UI_Overlay.nanomat and UI_World.nanomat exist in Assets/");
 							}
 							else {
 								// Rebuild all child materials with the new shader
@@ -2446,9 +2443,8 @@ namespace Editor {
 							NE::MarkSceneDirty();
 						}
 
-						// pixel perfect toggle (if in overlay mode or camera mode)
-						if (comp.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-							comp.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
+						// pixel perfect toggle (if in overlay mode)
+						if (comp.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY)
 						{
 							ImGui::AlignTextToFramePadding();
 							ImGui::Text("Pixel Perfect");
@@ -2460,17 +2456,6 @@ namespace Editor {
 							}
 						}
 
-						// show plane distqance for camera mode only
-						if (comp.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Plane Distance");
-							ImGui::SameLine(labelWidth);
-							ImGui::SetNextItemWidth(-1);
-							if (ImGui::DragFloat("##PlaneDistance", &comp.planeDistance, 1.0f, 0.1f, 1000.0f))
-							{
-								NE::MarkSceneDirty();
-							}
-						}
 
 						// Sort Order
 						ImGui::AlignTextToFramePadding();

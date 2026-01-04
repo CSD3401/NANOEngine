@@ -77,6 +77,8 @@ namespace NE::Graphics::OpenGL {
 
         m_stage.w = hdr->width;
         m_stage.h = hdr->height;
+        m_width = hdr->width;  // Store for later access
+        m_height = hdr->height; // Store for later access
         m_stage.mips = hdr->mipCount ? hdr->mipCount : 1;
         m_stage.format = hdr->format;
         m_stage.srgb = (hdr->isSRGB != 0);

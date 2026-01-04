@@ -10,7 +10,6 @@ namespace NE::ECS::Component {
     struct UICanvas {
         enum class RenderMode {
             SCREEN_SPACE_OVERLAY, // Always on top, no camera needed
-            SCREEN_SPACE_CAMERA,  // Rendered by specific camera
             WORLD_SPACE           // Exists in 3D world
         };
 
@@ -26,8 +25,8 @@ namespace NE::ECS::Component {
         RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY;
         ScaleMode scaleMode = ScaleMode::SCALE_WITH_SCREEN_SIZE;
 
-        // for Camera mode
-        float planeDistance = 100.0f;  // Distance from camera
+        // Deprecated: was for Camera mode (kept for backwards compatibility)
+        float planeDistance = 100.0f;
 
         float referenceWidth = 1920.0f;
         float referenceHeight = 1080.0f;

@@ -715,8 +715,7 @@ namespace Editor {
 					}
 				}
 				// Screen space canvas (2D gizmo with corner/edge handles)
-				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY) {
 					// Begin 2D gizmo if not already active
 					if (!UIGizmoHandler::IsGizmoActive()) {
 						UIGizmoHandler::Begin2DGizmo(eid);
