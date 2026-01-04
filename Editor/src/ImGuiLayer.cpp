@@ -14,13 +14,9 @@ namespace Editor {
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-        ImGui::StyleColorsDark();
+        //ImGui::StyleColorsDark();
 
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            ImGuiStyle& style = ImGui::GetStyle();
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
+
 
         // testing of visuals of imgui (not final)
         // 
@@ -33,24 +29,87 @@ namespace Editor {
         //ImGui::GetStyle().Colors[ImGuiCol_Tab] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);       // Dark gray
         //ImGui::GetStyle().Colors[ImGuiCol_TabActive] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);  // Pure black when active
         //ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f); // Slightly lighter when hovered
-        ImGuiStyle& style = ImGui::GetStyle();
-        style.TabRounding = 0.0f;                         // Remove round corners
-        style.TabBorderSize = 0.0f;                       // Remove tab outline
-        style.ItemInnerSpacing = ImVec2(6, 4);            // Reduce spacing between label and close button
-        style.FramePadding = ImVec2(4, 2);                // Shrink tab vertical height
-
-        style.Colors[ImGuiCol_Tab] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);        // Inactive tab
-        style.Colors[ImGuiCol_TabHovered] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f); // Hovered tab
-        style.Colors[ImGuiCol_TabActive] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);  // Active tab (black)
-        style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-        style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
-        style.WindowMenuButtonPosition = ImGuiDir_None;
-
-        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);     // Dark menu bar
-        style.Colors[ImGuiCol_Header] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);     // Hover background
-        style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f); // Lighter on hover
-        style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);  // Clicked
         
+        // Previous version
+        //ImGuiStyle& style = ImGui::GetStyle();
+        //style.TabRounding = 0.0f;                         // Remove round corners
+        //style.TabBorderSize = 0.0f;                       // Remove tab outline
+        //style.ItemInnerSpacing = ImVec2(6, 4);            // Reduce spacing between label and close button
+        //style.FramePadding = ImVec2(4, 2);                // Shrink tab vertical height
+
+        //style.Colors[ImGuiCol_Tab] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);        // Inactive tab
+        //style.Colors[ImGuiCol_TabHovered] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f); // Hovered tab
+        //style.Colors[ImGuiCol_TabActive] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);  // Active tab (black)
+        //style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+        //style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+        //style.WindowMenuButtonPosition = ImGuiDir_None;
+
+        //style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);     // Dark menu bar
+        //style.Colors[ImGuiCol_Header] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);     // Hover background
+        //style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f); // Lighter on hover
+        //style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);  // Clicked
+        
+
+        ImGuiStyle& style = ImGui::GetStyle();
+        ImVec4* colors = style.Colors;
+
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        }
+
+        // Base colors
+        colors[ImGuiCol_WindowBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+        colors[ImGuiCol_ChildBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+        colors[ImGuiCol_PopupBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+
+        colors[ImGuiCol_Text] = ImVec4(0.83f, 0.83f, 0.83f, 1.00f);
+        colors[ImGuiCol_TextDisabled] = ImVec4(0.45f, 0.45f, 0.45f, 1.00f);
+
+        // Frames (inputs, buttons)
+        colors[ImGuiCol_FrameBg] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.23f, 0.23f, 0.23f, 1.00f);
+        colors[ImGuiCol_FrameBgActive] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+
+        // Buttons
+        colors[ImGuiCol_Button] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+        colors[ImGuiCol_ButtonHovered] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+        colors[ImGuiCol_ButtonActive] = ImVec4(0.33f, 0.33f, 0.33f, 1.00f);
+
+        // Headers (TreeNodes, Selectables)
+        colors[ImGuiCol_Header] = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
+        colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+        colors[ImGuiCol_HeaderActive] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+
+        // Tabs
+        colors[ImGuiCol_Tab] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+        colors[ImGuiCol_TabHovered] = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+        colors[ImGuiCol_TabActive] = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
+        colors[ImGuiCol_TabUnfocused] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+
+        // Accent (slider grab, checkmark, resize grip)
+        colors[ImGuiCol_CheckMark] = ImVec4(0.30f, 0.65f, 1.00f, 1.00f);
+        colors[ImGuiCol_SliderGrab] = ImVec4(0.30f, 0.65f, 1.00f, 1.00f);
+        colors[ImGuiCol_SliderGrabActive] = ImVec4(0.35f, 0.70f, 1.00f, 1.00f);
+
+        // Borders
+        colors[ImGuiCol_Border] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_Separator] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+
+        // Layout tuning
+        //style.WindowRounding = 6.0f;
+        style.ChildRounding = 6.0f;
+        style.FrameRounding = 4.0f;
+        style.PopupRounding = 6.0f;
+        style.TabRounding = 4.0f;
+        style.ScrollbarRounding = 6.0f;
+        style.GrabRounding = 4.0f;
+
+        style.FramePadding = ImVec2(8, 4);
+        style.ItemSpacing = ImVec2(8, 6);
+        style.ScrollbarSize = 14.0f;
+
         ImGui_ImplGlfw_InitForOpenGL(window, false);
         ImGui_ImplOpenGL3_Init("#version 430");
     }

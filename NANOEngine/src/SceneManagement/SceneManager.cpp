@@ -102,14 +102,14 @@ namespace NE::SceneManagement {
 
 	void SceneManager::LoadPrefabScene(const std::string& path) {
 		if (m_prefabScene) {
-			m_prefabScene->Exit();
+			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
 		}
 
 		m_prefabScene = std::make_unique<Scene>();
 
 		//NE::Serialization::JsonSceneSerializer::Deserialize(*m_prefabScene, path);
-		m_prefabScene->Init();
+		m_prefabScene->InitEdit();
 
 		m_prefabPath = path;
 		m_isEditingPrefab = true;
@@ -117,7 +117,7 @@ namespace NE::SceneManagement {
 
 	void SceneManager::ClosePrefabScene() {
 		if (m_prefabScene) {
-			m_prefabScene->Exit();
+			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
 		}
 		m_prefabPath.clear();
@@ -125,8 +125,8 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::ExitScene() {
-		if (m_isPlaying && m_runtime) m_runtime->Exit();
-		if (m_editor) m_editor->Exit();
+		if (m_isPlaying && m_runtime) m_runtime->ExitRuntime();
+		if (m_editor) m_editor->ExitEdit();
 	}
 
 }

@@ -1,24 +1,23 @@
 #pragma once
 
-#include "../../Core/Reflection.hpp"
-#include "../../Math/Vec3.hpp"
+#include "Core/Reflection.hpp"
+#include "Math/Vec3.hpp"
 
 namespace NE::ECS::Component {
-
 	struct Rigidbody {
-		uint32_t bodyID;
-
 		float mass{ 1.0f };
-		uint8_t motionType = 2U;  // 0 = Static, 1 = Kinematic, 2 = Dynamic
+		float linearDamping{ 0.f };
+		float angularDamping{ 0.05f };
 		bool useGravity = true;
+		bool isKinematic = false;
 
-		// temp
-		bool isStatic = false;
-		bool constrainX = false;
-		bool constrainY = false;
-		bool constrainZ = false;
+		bool freezeRotX = false;
+		bool freezeRotY = false;
+		bool freezeRotZ = false;
 
-		Math::Vec3 initialVelocity{ 0.f, 0.f, 0.f };
+		bool freezePosX = false;
+		bool freezePosY = false;
+		bool freezePosZ = false;
 
 		uint64_t luid;
 
@@ -26,15 +25,17 @@ namespace NE::ECS::Component {
 		bool isDirty = false;
 
 		NE_REFLECT_BEGIN(Rigidbody)
-			NE_REFLECT_FIELD(mass),
-			NE_REFLECT_FIELD(motionType),
-			NE_REFLECT_FIELD(useGravity),
-			NE_REFLECT_FIELD(isStatic),
-			NE_REFLECT_FIELD(initialVelocity),
-			NE_REFLECT_FIELD_NAMED(constrainX, "DONTUSEX"),
-			NE_REFLECT_FIELD_NAMED(constrainY, "DONTUSEY"),
-			NE_REFLECT_FIELD_NAMED(constrainZ, "DONTUSEZ")
-		NE_REFLECT_END()
+			NE_REFLECT_FIELD_NAMED(mass, "Mass"),
+			NE_REFLECT_FIELD_NAMED(linearDamping, "Linear Damping"),
+			NE_REFLECT_FIELD_NAMED(angularDamping, "Angular Damping"),
+			NE_REFLECT_FIELD_NAMED(useGravity, "Use Gravity"),
+			NE_REFLECT_FIELD_NAMED(isKinematic, "Is Kinematic"),
+			NE_REFLECT_FIELD_HIDDEN(freezeRotX),
+			NE_REFLECT_FIELD_HIDDEN(freezeRotY),
+			NE_REFLECT_FIELD_HIDDEN(freezeRotZ),
+			NE_REFLECT_FIELD_HIDDEN(freezePosX),
+			NE_REFLECT_FIELD_HIDDEN(freezePosY),
+			NE_REFLECT_FIELD_HIDDEN(freezePosZ)
+			NE_REFLECT_END()
 	};
-
 }

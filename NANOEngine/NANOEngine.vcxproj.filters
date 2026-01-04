@@ -61,7 +61,6 @@
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
-    <ClCompile Include="src\ECS\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="src\Physics\PhysicsContactListener.cpp" />
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
@@ -75,9 +74,13 @@
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
-    <ClCompile Include="src\Physics\LayerMaskBodyFilter.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
     <ClCompile Include="src\Serialisation\Serializer.cpp" />
+    <ClCompile Include="LayerRegistry.cpp" />
+    <ClCompile Include="src\Physics\ObjectLayerPairFilterImpl.cpp" />
+    <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
+    <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
+    <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -195,7 +198,6 @@
     <ClInclude Include="src\ECS\Components\Animator.hpp" />
     <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
-    <ClInclude Include="src\ECS\Systems\PhysicsSystem.hpp" />
     <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
@@ -219,7 +221,6 @@
     <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
-    <ClInclude Include="src\Physics\LayerMaskBodyFilter.hpp" />
     <ClInclude Include="src\Core\Layers.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourceTypes.hpp" />
@@ -227,6 +228,16 @@
     <ClInclude Include="src\ECS\Components\Hierarchy.hpp" />
     <ClInclude Include="src\Serialisation\Serializer.hpp" />
     <ClInclude Include="src\Serialisation\BinaryReflection.hpp" />
+    <ClInclude Include="src\Core\Tag.hpp" />
+    <ClInclude Include="LayerRegistry.hpp" />
+    <ClInclude Include="src\Physics\ObjectLayerPairFilterImpl.hpp" />
+    <ClInclude Include="src\Physics\PhysicsSettings.hpp" />
+    <ClInclude Include="src\Physics\BroadPhaseLayerInterfaceImpl.hpp" />
+    <ClInclude Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.hpp" />
+    <ClInclude Include="src\Physics\Ray.hpp" />
+    <ClInclude Include="src\Physics\RaycastHit.hpp" />
+    <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
+    <ClInclude Include="src\Physics\ForceMode.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -341,9 +352,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Physics\JoltDebugRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\EngineState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\EditorInterface\ECSExports.cpp">

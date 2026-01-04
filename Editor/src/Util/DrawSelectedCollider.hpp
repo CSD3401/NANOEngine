@@ -52,54 +52,54 @@ namespace EditorHelpers {
         const NE::Math::Mat4& proj,
         float thickness = 1.5f)
     {
-        using namespace NE;
+        //using namespace NE;
 
-        if (!ECS::Query::HasTransform(entity) || !ECS::Query::HasCollider(entity)) return;
-        const auto& tr = ECS::Query::GetEntityTransform(entity);
-        const auto& col = ECS::Query::GetEntityCollider(entity);
-        if (col.shapeType != ECS::Component::Collider::ShapeType::Box) return;
+        //if (!ECS::Query::HasTransform(entity) || !ECS::Query::HasCollider(entity)) return;
+        //const auto& tr = ECS::Query::GetEntityTransform(entity);
+        //const auto& col = ECS::Query::GetEntityCollider(entity);
+        //if (col.shapeType != ECS::Component::Collider::ShapeType::Box) return;
 
-        const Math::Mat4 VP = proj * view;
+        //const Math::Mat4 VP = proj * view;
 
-        const Math::Vec3 h = col.halfExtents;
-        Math::Vec3 L[8] = {
-            {-h.x,-h.y,-h.z}, {+h.x,-h.y,-h.z}, {-h.x,+h.y,-h.z}, {+h.x,+h.y,-h.z},
-            {-h.x,-h.y,+h.z}, {+h.x,-h.y,+h.z}, {-h.x,+h.y,+h.z}, {+h.x,+h.y,+h.z}
-        };
+        //const Math::Vec3 h = col.halfExtents;
+        //Math::Vec3 L[8] = {
+        //    {-h.x,-h.y,-h.z}, {+h.x,-h.y,-h.z}, {-h.x,+h.y,-h.z}, {+h.x,+h.y,-h.z},
+        //    {-h.x,-h.y,+h.z}, {+h.x,-h.y,+h.z}, {-h.x,+h.y,+h.z}, {+h.x,+h.y,+h.z}
+        //};
 
-        // world corners = tr.worldMatrix * localCorner
-        Math::Vec3 W[8];
-        const auto& M = tr.worldMatrix;
-
-
-        NE::Math::Vec3 ex = NE::Math::Vec3(M.GetElement(0, 0), M.GetElement(1, 0), M.GetElement(2, 0)).Normalized();
-        NE::Math::Vec3 ey = NE::Math::Vec3(M.GetElement(0, 1), M.GetElement(1, 1), M.GetElement(2, 1)).Normalized();
-        NE::Math::Vec3 ez = NE::Math::Vec3(M.GetElement(0, 2), M.GetElement(1, 2), M.GetElement(2, 2)).Normalized();
-
-        NE::Math::Vec3 t = NE::Math::Vec3(M.GetElement(0, 3), M.GetElement(1, 3), M.GetElement(2, 3));
-
-        for (int i = 0; i < 8; ++i) {
-            W[i] = t + ex * L[i].x + ey * L[i].y + ez * L[i].z;
-        }
+        //// world corners = tr.worldMatrix * localCorner
+        //Math::Vec3 W[8];
+        //const auto& M = tr.worldMatrix;
 
 
-        auto* dl = ImGui::GetWindowDrawList();
-        const ImU32 col32 = IM_COL32(255, 230, 0, 255);
+        //NE::Math::Vec3 ex = NE::Math::Vec3(M.GetElement(0, 0), M.GetElement(1, 0), M.GetElement(2, 0)).Normalized();
+        //NE::Math::Vec3 ey = NE::Math::Vec3(M.GetElement(0, 1), M.GetElement(1, 1), M.GetElement(2, 1)).Normalized();
+        //NE::Math::Vec3 ez = NE::Math::Vec3(M.GetElement(0, 2), M.GetElement(1, 2), M.GetElement(2, 2)).Normalized();
 
-        auto edge = [&](int a, int b) {
-            ImVec2 A, B;
-            if (WorldToScreen(W[a], VP, panelPos, panelSize, A) &&
-                WorldToScreen(W[b], VP, panelPos, panelSize, B)) {
-                dl->AddLine(A, B, col32, thickness);
-            }
-            };
+        //NE::Math::Vec3 t = NE::Math::Vec3(M.GetElement(0, 3), M.GetElement(1, 3), M.GetElement(2, 3));
 
-        // bottom
-        edge(0, 1); edge(1, 3); edge(3, 2); edge(2, 0);
-        // top
-        edge(4, 5); edge(5, 7); edge(7, 6); edge(6, 4);
-        // pillars
-        edge(0, 4); edge(1, 5); edge(2, 6); edge(3, 7);
+        //for (int i = 0; i < 8; ++i) {
+        //    W[i] = t + ex * L[i].x + ey * L[i].y + ez * L[i].z;
+        //}
+
+
+        //auto* dl = ImGui::GetWindowDrawList();
+        //const ImU32 col32 = IM_COL32(255, 230, 0, 255);
+
+        //auto edge = [&](int a, int b) {
+        //    ImVec2 A, B;
+        //    if (WorldToScreen(W[a], VP, panelPos, panelSize, A) &&
+        //        WorldToScreen(W[b], VP, panelPos, panelSize, B)) {
+        //        dl->AddLine(A, B, col32, thickness);
+        //    }
+        //    };
+
+        //// bottom
+        //edge(0, 1); edge(1, 3); edge(3, 2); edge(2, 0);
+        //// top
+        //edge(4, 5); edge(5, 7); edge(7, 6); edge(6, 4);
+        //// pillars
+        //edge(0, 4); edge(1, 5); edge(2, 6); edge(3, 7);
     }
 
 } // namespace EditorHelpers

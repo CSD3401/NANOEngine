@@ -15,7 +15,6 @@ namespace NE::ECS::Systems {
     class UITransformSystem;
     class AnimatorSystem;
 	class CameraSystem;
-    class PhysicsSystem;
     class HierarchySystem;
 }
 
@@ -117,7 +116,6 @@ namespace NE::ECS {
         std::shared_ptr<Systems::RigidbodySystem> m_rigidbodySystem;
         std::shared_ptr<Systems::ColliderSystem> m_colliderSystem;
         std::shared_ptr<Systems::AudioSystem> m_audioSystem;
-        std::shared_ptr<Systems::PhysicsSystem> m_physicsSystem;
 		std::shared_ptr<Systems::ScriptSystem> m_scriptSystem;
 		std::shared_ptr<Systems::UIRenderSystem> m_uiRenderSystem;
 		std::shared_ptr<Systems::UITransformSystem> m_uiTransformSystem;

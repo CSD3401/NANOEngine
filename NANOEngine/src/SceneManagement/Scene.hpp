@@ -8,11 +8,13 @@ namespace NE::SceneManagement {
 
 	class Scene {
 	public:
-		void Init();
+		void InitEdit();
+		void InitRuntime();
 		void UpdateEdit(double dt);
 		void UpdateRuntime(double dt);
 		void Render();
-		void Exit();
+		void ExitEdit();
+		void ExitRuntime();
 
 		void ScriptStart();
 		void ScriptPause();

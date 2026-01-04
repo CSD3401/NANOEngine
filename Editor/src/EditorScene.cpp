@@ -8,6 +8,7 @@ namespace Editor {
     EditorSelection EditorScene::s_selection;
     std::string EditorScene::s_currentSceneUUID;
     std::string EditorScene::s_currentScenePath("Assets/NewScene.scene"); // temp
+    Layers::LayerDatabase EditorScene::layerDatabase;
 
     std::string EditorScene::selectedAsset;
     std::string EditorScene::selectedPrefab;

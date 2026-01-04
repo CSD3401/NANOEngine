@@ -165,6 +165,15 @@
     <ClCompile Include="src\EditorState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Layers\LayerDatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TagDatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Layers\LayerModal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ImGuiLayer.hpp">
@@ -311,9 +320,6 @@
     <ClInclude Include="src\Util\DrawSelectedCollider.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\EditorLayers.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\AssetManagement\Assets\MaterialAsset.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -357,6 +363,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Util\HierarchyUtils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Layers\LayerDatabase.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TagDatabase.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Layers\LayerDefs.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Layers\LayerModal.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

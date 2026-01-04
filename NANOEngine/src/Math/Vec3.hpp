@@ -67,6 +67,8 @@ namespace NE::Math {
 
 		Vec3& Normalize(); // maybe add throw divide by zero error
 
+		bool Zero() const;
+
 		friend std::ostream& operator<<(std::ostream& os, const Vec3& rhs);
 		friend Vec3 operator*(float scalar, const Vec3& rhs);
 		friend Vec3 operator/(float scalar, const Vec3& rhs);

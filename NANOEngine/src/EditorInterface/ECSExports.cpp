@@ -165,6 +165,14 @@ namespace NE::ECS {
 				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
 			}
 		}
+
+		const Core::LayerID GetLayer(Entity e) {
+			return GetScene().GetECSCoordinator().GetEntityManager().GetLayer(e);
+		}
+
+		const Core::LayerMask GetLayerBit(Entity e) {
+			return GetScene().GetECSCoordinator().GetEntityManager().GetLayerBit(e);
+		}
 	}
 
 	namespace Command {
@@ -300,6 +308,30 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Core::LUIDGenerator::Generate("ca") });
 		}
 
+		void RemoveLightComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::Light>(e);
+		}
+
+		void RemoveRendererComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::Renderer>(e);
+		}
+
+		void RemoveRigidbodyComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::Rigidbody>(e);
+		}
+
+		void RemoveColliderComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::Collider>(e);
+		}
+
+		void RemoveAudioSourceComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::AudioSource>(e);
+		}
+
+		void RemoveCameraComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().RemoveComponent<Component::Camera>(e);
+		}
+
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -421,6 +453,10 @@ namespace NE::ECS {
 
 		Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
+		}
+
+		void SetLayer(Entity e, Core::LayerID layer) {
+			GetScene().GetECSCoordinator().GetEntityManager().SetLayer(e, layer);
 		}
 	}
 
