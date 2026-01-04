@@ -13,7 +13,7 @@ namespace NE::SceneManagement {
 		m_editor = std::make_unique<Scene>();
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path);
-		m_editor->Init();
+		m_editor->InitEdit();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		Prefab::PrefabManager::Init(m_editor.get());
 		Prefab::PrefabManager::RebuildFromScene();
@@ -41,7 +41,7 @@ namespace NE::SceneManagement {
 		Scripting::ScriptingEngine::GetInstance().TransferScriptFields(editorComponentMgr, runtimeComponentMgr);
 
 		// Initialize runtime scene (creates instances with transferred field values)
-		m_runtime->Init();
+		m_runtime->InitRuntime();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 
 		m_isPlaying = true;
@@ -55,7 +55,7 @@ namespace NE::SceneManagement {
 
 		if (m_runtime) {
 			m_runtime->ScriptStop();
-			m_runtime->Exit();
+			m_runtime->ExitRuntime();
 		}
 
 		m_runtime.reset();
