@@ -20,9 +20,12 @@ namespace NE::Graphics {
 
         std::vector<UIVertex> vertices;
 
-        // Calculate text lines (with word wrapping if enabled)
-        // Handle horizontal overflow WRAP mode - enable word wrap if overflow is WRAP
-        bool shouldWrap = text.wordWrap || (text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::WRAP);
+        // Calculate text lines (with wrapping if horizontalOverflow is WRAP)
+        // horizontalOverflow controls what to do when text exceeds bounds:
+        //   WRAP: wrap at word boundaries (with automatic character breaking for long words)
+        //   VISIBLE: let text overflow bounds
+        //   TRUNCATE: clip text with ellipsis
+        bool shouldWrap = (text.horizontalOverflow == NE::ECS::Component::UIText::OverflowMode::WRAP);
         float maxWidth = (shouldWrap && width > 0.0f) ? width : 0.0f;
         std::vector<TextLine> lines = CalculateTextLines(text.text, font, maxWidth, shouldWrap);
 
@@ -30,7 +33,10 @@ namespace NE::Graphics {
             return {};
         }
 
-        // Handle vertical overflow TRUNCATE - limit lines based on height
+        // Handle vertical overflow modes
+        //   WRAP: render all lines (overflow container)
+        //   VISIBLE: render all lines (overflow container)
+        //   TRUNCATE: limit lines based on height, show ellipsis
         float lineHeight = font.GetLineHeight() * text.lineSpacing;
         size_t maxLines = lines.size();
         bool wasVerticallyTruncated = false;
@@ -42,6 +48,7 @@ namespace NE::Graphics {
                 lines.resize(maxLines);
             }
         }
+        // For WRAP and VISIBLE modes, render all lines (no line limiting)
 
         if (lines.empty()) {
             return {};
@@ -194,11 +201,11 @@ namespace NE::Graphics {
             }
             isFirstLine = false;
             
-            // Check vertical overflow TRUNCATE - skip lines that exceed container height
+            // Handle vertical overflow modes
             if (text.verticalOverflow == NE::ECS::Component::UIText::OverflowMode::TRUNCATE && height > 0.0f) {
-                // currentY is the baseline, so line top is baseline - actualAscender
+                // TRUNCATE: skip lines that exceed container height
                 float lineTop = currentY - actualAscender;
-                float lineBottom = currentY + actualDescender; // Bottom of line is baseline + actualDescender
+                float lineBottom = currentY + actualDescender;
                 
                 // Skip if line is completely outside container
                 if (lineBottom > containerBottom || lineTop < containerTop) {
@@ -206,6 +213,7 @@ namespace NE::Graphics {
                     continue;
                 }
             }
+            // For WRAP and VISIBLE modes, render all lines regardless of container height
             
             // Check if this is the last line and text was vertically truncated
             bool isLastLine = (lineIndex == lines.size() - 1);
@@ -572,7 +580,7 @@ namespace NE::Graphics {
         const std::string& text,
         const Font& font,
         float maxWidth,
-        bool wordWrap
+        bool wrapAtWordBoundaries
     ) {
         std::vector<TextLine> lines;
 
@@ -609,10 +617,39 @@ namespace NE::Graphics {
                 continue;
             }
 
-            if (!wordWrap || maxWidth <= 0.0f) {
+            if (maxWidth <= 0.0f) {
                 // No wrapping - single line
                 float lineWidth = font.MeasureTextWidth(paragraph);
                 lines.push_back({ paragraph, lineWidth, isFirstLineOfParagraph });
+            } else if (!wrapAtWordBoundaries) {
+                // Character-by-character wrapping (for when wrapping is needed but not at word boundaries)
+                std::string currentLine;
+                float currentLineWidth = 0.0f;
+                
+                for (size_t i = 0; i < paragraph.length(); ++i) {
+                    char c = paragraph[i];
+                    std::string charStr(1, c);
+                    float charWidth = font.MeasureTextWidth(charStr);
+                    
+                    if (currentLineWidth + charWidth <= maxWidth) {
+                        // Add to current line
+                        currentLine += charStr;
+                        currentLineWidth += charWidth;
+                    } else {
+                        // Start new line
+                        if (!currentLine.empty()) {
+                            lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
+                            isFirstLineOfParagraph = false;
+                        }
+                        currentLine = charStr;
+                        currentLineWidth = charWidth;
+                    }
+                }
+                
+                // Add last line
+                if (!currentLine.empty()) {
+                    lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
+                }
             } else {
                 // Word wrapping
                 std::string currentLine;
@@ -640,26 +677,83 @@ namespace NE::Graphics {
                 // Build lines
                 for (const auto& word : words) {
                     float wordWidth = font.MeasureTextWidth(word);
+                    bool isSpace = (word == " " || word == "\t");
 
-                    if (currentLine.empty()) {
-                        // First word on line
-                        currentLine = word;
-                        currentLineWidth = wordWidth;
+                    // Handle words that are too long to fit on any line
+                    // Break them character by character
+                    if (!isSpace && wordWidth > maxWidth && maxWidth > 0.0f) {
+                        // Word is too long - break it character by character
+                        for (size_t i = 0; i < word.length(); ++i) {
+                            char c = word[i];
+                            std::string charStr(1, c);
+                            float charWidth = font.MeasureTextWidth(charStr);
+
+                            if (currentLine.empty()) {
+                                // First character on line
+                                currentLine = charStr;
+                                currentLineWidth = charWidth;
+                            } else {
+                                // Check if character fits on current line
+                                if (currentLineWidth + charWidth <= maxWidth) {
+                                    // Add to current line
+                                    currentLine += charStr;
+                                    currentLineWidth += charWidth;
+                                } else {
+                                    // Start new line
+                                    lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
+                                    isFirstLineOfParagraph = false;
+                                    currentLine = charStr;
+                                    currentLineWidth = charWidth;
+                                }
+                            }
+                        }
                     } else {
-                        // Check if word fits on current line
-                        float spaceWidth = font.MeasureTextWidth(" ");
-                        float totalWidth = currentLineWidth + spaceWidth + wordWidth;
-
-                        if (totalWidth <= maxWidth) {
-                            // Add to current line
-                            currentLine += word;
-                            currentLineWidth = totalWidth;
+                        // Normal word handling
+                        if (isSpace) {
+                            // Handle spaces: only add if there's content on the line
+                            if (!currentLine.empty()) {
+                                float spaceWidth = font.MeasureTextWidth(word);
+                                // Check if space fits (should always fit if there's content)
+                                if (currentLineWidth + spaceWidth <= maxWidth) {
+                                    currentLine += word;
+                                    currentLineWidth += spaceWidth;
+                                } else {
+                                    // Space doesn't fit, start new line (without the space)
+                                    lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
+                                    isFirstLineOfParagraph = false;
+                                    currentLine = "";
+                                    currentLineWidth = 0.0f;
+                                }
+                            }
+                            // If line is empty, skip the space (don't start line with space)
                         } else {
-                            // Start new line
-                            lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
-                            isFirstLineOfParagraph = false;
-                            currentLine = word;
-                            currentLineWidth = wordWidth;
+                            // Regular word
+                            if (currentLine.empty()) {
+                                // First word on line
+                                currentLine = word;
+                                currentLineWidth = wordWidth;
+                            } else {
+                                // Check if we need to add a space (only if line doesn't end with space)
+                                bool needsSpace = (currentLine.empty() || 
+                                                  (currentLine.back() != ' ' && currentLine.back() != '\t'));
+                                float spaceWidth = needsSpace ? font.MeasureTextWidth(" ") : 0.0f;
+                                float totalWidth = currentLineWidth + spaceWidth + wordWidth;
+
+                                if (totalWidth <= maxWidth) {
+                                    // Add space (if needed) and word to current line
+                                    if (needsSpace) {
+                                        currentLine += " ";
+                                    }
+                                    currentLine += word;
+                                    currentLineWidth = totalWidth;
+                                } else {
+                                    // Start new line
+                                    lines.push_back({ currentLine, currentLineWidth, isFirstLineOfParagraph });
+                                    isFirstLineOfParagraph = false;
+                                    currentLine = word;
+                                    currentLineWidth = wordWidth;
+                                }
+                            }
                         }
                     }
                 }

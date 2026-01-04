@@ -3366,15 +3366,6 @@ namespace Editor {
 						
 						ImGui::EndGroup();
 
-						// Wrapping
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Wrapping");
-						ImGui::SameLine(labelWidth);
-						ImGui::SetNextItemWidth(-1);
-						if (ImGui::Checkbox("##WordWrap", &comp.wordWrap)) {
-							NE::MarkSceneDirty();
-						}
-
 						// Overflow
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Overflow");

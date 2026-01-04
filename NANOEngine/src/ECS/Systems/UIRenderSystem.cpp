@@ -66,9 +66,9 @@ namespace NE::ECS::Systems {
         bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
                         (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
 
-        // Check if word wrap is enabled
-        bool wordWrap = text.wordWrap || (text.horizontalOverflow == UIText::OverflowMode::WRAP);
-        float maxWidth = wordWrap ? containerWidth : 0.0f;
+        // Check if wrapping is enabled (horizontalOverflow == WRAP)
+        bool shouldWrap = (text.horizontalOverflow == UIText::OverflowMode::WRAP);
+        float maxWidth = shouldWrap ? containerWidth : 0.0f;
 
         // Binary search for optimal font size
         float minSize = text.minSize;

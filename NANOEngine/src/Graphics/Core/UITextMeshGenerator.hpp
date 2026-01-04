@@ -60,7 +60,7 @@ namespace NE::Graphics {
             const std::string& text,
             const Font& font,
             float maxWidth,
-            bool wordWrap
+            bool wrapAtWordBoundaries
         );
 
         // Calculate horizontal offset for alignment

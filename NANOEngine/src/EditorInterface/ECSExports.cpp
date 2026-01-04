@@ -481,7 +481,6 @@ namespace NE::ECS {
 			text.verticalAlign = Component::UIText::VerticalAlignment::MIDDLE;
 			text.horizontalOverflow = Component::UIText::OverflowMode::VISIBLE;
 			text.verticalOverflow = Component::UIText::OverflowMode::TRUNCATE;
-			text.wordWrap = false;
 			text.bestFit = false;
 			text.raycastTarget = true;
 			ecs.AddComponent(newEntity, text);

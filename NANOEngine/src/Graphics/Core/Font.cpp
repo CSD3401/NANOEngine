@@ -188,7 +188,6 @@ namespace NE::Graphics {
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        SPD_INFO("Font loaded from binary data (size: " << fontSize << ")");
         return true;
     }
 

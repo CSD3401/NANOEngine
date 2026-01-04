@@ -44,9 +44,7 @@ namespace NE::ECS::Component {
         };
         VerticalAlignment verticalAlign = VerticalAlignment::MIDDLE;
 
-        // Text Wrapping & Overflow
-        bool wordWrap = false;
-        
+        // Text Overflow
         enum class OverflowMode {
             WRAP,
             VISIBLE,      // Text is visible and can overflow bounds (renamed from OVERFLOW to avoid Windows macro conflict)
@@ -89,7 +87,6 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(fontSize),
             NE_REFLECT_FIELD(fontStyle),
             NE_REFLECT_FIELD(color),
-            NE_REFLECT_FIELD(wordWrap),
             NE_REFLECT_FIELD(bestFit),
             NE_REFLECT_FIELD(minSize),
             NE_REFLECT_FIELD(maxSize),
