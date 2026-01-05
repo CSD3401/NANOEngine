@@ -194,11 +194,18 @@ namespace {
 		}
 	};
 
-	// compares 2 value for equality, with special handling for floats
+	// compares 2 value for equality, with special handling for floats and Vec4
 	template<class T>
 	static bool Equal(const T& a, const T& b) {
 		if constexpr (std::is_floating_point_v<T>) {
 			return std::fabs(a - b) <= 1e-6f;
+		}
+		else if constexpr (std::is_same_v<T, NE::Math::Vec4>) {
+			// Vec4 doesn't have == operator, compare components with epsilon
+			return std::fabs(a.x - b.x) <= 1e-6f &&
+			       std::fabs(a.y - b.y) <= 1e-6f &&
+			       std::fabs(a.z - b.z) <= 1e-6f &&
+			       std::fabs(a.w - b.w) <= 1e-6f;
 		}
 		else {
 			return a == b;
@@ -2289,12 +2296,46 @@ namespace Editor {
 							}
 							
 							// Use stored preset if available, otherwise use detected preset
-							// Only update stored preset when user explicitly changes combo box (below)
-							// This prevents auto-switching when manually editing anchor values
+							// Update stored preset when anchor values match a known preset exactly (e.g., from undo/redo)
+							// This prevents auto-switching when manually editing anchor values, but allows undo/redo to update the preset
 							int currentPreset;
 							if (entityPresetMap.count(entity) > 0) {
-								// Use stored preset - don't auto-switch when manually editing
-								currentPreset = entityPresetMap[entity];
+								// Check if detected preset matches a known preset exactly
+								// If so, update stored preset (likely from undo/redo)
+								// Only update if detected preset is a valid preset (not -1 or default)
+								if (detectedPreset >= 0 && detectedPreset <= 11) {
+									// Check if anchor values exactly match the detected preset
+									bool matchesDetected = false;
+									switch (detectedPreset) {
+										case 0: matchesDetected = (comp.anchorMinX == 0.0f && comp.anchorMaxX == 0.0f && comp.anchorMinY == 1.0f && comp.anchorMaxY == 1.0f); break;
+										case 1: matchesDetected = (comp.anchorMinX == 0.5f && comp.anchorMaxX == 0.5f && comp.anchorMinY == 1.0f && comp.anchorMaxY == 1.0f); break;
+										case 2: matchesDetected = (comp.anchorMinX == 1.0f && comp.anchorMaxX == 1.0f && comp.anchorMinY == 1.0f && comp.anchorMaxY == 1.0f); break;
+										case 3: matchesDetected = (comp.anchorMinX == 0.0f && comp.anchorMaxX == 0.0f && comp.anchorMinY == 0.5f && comp.anchorMaxY == 0.5f); break;
+										case 4: matchesDetected = (comp.anchorMinX == 0.5f && comp.anchorMaxX == 0.5f && comp.anchorMinY == 0.5f && comp.anchorMaxY == 0.5f); break;
+										case 5: matchesDetected = (comp.anchorMinX == 1.0f && comp.anchorMaxX == 1.0f && comp.anchorMinY == 0.5f && comp.anchorMaxY == 0.5f); break;
+										case 6: matchesDetected = (comp.anchorMinX == 0.0f && comp.anchorMaxX == 0.0f && comp.anchorMinY == 0.0f && comp.anchorMaxY == 0.0f); break;
+										case 7: matchesDetected = (comp.anchorMinX == 0.5f && comp.anchorMaxX == 0.5f && comp.anchorMinY == 0.0f && comp.anchorMaxY == 0.0f); break;
+										case 8: matchesDetected = (comp.anchorMinX == 1.0f && comp.anchorMaxX == 1.0f && comp.anchorMinY == 0.0f && comp.anchorMaxY == 0.0f); break;
+										case 9: matchesDetected = (comp.anchorMinX == 0.0f && comp.anchorMaxX == 1.0f && comp.anchorMinY == 0.5f && comp.anchorMaxY == 0.5f); break;
+										case 10: matchesDetected = (comp.anchorMinX == 0.5f && comp.anchorMaxX == 0.5f && comp.anchorMinY == 0.0f && comp.anchorMaxY == 1.0f); break;
+										case 11: matchesDetected = (comp.anchorMinX == 0.0f && comp.anchorMaxX == 1.0f && comp.anchorMinY == 0.0f && comp.anchorMaxY == 1.0f); break;
+									}
+									
+									// If anchor values exactly match a known preset, update stored preset (undo/redo case)
+									if (matchesDetected && detectedPreset != entityPresetMap[entity]) {
+										entityPresetMap[entity] = detectedPreset;
+										currentPreset = detectedPreset;
+										// Also update stretch maps to match the new preset
+										entityStretchedXMap[entity] = isStretchedX;
+										entityStretchedYMap[entity] = isStretchedY;
+									} else {
+										// Keep stored preset - user is manually editing or values don't match a preset
+										currentPreset = entityPresetMap[entity];
+									}
+								} else {
+									// Detected preset is invalid - keep stored preset
+									currentPreset = entityPresetMap[entity];
+								}
 							} else {
 								// First time - use detected preset and store it
 								currentPreset = detectedPreset;
@@ -2765,12 +2806,101 @@ namespace Editor {
 							ImGui::SameLine(labelWidth);
 							ImGui::SetNextItemWidth(-1);
 							float color[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
-
-							if (ImGui::ColorEdit4("##Color", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+							
+							// Track color changes for undo/redo (only commit on mouse release)
+							using Owner = NE::ECS::Component::UIImage;
+							using FieldT = NE::Math::Vec4;
+							
+							FieldKey colorKey{
+								entity,
+								&typeid(Owner),
+								MemberPointerHasher<Owner, FieldT>{}(&Owner::color)
+							};
+							
+							bool changed = ImGui::ColorEdit4("##Color", color, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+							
+							// Check state AFTER ColorEdit4 call (required for ImGui state functions)
+							const bool activated = ImGui::IsItemActivated();
+							const bool active = ImGui::IsItemActive();
+							const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+							
+							// Start command when color editing begins
+							if (activated) {
+								FieldT beforeColor = comp.color;
+								using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+								auto cmd = std::make_unique<Cmd>(
+									entity,
+									std::string("Change UI Image Color"),
+									&Owner::color,
+									beforeColor,
+									beforeColor,
+									&NE::ECS::Command::GetUIImage
+								);
+								g_activeCommands[colorKey] = std::move(cmd);
+							}
+							
+							if (changed) {
+								// Apply the change immediately for visual feedback
 								comp.color.x = color[0];
 								comp.color.y = color[1];
 								comp.color.z = color[2];
 								comp.color.w = color[3];
+								NE::MarkSceneDirty();
+								
+								// Update command while dragging
+								if (active) {
+									auto it = g_activeCommands.find(colorKey);
+									if (it != g_activeCommands.end()) {
+										// Get the before color from the command
+										auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+										if (asSet) {
+											FieldT beforeColor = asSet->Before();
+											using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+											Cmd tmp(
+												entity,
+												std::string{},
+												&Owner::color,
+												beforeColor,
+												comp.color,
+												&NE::ECS::Command::GetUIImage
+											);
+											it->second->CoalesceFrom(tmp);
+										}
+									}
+								}
+							}
+							
+							// Commit command when color editing ends (mouse released)
+							if (deactivated) {
+								auto it = g_activeCommands.find(colorKey);
+								if (it != g_activeCommands.end()) {
+									// Ensure final color value is applied to command
+									auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet) {
+										FieldT beforeColor = asSet->Before();
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},
+											&Owner::color,
+											beforeColor,
+											comp.color,
+											&NE::ECS::Command::GetUIImage
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+									
+									// Check if there was a change
+									asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet && Equal(asSet->Before(), asSet->After())) {
+										// No change, discard command
+										g_activeCommands.erase(it);
+									} else {
+										// Execute command for undo/redo
+										Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+										g_activeCommands.erase(it);
+									}
+								}
 							}
 						}
 
@@ -2783,8 +2913,29 @@ namespace Editor {
 
 							static const char* ImageTypes[] = { "Simple", "Sliced", "Tiled", "Filled" };
 							int currentImageType = static_cast<int>(comp.imageType);
+							
+							// Capture "before" state for undo/redo
+							using Owner = NE::ECS::Component::UIImage;
+							using FieldT = NE::ECS::Component::UIImage::ImageType;
+							FieldT beforeImageType = comp.imageType;
+							
 							if (ImGui::Combo("##ImageType", &currentImageType, ImageTypes, IM_ARRAYSIZE(ImageTypes))) {
-								comp.imageType = static_cast<NE::ECS::Component::UIImage::ImageType>(currentImageType);
+								FieldT afterImageType = static_cast<NE::ECS::Component::UIImage::ImageType>(currentImageType);
+								
+								// Create and execute command for undo/redo
+								using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+								auto cmd = std::make_unique<Cmd>(
+									entity,
+									std::string("Change Image Type"),
+									&Owner::imageType,
+									beforeImageType,
+									afterImageType,
+									&NE::ECS::Command::GetUIImage
+								);
+								Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+								
+								// Apply the change (command will also apply it, but we do it here for immediate feedback)
+								comp.imageType = afterImageType;
 								comp.isDirty = true;
 								NE::MarkSceneDirty();
 							}

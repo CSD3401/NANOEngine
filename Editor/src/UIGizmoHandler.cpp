@@ -3,6 +3,7 @@
 #include "EditorInterface/ECSExports.hpp"
 #include "Command/CommandHistory.hpp"
 #include <ECS/Components/UICanvas.hpp>
+#include <ECS/Components/UIText.hpp>
 #include <Math/Vec4.hpp>
 #include <algorithm>
 #include <cstring>
@@ -1214,8 +1215,17 @@ namespace Editor {
         float scaledWidth = worldTransform.width;
         float scaledHeight = worldTransform.height;
         
-        // Step 1: Scale
-        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scaledWidth, scaledHeight, accumulatedScale.z);
+        // Check if this is a UIText entity and apply font scaling
+        float fontScale = 1.0f;
+        if (NE::ECS::Query::HasUIText(uiEntityId)) {
+            auto& text = NE::ECS::Query::GetUIText(uiEntityId);
+            // Apply font size scaling to the model matrix for UIText
+            // Using 36 as a reference font size (default font size)
+            fontScale = text.fontSize / 36.0f;
+        }
+        
+        // Step 1: Scale (apply font scale for UIText)
+        NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(scaledWidth * fontScale, scaledHeight * fontScale, accumulatedScale.z);
         
         // Step 2: Apply pivot offset (same as BuildWorldSpaceModelMatrix)
         float pivotOffsetX = -scaledWidth * pivotX;
@@ -1244,9 +1254,21 @@ namespace Editor {
             NE::Math::Vec3(0.0f, 1.0f, 0.0f)   // Bottom-left
         };
         
-        // Calculate center (pivot) in screen space FIRST (needed for invalid corner fallback)
-        // Use worldTransform position which already accounts for anchors
-        NE::Math::Vec3 pivotWorldPos(worldTransform.x, worldTransform.y, worldTransform.z);
+        // Calculate center (pivot) in screen space by transforming pivot point through model matrix
+        // The pivot point in unit quad space is at (pivotX, pivotY, 0)
+        // Transform it through the model matrix to get the actual rendered center position
+        // (pivotX and pivotY are already declared above)
+        float pivotInputX = pivotX;
+        float pivotInputY = pivotY;
+        float pivotInputZ = 0.0f;
+        float pivotInputW = 1.0f;
+        
+        // Transform pivot point through model matrix
+        float pivotWorldX = modelMatrix.GetElement(0, 0) * pivotInputX + modelMatrix.GetElement(0, 1) * pivotInputY + modelMatrix.GetElement(0, 2) * pivotInputZ + modelMatrix.GetElement(0, 3) * pivotInputW;
+        float pivotWorldY = modelMatrix.GetElement(1, 0) * pivotInputX + modelMatrix.GetElement(1, 1) * pivotInputY + modelMatrix.GetElement(1, 2) * pivotInputZ + modelMatrix.GetElement(1, 3) * pivotInputW;
+        float pivotWorldZ = modelMatrix.GetElement(2, 0) * pivotInputX + modelMatrix.GetElement(2, 1) * pivotInputY + modelMatrix.GetElement(2, 2) * pivotInputZ + modelMatrix.GetElement(2, 3) * pivotInputW;
+        
+        NE::Math::Vec3 pivotWorldPos(pivotWorldX, pivotWorldY, pivotWorldZ);
         ImVec2 center;
         bool centerValid = WorldToScreen(pivotWorldPos, view, proj, panelPos, panelSize, center);
         
