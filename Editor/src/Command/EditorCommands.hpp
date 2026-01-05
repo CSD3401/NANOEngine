@@ -77,7 +77,9 @@ namespace Editor {
             uint32_t id;
             bool wasCanvas;
             bool wasUIImage;
-            uint32_t parentId;  // For UI images
+            bool wasUIButton;
+            bool wasUIText;
+            uint32_t parentId;  // For UI entities (image, button, text)
         };
         std::vector<DeletedUIEntityInfo> m_deletedEntities;
     };

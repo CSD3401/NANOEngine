@@ -4,6 +4,7 @@
 #include "../AssetManagement/AssetManager.hpp"
 #include <ECS/Core/Entity.hpp>
 #include <ECS/Components/UIText.hpp>
+#include <ECS/Components/UICanvas.hpp>
 #include <algorithm>
 
 namespace Editor {
@@ -189,6 +190,8 @@ namespace Editor {
 			info.id = id;
 			info.wasCanvas = NE::ECS::Query::HasUICanvas(id);
 			info.wasUIImage = NE::ECS::Query::HasUIImage(id);
+			info.wasUIButton = NE::ECS::Query::HasUIButton(id);
+			info.wasUIText = NE::ECS::Query::HasUIText(id);
 			info.parentId = NE::ECS::Query::GetParent(id);
 			m_deletedEntities.push_back(info);
 		}
@@ -293,7 +296,7 @@ namespace Editor {
 		EditorScene::s_entities.push_back(EditorEntity{ m_entity });
 		Editor::EditorScene::s_selectedEntity = &EditorScene::s_entities.back();
 
-		// Set default Roboto font
+		// Set default Roboto font and assign material for world space
 		if (NE::ECS::Query::HasUIText(m_entity)) {
 			auto& text = NE::ECS::Command::GetUIText(m_entity);
 			if (text.fontUUID.empty()) {
@@ -303,6 +306,18 @@ namespace Editor {
 				if (!robotoUUID.empty()) {
 					text.fontUUID = robotoUUID;
 					text.fontPath = robotoPath;  // Store the file path
+				}
+			}
+			
+			// Auto-assign UI_World material for world space canvas
+			if (m_parentCanvas != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUICanvas(m_parentCanvas)) {
+				auto& canvas = NE::ECS::Query::GetUICanvas(m_parentCanvas);
+				if (canvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
+					std::string materialPath = "Assets/UI_World.nanomat";
+					std::string materialUUID = AssetManager::GetInstance().RetrieveUUID(materialPath);
+					if (!materialUUID.empty()) {
+						text.materialUUID = materialUUID;
+					}
 				}
 			}
 		}
@@ -393,6 +408,14 @@ namespace Editor {
 			if (info.wasCanvas)
 			{
 				newEntity = NE::ECS::Command::CreateUICanvasEntity();
+			}
+			else if (info.wasUIButton)
+			{
+				newEntity = NE::ECS::Command::CreateUIButtonEntity(newParentId);
+			}
+			else if (info.wasUIText)
+			{
+				newEntity = NE::ECS::Command::CreateUITextEntity(newParentId);
 			}
 			else if (info.wasUIImage) 
 			{

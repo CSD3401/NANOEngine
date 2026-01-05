@@ -3,8 +3,10 @@
 
 #include <string>
 #include <filesystem>
+#include <memory>
 #include "../../Math/Vec4.hpp"
 #include "../../Core/Reflection.hpp"
+#include "../../Graphics/Core/Material.hpp"
 
 namespace NE::ECS::Component {
     
@@ -77,6 +79,7 @@ namespace NE::ECS::Component {
         uint64_t fontHandle = 0;
         float textWidth = 0.0f;
         float textHeight = 0.0f;
+        std::shared_ptr<NE::Graphics::Material> material;
 
         // Reflection - Note: Enum fields are serialized as their underlying integer type
         NE_REFLECT_BEGIN(UIText)

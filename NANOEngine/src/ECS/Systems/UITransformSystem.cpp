@@ -634,7 +634,8 @@ namespace NE::ECS::Systems {
         Entity entity,
         Entity canvasEntity,
         const Component::UIRectTransform& rect,
-        const AccumulatedTransform& accumulated
+        const AccumulatedTransform& accumulated,
+        float fontScale
     ) {
         // World space vertices are generated as a unit quad from (0,0) to (1,1) in Y-down space
         // We need to transform this to world space (Y-up) with proper pivot handling
@@ -655,9 +656,10 @@ namespace NE::ECS::Systems {
         float scaledHeight = baseHeight * accumulated.scaleY;
         
         // Step 1: Scale the unit quad (0,0 to 1,1) to (0,0 to width, height)
+        // Apply font scale only to the scale matrix, not the pivot offset
         NE::Math::Mat4 scaleMatrix = NE::Math::Mat4::BuildScaling(
-            scaledWidth,
-            scaledHeight,
+            scaledWidth * fontScale,
+            scaledHeight * fontScale,
             accumulated.scaleZ
         );
         

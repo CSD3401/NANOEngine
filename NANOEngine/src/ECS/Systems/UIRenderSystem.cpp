@@ -149,9 +149,15 @@ namespace NE::ECS::Systems {
                 }
             }
 
-            // Load UIText fonts
+            // Load UIText fonts and materials
             if (m_cm->HasComponent<UIText>(e)) {
                 auto& text = m_cm->GetComponent<UIText>(e);
+
+                // Load material if UUID is set
+                if (!text.materialUUID.empty() && !text.material) {
+                    text.material = NE::Resource::ResourceManager::GetInstance()
+                        .LoadResource<NE::Graphics::Material>(text.materialUUID);
+                }
 
                 // Extract bold and italic flags from fontStyle
                 bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
@@ -251,6 +257,12 @@ namespace NE::ECS::Systems {
         // Handle UIText
         if (m_cm->HasComponent<UIText>(e)) {
             auto& text = m_cm->GetComponent<UIText>(e);
+
+            // Load material if UUID is set
+            if (!text.materialUUID.empty() && !text.material) {
+                text.material = NE::Resource::ResourceManager::GetInstance()
+                    .LoadResource<NE::Graphics::Material>(text.materialUUID);
+            }
 
             // Extract bold and italic flags from fontStyle
             bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
@@ -566,6 +578,12 @@ namespace NE::ECS::Systems {
             else if (m_cm->HasComponent<UIText>(e)) {
                 auto& text = m_cm->GetComponent<UIText>(e);
 
+                // Load material if UUID is set but material is not loaded
+                if (!text.materialUUID.empty() && !text.material) {
+                    text.material = NE::Resource::ResourceManager::GetInstance()
+                        .LoadResource<NE::Graphics::Material>(text.materialUUID);
+                }
+
                 // Auto-size (best fit) calculation
                 if (text.bestFit && worldTransform.width > 0.0f && worldTransform.height > 0.0f) {
                     // Load font data for measurement
@@ -590,17 +608,32 @@ namespace NE::ECS::Systems {
                         fontPath = "Assets/Fonts/Roboto-Regular.ttf";
                     }
 
+                    // For world space, convert world units to pixel-equivalent dimensions
+                    // Use a fixed reference (36.0f) for measurement to match text generation
+                    float containerWidth = worldTransform.width;
+                    float containerHeight = worldTransform.height;
+                    
+                    if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                        // Convert world space dimensions to pixel-equivalent for font measurement
+                        // Use fixed reference (36.0f) to match the reference used in text generation
+                        // This ensures consistent measurement and generation
+                        const float referencePixelsPerWorldUnit = 36.0f;
+                        containerWidth = worldTransform.width * referencePixelsPerWorldUnit;
+                        containerHeight = worldTransform.height * referencePixelsPerWorldUnit;
+                    }
+
                     // Calculate optimal font size
                     float optimalSize = CalculateOptimalFontSize(
                         text,
-                        worldTransform.width,
-                        worldTransform.height,
+                        containerWidth,
+                        containerHeight,
                         fontPath,
                         fontData
                     );
 
                     // Update fontSize if it changed
-                    if (std::abs(text.fontSize - optimalSize) > 0.1f) {
+                    // Always update to ensure auto-size responds to container size changes
+                    if (std::abs(text.fontSize - optimalSize) > 0.01f) {
                         text.fontSize = optimalSize;
                         text.fontHandle = 0; // Invalidate to force reload with new size
                     }
@@ -613,6 +646,7 @@ namespace NE::ECS::Systems {
                                 (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
 
                 // Generate cache key from fontUUID, fontSize, and fontStyle
+                // This is generated AFTER auto-size update, so font will reload if size changed
                 uint32_t currentCacheKey = GenerateFontCacheKey(text.fontUUID, text.fontSize, text.fontStyle);
                 
                 // Get font from cache
@@ -687,35 +721,81 @@ namespace NE::ECS::Systems {
                     continue; // Skip if font is invalid
                 }
 
-                // Calculate top-left position from pivot
-                float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
-                float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
+                // Generate text vertices based on render mode
+                if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                    // For world space, generate text at a fixed reference size (36 pixels per world unit)
+                    // Then normalize to unit quad space, and apply font size scaling in the model matrix
+                    const float referencePixelsPerWorldUnit = 36.0f; // Reference font size
+                    float textGenWidth = worldTransform.width * referencePixelsPerWorldUnit;
+                    float textGenHeight = worldTransform.height * referencePixelsPerWorldUnit;
+                    
+                    // Generate vertices at (0,0,0) with reference pixel dimensions
+                    vertices = NE::Graphics::UITextMeshGenerator::GenerateVertices(
+                        text,
+                        *font,
+                        0.0f, 0.0f, 0.0f,
+                        textGenWidth,
+                        textGenHeight,
+                        text.color
+                    );
+                    
+                    // Normalize vertex positions to unit quad space (0,0 to 1,1)
+                    // Use the reference pixel dimensions for normalization
+                    for (auto& vertex : vertices) {
+                        vertex.x /= textGenWidth;
+                        vertex.y /= textGenHeight;
+                    }
+                    
+                    // For world space, flip Y positions to convert from Y-down to Y-up space
+                    // The mesh generator produces Y-down coordinates, but world space uses Y-up
+                    // The texture (V coordinates) is already correct, so we only flip Y positions
+                    for (auto& vertex : vertices) {
+                        vertex.y = 1.0f - vertex.y;
+                    }
+                } else {
+                    // For screen space, use actual pixel coordinates
+                    // Calculate top-left position from pivot
+                    float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
+                    float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
 
-                // Generate text vertices
-                vertices = NE::Graphics::UITextMeshGenerator::GenerateVertices(
-                    text,
-                    *font,
-                    topLeftX,
-                    topLeftY,
-                    worldTransform.z,
-                    worldTransform.width,
-                    worldTransform.height,
-                    text.color
-                );
+                    // Generate text vertices
+                    vertices = NE::Graphics::UITextMeshGenerator::GenerateVertices(
+                        text,
+                        *font,
+                        topLeftX,
+                        topLeftY,
+                        worldTransform.z,
+                        worldTransform.width,
+                        worldTransform.height,
+                        text.color
+                    );
 
-                if (!vertices.empty()) {
                     // Apply rotation if needed
-                    if (std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
+                    if (!vertices.empty() && std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
                         float pivotX = worldTransform.x;
                         float pivotY = worldTransform.y;
                         RotateVertices2D(vertices, pivotX, pivotY, worldTransform.accumulatedRotationZ);
                     }
+                }
 
+                if (!vertices.empty()) {
                     // Submit text draw command
                     NE::Graphics::UIDrawCommand cmd;
-                    cmd.x = topLeftX;
-                    cmd.y = topLeftY;
-                    cmd.z = worldTransform.z;
+                    
+                    // For world space, use unit quad coordinates
+                    // For screen space, use actual pixel coordinates
+                    if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                        cmd.x = 0.0f;
+                        cmd.y = 0.0f;
+                        cmd.z = 0.0f;
+                    } else {
+                        float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
+                        float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
+                        cmd.x = topLeftX;
+                        cmd.y = topLeftY;
+                        cmd.z = worldTransform.z;
+                    }
+                    
                     cmd.width = worldTransform.width;
                     cmd.height = worldTransform.height;
                     cmd.color = text.color;
@@ -726,6 +806,9 @@ namespace NE::ECS::Systems {
                     cmd.vertices = vertices;
                     cmd.useCustomVertices = true;
 
+                    // Assign material if available
+                    cmd.material = text.material;
+
                     // Get font atlas texture handle
                     cmd.bindlessTextureHandle = font->GetAtlasTextureHandle();
 
@@ -733,7 +816,10 @@ namespace NE::ECS::Systems {
                     if (projMatrix) cmd.projMatrix = *projMatrix;
 
                     if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && m_transformSystem) {
-                        cmd.modelMatrix = m_transformSystem->BuildWorldSpaceModelMatrix(e, canvasEntity, rect, accumulated);
+                        // Apply font size scaling to the model matrix for UIText
+                        // Using 36 as a reference font size (default font size)
+                        float fontSizeScale = text.fontSize / 36.0f;
+                        cmd.modelMatrix = m_transformSystem->BuildWorldSpaceModelMatrix(e, canvasEntity, rect, accumulated, fontSizeScale);
                     }
 
                     NE::Graphics::UIRenderer::Submit(cmd);

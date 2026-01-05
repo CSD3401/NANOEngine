@@ -103,7 +103,8 @@ namespace NE::ECS::Systems {
             Entity entity,
             Entity canvasEntity,
             const Component::UIRectTransform& rect,
-            const AccumulatedTransform& accumulated
+            const AccumulatedTransform& accumulated,
+            float fontScale = 1.0f
         );
 
         //=================================================================

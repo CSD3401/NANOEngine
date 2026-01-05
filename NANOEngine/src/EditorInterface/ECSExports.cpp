@@ -441,8 +441,8 @@ namespace NE::ECS {
 			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UICanvas>(parentCanvas)) {
 				auto& canvas = ecs.GetComponent<Component::UICanvas>(parentCanvas);
 				if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
-					rect.width = 10.0f;
-					rect.height = 10.0f;
+					rect.width = 200.0f;   // Default text width for world space (larger for visibility)
+					rect.height = 50.0f;   // Default text height for world space
 					rect.x = 0.0f;
 					rect.y = 0.0f;
 					rect.offsetMinX = 0.0f;

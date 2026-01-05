@@ -102,15 +102,27 @@ namespace NE::Graphics {
         vUV = aUV;
     })";
 
-    // World space fragment shader (solid color)
+    // World space fragment shader (supports texture for text rendering)
     static const char* UIWorldSpaceFragmentShaderSource = R"(#version 460 core
+    #extension GL_ARB_bindless_texture : require
+    
     in vec2 vUV;
     out vec4 FragColor;
 
     uniform vec4 uColor;
+    uniform sampler2D u_BaseMap;
+    uniform int u_HasBaseMap;
 
     void main() {
-        FragColor = uColor;
+        if (u_HasBaseMap != 0) {
+            vec4 texColor = texture(u_BaseMap, vUV);
+            // For text: use texture alpha as mask, apply uColor as the actual text color
+            // Texture RGB is white (1,1,1), alpha contains the glyph shape
+            // Final color = uColor with texture alpha as mask
+            FragColor = vec4(uColor.rgb, uColor.a * texColor.a);
+        } else {
+            FragColor = uColor;
+        }
     })";
 
     void UIRenderer::Init(uint32_t width, uint32_t height, RenderViewManager* renderViewManager) {
@@ -663,48 +675,63 @@ namespace NE::Graphics {
             }
 
             // Use material shader if available, otherwise use fallback world space shader
+            bool useMaterial = false;
             if (cmd.material)
             {
                 auto pipeline = cmd.material->GetPipeline();
-                if (!pipeline) continue;
-
-                auto shader = pipeline->GetSpecification().shader;
-                if (!shader) continue;
-
-                shader->Bind();
-                cmd.material->Bind();
-
-                // set world space uniforms
-                if (cmd.bindlessTextureHandle != 0)
+                if (pipeline)
                 {
-                    shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
-                    shader->SetUniformInt("u_HasBaseMap", 1);
-                }
-                else
-                {
-                    shader->SetUniformInt("u_HasBaseMap", 0);
-                }
-                shader->SetUniformVec4("uColor", cmd.color);
+                    auto shader = pipeline->GetSpecification().shader;
+                    if (shader)
+                    {
+                        useMaterial = true;
+                        shader->Bind();
+                        cmd.material->Bind();
 
-                // set uniforms based on render mode
-                if (cmd.renderMode == 1)  // camera mode
-                {
-                    shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
-                    shader->SetUniformMat4("uProj", cmd.projMatrix);
-                    shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
-                }
-                else if (cmd.renderMode == 2)  // world space
-                {
-                    shader->SetUniformMat4("uModel", cmd.modelMatrix);
-                    shader->SetUniformMat4("uView", cmd.viewMatrix);
-                    shader->SetUniformMat4("uProj", cmd.projMatrix);
+                        // set world space uniforms
+                        if (cmd.bindlessTextureHandle != 0)
+                        {
+                            shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
+                            shader->SetUniformInt("u_HasBaseMap", 1);
+                        }
+                        else
+                        {
+                            shader->SetUniformInt("u_HasBaseMap", 0);
+                        }
+                        shader->SetUniformVec4("uColor", cmd.color);
+
+                        // set uniforms based on render mode
+                        if (cmd.renderMode == 1)  // camera mode
+                        {
+                            shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                            shader->SetUniformMat4("uProj", cmd.projMatrix);
+                            shader->SetUniformFloat("uPlaneDistance", cmd.planeDistance);
+                        }
+                        else if (cmd.renderMode == 2)  // world space
+                        {
+                            shader->SetUniformMat4("uModel", cmd.modelMatrix);
+                            shader->SetUniformMat4("uView", cmd.viewMatrix);
+                            shader->SetUniformMat4("uProj", cmd.projMatrix);
+                        }
+                    }
                 }
             }
-            else
+            
+            if (!useMaterial)
             {
                 // Fallback: Use simple world space shader when no material is assigned
                 glUseProgram(s_WorldSpaceShader);
                 glUniform4f(glGetUniformLocation(s_WorldSpaceShader, "uColor"), cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+                
+                // Support texture sampling for text rendering
+                GLint baseMapLoc = glGetUniformLocation(s_WorldSpaceShader, "u_BaseMap");
+                GLint hasBaseMapLoc = glGetUniformLocation(s_WorldSpaceShader, "u_HasBaseMap");
+                if (cmd.bindlessTextureHandle != 0 && baseMapLoc != -1 && hasBaseMapLoc != -1) {
+                    glUniformHandleui64ARB(baseMapLoc, cmd.bindlessTextureHandle);
+                    glUniform1i(hasBaseMapLoc, 1);
+                } else if (hasBaseMapLoc != -1) {
+                    glUniform1i(hasBaseMapLoc, 0);
+                }
                 
                 // set uniforms based on render mode
                 if (cmd.renderMode == 1)  // camera mode - not supported in fallback, skip
