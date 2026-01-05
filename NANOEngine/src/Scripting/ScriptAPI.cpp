@@ -404,209 +404,215 @@ namespace NE {
 		// Rigidbody Physics
 		//=========================================================================
 
-		//bool IScript::HasRigidbody(Entity entity) const {
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-		//	return Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity);
-		//}
+		bool IScript::HasRigidbody(Entity entity) const {
+			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			return Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity);*/
+			return false;
+		}
 
-		//float IScript::GetMass(Entity entity) const {
-		//	CHECK_CONTEXT_OR_RETURN(0.0f);
+		float IScript::GetMass(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(0.0f);
 
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
-		//		return 0.0f;
+			if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
+				return 0.0f;
 
-		//	return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).mass;
-		//}
+			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).mass;
+		}
 
-		//void IScript::SetMass(float mass, Entity entity) {
-		//	CHECK_CONTEXT_OR_RETURN();
+		void IScript::SetMass(float mass, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
 
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
-		//		auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
-		//		rigidbody.mass = mass;
-		//	}
-		//}
+			if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
+				auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
+				rigidbody.mass = mass;
+			}
+		}
 
-		//bool IScript::GetUseGravity(Entity entity) const {
-		//	CHECK_CONTEXT_OR_RETURN(false);
+		bool IScript::GetUseGravity(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(false);
 
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
-		//		return false;
+			if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
+				return false;
 
-		//	return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).useGravity;
-		//}
+			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).useGravity;
+		}
 
-		//void IScript::SetUseGravity(bool use, Entity entity) {
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		void IScript::SetUseGravity(bool use, Entity entity) {
+			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			//if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-		//	Physics::PhysicsManager::SetGravityEnabled(bodyID, use);
+			//uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
+			//Physics::PhysicsManager::SetGravityEnabled(bodyID, use);
 
-		//	// Also update Rigidbody component if it exists
-		//	if (m_context && m_context->componentManager &&
-		//		m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
-		//		auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
-		//		rigidbody.useGravity = use;
-		//	}
-		//}
+			//// Also update Rigidbody component if it exists
+			//if (m_context && m_context->componentManager &&
+			//	m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
+			//	auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
+			//	rigidbody.useGravity = use;
+			//}
+		}
 
-		//bool IScript::IsStatic(Entity entity) const {
-		//	if (!m_context || !m_context->componentManager) return false;
+		bool IScript::IsStatic(Entity entity) const {
+			/*if (!m_context || !m_context->componentManager) return false;
 
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
-		//		return false;
+			if (!m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity))
+				return false;
 
-		//	return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).isStatic;
-		//}
+			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).isStatic;*/
+			return false;
+		}
 
-		//void IScript::SetStatic(bool isStatic, Entity entity) {
-		//	if (!m_context || !m_context->componentManager) return;
+		void IScript::SetStatic(bool isStatic, Entity entity) {
+			/*if (!m_context || !m_context->componentManager) return;
 
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
-		//		auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
-		//		rigidbody.isStatic = isStatic;
-		//	}
-		//}
+			if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity)) {
+				auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity);
+				rigidbody.isStatic = isStatic;
+			}*/
+		}
 
-		//void IScript::LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		void IScript::LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
+			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-		//	Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
+			Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);*/
+		}
 
-		//Vec3 IScript::GetVelocity(Entity entity) const {
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		Vec3 IScript::GetVelocity(Entity entity) const {
+			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) {
-		//		return Vec3::Zero();
-		//	}
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) {
+				return Vec3::Zero();
+			}
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-		//	return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
+			return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));*/
+			return {};
+		}
 
-		//void IScript::SetVelocity(const Vec3& velocity, Entity entity) {
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		void IScript::SetVelocity(const Vec3& velocity, Entity entity) {
+			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-		//	Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
+			Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));*/
+		}
 
-		//void IScript::SetVelocity(float x, float y, float z, Entity entity) {
-		//	SetVelocity(Vec3(x, y, z), entity);
-		//}
+		void IScript::SetVelocity(float x, float y, float z, Entity entity) {
+			SetVelocity(Vec3(x, y, z), entity);
+		}
 
-		//void IScript::AddForce(const Vec3& force, Entity entity) {
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		void IScript::AddForce(const Vec3& force, Entity entity) {
+			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-		//	Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
+			Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));*/
+		}
 
-		//void IScript::AddForce(float x, float y, float z, Entity entity) {
-		//	AddForce(Vec3(x, y, z), entity);
-		//}
+		void IScript::AddForce(float x, float y, float z, Entity entity) {
+			AddForce(Vec3(x, y, z), entity);
+		}
 
-		//void IScript::AddImpulse(const Vec3& impulse, Entity entity) {
-		//	Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		void IScript::AddImpulse(const Vec3& impulse, Entity entity) {
+			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-		//	Physics::PhysicsManager::AddImpulse(bodyID, ToEngineVec3(impulse));
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
+			Physics::PhysicsManager::AddImpulse(bodyID, ToEngineVec3(impulse));*/
+		}
 
-		//void IScript::AddImpulse(float x, float y, float z, Entity entity) {
-		//	AddImpulse(Vec3(x, y, z), entity);
-		//}
+		void IScript::AddImpulse(float x, float y, float z, Entity entity) {
+			AddImpulse(Vec3(x, y, z), entity);
+		}
 
 		//=========================================================================
 		// Physics Raycasting
 		//=========================================================================
 
-		//RaycastHit IScript::Raycast(const Vec3& origin, const Vec3& direction, float maxDistance, uint32_t layerMask) const {
-		//	RaycastHit result;
+		RaycastHit IScript::Raycast(const Vec3& origin, const Vec3& direction, float maxDistance, uint32_t layerMask) const {
+			RaycastHit result;
 
-		//	if (!m_context || !m_context->componentManager) {
-		//		result.hasHit = false;
-		//		return result;
-		//	}
+			//if (!m_context || !m_context->componentManager) {
+			//	result.hasHit = false;
+			//	return result;
+			//}
 
-		//	// Call PhysicsManager raycast with layer mask (static method)
-		//	auto hit = Physics::PhysicsManager::Raycast(
-		//		ToEngineVec3(origin),
-		//		ToEngineVec3(direction),
-		//		maxDistance,
-		//		layerMask
-		//	);
+			//// Call PhysicsManager raycast with layer mask (static method)
+			//auto hit = Physics::PhysicsManager::Raycast(
+			//	ToEngineVec3(origin),
+			//	ToEngineVec3(direction),
+			//	maxDistance,
+			//	layerMask
+			//);
 
-		//	// Convert PhysicsManager::RaycastHit to SDK RaycastHit
-		//	result.hasHit = hit.hasHit;
-		//	result.point = ToSDKVec3(hit.point);
-		//	result.normal = ToSDKVec3(hit.normal);
-		//	result.distance = hit.distance;
-		//	result.entity = hit.entity;
-		//	return result;
-		//}
+			//// Convert PhysicsManager::RaycastHit to SDK RaycastHit
+			//result.hasHit = hit.hasHit;
+			//result.point = ToSDKVec3(hit.point);
+			//result.normal = ToSDKVec3(hit.normal);
+			//result.distance = hit.distance;
+			//result.entity = hit.entity;
+			//return result;
+			return {};
+		}
 
-		//RaycastHit IScript::Raycast(float originX, float originY, float originZ,
-		//	float dirX, float dirY, float dirZ,
-		//	float maxDistance, uint32_t layerMask) const {
-		//	return Raycast(Vec3(originX, originY, originZ),
-		//		Vec3(dirX, dirY, dirZ),
-		//		maxDistance,
-		//		layerMask);
-		//}
+		RaycastHit IScript::Raycast(float originX, float originY, float originZ,
+			float dirX, float dirY, float dirZ,
+			float maxDistance, uint32_t layerMask) const {
+			/*return Raycast(Vec3(originX, originY, originZ),
+				Vec3(dirX, dirY, dirZ),
+				maxDistance,
+				layerMask);*/
+			return {};
+		}
 
-		//std::vector<RaycastHit> IScript::RaycastAll(const Vec3& origin, const Vec3& direction,
-		//	float maxDistance, uint32_t layerMask) const {
-		//	std::vector<RaycastHit> results;
+		std::vector<RaycastHit> IScript::RaycastAll(const Vec3& origin, const Vec3& direction,
+			float maxDistance, uint32_t layerMask) const {
+			//std::vector<RaycastHit> results;
 
-		//	if (!m_context || !m_context->componentManager) {
-		//		return results;
-		//	}
+			//if (!m_context || !m_context->componentManager) {
+			//	return results;
+			//}
 
-		//	// Call PhysicsManager raycast with layer mask (static method)
-		//	auto hits = Physics::PhysicsManager::RaycastAll(
-		//		ToEngineVec3(origin),
-		//		ToEngineVec3(direction),
-		//		maxDistance,
-		//		layerMask
-		//	);
+			//// Call PhysicsManager raycast with layer mask (static method)
+			//auto hits = Physics::PhysicsManager::RaycastAll(
+			//	ToEngineVec3(origin),
+			//	ToEngineVec3(direction),
+			//	maxDistance,
+			//	layerMask
+			//);
 
-		//	// Convert PhysicsManager::RaycastHit to SDK RaycastHit
-		//	results.reserve(hits.size());
-		//	for (const auto& hit : hits) {
-		//		RaycastHit result;
-		//		result.hasHit = hit.hasHit;
-		//		result.point = ToSDKVec3(hit.point);
-		//		result.normal = ToSDKVec3(hit.normal);
-		//		result.distance = hit.distance;
-		//		result.entity = hit.entity;
-		//		results.push_back(result);
-		//	}
+			//// Convert PhysicsManager::RaycastHit to SDK RaycastHit
+			//results.reserve(hits.size());
+			//for (const auto& hit : hits) {
+			//	RaycastHit result;
+			//	result.hasHit = hit.hasHit;
+			//	result.point = ToSDKVec3(hit.point);
+			//	result.normal = ToSDKVec3(hit.normal);
+			//	result.distance = hit.distance;
+			//	result.entity = hit.entity;
+			//	results.push_back(result);
+			//}
 
-		//	return results;
-		//}
+			//return results;
+			return {};
+		}
 
 		//=========================================================================
 		// Audio Source
@@ -1052,34 +1058,35 @@ namespace NE {
 			transform.isDirty = true;
 		}
 
-		//Vec3 IScript::GetVelocity(const RigidbodyRef& ref) const {
-		//	if (!ref.IsValid()) return Vec3::Zero();
+		Vec3 IScript::GetVelocity(const RigidbodyRef& ref) const {
+			/*if (!ref.IsValid()) return Vec3::Zero();
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) {
-		//		return Vec3::Zero();
-		//	}
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) {
+				return Vec3::Zero();
+			}
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-		//	return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
+			return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));*/
+			return {};
+		}
 
-		//void IScript::SetVelocity(const RigidbodyRef& ref, const Vec3& velocity) {
-		//	if (!ref.IsValid()) return;
+		void IScript::SetVelocity(const RigidbodyRef& ref, const Vec3& velocity) {
+			/*if (!ref.IsValid()) return;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-		//	Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
+			Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));*/
+		}
 
-		//void IScript::AddForce(const RigidbodyRef& ref, const Vec3& force) {
-		//	if (!ref.IsValid()) return;
+		void IScript::AddForce(const RigidbodyRef& ref, const Vec3& force) {
+			/*if (!ref.IsValid()) return;
 
-		//	if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
+			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
 
-		//	uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-		//	Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));
-		//}
+			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
+			Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));*/
+		}
 
 		//=========================================================================
 		// Field Registration
@@ -2171,7 +2178,7 @@ namespace NE {
 			}
 		}
 
-		uint8_t IScript::GetLayer(Entity entity) const {
+		/*uint8_t IScript::GetLayer(Entity entity) const {
 			if (!m_context->componentManager) return 0;
 
 			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -2180,9 +2187,9 @@ namespace NE {
 				return 0;
 
 			return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).layer;
-		}
+		}*/
 
-		void IScript::SetLayer(uint8_t layer, Entity entity) {
+		/*void IScript::SetLayer(uint8_t layer, Entity entity) {
 			if (!m_context->componentManager) return;
 
 			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -2191,7 +2198,7 @@ namespace NE {
 				auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
 				meta.layer = layer;
 			}
-		}
+		}*/
 
 		bool IScript::IsPrefabInstance(Entity entity) const {
 			if (!m_context->componentManager) return false;
@@ -2228,47 +2235,47 @@ namespace NE {
 		}
 
 		void IScript::SetActive(bool active, Entity entity) {
-			if (!m_context->componentManager) return;
+			//if (!m_context->componentManager) return;
 
-			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			//Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-				auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+			//if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+			//	auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
 
-				// Only update if changed
-				if (meta.isActive != active) {
-					meta.isActive = active;
+			//	// Only update if changed
+			//	if (meta.isActive != active) {
+			//		meta.isActive = active;
 
-					// 1. Update rendering visibility
-					if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
-						auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
-						renderer.visible = active && IsActiveInHierarchy();
-					}
+			//		// 1. Update rendering visibility
+			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
+			//			auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
+			//			renderer.visible = active && IsActiveInHierarchy();
+			//		}
 
-					// 2. Update physics state
-					if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
-						uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
+			//		// 2. Update physics state
+			//		if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
+			//			uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
 
-						if (active && IsActiveInHierarchy()) {
-							// Reactivate physics body only if parent hierarchy is also active
-							NE::Physics::PhysicsManager::ActivateBody(bodyID);
-						} else {
-							// Deactivate physics body (stops collision and physics simulation)
-							NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-						}
-					}
+			//			if (active && IsActiveInHierarchy()) {
+			//				// Reactivate physics body only if parent hierarchy is also active
+			//				NE::Physics::PhysicsManager::ActivateBody(bodyID);
+			//			} else {
+			//				// Deactivate physics body (stops collision and physics simulation)
+			//				NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+			//			}
+			//		}
 
-					// 3. Update script enabled state
-					// When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
-					// No need to manually disable here - the hierarchy check in ScriptSystem handles it
+			//		// 3. Update script enabled state
+			//		// When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
+			//		// No need to manually disable here - the hierarchy check in ScriptSystem handles it
 
-					// 4. Recursively propagate to all children (Unity-style)
-					if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(e)) {
-						auto& hierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(e);
-						PropagateActiveStateToChildren(hierarchy.children, active);
-					}
-				}
-			}
+			//		// 4. Recursively propagate to all children (Unity-style)
+			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(e)) {
+			//			auto& hierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(e);
+			//			PropagateActiveStateToChildren(hierarchy.children, active);
+			//		}
+			//	}
+			//}
 		}
 
 		bool IScript::IsActiveInHierarchy() const {
@@ -2319,42 +2326,42 @@ namespace NE {
 		}
 
 		void IScript::PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const {
-			if (!m_context || !m_context->componentManager) return;
+			//if (!m_context || !m_context->componentManager) return;
 
-			for (Entity childEntity : children) {
-				// Get child's own isActive state
-				if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
-					continue;
-				}
+			//for (Entity childEntity : children) {
+			//	// Get child's own isActive state
+			//	if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
+			//		continue;
+			//	}
 
-				auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
+			//	auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
 
-				// Determine effective active state: parent must be active AND child must be active
-				bool effectiveActive = parentActive && childMeta.isActive;
+			//	// Determine effective active state: parent must be active AND child must be active
+			//	bool effectiveActive = parentActive && childMeta.isActive;
 
-				// Update child's rendering
-				if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
-					auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
-					renderer.visible = effectiveActive;
-				}
+			//	// Update child's rendering
+			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
+			//		auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
+			//		renderer.visible = effectiveActive;
+			//	}
 
-				// Update child's physics
-				if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
-					uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
+			//	// Update child's physics
+			//	if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
+			//		uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
 
-					if (effectiveActive) {
-						NE::Physics::PhysicsManager::ActivateBody(bodyID);
-					} else {
-						NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-					}
-				}
+			//		if (effectiveActive) {
+			//			NE::Physics::PhysicsManager::ActivateBody(bodyID);
+			//		} else {
+			//			NE::Physics::PhysicsManager::DeactivateBody(bodyID);
+			//		}
+			//	}
 
-				// Recursively propagate to grandchildren
-				if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(childEntity)) {
-					auto& childHierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(childEntity);
-					PropagateActiveStateToChildren(childHierarchy.children, effectiveActive);
-				}
-			}
+			//	// Recursively propagate to grandchildren
+			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(childEntity)) {
+			//		auto& childHierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(childEntity);
+			//		PropagateActiveStateToChildren(childHierarchy.children, effectiveActive);
+			//	}
+			//}
 		}
 
 		//=========================================================================
