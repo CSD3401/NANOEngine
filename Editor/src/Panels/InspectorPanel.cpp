@@ -2961,6 +2961,7 @@ namespace Editor {
 								{
 									comp.fillAmount = 1.0f;
 									comp.isDirty = true;
+									NE::MarkSceneDirty();
 								}
 								break;
 							}
@@ -3005,6 +3006,7 @@ namespace Editor {
 								{
 									comp.fillAmount = 1.0f;
 									comp.isDirty = true;
+									NE::MarkSceneDirty();
 								}
 								break;
 							}
@@ -3025,6 +3027,7 @@ namespace Editor {
 								{
 									comp.fillAmount = 1.0f;
 									comp.isDirty = true;
+									NE::MarkSceneDirty();
 								}
 								break;
 							}

@@ -599,43 +599,18 @@ namespace NE::ECS::Systems {
         
         // For screen space, accumulated.posX/posY are in reference coordinates
         // (calculated using parentWidth/parentHeight which are screen dimensions divided by scaleFactor)
-        // We need to multiply by scaleFactor to convert to screen pixels
-        // This matches how width/height are scaled: result.width = rect.width * accumulated.scaleX
-        result.x = accumulated.posX * accumulated.scaleX;
-        result.y = accumulated.posY * accumulated.scaleY;
+        // We need to multiply by canvas.scaleFactor to convert to screen pixels
+        // IMPORTANT: The pivot position should NOT be scaled by the element's scale (rect.scaleX/Y)
+        // Only the canvas scaleFactor should be applied to position, so the pivot stays fixed when scaling
+        // The element's scale (rect.scaleX/Y) should only affect size, not position
+        float canvasScaleX = canvas.scaleFactor;
+        float canvasScaleY = canvas.scaleFactor;
+        result.x = accumulated.posX * canvasScaleX;
+        result.y = accumulated.posY * canvasScaleY;
         result.z = accumulated.posZ;
         
-        // DEBUG: Print world transform calculation (only for screen space)
-        static int debugTransformCounter = 0;
-        if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-            canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
-            if (debugTransformCounter++ % 60 == 0) { // Print every 60 frames
-                std::cout << "\n=== UITransformSystem Debug ===" << std::endl;
-                std::cout << "Entity: " << entity << ", Canvas: " << canvasEntity << std::endl;
-                std::cout << "Reference Resolution: " << canvas.referenceWidth << "x" << canvas.referenceHeight << std::endl;
-                std::cout << "Scale Factor: " << canvas.scaleFactor << std::endl;
-                std::cout << "Screen Size: " << NE::Graphics::GraphicsManager::GetScreenWidth() 
-                          << "x" << NE::Graphics::GraphicsManager::GetScreenHeight() << std::endl;
-                std::cout << "Accumulated Position (ref coords): (" << accumulated.posX << ", " << accumulated.posY << ")" << std::endl;
-                std::cout << "Accumulated Scale: (" << accumulated.scaleX << ", " << accumulated.scaleY << ")" << std::endl;
-                std::cout << "World Position (screen pixels): (" << result.x << ", " << result.y << ")" << std::endl;
-                std::cout << "Rect Size: " << rect.width << "x" << rect.height << std::endl;
-                std::cout << "Calculated Width: " << accumulated.calculatedWidth << ", Height: " << accumulated.calculatedHeight << std::endl;
-                if (accumulated.calculatedWidth > 0.f) {
-                    std::cout << "Final Width (scaled): " << accumulated.calculatedWidth * accumulated.scaleX << std::endl;
-                } else {
-                    std::cout << "Final Width (scaled): " << rect.width * accumulated.scaleX << std::endl;
-                }
-                if (accumulated.calculatedHeight > 0.f) {
-                    std::cout << "Final Height (scaled): " << accumulated.calculatedHeight * accumulated.scaleY << std::endl;
-                } else {
-                    std::cout << "Final Height (scaled): " << rect.height * accumulated.scaleY << std::endl;
-                }
-                std::cout << "================================\n" << std::endl;
-            }
-        }
-        
         // Use calculated width/height if anchors are stretched, otherwise use rect.width/height
+        // Size IS affected by both canvas scaleFactor and element scale
         if (accumulated.calculatedWidth > 0.f) {
             result.width = accumulated.calculatedWidth * accumulated.scaleX;
         }

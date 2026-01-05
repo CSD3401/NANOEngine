@@ -592,37 +592,8 @@ namespace Editor {
         float scaledWidth = worldTransform.width;
         float scaledHeight = worldTransform.height;
 
-        // DEBUG: Print transform values to verify calculations
-        static int debugFrameCounter = 0;
-        if (debugFrameCounter++ % 60 == 0) { // Print every 60 frames to avoid spam
-            std::cout << "\n=== UI Gizmo Debug Info ===" << std::endl;
-            std::cout << "Entity ID: " << uiEntityId << std::endl;
-            std::cout << "Canvas Entity ID: " << canvasEntityId << std::endl;
-            std::cout << "Reference Resolution: " << canvas->referenceWidth << "x" << canvas->referenceHeight << std::endl;
-            std::cout << "Scale Factor: " << canvas->scaleFactor << std::endl;
-            std::cout << "Screen Size (fbWidth/fbHeight): " << fbWidth << "x" << fbHeight << std::endl;
-            std::cout << "Panel Size: " << panelSize.x << "x" << panelSize.y << std::endl;
-            std::cout << "Panel Position: (" << panelPos.x << ", " << panelPos.y << ")" << std::endl;
-            std::cout << "Panel Scale: (" << panelScaleX << ", " << panelScaleY << ")" << std::endl;
-            std::cout << "\nRectTransform:" << std::endl;
-            std::cout << "  Position: (" << rectTransform.x << ", " << rectTransform.y << ")" << std::endl;
-            std::cout << "  Size: " << rectTransform.width << "x" << rectTransform.height << std::endl;
-            std::cout << "  Anchors: (" << rectTransform.anchorMinX << ", " << rectTransform.anchorMinY << ") to (" 
-                      << rectTransform.anchorMaxX << ", " << rectTransform.anchorMaxY << ")" << std::endl;
-            std::cout << "  Pivot: (" << rectTransform.pivotX << ", " << rectTransform.pivotY << ")" << std::endl;
-            std::cout << "\nWorld Transform:" << std::endl;
-            std::cout << "  Pivot Position (screen pixels): (" << worldPivotX << ", " << worldPivotY << ")" << std::endl;
-            std::cout << "  Scaled Size (screen pixels): " << scaledWidth << "x" << scaledHeight << std::endl;
-            std::cout << "  Accumulated Scale: (" << worldTransform.accumulatedScaleX << ", " << worldTransform.accumulatedScaleY << ")" << std::endl;
-            std::cout << "  Accumulated Rotation Z: " << worldTransform.accumulatedRotationZ << " degrees" << std::endl;
-        }
-
         // Validate that we have valid dimensions
         if (scaledWidth <= 0.0f || scaledHeight <= 0.0f) {
-            if (debugFrameCounter % 60 == 0) {
-                std::cout << "ERROR: Invalid gizmo dimensions - scaledWidth: " << scaledWidth 
-                          << ", scaledHeight: " << scaledHeight << std::endl;
-            }
             return; // Invalid size, don't draw gizmo
         }
 
@@ -648,17 +619,6 @@ namespace Editor {
             panelPos.x + worldPivotX * panelScaleX,
             panelPos.y + worldPivotY * panelScaleY
         );
-
-        // DEBUG: Print calculated gizmo positions
-        if (debugFrameCounter % 60 == 0) {
-            std::cout << "\nCalculated Gizmo Positions:" << std::endl;
-            std::cout << "  Top-Left (screen): (" << topLeftX << ", " << topLeftY << ")" << std::endl;
-            std::cout << "  Top-Left (panel): (" << topLeft.x << ", " << topLeft.y << ")" << std::endl;
-            std::cout << "  Center (screen): (" << worldPivotX << ", " << worldPivotY << ")" << std::endl;
-            std::cout << "  Center (panel): (" << center.x << ", " << center.y << ")" << std::endl;
-            std::cout << "  Bottom-Right (panel): (" << bottomRight.x << ", " << bottomRight.y << ")" << std::endl;
-            std::cout << "================================\n" << std::endl;
-        }
 
         // Get rotation (use accumulated rotation from world transform)
         float rotationZ = worldTransform.accumulatedRotationZ;
