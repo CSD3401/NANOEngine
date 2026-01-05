@@ -548,27 +548,94 @@ namespace Editor {
         bool isStretchedY = (std::abs(rectTransform.anchorMinY - rectTransform.anchorMaxY) > 0.001f);
         bool hasStretchAnchors = isStretchedX || isStretchedY;
 
+        // Find canvas to get scale factor for proper coordinate conversion
+        uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
+        const NE::ECS::Component::UICanvas* canvas = nullptr;
+        
+        if (NE::ECS::Query::HasUICanvas(uiEntityId)) {
+            canvasEntityId = uiEntityId;
+            canvas = &NE::ECS::Query::GetUICanvas(uiEntityId);
+        } else {
+            uint32_t p = rectTransform.parent;
+            while (p != std::numeric_limits<uint32_t>::max()) {
+                if (NE::ECS::Query::HasUICanvas(p)) {
+                    canvasEntityId = p;
+                    canvas = &NE::ECS::Query::GetUICanvas(p);
+                    break;
+                }
+                if (!NE::ECS::Query::HasUIRectTransform(p)) break;
+                p = NE::ECS::Query::GetUIRectTransform(p).parent;
+            }
+        }
+
+        if (!canvas) {
+            return; // Can't draw gizmo without canvas
+        }
+
+        // Calculate panel scale (from framebuffer size to panel size)
+        // fbWidth/fbHeight are the actual screen dimensions (canvas width/height)
         float panelScaleX = panelSize.x / fbWidth;
         float panelScaleY = panelSize.y / fbHeight;
 
         // Use UITransformSystem to get world transform (accounts for anchors properly)
         auto worldTransform = NE::ECS::Query::GetUIWorldTransform(uiEntityId);
         
-        // worldTransform.x/y is the pivot position in top-left origin coordinates
+        // worldTransform.x/y is the pivot position in screen pixels (absolute screen coordinates)
+        // These are already scaled by scaleFactor and account for reference resolution
+        // They are relative to the top-left of the screen (0,0) in screen pixel space
+        // For screen space UI, positions are calculated relative to screen top-left, not canvas position
         float worldPivotX = worldTransform.x;
         float worldPivotY = worldTransform.y;
         
-        // worldTransform.width/height are already scaled
+        // worldTransform.width/height are already scaled by scaleFactor
+        // These represent the actual rendered size in screen pixels
         float scaledWidth = worldTransform.width;
         float scaledHeight = worldTransform.height;
 
-        // Calculate top-left from pivot (Unity-style: pivot (0,0) = bottom-left)
-        // worldTransform.x/y is the pivot position in screen pixels (1920x1080 space)
-        // These are already in absolute screen coordinates (canvas position is included via anchor calculation)
+        // DEBUG: Print transform values to verify calculations
+        static int debugFrameCounter = 0;
+        if (debugFrameCounter++ % 60 == 0) { // Print every 60 frames to avoid spam
+            std::cout << "\n=== UI Gizmo Debug Info ===" << std::endl;
+            std::cout << "Entity ID: " << uiEntityId << std::endl;
+            std::cout << "Canvas Entity ID: " << canvasEntityId << std::endl;
+            std::cout << "Reference Resolution: " << canvas->referenceWidth << "x" << canvas->referenceHeight << std::endl;
+            std::cout << "Scale Factor: " << canvas->scaleFactor << std::endl;
+            std::cout << "Screen Size (fbWidth/fbHeight): " << fbWidth << "x" << fbHeight << std::endl;
+            std::cout << "Panel Size: " << panelSize.x << "x" << panelSize.y << std::endl;
+            std::cout << "Panel Position: (" << panelPos.x << ", " << panelPos.y << ")" << std::endl;
+            std::cout << "Panel Scale: (" << panelScaleX << ", " << panelScaleY << ")" << std::endl;
+            std::cout << "\nRectTransform:" << std::endl;
+            std::cout << "  Position: (" << rectTransform.x << ", " << rectTransform.y << ")" << std::endl;
+            std::cout << "  Size: " << rectTransform.width << "x" << rectTransform.height << std::endl;
+            std::cout << "  Anchors: (" << rectTransform.anchorMinX << ", " << rectTransform.anchorMinY << ") to (" 
+                      << rectTransform.anchorMaxX << ", " << rectTransform.anchorMaxY << ")" << std::endl;
+            std::cout << "  Pivot: (" << rectTransform.pivotX << ", " << rectTransform.pivotY << ")" << std::endl;
+            std::cout << "\nWorld Transform:" << std::endl;
+            std::cout << "  Pivot Position (screen pixels): (" << worldPivotX << ", " << worldPivotY << ")" << std::endl;
+            std::cout << "  Scaled Size (screen pixels): " << scaledWidth << "x" << scaledHeight << std::endl;
+            std::cout << "  Accumulated Scale: (" << worldTransform.accumulatedScaleX << ", " << worldTransform.accumulatedScaleY << ")" << std::endl;
+            std::cout << "  Accumulated Rotation Z: " << worldTransform.accumulatedRotationZ << " degrees" << std::endl;
+        }
+
+        // Validate that we have valid dimensions
+        if (scaledWidth <= 0.0f || scaledHeight <= 0.0f) {
+            if (debugFrameCounter % 60 == 0) {
+                std::cout << "ERROR: Invalid gizmo dimensions - scaledWidth: " << scaledWidth 
+                          << ", scaledHeight: " << scaledHeight << std::endl;
+            }
+            return; // Invalid size, don't draw gizmo
+        }
+
+        // Calculate top-left corner from pivot point
+        // pivotX/pivotY are normalized (0-1) coordinates
+        // In our top-left origin system: pivotX=0 is left, pivotX=1 is right
+        // pivotY=0 is top, pivotY=1 is bottom (inverted from Unity's Y-up system)
         float topLeftX = worldPivotX - scaledWidth * rectTransform.pivotX;
         float topLeftY = worldPivotY - scaledHeight * (1.0f - rectTransform.pivotY);
 
-        // Convert to screen coordinates
+        // Convert from screen coordinates (in screen pixels) to panel coordinates (in panel pixels)
+        // worldTransform positions are in absolute screen pixels relative to screen top-left (0,0)
+        // We scale by panelScale to convert to panel pixel space, then offset by panel position
         ImVec2 topLeft(
             panelPos.x + topLeftX * panelScaleX,
             panelPos.y + topLeftY * panelScaleY
@@ -581,6 +648,17 @@ namespace Editor {
             panelPos.x + worldPivotX * panelScaleX,
             panelPos.y + worldPivotY * panelScaleY
         );
+
+        // DEBUG: Print calculated gizmo positions
+        if (debugFrameCounter % 60 == 0) {
+            std::cout << "\nCalculated Gizmo Positions:" << std::endl;
+            std::cout << "  Top-Left (screen): (" << topLeftX << ", " << topLeftY << ")" << std::endl;
+            std::cout << "  Top-Left (panel): (" << topLeft.x << ", " << topLeft.y << ")" << std::endl;
+            std::cout << "  Center (screen): (" << worldPivotX << ", " << worldPivotY << ")" << std::endl;
+            std::cout << "  Center (panel): (" << center.x << ", " << center.y << ")" << std::endl;
+            std::cout << "  Bottom-Right (panel): (" << bottomRight.x << ", " << bottomRight.y << ")" << std::endl;
+            std::cout << "================================\n" << std::endl;
+        }
 
         // Get rotation (use accumulated rotation from world transform)
         float rotationZ = worldTransform.accumulatedRotationZ;
