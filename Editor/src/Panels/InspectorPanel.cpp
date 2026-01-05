@@ -2968,37 +2968,37 @@ namespace Editor {
 							case NE::ECS::Component::UIImage::ImageType::SLICED:
 							{
 								// 9-slice borders
-								//ImGui::Text("Border Left");
-								//ImGui::SameLine(labelWidth);
-								//ImGui::SetNextItemWidth(-1);
-								//if (ImGui::DragFloat("##BorderLeft", &comp.borderLeft, 1.0f, 0.0f, 1000.0f)) {
-								//	comp.isDirty = true;
-								//	NE::MarkSceneDirty();
-								//}
+								ImGui::Text("Border Left");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::DragFloat("##BorderLeft", &comp.borderLeft, 1.0f, 0.0f, 1000.0f)) {
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
 
-								//ImGui::Text("Border Right");
-								//ImGui::SameLine(labelWidth);
-								//ImGui::SetNextItemWidth(-1);
-								//if (ImGui::DragFloat("##BorderRight", &comp.borderRight, 1.0f, 0.0f, 1000.0f)) {
-								//	comp.isDirty = true;
-								//	NE::MarkSceneDirty();
-								//}
+								ImGui::Text("Border Right");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::DragFloat("##BorderRight", &comp.borderRight, 1.0f, 0.0f, 1000.0f)) {
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
 
-								//ImGui::Text("Border Top");
-								//ImGui::SameLine(labelWidth);
-								//ImGui::SetNextItemWidth(-1);
-								//if (ImGui::DragFloat("##BorderTop", &comp.borderTop, 1.0f, 0.0f, 1000.0f)) {
-								//	comp.isDirty = true;
-								//	NE::MarkSceneDirty();
-								//}
+								ImGui::Text("Border Top");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::DragFloat("##BorderTop", &comp.borderTop, 1.0f, 0.0f, 1000.0f)) {
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
 
-								//ImGui::Text("Border Bottom");
-								//ImGui::SameLine(labelWidth);
-								//ImGui::SetNextItemWidth(-1);
-								//if (ImGui::DragFloat("##BorderBottom", &comp.borderBottom, 1.0f, 0.0f, 1000.0f)) {
-								//	comp.isDirty = true;
-								//	NE::MarkSceneDirty();
-								//}
+								ImGui::Text("Border Bottom");
+								ImGui::SameLine(labelWidth);
+								ImGui::SetNextItemWidth(-1);
+								if (ImGui::DragFloat("##BorderBottom", &comp.borderBottom, 1.0f, 0.0f, 1000.0f)) {
+									comp.isDirty = true;
+									NE::MarkSceneDirty();
+								}
 
 								// reset fill amount when switching to simple mode
 								if (comp.fillAmount < 1.0f)
@@ -3163,66 +3163,377 @@ namespace Editor {
 							NE::MarkSceneDirty();
 						}
 
-						// Color States
-						ImGui::Spacing();
-						ImGui::Text("Colors");
-						ImGui::Indent();
+					// Color States
+					ImGui::Spacing();
+					ImGui::Text("Colors");
+					ImGui::Indent();
 
-						// Normal Color - label on left, color picker on right
+					using Owner = NE::ECS::Component::UIButton;
+					using FieldT = NE::Math::Vec4;
+
+					// Normal Color
+					{
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Normal");
 						ImGui::SameLine(labelWidth);
 						float normalColor[4] = { comp.normalColor.x, comp.normalColor.y, comp.normalColor.z, comp.normalColor.w };
+						
+						FieldKey normalColorKey{
+							entity,
+							&typeid(Owner),
+							MemberPointerHasher<Owner, FieldT>{}(&Owner::normalColor)
+						};
+						
 						ImGui::SetNextItemWidth(-1);
-						if (ImGui::ColorEdit4("##NormalColor", normalColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+						bool changed = ImGui::ColorEdit4("##NormalColor", normalColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+						
+						const bool activated = ImGui::IsItemActivated();
+						const bool active = ImGui::IsItemActive();
+						const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+						
+						if (activated) {
+							FieldT beforeColor = comp.normalColor;
+							using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+							auto cmd = std::make_unique<Cmd>(
+								entity,
+								std::string("Change UI Button Normal Color"),
+								&Owner::normalColor,
+								beforeColor,
+								beforeColor,
+								&NE::ECS::Command::GetUIButton
+							);
+							g_activeCommands[normalColorKey] = std::move(cmd);
+						}
+						
+						if (changed) {
 							comp.normalColor.x = normalColor[0];
 							comp.normalColor.y = normalColor[1];
 							comp.normalColor.z = normalColor[2];
 							comp.normalColor.w = normalColor[3];
 							NE::MarkSceneDirty();
+							
+							if (active) {
+								auto it = g_activeCommands.find(normalColorKey);
+								if (it != g_activeCommands.end()) {
+									auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet) {
+										FieldT beforeColor = asSet->Before();
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},
+											&Owner::normalColor,
+											beforeColor,
+											comp.normalColor,
+											&NE::ECS::Command::GetUIButton
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+								}
+							}
 						}
+						
+						if (deactivated) {
+							auto it = g_activeCommands.find(normalColorKey);
+							if (it != g_activeCommands.end()) {
+								auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet) {
+									FieldT beforeColor = asSet->Before();
+									using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+									Cmd tmp(
+										entity,
+										std::string{},
+										&Owner::normalColor,
+										beforeColor,
+										comp.normalColor,
+										&NE::ECS::Command::GetUIButton
+									);
+									it->second->CoalesceFrom(tmp);
+								}
+								
+								asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet && Equal(asSet->Before(), asSet->After())) {
+									g_activeCommands.erase(it);
+								} else {
+									Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+									g_activeCommands.erase(it);
+								}
+							}
+						}
+					}
 
-						// Hover Color
+					// Hover Color
+					{
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Hovered");
 						ImGui::SameLine(labelWidth);
 						float hoverColor[4] = { comp.hoverColor.x, comp.hoverColor.y, comp.hoverColor.z, comp.hoverColor.w };
+						
+						FieldKey hoverColorKey{
+							entity,
+							&typeid(Owner),
+							MemberPointerHasher<Owner, FieldT>{}(&Owner::hoverColor)
+						};
+						
 						ImGui::SetNextItemWidth(-1);
-						if (ImGui::ColorEdit4("##HoverColor", hoverColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+						bool changed = ImGui::ColorEdit4("##HoverColor", hoverColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+						
+						const bool activated = ImGui::IsItemActivated();
+						const bool active = ImGui::IsItemActive();
+						const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+						
+						if (activated) {
+							FieldT beforeColor = comp.hoverColor;
+							using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+							auto cmd = std::make_unique<Cmd>(
+								entity,
+								std::string("Change UI Button Hover Color"),
+								&Owner::hoverColor,
+								beforeColor,
+								beforeColor,
+								&NE::ECS::Command::GetUIButton
+							);
+							g_activeCommands[hoverColorKey] = std::move(cmd);
+						}
+						
+						if (changed) {
 							comp.hoverColor.x = hoverColor[0];
 							comp.hoverColor.y = hoverColor[1];
 							comp.hoverColor.z = hoverColor[2];
 							comp.hoverColor.w = hoverColor[3];
 							NE::MarkSceneDirty();
+							
+							if (active) {
+								auto it = g_activeCommands.find(hoverColorKey);
+								if (it != g_activeCommands.end()) {
+									auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet) {
+										FieldT beforeColor = asSet->Before();
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},
+											&Owner::hoverColor,
+											beforeColor,
+											comp.hoverColor,
+											&NE::ECS::Command::GetUIButton
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+								}
+							}
 						}
+						
+						if (deactivated) {
+							auto it = g_activeCommands.find(hoverColorKey);
+							if (it != g_activeCommands.end()) {
+								auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet) {
+									FieldT beforeColor = asSet->Before();
+									using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+									Cmd tmp(
+										entity,
+										std::string{},
+										&Owner::hoverColor,
+										beforeColor,
+										comp.hoverColor,
+										&NE::ECS::Command::GetUIButton
+									);
+									it->second->CoalesceFrom(tmp);
+								}
+								
+								asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet && Equal(asSet->Before(), asSet->After())) {
+									g_activeCommands.erase(it);
+								} else {
+									Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+									g_activeCommands.erase(it);
+								}
+							}
+						}
+					}
 
-						// Pressed Color
+					// Pressed Color
+					{
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Pressed");
 						ImGui::SameLine(labelWidth);
 						float pressedColor[4] = { comp.pressedColor.x, comp.pressedColor.y, comp.pressedColor.z, comp.pressedColor.w };
+						
+						FieldKey pressedColorKey{
+							entity,
+							&typeid(Owner),
+							MemberPointerHasher<Owner, FieldT>{}(&Owner::pressedColor)
+						};
+						
 						ImGui::SetNextItemWidth(-1);
-						if (ImGui::ColorEdit4("##PressedColor", pressedColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+						bool changed = ImGui::ColorEdit4("##PressedColor", pressedColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+						
+						const bool activated = ImGui::IsItemActivated();
+						const bool active = ImGui::IsItemActive();
+						const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+						
+						if (activated) {
+							FieldT beforeColor = comp.pressedColor;
+							using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+							auto cmd = std::make_unique<Cmd>(
+								entity,
+								std::string("Change UI Button Pressed Color"),
+								&Owner::pressedColor,
+								beforeColor,
+								beforeColor,
+								&NE::ECS::Command::GetUIButton
+							);
+							g_activeCommands[pressedColorKey] = std::move(cmd);
+						}
+						
+						if (changed) {
 							comp.pressedColor.x = pressedColor[0];
 							comp.pressedColor.y = pressedColor[1];
 							comp.pressedColor.z = pressedColor[2];
 							comp.pressedColor.w = pressedColor[3];
 							NE::MarkSceneDirty();
+							
+							if (active) {
+								auto it = g_activeCommands.find(pressedColorKey);
+								if (it != g_activeCommands.end()) {
+									auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet) {
+										FieldT beforeColor = asSet->Before();
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},
+											&Owner::pressedColor,
+											beforeColor,
+											comp.pressedColor,
+											&NE::ECS::Command::GetUIButton
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+								}
+							}
 						}
+						
+						if (deactivated) {
+							auto it = g_activeCommands.find(pressedColorKey);
+							if (it != g_activeCommands.end()) {
+								auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet) {
+									FieldT beforeColor = asSet->Before();
+									using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+									Cmd tmp(
+										entity,
+										std::string{},
+										&Owner::pressedColor,
+										beforeColor,
+										comp.pressedColor,
+										&NE::ECS::Command::GetUIButton
+									);
+									it->second->CoalesceFrom(tmp);
+								}
+								
+								asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet && Equal(asSet->Before(), asSet->After())) {
+									g_activeCommands.erase(it);
+								} else {
+									Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+									g_activeCommands.erase(it);
+								}
+							}
+						}
+					}
 
-						// Disabled Color
+					// Disabled Color
+					{
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Disabled");
 						ImGui::SameLine(labelWidth);
 						float disabledColor[4] = { comp.disabledColor.x, comp.disabledColor.y, comp.disabledColor.z, comp.disabledColor.w };
+						
+						FieldKey disabledColorKey{
+							entity,
+							&typeid(Owner),
+							MemberPointerHasher<Owner, FieldT>{}(&Owner::disabledColor)
+						};
+						
 						ImGui::SetNextItemWidth(-1);
-						if (ImGui::ColorEdit4("##DisabledColor", disabledColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
+						bool changed = ImGui::ColorEdit4("##DisabledColor", disabledColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+						
+						const bool activated = ImGui::IsItemActivated();
+						const bool active = ImGui::IsItemActive();
+						const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+						
+						if (activated) {
+							FieldT beforeColor = comp.disabledColor;
+							using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+							auto cmd = std::make_unique<Cmd>(
+								entity,
+								std::string("Change UI Button Disabled Color"),
+								&Owner::disabledColor,
+								beforeColor,
+								beforeColor,
+								&NE::ECS::Command::GetUIButton
+							);
+							g_activeCommands[disabledColorKey] = std::move(cmd);
+						}
+						
+						if (changed) {
 							comp.disabledColor.x = disabledColor[0];
 							comp.disabledColor.y = disabledColor[1];
 							comp.disabledColor.z = disabledColor[2];
 							comp.disabledColor.w = disabledColor[3];
 							NE::MarkSceneDirty();
+							
+							if (active) {
+								auto it = g_activeCommands.find(disabledColorKey);
+								if (it != g_activeCommands.end()) {
+									auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet) {
+										FieldT beforeColor = asSet->Before();
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},
+											&Owner::disabledColor,
+											beforeColor,
+											comp.disabledColor,
+											&NE::ECS::Command::GetUIButton
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+								}
+							}
 						}
+						
+						if (deactivated) {
+							auto it = g_activeCommands.find(disabledColorKey);
+							if (it != g_activeCommands.end()) {
+								auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet) {
+									FieldT beforeColor = asSet->Before();
+									using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+									Cmd tmp(
+										entity,
+										std::string{},
+										&Owner::disabledColor,
+										beforeColor,
+										comp.disabledColor,
+										&NE::ECS::Command::GetUIButton
+									);
+									it->second->CoalesceFrom(tmp);
+								}
+								
+								asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+								if (asSet && Equal(asSet->Before(), asSet->After())) {
+									g_activeCommands.erase(it);
+								} else {
+									Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+									g_activeCommands.erase(it);
+								}
+							}
+						}
+					}
 
 						ImGui::Unindent();
 						ImGui::Unindent();

@@ -17,6 +17,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -37,17 +38,16 @@ namespace NE::ECS::Systems {
     UIRenderSystem::UIRenderSystem(ComponentManager* cm, UITransformSystem* transformSystem) 
         : m_cm(cm), m_transformSystem(transformSystem) {}
 
-    // Helper function to generate cache key from fontUUID, fontSize, and fontStyle
+    // Generate font cache key
     static uint32_t GenerateFontCacheKey(const std::string& fontUUID, float fontSize, UIText::FontStyle fontStyle) {
         std::hash<std::string> hasher;
         uint32_t uuidHash = static_cast<uint32_t>(hasher(fontUUID));
         uint32_t sizeKey = static_cast<uint32_t>(fontSize * 100.0f);
         uint32_t styleKey = static_cast<uint32_t>(static_cast<int>(fontStyle));
-        // Combine UUID hash, size key, and style key
         return uuidHash ^ (sizeKey << 16) ^ (sizeKey >> 16) ^ (styleKey << 8) ^ (styleKey >> 24);
     }
 
-    // Calculate optimal font size for auto-sizing (best fit)
+    // Calculate optimal font size for auto-sizing
     static float CalculateOptimalFontSize(
         UIText& text,
         float containerWidth,
@@ -59,31 +59,30 @@ namespace NE::ECS::Systems {
             return text.fontSize;
         }
 
-        // Extract bold and italic flags
         bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
                       (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
         bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
                         (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
 
-        // Check if wrapping is enabled (horizontalOverflow == WRAP)
         bool shouldWrap = (text.horizontalOverflow == UIText::OverflowMode::WRAP);
         float maxWidth = shouldWrap ? containerWidth : 0.0f;
 
-        // Binary search for optimal font size
         float minSize = text.minSize;
         float maxSize = text.maxSize;
         float bestSize = minSize;
 
-        // Binary search
-        const float epsilon = 0.5f;
+        // Reduced iterations and increased epsilon for better performance
+        // Binary search converges quickly (typically ~5-7 iterations for size range 30)
+        const float epsilon = 1.0f;  // Accept 1px precision (was 0.5px)
         int iterations = 0;
-        const int maxIterations = 20; // Prevent infinite loops
+        const int maxIterations = 10;  // Reduced from 20 (was more than needed)
+        
+        // Reuse a single Font object to avoid repeated allocations
+        std::shared_ptr<NE::Graphics::Font> testFont = std::make_shared<NE::Graphics::Font>();
 
         while (maxSize - minSize > epsilon && iterations < maxIterations) {
             float testSize = (minSize + maxSize) * 0.5f;
             
-            // Create temporary font to measure text
-            std::shared_ptr<NE::Graphics::Font> testFont = std::make_shared<NE::Graphics::Font>();
             bool loaded = false;
             
             if (!fontData.empty()) {
@@ -95,29 +94,24 @@ namespace NE::ECS::Systems {
             }
 
             if (!loaded) {
-                // If font can't be loaded, try smaller size
                 maxSize = testSize;
                 iterations++;
                 continue;
             }
 
-            // Measure text dimensions
             float textWidth = testFont->MeasureTextWidth(text.text);
             float textHeight = testFont->MeasureTextHeight(text.text, maxWidth);
 
             if (textWidth <= containerWidth && textHeight <= containerHeight) {
-                // Text fits, try larger size
                 bestSize = testSize;
                 minSize = testSize;
             } else {
-                // Text doesn't fit, try smaller size
                 maxSize = testSize;
             }
             
             iterations++;
         }
 
-        // Clamp to min/max bounds
         return std::max(text.minSize, std::min(text.maxSize, bestSize));
     }
 
@@ -125,7 +119,6 @@ namespace NE::ECS::Systems {
         const auto& entities = GetEntities();
 
         for (Entity e : entities) {
-            // Load UIImage resources
             if (m_cm->HasComponent<UIImage>(e)) {
                 auto& img = m_cm->GetComponent<UIImage>(e);
 
@@ -133,7 +126,6 @@ namespace NE::ECS::Systems {
                     auto texture = NE::Resource::ResourceManager::GetInstance()
                         .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
                     if (texture) {
-                        // Always cache texture dimensions (even if already loaded) for preserve aspect ratio
                         img.cachedTextureWidth = static_cast<float>(texture->GetWidth());
                         img.cachedTextureHeight = static_cast<float>(texture->GetHeight());
                         
@@ -148,41 +140,34 @@ namespace NE::ECS::Systems {
                         .LoadResource<NE::Graphics::Material>(img.materialUUID);
                 }
             }
-
-            // Load UIText fonts and materials
             if (m_cm->HasComponent<UIText>(e)) {
                 auto& text = m_cm->GetComponent<UIText>(e);
 
-                // Load material if UUID is set
+                // Load material
                 if (!text.materialUUID.empty() && !text.material) {
                     text.material = NE::Resource::ResourceManager::GetInstance()
                         .LoadResource<NE::Graphics::Material>(text.materialUUID);
                 }
 
-                // Extract bold and italic flags from fontStyle
+                // Extract font style flags
                 bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
                               (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
                 bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
                                 (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
 
-                // Generate cache key from fontUUID, fontSize, and fontStyle
                 uint32_t currentCacheKey = GenerateFontCacheKey(text.fontUUID, text.fontSize, text.fontStyle);
                 
-                // If fontHandle doesn't match current cache key, invalidate it
                 if (text.fontHandle != 0 && text.fontHandle != currentCacheKey) {
-                    text.fontHandle = 0;  // Invalidate to force reload
+                    text.fontHandle = 0;
                 }
 
                 if (text.fontHandle == 0) {
-                    // Check if font is already cached
                     auto cacheIt = m_fontCache.find(currentCacheKey);
                     if (cacheIt != m_fontCache.end()) {
                         text.fontHandle = currentCacheKey;
                     } else {
-                        // Try to load font from cooked binary using UUID
                         std::shared_ptr<NE::Graphics::Font> font;
                         if (!text.fontUUID.empty()) {
-                            // Load font binary data and create font with correct fontSize and style
                             std::string fontPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
                             std::ifstream fontFile(fontPath, std::ios::binary | std::ios::ate);
                             if (fontFile) {
@@ -201,7 +186,6 @@ namespace NE::ECS::Systems {
                             }
                         }
                         
-                        // If UUID loading failed, fall back to file path (for backward compatibility)
                         if (!font && !text.fontPath.empty()) {
                             font = std::make_shared<NE::Graphics::Font>();
                             if (!font->LoadFromFile(text.fontPath, text.fontSize, isBold, isItalic)) {
@@ -209,18 +193,15 @@ namespace NE::ECS::Systems {
                             }
                         }
                         
-                        // If still no font, use default Roboto
                         if (!font) {
                             font = std::make_shared<NE::Graphics::Font>();
                             if (!font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize, isBold, isItalic)) {
                                 SPD_WARNING("Failed to load font for UIText entity: " << e);
                             } else {
-                                // Cache the font only if it loaded successfully
                                 m_fontCache[currentCacheKey] = font;
                                 text.fontHandle = currentCacheKey;
                             }
                         } else {
-                            // Cache the font loaded from UUID or file path
                             m_fontCache[currentCacheKey] = font;
                             text.fontHandle = currentCacheKey;
                         }
@@ -231,7 +212,6 @@ namespace NE::ECS::Systems {
     }
 
     void UIRenderSystem::OnEntityAdded(Entity e) {
-        // Handle UIImage
         if (m_cm->HasComponent<UIImage>(e)) {
             auto& img = m_cm->GetComponent<UIImage>(e);
 
@@ -240,7 +220,6 @@ namespace NE::ECS::Systems {
                     .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
                 if (texture) {
                     img.bindlessHandle = texture->GetBindlessHandle();
-                    // Cache texture dimensions for preserve aspect ratio
                     img.cachedTextureWidth = static_cast<float>(texture->GetWidth());
                     img.cachedTextureHeight = static_cast<float>(texture->GetHeight());
                 }
@@ -253,41 +232,32 @@ namespace NE::ECS::Systems {
 
             img.isDirty = true;
         }
-
-        // Handle UIText
         if (m_cm->HasComponent<UIText>(e)) {
             auto& text = m_cm->GetComponent<UIText>(e);
 
-            // Load material if UUID is set
             if (!text.materialUUID.empty() && !text.material) {
                 text.material = NE::Resource::ResourceManager::GetInstance()
                     .LoadResource<NE::Graphics::Material>(text.materialUUID);
             }
 
-            // Extract bold and italic flags from fontStyle
             bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
                           (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
             bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
                             (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
 
-            // Generate cache key from fontUUID, fontSize, and fontStyle
             uint32_t currentCacheKey = GenerateFontCacheKey(text.fontUUID, text.fontSize, text.fontStyle);
             
-            // If fontHandle doesn't match current cache key, invalidate it
             if (text.fontHandle != 0 && text.fontHandle != currentCacheKey) {
-                text.fontHandle = 0;  // Invalidate to force reload
+                text.fontHandle = 0;
             }
             
             if (text.fontHandle == 0) {
-                // Check if font is already cached
                 auto cacheIt = m_fontCache.find(currentCacheKey);
                 if (cacheIt != m_fontCache.end()) {
                     text.fontHandle = currentCacheKey;
                 } else {
-                    // Try to load font from cooked binary using UUID
                     std::shared_ptr<NE::Graphics::Font> font;
                     if (!text.fontUUID.empty()) {
-                        // Load font binary data and create font with correct fontSize and style
                         std::string fontPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
                         std::ifstream fontFile(fontPath, std::ios::binary | std::ios::ate);
                         if (fontFile) {
@@ -314,18 +284,15 @@ namespace NE::ECS::Systems {
                         }
                     }
                     
-                    // If still no font, use default Roboto
                     if (!font) {
                         font = std::make_shared<NE::Graphics::Font>();
                         if (!font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize, isBold, isItalic)) {
                             SPD_WARNING("Failed to load font for UIText entity: " << e);
                         } else {
-                            // Cache the font only if it loaded successfully
                             m_fontCache[currentCacheKey] = font;
                             text.fontHandle = currentCacheKey;
                         }
                     } else {
-                        // Cache the font loaded from UUID or file path
                         m_fontCache[currentCacheKey] = font;
                         text.fontHandle = currentCacheKey;
                     }
@@ -354,7 +321,6 @@ namespace NE::ECS::Systems {
         for (Entity e : entities) {
             if (e == canvasEntity) continue;
             if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
-            // Collect entities with either UIImage OR UIText
             if (!m_cm->HasComponent<UIImage>(e) && !m_cm->HasComponent<UIText>(e)) continue;
             if (m_cm->HasComponent<UICanvas>(e)) continue;
 
@@ -393,14 +359,7 @@ namespace NE::ECS::Systems {
     ) {
         auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
 
-        // Unity-style: worldTransform is already in top-left origin coordinates (Y-down)
-        // worldTransform.x/y is the pivot position (calculated in AccumulateParentTransforms)
-        // GenerateVertices expects top-left corner, so we calculate it from pivot position
-        //
-        // In Unity: pivot (0,0) = bottom-left, (0.5,0.5) = center, (1,1) = top-right
-        // Formula: topLeft = pivot - (width * pivotX, height * (1 - pivotY))
-        //   - X: pivotX_norm = 0.0 → left, 1.0 → right
-        //   - Y: pivotY_norm = 0.0 → bottom, 1.0 → top (in Y-down: bottom Y > top Y)
+        // Calculate top-left from pivot
         float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
         float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
         
@@ -415,8 +374,6 @@ namespace NE::ECS::Systems {
         );
 
         if (!vertices.empty() && std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
-            // Rotate vertices around the pivot point
-            // worldTransform.x/y is already the pivot position in top-left origin coordinates
             float pivotX = worldTransform.x;
             float pivotY = worldTransform.y;
             RotateVertices2D(vertices, pivotX, pivotY, worldTransform.accumulatedRotationZ);
@@ -430,8 +387,6 @@ namespace NE::ECS::Systems {
         float width,
         float height
     ) {
-        // For world space, generate vertices with actual dimensions (GenerateVertices handles preserve aspect)
-        // Then normalize to unit quad space (0,0 to 1,1) so the model matrix can scale correctly
         auto vertices = NE::Graphics::UIImageMeshGenerator::GenerateVertices(
             img,
             0.0f, 0.0f, 0.0f,
@@ -440,17 +395,13 @@ namespace NE::ECS::Systems {
             img.color
         );
         
-        // Normalize vertex positions to unit quad space (0,0 to 1,1)
-        // GenerateVertices already applied preserve aspect with offsets, so normalizing preserves those offsets
+        // Normalize to unit quad
         for (auto& vertex : vertices) {
             vertex.x /= width;
             vertex.y /= height;
         }
         
-        // For world space, flip V coordinates to fix Y-axis
-        // The mesh generator sets: y=0 (top) → V=0, y=1 (bottom) → V=1 (for screen space)
-        // For world space in Y-down coordinate system, we need: y=0 (top) → V=1, y=1 (bottom) → V=0
-        // So we flip V: v_flipped = 1.0f - v_original
+        // Flip V for world space
         for (auto& vertex : vertices) {
             vertex.v = 1.0f - vertex.v;
         }
@@ -473,8 +424,6 @@ namespace NE::ECS::Systems {
     ) {
         NE::Graphics::UIDrawCommand cmd;
 
-        // BuildQuadVertices expects top-left corner, not pivot position
-        // Calculate top-left from pivot: topLeft = pivot - (width * pivotX, height * (1 - pivotY))
         float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
         float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
         
@@ -484,20 +433,11 @@ namespace NE::ECS::Systems {
         cmd.width = worldTransform.width;
         cmd.height = worldTransform.height;
         
-        // Apply button state color if this entity has a button component
-        // Unity pattern: Final Color = UIImage Color * Button State Color
-        // This allows UIImage color to act as a base tint, and button states to modify it
+        // Apply button color tint
         NE::Math::Vec4 finalColor = img.color;
         if (m_cm->HasComponent<UIButton>(entity)) {
             const auto& button = m_cm->GetComponent<UIButton>(entity);
-            // Always use color tint (transition type removed, only color tint supported)
-            // Get the button color based on current state
-            // GetCurrentColor() handles interactable check and returns disabledColor if not interactable
             NE::Math::Vec4 buttonColor = button.GetCurrentColor();
-            
-            // Multiply image color by button state color (component-wise)
-            // This matches Unity's behavior: base image color is tinted by button state
-            // Example: UIImage color (0.8, 0.8, 0.8) * Button hover (0.5, 1.0, 0.5) = (0.4, 0.8, 0.4)
             finalColor.x = img.color.x * buttonColor.x;
             finalColor.y = img.color.y * buttonColor.y;
             finalColor.z = img.color.z * buttonColor.z;
@@ -513,8 +453,7 @@ namespace NE::ECS::Systems {
         cmd.bindlessTextureHandle = img.bindlessHandle;
 
         cmd.vertices = vertices;
-        // For world space, always use custom vertices to ensure Y-axis flip is applied
-        // For screen space, use custom vertices for special cases (filled, sliced, tiled, preserve aspect, rotation)
+        // Use custom vertices for complex images or world space
         if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
             cmd.useCustomVertices = !vertices.empty();
         } else {
@@ -558,7 +497,6 @@ namespace NE::ECS::Systems {
 
             std::vector<NE::Graphics::UIVertex> vertices;
 
-            // Handle UIImage
             if (m_cm->HasComponent<UIImage>(e)) {
                 auto& img = m_cm->GetComponent<UIImage>(e);
 
@@ -573,7 +511,6 @@ namespace NE::ECS::Systems {
                     SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, accumulated, vertices, viewMatrix, projMatrix);
                 }
             }
-            // Handle UIText
             else if (m_cm->HasComponent<UIText>(e)) {
                 auto& text = m_cm->GetComponent<UIText>(e);
 
@@ -583,99 +520,108 @@ namespace NE::ECS::Systems {
                         .LoadResource<NE::Graphics::Material>(text.materialUUID);
                 }
 
-                // Auto-size (best fit) calculation
-                // Use calculatedWidth/calculatedHeight when anchors are stretched to ensure auto-size responds to anchor changes
+                // Auto-size calculation
                 float containerWidth = (accumulated.calculatedWidth > 0.0f) ? accumulated.calculatedWidth : worldTransform.width;
                 float containerHeight = (accumulated.calculatedHeight > 0.0f) ? accumulated.calculatedHeight : worldTransform.height;
                 
                 if (text.bestFit && containerWidth > 0.0f && containerHeight > 0.0f) {
-                    // Load font data for measurement
-                    std::vector<uint8_t> fontData;
-                    std::string fontPath;
+                    // Check if font changed - invalidate cache if it did
+                    bool fontChanged = (text.fontUUID != text.cachedFontUUID) || 
+                                      (text.fontPath != text.cachedFontPath);
+                    if (fontChanged) {
+                        text.cachedFontData.clear();
+                        text.cachedFontUUID = text.fontUUID;
+                        text.cachedFontPath = text.fontPath;
+                        text.cachedContainerWidth = -1.0f; // Force recalculation
+                        text.cachedContainerHeight = -1.0f;
+                    }
                     
-                    if (!text.fontUUID.empty()) {
-                        std::string artifactPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
-                        std::ifstream fontFile(artifactPath, std::ios::binary | std::ios::ate);
-                        if (fontFile) {
-                            std::streamsize fileSize = fontFile.tellg();
-                            if (fileSize > 0) {
-                                fontFile.seekg(0, std::ios::beg);
-                                fontData.resize(static_cast<size_t>(fileSize));
-                                fontFile.read(reinterpret_cast<char*>(fontData.data()), fileSize);
+                    // Check if container size changed - only recalculate if it did
+                    const float sizeChangeThreshold = 0.5f;
+                    bool containerSizeChanged = (std::abs(text.cachedContainerWidth - containerWidth) > sizeChangeThreshold ||
+                                                 std::abs(text.cachedContainerHeight - containerHeight) > sizeChangeThreshold);
+                    
+                    if (containerSizeChanged || text.cachedFontData.empty()) {
+                        // Load font data if not cached
+                        if (text.cachedFontData.empty()) {
+                            if (!text.fontUUID.empty()) {
+                                std::string artifactPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
+                                std::ifstream fontFile(artifactPath, std::ios::binary | std::ios::ate);
+                                if (fontFile) {
+                                    std::streamsize fileSize = fontFile.tellg();
+                                    if (fileSize > 0) {
+                                        fontFile.seekg(0, std::ios::beg);
+                                        text.cachedFontData.resize(static_cast<size_t>(fileSize));
+                                        fontFile.read(reinterpret_cast<char*>(text.cachedFontData.data()), fileSize);
+                                    }
+                                    fontFile.close();
+                                }
                             }
-                            fontFile.close();
                         }
-                    } else if (!text.fontPath.empty()) {
-                        fontPath = text.fontPath;
-                    } else {
-                        fontPath = "Assets/Fonts/Roboto-Regular.ttf";
-                    }
+                        
+                        std::vector<uint8_t> fontData = text.cachedFontData;
+                        std::string fontPath;
+                        
+                        if (text.cachedFontData.empty()) {
+                            if (!text.fontPath.empty()) {
+                                fontPath = text.fontPath;
+                            } else {
+                                fontPath = "Assets/Fonts/Roboto-Regular.ttf";
+                            }
+                        }
 
-                    // For world space, convert world units to pixel-equivalent dimensions
-                    // Use a fixed reference (36.0f) for measurement to match text generation
-                    if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                        // Convert world space dimensions to pixel-equivalent for font measurement
-                        // Use fixed reference (36.0f) to match the reference used in text generation
-                        // This ensures consistent measurement and generation
-                        const float referencePixelsPerWorldUnit = 36.0f;
-                        containerWidth = containerWidth * referencePixelsPerWorldUnit;
-                        containerHeight = containerHeight * referencePixelsPerWorldUnit;
-                    }
+                        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                            const float referencePixelsPerWorldUnit = 36.0f;
+                            containerWidth = containerWidth * referencePixelsPerWorldUnit;
+                            containerHeight = containerHeight * referencePixelsPerWorldUnit;
+                        }
 
-                    // Calculate optimal font size
-                    float optimalSize = CalculateOptimalFontSize(
-                        text,
-                        containerWidth,
-                        containerHeight,
-                        fontPath,
-                        fontData
-                    );
+                        float optimalSize = CalculateOptimalFontSize(
+                            text,
+                            containerWidth,
+                            containerHeight,
+                            fontPath,
+                            fontData
+                        );
 
-                    // Update fontSize if it changed
-                    // Always update to ensure auto-size responds to container size changes
-                    if (std::abs(text.fontSize - optimalSize) > 0.01f) {
-                        text.fontSize = optimalSize;
-                        text.fontHandle = 0; // Invalidate to force reload with new size
+                        if (std::abs(text.fontSize - optimalSize) > 0.01f) {
+                            text.fontSize = optimalSize;
+                            text.fontHandle = 0;
+                        }
+                        
+                        // Update cached container size
+                        text.cachedContainerWidth = containerWidth;
+                        text.cachedContainerHeight = containerHeight;
                     }
                 }
 
-                // Extract bold and italic flags from fontStyle
                 bool isBold = (text.fontStyle == UIText::FontStyle::BOLD) || 
                               (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
                 bool isItalic = (text.fontStyle == UIText::FontStyle::ITALIC) || 
                                 (text.fontStyle == UIText::FontStyle::BOLD_AND_ITALIC);
 
-                // Generate cache key from fontUUID, fontSize, and fontStyle
-                // This is generated AFTER auto-size update, so font will reload if size changed
                 uint32_t currentCacheKey = GenerateFontCacheKey(text.fontUUID, text.fontSize, text.fontStyle);
                 
-                // Get font from cache
                 std::shared_ptr<NE::Graphics::Font> font;
                 
                 if (text.fontHandle != 0) {
-                    // Check if cached font matches current cache key
                     if (text.fontHandle == currentCacheKey) {
                         auto cacheIt = m_fontCache.find(static_cast<uint32_t>(text.fontHandle));
                         if (cacheIt != m_fontCache.end()) {
                             font = cacheIt->second;
                         }
                     } else {
-                        // Font UUID, size, or style changed - invalidate old cache entry
                         text.fontHandle = 0;
                     }
                 }
                 
-                // If not in cache, load new font
                 if (!font) {
                     auto cacheIt = m_fontCache.find(currentCacheKey);
                     if (cacheIt != m_fontCache.end()) {
-                        // Font already cached
                         font = cacheIt->second;
                         text.fontHandle = currentCacheKey;
                     } else {
-                        // Try to load font from cooked binary using UUID
                         if (!text.fontUUID.empty()) {
-                            // Load font binary data and create font with correct fontSize and style
                             std::string fontPath = NE::Resource::ComputeFontArtifactPathFromUUID(text.fontUUID);
                             std::ifstream fontFile(fontPath, std::ios::binary | std::ios::ate);
                             if (fontFile) {
@@ -694,7 +640,6 @@ namespace NE::ECS::Systems {
                             }
                         }
                         
-                        // If UUID loading failed, fall back to file path (for backward compatibility)
                         if (!font && !text.fontPath.empty()) {
                             font = std::make_shared<NE::Graphics::Font>();
                             if (!font->LoadFromFile(text.fontPath, text.fontSize, isBold, isItalic)) {
@@ -702,34 +647,26 @@ namespace NE::ECS::Systems {
                             }
                         }
                         
-                        // If still no font, use default Roboto
                         if (!font) {
                             font = std::make_shared<NE::Graphics::Font>();
                             if (!font->LoadFromFile("Assets/Fonts/Roboto-Regular.ttf", text.fontSize, isBold, isItalic)) {
-                                continue; // Skip if font can't be loaded
+                                continue;
                             }
                         }
                         
-                        // Cache the font
                         m_fontCache[currentCacheKey] = font;
                         text.fontHandle = currentCacheKey;
                     }
                 }
 
-                // Safety check: ensure font is valid
                 if (!font) {
-                    continue; // Skip if font is invalid
+                    continue;
                 }
-
-                // Generate text vertices based on render mode
                 if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                    // For world space, generate text at a fixed reference size (36 pixels per world unit)
-                    // Then normalize to unit quad space, and apply font size scaling in the model matrix
-                    const float referencePixelsPerWorldUnit = 36.0f; // Reference font size
+                    const float referencePixelsPerWorldUnit = 36.0f;
                     float textGenWidth = worldTransform.width * referencePixelsPerWorldUnit;
                     float textGenHeight = worldTransform.height * referencePixelsPerWorldUnit;
                     
-                    // Generate vertices at (0,0,0) with reference pixel dimensions
                     vertices = NE::Graphics::UITextMeshGenerator::GenerateVertices(
                         text,
                         *font,
@@ -739,26 +676,20 @@ namespace NE::ECS::Systems {
                         text.color
                     );
                     
-                    // Normalize vertex positions to unit quad space (0,0 to 1,1)
-                    // Use the reference pixel dimensions for normalization
+                    // Normalize to unit quad space
                     for (auto& vertex : vertices) {
                         vertex.x /= textGenWidth;
                         vertex.y /= textGenHeight;
                     }
                     
-                    // For world space, flip Y positions to convert from Y-down to Y-up space
-                    // The mesh generator produces Y-down coordinates, but world space uses Y-up
-                    // The texture (V coordinates) is already correct, so we only flip Y positions
+                    // Flip Y for world space (Y-up)
                     for (auto& vertex : vertices) {
                         vertex.y = 1.0f - vertex.y;
                     }
                 } else {
-                    // For screen space, use actual pixel coordinates
-                    // Calculate top-left position from pivot
                     float topLeftX = worldTransform.x - worldTransform.width * rect.pivotX;
                     float topLeftY = worldTransform.y - worldTransform.height * (1.0f - rect.pivotY);
 
-                    // Generate text vertices
                     vertices = NE::Graphics::UITextMeshGenerator::GenerateVertices(
                         text,
                         *font,
@@ -770,7 +701,6 @@ namespace NE::ECS::Systems {
                         text.color
                     );
 
-                    // Apply rotation if needed
                     if (!vertices.empty() && std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
                         float pivotX = worldTransform.x;
                         float pivotY = worldTransform.y;
@@ -779,11 +709,8 @@ namespace NE::ECS::Systems {
                 }
 
                 if (!vertices.empty()) {
-                    // Submit text draw command
                     NE::Graphics::UIDrawCommand cmd;
                     
-                    // For world space, use unit quad coordinates
-                    // For screen space, use actual pixel coordinates
                     if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
                         cmd.x = 0.0f;
                         cmd.y = 0.0f;
@@ -806,18 +733,13 @@ namespace NE::ECS::Systems {
                     cmd.vertices = vertices;
                     cmd.useCustomVertices = true;
 
-                    // Assign material if available
                     cmd.material = text.material;
-
-                    // Get font atlas texture handle
                     cmd.bindlessTextureHandle = font->GetAtlasTextureHandle();
 
                     if (viewMatrix) cmd.viewMatrix = *viewMatrix;
                     if (projMatrix) cmd.projMatrix = *projMatrix;
 
                     if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && m_transformSystem) {
-                        // Apply font size scaling to the model matrix for UIText
-                        // Using 36 as a reference font size (default font size)
                         float fontSizeScale = text.fontSize / 36.0f;
                         cmd.modelMatrix = m_transformSystem->BuildWorldSpaceModelMatrix(e, canvasEntity, rect, accumulated, fontSizeScale);
                     }
@@ -891,15 +813,10 @@ namespace NE::ECS::Systems {
         for (const auto& [order, canvasEntity] : canvases) {
             auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
 
-            // Calculate scale factor based on scale mode
             if (m_transformSystem) {
                 canvas.scaleFactor = m_transformSystem->CalculateScaleFactor(canvas);
-
-                // Setup canvas defaults based on render mode
                 m_transformSystem->SetupCanvasDefaults(canvasEntity, canvas);
             }
-
-            // Get camera matrices if needed
             Math::Mat4 viewMatrix, projMatrix;
             Math::Mat4* pView = nullptr;
             Math::Mat4* pProj = nullptr;

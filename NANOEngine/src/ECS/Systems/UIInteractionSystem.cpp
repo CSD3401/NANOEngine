@@ -16,14 +16,12 @@
 
 namespace NE::ECS::Systems {
 
-    // Static viewport bounds (set by editor)
     float UIInteractionSystem::s_viewportX = 0.0f;
     float UIInteractionSystem::s_viewportY = 0.0f;
     float UIInteractionSystem::s_viewportWidth = 0.0f;
     float UIInteractionSystem::s_viewportHeight = 0.0f;
     bool UIInteractionSystem::s_viewportSet = false;
     
-    // Static camera matrices (set by editor or scene)
     NE::Math::Mat4 UIInteractionSystem::s_cameraView;
     NE::Math::Mat4 UIInteractionSystem::s_cameraProjection;
     bool UIInteractionSystem::s_cameraMatricesSet = false;
@@ -54,13 +52,11 @@ namespace NE::ECS::Systems {
     void UIInteractionSystem::Update(double deltaTime) {
         if (!m_transformSystem) return;
 
-        // Get mouse position and button state
         auto [mouseX, mouseY] = NE::InputManager::MousePos();
-        bool isMouseDown = NE::InputManager::IsMouseDown(0); // Left mouse button
+        bool isMouseDown = NE::InputManager::IsMouseDown(0);
         bool wasMousePressed = NE::InputManager::WasMousePressed(0);
         bool wasMouseReleased = NE::InputManager::WasMouseReleased(0);
 
-        // Find all canvases
         const auto& canvasEntities = m_cm->GetEntitiesWithComponent<Component::UICanvas>();
 
         for (Entity canvasEntity : canvasEntities) {
@@ -68,21 +64,14 @@ namespace NE::ECS::Systems {
 
             auto& canvas = m_cm->GetComponent<Component::UICanvas>(canvasEntity);
 
-            // Process based on render mode
             if (canvas.renderMode == Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY) {
                 ProcessScreenSpaceButtons(canvasEntity);
             }
             else if (canvas.renderMode == Component::UICanvas::RenderMode::WORLD_SPACE) {
                 ProcessWorldSpaceButtons(canvasEntity);
             }
-            // Screen Space Camera mode uses same interaction as Screen Space Overlay (if needed)
         }
-
-        // Note: m_wasPressedLastFrame is set in UpdateButtonState() when button enters PRESSED state
-        // We keep it set until ProcessButtonClicks() checks it (on mouse release)
-        // Don't clear it here - let ProcessButtonClicks handle it
         
-        // Process button clicks (detect onClick events)
         ProcessButtonClicks();
     }
 
@@ -93,20 +82,15 @@ namespace NE::ECS::Systems {
     void UIInteractionSystem::OnEntityAdded(Entity e) {
         m_entities.Insert(e);
         
-        // When an entity with UIButton is added (e.g., loaded from file),
-        // ensure it's properly initialized
         if (m_cm->HasComponent<Component::UIButton>(e)) {
             auto& button = m_cm->GetComponent<Component::UIButton>(e);
             
-            // Reset state to NORMAL when entity is added/loaded
-            // This ensures buttons start in a clean state after loading
             if (button.interactable) {
                 button.currentState = Component::UIButton::State::NORMAL;
             } else {
                 button.currentState = Component::UIButton::State::DISABLED;
             }
             
-            // Initialize press tracking
             m_wasPressedLastFrame[e] = false;
         }
     }
@@ -121,9 +105,8 @@ namespace NE::ECS::Systems {
     }
 
     Entity UIInteractionSystem::FindCanvasForEntity(Entity entity) {
-        // Walk up the parent chain to find the canvas
         Entity current = entity;
-        int maxDepth = 100; // Safety limit
+        int maxDepth = 100;
         int depth = 0;
 
         while (current != NE::ECS::NO_ENTITY && depth < maxDepth) {
@@ -151,44 +134,28 @@ namespace NE::ECS::Systems {
         const Component::UIRectTransform& rect,
         float rotationDegrees
     ) {
-        // For now, handle simple axis-aligned rectangles (rotation = 0)
         // TODO: Add rotation support later if needed
-
-        // Calculate rectangle bounds in screen space (top-left origin, Y-down)
-        // worldTransform.x/y is the pivot position in screen pixels
-        // We need to calculate the top-left corner from the pivot
-        // This matches the calculation in UIRenderSystem::GenerateScreenSpaceVertices
         
         float pivotX = worldTransform.x;
         float pivotY = worldTransform.y;
         float width = worldTransform.width;
         float height = worldTransform.height;
 
-        // Get the pivot values from the rect transform
         float pivotXNorm = rect.pivotX;
         float pivotYNorm = rect.pivotY;
 
-        // Calculate top-left corner from pivot (same as UIRenderSystem)
-        // Formula: topLeft = pivot - (width * pivotX, height * (1 - pivotY))
-        // In Y-down: pivotY=0.0 is bottom (larger Y), pivotY=1.0 is top (smaller Y)
+        // Calculate top-left corner from pivot
         float topLeftX = pivotX - width * pivotXNorm;
         float topLeftY = pivotY - height * (1.0f - pivotYNorm);
 
-        // Calculate bounds
         float left = topLeftX;
         float right = topLeftX + width;
-        float top = topLeftY;  // Y-down: top is smaller Y
-        float bottom = topLeftY + height; // Y-down: bottom is larger Y
+        float top = topLeftY;
+        float bottom = topLeftY + height;
 
-        // Convert mouse coordinates to float for comparison
         float mouseXf = static_cast<float>(mouseX);
         float mouseYf = static_cast<float>(mouseY);
 
-        // Check if mouse is within bounds
-        // Mouse coordinates from InputManager are in window/screen pixels (top-left origin, Y-down)
-        // World transform coordinates are in screen pixels (already scaled by scaleFactor)
-        // For screen space overlay, they should match directly
-        // Add small tolerance for floating point precision
         const float tolerance = 0.5f;
         return (mouseXf >= (left - tolerance) && mouseXf <= (right + tolerance) && 
                 mouseYf >= (top - tolerance) && mouseYf <= (bottom + tolerance));
@@ -203,26 +170,15 @@ namespace NE::ECS::Systems {
 
         auto& button = m_cm->GetComponent<Component::UIButton>(entity);
 
-        // If button is disabled, don't process interactions
         if (!button.interactable) {
             button.currentState = Component::UIButton::State::DISABLED;
             return;
         }
 
-        // State machine for button interactions
-        // NORMAL -> HOVERED (mouse enters)
-        // HOVERED -> PRESSED (mouse down)
-        // PRESSED -> HOVERED (mouse up, still hovering)
-        // PRESSED -> NORMAL (mouse up, not hovering)
-        // HOVERED -> NORMAL (mouse leaves)
-
-        // Track previous state to detect state changes
         Component::UIButton::State previousState = button.currentState;
 
         if (isPressed && isHovering) {
             button.currentState = Component::UIButton::State::PRESSED;
-            // Track that this button was pressed (for click detection)
-            // Set the flag when button enters PRESSED state
             if (previousState != Component::UIButton::State::PRESSED) {
                 m_wasPressedLastFrame[entity] = true;
             }
@@ -236,124 +192,80 @@ namespace NE::ECS::Systems {
     void UIInteractionSystem::ProcessScreenSpaceButtons(Entity canvasEntity) {
         if (!m_transformSystem) return;
 
-        // Get canvas component first to access scaleFactor
         auto& canvas = m_cm->GetComponent<Component::UICanvas>(canvasEntity);
 
-        // Get mouse position (in window/screen pixels from GLFW)
         auto [mouseX, mouseY] = NE::InputManager::MousePos();
         bool isMouseDown = NE::InputManager::IsMouseDown(0);
 
-        // Get screen dimensions (UI is rendered at this resolution)
         uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
         uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
         
-        // Get window dimensions (mouse coordinates are in this space)
         uint32_t windowWidth = NE::Graphics::GraphicsManager::GetWindowWidth();
         uint32_t windowHeight = NE::Graphics::GraphicsManager::GetWindowHeight();
 
-        // Convert mouse coordinates from window space to screen space
-        // UI world transform coordinates are in screen pixels (top-left origin, Y-down)
-        // Mouse coordinates from GLFW are in window pixels (top-left origin, Y-down)
-        // 
-        // For screen space overlay:
-        // - UI is rendered at screen resolution (e.g., 1920x1080)
-        // - Mouse coordinates are in window pixels
-        // - If viewport is set (UI rendered in a panel), convert panel-relative to screen space
-        // - Otherwise, scale window coordinates to screen space
         float mouseXScreen = static_cast<float>(mouseX);
         float mouseYScreen = static_cast<float>(mouseY);
         
-        // Always use viewport bounds if set (UI is rendered in Scene panel, not full window)
+        // Convert mouse coordinates from window/viewport space to screen space
         if (s_viewportSet && s_viewportWidth > 0.0f && s_viewportHeight > 0.0f) {
-            // Viewport bounds are in window coordinates (matching GLFW mouse coordinates)
-            // Mouse coordinates from GLFW are also in window coordinates
-            // Check if mouse is within viewport bounds
             if (mouseX >= s_viewportX && mouseX < s_viewportX + s_viewportWidth &&
                 mouseY >= s_viewportY && mouseY < s_viewportY + s_viewportHeight) {
-                // Convert panel-relative coordinates to normalized (0-1) within the viewport
                 float normalizedX = (mouseX - s_viewportX) / s_viewportWidth;
                 float normalizedY = (mouseY - s_viewportY) / s_viewportHeight;
                 
-                // Convert normalized to screen space
-                // The UI is rendered at screen resolution (1920x1080) and composited into the scene framebuffer
-                // The scene framebuffer is then displayed in the panel using ImGui::Image() with panelSize
-                // ImGui::Image() scales the texture to fit the panel, maintaining aspect ratio (letterboxing if needed)
-                // So we need to account for the aspect ratio difference between panel and screen
-                
-                // Calculate aspect ratios
+                // Account for letterboxing when aspect ratios differ
                 float panelAspect = s_viewportWidth / s_viewportHeight;
                 float screenAspect = static_cast<float>(screenWidth) / static_cast<float>(screenHeight);
                 
-                // If aspect ratios differ, the UI is letterboxed (black bars on sides or top/bottom)
                 if (std::abs(panelAspect - screenAspect) > 0.01f) {
-                    // Letterboxing: calculate the actual UI display area within the panel
                     float scaleX = 1.0f;
                     float scaleY = 1.0f;
                     float offsetX = 0.0f;
                     float offsetY = 0.0f;
                     
                     if (panelAspect > screenAspect) {
-                        // Panel is wider: letterboxing on sides
                         scaleY = 1.0f;
                         scaleX = screenAspect / panelAspect;
                         offsetX = (1.0f - scaleX) * 0.5f;
                     } else {
-                        // Panel is taller: letterboxing on top/bottom
                         scaleX = 1.0f;
                         scaleY = panelAspect / screenAspect;
                         offsetY = (1.0f - scaleY) * 0.5f;
                     }
                     
-                    // Adjust normalized coordinates to account for letterboxing
                     normalizedX = (normalizedX - offsetX) / scaleX;
                     normalizedY = (normalizedY - offsetY) / scaleY;
                     
-                    // Clamp to valid range (in case click was in letterbox area)
                     if (normalizedX < 0.0f || normalizedX > 1.0f || normalizedY < 0.0f || normalizedY > 1.0f) {
-                        return; // Click was in letterbox area, not on UI
+                        return;
                     }
                 }
                 
-                // Convert normalized coordinates to screen space
                 mouseXScreen = normalizedX * static_cast<float>(screenWidth);
                 mouseYScreen = normalizedY * static_cast<float>(screenHeight);
             } else {
-                // Mouse is outside viewport, don't process interactions
                 return;
             }
         } else {
-            // No viewport set: use direct window-to-screen scaling
-            // This handles the case where UI fills the entire window (shouldn't happen in editor)
             if (windowWidth > 0 && windowHeight > 0 && 
                 screenWidth > 0 && screenHeight > 0 &&
                 (windowWidth != screenWidth || windowHeight != screenHeight)) {
                 mouseXScreen = (mouseXScreen / static_cast<float>(windowWidth)) * static_cast<float>(screenWidth);
                 mouseYScreen = (mouseYScreen / static_cast<float>(windowHeight)) * static_cast<float>(screenHeight);
             }
-            // If window size == screen size, mouseXScreen and mouseYScreen are already correct (no conversion needed)
         }
-        
-        // Note: mouseXScreen and mouseYScreen are already converted to screen space above
-        // (either via viewport conversion or direct scaling)
-        // No additional conversion needed here
-        // If window size == screen size (fullscreen) or invalid, use mouse coordinates directly
 
-        // Collect all child entities of this canvas that have UIButton
         std::vector<Entity> buttonEntities;
-
-        // Get all entities with UIButton component
         const auto& allButtonEntities = m_cm->GetEntitiesWithComponent<Component::UIButton>();
 
         for (Entity entity : allButtonEntities) {
-            // Check if this button belongs to this canvas
             Entity buttonCanvas = FindCanvasForEntity(entity);
             if (buttonCanvas == canvasEntity) {
                 buttonEntities.push_back(entity);
             }
         }
 
-        // Sort by Z-order (process back-to-front, so front elements get priority)
-        // Higher Z values are rendered on top
+        // Sort by Z-order (higher Z = processed first)
         std::sort(buttonEntities.begin(), buttonEntities.end(),
             [this](Entity a, Entity b) {
                 if (!m_cm->HasComponent<Component::UIRectTransform>(a) ||
@@ -362,11 +274,9 @@ namespace NE::ECS::Systems {
                 }
                 auto& rectA = m_cm->GetComponent<Component::UIRectTransform>(a);
                 auto& rectB = m_cm->GetComponent<Component::UIRectTransform>(b);
-                return rectA.z > rectB.z; // Higher Z = processed first (top layer)
+                return rectA.z > rectB.z;
             });
 
-        // Process buttons from front to back (highest Z first)
-        // First button that contains the mouse gets the interaction
         Entity hoveredButton = NE::ECS::NO_ENTITY;
         Entity pressedButton = NE::ECS::NO_ENTITY;
         
@@ -374,23 +284,14 @@ namespace NE::ECS::Systems {
             if (!m_cm->HasComponent<Component::UIRectTransform>(entity)) continue;
             if (!m_cm->HasComponent<Component::UIButton>(entity)) continue;
 
-            // Get world transform for this button
             UITransformSystem::WorldTransform worldTransform = 
                 m_transformSystem->CalculateWorldTransform(entity, canvasEntity, canvas);
 
-            // Get rect transform for pivot values
             auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
-
-            // Get rotation (for future rotation support)
             float rotationZ = worldTransform.accumulatedRotationZ;
-
-            // Check if mouse is within button bounds
-            // Mouse coordinates have been converted to screen space above
-            // World transform coordinates are in screen pixels (scaled by canvas.scaleFactor)
-            // Both are now in the same coordinate system (screen pixels, top-left origin, Y-down)
             
             bool isHovering = IsPointInRect(mouseXScreen, mouseYScreen, worldTransform, rect, rotationZ);
-            bool isPressing = isHovering && isMouseDown; // Only consider pressing if hovering
+            bool isPressing = isHovering && isMouseDown;
 
             if (isHovering) {
                 if (hoveredButton == NE::ECS::NO_ENTITY) {
@@ -404,12 +305,9 @@ namespace NE::ECS::Systems {
                 }
             }
         }
-        
-        // Update all button states
         for (Entity entity : buttonEntities) {
             bool isHovering = (entity == hoveredButton);
             bool isPressed = (entity == pressedButton) && isMouseDown;
-
             UpdateButtonState(entity, isHovering, isPressed);
         }
     }
@@ -476,11 +374,8 @@ namespace NE::ECS::Systems {
         const UITransformSystem::AccumulatedTransform& accumulated,
         NE::Math::Vec3& outIntersectionPoint)
     {
-        // Build the model matrix to properly transform intersection point to local space
-        // This accounts for rotation (X, Y, Z), pivot offset, and scale
         if (!m_transformSystem) return false;
         
-        // Find the entity that has this rect component
         Entity entity = NE::ECS::NO_ENTITY;
         const auto& entities = m_cm->GetEntitiesWithComponent<Component::UIRectTransform>();
         for (Entity e : entities) {
@@ -491,25 +386,18 @@ namespace NE::ECS::Systems {
         }
         if (entity == NE::ECS::NO_ENTITY) return false;
         
-        // Get canvas entity (needed for BuildWorldSpaceModelMatrix)
         Entity canvasEntity = FindCanvasForEntity(entity);
         if (canvasEntity == NE::ECS::NO_ENTITY) return false;
         
-        // Build model matrix (same as rendering)
         NE::Math::Mat4 modelMatrix = m_transformSystem->BuildWorldSpaceModelMatrix(
             entity,
             canvasEntity,
             rect,
             accumulated,
-            1.0f  // No font scale for buttons
+            1.0f
         );
         
-        // Calculate plane normal from UI element's rotation
-        // The UI element's local Z-axis (0,0,1) in local space becomes the normal in world space
         NE::Math::Vec3 localNormal(0.0f, 0.0f, 1.0f);
-        
-        // Transform local normal to world space using rotation part of model matrix
-        // Extract rotation matrix (upper-left 3x3)
         NE::Math::Vec3 planeNormal(
             modelMatrix.GetElement(0, 0) * localNormal.x + modelMatrix.GetElement(0, 1) * localNormal.y + modelMatrix.GetElement(0, 2) * localNormal.z,
             modelMatrix.GetElement(1, 0) * localNormal.x + modelMatrix.GetElement(1, 1) * localNormal.y + modelMatrix.GetElement(1, 2) * localNormal.z,
@@ -517,20 +405,15 @@ namespace NE::ECS::Systems {
         );
         planeNormal.Normalize();
         
-        // Get pivot position in world space (from model matrix translation)
         NE::Math::Vec3 pivotPos(
             modelMatrix.GetElement(0, 3),
             modelMatrix.GetElement(1, 3),
             modelMatrix.GetElement(2, 3)
         );
         
-        // Calculate plane equation: dot(normal, point) = d
         float planeD = planeNormal.Dot(pivotPos);
-        
-        // Ray-plane intersection: t = (d - dot(normal, origin)) / dot(normal, direction)
         float denominator = planeNormal.Dot(ray.direction);
         
-        // Ray is parallel to plane
         if (std::abs(denominator) < 1e-5f) {
             return false;
         }
@@ -538,22 +421,15 @@ namespace NE::ECS::Systems {
         float numerator = planeD - planeNormal.Dot(ray.origin);
         float t = numerator / denominator;
         
-        // Intersection is behind the ray origin
         if (t < 0.0f) {
             return false;
         }
         
-        // Calculate intersection point in world space
         outIntersectionPoint = ray.origin + ray.direction * t;
         
-        // Transform intersection point to local space (unit quad space: 0,0 to 1,1)
-        // Use inverse model matrix to transform from world to local
         NE::Math::Mat4 invModelMatrix = modelMatrix.Inverse();
-        
-        // Transform intersection point to homogeneous coordinates
         NE::Math::Vec4 worldPoint(outIntersectionPoint.x, outIntersectionPoint.y, outIntersectionPoint.z, 1.0f);
         
-        // Manual matrix-vector multiplication
         NE::Math::Vec4 localPoint(
             invModelMatrix.GetElement(0, 0) * worldPoint.x + invModelMatrix.GetElement(0, 1) * worldPoint.y + invModelMatrix.GetElement(0, 2) * worldPoint.z + invModelMatrix.GetElement(0, 3) * worldPoint.w,
             invModelMatrix.GetElement(1, 0) * worldPoint.x + invModelMatrix.GetElement(1, 1) * worldPoint.y + invModelMatrix.GetElement(1, 2) * worldPoint.z + invModelMatrix.GetElement(1, 3) * worldPoint.w,
@@ -561,15 +437,12 @@ namespace NE::ECS::Systems {
             invModelMatrix.GetElement(3, 0) * worldPoint.x + invModelMatrix.GetElement(3, 1) * worldPoint.y + invModelMatrix.GetElement(3, 2) * worldPoint.z + invModelMatrix.GetElement(3, 3) * worldPoint.w
         );
         
-        // Perspective divide
         if (std::abs(localPoint.w) > 1e-5f) {
             localPoint.x /= localPoint.w;
             localPoint.y /= localPoint.w;
             localPoint.z /= localPoint.w;
         }
         
-        // Check if point is within unit quad bounds (0,0 to 1,1 in Y-down space)
-        // In unit quad space: X from 0 to 1, Y from 0 to 1 (Y-down)
         if (localPoint.x >= 0.0f && localPoint.x <= 1.0f &&
             localPoint.y >= 0.0f && localPoint.y <= 1.0f) {
             return true;
@@ -580,22 +453,18 @@ namespace NE::ECS::Systems {
     
     void UIInteractionSystem::ProcessWorldSpaceButtons(Entity canvasEntity) {
         if (!m_transformSystem) return;
-        if (!s_cameraMatricesSet) return; // Need camera matrices for raycasting
+        if (!s_cameraMatricesSet) return;
         
-        // Get canvas component
         auto& canvas = m_cm->GetComponent<Component::UICanvas>(canvasEntity);
         
-        // Get mouse position (in window/screen pixels from GLFW)
         auto [mouseX, mouseY] = NE::InputManager::MousePos();
         bool isMouseDown = NE::InputManager::IsMouseDown(0);
         
-        // Get viewport bounds (use same as screen space if available)
         float viewportX = s_viewportSet ? s_viewportX : 0.0f;
         float viewportY = s_viewportSet ? s_viewportY : 0.0f;
         float viewportWidth = s_viewportSet ? s_viewportWidth : static_cast<float>(NE::Graphics::GraphicsManager::GetWindowWidth());
         float viewportHeight = s_viewportSet ? s_viewportHeight : static_cast<float>(NE::Graphics::GraphicsManager::GetWindowHeight());
         
-        // Convert screen coordinates to world space ray
         Ray ray = ScreenToRay(mouseX, mouseY, s_cameraView, s_cameraProjection, 
                              viewportX, viewportY, viewportWidth, viewportHeight);
         
@@ -610,7 +479,6 @@ namespace NE::ECS::Systems {
             }
         }
         
-        // Sort by Z-order (process back-to-front, so front elements get priority)
         std::sort(buttonEntities.begin(), buttonEntities.end(),
             [this](Entity a, Entity b) {
                 if (!m_cm->HasComponent<Component::UIRectTransform>(a) ||
@@ -619,10 +487,9 @@ namespace NE::ECS::Systems {
                 }
                 auto& rectA = m_cm->GetComponent<Component::UIRectTransform>(a);
                 auto& rectB = m_cm->GetComponent<Component::UIRectTransform>(b);
-                return rectA.z > rectB.z; // Higher Z = processed first (top layer)
+                return rectA.z > rectB.z;
             });
         
-        // Find the front-most button that the ray intersects
         Entity hoveredButton = NE::ECS::NO_ENTITY;
         Entity pressedButton = NE::ECS::NO_ENTITY;
         float closestIntersection = std::numeric_limits<float>::max();
@@ -631,24 +498,18 @@ namespace NE::ECS::Systems {
             if (!m_cm->HasComponent<Component::UIRectTransform>(entity)) continue;
             if (!m_cm->HasComponent<Component::UIButton>(entity)) continue;
             
-            // Get world transform for this button
             UITransformSystem::WorldTransform worldTransform = 
                 m_transformSystem->CalculateWorldTransform(entity, canvasEntity, canvas);
             
-            // Get accumulated transform for proper model matrix calculation
             UITransformSystem::AccumulatedTransform accumulated = 
                 m_transformSystem->AccumulateParentTransforms(entity, canvasEntity, canvas);
             
-            // Get rect transform for pivot values
             auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
             
-            // Check ray intersection
             NE::Math::Vec3 intersectionPoint;
             if (RayIntersectsUIElement(ray, worldTransform, rect, accumulated, intersectionPoint)) {
-                // Calculate distance from ray origin to intersection
                 float distance = (intersectionPoint - ray.origin).Length();
                 
-                // Keep the closest intersection (front-most)
                 if (distance < closestIntersection) {
                     closestIntersection = distance;
                     hoveredButton = entity;
@@ -658,8 +519,6 @@ namespace NE::ECS::Systems {
                 }
             }
         }
-        
-        // Update all button states
         for (Entity entity : buttonEntities) {
             bool isHovering = (entity == hoveredButton);
             bool isPressed = (entity == pressedButton) && isMouseDown;
@@ -669,10 +528,8 @@ namespace NE::ECS::Systems {
     }
 
     void UIInteractionSystem::ProcessButtonClicks() {
-        // Get all button entities once
         const auto& buttonEntities = m_cm->GetEntitiesWithComponent<Component::UIButton>();
         
-        // Clear click flags from previous frame (so scripts can check wasClickedThisFrame)
         for (Entity entity : buttonEntities) {
             if (m_cm->HasComponent<Component::UIButton>(entity)) {
                 auto& button = m_cm->GetComponent<Component::UIButton>(entity);
@@ -680,46 +537,32 @@ namespace NE::ECS::Systems {
             }
         }
         
-        // Detect clicks: button was pressed last frame, released this frame, and still hovering
         bool isMouseDown = NE::InputManager::IsMouseDown(0);
         bool wasMouseReleased = NE::InputManager::WasMouseReleased(0);
         
-        // Only process clicks on mouse release
         if (!wasMouseReleased) return;
         for (Entity entity : buttonEntities) {
             if (!m_cm->HasComponent<Component::UIButton>(entity)) continue;
             
             auto& button = m_cm->GetComponent<Component::UIButton>(entity);
             
-            // Skip if button is not interactable
             if (!button.interactable) continue;
             
-            // Check if button was pressed last frame (when mouse was down)
             bool wasPressed = m_wasPressedLastFrame[entity];
-            
-            // Check if button is currently hovering (mouse released while on button)
-            // Accept both HOVERED and NORMAL states (NORMAL can happen if mouse is exactly on edge)
             bool isCurrentlyHovering = (button.currentState == Component::UIButton::State::HOVERED || 
                                        button.currentState == Component::UIButton::State::NORMAL);
             
-            // Click detected: was pressed last frame, mouse released this frame, still hovering
             if (wasPressed && wasMouseReleased && isCurrentlyHovering) {
-                // Set click flag for scripts to check
                 button.wasClickedThisFrame = true;
-                
-                // Clear the pressed flag (click has been processed)
                 m_wasPressedLastFrame[entity] = false;
                 
-                // Fire onClick event via event system
                 NANOEngine::Events::UIButtonClickEvent clickEvent{ entity, button.onClickEventId };
                 
-                // Dispatch to Engine domain (for C++ systems to subscribe)
                 NANOEngine::Events::EventBus::Get().Dispatch(
                     NANOEngine::Events::EventDomain::Engine,
                     clickEvent
                 );
                 
-                // Also dispatch to Script domain (for scripts to subscribe)
                 NANOEngine::Events::EventBus::Get().Dispatch(
                     NANOEngine::Events::EventDomain::Script,
                     clickEvent

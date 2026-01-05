@@ -80,6 +80,13 @@ namespace NE::ECS::Component {
         float textWidth = 0.0f;
         float textHeight = 0.0f;
         std::shared_ptr<NE::Graphics::Material> material;
+        
+        // Cached data for auto-size optimization
+        mutable std::vector<uint8_t> cachedFontData;
+        mutable std::string cachedFontUUID;
+        mutable std::string cachedFontPath;
+        mutable float cachedContainerWidth = -1.0f;
+        mutable float cachedContainerHeight = -1.0f;
 
         // Reflection - Note: Enum fields are serialized as their underlying integer type
         NE_REFLECT_BEGIN(UIText)

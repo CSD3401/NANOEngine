@@ -13,7 +13,6 @@ namespace NE::Graphics {
 
     class UITextMeshGenerator {
     public:
-        // Generate vertices for text rendering
         static std::vector<UIVertex> GenerateVertices(
             const NE::ECS::Component::UIText& text,
             const Font& font,
@@ -23,14 +22,12 @@ namespace NE::Graphics {
         );
 
     private:
-        // Helper to create a single vertex
         static UIVertex CreateVertex(
             float x, float y, float z,
             float u, float v,
             const Math::Vec4& color
         );
 
-        // Generate vertices for a single character
         static void GenerateCharacterQuad(
             std::vector<UIVertex>& vertices,
             const GlyphMetrics& metrics,
@@ -39,7 +36,6 @@ namespace NE::Graphics {
             float normalizedAscender
         );
 
-        // Generate vertices for a single character with horizontal clipping
         static void GenerateCharacterQuadClipped(
             std::vector<UIVertex>& vertices,
             const GlyphMetrics& metrics,
@@ -50,7 +46,6 @@ namespace NE::Graphics {
             float normalizedAscender
         );
 
-        // Calculate text layout (word wrapping, alignment)
         struct TextLine {
             std::string text;
             float width;
@@ -63,7 +58,6 @@ namespace NE::Graphics {
             bool wrapAtWordBoundaries
         );
 
-        // Calculate horizontal offset for alignment
         static float CalculateHorizontalOffset(
             const TextLine& line,
             const Font& font,
@@ -71,7 +65,6 @@ namespace NE::Graphics {
             NE::ECS::Component::UIText::Alignment alignment
         );
 
-        // Calculate vertical offset for alignment
         static float CalculateVerticalOffset(
             const std::vector<TextLine>& lines,
             const Font& font,

@@ -26,20 +26,18 @@ namespace NE::Graphics {
         static void DrawTestQuad();
 
     private:
-        // openGl resources
         static std::vector<UIDrawCommand> s_Commands;
         static RenderViewHandle s_UIViewHandle;
         static RenderViewManager* s_RenderViewManager;
         static unsigned int s_VAO, s_VBO, s_EBO;
         static unsigned int s_Shader;
-        static unsigned int s_WorldSpaceShader;  // Fallback shader for world space UI without material
+        static unsigned int s_WorldSpaceShader;
         static unsigned int s_CompositeShader;
         static unsigned int s_CompositeVAO, s_CompositeVBO;
         static uint32_t s_ScreenW, s_ScreenH;
 
         static void InitCompositeShader();
 
-        // material helpers
         static void BuildQuadVertices(const UIDrawCommand& cmd, float* verts);
     };
 

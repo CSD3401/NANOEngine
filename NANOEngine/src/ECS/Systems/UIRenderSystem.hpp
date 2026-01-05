@@ -33,14 +33,12 @@ namespace NE::ECS::Systems {
         void OnEntityAdded(Entity e) override;
         void OnEntityRemoved(Entity e) override;
 
-        // Set the transform system (called after both systems are registered)
         void SetTransformSystem(UITransformSystem* transformSystem);
 
     private:
         ComponentManager* m_cm = nullptr;
         UITransformSystem* m_transformSystem = nullptr;
 
-        // Font cache to keep fonts alive
         std::unordered_map<uint32_t, std::shared_ptr<NE::Graphics::Font>> m_fontCache;
 
         //=================================================================

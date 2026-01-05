@@ -9,7 +9,6 @@
 
 namespace NE::Graphics {
 
-    // Vertex structure for UI rendering
     struct UIVertex {
         float x, y, z;           // Position
         float u, v;              // UV coordinates
@@ -18,7 +17,6 @@ namespace NE::Graphics {
 
     class UIImageMeshGenerator {
     public:
-        // Generate vertices based on image type
         static std::vector<UIVertex> GenerateVertices(
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
@@ -27,7 +25,6 @@ namespace NE::Graphics {
         );
 
     private:
-        // Simple quad (no special processing)
         static std::vector<UIVertex> GenerateSimple(
             float x, float y, float z,
             float width, float height,
@@ -37,15 +34,15 @@ namespace NE::Graphics {
             float textureHeight = 0.0f
         );
 
-        // 9-slice scaling
         static std::vector<UIVertex> GenerateSliced(
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
             float width, float height,
-            const Math::Vec4& color
+            const Math::Vec4& color,
+            float textureWidth = 0.0f,
+            float textureHeight = 0.0f
         );
 
-        // Tiled texture
         static std::vector<UIVertex> GenerateTiled(
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
@@ -53,7 +50,6 @@ namespace NE::Graphics {
             const Math::Vec4& color
         );
 
-        // Filled images
         static std::vector<UIVertex> GenerateFilled(
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
@@ -63,7 +59,6 @@ namespace NE::Graphics {
             float textureHeight = 0.0f
         );
 
-        // Specific fill methods
         static std::vector<UIVertex> GenerateHorizontalFill(
             const NE::ECS::Component::UIImage& image,
             float x, float y, float z,
@@ -85,7 +80,6 @@ namespace NE::Graphics {
             const Math::Vec4& color
         );
 
-        // Helper to create a single vertex
         static UIVertex CreateVertex(
             float x, float y, float z,
             float u, float v,

@@ -39,13 +39,11 @@ namespace NE::ECS::Systems {
 
         auto& rect = m_cm->GetComponent<Component::UIRectTransform>(e);
 
-        // register luid for entity mapping
         if (rect.luid != 0)
         {
             m_luidToEntity[rect.luid] = e;
         }
 
-        // queue parent resolution if needed
         if (rect.parentLuid != 0) 
         {
             m_pendingParents.push_back(PendingParent{ e, rect.parentLuid });
