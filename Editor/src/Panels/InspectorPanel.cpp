@@ -3362,17 +3362,108 @@ namespace Editor {
 						ImGui::EndGroup();
 
 						// Font Color
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Color");
-						ImGui::SameLine(labelWidth);
-						ImGui::SetNextItemWidth(-1);
-						float textColor[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
-						if (ImGui::ColorEdit4("##TextColor", textColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf)) {
-							comp.color.x = textColor[0];
-							comp.color.y = textColor[1];
-							comp.color.z = textColor[2];
-							comp.color.w = textColor[3];
-							NE::MarkSceneDirty();
+						{
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Color");
+							ImGui::SameLine(labelWidth);
+							ImGui::SetNextItemWidth(-1);
+							float textColor[4] = { comp.color.x, comp.color.y, comp.color.z, comp.color.w };
+							
+							// Track color changes for undo/redo (only commit on mouse release)
+							using Owner = NE::ECS::Component::UIText;
+							using FieldT = NE::Math::Vec4;
+							
+							FieldKey colorKey{
+								entity,
+								&typeid(Owner),
+								MemberPointerHasher<Owner, FieldT>{}(&Owner::color)
+							};
+							
+							bool changed = ImGui::ColorEdit4("##TextColor", textColor, ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_AlphaPreviewHalf);
+							
+							// Check state AFTER ColorEdit4 call (required for ImGui state functions)
+							const bool activated = ImGui::IsItemActivated();
+							const bool active = ImGui::IsItemActive();
+							const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
+							
+							// Start command when color editing begins
+							if (activated) {
+								FieldT beforeColor = comp.color;
+								using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+								auto cmd = std::make_unique<Cmd>(
+									entity,
+									std::string("Change UI Text Color"),
+									&Owner::color,
+									beforeColor,
+									beforeColor,
+									&NE::ECS::Command::GetUIText
+								);
+								g_activeCommands[colorKey] = std::move(cmd);
+							}
+							
+							if (changed) {
+								// Apply the change immediately for visual feedback
+								comp.color.x = textColor[0];
+								comp.color.y = textColor[1];
+								comp.color.z = textColor[2];
+								comp.color.w = textColor[3];
+								NE::MarkSceneDirty();
+								
+								// Update command while dragging
+								if (active) {
+									auto it = g_activeCommands.find(colorKey);
+									if (it != g_activeCommands.end()) {
+										// Get the before color from the command
+										auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+										if (asSet) {
+											FieldT beforeColor = asSet->Before();
+											using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+											Cmd tmp(
+												entity,
+												std::string{},
+												&Owner::color,
+												beforeColor,
+												comp.color,
+												&NE::ECS::Command::GetUIText
+											);
+											it->second->CoalesceFrom(tmp);
+										}
+									}
+								}
+							}
+							
+							// Commit command when color editing ends (mouse released)
+							if (deactivated) {
+								auto it = g_activeCommands.find(colorKey);
+								if (it != g_activeCommands.end()) {
+									// Ensure final color value is applied to command
+									auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet) {
+										FieldT beforeColor = asSet->Before();
+										using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
+										Cmd tmp(
+											entity,
+											std::string{},
+											&Owner::color,
+											beforeColor,
+											comp.color,
+											&NE::ECS::Command::GetUIText
+										);
+										it->second->CoalesceFrom(tmp);
+									}
+									
+									// Check if there was a change
+									asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
+									if (asSet && Equal(asSet->Before(), asSet->After())) {
+										// No change, discard command
+										g_activeCommands.erase(it);
+									} else {
+										// Execute command for undo/redo
+										Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(it->second));
+										g_activeCommands.erase(it);
+									}
+								}
+							}
 						}
 
 						// Font Size
