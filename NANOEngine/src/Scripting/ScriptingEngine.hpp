@@ -158,32 +158,41 @@ namespace NE::Scripting {
         NANOENGINE_API void SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager);
 
         /**
-         * Create script instance for an entity based on component data.
-         * @param entity The entity to create the script instance for
-         * @param nsc The NativeScript component containing script name and serialized data
-         * @return true if instance was created successfully, false otherwise
+         * Create script instances for an entity based on component data.
+         * Supports multiple scripts per entity.
+         * @param entity The entity to create the script instances for
+         * @param nsc The NativeScript component containing script names and serialized data
+         * @return true if at least one instance was created successfully, false otherwise
          */
-        NANOENGINE_API bool CreateScriptInstance(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
+        NANOENGINE_API bool CreateScriptInstances(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
 
         /**
-         * Destroy script instance for an entity.
-         * @param entity The entity whose script instance should be destroyed
+         * Destroy all script instances for an entity.
+         * @param entity The entity whose script instances should be destroyed
          */
-        NANOENGINE_API void DestroyScriptInstance(NE::ECS::Entity entity);
+        NANOENGINE_API void DestroyScriptInstances(NE::ECS::Entity entity);
 
         /**
-         * Get script instance for an entity.
+         * Get all script instances for an entity.
+         * @param entity The entity to get the script instances for
+         * @return Pointer to vector of script instances, or nullptr if not found
+         */
+        NANOENGINE_API const std::vector<IScript*>* GetScriptInstances(NE::ECS::Entity entity) const;
+
+        /**
+         * Get a specific script instance by script name.
          * @param entity The entity to get the script instance for
+         * @param scriptName The name of the script type
          * @return Pointer to script instance, or nullptr if not found
          */
-        NANOENGINE_API IScript* GetScriptInstance(NE::ECS::Entity entity) const;
+        NANOENGINE_API IScript* GetScriptInstanceByName(NE::ECS::Entity entity, const std::string& scriptName) const;
 
         /**
-         * Check if entity has a script instance.
+         * Check if entity has any script instances.
          * @param entity The entity to check
-         * @return true if entity has an instance, false otherwise
+         * @return true if entity has at least one instance, false otherwise
          */
-        NANOENGINE_API bool HasScriptInstance(NE::ECS::Entity entity) const;
+        NANOENGINE_API bool HasScriptInstances(NE::ECS::Entity entity) const;
 
         /**
          * Update all script instances (called by ScriptSystem).
@@ -192,10 +201,10 @@ namespace NE::Scripting {
         NANOENGINE_API void UpdateScriptInstances(double deltaTime);
 
         /**
-         * Initialize (Awake + Initialize) script instance for an entity.
-         * @param entity The entity to initialize the script for
+         * Initialize (Awake + Initialize) all script instances for an entity.
+         * @param entity The entity to initialize the scripts for
          */
-        NANOENGINE_API void InitializeScriptInstance(NE::ECS::Entity entity);
+        NANOENGINE_API void InitializeScriptInstances(NE::ECS::Entity entity);
 
         /**
          * Start scripts (enable them) for play mode.
@@ -211,6 +220,15 @@ namespace NE::Scripting {
          * Stop scripts (disable and save state) for stop mode.
          */
         NANOENGINE_API void StopAllScriptInstances();
+
+        /**
+         * Synchronize script instances with the component's ScriptNames vector.
+         * Adds new scripts, removes deleted scripts, preserves existing instances.
+         * Called when ScriptNames vector changes.
+         * @param entity The entity to synchronize
+         * @param nsc The NativeScript component
+         */
+        NANOENGINE_API void SynchronizeScriptInstances(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
 
         // === Scene Script Management Helpers ===
         /**
@@ -268,8 +286,9 @@ namespace NE::Scripting {
         mutable std::mutex m_mutex;
 
         // === Instance Management ===
-        // Maps Entity -> Script Instance (runtime data, managed by ScriptEngine)
-        std::unordered_map<NE::ECS::Entity, IScript*> m_scriptInstances;
+        // Maps Entity -> Vector of Script Instances (runtime data, managed by ScriptEngine)
+        // Supports multiple scripts per entity - instances are stored in execution order
+        std::unordered_map<NE::ECS::Entity, std::vector<IScript*>> m_scriptInstances;
 
         // ECS references (set by ScriptSystem)
         NE::ECS::ComponentManager* m_componentManager = nullptr;

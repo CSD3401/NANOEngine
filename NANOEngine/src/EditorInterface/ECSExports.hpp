@@ -169,8 +169,10 @@ namespace NE::ECS {
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();
-		NANOENGINE_API bool SetEntityScript(uint32_t e, const std::string& scriptName);
-		NANOENGINE_API void RemoveEntityScript(uint32_t e);
+		NANOENGINE_API bool SetEntityScript(uint32_t e, const std::string& scriptName);  // Replaces all scripts
+		NANOENGINE_API void RemoveEntityScript(uint32_t e);  // Removes all scripts
+		NANOENGINE_API bool AddEntityScript(uint32_t e, const std::string& scriptName);  // Appends to list
+		NANOENGINE_API void RemoveEntityScriptByIndex(uint32_t e, size_t index);  // Removes specific script
 		NANOENGINE_API bool IsScriptRegistered(const std::string& scriptName);
 
 		NANOENGINE_API void AddAnimatorComponent(uint32_t e);              // <-- ADD

@@ -9,6 +9,7 @@
 #include "Core/Couroutine.hpp"
 #include "Events/EventBus.hpp"
 #include "../../Scripting/ScriptingEngine.hpp"
+#include <algorithm>
 
 namespace NE::ECS::Systems {
 	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em)
@@ -26,19 +27,19 @@ namespace NE::ECS::Systems {
 
 		auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-		// Check if script name is valid
-		if (nsc.ScriptName.empty()) {
-			SPD_WARNING("NativeScript component on entity " << (int)entity << " has empty ScriptName");
+		// Check if script names are valid
+		if (nsc.ScriptNames.empty()) {
+			SPD_WARNING("NativeScript component on entity " << (int)entity << " has empty ScriptNames");
 			return;
 		}
 
-		// Create script instance via ScriptEngine
-		if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
-			// Initialize the script instance
-			Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
+		// Create script instances via ScriptEngine
+		if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstances(entity, nsc)) {
+			// Initialize the script instances
+			Scripting::ScriptingEngine::GetInstance().InitializeScriptInstances(entity);
 
 			// Update tracking and clear dirty flag after successful creation
-			nsc._lastScriptName = nsc.ScriptName;
+			nsc._lastScriptNames = nsc.ScriptNames;
 			nsc.IsDirty = false;
 		}
 	}
@@ -49,8 +50,8 @@ namespace NE::ECS::Systems {
 			return;
 		}
 
-		// Destroy script instance via ScriptEngine
-		Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(entity);
+		// Destroy script instances via ScriptEngine
+		Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(entity);
 	}
 
 	void ScriptSystem::Init() {
@@ -62,26 +63,32 @@ namespace NE::ECS::Systems {
 		for (Entity entity : entities) {
 			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-			// Skip if script name is empty
-			if (nsc.ScriptName.empty()) {
+			// Skip if script names are empty
+			if (nsc.ScriptNames.empty()) {
 				continue;
 			}
 
-			// Create script instance via ScriptEngine
-			if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
-				// Initialize the script instance
-				Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
+			// Create script instances via ScriptEngine
+			if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstances(entity, nsc)) {
+				// Initialize the script instances
+				Scripting::ScriptingEngine::GetInstance().InitializeScriptInstances(entity);
 
 				// Update tracking and clear dirty flag after successful creation
-				nsc._lastScriptName = nsc.ScriptName;
+				nsc._lastScriptNames = nsc.ScriptNames;
 				nsc.IsDirty = false;
 
-				SPD_INFO("Initialized existing script '" << nsc.ScriptName
-					<< "' for entity " << (int)entity << " during ScriptSystem::Init()");
+				// Build script list string for logging (skip empty strings)
+				std::string scriptList;
+				for (size_t i = 0; i < nsc.ScriptNames.size(); ++i) {
+					if (nsc.ScriptNames[i].empty()) continue;  // Skip empty strings
+					if (!scriptList.empty()) scriptList += ", ";
+					scriptList += nsc.ScriptNames[i];
+				}
+				SPD_INFO("Initialized existing scripts [" << scriptList
+					<< "] for entity " << (int)entity << " during ScriptSystem::Init()");
 			}
 			else {
-				SPD_WARNING("Failed to initialize script '" << nsc.ScriptName
-					<< "' for entity " << (int)entity);
+				SPD_WARNING("Failed to initialize scripts for entity " << (int)entity);
 			}
 		}
 
@@ -103,8 +110,8 @@ namespace NE::ECS::Systems {
 				continue;
 			}
 
-			// Destroy script instance via ScriptEngine
-			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(entity);
+			// Destroy script instances via ScriptEngine
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(entity);
 		}
 
 		SPD_INFO("ScriptSystem::Exit() - Completed");
@@ -147,46 +154,51 @@ namespace NE::ECS::Systems {
 		for (Entity entity : entities) {
 			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
-			// Detect if script TYPE changed (different script class assigned)
-			bool scriptTypeChanged = (nsc.ScriptName != nsc._lastScriptName);
+			// Check if script list changed
+			bool scriptsChanged = (nsc.ScriptNames != nsc._lastScriptNames);
 
-			if (scriptTypeChanged) {
-				SPD_INFO("Script type changed for entity " << (int)entity
-					<< " from '" << nsc._lastScriptName << "' to '" << nsc.ScriptName << "'");
+			if (scriptsChanged) {
+				// Build script list strings for logging (skip empty strings)
+				std::string oldList, newList;
+				for (size_t i = 0; i < nsc._lastScriptNames.size(); ++i) {
+					if (nsc._lastScriptNames[i].empty()) continue;
+					if (!oldList.empty()) oldList += ", ";
+					oldList += nsc._lastScriptNames[i];
+				}
+				for (size_t i = 0; i < nsc.ScriptNames.size(); ++i) {
+					if (nsc.ScriptNames[i].empty()) continue;
+					if (!newList.empty()) newList += ", ";
+					newList += nsc.ScriptNames[i];
+				}
 
-				// Destroy old instance (if any)
-				Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(entity);
+				SPD_INFO("Scripts changed for entity " << (int)entity
+					<< " from [" << oldList << "] to [" << newList << "]");
 
-				// Clear old serialized data (fields from previous script type are incompatible)
-				nsc.SerializedFields.clear();
-				nsc.EntityReferenceFields.clear();
+				// Synchronize instances (add new, remove deleted, preserve existing)
+				Scripting::ScriptingEngine::GetInstance().SynchronizeScriptInstances(entity, nsc);
+			}
+			else if (nsc._lastScriptNames.empty() && !nsc.ScriptNames.empty()) {
+				// Initial creation (first time this component has scripts assigned)
+				// Only triggers when _lastScriptNames is empty (never been initialized)
 
-				// Create new instance if script name is not empty
-				if (!nsc.ScriptName.empty()) {
-					if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
-						Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
-					}
+				std::string scriptList;
+				for (size_t i = 0; i < nsc.ScriptNames.size(); ++i) {
+					if (nsc.ScriptNames[i].empty()) continue;
+					if (!scriptList.empty()) scriptList += ", ";
+					scriptList += nsc.ScriptNames[i];
+				}
+				SPD_INFO("Creating initial script instances for entity " << (int)entity
+					<< " scripts [" << scriptList << "]");
+
+				if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstances(entity, nsc)) {
+					Scripting::ScriptingEngine::GetInstance().InitializeScriptInstances(entity);
 				}
 
 				// Update tracking
-				nsc._lastScriptName = nsc.ScriptName;
+				nsc._lastScriptNames = nsc.ScriptNames;
 				nsc.IsDirty = false;
 			}
-			else if (nsc._lastScriptName.empty() && !nsc.ScriptName.empty()) {
-				// Initial creation (first time this component has a script assigned)
-				// Only triggers when _lastScriptName is empty (never been initialized)
-				SPD_INFO("Creating initial script instance for entity " << (int)entity
-					<< " script '" << nsc.ScriptName << "'");
-
-				if (Scripting::ScriptingEngine::GetInstance().CreateScriptInstance(entity, nsc)) {
-					Scripting::ScriptingEngine::GetInstance().InitializeScriptInstance(entity);
-				}
-
-				// Update tracking
-				nsc._lastScriptName = nsc.ScriptName;
-				nsc.IsDirty = false;
-			}
-			// else: Field edits or other changes - instance already exists with updated values, no action needed
+			// else: Field edits or other changes - instances already exist with updated values, no action needed
 		}
 
 		// Second pass: Delegate script updates to ScriptEngine

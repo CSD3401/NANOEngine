@@ -409,11 +409,12 @@ namespace NE::ECS {
 				return false;
 			}
 
-			// Clean up existing instance if any (via ScriptEngine)
-			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(e);
+			// Clean up existing instances if any (via ScriptEngine)
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(e);
 
-			// Set new script name and mark as dirty
-			script.ScriptName = scriptName;
+			// Set new script name (clear existing and add the new one)
+			script.ScriptNames.clear();
+			script.ScriptNames.push_back(scriptName);
 			script.IsDirty = true;
 
 			// ScriptSystem will handle instance creation in its next Update
@@ -427,11 +428,11 @@ namespace NE::ECS {
 
 			auto& script = GetEntityScript(e);
 
-			// Clean up existing instance via ScriptEngine
-			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstance(e);
+			// Clean up existing instances via ScriptEngine
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(e);
 
 			// Reset component data
-			script.ScriptName.clear();
+			script.ScriptNames.clear();
 			script.SerializedFields.clear();
 			script.EntityReferenceFields.clear();
 			script.IsDirty = false; // No script to recreate
@@ -443,6 +444,64 @@ namespace NE::ECS {
 				return Scripting::ScriptingEngine::GetInstance().IsScriptRegistered(scriptName);
 			}
 			return false;
+		}
+
+		bool AddEntityScript(uint32_t e, const std::string& scriptName) {
+			if (!GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e)) {
+				return false;
+			}
+
+			auto& script = GetEntityScript(e);
+
+			// Verify script exists before adding
+			if (!Scripting::ScriptingEngine::GetInstance().IsScriptRegistered(scriptName)) {
+				return false;
+			}
+
+			// Check if script already exists in the list
+			for (const auto& existingName : script.ScriptNames) {
+				if (existingName == scriptName) {
+					return false; // Already exists
+				}
+			}
+
+			// Add to the list
+			script.ScriptNames.push_back(scriptName);
+			script.IsDirty = true;
+
+			// ScriptSystem will handle instance creation in its next Update
+			return true;
+		}
+
+		void RemoveEntityScriptByIndex(uint32_t e, size_t index) {
+			if (!GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e)) {
+				return;
+			}
+
+			auto& script = GetEntityScript(e);
+
+			// Validate index
+			if (index >= script.ScriptNames.size()) {
+				return;
+			}
+
+			// Remove the script at the specified index
+			std::string removedScriptName = script.ScriptNames[index];
+			script.ScriptNames.erase(script.ScriptNames.begin() + index);
+
+			// Remove associated serialized fields for this script
+			std::string prefix = removedScriptName + ".";
+			auto it = script.SerializedFields.begin();
+			while (it != script.SerializedFields.end()) {
+				if (it->first.starts_with(prefix)) {
+					it = script.SerializedFields.erase(it);
+				} else {
+					++it;
+				}
+			}
+
+			// Mark as dirty so ScriptSystem will synchronize instances
+			script.IsDirty = true;
 		}
 
 		void AddAnimatorComponent(uint32_t e) {

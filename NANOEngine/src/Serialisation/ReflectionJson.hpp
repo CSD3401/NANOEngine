@@ -4,9 +4,10 @@
 #include <type_traits>
 #include <filesystem>
 #include <vector>
+#include <algorithm>
 #include <rapidjson/document.h>
 #include "../../src/Math/Vec3.hpp"
-#include "../../src/Math/Vec4.hpp" 
+#include "../../src/Math/Vec4.hpp"
 #include "../Core/SpdLogger.hpp"
 #include "ECS/Components/Light.hpp" //temp
 #include "ECS/Components/NativeScript.hpp"
@@ -208,13 +209,19 @@ namespace NE::Serialization {
     }
 
     // ----------- NativeScript serialization -----------
-    // Custom serialization to handle ScriptName and SerializedFields
+    // Custom serialization to handle ScriptNames vector and SerializedFields
     // Converts entity ID <-> LUID for entity reference fields during scene save/load
     inline RJson to_json(const NE::ECS::Component::NativeScript& script, Alloc& a) {
         RJson obj(rapidjson::kObjectType);
 
-        // Serialize script name
-        obj.AddMember("ScriptName", to_json(script.ScriptName, a), a);
+        // Filter out empty strings from ScriptNames before serializing
+        std::vector<std::string> filteredNames;
+        for (const auto& name : script.ScriptNames) {
+            if (!name.empty()) {
+                filteredNames.push_back(name);
+            }
+        }
+        obj.AddMember("ScriptNames", to_json(filteredNames, a), a);
 
         // Serialize field values as a nested object
         if (!script.SerializedFields.empty()) {
@@ -229,7 +236,6 @@ namespace NE::Serialization {
                     // Check if it's a vector (contains commas) or single entity
                     if (value.find(',') != std::string::npos) {
                         // Vector<Entity> - parse comma-separated entity IDs
-                        //RJson luidsArray(rapidjson::kArrayType);
                         RJson eidArray(rapidjson::kArrayType);
                         std::stringstream ss(value);
                         std::string entityIdStr;
@@ -237,7 +243,6 @@ namespace NE::Serialization {
                         while (std::getline(ss, entityIdStr, ',')) {
                             try {
                                 NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(entityIdStr));
-                                //uint64_t luid = GetLUIDFromEntity(entityId);
                                 eidArray.PushBack(entityId, a);
                             } catch (...) {
                                 // Failed to parse - skip this entry
@@ -249,12 +254,6 @@ namespace NE::Serialization {
                         // Single entity reference
                         try {
                             NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(value));
-                            //uint64_t luid = GetLUIDFromEntity(entityId);
-
-                            // DEBUG: Log the conversion
-                            //if (name == "tref0") {
-                            //    SPD_DEBUG("[LUID Serialize] Field " << name << ": Entity ID " << entityId << " -> LUID " << luid);
-                            //}
 
                             RJson eidJson;
                             eidJson.SetUint64(entityId);
@@ -276,9 +275,27 @@ namespace NE::Serialization {
     }
 
     inline void from_json(const RJson& v, NE::ECS::Component::NativeScript& out) {
-        // Deserialize script name
-        if (v.HasMember("ScriptName")) {
-            from_json(v["ScriptName"], out.ScriptName);
+        // Deserialize script names (supports both new array format and legacy single string)
+        if (v.HasMember("ScriptNames")) {
+            if (v["ScriptNames"].IsArray()) {
+                // New format: array of script names
+                from_json(v["ScriptNames"], out.ScriptNames);
+            } else if (v["ScriptNames"].IsString()) {
+                // Legacy format: single script name - migrate to array
+                std::string singleName;
+                from_json(v["ScriptNames"], singleName);
+                if (!singleName.empty()) {
+                    out.ScriptNames.push_back(singleName);
+                }
+            }
+        }
+        // Legacy support: also check for old "ScriptName" field
+        else if (v.HasMember("ScriptName")) {
+            std::string singleName;
+            from_json(v["ScriptName"], singleName);
+            if (!singleName.empty()) {
+                out.ScriptNames.push_back(singleName);
+            }
         }
 
         // Deserialize field values
@@ -291,13 +308,7 @@ namespace NE::Serialization {
                 if (it->value.IsUint64()) {
                     // Single entity LUID - convert to entity ID string
                     uint64_t eid = it->value.GetUint64();
-                   // uint64_t luid = it->value.GetUint64();
                     NE::ECS::Entity entityId = (uint32_t)eid;
-
-                    // DEBUG: Log the conversion
-                    //if (fieldName == "tref0") {
-                    //    SPD_DEBUG("[LUID Deserialize] Field "<< fieldName << ": LUID " << luid << " ->Entity ID " << entityId);
-                    //}
 
                     out.SerializedFields[fieldName] = std::to_string(entityId);
                 } else if (it->value.IsArray()) {
@@ -309,7 +320,6 @@ namespace NE::Serialization {
                         first = false;
 
                         uint64_t luid = luidValue.GetUint64();
-                        //NE::ECS::Entity entityId = GetEntityFromLUID(luid);
                         NE::ECS::Entity entityId = (uint32_t)luid;
                         ss << entityId;
                     }
@@ -322,6 +332,12 @@ namespace NE::Serialization {
                 }
             }
         }
+
+        // Filter out empty strings from ScriptNames (can happen from old/corrupted scene data)
+        out.ScriptNames.erase(
+            std::remove_if(out.ScriptNames.begin(), out.ScriptNames.end(),
+                [](const std::string& s) { return s.empty(); }),
+            out.ScriptNames.end());
     }
 
     // ----------- Entity <-> LUID conversion implementation -----------

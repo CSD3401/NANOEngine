@@ -776,185 +776,206 @@ namespace Editor {
 				else if (typeIdx == typeid(NE::ECS::Component::NativeScript))
 				{
 					auto& comp = NE::ECS::Query::GetEntityScript(entity);
-					ImGui::SeparatorText("Script");
+					ImGui::SeparatorText("Scripts");
 
-					// Display current script name or "None"
-					std::string currentScript = comp.ScriptName.empty() ? "None" : comp.ScriptName;
+					// Get all script instances for this entity
+					const auto* scriptInstances = NE::Scripting::ScriptingEngine::GetInstance().GetScriptInstances(entity);
 
-					ImGui::Text("Current Script: %s", currentScript.c_str());
-
-					// Script selection dropdown
-					if (ImGui::BeginCombo("Script Type", currentScript.c_str())) {
-						// "None" option to remove script
-						if (ImGui::Selectable("None", comp.ScriptName.empty())) {
-							NE::ECS::Command::RemoveEntityScript(entity);
+					// Display list of scripts
+					if (!comp.ScriptNames.empty()) {
+						// Build script list string for display
+						std::string scriptList;
+						for (size_t i = 0; i < comp.ScriptNames.size(); ++i) {
+							if (i > 0) scriptList += ", ";
+							scriptList += comp.ScriptNames[i];
 						}
+						ImGui::Text("Scripts: %s", scriptList.c_str());
+					} else {
+						ImGui::Text("Scripts: None");
+					}
 
+					// Script selection dropdown (for now, single script selection for backward compatibility)
+					std::string currentScript = comp.ScriptNames.empty() ? "None" : comp.ScriptNames[0];
+
+					ImGui::Text("Add Script:");
+					if (ImGui::BeginCombo("##ScriptType", "Add Script...")) {
 						// List all registered scripts
 						auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
 						for (const auto& scriptName : scriptNames) {
-							bool isSelected = (comp.ScriptName == scriptName);
-							if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
-								NE::ECS::Command::SetEntityScript(entity, scriptName);
+							// Check if script is already attached
+							bool alreadyAttached = false;
+							for (const auto& attachedName : comp.ScriptNames) {
+								if (attachedName == scriptName) {
+									alreadyAttached = true;
+									break;
+								}
 							}
-							if (isSelected) {
-								ImGui::SetItemDefaultFocus();
+
+							if (alreadyAttached) {
+								ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+								ImGui::Selectable(scriptName.c_str(), false, ImGuiSelectableFlags_Disabled);
+								ImGui::PopStyleColor();
+							}
+							else if (ImGui::Selectable(scriptName.c_str())) {
+								// Add this script to the list
+								NE::ECS::Command::AddEntityScript(entity, scriptName);
 							}
 						}
 						ImGui::EndCombo();
 					}
 
-					// Display script status
-					if (!comp.ScriptName.empty()) {
+					ImGui::SameLine();
+					if (ImGui::Button("Clear All") && !comp.ScriptNames.empty()) {
+						NE::ECS::Command::RemoveEntityScript(entity);
+					}
+
+					// Display script status and fields for each script
+					if (!comp.ScriptNames.empty() && scriptInstances && !scriptInstances->empty()) {
 						ImGui::Separator();
 
-						// Check if script is registered in the DLL
-						bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
+						for (size_t scriptIdx = 0; scriptIdx < comp.ScriptNames.size() && scriptIdx < scriptInstances->size(); ++scriptIdx) {
+							const std::string& scriptName = comp.ScriptNames[scriptIdx];
+							NE::Scripting::IScript* scriptInstance = (*scriptInstances)[scriptIdx];
 
-						// Get script instance from ScriptEngine (ECS refactor: instances managed by ScriptEngine)
-						NE::Scripting::IScript* scriptInstance = NE::Scripting::ScriptingEngine::GetInstance().GetScriptInstance(entity);
-
-						// Check if script instance exists before accessing it
-						if (!scriptInstance) {
-							// More detailed error message based on registration status
-							if (!isRegistered) {
-								ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Status: Script not found in DLL");
-								ImGui::TextWrapped("The script '%s' no longer exists in the compiled game code.", comp.ScriptName.c_str());
-								ImGui::TextWrapped("It may have been deleted or renamed.");
-
-								// Offer to remove the invalid script
-								ImGui::Spacing();
-								if (ImGui::Button("Remove Invalid Script")) {
-									NE::ECS::Command::RemoveEntityScript(entity);
-								}
-								ImGui::SameLine();
-								ImGui::TextDisabled("(?)");
-								if (ImGui::IsItemHovered()) {
-									ImGui::SetTooltip("This will clear the script component and put it in 'No Script' state");
-								}
+							// Script header with name
+							ImGui::Separator();
+							if (ImGui::Button(("Remove##" + std::to_string(scriptIdx)).c_str(), ImVec2(80, 0))) {
+								// Remove this specific script by index
+								NE::ECS::Command::RemoveEntityScriptByIndex(entity, scriptIdx);
 							}
-							else {
-								ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Status: Script not instantiated");
-								ImGui::TextWrapped("The script instance failed to initialize. Try reloading the scene or removing and re-adding the script.");
+							ImGui::SameLine();
+							ImGui::Text("%s", scriptName.c_str());
+
+							if (!scriptInstance) {
+								// Check if script is registered
+								bool isRegistered = NE::ECS::Command::IsScriptRegistered(scriptName);
+								if (!isRegistered) {
+									ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Status: Script not found in DLL");
+									ImGui::TextWrapped("The script '%s' no longer exists in the compiled game code.", scriptName.c_str());
+								} else {
+									ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Status: Script not instantiated");
+								}
+								continue;
 							}
-						}
-						else {
+
 							// Script enabled/disabled checkbox
 							bool enabled = scriptInstance->IsEnabled();
+							ImGui::PushID(("enabled_" + std::to_string(scriptIdx)).c_str());
 							if (ImGui::Checkbox("Enabled", &enabled)) {
 								scriptInstance->SetEnabled(enabled);
 							}
+							ImGui::PopID();
 
-							ImGui::Text("Status: Active");
 							ImGui::Text("Entity ID: %u", scriptInstance->GetEntity());
 
 							// --- Scripting Fields UI ---
+							ImGui::PushID(scriptIdx); // Scope for this script's fields
 							auto fieldNames = scriptInstance->GetExposedFieldNames();
-						if (!fieldNames.empty()) {
-							ImGui::SeparatorText("Script Fields");
+							if (!fieldNames.empty()) {
+								ImGui::SeparatorText("Script Fields");
 
-							// ? NEW: Group struct fields under collapsible headers
-							std::unordered_map<std::string, std::vector<std::string>> structGroups;
-							std::vector<std::string> normalFields;
+								// ? NEW: Group struct fields under collapsible headers
+								std::unordered_map<std::string, std::vector<std::string>> structGroups;
+								std::vector<std::string> normalFields;
 
-							// Separate struct fields (contain '.') from normal fields
-							for (const auto& fname : fieldNames) {
-								if (fname.find('.') != std::string::npos) {
-									// Extract struct name (e.g., "stats" from "stats.health")
-									size_t dotPos = fname.find('.');
-									std::string structName = fname.substr(0, dotPos);
-									structGroups[structName].push_back(fname);
-								}
-								else {
-									normalFields.push_back(fname);
-								}
-							}
-
-							// Render normal fields first
-							for (const auto& fname : normalFields) {
-								std::string ftype = scriptInstance->GetFieldType(fname);
-								std::string fval = scriptInstance->GetFieldValueAsString(fname);
-
-								ImGui::PushID(fname.c_str());
-
-								bool fieldChanged = false;
-
-								if (ftype == "bool") {
-									bool v = (fval == "1" || fval == "true");
-									if (ImGui::Checkbox(fname.c_str(), &v)) {
-										scriptInstance->SetFieldValueFromString(fname, v ? "1" : "0");
-										fieldChanged = true;
-									}
-								}
-								else if (ftype == "int") {
-									int v = 0; if (!fval.empty()) v = std::stoi(fval);
-									if (ImGui::DragInt(fname.c_str(), &v)) {
-										scriptInstance->SetFieldValueFromString(fname, std::to_string(v));
-										fieldChanged = true;
-									}
-								}
-								else if (ftype == "float") {
-									float v = 0.f; if (!fval.empty()) v = std::stof(fval);
-									if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
-										scriptInstance->SetFieldValueFromString(fname, std::to_string(v));
-										fieldChanged = true;
-									}
-								}
-								else if (ftype == "vec3") {
-									NE::Math::Vec3 vv = Vec3FromString(fval);
-									if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
-										scriptInstance->SetFieldValueFromString(fname, Vec3ToString(vv));
-										fieldChanged = true;
-									}
-								}
-								else if (ftype == "enum") {
-									// Enum dropdown support
-									auto enumOptions = scriptInstance->GetEnumOptions(fname);
-									if (!enumOptions.empty()) {
-										int currentValue = 0;
-										if (!fval.empty()) {
-											try {
-												currentValue = std::stoi(fval);
-											}
-											catch (...) {
-												currentValue = 0;
-											}
-										}
-
-										// Clamp to valid range
-										if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
-											currentValue = 0;
-										}
-
-										if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
-											for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
-												bool isSelected = (currentValue == i);
-												if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
-													scriptInstance->SetFieldValueFromString(fname, std::to_string(i));
-													fieldChanged = true;
-												}
-												if (isSelected) {
-													ImGui::SetItemDefaultFocus();
-												}
-											}
-											ImGui::EndCombo();
-										}
+								// Separate struct fields (contain '.') from normal fields
+								for (const auto& fname : fieldNames) {
+									if (fname.find('.') != std::string::npos) {
+										// Extract struct name (e.g., "stats" from "stats.health")
+										size_t dotPos = fname.find('.');
+										std::string structName = fname.substr(0, dotPos);
+										structGroups[structName].push_back(fname);
 									}
 									else {
-										// Fallback if no enum options provided
-										ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
+										normalFields.push_back(fname);
 									}
 								}
-								else if (ftype.starts_with("componentref:")) {
-									// Component reference field
-									// Extract component type (e.g., "Transform" from "componentref:Transform")
-									std::string componentType = ftype.substr(13); // Skip "componentref:"
 
-									// Get current pointer value and try to find the entity name
-									std::string displayName = "None";
-									uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
-									std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
-									if (!fval.empty() && fval != noEntityStr) {
+								// Render normal fields first
+								for (const auto& fname : normalFields) {
+									std::string ftype = scriptInstance->GetFieldType(fname);
+									std::string fval = scriptInstance->GetFieldValueAsString(fname);
+
+									ImGui::PushID(fname.c_str());
+
+									bool fieldChanged = false;
+
+									if (ftype == "bool") {
+										bool v = (fval == "1" || fval == "true");
+										if (ImGui::Checkbox(fname.c_str(), &v)) {
+											scriptInstance->SetFieldValueFromString(fname, v ? "1" : "0");
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "int") {
+										int v = 0; if (!fval.empty()) v = std::stoi(fval);
+										if (ImGui::DragInt(fname.c_str(), &v)) {
+											scriptInstance->SetFieldValueFromString(fname, std::to_string(v));
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "float") {
+										float v = 0.f; if (!fval.empty()) v = std::stof(fval);
+										if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
+											scriptInstance->SetFieldValueFromString(fname, std::to_string(v));
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "vec3") {
+										NE::Math::Vec3 vv = Vec3FromString(fval);
+										if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
+											scriptInstance->SetFieldValueFromString(fname, Vec3ToString(vv));
+											fieldChanged = true;
+										}
+									}
+									else if (ftype == "enum") {
+										// Enum dropdown support
+										auto enumOptions = scriptInstance->GetEnumOptions(fname);
+										if (!enumOptions.empty()) {
+											int currentValue = 0;
+											if (!fval.empty()) {
+												try {
+													currentValue = std::stoi(fval);
+												}
+												catch (...) {
+													currentValue = 0;
+												}
+											}
+
+											// Clamp to valid range
+											if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
+												currentValue = 0;
+											}
+
+											if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
+												for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
+													bool isSelected = (currentValue == i);
+													if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
+														scriptInstance->SetFieldValueFromString(fname, std::to_string(i));
+														fieldChanged = true;
+													}
+													if (isSelected) {
+														ImGui::SetItemDefaultFocus();
+													}
+												}
+												ImGui::EndCombo();
+											}
+										}
+										else {
+											// Fallback if no enum options provided
+											ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
+										}
+									}
+									else if (ftype.starts_with("componentref:")) {
+										// Component reference field
+										// Extract component type (e.g., "Transform" from "componentref:Transform")
+										std::string componentType = ftype.substr(13); // Skip "componentref:"
+
+										// Get current pointer value and try to find the entity name
+										std::string displayName = "None";
+										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+										if (!fval.empty() && fval != noEntityStr) {
 										try {
 											// Now fval is entity ID, not a pointer!
 											assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
@@ -1473,8 +1494,11 @@ namespace Editor {
 								ImGui::PopID();
 							}
 
-							//  NOW RENDER STRUCT GROUPS
-							for (const auto& [structName, fields] : structGroups) {
+							// NOW RENDER STRUCT GROUPS
+							for (const auto& pair : structGroups) {
+								const std::string& structName = pair.first;
+								const std::vector<std::string>& fields = pair.second;
+
 								if (ImGui::TreeNode(structName.c_str())) {
 									for (const auto& fname : fields) {
 										std::string ftype = scriptInstance->GetFieldType(fname);
@@ -1521,10 +1545,12 @@ namespace Editor {
 								}
 							}
 						}
-						} // End of scriptInstance else block
-					}
-				}
-				else if (typeIdx == typeid(NE::ECS::Component::Camera))
+
+						ImGui::PopID(); // Pop scriptIdx scope (inside for loop)
+					} // End of scriptIdx for loop
+				} // End of inner if (!comp.ScriptNames.empty() && scriptInstances && !scriptInstances->empty())
+			} // End of NativeScript block (typeIdx == typeid(NE::ECS::Component::NativeScript))
+			else if (typeIdx == typeid(NE::ECS::Component::Camera))
 				{
 					auto& comp = NE::ECS::Query::GetEntityCamera(entity);
 					ImGui::SeparatorText("Camera");
