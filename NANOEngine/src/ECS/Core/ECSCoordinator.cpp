@@ -154,6 +154,10 @@ namespace NE::ECS {
         return entt;
     }
 
+    Entity ECSCoordinator::CreateEmptyEntity() {
+        return m_entityManager->CreateEntity();
+    }
+
     Entity ECSCoordinator::CreateUICanvasEntity() {
         Entity entt = m_entityManager->CreateEntity();
         return entt;

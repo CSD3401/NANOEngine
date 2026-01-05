@@ -88,14 +88,14 @@ namespace NE {
             }
         }
 
-        template <>
-        inline void PatchForCopy<NE::ECS::Component::EntityMeta>(
-            NE::ECS::Component::EntityMeta& meta,
-            NE::ECS::Entity /*e*/,
-            const std::unordered_map<NE::ECS::Entity, uint64_t>& /*entityToLocalId*/)
-        {
-            meta.prefabLocalID = 0;
-        }
+        //template <>
+        //inline void PatchForCopy<NE::ECS::Component::EntityMeta>(
+        //    NE::ECS::Component::EntityMeta& meta,
+        //    NE::ECS::Entity /*e*/,
+        //    const std::unordered_map<NE::ECS::Entity, uint64_t>& /*entityToLocalId*/)
+        //{
+        //    meta.prefabLocalID = 0;
+        //}
 
         template <>
         inline void PatchForCopy<NE::ECS::Component::Hierarchy>(
@@ -330,7 +330,7 @@ namespace NE {
             bool ok = true;
 
             for (size_t i = 0; i < count && ok; ++i) {
-                ECS::Entity e = ecs.CreateEntity();
+                ECS::Entity e = ecs.CreateEmptyEntity();
                 created.push_back(e);
 
                 uint64_t mask64 = 0;
