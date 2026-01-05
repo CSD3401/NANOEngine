@@ -5,6 +5,8 @@
 #include "BinaryReflection.hpp"
 #include "ECS/Core/ECSCoordinator.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
+#include "Core/LUIDGenerator.hpp"
+
 // Components
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Transform.hpp"
@@ -103,7 +105,6 @@ namespace NE {
             NE::ECS::Entity e,
             const std::unordered_map<NE::ECS::Entity, uint64_t>& entityToLocalId)
         {
-            // entityToLocalId must already contain root->0, others->1..N-1
             const uint64_t myId = entityToLocalId.at(e);
 
             uint64_t parentId = 0;
@@ -120,8 +121,8 @@ namespace NE {
             h.parentLuid = parentId;
 
             // World handles are invalid when pasted
-            h.parent = NE::ECS::Component::INVALID_PARENT;
-            h.children.clear();
+            //h.parent = NE::ECS::Component::INVALID_PARENT;
+            //h.children.clear();
         }
     }
 
@@ -320,10 +321,17 @@ namespace NE {
             std::vector<ECS::Entity> created;
             created.reserve(count);
 
-            std::unordered_map<uint64_t, ECS::Entity> localIdToEntity;
-            localIdToEntity.reserve(count);
+            std::unordered_map<uint64_t, ECS::Entity> oldLuidToEntity;
+            oldLuidToEntity.reserve(count);
 
-            struct PendingParent { ECS::Entity e; uint64_t my; uint64_t parent; };
+            std::unordered_map<uint64_t, uint64_t> oldLuidToNewLuid;
+            oldLuidToNewLuid.reserve(count);
+
+            struct PendingParent {
+                ECS::Entity e;
+                uint64_t oldMyLuid;
+                uint64_t oldParentLuid;
+            };
             std::vector<PendingParent> pending;
             pending.reserve(count);
 
@@ -347,51 +355,56 @@ namespace NE {
                         C c{};
                         if (!FromBinary(it, end, c)) { ok = false; ++idx; return; }
 
-                        ecs.AddComponent<C>(e, c);
-
                         if constexpr (std::is_same_v<C, ECS::Component::Hierarchy>) {
-                            auto& h = ecs.GetComponent<C>(e);
-                            localIdToEntity[h.luid] = e;
-                            pending.push_back({ e, h.luid, h.parentLuid });
+                            const uint64_t oldMy = c.luid;
+                            const uint64_t oldParent = c.parentLuid;
 
-                            if (h.luid == 0)
+                            const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
+                            c.luid = newMy;
+
+                            c.parent = ECS::Component::INVALID_PARENT;
+                            c.parentLuid = 0;
+
+                            ecs.AddComponent<ECS::Component::Hierarchy>(e, c);
+
+                            oldLuidToEntity[oldMy] = e;
+                            oldLuidToNewLuid[oldMy] = newMy;
+                            pending.push_back({ e, oldMy, oldParent });
+
+                            if (oldMy == 0)
                                 outNewRoot = e;
+                        } else {
+                            ecs.AddComponent<C>(e, c);
                         }
                     }
+
                     ++idx;
                 });
             }
 
             if (!ok) return ECS::Component::INVALID_PARENT;
+
             if (outNewRoot == ECS::Component::INVALID_PARENT) {
-                // Fallback: if for some reason no hierarchy luid==0 was found,
-                // treat the first created entity as root.
                 outNewRoot = created.empty() ? ECS::Component::INVALID_PARENT : created.front();
             }
 
-            // Rebuild parent/children
-            for (auto& p : pending) {
-                if (p.my == 0) continue;
+            for (const auto& p : pending) {
+                if (p.oldMyLuid == 0) continue;
 
-                auto parentIt = localIdToEntity.find(p.parent);
-                if (parentIt == localIdToEntity.end()) continue;
+                auto parentEntIt = oldLuidToEntity.find(p.oldParentLuid);
+                if (parentEntIt == oldLuidToEntity.end()) continue;
 
-                ECS::Entity parentE = parentIt->second;
+                ECS::Entity parentE = parentEntIt->second;
+
+                auto newParentLuidIt = oldLuidToNewLuid.find(p.oldParentLuid);
+                if (newParentLuidIt == oldLuidToNewLuid.end()) continue;
 
                 auto& childH = ecs.GetComponent<ECS::Component::Hierarchy>(p.e);
                 auto& parentH = ecs.GetComponent<ECS::Component::Hierarchy>(parentE);
 
                 childH.parent = parentE;
+                childH.parentLuid = newParentLuidIt->second;
                 parentH.children.push_back(p.e);
-            }
-
-            // Clear temp IDs (you said you’ll regenerate after)
-            for (auto e : created) {
-                if (ecs.HasComponent<ECS::Component::Hierarchy>(e)) {
-                    auto& h = ecs.GetComponent<ECS::Component::Hierarchy>(e);
-                    h.luid = 0;
-                    h.parentLuid = 0;
-                }
             }
 
             return outNewRoot;

@@ -41,12 +41,10 @@ namespace Editor {
 		}
 
 		std::vector<uint32_t> BuildDeleteList(const std::vector<uint32_t>& selection) {
-			// fast membership test of the original selection
 			std::unordered_set<uint32_t> selected;
 			selected.reserve(selection.size() * 2);
 			for (auto e : selection) selected.insert(e);
 
-			// 1) canonical roots (not descendants of another selected entity)
 			std::vector<uint32_t> roots;
 			roots.reserve(selection.size());
 			for (auto e : selection) {
@@ -54,7 +52,6 @@ namespace Editor {
 					roots.push_back(e);
 			}
 
-			// 2) expand each root into subtree, dedupe with visited
 			std::vector<uint32_t> out;
 			std::unordered_set<uint32_t> visited;
 			visited.reserve(roots.size() * 8);
