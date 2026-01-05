@@ -703,8 +703,9 @@ namespace Editor {
 						}
 
 						// Update 2D gizmo in world space
+						// Use editor camera matrices (worldView/worldProj) to ensure gizmo aligns with 3D UI rendering
 						if (UIGizmoHandler::IsGizmoActive()) {
-							UIGizmoHandler::Update2DGizmoWorldSpace(eid, view, proj, panelPos, panelSize);
+							UIGizmoHandler::Update2DGizmoWorldSpace(eid, worldView, worldProj, panelPos, panelSize);
 						}
 
 						// End 2D gizmo on mouse release

@@ -1148,11 +1148,7 @@ namespace Editor {
         bool isStretchedY = (std::abs(rectTransform.anchorMinY - rectTransform.anchorMaxY) > 0.001f);
         bool hasStretchAnchors = isStretchedX || isStretchedY;
 
-        // Get world transform to find the pivot position in world space
-        auto worldTransform = NE::ECS::Query::GetUIWorldTransform(uiEntityId);
-        
-        // Get the accumulated transform to build the model matrix
-        // Find canvas entity
+        // Find canvas entity first (needed for world transform calculation and model matrix)
         uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
         NE::ECS::Component::UICanvas* canvas = nullptr;
         
@@ -1174,6 +1170,62 @@ namespace Editor {
         
         if (!canvas || canvas->renderMode != NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
             return;
+        }
+        
+        // Get world transform to find the pivot position in world space
+        // GetUIWorldTransform might be stale (calculated at start of frame before rectTransform updates)
+        // So we'll always recalculate the world position on-the-fly using current rectTransform
+        // This ensures the gizmo center is always aligned with the entity, whether dragging or not
+        auto worldTransform = NE::ECS::Query::GetUIWorldTransform(uiEntityId);
+        
+        // Always recalculate world position using current rectTransform to ensure gizmo stays aligned
+        // This is especially important after dragging stops, as GetUIWorldTransform might be stale
+        if (canvasEntityId != std::numeric_limits<uint32_t>::max()) {
+            // Start from canvas position
+            auto& canvasRect = NE::ECS::Query::GetUIRectTransform(canvasEntityId);
+            float worldX = canvasRect.x;
+            float worldY = canvasRect.y;
+            float worldZ = canvasRect.z;
+            
+            // Walk down parent chain to current entity, accumulating position
+            uint32_t current = rectTransform.parent;
+            while (current != std::numeric_limits<uint32_t>::max() && current != canvasEntityId) {
+                if (NE::ECS::Query::HasUIRectTransform(current)) {
+                    auto& parentRect = NE::ECS::Query::GetUIRectTransform(current);
+                    // For point anchors: anchor offset + parent position
+                    float parentWidth = parentRect.width;
+                    float parentHeight = parentRect.height;
+                    float parentPivotX = parentRect.pivotX;
+                    float parentPivotY = parentRect.pivotY;
+                    float anchorX = (rectTransform.anchorMinX - parentPivotX) * parentWidth;
+                    float anchorY = (rectTransform.anchorMinY - parentPivotY) * parentHeight;
+                    worldX += anchorX + parentRect.x;
+                    worldY += anchorY + parentRect.y;
+                    worldZ += parentRect.z;
+                }
+                if (current == canvasEntityId) break;
+                current = NE::ECS::Query::GetUIRectTransform(current).parent;
+            }
+            
+            // Add current entity's anchor offset and position
+            if (rectTransform.parent != std::numeric_limits<uint32_t>::max() && 
+                NE::ECS::Query::HasUIRectTransform(rectTransform.parent)) {
+                auto& parentRect = NE::ECS::Query::GetUIRectTransform(rectTransform.parent);
+                float parentWidth = parentRect.width;
+                float parentHeight = parentRect.height;
+                float parentPivotX = parentRect.pivotX;
+                float parentPivotY = parentRect.pivotY;
+                float anchorX = (rectTransform.anchorMinX - parentPivotX) * parentWidth;
+                float anchorY = (rectTransform.anchorMinY - parentPivotY) * parentHeight;
+                worldTransform.x = worldX + anchorX + rectTransform.x;
+                worldTransform.y = worldY + anchorY + rectTransform.y;
+                worldTransform.z = worldZ + rectTransform.z;
+            } else {
+                // Direct child of canvas
+                worldTransform.x = worldX + rectTransform.x;
+                worldTransform.y = worldY + rectTransform.y;
+                worldTransform.z = worldZ + rectTransform.z;
+            }
         }
 
         // Build the full model matrix to transform unit quad corners to world space
@@ -1694,7 +1746,9 @@ namespace Editor {
                 {
                     s_isDraggingUI = true;
                     s_dragStart = mousePos;
-                    s_originalWorldPos3D = ScreenToWorld(mousePos, pivotWorldPos.z);
+                    // Use the actual transformed pivot world position (not the mouse position)
+                    // This ensures the gizmo and entity start from the same position
+                    s_originalWorldPos3D = pivotWorldPos;
                     s_originalPivotZ3D = pivotWorldPos.z;  // Store original Z for delta calculation
                     s_originalTransform = rectTransform;
                     
@@ -1789,14 +1843,8 @@ namespace Editor {
             NE::Math::Vec3 newWorldPos = ScreenToWorld(newScreenPos, s_originalPivotZ3D);
             
             // Calculate the world delta
+            // No sensitivity factor - use 1:1 movement for direct control
             NE::Math::Vec3 worldDelta = newWorldPos - originalWorldPos;
-            
-            // Apply a sensitivity factor (adjust this value to tune sensitivity)
-            // Smaller values = less sensitive, larger values = more sensitive
-            const float sensitivityFactor = 0.15f;  // Reduced from 0.5f for less sensitivity
-            worldDelta.x *= sensitivityFactor;
-            worldDelta.y *= sensitivityFactor;
-            worldDelta.z *= sensitivityFactor;
             
             // Convert world delta to local space delta
             // Build parent transform chain (excluding current entity)
@@ -1828,15 +1876,24 @@ namespace Editor {
             NE::Math::Mat4 invRotZ = NE::Math::Mat4::BuildZRotation(-parentRotZ * PI / 180.0f);
             NE::Math::Mat4 invParentRot = invRotX * invRotY * invRotZ;  // Inverse rotation order
             
-            // Transform world delta to local space (remove parent rotation and scale)
-            float localDeltaX = invParentRot.GetElement(0, 0) * worldDelta.x + invParentRot.GetElement(0, 1) * worldDelta.y + invParentRot.GetElement(0, 2) * worldDelta.z;
-            float localDeltaY = invParentRot.GetElement(1, 0) * worldDelta.x + invParentRot.GetElement(1, 1) * worldDelta.y + invParentRot.GetElement(1, 2) * worldDelta.z;
-            float localDeltaZ = invParentRot.GetElement(2, 0) * worldDelta.x + invParentRot.GetElement(2, 1) * worldDelta.y + invParentRot.GetElement(2, 2) * worldDelta.z;
+            // For world space UI, rect.x/y is in world units and gets added directly to anchor position
+            // The world delta is already in world space, so we can use it directly
+            // However, if the parent is rotated, we need to rotate the delta to match the parent's local coordinate system
+            // Check if parent has any rotation
+            bool hasParentRotation = (std::abs(parentRotX) > 0.001f || std::abs(parentRotY) > 0.001f || std::abs(parentRotZ) > 0.001f);
             
-            // Remove parent scale
-            if (std::abs(parentScale.x) > 1e-5f) localDeltaX /= parentScale.x;
-            if (std::abs(parentScale.y) > 1e-5f) localDeltaY /= parentScale.y;
-            if (std::abs(parentScale.z) > 1e-5f) localDeltaZ /= parentScale.z;
+            float localDeltaX, localDeltaY, localDeltaZ;
+            if (hasParentRotation) {
+                // Parent is rotated - rotate the world delta to parent's local space
+                localDeltaX = invParentRot.GetElement(0, 0) * worldDelta.x + invParentRot.GetElement(0, 1) * worldDelta.y + invParentRot.GetElement(0, 2) * worldDelta.z;
+                localDeltaY = invParentRot.GetElement(1, 0) * worldDelta.x + invParentRot.GetElement(1, 1) * worldDelta.y + invParentRot.GetElement(1, 2) * worldDelta.z;
+                localDeltaZ = invParentRot.GetElement(2, 0) * worldDelta.x + invParentRot.GetElement(2, 1) * worldDelta.y + invParentRot.GetElement(2, 2) * worldDelta.z;
+            } else {
+                // No parent rotation - use world delta directly (rect.x/y is in world units)
+                localDeltaX = worldDelta.x;
+                localDeltaY = worldDelta.y;
+                localDeltaZ = worldDelta.z;
+            }
             
             // Unity behavior: Apply constraints based on stretch anchors
             // - Stretch Horizontal: Only allow Y movement (X is constrained by anchors)
