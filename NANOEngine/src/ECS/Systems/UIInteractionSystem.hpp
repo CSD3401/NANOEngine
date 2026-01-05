@@ -90,6 +90,7 @@ namespace NE::ECS::Systems {
             const Ray& ray,
             const UITransformSystem::WorldTransform& worldTransform,
             const Component::UIRectTransform& rect,
+            const UITransformSystem::AccumulatedTransform& accumulated,
             NE::Math::Vec3& outIntersectionPoint
         );
 

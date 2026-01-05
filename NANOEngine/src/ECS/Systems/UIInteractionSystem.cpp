@@ -473,41 +473,58 @@ namespace NE::ECS::Systems {
         const Ray& ray,
         const UITransformSystem::WorldTransform& worldTransform,
         const Component::UIRectTransform& rect,
+        const UITransformSystem::AccumulatedTransform& accumulated,
         NE::Math::Vec3& outIntersectionPoint)
     {
-        // UI element is a quad in world space
-        // We need to find the plane of the quad and intersect the ray with it
+        // Build the model matrix to properly transform intersection point to local space
+        // This accounts for rotation (X, Y, Z), pivot offset, and scale
+        if (!m_transformSystem) return false;
         
-        // The UI element's pivot position in world space
-        NE::Math::Vec3 pivotPos(worldTransform.x, worldTransform.y, worldTransform.z);
+        // Find the entity that has this rect component
+        Entity entity = NE::ECS::NO_ENTITY;
+        const auto& entities = m_cm->GetEntitiesWithComponent<Component::UIRectTransform>();
+        for (Entity e : entities) {
+            if (&m_cm->GetComponent<Component::UIRectTransform>(e) == &rect) {
+                entity = e;
+                break;
+            }
+        }
+        if (entity == NE::ECS::NO_ENTITY) return false;
         
-        // Calculate the quad's corners in world space
-        // The quad is centered at the pivot, with size worldTransform.width x worldTransform.height
-        float halfWidth = worldTransform.width * 0.5f;
-        float halfHeight = worldTransform.height * 0.5f;
+        // Get canvas entity (needed for BuildWorldSpaceModelMatrix)
+        Entity canvasEntity = FindCanvasForEntity(entity);
+        if (canvasEntity == NE::ECS::NO_ENTITY) return false;
         
-        // Calculate plane normal based on camera view direction
-        // UI elements in world space typically face the camera
-        // The plane normal is the negative of the camera's forward direction
-        // For a typical perspective camera looking down -Z, forward is (0, 0, -1), so normal is (0, 0, 1)
-        // But we'll use the ray direction to determine the plane orientation
-        // Actually, for UI elements, they're typically perpendicular to the camera's view direction
-        // So we'll use the camera's forward direction from the view matrix
-        
-        // Extract camera forward from view matrix (negative of third column, normalized)
-        // View matrix: third column is the camera's forward direction in world space (negated)
-        NE::Math::Vec3 cameraForward(
-            -s_cameraView.GetElement(0, 2),
-            -s_cameraView.GetElement(1, 2),
-            -s_cameraView.GetElement(2, 2)
+        // Build model matrix (same as rendering)
+        NE::Math::Mat4 modelMatrix = m_transformSystem->BuildWorldSpaceModelMatrix(
+            entity,
+            canvasEntity,
+            rect,
+            accumulated,
+            1.0f  // No font scale for buttons
         );
-        cameraForward.Normalize();
         
-        // Plane normal is the camera's forward (UI elements face the camera)
-        NE::Math::Vec3 planeNormal = cameraForward;
+        // Calculate plane normal from UI element's rotation
+        // The UI element's local Z-axis (0,0,1) in local space becomes the normal in world space
+        NE::Math::Vec3 localNormal(0.0f, 0.0f, 1.0f);
+        
+        // Transform local normal to world space using rotation part of model matrix
+        // Extract rotation matrix (upper-left 3x3)
+        NE::Math::Vec3 planeNormal(
+            modelMatrix.GetElement(0, 0) * localNormal.x + modelMatrix.GetElement(0, 1) * localNormal.y + modelMatrix.GetElement(0, 2) * localNormal.z,
+            modelMatrix.GetElement(1, 0) * localNormal.x + modelMatrix.GetElement(1, 1) * localNormal.y + modelMatrix.GetElement(1, 2) * localNormal.z,
+            modelMatrix.GetElement(2, 0) * localNormal.x + modelMatrix.GetElement(2, 1) * localNormal.y + modelMatrix.GetElement(2, 2) * localNormal.z
+        );
+        planeNormal.Normalize();
+        
+        // Get pivot position in world space (from model matrix translation)
+        NE::Math::Vec3 pivotPos(
+            modelMatrix.GetElement(0, 3),
+            modelMatrix.GetElement(1, 3),
+            modelMatrix.GetElement(2, 3)
+        );
         
         // Calculate plane equation: dot(normal, point) = d
-        // We use the pivot as a point on the plane
         float planeD = planeNormal.Dot(pivotPos);
         
         // Ray-plane intersection: t = (d - dot(normal, origin)) / dot(normal, direction)
@@ -526,29 +543,35 @@ namespace NE::ECS::Systems {
             return false;
         }
         
-        // Calculate intersection point
+        // Calculate intersection point in world space
         outIntersectionPoint = ray.origin + ray.direction * t;
         
-        // Check if intersection point is within the quad bounds
-        // Convert intersection point to local space relative to pivot
-        NE::Math::Vec3 localPoint = outIntersectionPoint - pivotPos;
+        // Transform intersection point to local space (unit quad space: 0,0 to 1,1)
+        // Use inverse model matrix to transform from world to local
+        NE::Math::Mat4 invModelMatrix = modelMatrix.Inverse();
         
-        // Account for Z-axis rotation if present
-        float rotationZ = worldTransform.accumulatedRotationZ;
-        if (std::abs(rotationZ) > 0.001f) {
-            // Rotate the local point back to unrotated space
-            float radians = rotationZ * 3.14159265359f / 180.0f;
-            float cosR = std::cos(radians);
-            float sinR = std::sin(radians);
-            float rotatedX = localPoint.x * cosR + localPoint.y * sinR;
-            float rotatedY = -localPoint.x * sinR + localPoint.y * cosR;
-            localPoint.x = rotatedX;
-            localPoint.y = rotatedY;
+        // Transform intersection point to homogeneous coordinates
+        NE::Math::Vec4 worldPoint(outIntersectionPoint.x, outIntersectionPoint.y, outIntersectionPoint.z, 1.0f);
+        
+        // Manual matrix-vector multiplication
+        NE::Math::Vec4 localPoint(
+            invModelMatrix.GetElement(0, 0) * worldPoint.x + invModelMatrix.GetElement(0, 1) * worldPoint.y + invModelMatrix.GetElement(0, 2) * worldPoint.z + invModelMatrix.GetElement(0, 3) * worldPoint.w,
+            invModelMatrix.GetElement(1, 0) * worldPoint.x + invModelMatrix.GetElement(1, 1) * worldPoint.y + invModelMatrix.GetElement(1, 2) * worldPoint.z + invModelMatrix.GetElement(1, 3) * worldPoint.w,
+            invModelMatrix.GetElement(2, 0) * worldPoint.x + invModelMatrix.GetElement(2, 1) * worldPoint.y + invModelMatrix.GetElement(2, 2) * worldPoint.z + invModelMatrix.GetElement(2, 3) * worldPoint.w,
+            invModelMatrix.GetElement(3, 0) * worldPoint.x + invModelMatrix.GetElement(3, 1) * worldPoint.y + invModelMatrix.GetElement(3, 2) * worldPoint.z + invModelMatrix.GetElement(3, 3) * worldPoint.w
+        );
+        
+        // Perspective divide
+        if (std::abs(localPoint.w) > 1e-5f) {
+            localPoint.x /= localPoint.w;
+            localPoint.y /= localPoint.w;
+            localPoint.z /= localPoint.w;
         }
         
-        // Check bounds
-        // The quad extends from -halfWidth to +halfWidth in X, -halfHeight to +halfHeight in Y
-        if (std::abs(localPoint.x) <= halfWidth && std::abs(localPoint.y) <= halfHeight) {
+        // Check if point is within unit quad bounds (0,0 to 1,1 in Y-down space)
+        // In unit quad space: X from 0 to 1, Y from 0 to 1 (Y-down)
+        if (localPoint.x >= 0.0f && localPoint.x <= 1.0f &&
+            localPoint.y >= 0.0f && localPoint.y <= 1.0f) {
             return true;
         }
         
@@ -612,12 +635,16 @@ namespace NE::ECS::Systems {
             UITransformSystem::WorldTransform worldTransform = 
                 m_transformSystem->CalculateWorldTransform(entity, canvasEntity, canvas);
             
+            // Get accumulated transform for proper model matrix calculation
+            UITransformSystem::AccumulatedTransform accumulated = 
+                m_transformSystem->AccumulateParentTransforms(entity, canvasEntity, canvas);
+            
             // Get rect transform for pivot values
             auto& rect = m_cm->GetComponent<Component::UIRectTransform>(entity);
             
             // Check ray intersection
             NE::Math::Vec3 intersectionPoint;
-            if (RayIntersectsUIElement(ray, worldTransform, rect, intersectionPoint)) {
+            if (RayIntersectsUIElement(ray, worldTransform, rect, accumulated, intersectionPoint)) {
                 // Calculate distance from ray origin to intersection
                 float distance = (intersectionPoint - ray.origin).Length();
                 

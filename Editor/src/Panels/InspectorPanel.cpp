@@ -2256,40 +2256,50 @@ namespace Editor {
 								"Stretch Horizontal", "Stretch Vertical", "Stretch Both"
 							};
 
-							// Always detect preset from current anchor values (this ensures undo/redo updates the dropdown)
-							// The stored preset map is only used to prevent auto-switching when manually editing anchors
-							int currentPreset = -1;
+							// Detect preset from current anchor values for display purposes
+							// Only update stored preset when user explicitly selects from combo box
+							int detectedPreset = -1;
 							bool isStretchedX = (comp.anchorMinX != comp.anchorMaxX);
 							bool isStretchedY = (comp.anchorMinY != comp.anchorMaxY);
 							
 							if (isStretchedX && isStretchedY) {
-								currentPreset = 11; // Stretch Both
+								detectedPreset = 11; // Stretch Both
 							}
 							else if (isStretchedX) {
-								currentPreset = 9; // Stretch Horizontal
+								detectedPreset = 9; // Stretch Horizontal
 							}
 							else if (isStretchedY) {
-								currentPreset = 10; // Stretch Vertical
+								detectedPreset = 10; // Stretch Vertical
 							}
 							else {
 								// Point anchor - determine which preset
 								float anchorX = comp.anchorMinX;
 								float anchorY = comp.anchorMinY;
 								
-								if (anchorX == 0.0f && anchorY == 1.0f) currentPreset = 0; // Top Left
-								else if (anchorX == 0.5f && anchorY == 1.0f) currentPreset = 1; // Top Center
-								else if (anchorX == 1.0f && anchorY == 1.0f) currentPreset = 2; // Top Right
-								else if (anchorX == 0.0f && anchorY == 0.5f) currentPreset = 3; // Middle Left
-								else if (anchorX == 0.5f && anchorY == 0.5f) currentPreset = 4; // Center
-								else if (anchorX == 1.0f && anchorY == 0.5f) currentPreset = 5; // Middle Right
-								else if (anchorX == 0.0f && anchorY == 0.0f) currentPreset = 6; // Bottom Left
-								else if (anchorX == 0.5f && anchorY == 0.0f) currentPreset = 7; // Bottom Center
-								else if (anchorX == 1.0f && anchorY == 0.0f) currentPreset = 8; // Bottom Right
-								else currentPreset = 4; // Default to Center if no match
+								if (anchorX == 0.0f && anchorY == 1.0f) detectedPreset = 0; // Top Left
+								else if (anchorX == 0.5f && anchorY == 1.0f) detectedPreset = 1; // Top Center
+								else if (anchorX == 1.0f && anchorY == 1.0f) detectedPreset = 2; // Top Right
+								else if (anchorX == 0.0f && anchorY == 0.5f) detectedPreset = 3; // Middle Left
+								else if (anchorX == 0.5f && anchorY == 0.5f) detectedPreset = 4; // Center
+								else if (anchorX == 1.0f && anchorY == 0.5f) detectedPreset = 5; // Middle Right
+								else if (anchorX == 0.0f && anchorY == 0.0f) detectedPreset = 6; // Bottom Left
+								else if (anchorX == 0.5f && anchorY == 0.0f) detectedPreset = 7; // Bottom Center
+								else if (anchorX == 1.0f && anchorY == 0.0f) detectedPreset = 8; // Bottom Right
+								else detectedPreset = 4; // Default to Center if no match
 							}
 							
-							// Update stored preset map to match detected preset (for undo/redo sync)
-							entityPresetMap[entity] = currentPreset;
+							// Use stored preset if available, otherwise use detected preset
+							// Only update stored preset when user explicitly changes combo box (below)
+							// This prevents auto-switching when manually editing anchor values
+							int currentPreset;
+							if (entityPresetMap.count(entity) > 0) {
+								// Use stored preset - don't auto-switch when manually editing
+								currentPreset = entityPresetMap[entity];
+							} else {
+								// First time - use detected preset and store it
+								currentPreset = detectedPreset;
+								entityPresetMap[entity] = currentPreset;
+							}
 
 							ImGui::SetNextItemWidth(150);
 							int newPreset = currentPreset;
@@ -2999,23 +3009,6 @@ namespace Editor {
 							} else {
 								comp.currentState = NE::ECS::Component::UIButton::State::NORMAL;
 							}
-							NE::MarkSceneDirty();
-						}
-
-						// Transition Type
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Transition");
-						ImGui::SameLine(labelWidth);
-						ImGui::SetNextItemWidth(-1);
-						static const char* TransitionTypes[] = {
-							"Color Tint",
-							"Sprite Swap",
-							"Animation"
-						};
-						int currentTransition = static_cast<int>(comp.transitionType);
-						if (ImGui::Combo("##Transition", &currentTransition, TransitionTypes, IM_ARRAYSIZE(TransitionTypes)))
-						{
-							comp.transitionType = static_cast<decltype(comp.transitionType)>(currentTransition);
 							NE::MarkSceneDirty();
 						}
 

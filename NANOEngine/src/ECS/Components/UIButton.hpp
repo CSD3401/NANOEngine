@@ -23,14 +23,6 @@ namespace NE::ECS::Component {
         // Interaction
         bool interactable = true;
 
-        // Transition type (Unity-style)
-        enum class TransitionType {
-            COLOR_TINT,    // Change color tint (default)
-            SPRITE_SWAP,   // Swap sprites (not implemented yet)
-            ANIMATION      // Play animations (not implemented yet)
-        };
-        TransitionType transitionType = TransitionType::COLOR_TINT;
-
         // Callback/event system
         uint32_t onClickEventId = 0; // For event system integration
         
@@ -41,7 +33,6 @@ namespace NE::ECS::Component {
         NE_REFLECT_BEGIN(UIButton)
             NE_REFLECT_FIELD_HIDDEN(luid),
             NE_REFLECT_FIELD(interactable),
-            NE_REFLECT_FIELD(transitionType),
             NE_REFLECT_FIELD(normalColor),
             NE_REFLECT_FIELD(hoverColor),
             NE_REFLECT_FIELD(pressedColor),

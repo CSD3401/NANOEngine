@@ -16,13 +16,39 @@ namespace NE::ECS {
         }
 
         void Remove(Entity e) {
-            assert(e < MaxEntities && "Entity out of range");
-            assert(Contains(e));
+            // Safety checks
+            if (e >= MaxEntities) return;  // Entity out of range
+            if (!Contains(e)) return;      // Entity not in set
+            
+            // Additional safety: check if dense container is empty
+            if (m_denseContainer.empty()) return;
+            
             Entity index = m_sparseContainer[e];
+            
+            // Validate index is within bounds
+            if (index >= m_denseContainer.size()) {
+                // Invalid index - clear the sparse entry and return
+                m_sparseContainer[e] = static_cast<Entity>(MaxEntities);  // Mark as invalid
+                return;
+            }
+            
             Entity last = m_denseContainer.back();
+            
+            // Validate last entity is within range before using as index
+            if (last >= MaxEntities) {
+                // Invalid entity ID - just remove from dense container
+                m_denseContainer.pop_back();
+                m_sparseContainer[e] = static_cast<Entity>(MaxEntities);  // Mark as invalid
+                return;
+            }
+            
+            // Swap and remove
             m_denseContainer[index] = last;
             m_sparseContainer[last] = index;
             m_denseContainer.pop_back();
+            
+            // Invalidate the removed entity's sparse entry
+            m_sparseContainer[e] = static_cast<Entity>(MaxEntities);
         }
 
         bool Contains(Entity e) const {

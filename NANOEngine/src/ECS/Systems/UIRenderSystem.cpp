@@ -490,19 +490,18 @@ namespace NE::ECS::Systems {
         NE::Math::Vec4 finalColor = img.color;
         if (m_cm->HasComponent<UIButton>(entity)) {
             const auto& button = m_cm->GetComponent<UIButton>(entity);
-            if (button.transitionType == UIButton::TransitionType::COLOR_TINT) {
-                // Get the button color based on current state
-                // GetCurrentColor() handles interactable check and returns disabledColor if not interactable
-                NE::Math::Vec4 buttonColor = button.GetCurrentColor();
-                
-                // Multiply image color by button state color (component-wise)
-                // This matches Unity's behavior: base image color is tinted by button state
-                // Example: UIImage color (0.8, 0.8, 0.8) * Button hover (0.5, 1.0, 0.5) = (0.4, 0.8, 0.4)
-                finalColor.x = img.color.x * buttonColor.x;
-                finalColor.y = img.color.y * buttonColor.y;
-                finalColor.z = img.color.z * buttonColor.z;
-                finalColor.w = img.color.w * buttonColor.w;
-            }
+            // Always use color tint (transition type removed, only color tint supported)
+            // Get the button color based on current state
+            // GetCurrentColor() handles interactable check and returns disabledColor if not interactable
+            NE::Math::Vec4 buttonColor = button.GetCurrentColor();
+            
+            // Multiply image color by button state color (component-wise)
+            // This matches Unity's behavior: base image color is tinted by button state
+            // Example: UIImage color (0.8, 0.8, 0.8) * Button hover (0.5, 1.0, 0.5) = (0.4, 0.8, 0.4)
+            finalColor.x = img.color.x * buttonColor.x;
+            finalColor.y = img.color.y * buttonColor.y;
+            finalColor.z = img.color.z * buttonColor.z;
+            finalColor.w = img.color.w * buttonColor.w;
         }
         cmd.color = finalColor;
         cmd.order = canvas.sortingOrder;
@@ -585,7 +584,11 @@ namespace NE::ECS::Systems {
                 }
 
                 // Auto-size (best fit) calculation
-                if (text.bestFit && worldTransform.width > 0.0f && worldTransform.height > 0.0f) {
+                // Use calculatedWidth/calculatedHeight when anchors are stretched to ensure auto-size responds to anchor changes
+                float containerWidth = (accumulated.calculatedWidth > 0.0f) ? accumulated.calculatedWidth : worldTransform.width;
+                float containerHeight = (accumulated.calculatedHeight > 0.0f) ? accumulated.calculatedHeight : worldTransform.height;
+                
+                if (text.bestFit && containerWidth > 0.0f && containerHeight > 0.0f) {
                     // Load font data for measurement
                     std::vector<uint8_t> fontData;
                     std::string fontPath;
@@ -610,16 +613,13 @@ namespace NE::ECS::Systems {
 
                     // For world space, convert world units to pixel-equivalent dimensions
                     // Use a fixed reference (36.0f) for measurement to match text generation
-                    float containerWidth = worldTransform.width;
-                    float containerHeight = worldTransform.height;
-                    
                     if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
                         // Convert world space dimensions to pixel-equivalent for font measurement
                         // Use fixed reference (36.0f) to match the reference used in text generation
                         // This ensures consistent measurement and generation
                         const float referencePixelsPerWorldUnit = 36.0f;
-                        containerWidth = worldTransform.width * referencePixelsPerWorldUnit;
-                        containerHeight = worldTransform.height * referencePixelsPerWorldUnit;
+                        containerWidth = containerWidth * referencePixelsPerWorldUnit;
+                        containerHeight = containerHeight * referencePixelsPerWorldUnit;
                     }
 
                     // Calculate optimal font size
