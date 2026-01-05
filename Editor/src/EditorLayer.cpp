@@ -45,16 +45,9 @@ namespace Editor {
 		float titleBarHeight = 0.0f;
 		DrawCustomTitleBar("NANOEngine", titleBarHeight, IM_COL32(25, 25, 25, 255));
 
-		// Calculate dockspace size to leave room for status bar at bottom
-		ImVec2 dockspaceSize = ImGui::GetContentRegionAvail();
-		dockspaceSize.y -= 25.0f; // Reserve 25px for status bar
-
-		// SINGLE DockSpace call
 		ImGuiID dockspace_id = ImGui::GetID("EditorDockspace");
-		ImGui::DockSpace(dockspace_id, dockspaceSize, dockspace_flags);
+		ImGui::DockSpace(dockspace_id, ImGui::GetContentRegionAvail(), dockspace_flags);
 
-		// === SHORTCUTS (Must be at window level to work) ===
-		// Save shortcut (Ctrl+S) - Check globally, not just when window focused
 		if ((ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)) {
 			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
 				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
@@ -71,9 +64,9 @@ namespace Editor {
 				if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
 					//EditorScene::DuplicateSelected();
 				} else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
-					//EditorScene::CopySelected();
+					EditorScene::CopySelected();
 				} else if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
-					//EditorScene::PasteSelected();
+					EditorScene::PasteSelected();
 				}
 			}
 		}
@@ -82,40 +75,40 @@ namespace Editor {
 			panel->OnImGuiRender();
 		}
 
-		// === STATUS BAR (Integrated at bottom of main window) ===
-		ImGui::Separator();
+		//// === STATUS BAR (Integrated at bottom of main window) ===
+		//ImGui::Separator();
 
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+		//ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
 
-		if (ImGui::BeginChild("##StatusBar", ImVec2(0, 25.0f), false, ImGuiWindowFlags_NoScrollbar)) {
-			ImGui::SetCursorPosY(4.0f); // Center text vertically
+		//if (ImGui::BeginChild("##StatusBar", ImVec2(0, 25.0f), false, ImGuiWindowFlags_NoScrollbar)) {
+		//	ImGui::SetCursorPosY(4.0f); // Center text vertically
 
-			// Scene path on the left
-			ImGui::Text("  %s", EditorScene::s_currentScenePath.c_str());
+		//	// Scene path on the left
+		//	ImGui::Text("  %s", EditorScene::s_currentScenePath.c_str());
 
-			// Dirty indicator on the right
-			ImGui::SameLine();
-			float rightOffset = ImGui::GetWindowWidth() - 120.0f;
-			if (rightOffset > ImGui::GetCursorPosX()) {
-				ImGui::SetCursorPosX(rightOffset);
-			}
+		//	// Dirty indicator on the right
+		//	ImGui::SameLine();
+		//	float rightOffset = ImGui::GetWindowWidth() - 120.0f;
+		//	if (rightOffset > ImGui::GetCursorPosX()) {
+		//		ImGui::SetCursorPosX(rightOffset);
+		//	}
 
-			//bool isSceneDirty = NE::IsSceneDirty();
-			//if (isSceneDirty) {
-			//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.0f, 1.0f)); // Orange
-			//	ImGui::Text("* UNSAVED");
-			//	ImGui::PopStyleColor();
-			//} else {
-			//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // Green
-			//	ImGui::Text("Saved");
-			//	ImGui::PopStyleColor();
-			//}
-		}
-		ImGui::EndChild();
+		//	//bool isSceneDirty = NE::IsSceneDirty();
+		//	//if (isSceneDirty) {
+		//	//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.0f, 1.0f)); // Orange
+		//	//	ImGui::Text("* UNSAVED");
+		//	//	ImGui::PopStyleColor();
+		//	//} else {
+		//	//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // Green
+		//	//	ImGui::Text("Saved");
+		//	//	ImGui::PopStyleColor();
+		//	//}
+		//}
+		//ImGui::EndChild();
 
-		ImGui::PopStyleColor();
+		//ImGui::PopStyleColor();
 
-		ImGui::End();  // End main dockspace window
+		ImGui::End();
 	}
 
 	void EditorLayer::SetIcon(unsigned int _iconID) {
@@ -138,12 +131,12 @@ namespace Editor {
 		ImGui::SetCursorScreenPos(winPos);
 		ImGui::BeginChild("##CustomMenuBar", menuBarSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-		// --- Logo (Left) ---
+		// --- Logo ---
 		ImGui::SetCursorPos(ImVec2(0.f, 2.f));
 		ImGui::Image(icon, ImVec2(18.f, 18.f));
 		ImGui::SameLine();
 
-		// --- Menus (Next to logo) ---
+		// --- Menus ---
 		float logoSpace = 20.f;
 		ImGui::SetCursorPosX(logoSpace);
 
@@ -298,8 +291,30 @@ namespace Editor {
 		ImVec2 historySize = ImVec2(140.0f, 20.0f);
 
 		float rightEdge = menuBarSize.x - totalButtonsWidth - 8.0f;
-		ImVec2 pos = ImVec2(rightEdge - historySize.x, (menuBarSize.y - historySize.y) * 0.5f);
-		ImGui::SetCursorPos(pos);
+		ImVec2 historyPos = ImVec2(rightEdge - historySize.x, (menuBarSize.y - historySize.y) * 0.5f);
+
+		const char* sceneName = EditorScene::s_currentScenePath.c_str();
+
+		const float gap = 150.0f;
+
+		const float maxSceneNameWidth = 240.0f;
+
+		ImVec2 sceneTextSize = ImGui::CalcTextSize(sceneName, nullptr, false);
+		float sceneW = (sceneTextSize.x > maxSceneNameWidth) ? maxSceneNameWidth : sceneTextSize.x;
+
+		ImVec2 scenePos = ImVec2(historyPos.x - gap - sceneW,
+			(menuBarSize.y - ImGui::GetTextLineHeight()) * 0.5f);
+
+		ImGui::SetCursorPos(scenePos);
+
+		ImVec2 sceneDrawStart = ImGui::GetCursorScreenPos();
+		ImVec2 sceneDrawEnd = ImVec2(sceneDrawStart.x + sceneW, sceneDrawStart.y + ImGui::GetTextLineHeight());
+
+		ImGui::PushClipRect(sceneDrawStart, sceneDrawEnd, true);
+		ImGui::TextUnformatted(sceneName);
+		ImGui::PopClipRect();
+
+		ImGui::SetCursorPos(historyPos);
 
 		auto& history = CommandHistory::GetInstance();
 		const auto& undo = history.GetUndoList();

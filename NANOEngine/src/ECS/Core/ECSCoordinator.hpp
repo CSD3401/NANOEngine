@@ -26,6 +26,7 @@ namespace NE::ECS {
 
         // --- Entity API ---
         Entity CreateEntity();
+        Entity CreateEmptyEntity();
 
         void DestroyEntity(Entity e);
 

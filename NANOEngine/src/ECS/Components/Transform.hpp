@@ -21,7 +21,8 @@ namespace NE::ECS::Component {
 		NE_REFLECT_BEGIN(Transform)
 			NE_REFLECT_FIELD_NAMED(localPosition,		"Position"),
 			NE_REFLECT_FIELD_NAMED(localScale,			"Scale"),
-			NE_REFLECT_FIELD_NAMED(localRotationEuler,	"Rotation")
+			NE_REFLECT_FIELD_NAMED(localRotationEuler,	"Rotation"),
+			NE_REFLECT_FIELD_HIDDEN(luid)
 		NE_REFLECT_END()
 	};
 

@@ -1,7 +1,9 @@
 #include "HierarchySystem.hpp"
+
+#include "Core/LUIDGenerator.hpp"
+#include "Math/Mat4.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../Components/Transform.hpp"
-#include "Math/Mat4.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -40,7 +42,9 @@ namespace NE::ECS::Systems {
 
 		if (h.luid != 0) {
 			m_luidToEntity[h.luid] = e;
-		}
+        } else {
+            h.luid = Core::LUIDGenerator::Generate("hr");
+        }
 
 		if (h.parentLuid != 0) {
 			m_pendingParents.push_back({ e, h.parentLuid });

@@ -2,14 +2,11 @@
 
 #include <memory>
 #include <fstream>
-#include <filesystem>
 #include "Graphics/Core/Window.hpp"
 #include "Graphics/OpenGL/GLContext.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
-#include "Graphics/OpenGL/GLFrameBuffer.hpp"
 #include "Core/Profiler.hpp"
 #include "SceneManagement/Scene.hpp"
-#include "ECS/Components/Transform.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "SceneManagement/SceneManager.hpp"
@@ -17,9 +14,7 @@
 #include "Core/SpdLogger.hpp"
 #include <glad/glad.h>
 #include "ResourceManagement/BinaryHeaders/NanoShdHeader.hpp"
-#include "ResourceManagement/ResourceManager.hpp"
 #include "Input/InputManager.hpp"
-#include "Graphics/OpenGL/GLTexture.hpp"
 #include "Audio/AudioBank.hpp"
 #include "Scripting/ScriptingEngine.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
@@ -83,7 +78,6 @@ namespace NE {
 	SceneManagement::SceneManager gSceneManager;
 
 	void Initialize() {
-		//NE_PROFILE_FUNCTION();
 		Graphics::WindowProperties props;
 		props.Title = "NANOEngine";
 		props.Width = 1920;
@@ -95,7 +89,7 @@ namespace NE {
 		s_renderContext->Init(s_window->GetNativeWindow());
 
 		// here for now
-		//glEnable(GL_CULL_FACE);
+		glEnable(GL_CULL_FACE);
 
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::GetInstance().Init();
@@ -255,16 +249,16 @@ namespace NE {
 	std::vector<uint8_t> CopyEntity(uint32_t entity) {
 		//std::vector<uint8_t> buffer;
 		//NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
-		//return buffer;
-		return std::vector<uint8_t>();
+		std::vector<uint8_t> buffer;
+		NE::Serialization::SerializeEntitiesToMemory(gSceneManager.GetActive()->GetECSCoordinator(), entity, buffer);
+		return buffer;
 	}
 
-	std::vector<uint32_t> PasteEntity(std::vector<uint8_t> clipboard) {
+	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
 		//auto newEntities =
 		//	NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
 
-		//return newEntities;
-		return std::vector<uint32_t>();
+		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
 	}
 
 	// Internal use only

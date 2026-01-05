@@ -33,6 +33,10 @@ namespace Editor {
 
         static void SetParent(NE::ECS::Entity child, NE::ECS::Entity newParent, int insertIndex, bool keepWorld = true);
         static void OnParentChanged(NE::ECS::Entity e, NE::ECS::Entity oldParent, NE::ECS::Entity newParent);
+
+        static void CopySelected();
+        static void PasteSelected();
+        static void DuplicateSelected();
     };
 
 }

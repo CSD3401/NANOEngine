@@ -85,4 +85,21 @@ namespace Editor {
             RegisterRoot(e);
         }
     }
+
+    void EditorScene::CopySelected() {
+        if (s_selection.GetLastClicked() == NE::ECS::NO_ENTITY) return;
+
+        clipboard = NE::CopyEntity(EditorScene::s_selection.GetLastClicked());
+    }
+
+    void EditorScene::PasteSelected() {
+        if (clipboard.empty()) return;
+
+        auto rootEntt = NE::PasteEntity(clipboard);
+        RegisterRoot(rootEntt);
+        s_selection.SetSingle(rootEntt);
+    }
+
+    void EditorScene::DuplicateSelected() {
+    }
 }

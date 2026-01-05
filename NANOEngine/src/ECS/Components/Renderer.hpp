@@ -34,7 +34,8 @@ namespace NE::ECS::Component {
 			NE_REFLECT_FIELD(modelUUID),
 			NE_REFLECT_FIELD(materialUUID),
 			NE_REFLECT_FIELD(shadowCastMode),
-			NE_REFLECT_FIELD(receiveShadows)
+			NE_REFLECT_FIELD(receiveShadows),
+			NE_REFLECT_FIELD_HIDDEN(luid)
 		NE_REFLECT_END()
 	};
 

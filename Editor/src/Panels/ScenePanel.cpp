@@ -394,67 +394,68 @@ namespace Editor {
 			ImGui::PopStyleVar(2);
 		}
 
-		if (ImGui::IsWindowFocused()) {
-			ImGuiIO& io = ImGui::GetIO();
+		
+		ImGuiIO& io = ImGui::GetIO();
 
-			if (!ImGuizmo::IsUsingAny() && !s_usingUIGizmo) {
-				ImVec2 mousePos = io.MousePos;
+		if (!ImGuizmo::IsUsingAny() && !s_usingUIGizmo) {
+			ImVec2 mousePos = io.MousePos;
 
-				bool insideScene =
-					mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
-					mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y;
+			bool insideScene =
+				mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y;
 
-				if (insideScene) {
-					if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-						m_dragSelecting = true;
-						m_dragStartScreen = mousePos;
-						m_dragEndScreen = mousePos;
-					}
+			if (insideScene) {
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+					m_dragSelecting = true;
+					m_dragStartScreen = mousePos;
+					m_dragEndScreen = mousePos;
+				}
 
-					if (m_dragSelecting && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-						m_dragEndScreen = mousePos;
-					}
+				if (m_dragSelecting && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+					m_dragEndScreen = mousePos;
+				}
 
-					if (m_dragSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-						m_dragSelecting = false;
+				if (m_dragSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					m_dragSelecting = false;
 
-						ImVec2 delta = ImVec2(
-							m_dragEndScreen.x - m_dragStartScreen.x,
-							m_dragEndScreen.y - m_dragStartScreen.y
-						);
+					ImVec2 delta = ImVec2(
+						m_dragEndScreen.x - m_dragStartScreen.x,
+						m_dragEndScreen.y - m_dragStartScreen.y
+					);
 
-						const float minBox = 4.0f;
-						bool isBox = (fabsf(delta.x) > minBox || fabsf(delta.y) > minBox);
+					const float minBox = 4.0f;
+					bool isBox = (fabsf(delta.x) > minBox || fabsf(delta.y) > minBox);
 
-						if (isBox) {
-							SelectEntitiesInRect(m_dragStartScreen, m_dragEndScreen,
-								panelPos, panelSize);
-						} else {
-							float localX = mousePos.x - panelPos.x;
-							float localY = mousePos.y - panelPos.y;
-							float spMouseX = localX / panelSize.x;
-							float spMouseY = localY / panelSize.y;
+					if (isBox) {
+						SelectEntitiesInRect(m_dragStartScreen, m_dragEndScreen,
+							panelPos, panelSize);
+					} else {
+						float localX = mousePos.x - panelPos.x;
+						float localY = mousePos.y - panelPos.y;
+						float spMouseX = localX / panelSize.x;
+						float spMouseY = localY / panelSize.y;
 
-							uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
-							uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
+						uint32_t x = static_cast<int>(spMouseX * 1920.f); // temp hardcoded
+						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080)); // temp hardcoded
 
-							uint32_t id = NE::GetPickedEntity(x, y);
+						uint32_t id = NE::GetPickedEntity(x, y);
 
-							EditorScene::s_selection.Clear();
-							EditorScene::selectedAsset = "";
+						EditorScene::s_selection.Clear();
+						EditorScene::selectedAsset = "";
 
-							if (id != NE::ECS::NO_ENTITY) {
-								EditorScene::s_selection.SetSingle(id);
-							}
+						if (id != NE::ECS::NO_ENTITY) {
+							EditorScene::s_selection.SetSingle(id);
 						}
 					}
-				} else {
-					// If we left the panel, cancel drag
-					if (m_dragSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-						m_dragSelecting = false;
 				}
+			} else {
+				// If we left the panel, cancel drag
+				if (m_dragSelecting && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+					m_dragSelecting = false;
 			}
+		}
 
+		if (ImGui::IsWindowFocused()) {
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				if (!m_rightMouseHeld) {
 					m_lastMousePos = io.MousePos;

@@ -22,7 +22,7 @@
     <ClInclude Include="src\Physics\ForceMode.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\BroadPhaseLayerInterfaceImpl.hpp" />
-    <ClInclude Include="LayerRegistry.hpp" />
+    <ClInclude Include="src\Core\LayerRegistry.hpp" />
     <ClInclude Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerPairFilterImpl.hpp" />
     <ClInclude Include="src\Core\Tag.hpp" />
@@ -178,7 +178,7 @@
   <ItemGroup>
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
-    <ClCompile Include="LayerRegistry.cpp" />
+    <ClCompile Include="src\Core\LayerRegistry.cpp" />
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerPairFilterImpl.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
