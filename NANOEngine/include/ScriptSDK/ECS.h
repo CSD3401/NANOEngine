@@ -52,8 +52,6 @@ namespace ECS {
     //=========================================================================
 
     namespace Query {
-        // Component type registration
-        __declspec(dllimport) std::unordered_map<std::type_index, uint8_t> GetRegisteredComponentTypes();
 
         // Component handling
         __declspec(dllimport) uint64_t GetEntitySignature(uint32_t e);

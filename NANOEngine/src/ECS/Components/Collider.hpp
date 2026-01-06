@@ -9,11 +9,6 @@
 
 namespace NE::ECS::Component {
 	struct Collider {
-		struct NoColliderData {
-			NE_REFLECT_BEGIN(NoColliderData)
-				NE_REFLECT_END()
-		};
-
 		struct BoxColliderData {
 			Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f };
 			NE_REFLECT_BEGIN(BoxColliderData)
@@ -52,7 +47,6 @@ namespace NE::ECS::Component {
 		};
 
 		using ColliderData = std::variant<
-			NoColliderData,
 			BoxColliderData,
 			SphereColliderData,
 			CapsuleColliderData,
@@ -61,7 +55,6 @@ namespace NE::ECS::Component {
 		>;
 
 		enum class ColliderType : uint8_t {
-			None,
 			Box,
 			Sphere,
 			Capsule,
@@ -72,7 +65,7 @@ namespace NE::ECS::Component {
 		ColliderData data;
 		Math::Vec3 center{ 0.f, 0.f, 0.f };
 		uint64_t luid;
-		ColliderType type{ ColliderType::None };
+		ColliderType type{ ColliderType::Box };
 		bool isTrigger = false;
 
 		bool isDirty = false;

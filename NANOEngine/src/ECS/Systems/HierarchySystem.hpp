@@ -20,6 +20,7 @@ namespace NE::ECS::Systems {
 			Entity newParent,
 			int insertIndex,
 			bool keepWorld = true);
+		void SetActive(Entity root, bool isActive);
 
 	private:
 		void ResolvePendingParentsForAll(bool keepWorldForNewParents);

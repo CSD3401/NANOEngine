@@ -37,8 +37,6 @@ namespace NE::ECS {
 
 	namespace Query {
 
-		NANOENGINE_API std::unordered_map<std::type_index, uint8_t> GetRegisteredComponentTypes();
-
 		// --- Component Handling ---
 		NANOENGINE_API uint64_t GetEntitySignature(uint32_t e);
 
@@ -77,7 +75,6 @@ namespace NE::ECS {
 		template<> inline const Component::Camera& GetComponent<Component::Camera>(uint32_t e) { return GetEntityCamera(e); }
 		template<> inline const Component::Animator& GetComponent<Component::Animator>(uint32_t e) { return GetEntityAnimator(e); }
 
-
 		NANOENGINE_API bool HasEntityMeta(uint32_t e);
 		NANOENGINE_API bool HasHierarchy(uint32_t e);
 		NANOENGINE_API bool HasTransform(uint32_t e);
@@ -114,6 +111,25 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::Animator>(uint32_t e) { return HasAnimator(e); }
 		template<> inline bool HasComponent<Component::Camera>(uint32_t e) { return HasCamera(e); }
 
+		//template <typename C>
+		//ComponentType GetComponentType() {
+		//	return GetScene().GetECSCoordinator().GetComponentType<C>();
+		//}
+
+		NANOENGINE_API ComponentType GetEntityMetaComponentType();
+		NANOENGINE_API ComponentType GetTransformComponentType();
+		NANOENGINE_API ComponentType GetRendererComponentType();
+		NANOENGINE_API ComponentType GetLightComponentType();
+		NANOENGINE_API ComponentType GetRigidbodyComponentType();
+		NANOENGINE_API ComponentType GetColliderComponentType();
+		NANOENGINE_API ComponentType GetAudioSourceComponentType();
+		NANOENGINE_API ComponentType GetScriptComponentType();
+		NANOENGINE_API ComponentType GetUIRectTransformComponentType();
+		NANOENGINE_API ComponentType GetUIImageComponentType();
+		NANOENGINE_API ComponentType GetUICanvasComponentType();
+		NANOENGINE_API ComponentType GetEntityAnimatorComponentType();
+		NANOENGINE_API ComponentType GetEntityCameraComponentType();
+
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
 		NANOENGINE_API const Core::LayerID GetLayer(Entity e);
@@ -126,6 +142,7 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos = true);
+		NANOENGINE_API void SetActive(Entity entity, bool isActive);
 
 		NANOENGINE_API void AddLightComponent(uint32_t e);
 		NANOENGINE_API void AddRendererComponent(uint32_t e);
