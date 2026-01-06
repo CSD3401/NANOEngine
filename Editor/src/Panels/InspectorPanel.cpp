@@ -313,6 +313,58 @@ namespace {
 		return changed;
 	}
 
+	bool DrawComponentHeaderWithMenu(
+		const char* label,
+		bool defaultOpen,
+		bool* outCopy,
+		bool* outDelete
+	) {
+		if (outCopy)   *outCopy = false;
+		if (outDelete) *outDelete = false;
+
+		ImGui::PushID(label);
+
+		const ImGuiTreeNodeFlags baseFlags =
+			ImGuiTreeNodeFlags_Framed |
+			ImGuiTreeNodeFlags_SpanAvailWidth |
+			ImGuiTreeNodeFlags_AllowItemOverlap |
+			ImGuiTreeNodeFlags_FramePadding;
+
+		ImGuiTreeNodeFlags flags = baseFlags;
+		if (defaultOpen) flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+		const bool open = ImGui::TreeNodeEx("##component_node", flags, "%s", label);
+
+		const float lineRight = ImGui::GetItemRectMax().x;
+		const float lineLeft = ImGui::GetItemRectMin().x;
+
+		const float btnW = ImGui::GetFrameHeight();
+		const float padR = ImGui::GetStyle().FramePadding.x;
+		float btnX = lineRight - btnW - padR;
+
+		if (btnX < lineLeft) btnX = lineLeft;
+
+		ImGui::SameLine();
+		ImGui::SetCursorScreenPos(ImVec2(btnX, ImGui::GetItemRectMin().y + 1.0f));
+
+		if (ImGui::SmallButton("*")) {
+			ImGui::OpenPopup("ComponentMenu");
+		}
+
+		if (ImGui::BeginPopup("ComponentMenu")) {
+			if (ImGui::MenuItem("Copy Component")) {
+				if (outCopy) *outCopy = true;
+			}
+			if (ImGui::MenuItem("Delete")) {
+				if (outDelete) *outDelete = true;
+			}
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopID();
+		return open;
+	}
+
 
 	// helpers for UI
 	// get the correct material path based on canvas render mode
@@ -400,10 +452,7 @@ namespace Editor {
 
 				bool isActiveValue = metaRO.isActive;
 				if (DrawCheckbox("##isActive", isActiveValue)) {
-					metaRO.isActive = isActiveValue;
-
-					// DONE HERE FOR NOW, SHOULD BE DONE IN SYSTEMS !! OR ELSEWHERE
-					//EditorScene::SetAllDescendantsActive(entity, isActiveValue);
+					NE::ECS::Command::SetActive(entity, isActiveValue);
 				}
 
 				ImGui::SameLine();
@@ -629,93 +678,11 @@ namespace Editor {
 				else if (typeIdx == typeid(NE::ECS::Component::Renderer)) {
 					DrawRendererComponent(entity);
 				}
-				else if (typeIdx == typeid(NE::ECS::Component::Light))
-				{
-					auto& comp = NE::ECS::Query::GetEntityLight(entity);
-					ImGui::SeparatorText("Light");
-
-					static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
-					int currentType = static_cast<int>(comp.type);
-					if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
-						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
-						tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
-					}
-
-					static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
-					int shadowType = static_cast<int>(comp.shadowType);
-					if (ImGui::Combo("Shadow Type", &shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames))) {
-						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
-						tempLight.shadowType = static_cast<NE::ECS::Component::Light::ShadowType>(shadowType);
-					}
-
-					static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
-					int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
-					if (ImGui::Combo("Shadow Update Mode", &shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames))) {
-						auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
-						tempLight.shadowUpdateMode = static_cast<NE::ECS::Component::Light::ShadowUpdateMode>(shadowUpdateMode);
-					}
-
-					NE::Core::ForEachFieldView<NE::ECS::Component::Light>(comp,
-						[&](auto const& desc, auto const& currentValue) {
-							using FieldT = std::decay_t<decltype(currentValue)>;
-
-							FieldT edited = currentValue;
-
-							if (DrawField(desc, edited)) {
-								SubmitSetFieldCommand<NE::ECS::Component::Light, FieldT>(
-									entity, desc, currentValue, edited
-								);
-							}
-						});
+				else if (typeIdx == typeid(NE::ECS::Component::Light)) {
+					DrawLightComponent(entity);
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Collider)) {
 					DrawColliderComponent(entity);
-
-					//auto& comp = NE::ECS::Command::GetEntityCollider(entity);
-					//ImGui::SeparatorText("Collider");
-
-					//// Dropdown shapes
-					//static const char* ShapeTypeNames[] = { "Box", "Sphere", "Capsule", "Mesh", "None" };
-					//int currShape = static_cast<int>(comp.shapeType);
-					//if (ImGui::Combo("Shape Type", &currShape, ShapeTypeNames, IM_ARRAYSIZE(ShapeTypeNames)))
-					//{
-					//	auto newShapeType = static_cast<NE::ECS::Component::Collider::ShapeType>(currShape);
-
-					//	// Create a field descriptor for shapeType
-					//	using ColliderType = NE::ECS::Component::Collider;
-					//	NE::Core::FieldDescriptor<ColliderType, ColliderType::ShapeType> shapeDesc{
-					//		"Shape Type", &ColliderType::shapeType
-					//	};
-
-					//	// Submit command
-					//	SubmitSetFieldCommand<ColliderType, ColliderType::ShapeType>(
-					//		entity, shapeDesc, comp.shapeType, newShapeType
-					//	);
-
-					//	// Also mark the collider as dirty
-					//	comp.isShapeDirty = true;
-
-					//	// NOTE: SubmitSetFieldCommand already marks scene dirty via SetFieldCommand
-					//}
-
-					//// Collider fields - shape properties
-					//NE::Core::ForEachFieldView<NE::ECS::Component::Collider>(comp,
-					//	[&](auto const& desc, auto const& currentValue) {
-					//		using FieldT = std::decay_t<decltype(currentValue)>;
-					//		using ColliderType = NE::ECS::Component::Collider;
-
-					//		FieldT edited = currentValue;
-
-					//		if (DrawField(desc, edited))
-					//		{
-					//			SubmitSetFieldCommand<ColliderType, FieldT>(
-					//				entity, desc, currentValue, edited);
-
-					//			// Mark properties as dirty when any collider field changes
-					//			comp.isPropertiesDirty = true;
-					//		}
-					//	});
-
 				}
 				else if (typeIdx == typeid(NE::ECS::Component::Rigidbody)) {
 					DrawRigidbodyComponent(entity);
@@ -2497,9 +2464,10 @@ namespace Editor {
 				}
 			}
 
-			if (ImGui::Button("Add Component"))
-			{
-				ImGui::OpenPopup("ComponentList");
+			ImGui::Separator();
+
+			if (ImGui::Button("Add Component")) {
+				ImGui::OpenPopup("ComponentList"); 
 			}
 
 			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
@@ -2821,7 +2789,20 @@ namespace Editor {
 
 	void InspectorPanel::DrawRendererComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Query::GetEntityRenderer(entity);
-		ImGui::SeparatorText("Renderer");
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Renderer",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
 		// Model field
 		bool openPopup = false;
 		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
@@ -2883,93 +2864,94 @@ namespace Editor {
 
 		if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
 		}
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveRendererComponent(entity);
+		}
+
+		ImGui::TreePop();
 	}
 
 	void InspectorPanel::DrawRigidbodyComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Command::GetEntityRigidbody(entity);
 
-		ImGui::PushID((int)entity);
+		bool copyComp = false;
+		bool deleteComp = false;
 
-		ImGuiTreeNodeFlags headerFlags =
-			ImGuiTreeNodeFlags_DefaultOpen |
-			ImGuiTreeNodeFlags_Framed |
-			ImGuiTreeNodeFlags_SpanAvailWidth |
-			ImGuiTreeNodeFlags_AllowOverlap;
+		const bool open = DrawComponentHeaderWithMenu(
+			"Rigidbody",
+			true,
+			&copyComp,
+			&deleteComp
+		);
 
-		const bool open = ImGui::CollapsingHeader("Rigidbody", headerFlags);
-
-		const float btnSize = ImGui::GetFrameHeight(); // square button
-		const float rightX = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
-
-		ImGui::SameLine(0.0f, 0.0f);
-		ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - btnSize);
-
-		if (ImGui::Button("O", ImVec2(btnSize, btnSize))) {
-			ImGui::OpenPopup("RigidbodyOptions");
-		}
-
-		bool removeComponent = false;
-		if (ImGui::BeginPopup("RigidbodyOptions")) {
-			if (ImGui::MenuItem("Remove Component")) {
-				removeComponent = true;
-			}
-			ImGui::EndPopup();
-		}
-		
-		if (removeComponent) {
-			NE::ECS::Command::RemoveRigidbodyComponent(entity);
-			ImGui::PopID();
+		if (!open)
 			return;
+
+		NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			});
+
+		if (ImGui::TreeNode("Constraints")) {
+			ImGui::TextUnformatted("Position");
+			ImGui::SameLine();
+			Editor::DrawCheckbox("X##Pos", comp.freezePosX);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Y##Pos", comp.freezePosY);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Z##Pos", comp.freezePosZ);
+
+			ImGui::TextUnformatted("Rotation");
+			ImGui::SameLine();
+			Editor::DrawCheckbox("X##Rot", comp.freezeRotX);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Y##Rot", comp.freezeRotY);
+			ImGui::SameLine();
+			Editor::DrawCheckbox("Z##Rot", comp.freezeRotZ);
+
+			ImGui::TreePop();
 		}
 
-		if (open) {
-			ImGui::Indent();
+		if (copyComp) {
 
-			NE::Core::ForEachFieldView<NE::ECS::Component::Rigidbody>(comp,
-				[&](auto const& desc, auto const& currentValue) {
-					using FieldT = std::decay_t<decltype(currentValue)>;
-
-					FieldT edited = currentValue;
-
-					if (DrawField(desc, edited)) {
-						SubmitSetFieldCommand<NE::ECS::Component::Rigidbody, FieldT>(
-							entity, desc, currentValue, edited
-						);
-					}
-				});
-
-			if (ImGui::TreeNode("Constraints")) {
-				ImGui::TextUnformatted("Position");
-				ImGui::SameLine();
-				Editor::DrawCheckbox("X##Pos", comp.freezePosX);
-				ImGui::SameLine();
-				Editor::DrawCheckbox("Y##Pos", comp.freezePosY);
-				ImGui::SameLine();
-				Editor::DrawCheckbox("Z##Pos", comp.freezePosZ);
-
-				ImGui::TextUnformatted("Rotation");
-				ImGui::SameLine();
-				Editor::DrawCheckbox("X##Rot", comp.freezeRotX);
-				ImGui::SameLine();
-				Editor::DrawCheckbox("Y##Rot", comp.freezeRotY);
-				ImGui::SameLine();
-				Editor::DrawCheckbox("Z##Rot", comp.freezeRotZ);
-
-				ImGui::TreePop();
-			}
-
-			ImGui::Unindent();
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveRigidbodyComponent(entity);
 		}
 
-		ImGui::PopID();
+		ImGui::TreePop();
 	}
 
 	void InspectorPanel::DrawColliderComponent(uint32_t entity) {
 		using Collider = NE::ECS::Component::Collider;
 
 		auto& comp = NE::ECS::Command::GetEntityCollider(entity);
-		ImGui::SeparatorText("Collider");
-		
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Collider",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
 		static const char* ColliderTypeNames[] = { "None", "Box", "Sphere", "Capsule", "Cylinder", "Mesh" };
 		int currCollider = static_cast<int>(comp.type);
 
@@ -2981,9 +2963,6 @@ namespace Editor {
 				comp.type = newType;
 
 				switch (newType) {
-				case Collider::ColliderType::None:
-					comp.data.emplace<Collider::NoColliderData>();
-					break;
 				case Collider::ColliderType::Box:
 					comp.data.emplace<Collider::BoxColliderData>();
 					break;
@@ -3004,8 +2983,6 @@ namespace Editor {
 				comp.isDirty = true;
 			}
 		}
-
-		if (comp.type == Collider::ColliderType::None) return;
 
 		NE::Core::ForEachFieldView<Collider>(comp,
 			[&](auto const& desc, auto const& currentValue) {
@@ -3041,5 +3018,76 @@ namespace Editor {
 
 			}, comp.data
 		);
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveColliderComponent(entity);
+		}
+
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawLightComponent(uint32_t entity) {
+		using Light = NE::ECS::Component::Light;
+
+		auto& comp = NE::ECS::Query::GetEntityLight(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Light",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
+		int currentType = static_cast<int>(comp.type);
+		if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
+			auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+			tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
+		}
+
+		static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
+		int shadowType = static_cast<int>(comp.shadowType);
+		if (ImGui::Combo("Shadow Type", &shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames))) {
+			auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+			tempLight.shadowType = static_cast<NE::ECS::Component::Light::ShadowType>(shadowType);
+		}
+
+		static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
+		int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
+		if (ImGui::Combo("Shadow Update Mode", &shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames))) {
+			auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
+			tempLight.shadowUpdateMode = static_cast<NE::ECS::Component::Light::ShadowUpdateMode>(shadowUpdateMode);
+		}
+
+		NE::Core::ForEachFieldView<Light>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<Light, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			});
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveLightComponent(entity);
+		}
+
+		ImGui::TreePop();
 	}
 }

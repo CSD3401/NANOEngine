@@ -1,6 +1,7 @@
 #include "HierarchySystem.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../Components/Transform.hpp"
+#include "../Components/EntityMeta.hpp"
 #include "Math/Mat4.hpp"
 
 namespace NE::ECS::Systems {
@@ -184,11 +185,18 @@ namespace NE::ECS::Systems {
         childT.isDirty = true;
     }
 
+    void HierarchySystem::SetActive(Entity root, bool isActive) {
+        m_componentManager->GetComponent<Component::EntityMeta>(root).isActive = isActive;
+        auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(root);
+
+        for (auto child : hier.children)
+            SetActive(child, isActive);
+    }
+
     //void HierarchySystem::SetParent(Entity child,
     //    Entity newParent,
     //    bool keepWorld)
     //{
-    //    // Append at the end of new parent's children list
     //    SetParent(child, newParent, /*insertIndex*/ std::numeric_limits<int>::max(), keepWorld);
     //}
 

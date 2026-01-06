@@ -22,6 +22,7 @@ namespace Editor {
 		void DrawRendererComponent(uint32_t entity);
 		void DrawRigidbodyComponent(uint32_t entity);
 		void DrawColliderComponent(uint32_t entity);
+		void DrawLightComponent(uint32_t entity);
 
 		std::unique_ptr<MaterialEditor> m_materialEditor;
 		std::string m_lastPath;

@@ -46,7 +46,7 @@ namespace NE::ECS::Systems {
 				col.isDirty = false;
 			}
 
-			if (col.type != Component::Collider::ColliderType::None && col.type != Component::Collider::ColliderType::Mesh)
+			if (col.type != Component::Collider::ColliderType::Mesh)
 				Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t);
 		}
 	}
