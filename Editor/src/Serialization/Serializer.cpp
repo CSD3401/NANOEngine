@@ -42,6 +42,7 @@ namespace Editor {
 
 				using ComponentTypes = std::tuple<
 					NE::ECS::Component::EntityMeta,
+					NE::ECS::Component::Hierarchy,
 					NE::ECS::Component::Transform,
 					NE::ECS::Component::Renderer,
 					NE::ECS::Component::Light,
@@ -51,8 +52,7 @@ namespace Editor {
 					NE::ECS::Component::Camera,
 					NE::ECS::Component::UIRectTransform,
 					NE::ECS::Component::UICanvas,
-					NE::ECS::Component::UIImage,
-					NE::ECS::Component::Hierarchy
+					NE::ECS::Component::UIImage
 				>;
 
 				template <class F>

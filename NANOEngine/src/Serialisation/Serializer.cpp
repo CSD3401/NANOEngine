@@ -26,6 +26,7 @@ namespace NE {
     namespace {
         using ComponentTypes = std::tuple<
             ECS::Component::EntityMeta,
+            ECS::Component::Hierarchy,
             ECS::Component::Transform,
             ECS::Component::Renderer,
             ECS::Component::Light,
@@ -35,8 +36,7 @@ namespace NE {
             ECS::Component::Camera,
             ECS::Component::UIRectTransform,
             ECS::Component::UICanvas,
-            ECS::Component::UIImage,
-            ECS::Component::Hierarchy
+            ECS::Component::UIImage
         >;
 
         using ComponentMask = std::uint64_t;
@@ -338,7 +338,7 @@ namespace NE {
             bool ok = true;
 
             for (size_t i = 0; i < count && ok; ++i) {
-                ECS::Entity e = ecs.CreateEmptyEntity();
+                ECS::Entity e = ecs.CreateEntity();
                 created.push_back(e);
 
                 uint64_t mask64 = 0;
