@@ -181,14 +181,11 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
-				Component::EntityMeta{ .name = "New Entity", .luid = Core::LUIDGenerator::Generate("en") });
-			GetScene().GetECSCoordinator().AddComponent(
-				newEntity, 
-				Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
+				Component::Transform{});
 
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
-				Component::Hierarchy{ .luid = Core::LUIDGenerator::Generate("hr") });
+				Component::Hierarchy{});
 
 			//if (gSceneManager.GetCurrentPrefabPath().empty()) {
 			//	GetScene().GetECSCoordinator().AddComponent(
@@ -285,15 +282,15 @@ namespace NE::ECS {
 		}
 
 		void AddLightComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{ .luid = Core::LUIDGenerator::Generate("tr") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});
 		}
 
 		void AddRendererComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{ .luid = Core::LUIDGenerator::Generate("re") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{});
 		}
 
 		void AddRigidbodyComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{ .luid = Core::LUIDGenerator::Generate("ri") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{});
 		}
 
 		void AddColliderComponent(uint32_t e) {
@@ -305,11 +302,11 @@ namespace NE::ECS {
 		}
 
 		void AddScriptComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{ .luid = Core::LUIDGenerator::Generate("sc") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{});
 		}
 
 		void AddCameraComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Core::LUIDGenerator::Generate("ca") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
 		}
 
 		void RemoveLightComponent(uint32_t e) {

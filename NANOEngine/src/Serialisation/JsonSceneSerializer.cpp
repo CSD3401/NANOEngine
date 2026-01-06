@@ -653,88 +653,88 @@ namespace NE::Serialization {
 		uint32_t rootEnt,
 		std::vector<uint8_t>& outBuffer)
 	{
-		//using namespace rapidjson;
-		//auto& ecs = scene.GetECSCoordinator();
+		using namespace rapidjson;
+		auto& ecs = scene.GetECSCoordinator();
 
-		//using NE::ECS::Component::EntityMeta;
-		//using NE::ECS::Component::Transform;
+		using NE::ECS::Component::EntityMeta;
+		using NE::ECS::Component::Transform;
 
-		//if (!ecs.HasComponent<Transform>(rootEnt))
-		//	return;
+		if (!ecs.HasComponent<Transform>(rootEnt))
+			return;
 
-		//std::vector<uint32_t> entities;
-		//entities.reserve(16);
-		//CollectPrefabSubtree(ecs, rootEnt, entities);
+		std::vector<uint32_t> entities;
+		entities.reserve(16);
+		CollectPrefabSubtree(ecs, rootEnt, entities);
 
-		//if (entities.empty())
-		//	return;
+		if (entities.empty())
+			return;
 
-		//std::unordered_map<uint32_t, uint64_t> entityToLocalId;
-		//entityToLocalId.reserve(entities.size());
+		std::unordered_map<uint32_t, uint64_t> entityToLocalId;
+		entityToLocalId.reserve(entities.size());
 
-		//uint64_t nextId = 1;
-		//for (uint32_t e : entities) {
-		//	entityToLocalId[e] = nextId++;
-		//}
+		uint64_t nextId = 1;
+		for (uint32_t e : entities) {
+			entityToLocalId[e] = nextId++;
+		}
 
-		//Document doc;
-		//doc.SetObject();
-		//auto& a = doc.GetAllocator();
-		//Value entitiesArr(kArrayType);
+		Document doc;
+		doc.SetObject();
+		auto& a = doc.GetAllocator();
+		Value entitiesArr(kArrayType);
 
-		//for (uint32_t e : entities) {
-		//	Value ent(kObjectType);
+		for (uint32_t e : entities) {
+			Value ent(kObjectType);
 
-		//	ForEachComponentType([&]<typename C>() {
-		//		WriteComponentIfPresent<C>(ecs, e, ent, a);
-		//	});
+			ForEachComponentType([&]<typename C>() {
+				WriteComponentIfPresent<C>(ecs, e, ent, a);
+			});
 
-		//	if (ent.HasMember(ComponentKey<EntityMeta>::value)) {
-		//		auto& eJson = ent[ComponentKey<EntityMeta>::value];
-		//		const uint64_t myId = entityToLocalId[e];
+			if (ent.HasMember(ComponentKey<EntityMeta>::value)) {
+				auto& eJson = ent[ComponentKey<EntityMeta>::value];
+				const uint64_t myId = entityToLocalId[e];
 
-		//		if (eJson.HasMember("prefabLocalID"))
-		//			eJson["prefabLocalID"].SetUint64(myId);
-		//		else
-		//			eJson.AddMember("prefabLocalID", myId, a);
-		//	}
+				if (eJson.HasMember("prefabLocalID"))
+					eJson["prefabLocalID"].SetUint64(myId);
+				else
+					eJson.AddMember("prefabLocalID", myId, a);
+			}
 
-		//	if (ent.HasMember(ComponentKey<Transform>::value)) {
-		//		auto& tJson = ent[ComponentKey<Transform>::value];
-		//		const auto& t = ecs.GetComponent<Transform>(e);
+			if (ent.HasMember(ComponentKey<Transform>::value)) {
+				auto& tJson = ent[ComponentKey<Transform>::value];
+				const auto& t = ecs.GetComponent<Transform>(e);
 
-		//		const uint64_t myId = entityToLocalId[e];
+				const uint64_t myId = entityToLocalId[e];
 
-		//		uint64_t parentId = 0;
-		//		if (t.parent != NE::ECS::Component::INVALID_PARENT) {
-		//			auto it = entityToLocalId.find(t.parent);
-		//			if (it != entityToLocalId.end())
-		//				parentId = it->second;
-		//		}
+				uint64_t parentId = 0;
+				if (t.parent != NE::ECS::Component::INVALID_PARENT) {
+					auto it = entityToLocalId.find(t.parent);
+					if (it != entityToLocalId.end())
+						parentId = it->second;
+				}
 
-		//		if (tJson.HasMember("luid"))
-		//			tJson["luid"].SetUint64(myId);
-		//		else
-		//			tJson.AddMember("luid", myId, a);
+				if (tJson.HasMember("luid"))
+					tJson["luid"].SetUint64(myId);
+				else
+					tJson.AddMember("luid", myId, a);
 
-		//		if (tJson.HasMember("parentLuid"))
-		//			tJson["parentLuid"].SetUint64(parentId);
-		//		else
-		//			tJson.AddMember("parentLuid", parentId, a);
-		//	}
+				if (tJson.HasMember("parentLuid"))
+					tJson["parentLuid"].SetUint64(parentId);
+				else
+					tJson.AddMember("parentLuid", parentId, a);
+			}
 
-		//	entitiesArr.PushBack(ent, a);
-		//}
+			entitiesArr.PushBack(ent, a);
+		}
 
-		//doc.AddMember("Entities", entitiesArr, a);
+		doc.AddMember("Entities", entitiesArr, a);
 
-		//rapidjson::StringBuffer sb;
-		//rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
-		//doc.Accept(wr);
+		rapidjson::StringBuffer sb;
+		rapidjson::PrettyWriter<rapidjson::StringBuffer> wr(sb);
+		doc.Accept(wr);
 
-		//outBuffer.clear();
-		//outBuffer.resize(sb.GetSize());
-		//std::memcpy(outBuffer.data(), sb.GetString(), sb.GetSize());
+		outBuffer.clear();
+		outBuffer.resize(sb.GetSize());
+		std::memcpy(outBuffer.data(), sb.GetString(), sb.GetSize());
 	}
 
 	std::vector<uint32_t> JsonSceneSerializer::DeserializePrefabFromMemory(SceneManagement::Scene& scene,
