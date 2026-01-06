@@ -72,8 +72,6 @@ namespace Editor {
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
 
-		//NE::LoadStartupScene("");
-
 		SPD_INFO("=== Application initialization complete ===");
 		SPD_DEBUG("All panels loaded successfully");
 		SPD_INFO("Ready for user interaction");

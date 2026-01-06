@@ -4,6 +4,7 @@
 #include "../Components/Collider.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
+#include "Core/LUIDGenerator.hpp"
 
 
 namespace NE::ECS::Systems {
@@ -13,8 +14,11 @@ namespace NE::ECS::Systems {
 	{
 	}
 
-	void RigidbodySystem::OnEntityAdded(Entity entity) {
+	void RigidbodySystem::OnEntityAdded(Entity e) {
+		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
 
+		if (rb.luid == 0)
+			rb.luid = Core::LUIDGenerator::Generate("rb");
 	}
 
 	void RigidbodySystem::OnEntityRemoved(Entity entity) {

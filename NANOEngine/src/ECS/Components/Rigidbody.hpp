@@ -35,7 +35,8 @@ namespace NE::ECS::Component {
 			NE_REFLECT_FIELD_HIDDEN(freezeRotZ),
 			NE_REFLECT_FIELD_HIDDEN(freezePosX),
 			NE_REFLECT_FIELD_HIDDEN(freezePosY),
-			NE_REFLECT_FIELD_HIDDEN(freezePosZ)
+			NE_REFLECT_FIELD_HIDDEN(freezePosZ),
+			NE_REFLECT_FIELD_HIDDEN(luid)
 			NE_REFLECT_END()
 	};
 }

@@ -88,12 +88,6 @@ namespace NE::ECS {
             m_systemManager->SetSystemSignature<T>(sig);
         }
 
-        // --- Main loop call ---
-        //void UpdateSystems(float deltaTime) {
-        //    for (auto& [type, sysPtr] : systemManager->GetAllSystems())
-        //        sysPtr->Update(deltaTime);
-        //}
-
         EntityManager& GetEntityManager() {
             return *m_entityManager;
         }
@@ -104,11 +98,6 @@ namespace NE::ECS {
         std::vector<Entity>& GetUsedEntities() { return m_entityManager->GetUsedEntities(); }
 
         Signature GetSignature(Entity entity);
-
-        // For editor usage
-        const std::unordered_map<std::type_index, ComponentType>& GetRegisteredComponentTypes() const {
-            return m_componentManager->GetComponentTypeMap();
-        }
 
         std::shared_ptr<Systems::TransformSystem> m_transformSystem;
         std::shared_ptr<Systems::LightSystem> m_lightSystem;

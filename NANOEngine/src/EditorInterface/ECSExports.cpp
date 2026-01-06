@@ -23,20 +23,12 @@
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
 
-
-
-
 namespace NE {
 	//SceneManagement::Scene& GetScene();
 }
 
 namespace NE::ECS {
-
 	namespace Query {
-
-		std::unordered_map<std::type_index, uint8_t> GetRegisteredComponentTypes() {
-			return GetScene().GetECSCoordinator().GetRegisteredComponentTypes();
-		}
 
 		uint64_t GetEntitySignature(uint32_t e) {
 			return GetScene().GetECSCoordinator().GetSignature(e).to_ullong();
@@ -145,13 +137,65 @@ namespace NE::ECS {
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
-		
+
 		const Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
 		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
+		ComponentType GetEntityMetaComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::EntityMeta>();
+		}
+
+		ComponentType GetTransformComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Transform>();
+		}
+
+		ComponentType GetRendererComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Renderer>();
+		}
+
+		ComponentType GetLightComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Light>();
+		}
+
+		ComponentType GetRigidbodyComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Rigidbody>();
+		}
+
+		ComponentType GetColliderComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Collider>();
+		}
+
+		ComponentType GetAudioSourceComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::AudioSource>();
+		}
+
+		ComponentType GetScriptComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::NativeScript>();
+		}
+
+		ComponentType GetUIRectTransformComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIRectTransform>();
+		}
+
+		ComponentType GetUIImageComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIImage>();
+		}
+
+		ComponentType GetUICanvasComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UICanvas>();
+		}
+
+		ComponentType GetEntityAnimatorComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Animator>();
+		}
+
+		ComponentType GetEntityCameraComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Camera>();
 		}
 
 		uint32_t GetParent(uint32_t child) {
@@ -176,23 +220,26 @@ namespace NE::ECS {
 	}
 
 	namespace Command {
-
 		uint32_t CreateEntity() {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
-				Component::EntityMeta{ .name = "New Entity", .luid = Core::LUIDGenerator::Generate("en") });
-			GetScene().GetECSCoordinator().AddComponent(
-				newEntity, 
-				Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
+				Component::EntityMeta{ .luid = Core::LUIDGenerator::Generate("em") }
+			);
 
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
-				Component::Hierarchy{ .luid = Core::LUIDGenerator::Generate("hr") });
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
 
 			//if (gSceneManager.GetCurrentPrefabPath().empty()) {
 			//	GetScene().GetECSCoordinator().AddComponent(
-			//		newEntity, 
+			//		newEntity,
 			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
 			//} else {
 			//	auto& rootT = GetScene().GetECSCoordinator().GetComponent<Component::Transform>(0);
@@ -204,7 +251,6 @@ namespace NE::ECS {
 			//	rootT.children.push_back(newEntity);
 			//}
 
-
 			return newEntity;
 		}
 
@@ -212,16 +258,15 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
-				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("en") });
+				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("cv") });
 
 			// set up canvas component
 			Component::UICanvas canvas;
-			canvas.luid = Core::LUIDGenerator::Generate("canvas");
 			GetScene().GetECSCoordinator().AddComponent(newEntity, canvas);
 
 			// setup RectTransform for canvas (fullscreen by default)
 			Component::UIRectTransform rectTransform;
-			rectTransform.luid = Core::LUIDGenerator::Generate("rect");
+			rectTransform.luid = Core::LUIDGenerator::Generate("rt");
 			rectTransform.width = 1920.0f; // temp
 			rectTransform.height = 1080.0f;
 			rectTransform.x = 0.0f;
@@ -240,11 +285,11 @@ namespace NE::ECS {
 			uint32_t newEntity = ecs.CreateEntity();
 			ecs.AddComponent(
 				newEntity,
-				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("en") });
+				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("im") });
 
 			// setup RectTransform with parent linkage
 			Component::UIRectTransform rect;
-			rect.luid = Core::LUIDGenerator::Generate("rect");
+			rect.luid = Core::LUIDGenerator::Generate("rt");
 			rect.x = 0.0f;
 			rect.y = 0.0f;
 			rect.z = 0.0f;
@@ -255,8 +300,7 @@ namespace NE::ECS {
 			// set parent luid for serialization
 			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
 				rect.parentLuid = ecs.GetComponent<Component::UIRectTransform>(parentCanvas).luid;
-			}
-			else {
+			} else {
 				rect.parentLuid = 0;
 			}
 
@@ -264,7 +308,6 @@ namespace NE::ECS {
 
 			// setup UIImage with default white color
 			Component::UIImage img;
-			img.luid = Core::LUIDGenerator::Generate("image");
 			img.color = Math::Vec4{ 1.f, 1.f, 1.f, 1.f };
 			img.material = nullptr;  // start with solid color
 			ecs.AddComponent(newEntity, img);
@@ -280,16 +323,20 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(_child, _newParent, _insertIndex, _keepWorldPos);
 		}
 
+		void SetActive(Entity entity, bool isActive) {
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(entity, isActive);
+		}
+
 		void AddLightComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{ .luid = Core::LUIDGenerator::Generate("tr") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Light{});
 		}
 
 		void AddRendererComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{ .luid = Core::LUIDGenerator::Generate("re") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Renderer{});
 		}
 
 		void AddRigidbodyComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{ .luid = Core::LUIDGenerator::Generate("ri") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Rigidbody{});
 		}
 
 		void AddColliderComponent(uint32_t e) {
@@ -301,11 +348,11 @@ namespace NE::ECS {
 		}
 
 		void AddScriptComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{ .luid = Core::LUIDGenerator::Generate("sc") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::NativeScript{});
 		}
 
 		void AddCameraComponent(uint32_t e) {
-			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{ .luid = Core::LUIDGenerator::Generate("ca") });
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
 		}
 
 		void RemoveLightComponent(uint32_t e) {
@@ -343,7 +390,7 @@ namespace NE::ECS {
 		Component::Renderer& GetEntityRenderer(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
 		}
-		
+
 		Component::Light& GetEntityLight(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Light>(e);
 		}
@@ -359,7 +406,7 @@ namespace NE::ECS {
 		Component::AudioSource& GetEntityAudioSource(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::AudioSource>(e);
 		}
-		
+
 		Component::NativeScript& GetEntityScript(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::NativeScript>(e);
 		}
@@ -388,7 +435,7 @@ namespace NE::ECS {
 		//}
 
 		// === Script Management Implementation ===
-		
+
 		std::vector<std::string> GetRegisteredScriptNames() {
 			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
 			if (scriptSystem) {
@@ -518,5 +565,4 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().GetEntityManager().SetLayer(e, layer);
 		}
 	}
-
 }

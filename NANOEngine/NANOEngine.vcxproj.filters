@@ -76,7 +76,7 @@
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
     <ClCompile Include="src\Serialisation\Serializer.cpp" />
-    <ClCompile Include="LayerRegistry.cpp" />
+    <ClCompile Include="src\Core\LayerRegistry.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerPairFilterImpl.cpp" />
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
@@ -229,7 +229,7 @@
     <ClInclude Include="src\Serialisation\Serializer.hpp" />
     <ClInclude Include="src\Serialisation\BinaryReflection.hpp" />
     <ClInclude Include="src\Core\Tag.hpp" />
-    <ClInclude Include="LayerRegistry.hpp" />
+    <ClInclude Include="src\Core\LayerRegistry.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerPairFilterImpl.hpp" />
     <ClInclude Include="src\Physics\PhysicsSettings.hpp" />
     <ClInclude Include="src\Physics\BroadPhaseLayerInterfaceImpl.hpp" />

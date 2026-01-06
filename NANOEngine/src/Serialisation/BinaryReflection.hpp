@@ -6,6 +6,8 @@
 #include <vector>
 #include <filesystem>
 #include <variant>
+#include <bit>
+#include <cstring>
 
 #include "Math/Vec2.hpp"
 #include "Math/Vec3.hpp"
@@ -325,10 +327,14 @@ namespace NE {
 
         template <NE::Core::Reflectable T>
         inline bool FromBinary(const uint8_t*& it, const uint8_t* end, T& obj) {
+            bool ok = true;
+
             NE::Core::ForEachField(obj, [&](auto&& /*desc*/, auto&& field) {
-                FromBinary(it, end, field);
+                if (!ok) return;
+                ok = FromBinary(it, end, field);
                 });
-            return true;
+
+            return ok;
         }
     }
 

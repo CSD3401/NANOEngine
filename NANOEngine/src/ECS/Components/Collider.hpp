@@ -9,11 +9,6 @@
 
 namespace NE::ECS::Component {
 	struct Collider {
-		struct NoColliderData {
-			NE_REFLECT_BEGIN(NoColliderData)
-				NE_REFLECT_END()
-		};
-
 		struct BoxColliderData {
 			Math::Vec3 halfExtents{ 0.5f, 0.5f, 0.5f };
 			NE_REFLECT_BEGIN(BoxColliderData)
@@ -52,7 +47,6 @@ namespace NE::ECS::Component {
 		};
 
 		using ColliderData = std::variant<
-			NoColliderData,
 			BoxColliderData,
 			SphereColliderData,
 			CapsuleColliderData,
@@ -61,7 +55,6 @@ namespace NE::ECS::Component {
 		>;
 
 		enum class ColliderType : uint8_t {
-			None,
 			Box,
 			Sphere,
 			Capsule,
@@ -71,7 +64,8 @@ namespace NE::ECS::Component {
 
 		ColliderData data;
 		Math::Vec3 center{ 0.f, 0.f, 0.f };
-		ColliderType type{ ColliderType::None };
+		uint64_t luid;
+		ColliderType type{ ColliderType::Box };
 		bool isTrigger = false;
 
 		bool isDirty = false;
@@ -80,7 +74,8 @@ namespace NE::ECS::Component {
 			NE_REFLECT_FIELD_HIDDEN(type), // Hidden due to no enum reflection support but for disk serialization
 			NE_REFLECT_FIELD(isTrigger),
 			NE_REFLECT_FIELD(center),
-			NE_REFLECT_FIELD_HIDDEN(data) // Hidden due to no std::variant reflection support but for disk serialization
+			NE_REFLECT_FIELD_HIDDEN(data), // Hidden due to no std::variant reflection support but for disk serialization
+			NE_REFLECT_FIELD_HIDDEN(luid)
 			NE_REFLECT_END()
 	};
 }

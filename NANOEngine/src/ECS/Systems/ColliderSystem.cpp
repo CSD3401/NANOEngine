@@ -4,6 +4,7 @@
 #include "../Components/Collider.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
+#include "Core/LUIDGenerator.hpp"
 
 
 namespace NE::ECS::Systems {
@@ -14,6 +15,9 @@ namespace NE::ECS::Systems {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
+
+		if (col.luid == 0)
+			col.luid = Core::LUIDGenerator::Generate("co");
 	}
 
 	void ColliderSystem::OnEntityRemoved(Entity e) {
@@ -46,7 +50,7 @@ namespace NE::ECS::Systems {
 				col.isDirty = false;
 			}
 
-			if (col.type != Component::Collider::ColliderType::None && col.type != Component::Collider::ColliderType::Mesh)
+			if (col.type != Component::Collider::ColliderType::Mesh)
 				Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t);
 		}
 	}

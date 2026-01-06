@@ -16,8 +16,7 @@
 #include "../../Core/Profiler.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
-
-#include <iostream>
+#include "Core/LUIDGenerator.hpp"
 
 using namespace NE::Math;
 using NE::Graphics::Frustum;
@@ -43,6 +42,9 @@ namespace NE::ECS::Systems {
         if (!renderer.modelUUID.empty())
             renderer.model = Resource::ResourceManager::GetInstance().
             LoadResource<Graphics::Model>(renderer.modelUUID);
+
+        if (renderer.luid == 0)
+            renderer.luid = Core::LUIDGenerator::Generate("rd");
     }
 
     void RenderSystem::OnEntityRemoved(Entity)

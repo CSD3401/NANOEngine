@@ -28,6 +28,7 @@
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
+#include "Core/LUIDGenerator.hpp"
 
 
 
@@ -42,17 +43,17 @@ namespace NE::ECS {
         RegisterComponent<Component::EntityMeta>();
         RegisterComponent<Component::Transform>();
         RegisterComponent<Component::Renderer>();
-        RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Collider>();
+        RegisterComponent<Component::Rigidbody>();
         RegisterComponent<Component::Light>();
         RegisterComponent<Component::AudioSource>();
-        RegisterComponent<Component::NativeScript>();
         RegisterComponent<Component::UIRectTransform>();
         RegisterComponent<Component::UICanvas>();
         RegisterComponent<Component::UIImage>();
         RegisterComponent<Component::Animator>();
 		RegisterComponent<Component::Camera>();
         RegisterComponent<Component::Hierarchy>();
+        RegisterComponent<Component::NativeScript>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
@@ -147,19 +148,7 @@ namespace NE::ECS {
     }
 
     Entity ECSCoordinator::CreateEntity() {
-        Entity entt = m_entityManager->CreateEntity();
-
-        return entt;
-    }
-
-    Entity ECSCoordinator::CreateUICanvasEntity() {
-        Entity entt = m_entityManager->CreateEntity();
-        return entt;
-    }
-
-    Entity ECSCoordinator::CreateUIImageEntity(Entity parentCanvas) {
-        Entity entt = m_entityManager->CreateEntity();
-        return entt;
+        return m_entityManager->CreateEntity();
     }
 
     void ECSCoordinator::DestroyEntity(Entity e) {

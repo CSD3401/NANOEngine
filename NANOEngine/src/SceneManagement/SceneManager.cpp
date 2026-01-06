@@ -16,7 +16,7 @@ namespace NE::SceneManagement {
 		m_editor->InitEdit();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		Prefab::PrefabManager::Init(m_editor.get());
-		Prefab::PrefabManager::RebuildFromScene();
+		//Prefab::PrefabManager::RebuildFromScene();
 		m_isPlaying = false;
 		m_runtime.reset();
 	}
