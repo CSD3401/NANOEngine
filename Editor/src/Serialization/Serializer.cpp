@@ -98,7 +98,7 @@ namespace Editor {
 				for (NE::ECS::Entity entity : allEntities) {
 					if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
 						auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
-						NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
+						NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(entity, nsc);
 					}
 				}
 

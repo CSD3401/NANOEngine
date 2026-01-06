@@ -134,13 +134,25 @@ namespace NE::Scripting {
 
         /**
          * Save script field values to component for hot-reload preservation.
+         * @deprecated Use the overload that takes entity ID instead.
          */
         NANOENGINE_API void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
 
         /**
+         * Save script field values to component (preferred overload with entity ID).
+         */
+        NANOENGINE_API void SaveSerializedFields(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
+
+        /**
          * Restore script field values from component after hot-reload.
+         * @deprecated Use the overload that takes entity ID instead.
          */
         NANOENGINE_API void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
+
+        /**
+         * Restore script field values from component (preferred overload with entity ID).
+         */
+        NANOENGINE_API void RestoreSerializedFields(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
 
         /**
          * Destroy script instance and call cleanup (used before hot-reload).
