@@ -441,7 +441,39 @@ namespace NE::Physics {
             }
         }
     }
-    
+
+    Math::Vec3 PhysicsManager::GetLinearVelocity(uint64_t entityLUID) const {
+        auto it = m_bodies.find(entityLUID);
+        if (it != m_bodies.end()) {
+            JPH::Vec3 joltVel = m_physicsSystem->GetBodyInterface().GetLinearVelocity(it->second);
+            return Math::Vec3(joltVel.GetX(), joltVel.GetY(), joltVel.GetZ());
+        }
+        return Math::Vec3(0.0f, 0.0f, 0.0f);
+    }
+
+    void PhysicsManager::SetLinearVelocity(uint64_t entityLUID, const Math::Vec3& velocity) {
+        auto it = m_bodies.find(entityLUID);
+        if (it != m_bodies.end()) {
+            m_physicsSystem->GetBodyInterface().SetLinearVelocity(it->second, ToJoltVec3(velocity));
+        }
+    }
+
+    Math::Vec3 PhysicsManager::GetAngularVelocity(uint64_t entityLUID) const {
+        auto it = m_bodies.find(entityLUID);
+        if (it != m_bodies.end()) {
+            JPH::Vec3 joltAngVel = m_physicsSystem->GetBodyInterface().GetAngularVelocity(it->second);
+            return Math::Vec3(joltAngVel.GetX(), joltAngVel.GetY(), joltAngVel.GetZ());
+        }
+        return Math::Vec3(0.0f, 0.0f, 0.0f);
+    }
+
+    void PhysicsManager::SetAngularVelocity(uint64_t entityLUID, const Math::Vec3& angularVelocity) {
+        auto it = m_bodies.find(entityLUID);
+        if (it != m_bodies.end()) {
+            m_physicsSystem->GetBodyInterface().SetAngularVelocity(it->second, ToJoltVec3(angularVelocity));
+        }
+    }
+
     void PhysicsManager::OnPlay() {
 
     }

@@ -72,6 +72,11 @@ namespace NE::Physics {
 
         void AddForce(uint64_t entityLUID, Math::Vec3 force, ForceMode forceMode = ForceMode::Force);
 
+        Math::Vec3 GetLinearVelocity(uint64_t entityLUID) const;
+        void SetLinearVelocity(uint64_t entityLUID, const Math::Vec3& velocity);
+        Math::Vec3 GetAngularVelocity(uint64_t entityLUID) const;
+        void SetAngularVelocity(uint64_t entityLUID, const Math::Vec3& angularVelocity);
+
     private:
         ECS::ComponentManager* m_componentManager = nullptr;
 

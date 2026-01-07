@@ -126,6 +126,9 @@ namespace Scripting {
     /// Opaque handle to Rigidbody component (internal use only)
     struct RigidbodyHandle { void* _internal; };
 
+    /// Opaque handle to Renderer component (internal use only)
+    struct RendererHandle { void* _internal; };
+
     /// Opaque handle to AudioSource component (internal use only)
     struct AudioSourceHandle { void* _internal; };
 
@@ -170,6 +173,7 @@ namespace Scripting {
     // Specific component reference types
     using TransformRef = ComponentRef<TransformHandle>;
     using RigidbodyRef = ComponentRef<RigidbodyHandle>;
+    using RendererRef = ComponentRef<RendererHandle>;
     using AudioSourceRef = ComponentRef<AudioSourceHandle>;
     using MaterialRef = ComponentRef<MaterialHandle>;
     using PrefabRef = ComponentRef<PrefabHandle>;

@@ -1296,9 +1296,10 @@ namespace Editor {
 									ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
 								}
 							}
-							else if (ftype == "transformref" || ftype == "rigidbodyref") {
+							else if (ftype == "transformref" || ftype == "rigidbodyref" || ftype == "rendererref") {
 								// Component reference field - display entity name and allow drag-drop
-								std::string componentType = (ftype == "transformref") ? "Transform" : "Rigidbody";
+								std::string componentType = (ftype == "transformref") ? "Transform" :
+								                             (ftype == "rigidbodyref") ? "Rigidbody" : "Renderer";
 								std::string displayName = "None";
 								uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
 								std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
@@ -1345,6 +1346,9 @@ namespace Editor {
 										}
 										else if (ftype == "rigidbodyref") {
 											hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Rigidbody>(droppedEntity);
+										}
+										else if (ftype == "rendererref") {
+											hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(droppedEntity);
 										}
 
 										if (hasComponent) {
@@ -1541,9 +1545,10 @@ namespace Editor {
 											elemChanged = true;
 										}
 									}
-									else if (elementType == "transformref" || elementType == "rigidbodyref") {
+									else if (elementType == "transformref" || elementType == "rigidbodyref" || elementType == "rendererref") {
 										// Component reference in array
-										std::string componentType = (elementType == "transformref") ? "Transform" : "Rigidbody";
+										std::string componentType = (elementType == "transformref") ? "Transform" :
+										                             (elementType == "rigidbodyref") ? "Rigidbody" : "Renderer";
 										std::string displayName = "None";
 										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
 										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
@@ -1582,6 +1587,9 @@ namespace Editor {
 												}
 												else if (elementType == "rigidbodyref") {
 													hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Rigidbody>(droppedEntity);
+												}
+												else if (elementType == "rendererref") {
+													hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(droppedEntity);
 												}
 
 												if (hasComponent) {
