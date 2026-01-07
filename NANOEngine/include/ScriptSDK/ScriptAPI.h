@@ -194,6 +194,52 @@ namespace Scripting {
         virtual const char* GetTypeName() const { return "IScript"; }
 
         //=====================================================================
+        // ENTITY METADATA
+        //=====================================================================
+
+        /**
+         * Get the name of an entity.
+         * @param entity Entity to query (defaults to this script's entity)
+         * @return Entity name string
+         */
+        std::string GetEntityName(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the name of an entity.
+         * @param name New name for the entity
+         * @param entity Entity to modify (defaults to this script's entity)
+         */
+        void SetEntityName(const std::string& name, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Get the layer of an entity.
+         * @param entity Entity to query (defaults to this script's entity)
+         * @return Layer index (0-255)
+         */
+        uint8_t GetLayer(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Set the layer of an entity.
+         * @param layer New layer index (0-255)
+         * @param entity Entity to modify (defaults to this script's entity)
+         */
+        void SetLayer(uint8_t layer, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        /**
+         * Check if an entity is part of a prefab instance.
+         * @param entity Entity to query (defaults to this script's entity)
+         * @return true if entity is part of a prefab
+         */
+        bool IsPrefabInstance(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        /**
+         * Check if an entity is a prefab root.
+         * @param entity Entity to query (defaults to this script's entity)
+         * @return true if entity is the root of a prefab instance
+         */
+        bool IsPrefabRoot(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        //=====================================================================
         // TRANSFORM OPERATIONS (Unity-style)
         // All functions support optional Entity parameter:
         // - If not specified, operates on this script's entity (m_entity)

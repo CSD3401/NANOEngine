@@ -12,6 +12,7 @@
 #include <ECS/Components/Collider.hpp>
 #include <ECS/Components/AudioSource.hpp>
 #include <ECS/Components/NativeScript.hpp>
+#include <Scripting/ScriptingEngine.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
@@ -1371,402 +1372,316 @@ namespace Editor {
 	}
 
 	void InspectorPanel::DrawScriptComponent(uint32_t entity) {
-		auto& comp = NE::ECS::Query::GetEntityScript(entity);
-		ImGui::SeparatorText("Script");
+		auto& comp = NE::ECS::Command::GetEntityScript(entity);
+		ImGui::SeparatorText("Scripts");
 
-		// Display current script name or "None"
-		std::string currentScript = comp.ScriptName.empty() ? "None" : comp.ScriptName;
+		// Get all script instances for this entity
+		const auto* scriptInstances = NE::Scripting::ScriptingEngine::GetInstance().GetScriptInstances(entity);
 
-		ImGui::Text("Current Script: %s", currentScript.c_str());
-
-		// Script selection dropdown
-		if (ImGui::BeginCombo("Script Type", currentScript.c_str())) {
-			// "None" option to remove script
-			if (ImGui::Selectable("None", comp.ScriptName.empty())) {
-				NE::ECS::Command::RemoveEntityScript(entity);
+		// Display list of scripts
+		if (!comp.ScriptNames.empty()) {
+			// Build script list string for display
+			std::string scriptList;
+			for (size_t i = 0; i < comp.ScriptNames.size(); ++i) {
+				if (i > 0) scriptList += ", ";
+				scriptList += comp.ScriptNames[i];
 			}
+			ImGui::Text("Scripts: %s", scriptList.c_str());
+		} else {
+			ImGui::Text("Scripts: None");
+		}
 
+		// Script selection dropdown (add new script)
+		ImGui::Text("Add Script:");
+		if (ImGui::BeginCombo("##ScriptType", "Add Script...")) {
 			// List all registered scripts
 			auto scriptNames = NE::ECS::Command::GetRegisteredScriptNames();
 			for (const auto& scriptName : scriptNames) {
-				bool isSelected = (comp.ScriptName == scriptName);
-				if (ImGui::Selectable(scriptName.c_str(), isSelected)) {
-					NE::ECS::Command::SetEntityScript(entity, scriptName);
+				// Check if script is already attached
+				bool alreadyAttached = false;
+				for (const auto& attachedName : comp.ScriptNames) {
+					if (attachedName == scriptName) {
+						alreadyAttached = true;
+						break;
+					}
 				}
-				if (isSelected) {
-					ImGui::SetItemDefaultFocus();
+
+				if (alreadyAttached) {
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+					ImGui::Selectable(scriptName.c_str(), false, ImGuiSelectableFlags_Disabled);
+					ImGui::PopStyleColor();
+				}
+				else if (ImGui::Selectable(scriptName.c_str())) {
+					// Add this script to the list
+					NE::ECS::Command::AddEntityScript(entity, scriptName);
 				}
 			}
 			ImGui::EndCombo();
 		}
 
-		// Display script status
-		if (!comp.ScriptName.empty()) {
+		ImGui::SameLine();
+		if (ImGui::Button("Clear All") && !comp.ScriptNames.empty()) {
+			NE::ECS::Command::RemoveEntityScript(entity);
+		}
+
+		// Display script status and fields for each script
+		if (!comp.ScriptNames.empty() && scriptInstances && !scriptInstances->empty()) {
 			ImGui::Separator();
 
-			// Check if script is registered in the DLL
-			bool isRegistered = NE::ECS::Command::IsScriptRegistered(comp.ScriptName);
+			for (size_t scriptIdx = 0; scriptIdx < comp.ScriptNames.size() && scriptIdx < scriptInstances->size(); ++scriptIdx) {
+				const std::string& scriptName = comp.ScriptNames[scriptIdx];
+				NE::Scripting::IScript* scriptInstance = (*scriptInstances)[scriptIdx];
 
-			// Check if script instance exists before accessing it
-			if (!comp.Instance) {
-				// More detailed error message based on registration status
-				if (!isRegistered) {
-					ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Status: Script not found in DLL");
-					ImGui::TextWrapped("The script '%s' no longer exists in the compiled game code.", comp.ScriptName.c_str());
-					ImGui::TextWrapped("It may have been deleted or renamed.");
-
-					// Offer to remove the invalid script
-					ImGui::Spacing();
-					if (ImGui::Button("Remove Invalid Script")) {
-						NE::ECS::Command::RemoveEntityScript(entity);
+				// Helper lambda to update field value in both script instance and serialized fields
+				auto UpdateFieldValue = [&](const std::string& fieldName, const std::string& value) -> bool {
+					// Update the script instance
+					bool success = scriptInstance->SetFieldValueFromString(fieldName, value);
+					if (success) {
+						// Also update the component's serialized fields for persistence
+						std::string key = NE::ECS::Component::NativeScript::GetFieldKey(scriptName, fieldName);
+						comp.SerializedFields[key] = value;
 					}
-					ImGui::SameLine();
-					ImGui::TextDisabled("(?)");
-					if (ImGui::IsItemHovered()) {
-						ImGui::SetTooltip("This will clear the script component and put it in 'No Script' state");
+					return success;
+				};
+
+				// Helper lambda to sync array field after modifications (add/remove/element change)
+				auto SyncArrayField = [&](const std::string& fieldName) {
+					std::string key = NE::ECS::Component::NativeScript::GetFieldKey(scriptName, fieldName);
+					std::string currentValue = scriptInstance->GetFieldValueAsString(fieldName);
+					comp.SerializedFields[key] = currentValue;
+				};
+
+				// Create a unique ID for this script's header
+				std::string headerLabel = scriptName + "##script_" + std::to_string(scriptIdx);
+
+				// Push ID for this script
+				ImGui::PushID(scriptIdx);
+
+				// Collapsing header for each script (default open)
+				ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.3f, 0.4f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.4f, 0.5f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.4f, 0.5f, 0.6f, 1.0f));
+				bool headerOpen = ImGui::CollapsingHeader(headerLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+				ImGui::PopStyleColor(3);
+
+				// Add remove button on the same line as the header (right side)
+				ImGui::SameLine(ImGui::GetWindowWidth() - 100);
+				if (ImGui::Button(("Remove##" + std::to_string(scriptIdx)).c_str(), ImVec2(80, 0))) {
+					// Remove this specific script by index
+					NE::ECS::Command::RemoveEntityScriptByIndex(entity, scriptIdx);
+					headerOpen = false; // Skip rendering this script since it was removed
+				}
+
+				if (headerOpen) {
+				if (!scriptInstance) {
+					// Check if script is registered in the DLL
+					bool isRegistered = NE::ECS::Command::IsScriptRegistered(scriptName);
+
+					// More detailed error message based on registration status
+					if (!isRegistered) {
+						ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Status: Script not found in DLL");
+						ImGui::TextWrapped("The script '%s' no longer exists in the compiled game code.", scriptName.c_str());
+						ImGui::TextWrapped("It may have been deleted or renamed.");
+					} else {
+						ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Status: Script not instantiated");
+						ImGui::TextWrapped("The script instance failed to initialize. Try reloading the scene or removing and re-adding the script.");
 					}
-				} else {
-					ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Status: Script not instantiated");
-					ImGui::TextWrapped("The script instance failed to initialize. Try reloading the scene or removing and re-adding the script.");
 				}
-			} else {
-				// Script enabled/disabled checkbox
-				bool enabled = comp.Instance->IsEnabled();
-				if (ImGui::Checkbox("Enabled", &enabled)) {
-					comp.Instance->SetEnabled(enabled);
-				}
+				else {
+					// Script enabled/disabled checkbox
+					bool enabled = scriptInstance->IsEnabled();
+					ImGui::PushID(("enabled_" + std::to_string(scriptIdx)).c_str());
+					if (ImGui::Checkbox("Enabled", &enabled)) {
+						scriptInstance->SetEnabled(enabled);
+					}
+					ImGui::PopID();
 
-				ImGui::Text("Status: Active");
-				ImGui::Text("Entity ID: %u", comp.Instance->GetEntity());
+					ImGui::Text("Entity ID: %u", scriptInstance->GetEntity());
 
-				// --- Scripting Fields UI ---
-				auto fieldNames = comp.Instance->GetExposedFieldNames();
-				if (!fieldNames.empty()) {
-					ImGui::SeparatorText("Script Fields");
+					// --- Scripting Fields UI ---
+					auto fieldNames = scriptInstance->GetExposedFieldNames();
+					if (!fieldNames.empty()) {
+						ImGui::SeparatorText("Script Fields");
 
-					// ? NEW: Group struct fields under collapsible headers
-					std::unordered_map<std::string, std::vector<std::string>> structGroups;
-					std::vector<std::string> normalFields;
+						// Group struct fields under collapsible headers
+						std::unordered_map<std::string, std::vector<std::string>> structGroups;
+						std::vector<std::string> normalFields;
 
-					// Separate struct fields (contain '.') from normal fields
-					for (const auto& fname : fieldNames) {
-						if (fname.find('.') != std::string::npos) {
-							// Extract struct name (e.g., "stats" from "stats.health")
-							size_t dotPos = fname.find('.');
-							std::string structName = fname.substr(0, dotPos);
-							structGroups[structName].push_back(fname);
-						} else {
-							normalFields.push_back(fname);
+						// Separate struct fields (contain '.') from normal fields
+						for (const auto& fname : fieldNames) {
+							if (fname.find('.') != std::string::npos) {
+								// Extract struct name (e.g., "stats" from "stats.health")
+								size_t dotPos = fname.find('.');
+								std::string structName = fname.substr(0, dotPos);
+								structGroups[structName].push_back(fname);
+							}
+							else {
+								normalFields.push_back(fname);
+							}
 						}
-					}
 
-					// Render normal fields first
-					for (const auto& fname : normalFields) {
-						std::string ftype = comp.Instance->GetFieldType(fname);
-						std::string fval = comp.Instance->GetFieldValueAsString(fname);
+						// Render normal fields first
+						for (const auto& fname : normalFields) {
+							std::string ftype = scriptInstance->GetFieldType(fname);
+							std::string fval = scriptInstance->GetFieldValueAsString(fname);
 
-						ImGui::PushID(fname.c_str());
+							ImGui::PushID(fname.c_str());
 
-						bool fieldChanged = false;
+							bool fieldChanged = false;
 
-						if (ftype == "bool") {
-							bool v = (fval == "1" || fval == "true");
-							if (ImGui::Checkbox(fname.c_str(), &v)) {
-								comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
-								fieldChanged = true;
+							if (ftype == "bool") {
+								bool v = (fval == "1" || fval == "true");
+								if (ImGui::Checkbox(fname.c_str(), &v)) {
+									UpdateFieldValue(fname, v ? "1" : "0");
+									fieldChanged = true;
+								}
 							}
-						} else if (ftype == "int") {
-							int v = 0; if (!fval.empty()) v = std::stoi(fval);
-							if (ImGui::DragInt(fname.c_str(), &v)) {
-								comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
-								fieldChanged = true;
+							else if (ftype == "int") {
+								int v = 0; if (!fval.empty()) v = std::stoi(fval);
+								if (ImGui::DragInt(fname.c_str(), &v)) {
+									UpdateFieldValue(fname, std::to_string(v));
+									fieldChanged = true;
+								}
 							}
-						} else if (ftype == "float") {
-							float v = 0.f; if (!fval.empty()) v = std::stof(fval);
-							if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
-								comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
-								fieldChanged = true;
+							else if (ftype == "float") {
+								float v = 0.f; if (!fval.empty()) v = std::stof(fval);
+								if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
+									UpdateFieldValue(fname, std::to_string(v));
+									fieldChanged = true;
+								}
 							}
-						} else if (ftype == "vec3") {
-							NE::Math::Vec3 vv = Vec3FromString(fval);
-							if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
-								comp.Instance->SetFieldValueFromString(fname, Vec3ToString(vv));
-								fieldChanged = true;
+							else if (ftype == "vec3") {
+								NE::Math::Vec3 vv = Vec3FromString(fval);
+								if (Editor::DrawVec3Control(fname.c_str(), vv, 0.0f, 100.0f)) {
+									UpdateFieldValue(fname, Vec3ToString(vv));
+									fieldChanged = true;
+								}
 							}
-						} else if (ftype == "enum") {
-							// Enum dropdown support
-							auto enumOptions = comp.Instance->GetEnumOptions(fname);
-							if (!enumOptions.empty()) {
-								int currentValue = 0;
-								if (!fval.empty()) {
-									try {
-										currentValue = std::stoi(fval);
-									} catch (...) {
+							else if (ftype == "enum") {
+								// Enum dropdown support
+								auto enumOptions = scriptInstance->GetEnumOptions(fname);
+								if (!enumOptions.empty()) {
+									int currentValue = 0;
+									if (!fval.empty()) {
+										try {
+											currentValue = std::stoi(fval);
+										}
+										catch (...) {
+											currentValue = 0;
+										}
+									}
+
+									// Clamp to valid range
+									if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
 										currentValue = 0;
 									}
-								}
 
-								// Clamp to valid range
-								if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
-									currentValue = 0;
-								}
-
-								if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
-									for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
-										bool isSelected = (currentValue == i);
-										if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
-											comp.Instance->SetFieldValueFromString(fname, std::to_string(i));
-											fieldChanged = true;
+									if (ImGui::BeginCombo(fname.c_str(), enumOptions[currentValue].c_str())) {
+										for (int i = 0; i < static_cast<int>(enumOptions.size()); ++i) {
+											bool isSelected = (currentValue == i);
+											if (ImGui::Selectable(enumOptions[i].c_str(), isSelected)) {
+												UpdateFieldValue(fname, std::to_string(i));
+												fieldChanged = true;
+											}
+											if (isSelected) {
+												ImGui::SetItemDefaultFocus();
+											}
 										}
-										if (isSelected) {
-											ImGui::SetItemDefaultFocus();
-										}
+										ImGui::EndCombo();
 									}
-									ImGui::EndCombo();
 								}
-							} else {
-								// Fallback if no enum options provided
-								ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
+								else {
+									// Fallback if no enum options provided
+									ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
+								}
 							}
-						} else if (ftype.starts_with("componentref:")) {
-							//// Component reference field
-							//// Extract component type (e.g., "Transform" from "componentref:Transform")
-							//std::string componentType = ftype.substr(13); // Skip "componentref:"
+							else if (ftype.starts_with("componentref:")) {
+								// Component reference field support currently disabled
+								ImGui::Text("%s (ComponentRef - not implemented)", fname.c_str());
+							}
+							else if (ftype == "materialref") {
+								// Material reference field
+								std::string materialUUID = fval;
+								std::string displayName = materialUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(materialUUID);
 
-							//// Get current pointer value and try to find the entity name
-							//std::string displayName = "None";
-							//uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
-							//std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
-							//if (!fval.empty() && fval != noEntityStr) {
-							//	try {
-							//		// Now fval is entity ID, not a pointer!
-							//		assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
+								ImGui::Text("%s (Material)", fname.c_str());
 
-							//		// Verify entity still exists and has the component
-							//		NE::ECS::Signature entitySig(NE::ECS::Query::GetEntitySignature(assignedEntityId));
-							//		bool isValid = false;
+								ImGui::PushID((fname + "_matref").c_str());
 
-							//		if (componentType == "Transform") {
-							//			isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Transform)]);
-							//		} else if (componentType == "Rigidbody") {
-							//			isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Rigidbody)]);
-							//		} else if (componentType == "AudioSource") {
-							//			isValid = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::AudioSource)]);
-							//		}
+								ImGui::Button(displayName.c_str(), ImVec2(200, 0));
 
-							//		if (isValid) {
-							//			const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-							//			displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
-							//		} else {
-							//			displayName = "[Invalid Reference]";
-							//			assignedEntityId = NE::ECS::NO_ENTITY;
-							//		}
-							//	} catch (...) {
-							//		displayName = "[Error]";
-							//	}
-							//}
+								if (ImGui::BeginDragDropTarget()) {
+									const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
+									if (payload && payload->DataSize > 0) {
+										std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+										std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
 
-							//// Display the component reference field
-							//ImGui::Text("%s (%s)", fname.c_str(), componentType.c_str());
-
-							//ImGui::PushID((fname + "_compref").c_str());
-
-							//// Button shows entity name or status
-							//if (ImGui::Button(displayName.c_str(), ImVec2(200, 0))) {
-							//	// Future: could select the referenced entity in hierarchy
-							//	if (assignedEntityId != NE::ECS::NO_ENTITY) {
-							//		SPD_DEBUG("Referenced entity: {} (ID: {})", displayName, assignedEntityId);
-							//	}
-							//}
-
-							//// Drag-drop support - accept entity drops
-							//if (ImGui::BeginDragDropTarget()) {
-							//	// Try to accept HIER_DRAG_ID (from Hierarchy panel)
-							//	const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
-							//	if (payload && payload->DataSize == sizeof(uint32_t)) {
-							//		uint32_t droppedEntity = *(const uint32_t*)payload->Data;
-
-							//		// Verify entity has the required component
-							//		bool hasComponent = false;
-							//		NE::ECS::Signature entitySig(NE::ECS::Query::GetEntitySignature(droppedEntity));
-
-							//		if (componentType == "Transform") {
-							//			hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Transform)]);
-							//		} else if (componentType == "Rigidbody") {
-							//			hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::Rigidbody)]);
-							//		} else if (componentType == "AudioSource") {
-							//			hasComponent = entitySig.test(NE::ECS::Query::GetRegisteredComponentTypes()[typeid(NE::ECS::Component::AudioSource)]);
-							//		}
-
-							//		if (hasComponent) {
-							//			const auto& entityMeta = NE::ECS::Query::GetEntityMeta(droppedEntity);
-							//			std::string entityName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
-
-							//			// Store entity ID (not pointer!)
-							//			bool success = comp.Instance->SetFieldValueFromString(fname, std::to_string(droppedEntity));
-
-							//			if (success) {
-							//				comp.Instance->_RefreshComponentReferences();
-							//				fieldChanged = true;
-							//			}
-
-							//		}
-							//	}
-							//	ImGui::EndDragDropTarget();
-							//}
-
-							//// Clear button
-							//ImGui::SameLine();
-							//if (ImGui::Button("X")) {
-							//	comp.Instance->SetFieldValueFromString(fname, noEntityStr);
-							//	comp.Instance->_RefreshComponentReferences(); // Clear the pointer too
-							//	fieldChanged = true;
-							//}
-
-							//ImGui::PopID();
-						} else if (ftype == "materialref") {
-							// Material reference field
-							// Get current material UUID
-							std::string materialUUID = fval;
-							std::string displayName = materialUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(materialUUID);
-
-							// Display the material reference field
-							ImGui::Text("%s (Material)", fname.c_str());
-
-							ImGui::PushID((fname + "_matref").c_str());
-
-							// Button shows material name or "None" - make it a drop target
-							ImGui::Button(displayName.c_str(), ImVec2(200, 0));
-
-							// Drag-drop support - accept material drops from asset browser
-							// NOTE: Must be called right after the button, while it's still the active item
-							if (ImGui::BeginDragDropTarget()) {
-								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
-								if (payload && payload->DataSize > 0) {
-									std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
-									SPD_DEBUG("[MaterialRef] Dropped path: {}", droppedPath);
-
-									std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
-									SPD_DEBUG("[MaterialRef] Retrieved UUID: {}", droppedUUID);
-
-									if (!droppedUUID.empty()) {
-										SPD_DEBUG("[MaterialRef] Calling SetFieldValueFromString for field '{}' with UUID '{}'", fname, droppedUUID);
-										bool success = comp.Instance->SetFieldValueFromString(fname, droppedUUID);
-										SPD_DEBUG("[MaterialRef] SetFieldValueFromString returned: {}", success);
-										if (success) {
-											fieldChanged = true;
-											SPD_DEBUG("[MaterialRef] Material {} assigned to field {}", droppedUUID, fname);
-										} else {
-											SPD_ERROR("[MaterialRef] Failed to assign material {} to field {}", droppedUUID, fname);
+										if (!droppedUUID.empty()) {
+											bool success = UpdateFieldValue(fname, droppedUUID);
+											if (success) {
+												fieldChanged = true;
+											}
 										}
-									} else {
-										SPD_ERROR("[MaterialRef] Empty UUID retrieved from path: {}", droppedPath);
 									}
-								} else {
-									if (payload) {
-										SPD_DEBUG("[MaterialRef] Payload received but DataSize is: {}", payload->DataSize);
-									} else {
-										SPD_DEBUG("[MaterialRef] No MATERIAL_PATH payload accepted");
-									}
-								}
-								ImGui::EndDragDropTarget();
+									ImGui::EndDragDropTarget();
 							}
 
-							// Clear button
 							ImGui::SameLine();
 							if (ImGui::Button("X")) {
-								comp.Instance->SetFieldValueFromString(fname, "");
+								UpdateFieldValue(fname, "");
 								fieldChanged = true;
 							}
 
 							ImGui::PopID();
-						} else if (ftype == "prefabref") {
+						}
+						else if (ftype == "prefabref") {
 							// Prefab reference field
-							// Get current prefab UUID
 							std::string prefabName = fval;
-							//std::string displayName = prefabUUID.empty() ? "None" : AssetManager::GetInstance().RetrieveFileName(prefabUUID);
 
-							// Display the prefab reference field
 							ImGui::Text("%s (Prefab)", fname.c_str());
 
 							ImGui::PushID((fname + "_prefabref").c_str());
 
-							// Button shows prefab name or "None" - make it a drop target
 							ImGui::Button(prefabName.c_str(), ImVec2(200, 0));
 
-							// Drag-drop support - accept prefab drops from asset browser
-							// NOTE: Must be called right after the button, while it's still the active item
 							if (ImGui::BeginDragDropTarget()) {
 								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
 								if (payload && payload->DataSize > 0) {
 									std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
-									SPD_DEBUG("[PrefabRef] Dropped path: {}", droppedPath);
-
-									/*std::string droppedUUID = AssetManager::GetInstance().RetrieveUUID(droppedPath);
-									SPD_DEBUG("[PrefabRef] Retrieved UUID: {}", droppedUUID);*/
-
-									bool success = comp.Instance->SetFieldValueFromString(fname, droppedPath);
-									SPD_DEBUG("[PrefabRef] SetFieldValueFromString returned: {}", success);
+									bool success = UpdateFieldValue(fname, droppedPath);
 									if (success) {
 										fieldChanged = true;
-										SPD_DEBUG("[PrefabRef] Prefab " << droppedPath << " assigned to " << fname);
-									} else {
-										SPD_ERROR("[PrefabRef] Fail to get Prefab " << droppedPath << " assigned to " << fname);
-									}
-
-									/*if (!droppedUUID.empty()) {
-										SPD_DEBUG("[PrefabRef] Calling SetFieldValueFromString for field '{}' with UUID '{}'", fname, droppedUUID);
-										bool success = comp.Instance->SetFieldValueFromString(fname, droppedPath);
-										SPD_DEBUG("[PrefabRef] SetFieldValueFromString returned: {}", success);
-										if (success) {
-											fieldChanged = true;
-											SPD_DEBUG("[PrefabRef] Prefab {} assigned to field {}", droppedUUID, fname);
-										} else {
-											SPD_ERROR("[PrefabRef] Failed to assign prefab {} to field {}", droppedUUID, fname);
-										}
-									} else {
-										SPD_ERROR("[PrefabRef] Empty UUID retrieved from path: {}", droppedPath);
-									}*/
-								} else {
-									if (payload) {
-										SPD_DEBUG("[PrefabRef] Payload received but DataSize is: {}", payload->DataSize);
-									} else {
-										SPD_DEBUG("[PrefabRef] No PREFAB_ASSET_PATH payload accepted");
 									}
 								}
 								ImGui::EndDragDropTarget();
 							}
 
-							// Clear button
 							ImGui::SameLine();
 							if (ImGui::Button("X")) {
-								comp.Instance->SetFieldValueFromString(fname, "");
+								UpdateFieldValue(fname, "");
 								fieldChanged = true;
 							}
 
 							ImGui::PopID();
-						} else if (ftype.starts_with("vector<")) {
-							// Array/Vector support (int, float, bool, string)
-							// NOTE: Nested struct vectors not yet supported - will be added in future commit
-							size_t arraySize = comp.Instance->GetArraySize(fname);
+						}
+						else if (ftype.starts_with("vector<")) {
+							// Array/Vector support
+							size_t arraySize = scriptInstance->GetArraySize(fname);
 
 							if (ImGui::TreeNode(fname.c_str(), "%s [%zu]", fname.c_str(), arraySize)) {
-								// Add element button
 								if (ImGui::Button("+##add")) {
-									comp.Instance->AddArrayElement(fname);
+									scriptInstance->AddArrayElement(fname);
+									SyncArrayField(fname);
 									fieldChanged = true;
 								}
 								ImGui::SameLine();
 								ImGui::Text("Add Element");
 
-								// Display each element
 								for (size_t i = 0; i < arraySize; ++i) {
 									ImGui::PushID(static_cast<int>(i));
 
-									std::string elemValue = comp.Instance->GetArrayElement(fname, i);
-
-									// Determine element type from vector<T>
-									std::string elementType = ftype.substr(7, ftype.length() - 8); // Extract T from "vector<T>"
+									std::string elemValue = scriptInstance->GetArrayElement(fname, i);
+									std::string elementType = ftype.substr(7, ftype.length() - 8);
 
 									ImGui::Text("[%zu]", i);
 									ImGui::SameLine();
@@ -1775,132 +1690,84 @@ namespace Editor {
 									if (elementType == "int") {
 										int val = elemValue.empty() ? 0 : std::stoi(elemValue);
 										if (ImGui::DragInt("##elem", &val)) {
-											comp.Instance->SetArrayElement(fname, i, std::to_string(val));
+											scriptInstance->SetArrayElement(fname, i, std::to_string(val));
 											elemChanged = true;
 										}
-									} else if (elementType == "float") {
+									}
+									else if (elementType == "float") {
 										float val = elemValue.empty() ? 0.0f : std::stof(elemValue);
 										if (ImGui::DragFloat("##elem", &val, 0.01f)) {
-											comp.Instance->SetArrayElement(fname, i, std::to_string(val));
+											scriptInstance->SetArrayElement(fname, i, std::to_string(val));
 											elemChanged = true;
 										}
-									} else if (elementType == "bool") {
+									}
+									else if (elementType == "bool") {
 										bool val = (elemValue == "1" || elemValue == "true");
 										if (ImGui::Checkbox("##elem", &val)) {
-											comp.Instance->SetArrayElement(fname, i, val ? "1" : "0");
+											scriptInstance->SetArrayElement(fname, i, val ? "1" : "0");
 											elemChanged = true;
-
-											// Verification removed for release
-											//std::string verifyValue = comp.Instance->GetArrayElement(fname, i);
-											//SPD_DEBUG(" Verification: flags[" << i << "] is now '" << verifyValue << "'");
 										}
-									} else if (elementType == "string") {
-										// String support for vector<string>
+									}
+									else if (elementType == "string") {
 										char buf[256];
 										strncpy_s(buf, elemValue.c_str(), sizeof(buf));
 										buf[sizeof(buf) - 1] = '\0';
 										if (ImGui::InputText("##elem", buf, sizeof(buf))) {
-											comp.Instance->SetArrayElement(fname, i, std::string(buf));
+											scriptInstance->SetArrayElement(fname, i, std::string(buf));
 											elemChanged = true;
 										}
-									} else if (elementType == "materialref") {
-										// Material reference support for vector<materialref>
+									}
+									else if (elementType == "materialref") {
 										std::string materialUUID = elemValue;
 										std::string displayName = materialUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(materialUUID);
 
-										// Button shows material name or "None" - make it a drop target
 										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
 
-										// Drag-drop support - accept material drops
-										// NOTE: Must be called right after the button, while it's still the active item
 										if (ImGui::BeginDragDropTarget()) {
 											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 											if (payload && payload->DataSize > 0) {
 												std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
-												SPD_DEBUG("[MaterialRef Vector] Dropped path: {}", droppedPath);
-
 												std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
-												SPD_DEBUG("[MaterialRef Vector] Retrieved UUID: {}", droppedUUID);
-
 												if (!droppedUUID.empty()) {
-													SPD_DEBUG("[MaterialRef Vector] Setting element {} of field '{}' to UUID '{}'", i, fname, droppedUUID);
-													bool success = comp.Instance->SetArrayElement(fname, i, droppedUUID);
-													SPD_DEBUG("[MaterialRef Vector] SetArrayElement returned: {}", success);
-													if (success) {
-														elemChanged = true;
-														SPD_DEBUG("[MaterialRef Vector] Successfully assigned material to vector element");
-													} else {
-														SPD_ERROR("[MaterialRef Vector] Failed to set array element");
-													}
-												} else {
-													SPD_ERROR("[MaterialRef Vector] Empty UUID retrieved from path: {}", droppedPath);
-												}
-											} else {
-												if (payload) {
-													SPD_DEBUG("[MaterialRef Vector] Payload received but DataSize is: {}", payload->DataSize);
-												} else {
-													SPD_DEBUG("[MaterialRef Vector] No MATERIAL_PATH payload accepted");
+													bool success = scriptInstance->SetArrayElement(fname, i, droppedUUID);
+													if (success) elemChanged = true;
 												}
 											}
 											ImGui::EndDragDropTarget();
 										}
 
-										// Clear button
 										ImGui::SameLine();
 										if (ImGui::Button("X##clear")) {
-											comp.Instance->SetArrayElement(fname, i, "");
+											scriptInstance->SetArrayElement(fname, i, "");
 											elemChanged = true;
 										}
-									} else if (elementType == "prefabref") {
-										// Prefab reference support for vector<prefabref>
+									}
+									else if (elementType == "prefabref") {
 										std::string prefabUUID = elemValue;
 										std::string displayName = prefabUUID.empty() ? "None" : Assets::AssetManager::GetInstance().RetrieveFilename(prefabUUID);
 
-										// Button shows prefab name or "None" - make it a drop target
 										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
 
-										// Drag-drop support - accept prefab drops
-										// NOTE: Must be called right after the button, while it's still the active item
 										if (ImGui::BeginDragDropTarget()) {
 											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
 											if (payload && payload->DataSize > 0) {
 												std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
-												SPD_DEBUG("[PrefabRef Vector] Dropped path: {}", droppedPath);
-
 												std::string droppedUUID = Assets::AssetManager::GetInstance().RetrieveUUID(droppedPath);
-												SPD_DEBUG("[PrefabRef Vector] Retrieved UUID: {}", droppedUUID);
-
 												if (!droppedUUID.empty()) {
-													SPD_DEBUG("[PrefabRef Vector] Setting element {} of field '{}' to UUID '{}'", i, fname, droppedUUID);
-													bool success = comp.Instance->SetArrayElement(fname, i, droppedUUID);
-													SPD_DEBUG("[PrefabRef Vector] SetArrayElement returned: {}", success);
-													if (success) {
-														elemChanged = true;
-														SPD_DEBUG("[PrefabRef Vector] Successfully assigned prefab to vector element");
-													} else {
-														SPD_ERROR("[PrefabRef Vector] Failed to set array element");
-													}
-												} else {
-													SPD_ERROR("[PrefabRef Vector] Empty UUID retrieved from path: {}", droppedPath);
-												}
-											} else {
-												if (payload) {
-													SPD_DEBUG("[PrefabRef Vector] Payload received but DataSize is: {}", payload->DataSize);
-												} else {
-													SPD_DEBUG("[PrefabRef Vector] No PREFAB_ASSET_PATH payload accepted");
+													bool success = scriptInstance->SetArrayElement(fname, i, droppedUUID);
+													if (success) elemChanged = true;
 												}
 											}
 											ImGui::EndDragDropTarget();
 										}
 
-										// Clear button
 										ImGui::SameLine();
 										if (ImGui::Button("X##clear")) {
-											comp.Instance->SetArrayElement(fname, i, "");
+											scriptInstance->SetArrayElement(fname, i, "");
 											elemChanged = true;
 										}
-									} else if (elementType == "entity") {
-										// Entity reference support for vector<entity>
+									}
+									else if (elementType == "entity") {
 										std::string entityIdStr = elemValue;
 										std::string displayName = "None";
 										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
@@ -1909,62 +1776,54 @@ namespace Editor {
 										if (!entityIdStr.empty() && entityIdStr != noEntityStr) {
 											try {
 												assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
-
-												// Verify entity still exists
 												if (assignedEntityId != NE::ECS::NO_ENTITY) {
 													const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
 													displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
 												}
-											} catch (...) {
+											}
+											catch (...) {
 												displayName = "[Error]";
 											}
 										}
 
-										// Button shows entity name or "None" - make it a drop target
 										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
 
-										// Drag-drop support - accept entity drops from hierarchy
 										if (ImGui::BeginDragDropTarget()) {
 											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
 											if (payload && payload->DataSize == sizeof(uint32_t)) {
 												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
-												SPD_DEBUG("[Entity Vector] Dropped entity: {}", droppedEntity);
-
-												bool success = comp.Instance->SetArrayElement(fname, i, std::to_string(droppedEntity));
-												if (success) {
-													elemChanged = true;
-													SPD_DEBUG("[Entity Vector] Successfully assigned entity to vector element");
-												} else {
-													SPD_ERROR("[Entity Vector] Failed to set array element");
-												}
+												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+												if (success) elemChanged = true;
 											}
 											ImGui::EndDragDropTarget();
 										}
 
-										// Clear button
 										ImGui::SameLine();
 										if (ImGui::Button("X##clear")) {
-											comp.Instance->SetArrayElement(fname, i, noEntityStr);
+											scriptInstance->SetArrayElement(fname, i, noEntityStr);
 											elemChanged = true;
 										}
-									} else {
+									}
+									else {
 										// Unknown type fallback - treat as string
 										char buf[256];
 										strncpy_s(buf, elemValue.c_str(), sizeof(buf));
 										buf[sizeof(buf) - 1] = '\0';
 										if (ImGui::InputText("##elem", buf, sizeof(buf))) {
-											comp.Instance->SetArrayElement(fname, i, std::string(buf));
+											scriptInstance->SetArrayElement(fname, i, std::string(buf));
 											elemChanged = true;
 										}
 									}
 
 									ImGui::SameLine();
 									if (ImGui::Button("-##remove")) {
-										comp.Instance->RemoveArrayElement(fname, i);
+										scriptInstance->RemoveArrayElement(fname, i);
+										SyncArrayField(fname);
 										fieldChanged = true;
 									}
 
 									if (elemChanged) {
+										SyncArrayField(fname);
 										fieldChanged = true;
 									}
 
@@ -1973,60 +1832,65 @@ namespace Editor {
 
 								ImGui::TreePop();
 							}
-						} else if (fname.find('.') != std::string::npos) {
-							// Struct field (contains dot notation)
-							// NOTE: Nested struct serialization not fully supported yet - will be added in future commit
-							   // Display as normal field, but with indentation
+						}
+						else if (fname.find('.') != std::string::npos) {
+							// Struct field (contains dot notation) - handled in structGroups below
+							// This section is a fallback for individual struct fields
 							ImGui::Indent();
 
 							if (ftype == "int") {
 								int v = 0;
 								if (!fval.empty()) v = std::stoi(fval);
 								if (ImGui::DragInt(fname.c_str(), &v)) {
-									comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+									UpdateFieldValue(fname, std::to_string(v));
 									fieldChanged = true;
 								}
-							} else if (ftype == "float") {
+							}
+							else if (ftype == "float") {
 								float v = 0.0f;
 								if (!fval.empty()) v = std::stof(fval);
 								if (ImGui::DragFloat(fname.c_str(), &v, 0.01f)) {
-									comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+									UpdateFieldValue(fname, std::to_string(v));
 									fieldChanged = true;
 								}
-							} else if (ftype == "bool") {
+							}
+							else if (ftype == "bool") {
 								bool v = (fval == "1" || fval == "true");
 								if (ImGui::Checkbox(fname.c_str(), &v)) {
-									comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+									UpdateFieldValue(fname, v ? "1" : "0");
 									fieldChanged = true;
 								}
 							}
 
 							ImGui::Unindent();
-						} else { // treat as string
+						}
+						else { // treat as string
 							char buf[256];
 							strncpy_s(buf, fval.c_str(), sizeof(buf));
 							if (ImGui::InputText(fname.c_str(), buf, sizeof(buf))) {
-								comp.Instance->SetFieldValueFromString(fname, std::string(buf));
+								UpdateFieldValue(fname, std::string(buf));
 								fieldChanged = true;
 							}
 						}
 
-						// Call OnValidate() when a field changes (editor-only)
+						// Call OnValidate() when a field changes
 						if (fieldChanged) {
-							comp.Instance->OnValidate();
+							scriptInstance->OnValidate();
 						}
 
 						ImGui::PopID();
 					}
 
-					//  NOW RENDER STRUCT GROUPS
-					for (const auto& [structName, fields] : structGroups) {
+					// NOW RENDER STRUCT GROUPS
+					for (const auto& pair : structGroups) {
+						const std::string& structName = pair.first;
+						const std::vector<std::string>& fields = pair.second;
+
 						if (ImGui::TreeNode(structName.c_str())) {
 							for (const auto& fname : fields) {
-								std::string ftype = comp.Instance->GetFieldType(fname);
-								std::string fval = comp.Instance->GetFieldValueAsString(fname);
+								std::string ftype = scriptInstance->GetFieldType(fname);
+								std::string fval = scriptInstance->GetFieldValueAsString(fname);
 
-								// Extract field name after dot (e.g., "health" from "stats.health")
 								size_t dotPos = fname.find('.');
 								std::string fieldName = fname.substr(dotPos + 1);
 
@@ -2037,26 +1901,28 @@ namespace Editor {
 									int v = 0;
 									if (!fval.empty()) v = std::stoi(fval);
 									if (ImGui::DragInt(fieldName.c_str(), &v)) {
-										comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+										UpdateFieldValue(fname, std::to_string(v));
 										fieldChanged = true;
 									}
-								} else if (ftype == "float") {
+								}
+								else if (ftype == "float") {
 									float v = 0.0f;
 									if (!fval.empty()) v = std::stof(fval);
 									if (ImGui::DragFloat(fieldName.c_str(), &v, 0.01f)) {
-										comp.Instance->SetFieldValueFromString(fname, std::to_string(v));
+										UpdateFieldValue(fname, std::to_string(v));
 										fieldChanged = true;
 									}
-								} else if (ftype == "bool") {
+								}
+								else if (ftype == "bool") {
 									bool v = (fval == "1" || fval == "true");
 									if (ImGui::Checkbox(fieldName.c_str(), &v)) {
-										comp.Instance->SetFieldValueFromString(fname, v ? "1" : "0");
+										UpdateFieldValue(fname, v ? "1" : "0");
 										fieldChanged = true;
 									}
 								}
 
 								if (fieldChanged) {
-									comp.Instance->OnValidate();
+									scriptInstance->OnValidate();
 								}
 
 								ImGui::PopID();
@@ -2065,7 +1931,12 @@ namespace Editor {
 						}
 					}
 				}
-			} // End of comp.Instance else block
+				} // End of else block (scriptInstance exists)
+
+				} // End of if (headerOpen) - collapsible header
+
+				ImGui::PopID(); // Pop scriptIdx scope
+			}
 		}
 	}
 

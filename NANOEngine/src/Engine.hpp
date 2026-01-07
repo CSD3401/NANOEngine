@@ -20,7 +20,7 @@ namespace NE {
 	}
 
 	// internal usage
-	SceneManagement::Scene& GetScene();
+	NANOENGINE_API SceneManagement::Scene& GetScene();
 
 	NANOENGINE_API void Initialize();
 	NANOENGINE_API void Run(double dt);

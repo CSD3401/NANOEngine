@@ -450,28 +450,22 @@ namespace NE::ECS {
 			}
 
 			auto& script = GetEntityScript(e);
-			auto* scriptSystem = GetScene().GetECSCoordinator().m_scriptSystem.get();
 
-			if (scriptSystem) {
-				auto factory = Scripting::ScriptingEngine::GetInstance().GetScriptFactory(scriptName);
-				if (factory) {
-					// Clean up existing script if any
-					if (script.Instance && script.DestroyScript) {
-						script.DestroyScript(script.Instance);
-					} else if (script.Instance) {
-						delete script.Instance;
-					}
-
-					// Set new script
-					script.ScriptName = scriptName;
-					script.CreateScript = factory;
-					script.DestroyScript = [](IScript* instance) { delete instance; };
-					script.Instance = nullptr; // Will be created by ScriptSystem
-					scriptSystem->OnEntityAdded(e); // Force initialization
-					return true;
-				}
+			// Verify script exists before setting
+			if (!Scripting::ScriptingEngine::GetInstance().IsScriptRegistered(scriptName)) {
+				return false;
 			}
-			return false;
+
+			// Clean up existing instances if any (via ScriptEngine)
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(e);
+
+			// Set new script name (clear existing and add the new one)
+			script.ScriptNames.clear();
+			script.ScriptNames.push_back(scriptName);
+			script.IsDirty = true;
+
+			// ScriptSystem will handle instance creation in its next Update
+			return true;
 		}
 
 		void RemoveEntityScript(uint32_t e) {
@@ -481,18 +475,14 @@ namespace NE::ECS {
 
 			auto& script = GetEntityScript(e);
 
-			// Clean up existing script
-			if (script.Instance && script.DestroyScript) {
-				script.DestroyScript(script.Instance);
-			} else if (script.Instance) {
-				delete script.Instance;
-			}
+			// Clean up existing instances via ScriptEngine
+			Scripting::ScriptingEngine::GetInstance().DestroyScriptInstances(e);
 
-			// Reset component
-			script.ScriptName.clear();
-			script.Instance = nullptr;
-			script.CreateScript = nullptr;
-			script.DestroyScript = nullptr;
+			// Reset component data
+			script.ScriptNames.clear();
+			script.SerializedFields.clear();
+			script.EntityReferenceFields.clear();
+			script.IsDirty = false; // No script to recreate
 		}
 
 		bool IsScriptRegistered(const std::string& scriptName) {
@@ -501,6 +491,64 @@ namespace NE::ECS {
 				return Scripting::ScriptingEngine::GetInstance().IsScriptRegistered(scriptName);
 			}
 			return false;
+		}
+
+		bool AddEntityScript(uint32_t e, const std::string& scriptName) {
+			if (!GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e)) {
+				return false;
+			}
+
+			auto& script = GetEntityScript(e);
+
+			// Verify script exists before adding
+			if (!Scripting::ScriptingEngine::GetInstance().IsScriptRegistered(scriptName)) {
+				return false;
+			}
+
+			// Check if script already exists in the list
+			for (const auto& existingName : script.ScriptNames) {
+				if (existingName == scriptName) {
+					return false; // Already exists
+				}
+			}
+
+			// Add to the list
+			script.ScriptNames.push_back(scriptName);
+			script.IsDirty = true;
+
+			// ScriptSystem will handle instance creation in its next Update
+			return true;
+		}
+
+		void RemoveEntityScriptByIndex(uint32_t e, size_t index) {
+			if (!GetScene().GetECSCoordinator().HasComponent<ECS::Component::NativeScript>(e)) {
+				return;
+			}
+
+			auto& script = GetEntityScript(e);
+
+			// Validate index
+			if (index >= script.ScriptNames.size()) {
+				return;
+			}
+
+			// Remove the script at the specified index
+			std::string removedScriptName = script.ScriptNames[index];
+			script.ScriptNames.erase(script.ScriptNames.begin() + index);
+
+			// Remove associated serialized fields for this script
+			std::string prefix = removedScriptName + ".";
+			auto it = script.SerializedFields.begin();
+			while (it != script.SerializedFields.end()) {
+				if (it->first.starts_with(prefix)) {
+					it = script.SerializedFields.erase(it);
+				} else {
+					++it;
+				}
+			}
+
+			// Mark as dirty so ScriptSystem will synchronize instances
+			script.IsDirty = true;
 		}
 
 		void AddAnimatorComponent(uint32_t e) {

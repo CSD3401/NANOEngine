@@ -6,16 +6,15 @@
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Serialisation/Serializer.hpp"
 
-namespace hack { bool sceneRdy = false; }
-
 namespace NE::SceneManagement {
 
 	void SceneManager::LoadScene(const std::string& path) {
 		m_loadedPath = path;
 		m_editor = std::make_unique<Scene>();
+		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path);
 		m_editor->InitEdit();
-		hack::sceneRdy = true;
+		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		Prefab::PrefabManager::Init(m_editor.get());
 		//Prefab::PrefabManager::RebuildFromScene();
 		m_isPlaying = false;
@@ -25,25 +24,29 @@ namespace NE::SceneManagement {
 	void SceneManager::LoadRuntime() {
 		if (!m_editor || m_isPlaying) return;
 
-		auto& entities = m_editor->GetECSCoordinator().GetComponentManager().GetEntitiesWithComponent<ECS::Component::NativeScript>();
-		for (NE::ECS::Entity entity : entities) {
-			auto& nsc = m_editor->GetECSCoordinator().GetComponentManager().GetComponent<ECS::Component::NativeScript>(entity);
-			if (nsc.Instance) {
-				Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(nsc);
-			}
-		}
+		// Save editor script field values and transfer to runtime
+		auto& editorComponentMgr = m_editor->GetECSCoordinator().GetComponentManager();
+		Scripting::ScriptingEngine::GetInstance().SaveSceneScriptFields(editorComponentMgr);
+
+		// Destroy all editor script instances
 		Scripting::ScriptingEngine::GetInstance().DestroyAllScriptInstances();
 
-		hack::sceneRdy = false;
-
+		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
+		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
-		m_runtime->InitRuntime();
 
-		hack::sceneRdy = true;
+		// Transfer editor field values to runtime scene (before Init)
+		auto& runtimeComponentMgr = m_runtime->GetECSCoordinator().GetComponentManager();
+		Scripting::ScriptingEngine::GetInstance().TransferScriptFields(editorComponentMgr, runtimeComponentMgr);
+
+		// Initialize runtime scene (creates instances with transferred field values)
+		m_runtime->InitRuntime();
+		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 
 		m_isPlaying = true;
 
+		// Start scripts in runtime scene
 		m_runtime->ScriptStart();
 	}
 
@@ -53,12 +56,18 @@ namespace NE::SceneManagement {
 		if (m_runtime) {
 			m_runtime->ScriptStop();
 			m_runtime->ExitRuntime();
-			hack::sceneRdy = false;
 		}
 
 		m_runtime.reset();
-
 		m_isPlaying = false;
+
+		// Recreate editor scene script instances for inspection
+		// (disabled, no Update calls, but allow field editing in inspector)
+		if (m_editor) {
+			auto& componentMgr = m_editor->GetECSCoordinator().GetComponentManager();
+			auto& entityMgr = m_editor->GetECSCoordinator().GetEntityManager();
+			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr);
+		}
 	}
 
 	bool SceneManager::IsPlaying() const {

@@ -14,6 +14,12 @@
 #pragma warning(pop)
 #include "ECS/Components/NativeScript.hpp"
 
+// Forward declarations
+namespace NE::ECS {
+    class ComponentManager;
+    class EntityManager;
+}
+
 namespace NE::Scripting {
 
     // Function pointer type for the registration function that game DLLs must export
@@ -128,13 +134,25 @@ namespace NE::Scripting {
 
         /**
          * Save script field values to component for hot-reload preservation.
+         * @deprecated Use the overload that takes entity ID instead.
          */
-        void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
+        NANOENGINE_API void SaveSerializedFields(NE::ECS::Component::NativeScript& nsc);
+
+        /**
+         * Save script field values to component (preferred overload with entity ID).
+         */
+        NANOENGINE_API void SaveSerializedFields(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
 
         /**
          * Restore script field values from component after hot-reload.
+         * @deprecated Use the overload that takes entity ID instead.
          */
-        void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
+        NANOENGINE_API void RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc);
+
+        /**
+         * Restore script field values from component (preferred overload with entity ID).
+         */
+        NANOENGINE_API void RestoreSerializedFields(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
 
         /**
          * Destroy script instance and call cleanup (used before hot-reload).
@@ -142,6 +160,135 @@ namespace NE::Scripting {
         void OnScriptComponentDestroyed(NE::ECS::Entity entity);
 
         void DestroyAllScriptInstances();
+
+        // === Instance Management (ECS Refactor) ===
+        /**
+         * Set ECS system references (called by ScriptSystem on initialization).
+         * @param componentManager Pointer to the component manager
+         * @param entityManager Pointer to the entity manager
+         */
+        NANOENGINE_API void SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager);
+
+        /**
+         * Create script instances for an entity based on component data.
+         * Supports multiple scripts per entity.
+         * @param entity The entity to create the script instances for
+         * @param nsc The NativeScript component containing script names and serialized data
+         * @return true if at least one instance was created successfully, false otherwise
+         */
+        NANOENGINE_API bool CreateScriptInstances(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
+
+        /**
+         * Destroy all script instances for an entity.
+         * @param entity The entity whose script instances should be destroyed
+         */
+        NANOENGINE_API void DestroyScriptInstances(NE::ECS::Entity entity);
+
+        /**
+         * Get all script instances for an entity.
+         * @param entity The entity to get the script instances for
+         * @return Pointer to vector of script instances, or nullptr if not found
+         */
+        NANOENGINE_API const std::vector<IScript*>* GetScriptInstances(NE::ECS::Entity entity) const;
+
+        /**
+         * Get a specific script instance by script name.
+         * @param entity The entity to get the script instance for
+         * @param scriptName The name of the script type
+         * @return Pointer to script instance, or nullptr if not found
+         */
+        NANOENGINE_API IScript* GetScriptInstanceByName(NE::ECS::Entity entity, const std::string& scriptName) const;
+
+        /**
+         * Check if entity has any script instances.
+         * @param entity The entity to check
+         * @return true if entity has at least one instance, false otherwise
+         */
+        NANOENGINE_API bool HasScriptInstances(NE::ECS::Entity entity) const;
+
+        /**
+         * Update all script instances (called by ScriptSystem).
+         * @param deltaTime Time elapsed since last update
+         */
+        NANOENGINE_API void UpdateScriptInstances(double deltaTime);
+
+        /**
+         * Initialize (Awake + Initialize) all script instances for an entity.
+         * @param entity The entity to initialize the scripts for
+         */
+        NANOENGINE_API void InitializeScriptInstances(NE::ECS::Entity entity);
+
+        /**
+         * Start scripts (enable them) for play mode.
+         */
+        NANOENGINE_API void StartAllScriptInstances();
+
+        /**
+         * Pause scripts (disable them) for pause mode.
+         */
+        NANOENGINE_API void PauseAllScriptInstances();
+
+        /**
+         * Stop scripts (disable and save state) for stop mode.
+         */
+        NANOENGINE_API void StopAllScriptInstances();
+
+        /**
+         * Synchronize script instances with the component's ScriptNames vector.
+         * Adds new scripts, removes deleted scripts, preserves existing instances.
+         * Called when ScriptNames vector changes.
+         * @param entity The entity to synchronize
+         * @param nsc The NativeScript component
+         */
+        NANOENGINE_API void SynchronizeScriptInstances(NE::ECS::Entity entity, NE::ECS::Component::NativeScript& nsc);
+
+        // === Scene Script Management Helpers ===
+        /**
+         * Disable automatic script instance creation during scene loading.
+         * Call before deserializing a scene to prevent premature instantiation.
+         */
+        NANOENGINE_API void BeginSceneLoad();
+
+        /**
+         * Re-enable automatic script instance creation after scene loading.
+         * Call after scene Init() to allow normal script creation.
+         */
+        NANOENGINE_API void EndSceneLoad();
+
+        /**
+         * Check if entity callbacks should create instances.
+         * @return true if instances should be created, false during scene load
+         */
+        NANOENGINE_API bool ShouldCreateInstancesOnEntityAdded() const;
+
+        /**
+         * Save all script field values to components for a scene.
+         * Used before switching between editor/runtime scenes.
+         * @param componentManager Component manager containing NativeScript components
+         */
+        NANOENGINE_API void SaveSceneScriptFields(NE::ECS::ComponentManager& componentManager);
+
+        /**
+         * Transfer script field values from source scene to target scene via LUID matching.
+         * Used when loading runtime from editor scene.
+         * @param sourceComponentManager Source scene (usually editor)
+         * @param targetComponentManager Target scene (usually runtime)
+         */
+        NANOENGINE_API void TransferScriptFields(
+            NE::ECS::ComponentManager& sourceComponentManager,
+            NE::ECS::ComponentManager& targetComponentManager);
+
+        /**
+         * Recreate script instances for all entities with NativeScript components.
+         * Used when restoring editor scene after stopping runtime.
+         * @param componentManager Component manager for the scene
+         * @param componentManager Component manager to create instances from
+         * @param entityManager Entity manager for entity validation
+         */
+        NANOENGINE_API void RecreateScriptInstances(
+            NE::ECS::ComponentManager& componentManager,
+            NE::ECS::EntityManager& entityManager);
+
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;
@@ -149,6 +296,15 @@ namespace NE::Scripting {
         // === Script Registration ===
         std::unordered_map<std::string, std::function<IScript* ()>> m_scriptFactories;
         mutable std::mutex m_mutex;
+
+        // === Instance Management ===
+        // Maps Entity -> Vector of Script Instances (runtime data, managed by ScriptEngine)
+        // Supports multiple scripts per entity - instances are stored in execution order
+        std::unordered_map<NE::ECS::Entity, std::vector<IScript*>> m_scriptInstances;
+
+        // ECS references (set by ScriptSystem)
+        NE::ECS::ComponentManager* m_componentManager = nullptr;
+        NE::ECS::EntityManager* m_entityManager = nullptr;
 
         // === Single DLL Management ===
         struct {
@@ -159,6 +315,7 @@ namespace NE::Scripting {
 
         // === State Tracking ===
         bool m_initialized;
+        bool m_allowEntityAddedCallbacks = true;  // Controls OnEntityAdded behavior during scene load
         std::string m_lastError;
 
         // === Hot Reload System ===

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ECS/Core/ECSCoordinator.hpp"
+#include "NANOEngineAPI.hpp"
 
 namespace NE::SceneManagement {
 
@@ -18,7 +19,7 @@ namespace NE::SceneManagement {
 		void ScriptPause();
 		void ScriptStop();
 
-		ECS::ECSCoordinator& GetECSCoordinator();
+		NANOENGINE_API ECS::ECSCoordinator& GetECSCoordinator();
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
 	};
