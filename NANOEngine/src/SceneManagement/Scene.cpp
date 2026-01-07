@@ -130,8 +130,4 @@ namespace NE::SceneManagement {
 		return m_ecsCoordinator;
 	}
 
-	Core::LUIDRegistry& Scene::GetLuidRegistry() {
-		return m_luidRegistry;
-	}
-
 }

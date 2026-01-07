@@ -5,12 +5,12 @@
 #include "../Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
-
+#include "Core/LUIDRegistry.hpp"
 
 namespace NE::ECS::Systems {
 
-	RigidbodySystem::RigidbodySystem(ComponentManager* cm, EntityManager* em) 
-		: m_componentManager(cm), m_entityManager(em)
+	RigidbodySystem::RigidbodySystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
+		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr)
 	{
 	}
 
@@ -19,10 +19,13 @@ namespace NE::ECS::Systems {
 
 		if (rb.luid == 0)
 			rb.luid = Core::LUIDGenerator::Generate("rb");
+
+		m_luidRegistry->Register(rb.luid, &rb, e);
 	}
 
-	void RigidbodySystem::OnEntityRemoved(Entity entity) {
-
+	void RigidbodySystem::OnEntityRemoved(Entity e) {
+		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
+		m_luidRegistry->Unregister(rb.luid);
 	}
 
 	void RigidbodySystem::Init() {

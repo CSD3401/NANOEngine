@@ -35,9 +35,10 @@
 namespace NE::ECS {
 
     ECSCoordinator::ECSCoordinator()
-    : m_entityManager(std::make_unique<EntityManager>())
-    , m_componentManager(std::make_unique<ComponentManager>())
-    , m_systemManager(std::make_unique<SystemManager>()) 
+        : m_entityManager(std::make_unique<EntityManager>())
+        , m_componentManager(std::make_unique<ComponentManager>())
+        , m_systemManager(std::make_unique<SystemManager>()) 
+        , m_luidRegistry(std::make_unique<Core::LUIDRegistry>())
     {
 
         RegisterComponent<Component::EntityMeta>();
@@ -56,12 +57,12 @@ namespace NE::ECS {
         RegisterComponent<Component::NativeScript>();
         
 
-        m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get());
+        m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
         SetSystemSignature<Systems::TransformSystem>(
             Signature{}.set(GetComponentType<Component::Transform>())
         );
 
-        m_renderSystem = m_systemManager->RegisterSystem<Systems::RenderSystem>(m_componentManager.get());
+        m_renderSystem = m_systemManager->RegisterSystem<Systems::RenderSystem>(m_componentManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
@@ -77,7 +78,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::LightSystem>(sig);
         }
 
-        m_rigidbodySystem = m_systemManager->RegisterSystem<Systems::RigidbodySystem>(m_componentManager.get(), m_entityManager.get());
+        m_rigidbodySystem = m_systemManager->RegisterSystem<Systems::RigidbodySystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());

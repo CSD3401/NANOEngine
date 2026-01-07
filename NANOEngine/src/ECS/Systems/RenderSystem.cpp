@@ -17,6 +17,7 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
 #include "Core/LUIDGenerator.hpp"
+#include "Core/LUIDRegistry.hpp"
 
 using namespace NE::Math;
 using NE::Graphics::Frustum;
@@ -24,12 +25,8 @@ using NE::Graphics::GraphicsManager;
 
 namespace NE::ECS::Systems {
 
-    // temp stuff
-    //static std::shared_ptr<Graphics::IShader> pickingShader;
-    //static std::shared_ptr<Graphics::IPipeline> pickingPipeline;
-    //static std::shared_ptr<Graphics::Material> pickingMaterial;
-
-    RenderSystem::RenderSystem(ComponentManager* cm) : m_componentManager(cm)
+    RenderSystem::RenderSystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
+        : m_componentManager(cm), m_luidRegistry(lr)
     {
     }
 
@@ -45,10 +42,13 @@ namespace NE::ECS::Systems {
 
         if (renderer.luid == 0)
             renderer.luid = Core::LUIDGenerator::Generate("rd");
+
+        m_luidRegistry->Register(renderer.luid, &renderer, entity);
     }
 
-    void RenderSystem::OnEntityRemoved(Entity)
-    {
+    void RenderSystem::OnEntityRemoved(Entity e) {
+        auto& renderer = m_componentManager->GetComponent<Component::Renderer>(e);
+        m_luidRegistry->Unregister(renderer.luid);
     }
 
     void RenderSystem::Init() {
