@@ -207,15 +207,6 @@ namespace Editor::Assets {
             rec.asset = CreateImporterForType(type, uuid, fsSourcePath.filename().string());
         }
 
-        if (rec.type != AssetType::Scene) {
-            if (rec.asset) {
-                const auto cookedPath =
-                    NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
-                rec.asset->Cook(fsSourcePath.string(), cookedPath);
-                rec.isLoaded = true;
-            }
-        }
-
         Document outDoc;
         outDoc.SetObject();
         auto& a = outDoc.GetAllocator();
@@ -242,6 +233,17 @@ namespace Editor::Assets {
         PrettyWriter<OStreamWrapper> writer(osw);
         writer.SetIndent(' ', 4);
         outDoc.Accept(writer);
+
+        if (rec.type != AssetType::Scene) {
+            if (rec.asset) {
+                rec.asset->SaveImportSettings(sourcePath); // create and save default settings first
+
+                const auto cookedPath =
+                    NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
+                rec.asset->Cook(fsSourcePath.string(), cookedPath);
+                rec.isLoaded = true;
+            }
+        }
     }
 
     void AssetManager::ReimportAsset(const std::string& sourcePathOrMeta) {
