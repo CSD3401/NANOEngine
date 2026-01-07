@@ -5,6 +5,10 @@
 #include <unordered_map>
 #include "../Core/ComponentManager.hpp"
 
+namespace NE::Core {
+	class LUIDRegistry;
+}
+
 namespace NE::Math {
 	struct Mat4;
 }
@@ -12,7 +16,7 @@ namespace NE::Math {
 namespace NE::ECS::Systems {
 	class TransformSystem final : public System {
 	public:
-		explicit TransformSystem(ComponentManager* cm);
+		explicit TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr);
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
@@ -27,6 +31,7 @@ namespace NE::ECS::Systems {
 			bool parentWorldDirty);
 
 		ComponentManager* m_componentManager;
+		Core::LUIDRegistry* m_luidRegistry;
 	};
 }
 

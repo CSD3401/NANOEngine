@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ECS/Core/ECSCoordinator.hpp"
-#include "Core/LUIDRegistry.hpp"
 
 namespace NE::SceneManagement {
 
@@ -20,10 +19,8 @@ namespace NE::SceneManagement {
 		void ScriptStop();
 
 		ECS::ECSCoordinator& GetECSCoordinator();
-		Core::LUIDRegistry& GetLuidRegistry();
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
-		Core::LUIDRegistry m_luidRegistry;
 	};
 
 }

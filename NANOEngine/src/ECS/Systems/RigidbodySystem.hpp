@@ -14,11 +14,15 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
+namespace NE::Core {
+	class LUIDRegistry;
+}
+
 namespace NE::ECS::Systems {
 
 	class RigidbodySystem final : public System {
 	public:
-		explicit RigidbodySystem(ComponentManager* cm, EntityManager* em);
+		explicit RigidbodySystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr);
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
@@ -30,6 +34,7 @@ namespace NE::ECS::Systems {
 	private:
 		ComponentManager* m_componentManager;
 		EntityManager* m_entityManager;
+		Core::LUIDRegistry* m_luidRegistry;
 	};
 
 }

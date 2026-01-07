@@ -5,11 +5,15 @@
 #include "../../Graphics/Core/Frustum.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
 
+namespace NE::Core {
+	class LUIDRegistry;
+}
+
 namespace NE::ECS::Systems {
 
     class RenderSystem final : public System {
     public:
-		explicit RenderSystem(ComponentManager* cm);
+		explicit RenderSystem(ComponentManager* cm, Core::LUIDRegistry* lr);
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
@@ -20,6 +24,7 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_componentManager;
+		Core::LUIDRegistry* m_luidRegistry;
 
 		static NE::Graphics::Frustum BuildFrustum();
 

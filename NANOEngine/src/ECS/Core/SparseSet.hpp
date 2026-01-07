@@ -30,7 +30,9 @@ namespace NE::ECS {
             return m_sparseContainer[e] < m_denseContainer.size() && m_denseContainer[m_sparseContainer[e]] == e;
         }
 
-        std::vector<Entity>& GetDenseContainer() { return m_denseContainer; }
+        std::vector<Entity>& GetDenseContainer() { 
+            return m_denseContainer; 
+        }
         const std::vector<Entity>& GetDenseContainer() const { return m_denseContainer; }
 
     private:
