@@ -5,6 +5,10 @@
 #include "Signature.hpp"
 #include "System.hpp"
 
+namespace NE::Core {
+    class LUIDRegistry;
+}
+
 namespace NE::ECS {
 
     class SystemManager {
@@ -23,6 +27,24 @@ namespace NE::ECS {
             std::type_index typeIdx = typeid(T);
             assert(m_systems.find(typeIdx) == m_systems.end() && "System already registered.");
             auto system = std::make_shared<T>(cm, em);
+            m_systems[typeIdx] = system;
+            return system;
+        }
+
+        template<typename T>
+        std::shared_ptr<T> RegisterSystem(ComponentManager* cm, Core::LUIDRegistry* lr) {
+            std::type_index typeIdx = typeid(T);
+            assert(m_systems.find(typeIdx) == m_systems.end() && "System already registered.");
+            auto system = std::make_shared<T>(cm, lr);
+            m_systems[typeIdx] = system;
+            return system;
+        }
+
+        template<typename T>
+        std::shared_ptr<T> RegisterSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr) {
+            std::type_index typeIdx = typeid(T);
+            assert(m_systems.find(typeIdx) == m_systems.end() && "System already registered.");
+            auto system = std::make_shared<T>(cm, em, lr);
             m_systems[typeIdx] = system;
             return system;
         }

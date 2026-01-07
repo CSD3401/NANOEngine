@@ -2,6 +2,7 @@
 #include "EntityManager.hpp"
 #include "ComponentManager.hpp"
 #include "SystemManager.hpp"
+#include "Core/LUIDRegistry.hpp"
 
 namespace NE::ECS::Systems {
     class TransformSystem;
@@ -117,7 +118,7 @@ namespace NE::ECS {
         std::unique_ptr<EntityManager> m_entityManager;
         std::unique_ptr<ComponentManager> m_componentManager;
         std::unique_ptr<SystemManager> m_systemManager;
-
+        std::unique_ptr<Core::LUIDRegistry> m_luidRegistry;
     };
 
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ECS/Core/ECSCoordinator.hpp"
-#include "Core/LUIDRegistry.hpp"
 #include "NANOEngineAPI.hpp"
 
 namespace NE::SceneManagement {
@@ -21,10 +20,8 @@ namespace NE::SceneManagement {
 		void ScriptStop();
 
 		NANOENGINE_API ECS::ECSCoordinator& GetECSCoordinator();
-		Core::LUIDRegistry& GetLuidRegistry();
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;
-		Core::LUIDRegistry m_luidRegistry;
 	};
 
 }

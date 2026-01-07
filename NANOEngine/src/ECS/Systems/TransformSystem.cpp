@@ -4,10 +4,11 @@
 #include "../Components/Hierarchy.hpp"
 #include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
+#include "Core/LUIDRegistry.hpp"
 
 namespace NE::ECS::Systems {
 
-	TransformSystem::TransformSystem(ComponentManager* cm) : m_componentManager(cm) { }
+	TransformSystem::TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr) : m_componentManager(cm), m_luidRegistry(lr) { }
 
 	void TransformSystem::OnEntityAdded(Entity e) {
 		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
@@ -29,9 +30,13 @@ namespace NE::ECS::Systems {
 
 		if (t.luid == 0)
 			t.luid = Core::LUIDGenerator::Generate("tr");
+
+		m_luidRegistry->Register(t.luid, &t, e);
 	}
 
-	void TransformSystem::OnEntityRemoved(Entity) {
+	void TransformSystem::OnEntityRemoved(Entity e) {
+		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
+		m_luidRegistry->Unregister(t.luid);
 	}
 
 	void TransformSystem::Init() {
