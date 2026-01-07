@@ -34,6 +34,7 @@
 #include "ECS/Components/Collider.hpp"
 #include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/Transform.hpp"
+#include "ECS/Core/ComponentManager.hpp"
 #include "ObjectLayerPairFilterImpl.hpp"
 #include "BroadPhaseLayerInterfaceImpl.hpp"
 #include "ObjectVsBroadPhaseLayerFilterImpl.hpp"
@@ -390,7 +391,27 @@ namespace NE::Physics {
                 JPH::Vec3 joltNormal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
                 outHitInfo.normal = Math::Vec3(joltNormal.GetX(), joltNormal.GetY(), joltNormal.GetZ());
 
-                outHitInfo.colliderEntityID = static_cast<NE::ECS::Entity>(body.GetUserData());
+                // Get entity from physics body
+                ECS::Entity hitEntity = static_cast<ECS::Entity>(body.GetUserData());
+                outHitInfo.colliderEntityID = hitEntity;
+
+                // Populate component LUIDs using ComponentManager
+                if (m_componentManager) {
+                    if (m_componentManager->HasComponent<ECS::Component::Transform>(hitEntity)) {
+                        auto& transform = m_componentManager->GetComponent<ECS::Component::Transform>(hitEntity);
+                        outHitInfo.transformLuid = transform.luid;
+                    }
+
+                    if (m_componentManager->HasComponent<ECS::Component::Rigidbody>(hitEntity)) {
+                        auto& rigidbody = m_componentManager->GetComponent<ECS::Component::Rigidbody>(hitEntity);
+                        outHitInfo.rigidbodyLuid = rigidbody.luid;
+                    }
+
+                    if (m_componentManager->HasComponent<ECS::Component::Collider>(hitEntity)) {
+                        auto& collider = m_componentManager->GetComponent<ECS::Component::Collider>(hitEntity);
+                        outHitInfo.colliderLuid = collider.luid;
+                    }
+                }
             }
 
             //SPD_DEBUG("Raycast Hit Body with ID: " << hit.bodyID << " with Entity: " << hit.entity);
@@ -433,5 +454,9 @@ namespace NE::Physics {
             bi.DestroyBody(id);
         }
         m_bodies.clear();
+    }
+
+    void PhysicsManager::SetComponentManager(ECS::ComponentManager* cm) {
+        m_componentManager = cm;
     }
 }

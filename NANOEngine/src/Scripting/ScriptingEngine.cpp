@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <sstream>
 #include "Core/SpdLogger.hpp"
+#include "Core/LUIDRegistry.hpp"
 #include "ScriptContextFactory.hpp"
 #include "Engine.hpp"
 #include "SceneManagement/Scene.hpp"
@@ -588,6 +589,7 @@ namespace NE::Scripting {
 
             auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
             auto& entityMgr = GetScene().GetECSCoordinator().GetEntityManager();
+            auto& luidRegistry = GetScene().GetECSCoordinator().GetLUIDRegistry();
 
             if (!componentMgr.HasComponent<ECS::Component::NativeScript>(entity)) {
                 SPD_WARNING("Entity " << (int)entity << " no longer exists, skipping");
@@ -627,7 +629,7 @@ namespace NE::Scripting {
                         continue;
                     }
 
-                    Scripting::LinkScriptToEngine(instance, &componentMgr, &entityMgr);
+                    Scripting::LinkScriptToEngine(instance, &componentMgr, &entityMgr, &luidRegistry);
                     instance->_SetEntity(entity);
                     instance->Awake();
                     instance->Initialize(entity);
@@ -808,9 +810,10 @@ namespace NE::Scripting {
 
     // === Instance Management (ECS Refactor) ===
 
-    void ScriptingEngine::SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager) {
+    void ScriptingEngine::SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager, NE::Core::LUIDRegistry* luidRegistry) {
         m_componentManager = componentManager;
         m_entityManager = entityManager;
+        m_luidRegistry = luidRegistry;
         SPD_INFO("ScriptEngine: ECS references set");
     }
 
@@ -851,7 +854,7 @@ namespace NE::Scripting {
             }
 
             // Link to engine
-            Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager);
+            Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry);
             instance->_SetEntity(entity);
 
             instances.push_back(instance);
@@ -990,7 +993,7 @@ namespace NE::Scripting {
                 if (factory) {
                     IScript* instance = factory();
                     if (instance) {
-                        Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager);
+                        Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry);
                         instance->_SetEntity(entity);
                         instance->Awake();
                         instance->Initialize(entity);

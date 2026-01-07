@@ -143,20 +143,28 @@ namespace Scripting {
     /// Scripts can store these and the engine handles lifetime management
     template<typename THandle>
     struct ComponentRef {
-        Entity ownerEntity = INVALID_ENTITY;
+        Entity ownerEntity = INVALID_ENTITY;  // for backwards compatibility
+        uint64_t componentLuid = 0;           // LUID-based component reference
 
         ComponentRef() = default;
-        explicit ComponentRef(Entity entity) : ownerEntity(entity) {}
+        explicit ComponentRef(Entity entity, uint64_t luid = 0)
+            : ownerEntity(entity), componentLuid(luid) {}
 
         /// Check if reference is valid
-        bool IsValid() const { return ownerEntity != INVALID_ENTITY; }
+        bool IsValid() const {
+            return componentLuid != 0 || ownerEntity != INVALID_ENTITY;
+        }
         operator bool() const { return IsValid(); }
 
         /// Get the entity this component belongs to
         Entity GetEntity() const { return ownerEntity; }
 
+        /// Get the component LUID
+        uint64_t GetLuid() const { return componentLuid; }
+
         // Internal use only
         void _SetEntity(Entity entity) { ownerEntity = entity; }
+        void _SetLuid(uint64_t luid) { componentLuid = luid; }
     };
 
     // Specific component reference types

@@ -9,8 +9,8 @@
 namespace NE {
 namespace Scripting {
 
-    ScriptContext* CreateScriptContext(ECS::ComponentManager* componentManager, ECS::EntityManager* entityManager) {
-        return new ScriptContext(componentManager, entityManager);
+    ScriptContext* CreateScriptContext(ECS::ComponentManager* componentManager, ECS::EntityManager* entityManager, Core::LUIDRegistry* luidRegistry) {
+        return new ScriptContext(componentManager, entityManager, luidRegistry);
     }
 
     void DestroyScriptContext(ScriptContext* context) {

@@ -1296,9 +1296,82 @@ namespace Editor {
 									ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
 								}
 							}
+							else if (ftype == "transformref" || ftype == "rigidbodyref") {
+								// Component reference field - display entity name and allow drag-drop
+								std::string componentType = (ftype == "transformref") ? "Transform" : "Rigidbody";
+								std::string displayName = "None";
+								uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+								std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+								// Try to resolve the stored value (could be Entity ID or component LUID)
+								if (!fval.empty() && fval != "0" && fval != noEntityStr) {
+									try {
+										uint64_t storedValue = std::stoull(fval);
+
+										// Try to interpret as Entity ID first (for simpler logic)
+										// The deserialization code handles LUID resolution internally
+										if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
+											assignedEntityId = static_cast<uint32_t>(storedValue);
+											if (assignedEntityId != NE::ECS::NO_ENTITY) {
+												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+												displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+											}
+										}
+										else {
+											// Large value - likely a LUID, show as assigned
+											displayName = "[Assigned]";
+										}
+									}
+									catch (...) {
+										displayName = "[Error]";
+									}
+								}
+
+								ImGui::Text("%s (%s)", fname.c_str(), componentType.c_str());
+								ImGui::PushID((fname + "_compref").c_str());
+
+								ImGui::Button(displayName.c_str(), ImVec2(200, 0));
+
+								if (ImGui::BeginDragDropTarget()) {
+									const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+									if (payload && payload->DataSize == sizeof(uint32_t)) {
+										uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+										// Validate that the entity has the required component
+										bool hasComponent = false;
+										if (ftype == "transformref") {
+											// Transform is always present
+											hasComponent = true;
+										}
+										else if (ftype == "rigidbodyref") {
+											hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Rigidbody>(droppedEntity);
+										}
+
+										if (hasComponent) {
+											// Pass entity ID - deserialization code will resolve to component LUID
+											bool success = UpdateFieldValue(fname, std::to_string(droppedEntity));
+											if (success) {
+												fieldChanged = true;
+											}
+										}
+										else {
+											SPD_WARNING("Entity does not have required " << componentType << " component");
+										}
+									}
+									ImGui::EndDragDropTarget();
+								}
+
+								ImGui::SameLine();
+								if (ImGui::Button("X")) {
+									UpdateFieldValue(fname, "0");
+									fieldChanged = true;
+								}
+
+								ImGui::PopID();
+							}
 							else if (ftype.starts_with("componentref:")) {
-								// Component reference field support currently disabled
-								ImGui::Text("%s (ComponentRef - not implemented)", fname.c_str());
+								// Generic component reference fallback
+								ImGui::Text("%s (ComponentRef - unsupported type)", fname.c_str());
 							}
 							else if (ftype == "materialref") {
 								// Material reference field
@@ -1468,6 +1541,66 @@ namespace Editor {
 											elemChanged = true;
 										}
 									}
+									else if (elementType == "transformref" || elementType == "rigidbodyref") {
+										// Component reference in array
+										std::string componentType = (elementType == "transformref") ? "Transform" : "Rigidbody";
+										std::string displayName = "None";
+										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+										// Try to resolve the stored value (could be Entity ID or component LUID)
+										if (!elemValue.empty() && elemValue != "0" && elemValue != noEntityStr) {
+											try {
+												uint64_t storedValue = std::stoull(elemValue);
+												if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
+													assignedEntityId = static_cast<uint32_t>(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+													}
+												}
+												else {
+													displayName = "[Assigned]";
+												}
+											}
+											catch (...) {
+												displayName = "[Error]";
+											}
+										}
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+											if (payload && payload->DataSize == sizeof(uint32_t)) {
+												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+												// Validate component
+												bool hasComponent = false;
+												if (elementType == "transformref") {
+													hasComponent = true;
+												}
+												else if (elementType == "rigidbodyref") {
+													hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Rigidbody>(droppedEntity);
+												}
+
+												if (hasComponent) {
+													bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+													if (success) elemChanged = true;
+												}
+												else {
+													SPD_WARNING("Entity does not have required " << componentType << " component");
+												}
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, noEntityStr);
+											elemChanged = true;
+										}
+									}
 									else if (elementType == "entity") {
 										std::string entityIdStr = elemValue;
 										std::string displayName = "None";
@@ -1490,7 +1623,7 @@ namespace Editor {
 										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
 
 										if (ImGui::BeginDragDropTarget()) {
-											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
 											if (payload && payload->DataSize == sizeof(uint32_t)) {
 												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
 												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
