@@ -1,8 +1,8 @@
 #ifndef VEC_3_HPP
 #define VEC_3_HPP
 
-#include "../NANOEngineAPI.hpp"
 #include <ostream>
+#include "../NANOEngineAPI.hpp"
 
 // Forward declaration of Scripting::Vec3 for implicit conversion
 namespace NE { namespace Scripting { struct Vec3; } }

@@ -79,6 +79,16 @@ namespace Editor {
         uint32_t m_entity;
     };
 
+    class CreateCanvasEntityCommand final : public ICommand {
+    public:
+        CreateCanvasEntityCommand();
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Canvas"; }
+    private:
+        uint32_t m_entity;
+    };
+
     class CreateUICanvasEntityCommand final : public ICommand {
     public:
         CreateUICanvasEntityCommand();

@@ -9,8 +9,10 @@
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
+#include "../ECS/Components/RectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
+#include "../ECS/Components/Canvas.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -70,6 +72,14 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectTransform>(e);
 		}
 
+		const Component::RectTransform& GetRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::RectTransform>(e);
+		}
+
+		const Component::Canvas& GetCanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Canvas>(e);
+		}
+
 		const Component::UIImage& GetUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
 		}
@@ -96,6 +106,14 @@ namespace NE::ECS {
 
 		bool HasUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UICanvas>(e);
+		}
+
+		bool HasRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::RectTransform>(e);
+		}
+
+		bool HasCanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Canvas>(e);
 		}
 
 		bool HasUIImage(uint32_t e) {
@@ -188,6 +206,14 @@ namespace NE::ECS {
 
 		ComponentType GetUICanvasComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UICanvas>();
+		}
+
+		ComponentType GetRectTransformComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::RectTransform>();
+		}
+
+		ComponentType GetCanvasComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::Canvas>();
 		}
 
 		ComponentType GetEntityAnimatorComponentType() {
@@ -315,6 +341,35 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		uint32_t CreateCanvasEntity() {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::RectTransform{ 
+					.luid = Core::LUIDGenerator::Generate("rt"),
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Canvas{
+					.luid = Core::LUIDGenerator::Generate("cv"),
+				}
+			);
+
+			return newEntity;
+		}
+
 		void DestroyEntity(uint32_t e) {
 			GetScene().GetECSCoordinator().DestroyEntity(e);
 		}
@@ -428,6 +483,14 @@ namespace NE::ECS {
 
 		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
+		Component::RectTransform& GetRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::RectTransform>(e);
+		}
+
+		Component::Canvas& GetCanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Canvas>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {

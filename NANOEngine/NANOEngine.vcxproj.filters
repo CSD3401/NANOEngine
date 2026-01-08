@@ -81,6 +81,7 @@
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
+    <ClCompile Include="src\ECS\Systems\RectTransformSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -238,6 +239,9 @@
     <ClInclude Include="src\Physics\RaycastHit.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
+    <ClInclude Include="src\ECS\Components\RectTransform.hpp" />
+    <ClInclude Include="src\ECS\Components\Canvas.hpp" />
+    <ClInclude Include="src\ECS\Systems\RectTransformSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

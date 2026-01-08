@@ -5,11 +5,14 @@
 namespace Editor::Events {
 
 	struct CreateEmptyEntityEvent {};
+
 	struct CreateCubeEntityEvent {};
 	struct CreateSphereEntityEvent {};
 	struct CreateCapsuleEntityEvent {};
 	struct CreateCylinderEntityEvent {};
 	struct CreatePlaneEntityEvent {};
+
+	struct CreateCanvasEntityEvent {};
 
 	struct DeleteEntityEvent {
 		std::vector<uint32_t> entitiesToBeDeleted;

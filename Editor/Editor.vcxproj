@@ -164,6 +164,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\EditorGizmos.cpp" />
     <ClCompile Include="src\Layers\LayerDatabase.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\ModelSettingsEditor.cpp" />
@@ -215,6 +216,7 @@
     <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\EditorGizmos.hpp" />
     <ClInclude Include="src\Layers\LayerDatabase.hpp" />
     <ClInclude Include="src\AssetManagement\AssetRecord.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />

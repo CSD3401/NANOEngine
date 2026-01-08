@@ -144,4 +144,141 @@ namespace Editor {
         FieldT m_before{}, m_after{};
     };
 
+    template <typename Alt, typename FieldT>
+    class SetCanvasRenderModeFieldCommand final : public ICommand {
+    public:
+        using MemberPtr = FieldT Alt::*;
+
+        SetCanvasRenderModeFieldCommand(
+            uint32_t entity,
+            std::string name,
+            MemberPtr member,
+            FieldT before,
+            FieldT after)
+            : m_entity(entity)
+            , m_name(std::move(name))
+            , m_member(member)
+            , m_before(std::move(before))
+            , m_after(std::move(after))
+        {
+        }
+
+        void Execute() override { Apply(m_after); }
+        void Undo() override { Apply(m_before); }
+
+        const char* GetName() const override { return m_name.c_str(); }
+
+        bool CanCoalesceWith(const ICommand& next) const override
+        {
+            auto* other = dynamic_cast<const SetCanvasRenderModeFieldCommand*>(&next);
+            return other &&
+                other->m_entity == m_entity &&
+                other->m_member == m_member;
+            // Note: we intentionally do NOT require same Alt at runtime here;
+            // Apply() will safely no-op if the active alt changed.
+        }
+
+        void CoalesceFrom(const ICommand& next) override
+        {
+            auto const& other = static_cast<const SetCanvasRenderModeFieldCommand&>(next);
+            m_after = other.m_after;
+            Execute();
+        }
+
+        const FieldT& Before() const { return m_before; }
+        const FieldT& After()  const { return m_after; }
+
+    private:
+        static void MarkDirtyIfPresent(auto& comp)
+        {
+            if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
+        }
+
+        void Apply(const FieldT& v)
+        {
+            auto& col = NE::ECS::Command::GetCanvas(m_entity);
+
+            // Only apply if we're still editing the same active alternative.
+            if (auto* alt = std::get_if<Alt>(&col.renderModeData)) {
+                alt->*m_member = v;
+                MarkDirtyIfPresent(col);
+            }
+        }
+
+    private:
+        uint32_t m_entity{};
+        std::string m_name;
+        MemberPtr m_member{};
+        FieldT m_before{}, m_after{};
+    };
+
+    template <typename Alt, typename FieldT>
+    class SetCanvasScalarModeFieldCommand final : public ICommand {
+    public:
+        using MemberPtr = FieldT Alt::*;
+
+        SetCanvasScalarModeFieldCommand(
+            uint32_t entity,
+            std::string name,
+            MemberPtr member,
+            FieldT before,
+            FieldT after)
+            : m_entity(entity)
+            , m_name(std::move(name))
+            , m_member(member)
+            , m_before(std::move(before))
+            , m_after(std::move(after))
+        {
+        }
+
+        void Execute() override { Apply(m_after); }
+        void Undo() override { Apply(m_before); }
+
+        const char* GetName() const override { return m_name.c_str(); }
+
+        bool CanCoalesceWith(const ICommand& next) const override
+        {
+            auto* other = dynamic_cast<const SetCanvasScalarModeFieldCommand*>(&next);
+            return other &&
+                other->m_entity == m_entity &&
+                other->m_member == m_member;
+            // Note: we intentionally do NOT require same Alt at runtime here;
+            // Apply() will safely no-op if the active alt changed.
+        }
+
+        void CoalesceFrom(const ICommand& next) override
+        {
+            auto const& other = static_cast<const SetCanvasScalarModeFieldCommand&>(next);
+            m_after = other.m_after;
+            Execute();
+        }
+
+        const FieldT& Before() const { return m_before; }
+        const FieldT& After()  const { return m_after; }
+
+    private:
+        static void MarkDirtyIfPresent(auto& comp)
+        {
+            if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
+        }
+
+        void Apply(const FieldT& v)
+        {
+            auto& col = NE::ECS::Command::GetCanvas(m_entity);
+
+            // Only apply if we're still editing the same active alternative.
+            if (auto* alt = std::get_if<Alt>(&col.scaleModeData)) {
+                alt->*m_member = v;
+                MarkDirtyIfPresent(col);
+            }
+        }
+
+    private:
+        uint32_t m_entity{};
+        std::string m_name;
+        MemberPtr m_member{};
+        FieldT m_before{}, m_after{};
+    };
+
+
 }

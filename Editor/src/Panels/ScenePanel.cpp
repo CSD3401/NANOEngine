@@ -541,18 +541,18 @@ namespace Editor {
 			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_E)) currentOperation = ImGuizmo::ROTATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_R)) currentOperation = ImGuizmo::SCALE;
+			if (ImGui::IsKeyPressed(ImGuiKey_T)) currentOperation = ImGuizmo::BOUNDS;
 
 			ImGuizmo::SetOrthographic(false);
 			ImGuizmo::SetDrawlist();
 			ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
 			using Owner = NE::ECS::Component::Transform;
-			const uint32_t last = EditorScene::s_selection.GetPrimary();
+			const uint32_t last = EditorScene::s_selection.GetLastClicked();
 
-			bool lastHasTransform = (last != NE::ECS::NO_ENTITY) && NE::ECS::Query::HasTransform(last);
-			bool lastHasUIRectTransform = (last != NE::ECS::NO_ENTITY) && NE::ECS::Query::HasUIRectTransform(last);
+			bool isUI = NE::ECS::Query::HasRectTransform(last);
 
-			if (lastHasTransform) {
+			if (!isUI) {
 				auto topLevel = EditorScene::s_selection.GetTopLevelSelection(
 					[](uint32_t e) {
 						const auto& h = NE::ECS::Query::GetEntityHierarchy(e);
@@ -700,68 +700,144 @@ namespace Editor {
 						s_gizmoActive = false;
 					}
 				}
-			} else if (lastHasUIRectTransform) {
-				auto& rectTransform = NE::ECS::Command::GetUIRectTransform(last);
+			} else {
+				auto& rt = NE::ECS::Command::GetRectTransform(last);
 
-				// Get the canvas parent to check render mode
-				uint32_t canvasEntityId = std::numeric_limits<uint32_t>::max();
-				NE::ECS::Component::UICanvas* canvas = nullptr;
+				//// hotkeys (same as 3D, but for UI use ROTATE_Z)
+				//static ImGuizmo::OPERATION uiOp = ImGuizmo::TRANSLATE;
+				//if (ImGui::IsKeyPressed(ImGuiKey_W)) uiOp = ImGuizmo::TRANSLATE;
+				//if (ImGui::IsKeyPressed(ImGuiKey_E)) uiOp = ImGuizmo::ROTATE_Z;  // 2D rotation
+				//if (ImGui::IsKeyPressed(ImGuiKey_R)) uiOp = ImGuizmo::SCALE;
 
-				// First check if this entity itself is a canvas
-				if (NE::ECS::Query::HasUICanvas(last)) {
-					canvasEntityId = last;
-					canvas = &NE::ECS::Command::GetUICanvas(last);
-				} else {
-					// Walk up parent chain to find canvas
-					uint32_t currentParent = rectTransform.parent;
-					while (currentParent != std::numeric_limits<uint32_t>::max()) {
-						if (NE::ECS::Query::HasUICanvas(currentParent)) {
-							canvasEntityId = currentParent;
-							canvas = &NE::ECS::Command::GetUICanvas(currentParent);
-							break;
-						}
-						if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-						currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
-					}
-				}
+				//ImGuizmo::SetOrthographic(true);
+				//ImGuizmo::SetDrawlist();
+				//ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
 
-				if (!canvas) {
-					// No canvas parent found, skip
-					ImGui::End();
-					return;
-				}
+				//// ---- Build VIEW/PROJ for "panel pixel space"
+				//// Origin top-left, x right, y down:
+				//// left=0 right=panelW, top=0 bottom=panelH
+				//NE::Math::Mat4 view; 
+				//view.SetToIdentity();
 
-				// Setup operation keys for 3D gizmo
-				UIGizmoHandler::SetOperation(currentOperation);
+				//// If your UI y-axis is DOWN (most UI), use top=0 bottom=panelH with a flipped ortho:
+				//// We can do that by setting b=panelH, t=0.
+				//NE::Math::Mat4 proj;
+				//proj.BuildOrtho(0.0f, panelSize.x,
+				//	panelSize.y, 0.0f,
+				//	-1.0f, 1.0f
+				//);
 
-				// World space canvas (3D gizmo)
-				if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE) {
-					NE::Math::Mat4 view = EditorScene::m_editorCamera.GetViewMatrix();
-					NE::Math::Mat4 proj = EditorScene::m_editorCamera.GetProjectionMatrix();
+				//// ---- Compose model matrix from RectTransform fields
+				//// NOTE: only using position/rotation/scale here (ignoring anchors/offsets/pivot).
+				//NE::Math::Mat4 model;
+				//model.SetToIdentity();
+				//model = NE::Math::Mat4::TRS(
+				//	rt.position,
+				//	rt.rotation,  // assumed radians euler
+				//	rt.scale
+				//);
 
-					Editor::UIGizmoHandler::Update3DGizmo(last, view, proj, panelPos, panelSize);
-					s_usingUIGizmo = Editor::UIGizmoHandler::IsGizmoActive();
-				}
-				// Screen space canvas (2D gizmo with corner/edge handles)
-				else if (canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-					canvas->renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
-					// Begin 2D gizmo if not already active
-					if (!UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::Begin2DGizmo(last);
-						s_usingUIGizmo = true;
-					}
+				//float modelM[16];
+				//memcpy(modelM, model.Data(), sizeof(float) * 16);
 
-					// Update 2D gizmo
-					if (UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::Update2DGizmo(last, panelPos, panelSize, 1920.f, 1080.f);
-					}
+				//// ---- Single-target command tracking
+				//static bool s_uiGizmoActive = false;
+				//static uint8_t s_uiMask = 0;
+				//static NE::ECS::Component::RectTransform s_uiBefore{};
+				//static std::unique_ptr<Editor::SetRectTransformCommand> s_uiCmd;
 
-					// End 2D gizmo on mouse release
-					if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && UIGizmoHandler::IsGizmoActive()) {
-						UIGizmoHandler::End2DGizmo(last);
-						s_usingUIGizmo = false;
-					}
-				}
+				//auto opToMaskUI = [](ImGuizmo::OPERATION op) -> uint8_t {
+				//	using Cmd = Editor::SetRectTransformCommand;
+				//	switch (op) {
+				//	case ImGuizmo::TRANSLATE: return Cmd::Pos;
+				//	case ImGuizmo::ROTATE:
+				//	case ImGuizmo::ROTATE_Z:  return Cmd::Rot;
+				//	case ImGuizmo::SCALE:     return Cmd::Scl;
+				//	default:                  return Cmd::Pos;
+				//	}
+				//	};
+
+				//const bool editedThisFrame = ImGuizmo::Manipulate(
+				//	view.Data(),
+				//	proj.Data(),
+				//	uiOp,
+				//	ImGuizmo::LOCAL,
+				//	modelM
+				//);
+
+				//const bool isUsing = ImGuizmo::IsUsing();
+
+				//// Start drag: capture "before" + create command
+				//if (!s_uiGizmoActive && isUsing) {
+				//	s_uiGizmoActive = true;
+				//	s_uiMask = opToMaskUI(uiOp);
+
+				//	s_uiBefore = rt;
+				//	s_uiCmd = std::make_unique<Editor::SetRectTransformCommand>(
+				//		last,
+				//		"Gizmo: UI RectTransform",
+				//		s_uiBefore,
+				//		s_uiBefore,
+				//		&NE::ECS::Command::GetRectTransform,
+				//		s_uiMask
+				//	);
+				//}
+
+				//// While dragging: update "after"
+				//if (s_uiGizmoActive && isUsing && editedThisFrame && s_uiCmd) {
+				//	float tr[3], rotDeg[3], sc[3];
+				//	ImGuizmo::DecomposeMatrixToComponents(modelM, tr, rotDeg, sc);
+
+				//	auto after = rt;
+
+				//	if (s_uiMask & Editor::SetRectTransformCommand::Pos) {
+				//		after.position.x = tr[0];
+				//		after.position.y = tr[1];
+				//		after.position.z = tr[2];
+				//	}
+
+				//	if (s_uiMask & Editor::SetRectTransformCommand::Rot) {
+				//		// For ROTATE_Z, ImGuizmo typically reports Z in rotDeg[2]
+				//		after.rotation = {
+				//			0.0f,
+				//			0.0f,
+				//			Radians(rotDeg[2])
+				//		};
+				//	}
+
+				//	if (s_uiMask & Editor::SetRectTransformCommand::Scl) {
+				//		after.scale = { sc[0], sc[1], sc[2] };
+				//	}
+
+				//	s_uiCmd->SetAfter(after);
+				//	rt.isDirty = true; // optional: if your UI system needs it
+				//}
+
+				//// End drag: push command if changed
+				//if (s_uiGizmoActive && !isUsing) {
+				//	auto eq3 = [](auto a, auto b) {
+				//		return std::fabs(a.x - b.x) <= 1e-6f &&
+				//			std::fabs(a.y - b.y) <= 1e-6f &&
+				//			std::fabs(a.z - b.z) <= 1e-6f;
+				//		};
+
+				//	bool changed = false;
+				//	if (s_uiCmd) {
+				//		const auto& B = s_uiCmd->Before();
+				//		const auto& A = s_uiCmd->After();
+
+				//		if (s_uiMask & Editor::SetRectTransformCommand::Pos) changed |= !eq3(B.position, A.position);
+				//		if (s_uiMask & Editor::SetRectTransformCommand::Rot) changed |= !eq3(B.rotation, A.rotation);
+				//		if (s_uiMask & Editor::SetRectTransformCommand::Scl) changed |= !eq3(B.scale, A.scale);
+
+				//		if (changed)
+				//			Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_uiCmd));
+				//		else
+				//			s_uiCmd.reset();
+				//	}
+
+				//	s_uiGizmoActive = false;
+				//}
 			}
 		}
 

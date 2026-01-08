@@ -30,8 +30,10 @@ namespace NE::ECS {
 		struct Camera;
 		struct PhysicsBody;
 		struct UIRectTransform;
+		struct RectTransform;
 		struct UIImage;
 		struct UICanvas;
+		struct Canvas;
 		struct Hierarchy;
 	}
 
@@ -50,8 +52,10 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API const Component::NativeScript& GetEntityScript(uint32_t e);
 		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
+		NANOENGINE_API const Component::RectTransform& GetRectTransform(uint32_t e);
 		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API const Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API const Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API const Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
@@ -80,6 +84,8 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasTransform(uint32_t e);
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
+		NANOENGINE_API bool HasRectTransform(uint32_t e);
+		NANOENGINE_API bool HasCanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
 
 		// --- Component Existence Checks ---
@@ -127,6 +133,8 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetUIRectTransformComponentType();
 		NANOENGINE_API ComponentType GetUIImageComponentType();
 		NANOENGINE_API ComponentType GetUICanvasComponentType();
+		NANOENGINE_API ComponentType GetRectTransformComponentType();
+		NANOENGINE_API ComponentType GetCanvasComponentType();
 		NANOENGINE_API ComponentType GetEntityAnimatorComponentType();
 		NANOENGINE_API ComponentType GetEntityCameraComponentType();
 
@@ -140,6 +148,7 @@ namespace NE::ECS {
 		NANOENGINE_API uint32_t CreateEntity();
 		NANOENGINE_API uint32_t CreateUICanvasEntity();
 		NANOENGINE_API uint32_t CreateUIImageEntity(uint32_t parentCanvas);
+		NANOENGINE_API uint32_t CreateCanvasEntity();
 		NANOENGINE_API void DestroyEntity(uint32_t e);
 		NANOENGINE_API void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos = true);
 		NANOENGINE_API void SetActive(Entity entity, bool isActive);
@@ -179,8 +188,10 @@ namespace NE::ECS {
 		NANOENGINE_API Component::AudioSource& GetEntityAudioSource(uint32_t e);
 		NANOENGINE_API Component::NativeScript& GetEntityScript(uint32_t e);
 		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
+		NANOENGINE_API Component::RectTransform& GetRectTransform(uint32_t e);
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
 		NANOENGINE_API Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 

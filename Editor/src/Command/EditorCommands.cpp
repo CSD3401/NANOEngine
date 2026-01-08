@@ -14,9 +14,23 @@ namespace Editor {
 	void CreateEmptyEntityCommand::Execute() {
 		m_entity = NE::ECS::Command::CreateEntity();
 		EditorScene::s_rootOrder.push_back(m_entity);
+		EditorScene::s_selection.SetSingle(m_entity);
 	}
 
 	void CreateEmptyEntityCommand::Undo() {
+		EditorScene::UnregisterRoot(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
+	CreateCanvasEntityCommand::CreateCanvasEntityCommand() : m_entity(0) {}
+
+	void CreateCanvasEntityCommand::Execute() {
+		m_entity = NE::ECS::Command::CreateCanvasEntity();
+		EditorScene::s_rootOrder.push_back(m_entity);
+		EditorScene::s_selection.SetSingle(m_entity);
+	}
+
+	void CreateCanvasEntityCommand::Undo() {
 		EditorScene::UnregisterRoot(m_entity);
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
@@ -144,150 +158,14 @@ namespace Editor {
 		}
 
 		EditorScene::s_selection.Clear();
-		//const uint32_t rootId = m_entity;
-
-		//std::vector<uint32_t> toDelete;
-		//EditorScene::GetAllDescendants(rootId, toDelete);
-
-		//// store information about deleted UI entities before destroying them
-		//m_deletedEntities.clear();
-		//for (uint32_t id : toDelete) {
-		//	DeletedUIEntityInfo info;
-		//	info.id = id;
-		//	info.wasCanvas = NE::ECS::Query::HasUICanvas(id);
-		//	info.wasUIImage = NE::ECS::Query::HasUIImage(id);
-		//	info.parentId = NE::ECS::Query::GetParent(id);
-		//	m_deletedEntities.push_back(info);
-		//}
-
-		//for (uint32_t id : toDelete) {
-		//	{
-		//		auto it = std::find_if(
-		//			EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
-		//			[id](const EditorEntity& e) { return e.linkedEntity == id; }
-		//		);
-		//		if (it != EditorScene::s_entities.end()) {
-		//			EditorScene::s_entities.erase(it);
-		//		}
-		//	}
-
-		//	EditorScene::s_nodes.erase(id);
-
-		//	auto& roots = EditorScene::s_roots;
-		//	roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
-
-		//	for (auto& [parent, vec] : EditorScene::s_children) {
-		//		vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
-		//	}
-
-		//	NE::ECS::Command::DestroyEntity(id);
-		//}
-
-		//if (EditorScene::s_selectedEntity &&
-		//	std::find(toDelete.begin(), toDelete.end(),
-		//		EditorScene::s_selectedEntity->linkedEntity) != toDelete.end()) {
-		//	EditorScene::s_selectedEntity = nullptr;
-		//}
 	}
 
 	void DeleteEntityCommand::Undo() {
+		return;
 		for (auto& e : m_entities) {
 			NE::ECS::Command::CreateEntity();
 			EditorScene::RegisterRoot(e);
 		}
-		//// sort entities so parents are recreated before children
-		//// (entities with no parent first, then their children, etc.)
-		//std::sort(m_deletedEntities.begin(), m_deletedEntities.end(),
-		//	[](const DeletedUIEntityInfo& a, const DeletedUIEntityInfo& b) {
-		//		// Canvases (no parent) should come first
-		//		if (a.parentId == NE::ECS::NO_ENTITY && b.parentId != NE::ECS::NO_ENTITY) return true;
-		//		if (a.parentId != NE::ECS::NO_ENTITY && b.parentId == NE::ECS::NO_ENTITY) return false;
-		//		return false;
-		//	});
-
-		//std::unordered_map<uint32_t, uint32_t> oldToNewId; // map old id to new id
-
-		//for (const auto& info : m_deletedEntities)
-		//{
-		//	uint32_t newEntity;
-		//	uint32_t newParentId = NE::ECS::NO_ENTITY;
-		//	if (info.parentId != NE::ECS::NO_ENTITY)
-		//	{
-		//		// If the parent was also deleted & recreated, remap to the NEW id
-		//		auto it = oldToNewId.find(info.parentId);
-		//		if (it != oldToNewId.end())
-		//		{
-		//			newParentId = it->second; // parent was recreated
-		//		}
-		//		else
-		//		{
-		//			newParentId = info.parentId; // parent still exists, keep original id
-		//		}
-		//	}
-
-		//	// recreate the correct type of entity
-		//	if (info.wasCanvas)
-		//	{
-		//		newEntity = NE::ECS::Command::CreateUICanvasEntity();
-		//	}
-		//	else if (info.wasUIImage)
-		//	{
-		//		newEntity = NE::ECS::Command::CreateUIImageEntity(newParentId);
-		//	}
-		//	else
-		//	{
-		//		// just regular 3D entity
-		//		newEntity = NE::ECS::Command::CreateEntity();
-		//	}
-
-		//	oldToNewId[info.id] = newEntity;
-
-		//	// add to editor scene
-		//	EditorScene::s_entities.push_back(EditorEntity{ newEntity });
-
-		//	// setup editor hierarchy
-		//	Editor::Node node{};
-		//	node.id = newEntity;
-
-		//	if (newParentId != NE::ECS::NO_ENTITY)
-		//	{
-		//		// has a parent
-		//		node.parent = newParentId;
-		//		auto& children = EditorScene::s_children[newParentId];
-		//		node.orderKey = static_cast<float>(children.size());
-		//		children.push_back(newEntity);
-		//	}
-		//	else
-		//	{
-		//		// root entity
-		//		node.parent = NE::ECS::NO_ENTITY;
-		//		node.orderKey = static_cast<float>(EditorScene::s_roots.size());
-		//		EditorScene::s_roots.push_back(newEntity);
-		//	}
-
-		//	EditorScene::s_nodes[newEntity] = node;
-		//}
-
-		//// update m_entity to the new root id (the canvas in this case)
-		//if (!m_deletedEntities.empty())
-		//{
-		//	// find the root entity (the one with no parent)
-		//	for (const auto& info : m_deletedEntities)
-		//	{
-		//		if (info.parentId == NE::ECS::NO_ENTITY)
-		//		{
-		//			m_entity = oldToNewId[info.id];
-		//			break;
-		//		}
-		//	}
-
-		//	// select the recreated root entity
-		//	auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
-		//		[id = m_entity](const EditorEntity& e) { return e.linkedEntity == id; });
-		//	if (it != EditorScene::s_entities.end()) {
-		//		Editor::EditorScene::s_selectedEntity = &(*it);
-		//	}
-		//}
 	}
 
 	CreateCubeEntityCommand::CreateCubeEntityCommand() : m_entity(0) {}
@@ -297,6 +175,7 @@ namespace Editor {
 		NE::ECS::Command::AddRendererComponent(m_entity);
 		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/cube");
 		EditorScene::s_rootOrder.push_back(m_entity);
+		EditorScene::s_selection.SetSingle(m_entity);
 	}
 
 	void CreateCubeEntityCommand::Undo() {
@@ -311,6 +190,7 @@ namespace Editor {
 		NE::ECS::Command::AddRendererComponent(m_entity);
 		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/sphere");
 		EditorScene::s_rootOrder.push_back(m_entity);
+		EditorScene::s_selection.SetSingle(m_entity);
 	}
 
 	void CreateSphereEntityCommand::Undo() {
@@ -325,6 +205,7 @@ namespace Editor {
 		NE::ECS::Command::AddRendererComponent(m_entity);
 		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/cylinder");
 		EditorScene::s_rootOrder.push_back(m_entity);
+		EditorScene::s_selection.SetSingle(m_entity);
 	}
 
 	void CreateCylinderEntityCommand::Undo() {
@@ -339,6 +220,7 @@ namespace Editor {
 		NE::ECS::Command::AddRendererComponent(m_entity);
 		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/capsule");
 		EditorScene::s_rootOrder.push_back(m_entity);
+		EditorScene::s_selection.SetSingle(m_entity);
 	}
 
 	void CreateCapsuleEntityCommand::Undo() {
@@ -353,6 +235,7 @@ namespace Editor {
 		NE::ECS::Command::AddRendererComponent(m_entity);
 		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/plane");
 		EditorScene::s_rootOrder.push_back(m_entity);
+		EditorScene::s_selection.SetSingle(m_entity);
 	}
 
 	void CreatePlaneEntityCommand::Undo() {

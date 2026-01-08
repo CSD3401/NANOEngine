@@ -581,6 +581,23 @@ namespace Editor {
 			//ImGui::MenuItem("Quad", "", false, false);
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::BeginMenu("UI")) {
+			//if (ImGui::MenuItem("Image", "", false, EditorScene::selectedPrefab.empty())) {
+			//	NANOEngine::Events::EventBus::Get().Dispatch(
+			//		NANOEngine::Events::EventDomain::Editor,
+			//		Events::CreateCubeEntityEvent{}
+			//	);
+			//}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Canvas", "", false, EditorScene::selectedPrefab.empty())) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateCanvasEntityEvent{}
+				);
+			}
+			ImGui::EndMenu();
+		}
 	}
 
 }
