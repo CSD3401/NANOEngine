@@ -495,6 +495,13 @@ namespace Scripting {
         RigidbodyRef GetRigidbodyRef(Entity entity) const;
 
         /**
+         * Get a reference to another entity's renderer.
+         * @param entity Target entity
+         * @return Renderer reference (check IsValid() before use)
+         */
+        RendererRef GetRendererRef(Entity entity) const;
+
+        /**
          * Get a reference to another entity's audio source.
          * @param entity Target entity
          * @return AudioSource reference (check IsValid() before use)
@@ -571,6 +578,7 @@ namespace Scripting {
 
         void RegisterTransformRefField(const std::string& name, TransformRef* memberPtr);
         void RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr);
+        void RegisterRendererRefField(const std::string& name, RendererRef* memberPtr);
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
         void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);

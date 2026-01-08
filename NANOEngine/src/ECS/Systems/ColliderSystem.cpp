@@ -5,23 +5,37 @@
 #include "../Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
+#include "Core/LUIDRegistry.hpp"
 
 
 namespace NE::ECS::Systems {
 
-	ColliderSystem::ColliderSystem(ComponentManager* cm, EntityManager* em) : m_componentManager(cm), m_entityManager(em) { }
+	ColliderSystem::ColliderSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
+	: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) { }
 
 	void ColliderSystem::OnEntityAdded(Entity e) {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
-		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
 
+		// Generate LUID if not set
 		if (col.luid == 0)
 			col.luid = Core::LUIDGenerator::Generate("co");
+
+		// Register with LUID registry
+		m_luidRegistry->Register(col.luid, &col, e);
+
+		// Existing physics shape creation
+		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
 	}
 
 	void ColliderSystem::OnEntityRemoved(Entity e) {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
+
+		// Unregister from LUID registry
+		m_luidRegistry->Unregister(col.luid);
+
+		// Existing physics shape removal
 		Physics::PhysicsManager::GetInstance().RemoveShape(meta.luid);
 	}
 

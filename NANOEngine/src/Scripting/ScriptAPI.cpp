@@ -21,6 +21,8 @@
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
 #include "../Physics/PhysicsManager.hpp"
+#include "../Physics/RaycastHit.hpp"
+#include "../Core/LUIDRegistry.hpp"
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
 #include "../Core/Couroutine.hpp"
@@ -97,6 +99,37 @@ namespace NE {
 			}
 
 			return INVALID_ENTITY;
+		}
+
+		//=========================================================================
+		// LUID COMPONENT RESOLUTION HELPER
+		//=========================================================================
+
+		/**
+		 * Resolve a component by LUID using the LUID registry.
+		 * Returns nullptr if LUID is invalid or component not found.
+		 */
+		template<typename T>
+		inline T* ResolveComponentByLuid(uint64_t luid, Core::LUIDRegistry* registry) {
+			if (luid == 0 || !registry) return nullptr;
+
+			auto* record = registry->Find(luid);
+			if (!record) return nullptr;
+
+			return static_cast<T*>(record->m_ptr);
+		}
+
+		/**
+		 * Get the Entity that owns a component identified by LUID.
+		 * Returns INVALID_ENTITY if LUID not found.
+		 */
+		inline Entity GetEntityFromComponentLuid(uint64_t luid, Core::LUIDRegistry* registry) {
+			if (luid == 0 || !registry) return INVALID_ENTITY;
+
+			auto* record = registry->Find(luid);
+			if (!record) return INVALID_ENTITY;
+
+			return static_cast<Entity>(record->m_entityOwner);
 		}
 
 		// Vector normalization helper
@@ -547,39 +580,40 @@ namespace NE {
 		//=========================================================================
 
 		RaycastHit IScript::Raycast(const Vec3& origin, const Vec3& direction, float maxDistance, uint32_t layerMask) const {
-			RaycastHit result;
+			RaycastHit sdkHit;
+			sdkHit.hasHit = false;
 
-			//if (!m_context || !m_context->componentManager) {
-			//	result.hasHit = false;
-			//	return result;
-			//}
+			if (!m_context || !m_context->componentManager) {
+				return sdkHit;
+			}
 
-			//// Call PhysicsManager raycast with layer mask (static method)
-			//auto hit = Physics::PhysicsManager::Raycast(
-			//	ToEngineVec3(origin),
-			//	ToEngineVec3(direction),
-			//	maxDistance,
-			//	layerMask
-			//);
+			// Call PhysicsManager raycast with engine types
+			Physics::RaycastHit engineHit;
+			bool hasHit = Physics::PhysicsManager::GetInstance().Raycast(
+				ToEngineVec3(origin),
+				ToEngineVec3(direction),
+				engineHit,
+				maxDistance,
+				layerMask
+			);
 
-			//// Convert PhysicsManager::RaycastHit to SDK RaycastHit
-			//result.hasHit = hit.hasHit;
-			//result.point = ToSDKVec3(hit.point);
-			//result.normal = ToSDKVec3(hit.normal);
-			//result.distance = hit.distance;
-			//result.entity = hit.entity;
-			//return result;
-			return {};
+			// Convert to SDK RaycastHit (scripts only see Entity, not LUIDs)
+			sdkHit.hasHit = hasHit;
+			sdkHit.point = ToSDKVec3(engineHit.point);
+			sdkHit.normal = ToSDKVec3(engineHit.normal);
+			sdkHit.distance = engineHit.distance;
+			sdkHit.entity = engineHit.colliderEntityID;
+
+			return sdkHit;
 		}
 
 		RaycastHit IScript::Raycast(float originX, float originY, float originZ,
 			float dirX, float dirY, float dirZ,
 			float maxDistance, uint32_t layerMask) const {
-			/*return Raycast(Vec3(originX, originY, originZ),
+			return Raycast(Vec3(originX, originY, originZ),
 				Vec3(dirX, dirY, dirZ),
 				maxDistance,
-				layerMask);*/
-			return {};
+				layerMask);
 		}
 
 		std::vector<RaycastHit> IScript::RaycastAll(const Vec3& origin, const Vec3& direction,
@@ -820,7 +854,9 @@ namespace NE {
 			if (!m_context || !m_context->componentManager) return TransformRef();
 
 			if (m_context->componentManager->HasComponent<ECS::Component::Transform>(entity)) {
-				return TransformRef(entity);
+				// Get component and extract LUID
+				auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(entity);
+				return TransformRef(entity, transform.luid);  // Pass both entity and LUID
 			}
 			return TransformRef();
 		}
@@ -829,9 +865,22 @@ namespace NE {
 			if (!m_context || !m_context->componentManager) return RigidbodyRef();
 
 			if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(entity)) {
-				return RigidbodyRef(entity);
+				// Get component and extract LUID
+				auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(entity);
+				return RigidbodyRef(entity, rigidbody.luid);  // Pass both entity and LUID
 			}
 			return RigidbodyRef();
+		}
+
+		RendererRef IScript::GetRendererRef(Entity entity) const {
+			if (!m_context || !m_context->componentManager) return RendererRef();
+
+			if (m_context->componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
+				// Get component and extract LUID
+				auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
+				return RendererRef(entity, renderer.luid);  // Pass both entity and LUID
+			}
+			return RendererRef();
 		}
 
 		AudioSourceRef IScript::GetAudioSourceRef(Entity entity) const {
@@ -1010,18 +1059,44 @@ namespace NE {
 
 		// Component ref operations (for stored references)
 		Vec3 IScript::GetPosition(const TransformRef& ref) const {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
+			if (!ref.IsValid() || !m_context) return Vec3::Zero();
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			return ToSDKVec3(transform.localPosition);
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) return ToSDKVec3(transform->localPosition);
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	return ToSDKVec3(transform.localPosition);
+			//}
+
+			return Vec3::Zero();
 		}
 
 		void IScript::SetPosition(const TransformRef& ref, const Vec3& pos) {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			transform.localPosition = ToEngineVec3(pos);
-			transform.isDirty = true;
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) {
+					transform->localPosition = ToEngineVec3(pos);
+					transform->isDirty = true;
+					return;
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	transform.localPosition = ToEngineVec3(pos);
+			//	transform.isDirty = true;
+			//}
 		}
 
 		void IScript::SetPosition(const TransformRef& ref, float x, float y, float z) {
@@ -1029,63 +1104,183 @@ namespace NE {
 		}
 
 		Vec3 IScript::GetRotation(const TransformRef& ref) const {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
+			if (!ref.IsValid() || !m_context) return Vec3::Zero();
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			return ToSDKVec3(transform.localRotationEuler);
+			// Prefer LUID resolution 
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) return ToSDKVec3(transform->localRotationEuler);
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	return ToSDKVec3(transform.localRotationEuler);
+			//}
+
+			return Vec3::Zero();
 		}
 
 		void IScript::SetRotation(const TransformRef& ref, const Vec3& rot) {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			transform.localRotationEuler = ToEngineVec3(rot);
-			transform.isDirty = true;
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) {
+					transform->localRotationEuler = ToEngineVec3(rot);
+					transform->isDirty = true;
+					return;
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	transform.localRotationEuler = ToEngineVec3(rot);
+			//	transform.isDirty = true;
+			//}
 		}
 
 		Vec3 IScript::GetScale(const TransformRef& ref) const {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::One();
+			if (!ref.IsValid() || !m_context) return Vec3::One();
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			return ToSDKVec3(transform.localScale);
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) return ToSDKVec3(transform->localScale);
+			}
+
+			//// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	return ToSDKVec3(transform.localScale);
+			//}
+
+			return Vec3::One();
 		}
 
 		void IScript::SetScale(const TransformRef& ref, const Vec3& scale) {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			transform.localScale = ToEngineVec3(scale);
-			transform.isDirty = true;
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) {
+					transform->localScale = ToEngineVec3(scale);
+					transform->isDirty = true;
+					return;
+				}
+			}
+
+			//// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	transform.localScale = ToEngineVec3(scale);
+			//	transform.isDirty = true;
+			//}
 		}
 
 		Vec3 IScript::GetVelocity(const RigidbodyRef& ref) const {
-			/*if (!ref.IsValid()) return Vec3::Zero();
+			if (!ref.IsValid() || !m_context) return Vec3::Zero();
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) {
-				return Vec3::Zero();
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			uint64_t entityLUID = 0;
+
+			// Prefer LUID resolution to get entity
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* record = m_context->luidRegistry->Find(ref.GetLuid());
+				if (record) {
+					Entity entity = static_cast<Entity>(record->m_entityOwner);
+					if (m_context->componentManager && m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+						auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+						entityLUID = meta.luid;
+					}
+				}
 			}
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-			return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));*/
-			return {};
+			// Fallback to Entity-based lookup
+			if (entityLUID == 0 && m_context->componentManager) {
+				Entity entity = ref.GetEntity();
+				if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+					auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+					entityLUID = meta.luid;
+				}
+			}
+
+			if (entityLUID != 0) {
+				return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetLinearVelocity(entityLUID));
+			}
+
+			return Vec3::Zero();
 		}
 
 		void IScript::SetVelocity(const RigidbodyRef& ref, const Vec3& velocity) {
-			/*if (!ref.IsValid()) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			uint64_t entityLUID = 0;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-			Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));*/
+			// Prefer LUID resolution to get entity
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* record = m_context->luidRegistry->Find(ref.GetLuid());
+				if (record) {
+					Entity entity = static_cast<Entity>(record->m_entityOwner);
+					if (m_context->componentManager && m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+						auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+						entityLUID = meta.luid;
+					}
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			if (entityLUID == 0 && m_context->componentManager) {
+				Entity entity = ref.GetEntity();
+				if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+					auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+					entityLUID = meta.luid;
+				}
+			}
+
+			if (entityLUID != 0) {
+				Physics::PhysicsManager::GetInstance().SetLinearVelocity(entityLUID, ToEngineVec3(velocity));
+			}
 		}
 
 		void IScript::AddForce(const RigidbodyRef& ref, const Vec3& force) {
-			/*if (!ref.IsValid()) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			uint64_t entityLUID = 0;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-			Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));*/
+			// Prefer LUID resolution to get entity
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* record = m_context->luidRegistry->Find(ref.GetLuid());
+				if (record) {
+					Entity entity = static_cast<Entity>(record->m_entityOwner);
+					if (m_context->componentManager && m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+						auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+						entityLUID = meta.luid;
+					}
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			if (entityLUID == 0 && m_context->componentManager) {
+				Entity entity = ref.GetEntity();
+				if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+					auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+					entityLUID = meta.luid;
+				}
+			}
+
+			if (entityLUID != 0) {
+				Physics::PhysicsManager::GetInstance().AddForce(entityLUID, ToEngineVec3(force));
+			}
 		}
 
 		//=========================================================================
@@ -1227,10 +1422,31 @@ namespace NE {
 				name,
 				"transformref",
 				memberPtr,
-				[memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
+				// Serialize: Store component LUID
+				[memberPtr]() -> std::string {
+					uint64_t luid = memberPtr->GetLuid();
+					// Fallback to Entity-based if LUID is not set (backwards compatibility)
+					if (luid == 0) {
+						return std::to_string(memberPtr->GetEntity());
+					}
+					return std::to_string(luid);
+				},
+				// Deserialize: Restore from component LUID
 				[this, memberPtr](const std::string& value) -> bool {
 					try {
-						Entity entity = static_cast<Entity>(std::stoul(value));
+						uint64_t luid = std::stoull(value);
+
+						// If we have LUID registry, resolve LUID to Entity
+						if (m_context && m_context->luidRegistry && luid != 0) {
+							Entity entity = GetEntityFromComponentLuid(luid, m_context->luidRegistry);
+							if (entity != INVALID_ENTITY) {
+								*memberPtr = GetTransformRef(entity);  // This will populate both entity and LUID
+								return true;
+							}
+						}
+
+						// Fallback: treat value as Entity ID (backwards compatibility)
+						Entity entity = static_cast<Entity>(luid);
 						*memberPtr = GetTransformRef(entity);
 						return true;
 					} catch (...) {
@@ -1246,11 +1462,72 @@ namespace NE {
 				name,
 				"rigidbodyref",
 				memberPtr,
-				[memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
+				// Serialize: Store component LUID
+				[memberPtr]() -> std::string {
+					uint64_t luid = memberPtr->GetLuid();
+					// Fallback to Entity-based if LUID is not set (backwards compatibility)
+					if (luid == 0) {
+						return std::to_string(memberPtr->GetEntity());
+					}
+					return std::to_string(luid);
+				},
+				// Deserialize: Restore from component LUID
 				[this, memberPtr](const std::string& value) -> bool {
 					try {
-						Entity entity = static_cast<Entity>(std::stoul(value));
+						uint64_t luid = std::stoull(value);
+
+						// If we have LUID registry, resolve LUID to Entity
+						if (m_context && m_context->luidRegistry && luid != 0) {
+							Entity entity = GetEntityFromComponentLuid(luid, m_context->luidRegistry);
+							if (entity != INVALID_ENTITY) {
+								*memberPtr = GetRigidbodyRef(entity);  // This will populate both entity and LUID
+								return true;
+							}
+						}
+
+						// Fallback: treat value as Entity ID (backwards compatibility)
+						Entity entity = static_cast<Entity>(luid);
 						*memberPtr = GetRigidbodyRef(entity);
+						return true;
+					} catch (...) {
+						return false;
+					}
+				}
+			);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterRendererRefField(const std::string& name, RendererRef* memberPtr) {
+			RegisterFieldInternal(
+				name,
+				"rendererref",
+				memberPtr,
+				// Serialize: Store component LUID
+				[memberPtr]() -> std::string {
+					uint64_t luid = memberPtr->GetLuid();
+					// Fallback to Entity-based if LUID is not set (backwards compatibility)
+					if (luid == 0) {
+						return std::to_string(memberPtr->GetEntity());
+					}
+					return std::to_string(luid);
+				},
+				// Deserialize: Restore from component LUID
+				[this, memberPtr](const std::string& value) -> bool {
+					try {
+						uint64_t luid = std::stoull(value);
+
+						// If we have LUID registry, resolve LUID to Entity
+						if (m_context && m_context->luidRegistry && luid != 0) {
+							Entity entity = GetEntityFromComponentLuid(luid, m_context->luidRegistry);
+							if (entity != INVALID_ENTITY) {
+								*memberPtr = GetRendererRef(entity);  // This will populate both entity and LUID
+								return true;
+							}
+						}
+
+						// Fallback: treat value as Entity ID (backwards compatibility)
+						Entity entity = static_cast<Entity>(luid);
+						*memberPtr = GetRendererRef(entity);
 						return true;
 					} catch (...) {
 						return false;
