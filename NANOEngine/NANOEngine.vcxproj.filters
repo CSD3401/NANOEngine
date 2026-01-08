@@ -242,6 +242,9 @@
     <ClInclude Include="src\ECS\Components\RectTransform.hpp" />
     <ClInclude Include="src\ECS\Components\Canvas.hpp" />
     <ClInclude Include="src\ECS\Systems\RectTransformSystem.hpp" />
+    <ClInclude Include="src\ECS\Components\Button.hpp" />
+    <ClInclude Include="src\ECS\Components\Image.hpp" />
+    <ClInclude Include="src\ECS\Components\Text.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
