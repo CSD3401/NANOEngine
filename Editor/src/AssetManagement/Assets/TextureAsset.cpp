@@ -170,7 +170,7 @@ namespace Editor::Assets {
 		std::vector<uint8_t> compressed;
 		TexFormat fmt = TexFormat::BC7_UNORM;
 
-		const float    quality = 0.6f;  // maybe expose via settings later
+		const float    quality = 0.5f;  // maybe expose via settings later
 		const uint32_t threads = 0;
 
 		if (isNormalMap) {
