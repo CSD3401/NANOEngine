@@ -24,7 +24,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_cameraSystem->Init();
-		m_ecsCoordinator.m_colliderSystem->Init();
+		//m_ecsCoordinator.m_colliderSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();

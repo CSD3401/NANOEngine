@@ -52,13 +52,6 @@ namespace NE::ECS::Systems {
     }
 
     void RenderSystem::Init() {
-        const auto& entities = GetEntities();
-
-        // Register all existing Renderer components with LUID registry
-        for (Entity entity : entities) {
-            OnEntityAdded(entity);
-        }
-
 		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
 		//Graphics::PipelineSpecification pipelineSpec;
 		//pipelineSpec.shader = basicShader;
