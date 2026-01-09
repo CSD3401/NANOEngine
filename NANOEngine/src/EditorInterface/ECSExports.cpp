@@ -463,6 +463,11 @@ namespace NE::ECS {
 		}
 
 		void DestroyEntity(uint32_t e) {
+			auto& hierarchy = GetScene().GetECSCoordinator().GetComponent<Component::Hierarchy>(e);
+			if (hierarchy.parent != Component::INVALID_PARENT) {
+				// change this to purely deleting from parent vector
+				GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(e, Component::INVALID_PARENT);
+			}
 			GetScene().GetECSCoordinator().DestroyEntity(e);
 		}
 
