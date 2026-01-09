@@ -220,7 +220,7 @@ namespace NE::ECS {
 	}
 
 	namespace Command {
-		uint32_t CreateEntity() {
+		uint32_t CreateEmptyEntity(uint32_t parentEntt) {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity, 
@@ -251,6 +251,153 @@ namespace NE::ECS {
 			//	rootT.children.push_back(newEntity);
 			//}
 
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+
+			return newEntity;
+		}
+
+		uint32_t CreateCubeEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Cube"}, .luid = Core::LUIDGenerator::Generate("em")}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/cube"},
+					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateSphereEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Sphere"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/sphere"},
+					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateCylinderEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Cylinder"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/cylinder"},
+					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateCapsuleEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Capsule"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/capsule"},
+					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreatePlaneEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Plane"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/plane"},
+					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
 			return newEntity;
 		}
 

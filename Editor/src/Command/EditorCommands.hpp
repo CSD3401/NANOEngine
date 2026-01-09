@@ -9,7 +9,7 @@ namespace Editor {
 
     class CreateEmptyEntityCommand final : public ICommand {
     public:
-        CreateEmptyEntityCommand();
+        CreateEmptyEntityCommand(uint32_t parentEntity);
 
         void Execute() override;
         void Undo() override;
@@ -17,11 +17,12 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
+        uint32_t m_parentEntity;
     };
 
     class CreateCubeEntityCommand final : public ICommand {
     public:
-        CreateCubeEntityCommand();
+        CreateCubeEntityCommand(uint32_t parentEntity);
 
         void Execute() override;
         void Undo() override;
@@ -29,11 +30,12 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
+        uint32_t m_parentEntity;
     };
 
     class CreateSphereEntityCommand final : public ICommand {
     public:
-        CreateSphereEntityCommand();
+        CreateSphereEntityCommand(uint32_t parentEntity);
 
         void Execute() override;
         void Undo() override;
@@ -41,11 +43,12 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
+        uint32_t m_parentEntity;
     };
 
     class CreateCapsuleEntityCommand final : public ICommand {
     public:
-        CreateCapsuleEntityCommand();
+        CreateCapsuleEntityCommand(uint32_t parentEntity);
 
         void Execute() override;
         void Undo() override;
@@ -53,11 +56,12 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
+        uint32_t m_parentEntity;
     };
 
     class CreateCylinderEntityCommand final : public ICommand {
     public:
-        CreateCylinderEntityCommand();
+        CreateCylinderEntityCommand(uint32_t parentEntity);
 
         void Execute() override;
         void Undo() override;
@@ -65,11 +69,12 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
+        uint32_t m_parentEntity;
     };
 
     class CreatePlaneEntityCommand final : public ICommand {
     public:
-        CreatePlaneEntityCommand();
+        CreatePlaneEntityCommand(uint32_t parentEntity);
 
         void Execute() override;
         void Undo() override;
@@ -77,6 +82,7 @@ namespace Editor {
 
     private:
         uint32_t m_entity;
+        uint32_t m_parentEntity;
     };
 
     class CreateUICanvasEntityCommand final : public ICommand {

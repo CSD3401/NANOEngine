@@ -575,7 +575,7 @@ namespace Editor {
 		if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
-				Events::CreateEmptyEntityEvent{}
+				Events::CreateEmptyEntityEvent{ EditorScene::s_selection.GetLastClicked() }
 			);
 		}
 
@@ -583,31 +583,31 @@ namespace Editor {
 			if (ImGui::MenuItem("Cube", "", false, EditorScene::selectedPrefab.empty())) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCubeEntityEvent{}
+					Events::CreateCubeEntityEvent{ EditorScene::s_selection.GetLastClicked() }
 				);
 			}
 			if (ImGui::MenuItem("Sphere", "", false, EditorScene::selectedPrefab.empty())) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateSphereEntityEvent{}
+					Events::CreateSphereEntityEvent{ EditorScene::s_selection.GetLastClicked() }
 				);
 			}
 			if (ImGui::MenuItem("Capsule", "", false, EditorScene::selectedPrefab.empty())) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCapsuleEntityEvent{}
+					Events::CreateCapsuleEntityEvent{ EditorScene::s_selection.GetLastClicked() }
 				);
 			}
 			if (ImGui::MenuItem("Cylinder", "", false, EditorScene::selectedPrefab.empty())) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCylinderEntityEvent{}
+					Events::CreateCylinderEntityEvent{ EditorScene::s_selection.GetLastClicked() }
 				);
 			}
 			if (ImGui::MenuItem("Plane", "", false, EditorScene::selectedPrefab.empty())) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreatePlaneEntityEvent{}
+					Events::CreatePlaneEntityEvent{ EditorScene::s_selection.GetLastClicked() }
 				);
 			}
 			//ImGui::MenuItem("Quad", "", false, false);
