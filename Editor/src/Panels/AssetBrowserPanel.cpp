@@ -1,16 +1,19 @@
 #include "AssetBrowserPanel.hpp"
+#include <fstream>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-#include <Engine.hpp>
-#include "../../src/EditorScene.hpp"
-#include "../AssetManagement/AssetManager.hpp"
-#include <Core/SpdLogger.hpp>
-#include <fstream>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
+
+#include <Engine.hpp>
+#include <Core/SpdLogger.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <ResourceManagement/ResourcePaths.hpp>
+
+#include "../EditorScene.hpp"
+#include "../AssetManagement/AssetManager.hpp"
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
@@ -65,9 +68,10 @@ namespace Editor {
             draw->AddRect(drop_rect.Min, drop_rect.Max,
                 ImGui::GetColorU32(ImVec4(1, 1, 0, 0.3f)),
                 0.0f, 0, 2.0f);
-            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_DRAG_ID")) {
-                if (p->DataSize == sizeof(uint32_t)) {
-                    uint32_t dropped = *static_cast<const uint32_t*>(p->Data);
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ENTITY_DRAG")) {
+                if (p->DataSize >= sizeof(uint32_t)) {
+                    const uint32_t* entities = static_cast<const uint32_t*>(p->Data);
+                    uint32_t dropped = entities[0]; // First entity
                     
                     auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
                     std::string prefabName = meta.name;
@@ -75,13 +79,10 @@ namespace Editor {
                         prefabName = "Prefab";
 
                     std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
-                    SPD_INFO("Prefab created at: " << filePath);
-                    std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
+                    //SPD_INFO("Prefab created at: " << filePath);
                     Assets::AssetManager::GetInstance().GenerateMetadata(filePath);
                     std::string prefabID = Assets::AssetManager::GetInstance().RetrieveUUID(filePath);
                     meta.prefabID = prefabID;
-
-                    NE::SerializePrefab(dropped, filePath);
                 }
             }
             ImGui::EndDragDropTarget();

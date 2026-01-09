@@ -39,8 +39,10 @@ namespace NE {
 	NANOENGINE_API void CookScene(const std::vector<ECS::Entity>& rootNodes, const std::string& _artifactPath);
 	NANOENGINE_API void LoadScene(const std::string& _artifactPath);
 
+	NANOENGINE_API void CookPrefab(const ECS::Entity rootNodes, const std::string& _artifactPath);
+	NANOENGINE_API uint32_t LoadPrefab(const std::string& _uuid);
+
 	NANOENGINE_API const std::vector<uint32_t>& GetNumEntities();
-	NANOENGINE_API std::string SerializePrefab(uint32_t entt, std::string targetPath);
 	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath);
 	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid);
 	NANOENGINE_API std::vector<uint32_t> DeserializePrefab(std::string prefabPath, std::string uuid, Math::Vec3 pos);

@@ -18,7 +18,8 @@ namespace Editor::Assets {
 		Material,
 		Audio,
 		Prefab,
-		Scene
+		Scene,
+		Folder
 	};
 
 	struct AssetRecord {

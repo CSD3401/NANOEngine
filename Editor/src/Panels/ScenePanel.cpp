@@ -23,6 +23,7 @@
 #include "../Util/DrawSelectedCollider.hpp"
 #include <algorithm>
 #include "../EditorState.hpp"
+#include "../AssetManagement/AssetManager.hpp"
 
 namespace {
 	// helper function for ui
@@ -242,8 +243,13 @@ namespace Editor {
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* prefabPayload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
-				//std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
-				//std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
+				std::string uuid = Assets::AssetManager::GetInstance().GetRecordBySource(dropped)->id;
+
+				auto newRootEntt = NE::LoadPrefab(uuid);
+				EditorScene::s_rootOrder.push_back(newRootEntt);
+				EditorScene::s_selection.SetSingle(newRootEntt);
+
 				//Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
 				//std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
 

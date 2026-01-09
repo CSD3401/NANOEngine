@@ -128,7 +128,31 @@ namespace Editor {
 			}
 
 			void SerializePrefab(const std::string& path) {
+				using rapidjson::Document;
+				using rapidjson::StringBuffer;
+				using rapidjson::PrettyWriter;
 
+				// Save all script instance field values to components before serialization
+				auto& coordinator = NE::GetScene().GetECSCoordinator();
+				auto& componentManager = coordinator.GetComponentManager();
+
+				Document doc;
+				doc.SetObject();
+				auto& a = doc.GetAllocator();
+
+				Value entities(rapidjson::Type::kArrayType);
+				const auto& sceneRoots = EditorScene::s_rootOrder;
+				for (auto e : sceneRoots) {
+					WriteEntityRecursive(e, entities, a);
+				}
+				doc.AddMember("Entities", entities, a);
+
+				StringBuffer sb;
+				PrettyWriter<rapidjson::StringBuffer> wr(sb);
+				doc.Accept(wr);
+
+				std::ofstream out(path, std::ios::binary);
+				if (out) out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
 			}
 
 			void SerializeEditorSettings() {

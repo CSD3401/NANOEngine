@@ -175,13 +175,17 @@ namespace NE {
 		gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
 	}
 
-	const std::vector<uint32_t>& GetNumEntities() {
-		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities();
+	void CookPrefab(const ECS::Entity rootNode, const std::string& _artifactPath) {
+		NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
 	}
 
-	std::string SerializePrefab(uint32_t entt, std::string targetPath) {
-		//return Serialization::JsonSceneSerializer::SerializePrefab(*gSceneManager.GetActive(), entt, targetPath);
-		return "";
+	uint32_t LoadPrefab(const std::string& _uuid) {
+		auto artifactPath = Resource::ComputeArtifactPathFromUUID(_uuid, Resource::ResourceType::Prefab);
+		return NE::Deserialization::DeserializePrefab(GetScene().GetECSCoordinator(), artifactPath);
+	}
+
+	const std::vector<uint32_t>& GetNumEntities() {
+		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities();
 	}
 
 	 std::vector<uint32_t> DeserializePrefab(std::string prefabPath) {
@@ -247,17 +251,12 @@ namespace NE {
 	}
 
 	std::vector<uint8_t> CopyEntity(uint32_t entity) {
-		//std::vector<uint8_t> buffer;
-		//NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
 		std::vector<uint8_t> buffer;
 		NE::Serialization::SerializeEntitiesToMemory(gSceneManager.GetActive()->GetECSCoordinator(), entity, buffer);
 		return buffer;
 	}
 
 	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
-		//auto newEntities =
-		//	NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
-
 		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
 	}
 
@@ -341,22 +340,6 @@ namespace NE {
 	void StopRuntime() {
 		gSceneManager.StopRuntime();
 	}
-
-	//void EditorPlay() {
-	//	g_EngineState = EngineState::Play;
-	//	gSceneManager.BeginPlay();
-	//	glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	//}
-
-	//void EditorPause() {
-	//	g_EngineState = EngineState::Play;
-	//	gSceneManager.GetActive()->ScriptPause();
-	//}
-
-	//void EditorEdit() {
-	//	g_EngineState = EngineState::Edit;
-	//	gSceneManager.StopPlay();
-	//}
 
 	int GetDrawCallCount() {
 		return Graphics::GraphicsManager::drawCount;
