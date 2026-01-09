@@ -1139,8 +1139,13 @@ namespace Editor {
 					bool success = scriptInstance->SetFieldValueFromString(fieldName, value);
 					if (success) {
 						// Also update the component's serialized fields for persistence
+						// IMPORTANT: Read back the actual serialized value (may be LUID, not entity ID)
 						std::string key = NE::ECS::Component::NativeScript::GetFieldKey(scriptName, fieldName);
-						comp.SerializedFields[key] = value;
+						std::string actualValue = scriptInstance->GetFieldValueAsString(fieldName);
+						comp.SerializedFields[key] = actualValue;
+
+						// Mark scene as dirty so save is enabled
+						EditorScene::isDirty = true;
 					}
 					return success;
 				};

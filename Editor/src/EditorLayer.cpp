@@ -52,6 +52,7 @@ namespace Editor {
 			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
 				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
 				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+				EditorScene::isDirty = false;
 			} else if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
 				CommandHistory::GetInstance().Undo();
 			} else if (ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
@@ -177,18 +178,18 @@ namespace Editor {
 			if (ImGui::MenuItem("Open Scene")) {}
 			ImGui::Separator();
 
-			// FIXED: Single Save menu item with proper dirty check
-			//bool isSceneDirty = NE::IsSceneDirty();
-			//if (isSceneDirty) {
-			//	if (ImGui::MenuItem("Save", "Ctrl+S")) {
-			//		SPD_INFO("[DirtyFlag] Save menu clicked - Saving scene");
-			//		Serialization::JSON::SerializeScene(EditorScene::s_currentScenePath);
-			//	}
-			//} else {
-			//	ImGui::BeginDisabled();
-			//	ImGui::MenuItem("Save", "Ctrl+S");
-			//	ImGui::EndDisabled();
-			//}
+			// Save menu item - only enabled when scene is dirty
+			if (!EditorScene::isDirty) {
+				ImGui::BeginDisabled();
+			}
+			if (ImGui::MenuItem("Save", "Ctrl+S")) {
+				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+				EditorScene::isDirty = false;
+			}
+			if (!EditorScene::isDirty) {
+				ImGui::EndDisabled();
+			}
 
 			//if (ImGui::MenuItem("Save As...")) {
 			//	NE::SaveCurrentScene(EditorScene::currentScenePath);
@@ -299,7 +300,13 @@ namespace Editor {
 
 		const float maxSceneNameWidth = 240.0f;
 
-		ImVec2 sceneTextSize = ImGui::CalcTextSize(sceneName, nullptr, false);
+		// Add asterisk if scene is dirty
+		std::string displayName = sceneName;
+		if (EditorScene::isDirty) {
+			displayName += " *";
+		}
+
+		ImVec2 sceneTextSize = ImGui::CalcTextSize(displayName.c_str(), nullptr, false);
 		float sceneW = (sceneTextSize.x > maxSceneNameWidth) ? maxSceneNameWidth : sceneTextSize.x;
 
 		ImVec2 scenePos = ImVec2(historyPos.x - gap - sceneW,
@@ -311,7 +318,13 @@ namespace Editor {
 		ImVec2 sceneDrawEnd = ImVec2(sceneDrawStart.x + sceneW, sceneDrawStart.y + ImGui::GetTextLineHeight());
 
 		ImGui::PushClipRect(sceneDrawStart, sceneDrawEnd, true);
-		ImGui::TextUnformatted(sceneName);
+		if (EditorScene::isDirty) {
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f)); // Yellow/orange for dirty
+			ImGui::TextUnformatted(displayName.c_str());
+			ImGui::PopStyleColor();
+		} else {
+			ImGui::TextUnformatted(displayName.c_str());
+		}
 		ImGui::PopClipRect();
 
 		ImGui::SetCursorPos(historyPos);

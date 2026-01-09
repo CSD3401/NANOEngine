@@ -1213,11 +1213,14 @@ namespace NE::Scripting {
 
     void ScriptingEngine::RecreateScriptInstances(
         NE::ECS::ComponentManager& componentManager,
-        NE::ECS::EntityManager& entityManager) {
+        NE::ECS::EntityManager& entityManager,
+        NE::Core::LUIDRegistry& luidRegistry) {
 
         // Temporarily set ECS references (in case they're pointing to old scene)
         m_componentManager = &componentManager;
         m_entityManager = &entityManager;
+        // CRITICAL: Also update LUID registry to prevent accessing destroyed runtime registry
+        m_luidRegistry = &luidRegistry;
 
         auto& entities = componentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
 

@@ -289,10 +289,12 @@ namespace NE::Scripting {
          * @param componentManager Component manager for the scene
          * @param componentManager Component manager to create instances from
          * @param entityManager Entity manager for entity validation
+         * @param luidRegistry LUID registry for component reference resolution
          */
         NANOENGINE_API void RecreateScriptInstances(
             NE::ECS::ComponentManager& componentManager,
-            NE::ECS::EntityManager& entityManager);
+            NE::ECS::EntityManager& entityManager,
+            NE::Core::LUIDRegistry& luidRegistry);
 
     private:
         ScriptingEngine();
