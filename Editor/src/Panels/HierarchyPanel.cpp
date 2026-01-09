@@ -112,6 +112,12 @@ namespace Editor {
 		std::unordered_set<uint32_t> visible;
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::Button("+")) {
+				ImGui::OpenPopup("HierarchyContextFromButton");
+			}
+
+			if (ImGui::BeginPopup("HierarchyContextFromButton")) { // TODO draw a different context menu for creation only
+				DrawContextMenu();
+				ImGui::EndPopup();
 			}
 
 			static char s_searchBuf[128] = "";
