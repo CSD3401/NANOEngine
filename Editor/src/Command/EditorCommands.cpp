@@ -9,11 +9,13 @@
 #include <Core/LUIDGenerator.hpp>
 
 namespace Editor {
-	CreateEmptyEntityCommand::CreateEmptyEntityCommand() : m_entity(0) {}
+	CreateEmptyEntityCommand::CreateEmptyEntityCommand(uint32_t parentEntity) 
+		: m_entity(0), m_parentEntity(parentEntity) {}
 
 	void CreateEmptyEntityCommand::Execute() {
-		m_entity = NE::ECS::Command::CreateEntity();
-		EditorScene::s_rootOrder.push_back(m_entity);
+		m_entity = NE::ECS::Command::CreateEmptyEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
 	}
 
 	void CreateEmptyEntityCommand::Undo() {
@@ -192,7 +194,7 @@ namespace Editor {
 
 	void DeleteEntityCommand::Undo() {
 		for (auto& e : m_entities) {
-			NE::ECS::Command::CreateEntity();
+			NE::ECS::Command::CreateEmptyEntity(INT32_MAX);
 			EditorScene::RegisterRoot(e);
 		}
 		//// sort entities so parents are recreated before children
@@ -290,13 +292,13 @@ namespace Editor {
 		//}
 	}
 
-	CreateCubeEntityCommand::CreateCubeEntityCommand() : m_entity(0) {}
+	CreateCubeEntityCommand::CreateCubeEntityCommand(uint32_t parentEntity) 
+		: m_entity(0), m_parentEntity(parentEntity) {}
 
 	void CreateCubeEntityCommand::Execute() {
-		m_entity = NE::ECS::Command::CreateEntity();
-		NE::ECS::Command::AddRendererComponent(m_entity);
-		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/cube");
-		EditorScene::s_rootOrder.push_back(m_entity);
+		m_entity = NE::ECS::Command::CreateCubeEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
 	}
 
 	void CreateCubeEntityCommand::Undo() {
@@ -304,13 +306,13 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
-	CreateSphereEntityCommand::CreateSphereEntityCommand() : m_entity(0) {}
+	CreateSphereEntityCommand::CreateSphereEntityCommand(uint32_t parentEntity) 
+		: m_entity(0), m_parentEntity(parentEntity) {}
 
 	void CreateSphereEntityCommand::Execute() {
-		m_entity = NE::ECS::Command::CreateEntity();
-		NE::ECS::Command::AddRendererComponent(m_entity);
-		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/sphere");
-		EditorScene::s_rootOrder.push_back(m_entity);
+		m_entity = NE::ECS::Command::CreateSphereEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
 	}
 
 	void CreateSphereEntityCommand::Undo() {
@@ -318,13 +320,13 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
-	CreateCylinderEntityCommand::CreateCylinderEntityCommand() : m_entity(0) {}
+	CreateCylinderEntityCommand::CreateCylinderEntityCommand(uint32_t parentEntity) 
+		: m_entity(0), m_parentEntity(parentEntity) {}
 
 	void CreateCylinderEntityCommand::Execute() {
-		m_entity = NE::ECS::Command::CreateEntity();
-		NE::ECS::Command::AddRendererComponent(m_entity);
-		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/cylinder");
-		EditorScene::s_rootOrder.push_back(m_entity);
+		m_entity = NE::ECS::Command::CreateCylinderEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
 	}
 
 	void CreateCylinderEntityCommand::Undo() {
@@ -332,13 +334,13 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
-	CreateCapsuleEntityCommand::CreateCapsuleEntityCommand() : m_entity(0) {}
+	CreateCapsuleEntityCommand::CreateCapsuleEntityCommand(uint32_t parentEntity) 
+		: m_entity(0), m_parentEntity(parentEntity) {}
 
 	void CreateCapsuleEntityCommand::Execute() {
-		m_entity = NE::ECS::Command::CreateEntity();
-		NE::ECS::Command::AddRendererComponent(m_entity);
-		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/capsule");
-		EditorScene::s_rootOrder.push_back(m_entity);
+		m_entity = NE::ECS::Command::CreateCapsuleEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
 	}
 
 	void CreateCapsuleEntityCommand::Undo() {
@@ -346,13 +348,13 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
-	CreatePlaneEntityCommand::CreatePlaneEntityCommand() : m_entity(0) {}
+	CreatePlaneEntityCommand::CreatePlaneEntityCommand(uint32_t parentEntity) 
+		: m_entity(0), m_parentEntity(parentEntity) {}
 
 	void CreatePlaneEntityCommand::Execute() {
-		m_entity = NE::ECS::Command::CreateEntity();
-		NE::ECS::Command::AddRendererComponent(m_entity);
-		NE::Renderer::Command::AssignModel(m_entity, "builtin:model/plane");
-		EditorScene::s_rootOrder.push_back(m_entity);
+		m_entity = NE::ECS::Command::CreatePlaneEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
 	}
 
 	void CreatePlaneEntityCommand::Undo() {
