@@ -351,3 +351,4 @@ FodyWeavers.xsd
 Editor/imgui.ini
 !/NANOEngine/Editor/vendor/lib/compressonator/[dD]ebug/
 !/NANOEngine/Editor/vendor/lib/compressonator/[rR]elease/
+.claude/settings.local.json
