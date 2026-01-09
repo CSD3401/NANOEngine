@@ -64,9 +64,11 @@ namespace NE::SceneManagement {
 		// Recreate editor scene script instances for inspection
 		// (disabled, no Update calls, but allow field editing in inspector)
 		if (m_editor) {
-			auto& componentMgr = m_editor->GetECSCoordinator().GetComponentManager();
-			auto& entityMgr = m_editor->GetECSCoordinator().GetEntityManager();
-			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr);
+			auto& coordinator = m_editor->GetECSCoordinator();
+			auto& componentMgr = coordinator.GetComponentManager();
+			auto& entityMgr = coordinator.GetEntityManager();
+			auto& luidRegistry = coordinator.GetLUIDRegistry();
+			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr, luidRegistry);
 		}
 	}
 

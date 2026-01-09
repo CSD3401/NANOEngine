@@ -1454,7 +1454,8 @@ namespace NE {
 					}
 				}
 			);
-			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+			// NOTE: ComponentRef fields store component LUIDs (64-bit), not entity IDs (32-bit)
+			// They should NOT be marked as entity references to avoid truncation during serialization
 		}
 
 		void IScript::RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr) {
@@ -1494,7 +1495,8 @@ namespace NE {
 					}
 				}
 			);
-			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+			// NOTE: ComponentRef fields store component LUIDs (64-bit), not entity IDs (32-bit)
+			// They should NOT be marked as entity references to avoid truncation during serialization
 		}
 
 		void IScript::RegisterRendererRefField(const std::string& name, RendererRef* memberPtr) {
@@ -1534,7 +1536,8 @@ namespace NE {
 					}
 				}
 			);
-			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+			// NOTE: ComponentRef fields store component LUIDs (64-bit), not entity IDs (32-bit)
+			// They should NOT be marked as entity references to avoid truncation during serialization
 		}
 
 		void IScript::RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr) {
@@ -1553,6 +1556,7 @@ namespace NE {
 					}
 				}
 			);
+			// TODO: AudioSourceRef should be updated to use LUID-based references like Transform/Rigidbody/Renderer
 			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
 		}
 
