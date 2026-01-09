@@ -13,13 +13,35 @@
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
 #include "../Util/HierarchyUtils.hpp"
-//#include <algorithm>
-//#include "../AssetManagement/AssetManager.hpp"
-//#include <Math/Vec3.hpp>
-
 
 namespace Editor {
 	namespace {
+		std::string ToLower(std::string s) {
+			for (auto& c : s)
+				c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+			return s;
+		}
+
+		bool MarkVisibleRecursive(NE::ECS::Entity e, const std::string& searchLower, std::unordered_set<uint32_t>& visible) {
+			auto& meta = NE::ECS::Query::GetEntityMeta(e);
+			const std::string nameLower = ToLower(meta.name);
+			const bool selfMatch = !searchLower.empty() && nameLower.find(searchLower) != std::string::npos;
+
+			auto& hierarchy = NE::ECS::Query::GetEntityHierarchy(e);
+			bool descendantMatch = false;
+			for (uint32_t child : hierarchy.children) {
+				if (MarkVisibleRecursive(static_cast<NE::ECS::Entity>(child), searchLower, visible))
+					descendantMatch = true;
+			}
+
+			if (selfMatch || descendantMatch) {
+				visible.insert(static_cast<uint32_t>(e));
+				return true;
+			}
+
+			return false;
+		}
+
 		bool IsAncestor(NE::ECS::Entity ancestor, NE::ECS::Entity node) {
 			using namespace NE::ECS;
 
@@ -89,20 +111,20 @@ namespace Editor {
 		static bool filtering = false;
 		std::unordered_set<uint32_t> visible;
 		if (ImGui::BeginMenuBar()) {
+			if (ImGui::Button("+")) {
+			}
+
 			static char s_searchBuf[128] = "";
 			ImGui::SetNextItemWidth(-1.0f);
 			ImGui::InputTextWithHint("##HierarchySearch", "Search...", s_searchBuf, IM_ARRAYSIZE(s_searchBuf));
 
-			//std::string search = s_searchBuf;
-			//std::string searchLower = ToLower(search);
-			//filtering = !searchLower.empty();
-
-			//// Build visible set when filtering
-			//auto& childrenOf0 = Editor::EditorScene::ChildrenOf(NE::ECS::NO_ENTITY);
-			//if (filtering) {
-			//	for (uint32_t root : childrenOf0)
-			//		MarkVisibleRecursive(root, searchLower, visible);
-			//}
+			m_searchLower = ToLower(std::string(s_searchBuf));
+			m_filtering = !m_searchLower.empty();
+			m_visible.clear();
+			if (m_filtering) {
+				for (uint32_t root : EditorScene::s_rootOrder)
+					MarkVisibleRecursive(static_cast<NE::ECS::Entity>(root), m_searchLower, m_visible);
+			}
 
 			ImGui::EndMenuBar();
 		}
@@ -317,10 +339,13 @@ namespace Editor {
 		ImGui::End();
 	}
 
-	void HierarchyPanel::DrawEntityNode(NE::ECS::Entity e, 
-		std::vector<NE::ECS::Entity>& preorder, 
-		NE::ECS::Entity parent, int indexInParent) 
+	void HierarchyPanel::DrawEntityNode(NE::ECS::Entity e,
+		std::vector<NE::ECS::Entity>& preorder,
+		NE::ECS::Entity parent, int indexInParent)
 	{
+		if (m_filtering && m_visible.count(static_cast<uint32_t>(e)) == 0)
+			return;
+
 		preorder.push_back(e);
 
 		auto& h = NE::ECS::Query::GetEntityHierarchy(e);
@@ -340,6 +365,8 @@ namespace Editor {
 
 		auto& meta = NE::ECS::Query::GetEntityMeta(e);
 		const char* name = meta.name.c_str();
+		const bool nameMatches = m_filtering && !m_searchLower.empty()
+			&& ToLower(meta.name).find(m_searchLower) != std::string::npos;
 
 		bool isActive = meta.isActive;
 		bool isPrefab = !meta.prefabID.empty();
@@ -369,11 +396,12 @@ namespace Editor {
 		if (useCustomColor)
 			ImGui::PushStyleColor(ImGuiCol_Text, finalColor);
 
-		if (selectionChanged && m_forceOpen.count(e)) {
+		if ((selectionChanged && m_forceOpen.count(e))
+			|| (m_filtering && (m_visible.count(static_cast<uint32_t>(e)) > 0 || nameMatches))) {
 			ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 		}
 		bool open = ImGui::TreeNodeEx((void*)(intptr_t)e, flags, "%s", name);
-		
+
 		if (useCustomColor)
 			ImGui::PopStyleColor();
 
@@ -389,7 +417,7 @@ namespace Editor {
 
 		if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 			NANOEngine::Events::EventBus::Get().Dispatch(
-				NANOEngine::Events::EventDomain::Editor, 
+				NANOEngine::Events::EventDomain::Editor,
 				Events::SelectEntityEvent(EditorScene::s_selection.GetLastClicked())
 			);
 		}
@@ -503,7 +531,6 @@ namespace Editor {
 	}
 
 	void HierarchyPanel::DrawContextMenu() {
-
 		if (ImGui::MenuItem("Cut", "Ctrl+X", false, !EditorScene::s_selection.Empty())) {
 			// TODO: implement cut
 		}
@@ -528,7 +555,6 @@ namespace Editor {
 			//	);
 			//}
 			std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
-
 
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
@@ -582,5 +608,4 @@ namespace Editor {
 			ImGui::EndMenu();
 		}
 	}
-
 }
