@@ -5,6 +5,7 @@
 #include <Events/EventBus.hpp>
 #include "EditorCommands.hpp"
 #include "../EditorEvents.hpp"
+#include "../EditorScene.hpp"
 
 namespace Editor {
     CommandHistory& CommandHistory::GetInstance() {
@@ -81,6 +82,7 @@ namespace Editor {
         command->Execute();
         m_undoList.push_back(std::move(command));
         m_redoList.clear();
+        EditorScene::isDirty = true;
     }
 
     void CommandHistory::Undo() {

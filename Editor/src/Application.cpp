@@ -31,6 +31,7 @@ namespace Editor {
 	bool Application::isRunning = true;
 	Timer Application::timer;
 	EditorLayer editorLayer;
+	static bool s_showUnsavedChangesPopup = false;
 
 	void Application::Init() {
 		timer.Start();
@@ -91,10 +92,18 @@ namespace Editor {
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
 
+		glfwSetWindowCloseCallback(window, [](GLFWwindow* w) {
+			if (EditorScene::isDirty) {
+				glfwSetWindowShouldClose(w, GLFW_FALSE);
+				s_showUnsavedChangesPopup = true;
+			}
+			});
+
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
 		EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
 		NE::LoadScene(EditorScene::s_currentSceneUUID);
+		EditorScene::isDirty = false;
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>();
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
@@ -122,6 +131,38 @@ namespace Editor {
 			ImGuizmo::BeginFrame();
 
 			editorLayer.OnImGuiRender();
+
+			// Handle unsaved changes popup
+			if (s_showUnsavedChangesPopup) {
+				ImGui::OpenPopup("Unsaved Changes");
+				s_showUnsavedChangesPopup = false;
+			}
+
+			if (ImGui::BeginPopupModal("Unsaved Changes", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::Text("You have unsaved changes. Do you want to save first?");
+				ImGui::Separator();
+
+				if (ImGui::Button("Save and Close", ImVec2(120, 0))) {
+					// Save the scene
+					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+					EditorScene::isDirty = false;
+					ImGui::CloseCurrentPopup();
+					glfwSetWindowShouldClose(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), GLFW_TRUE);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Close Without Saving", ImVec2(160, 0))) {
+					EditorScene::isDirty = false;
+					ImGui::CloseCurrentPopup();
+					glfwSetWindowShouldClose(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), GLFW_TRUE);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
 
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

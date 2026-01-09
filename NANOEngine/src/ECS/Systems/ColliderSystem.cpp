@@ -43,6 +43,10 @@ namespace NE::ECS::Systems {
 		auto& allEntities = m_entities.GetDenseContainer();
 
 		for (auto& e : allEntities) {
+			// Register Collider LUID first
+			OnEntityAdded(e);
+
+			// Then create physics body
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);

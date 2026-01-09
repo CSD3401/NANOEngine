@@ -40,20 +40,24 @@ namespace NE::ECS::Systems {
 	}
 
 	void TransformSystem::Init() {
-		//const auto& entities = GetEntities();
+		const auto& entities = GetEntities();
 
-		//BuildLocalMatrices();
+		// Register all existing Transform components with LUID registry
+		for (Entity e : entities) {
+			OnEntityAdded(e);
+		}
 
-		//Math::Mat4 I;
-		//I.SetToIdentity();
+		BuildLocalMatrices();
 
-		//for (Entity e : entities) {
-		//	auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
-		//	if (h.parent == Component::INVALID_PARENT) {
-		//		UpdateWorldRecursive(e, I, false);
-		//	}
-		//}
-		Update(0.0);
+		Math::Mat4 I;
+		I.SetToIdentity();
+
+		for (Entity e : entities) {
+			auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
+			if (h.parent == Component::INVALID_PARENT) {
+				UpdateWorldRecursive(e, I, false);
+			}
+		}
 	}
 
 	void TransformSystem::Update(double) {
