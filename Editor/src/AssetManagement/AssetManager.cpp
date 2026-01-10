@@ -134,7 +134,33 @@ namespace Editor::Assets {
             m_assetsByID[rec.id] = std::move(rec);
             meshes.push_back({ "Plane",    "builtin:model/plane" });
         }
+        
+        typeIndex = static_cast<size_t>(AssetType::Shader);
+        auto& shaders = m_assetsByType[typeIndex];
 
+        {
+            AssetRecord rec;
+            rec.id = "neunlit";
+            rec.type = AssetType::Shader;
+            rec.sourcePath = "Unlit";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            shaders.push_back({ "Unlit",     "neunlit" });
+        }
+
+        {
+            AssetRecord rec;
+            rec.id = "nelitpbr";
+            rec.type = AssetType::Shader;
+            rec.sourcePath = "Lit";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            shaders.push_back({ "Lit",     "nelitpbr" });
+        }
     }
 
 	AssetManager& AssetManager::GetInstance() {
@@ -207,15 +233,6 @@ namespace Editor::Assets {
             rec.asset = CreateImporterForType(type, uuid, fsSourcePath.filename().string());
         }
 
-        if (rec.type != AssetType::Scene) {
-            if (rec.asset) {
-                const auto cookedPath =
-                    NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
-                rec.asset->Cook(fsSourcePath.string(), cookedPath);
-                rec.isLoaded = true;
-            }
-        }
-
         Document outDoc;
         outDoc.SetObject();
         auto& a = outDoc.GetAllocator();
@@ -242,6 +259,17 @@ namespace Editor::Assets {
         PrettyWriter<OStreamWrapper> writer(osw);
         writer.SetIndent(' ', 4);
         outDoc.Accept(writer);
+
+        if (rec.type != AssetType::Scene) {
+            if (rec.asset) {
+                rec.asset->SaveImportSettings(sourcePath); // create and save default settings first
+
+                const auto cookedPath =
+                    NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
+                rec.asset->Cook(fsSourcePath.string(), cookedPath);
+                rec.isLoaded = true;
+            }
+        }
     }
 
     void AssetManager::ReimportAsset(const std::string& sourcePathOrMeta) {

@@ -26,6 +26,10 @@ namespace Editor::Assets {
         h.polygonMode = doc.HasMember("PolygonMode") ? doc["PolygonMode"].GetUint() : 0;
 
         const char* shaderName = doc.HasMember("Shader") ? doc["Shader"].GetString() : "Basic";
+        if (strcmp(shaderName, "50f92895-66cc-459d-ad25-0fd250c91f3c") == 0) {
+            shaderName = "nelitpbr";
+        }
+
         const uint32_t shaderNameLen = (uint32_t)std::strlen(shaderName);
 
         // Tables to build

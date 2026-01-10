@@ -7,16 +7,17 @@
 #include "../Components/Transform.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Core/Couroutine.hpp"
+#include "Core/LUIDRegistry.hpp"
 #include "Events/EventBus.hpp"
 #include "../../Scripting/ScriptingEngine.hpp"
 #include <algorithm>
 
 namespace NE::ECS::Systems {
-	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em)
-		: m_componentManager(cm), m_entityManager(em) {
+	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
+		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) {
 
 		// Set ECS references in ScriptEngine so it can manage instances
-		Scripting::ScriptingEngine::GetInstance().SetECSReferences(cm, em);
+		Scripting::ScriptingEngine::GetInstance().SetECSReferences(cm, em, lr);
 	}
 
 	void ScriptSystem::OnEntityAdded(Entity entity) {

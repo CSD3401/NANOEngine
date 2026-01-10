@@ -16,6 +16,8 @@ namespace Editor::Assets {
 		bool LoadImportSettings(const std::string& sourcePath) override;
 		bool SaveImportSettings(const std::string& sourcePath) override;
 
+		ModelImportSettings& GetImportSettings();
+
 	private:
 		std::optional<ModelImportSettings> importSettings;
 	};

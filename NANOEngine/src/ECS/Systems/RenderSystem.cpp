@@ -52,14 +52,6 @@ namespace NE::ECS::Systems {
     }
 
     void RenderSystem::Init() {
-        //const auto& entities = GetEntities();
-        //for (Entity entity : entities) {
-        //    auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-
-        //    renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
-        //    renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
-        //}
-
 		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
 		//Graphics::PipelineSpecification pipelineSpec;
 		//pipelineSpec.shader = basicShader;

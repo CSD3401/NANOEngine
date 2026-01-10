@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 #include <filesystem>
 #include <variant>
 #include <bit>
@@ -13,6 +15,10 @@
 #include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
 #include "Core/Reflection.hpp"
+
+namespace NE::ECS::Component {
+	struct NativeScript;
+}
 
 namespace NE {
 
@@ -166,6 +172,9 @@ namespace NE {
 
             return out.size() - before;
         }
+
+        // Custom serialization for NativeScript (includes SerializedFields and EntityReferenceFields)
+        size_t ToBinary(ByteBuffer& out, const NE::ECS::Component::NativeScript& nsc);
     }
 
     namespace Deserialization {
@@ -336,6 +345,9 @@ namespace NE {
 
             return ok;
         }
+
+        // Custom deserialization for NativeScript (includes SerializedFields and EntityReferenceFields)
+        bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::ECS::Component::NativeScript& nsc);
     }
 
 }

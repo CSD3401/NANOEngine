@@ -10,6 +10,10 @@
 #include "Core/Layers.hpp"
 #include "ForceMode.hpp"
 
+namespace NE::ECS {
+    class ComponentManager;
+}
+
 namespace NE::ECS::Component {
     struct Collider;
     struct Transform;
@@ -49,6 +53,8 @@ namespace NE::Physics {
         void OnPlay();
         void OnStop();
 
+        void SetComponentManager(ECS::ComponentManager* cm);
+
         void CreateOrUpdateShape(const uint64_t entityLUID, const ECS::Component::Collider& col);
         void RemoveShape(const uint64_t entityLUID);
 
@@ -66,7 +72,14 @@ namespace NE::Physics {
 
         void AddForce(uint64_t entityLUID, Math::Vec3 force, ForceMode forceMode = ForceMode::Force);
 
+        Math::Vec3 GetLinearVelocity(uint64_t entityLUID) const;
+        void SetLinearVelocity(uint64_t entityLUID, const Math::Vec3& velocity);
+        Math::Vec3 GetAngularVelocity(uint64_t entityLUID) const;
+        void SetAngularVelocity(uint64_t entityLUID, const Math::Vec3& angularVelocity);
+
     private:
+        ECS::ComponentManager* m_componentManager = nullptr;
+
         std::unique_ptr<JPH::Factory> m_factory;
         std::unique_ptr<JPH::PhysicsSystem> m_physicsSystem;
         std::unique_ptr<JPH::TempAllocatorImpl> m_tempAllocator;

@@ -16,6 +16,8 @@ namespace Editor {
 
     NE::Graphics::EditorCamera EditorScene::m_editorCamera;
 
+    bool EditorScene::isDirty = false;
+
     void EditorScene::BuildRoot() {
         s_rootOrder.clear();
 

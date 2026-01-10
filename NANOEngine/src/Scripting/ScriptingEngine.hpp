@@ -20,6 +20,10 @@ namespace NE::ECS {
     class EntityManager;
 }
 
+namespace NE::Core {
+    class LUIDRegistry;
+}
+
 namespace NE::Scripting {
 
     // Function pointer type for the registration function that game DLLs must export
@@ -166,8 +170,9 @@ namespace NE::Scripting {
          * Set ECS system references (called by ScriptSystem on initialization).
          * @param componentManager Pointer to the component manager
          * @param entityManager Pointer to the entity manager
+         * @param luidRegistry Pointer to the LUID registry
          */
-        NANOENGINE_API void SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager);
+        NANOENGINE_API void SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager, NE::Core::LUIDRegistry* luidRegistry);
 
         /**
          * Create script instances for an entity based on component data.
@@ -284,10 +289,12 @@ namespace NE::Scripting {
          * @param componentManager Component manager for the scene
          * @param componentManager Component manager to create instances from
          * @param entityManager Entity manager for entity validation
+         * @param luidRegistry LUID registry for component reference resolution
          */
         NANOENGINE_API void RecreateScriptInstances(
             NE::ECS::ComponentManager& componentManager,
-            NE::ECS::EntityManager& entityManager);
+            NE::ECS::EntityManager& entityManager,
+            NE::Core::LUIDRegistry& luidRegistry);
 
     private:
         ScriptingEngine();
@@ -305,6 +312,7 @@ namespace NE::Scripting {
         // ECS references (set by ScriptSystem)
         NE::ECS::ComponentManager* m_componentManager = nullptr;
         NE::ECS::EntityManager* m_entityManager = nullptr;
+        NE::Core::LUIDRegistry* m_luidRegistry = nullptr;
 
         // === Single DLL Management ===
         struct {

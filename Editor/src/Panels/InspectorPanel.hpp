@@ -7,8 +7,11 @@
 #include <ECS/Core/Component.hpp>
 #include <Graphics/Core/Material.hpp>
 #include "../AssetManagement/Interfaces/MaterialEditor.hpp"
+#include "../AssetManagement/Interfaces/ModelSettingsEditor.hpp"
+#include "../AssetManagement/Interfaces/TextureSettingsEditor.hpp"
 
 namespace Editor {
+
 	class InspectorPanel : public IPanel {
 	public:
 		InspectorPanel();
@@ -25,9 +28,9 @@ namespace Editor {
 
 		std::vector<Drawer> m_drawers;
 
-		void RenderTextureImportSettings(std::string metaPath);
+		//void RenderTextureImportSettings(std::string metaPath);
 
-		void RenderModelImportSettings(const std::string& metaPath);
+		//void RenderModelImportSettings(const std::string& metaPath);
 
 		void DrawEntityMetaComponent(uint32_t entity);
 		void DrawTransformComponent(uint32_t entity);
@@ -45,6 +48,8 @@ namespace Editor {
 		
 
 		std::unique_ptr<MaterialEditor> m_materialEditor;
+		std::unique_ptr<ModelSettingsEditor> m_modelEditor;
+		std::unique_ptr<TextureSettingsEditor> m_textureEditor;
 		std::string m_lastPath;
 
 	};

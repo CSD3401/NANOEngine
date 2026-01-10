@@ -129,6 +129,7 @@ namespace Editor {
                 EditorScene::BuildRoot();
                 EditorScene::s_currentScenePath = m_selectedPath.string();
                 EditorScene::s_currentSceneUUID = uuid;
+                EditorScene::isDirty = false;
 
                 m_selectedPath.clear();
                 ImGui::CloseCurrentPopup();

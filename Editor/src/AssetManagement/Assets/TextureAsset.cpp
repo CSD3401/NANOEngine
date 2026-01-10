@@ -7,12 +7,12 @@
 #include <stb_image/stb_image.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/prettywriter.h>
+#include <rapidjson/ostreamwrapper.h>
 
+#include <Core/SpdLogger.hpp>
 #include <ResourceManagement/BinaryHeaders/NanoTexHeader.hpp>
 
-#include "../Settings/TextureImportSettings.hpp"
-#include <rapidjson/ostreamwrapper.h>
-#include <Serialisation/ReflectionJson.hpp>
+#include "../../Serialization/JSONReflection.hpp"
 
 namespace Editor::Assets {
 	namespace {
@@ -170,7 +170,7 @@ namespace Editor::Assets {
 		std::vector<uint8_t> compressed;
 		TexFormat fmt = TexFormat::BC7_UNORM;
 
-		const float    quality = 0.6f;  // maybe expose via settings later
+		const float    quality = 0.5f;  // maybe expose via settings later
 		const uint32_t threads = 0;
 
 		if (isNormalMap) {
@@ -241,7 +241,7 @@ namespace Editor::Assets {
 			importSettings.emplace();
 
 		const auto& jSettings = doc["textureImport"];
-		NE::Serialization::from_json(jSettings, *importSettings);
+		Deserialization::FromJSON(jSettings, *importSettings);
 
 		return true;
 	}
@@ -253,42 +253,78 @@ namespace Editor::Assets {
 		using rapidjson::OStreamWrapper;
 		using rapidjson::PrettyWriter;
 
-		if (!importSettings) {
-			return true;
+		//fs::path metaPath = fs::path(sourcePath).concat(".meta");
+		//if (!fs::exists(metaPath)) {
+		//	SPD_WARNING("TextureAsset::SaveImportSettings - meta does not exist: "
+		//		<< metaPath.string());
+		//	return false;
+		//}
+
+		//std::ifstream ifs(metaPath);
+		//if (!ifs)
+		//	return false;
+
+		//IStreamWrapper isw(ifs);
+		//Document doc;
+		//doc.ParseStream(isw);
+		//if (doc.HasParseError() || !doc.IsObject())
+		//	return false;
+
+		//auto& alloc = doc.GetAllocator();
+
+		//if (!importSettings) importSettings.emplace();
+		//auto texImportJson = Serialization::ToJSON(*importSettings, alloc);
+
+		//if (doc.HasMember("textureImport") && doc["textureImport"].IsObject()) {
+		//	doc["textureImport"].CopyFrom(texImportJson, alloc);
+		//} else {
+		//	doc.AddMember("textureImport", texImportJson, alloc);
+		//}
+
+		//std::ofstream ofs(metaPath, std::ios::trunc);
+		//if (!ofs)
+		//	return false;
+
+		//OStreamWrapper osw(ofs);
+		//PrettyWriter<OStreamWrapper> writer(osw);
+		//writer.SetIndent(' ', 4);
+		//doc.Accept(writer);
+
+		//return true;
+		std::string metaPath = sourcePath + ".meta";
+
+		rapidjson::Document doc;
+		doc.SetObject();
+
+		if (std::filesystem::exists(metaPath)) {
+			std::ifstream ifs(metaPath);
+			if (ifs) {
+				rapidjson::IStreamWrapper isw(ifs);
+				doc.ParseStream(isw);
+				if (doc.HasParseError() || !doc.IsObject()) {
+					doc.SetObject();
+				}
+			}
 		}
-
-		fs::path metaPath = fs::path(sourcePath).concat(".meta");
-		if (!fs::exists(metaPath)) {
-			SPD_WARNING("TextureAsset::SaveImportSettings - meta does not exist: "
-				<< metaPath.string());
-			return false;
-		}
-
-		std::ifstream ifs(metaPath);
-		if (!ifs)
-			return false;
-
-		IStreamWrapper isw(ifs);
-		Document doc;
-		doc.ParseStream(isw);
-		if (doc.HasParseError() || !doc.IsObject())
-			return false;
 
 		auto& alloc = doc.GetAllocator();
-		auto texImportJson = NE::Serialization::to_json(*importSettings, alloc);
 
-		if (doc.HasMember("textureImport") && doc["textureImport"].IsObject()) {
-			doc["textureImport"].CopyFrom(texImportJson, alloc);
-		} else {
-			doc.AddMember("textureImport", texImportJson, alloc);
+		if (!importSettings) importSettings.emplace();
+		auto jSettings = Serialization::ToJSON(*importSettings, alloc);
+
+		if (doc.HasMember("textureImport"))
+			doc["textureImport"].CopyFrom(jSettings, alloc);
+		else
+			doc.AddMember("textureImport", jSettings, alloc);
+
+		std::ofstream ofs(metaPath);
+		if (!ofs) {
+			SPD_WARNING("Failed to write meta file: " << metaPath);
+			return false;
 		}
 
-		std::ofstream ofs(metaPath, std::ios::trunc);
-		if (!ofs)
-			return false;
-
-		OStreamWrapper osw(ofs);
-		PrettyWriter<OStreamWrapper> writer(osw);
+		rapidjson::OStreamWrapper osw(ofs);
+		rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
 		writer.SetIndent(' ', 4);
 		doc.Accept(writer);
 

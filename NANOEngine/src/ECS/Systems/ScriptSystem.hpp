@@ -14,6 +14,10 @@ namespace NE::ECS {
 	class EntityManager;
 }
 
+namespace NE::Core {
+	class LUIDRegistry;
+}
+
 namespace NE::ECS::Component {
     struct NativeScript;
 }
@@ -22,7 +26,7 @@ namespace NE::ECS::Systems {
 
 	class ScriptSystem final : public System {
 	public:
-		explicit ScriptSystem(ComponentManager* cm, EntityManager* em = nullptr);
+		explicit ScriptSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr);
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
@@ -38,6 +42,7 @@ namespace NE::ECS::Systems {
 	private:
 		ComponentManager* m_componentManager;
 		EntityManager* m_entityManager;
+		Core::LUIDRegistry* m_luidRegistry;
 	};
 
 }

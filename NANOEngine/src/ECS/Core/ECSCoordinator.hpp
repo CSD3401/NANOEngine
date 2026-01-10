@@ -96,6 +96,11 @@ namespace NE::ECS {
         ComponentManager& GetComponentManager() {
             return *m_componentManager;
         }
+
+        Core::LUIDRegistry& GetLUIDRegistry() {
+            return *m_luidRegistry;
+        }
+
         std::vector<Entity>& GetUsedEntities() { return m_entityManager->GetUsedEntities(); }
 
         Signature GetSignature(Entity entity);

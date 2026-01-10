@@ -74,8 +74,9 @@ namespace NE::ECS::Component {
         NE_REFLECT_BEGIN(NativeScript)
             NE_REFLECT_FIELD(ScriptNames)
             // NOTE: SerializedFields and EntityReferenceFields use custom serialization
-            // See ReflectionJson.hpp to_json/from_json(NativeScript) for LUID conversion
-            // They are intentionally excluded from reflection macro
+            // See ReflectionJson.hpp to_json/from_json(NativeScript) for JSON/LUID conversion
+            // See BinaryReflection.hpp ToBinary/FromBinary(NativeScript) for binary serialization
+            // They are intentionally excluded from reflection macro (unsupported types)
         NE_REFLECT_END()
     };
 }

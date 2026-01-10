@@ -23,7 +23,6 @@
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
 #include "../EditorScene.hpp"
-//#include <Engine.hpp>
 #include <imgui/widgets/imsearch/imsearch.h>
 #include "../EditorUI.hpp"
 #include "../Command/EditorSetFieldCommand.hpp"
@@ -206,68 +205,6 @@ namespace {
 			return a == b;
 		}
 	}
-
-	bool LoadModelImportSettings(std::string metaPath, Editor::Assets::ModelImportSettings& settings) {
-		using namespace rapidjson;
-		using namespace NE::Serialization;
-
-		if (!std::filesystem::exists(metaPath))
-			return false;
-
-		std::ifstream ifs(metaPath);
-		if (!ifs) {
-			SPD_WARNING("Failed to read meta file: " << metaPath);
-			return false;
-		}
-
-		IStreamWrapper isw(ifs);
-		Document doc;
-		doc.ParseStream(isw);
-
-		if (doc.HasParseError() || !doc.IsObject()) {
-			SPD_WARNING("Failed to parse JSON in meta file: " << metaPath);
-			return false;
-		}
-
-		if (!doc.HasMember("modelImport") || !doc["modelImport"].IsObject())
-			return true;
-
-		const auto& jSettings = doc["modelImport"];
-		from_json(jSettings, settings);
-
-		return true;
-	}
-
-	//bool LoadTextureImportSettings(std::string metaPath, Editor::Assets::TextureImportSettings& settings) {
-	//	using namespace rapidjson;
-	//	using namespace NE::Serialization;
-
-	//	if (!std::filesystem::exists(metaPath))
-	//		return false;
-
-	//	std::ifstream ifs(metaPath);
-	//	if (!ifs) {
-	//		SPD_WARNING("Failed to read meta file: " << metaPath);
-	//		return false;
-	//	}
-
-	//	IStreamWrapper isw(ifs);
-	//	Document doc;
-	//	doc.ParseStream(isw);
-
-	//	if (doc.HasParseError() || !doc.IsObject()) {
-	//		SPD_WARNING("Failed to parse JSON in meta file: " << metaPath);
-	//		return false;
-	//	}
-
-	//	if (!doc.HasMember("textureImport") || !doc["textureImport"].IsObject())
-	//		return true;
-
-	//	const auto& jSettings = doc["textureImport"];
-	//	from_json(jSettings, settings);
-
-	//	return true;
-	//}
 
 	// temp
 	// Returns true if layer changed
@@ -472,7 +409,7 @@ namespace Editor {
 			ImGui::SetCursorPosX(centeredPosX);
 
 			if (ImGui::Button("Add Component")) {
-				ImGui::OpenPopup("ComponentList"); 
+				ImGui::OpenPopup("ComponentList");
 			}
 
 			if (ImGui::BeginPopup("ComponentList")) { // automate this next time with a registry
@@ -504,18 +441,36 @@ namespace Editor {
 
 				ImGui::EndPopup();
 			}
-		}
-		else if (EditorScene::selectedAsset != "") {
+		} else if (EditorScene::selectedAsset != "") {
 			std::filesystem::path assetPath = EditorScene::selectedAsset;
 
 			if (assetPath.extension() == ".png" || assetPath.extension() == ".jpg") {
-				RenderTextureImportSettings(assetPath.string() + ".meta");
-			}
-			else if (assetPath.extension() == ".obj" || assetPath.extension() == ".fbx") {
-				RenderModelImportSettings(assetPath.string() + ".meta");
-			}
-			else if (assetPath.extension() == ".nanomat") {
-				//RenderMaterialSettings();
+				if (!m_textureEditor || m_lastPath != assetPath.string()) {
+					m_textureEditor = std::make_unique<TextureSettingsEditor>();
+					if (m_textureEditor->LoadTextureSettings(assetPath.string(), Assets::AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
+						m_lastPath = assetPath.string();
+					else {
+						ImGui::TextUnformatted("Failed to load texture import settings.");
+						m_textureEditor.reset();
+					}
+				}
+
+				if (m_textureEditor)
+					m_textureEditor->RenderSettings();
+			} else if (assetPath.extension() == ".obj" || assetPath.extension() == ".fbx") {
+				if (!m_modelEditor || m_lastPath != assetPath.string()) {
+					m_modelEditor = std::make_unique<ModelSettingsEditor>();
+					if (m_modelEditor->LoadModelSettings(assetPath.string(), Assets::AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
+						m_lastPath = assetPath.string();
+					else {
+						ImGui::TextUnformatted("Failed to load model import settings.");
+						m_modelEditor.reset();
+					}
+				}
+
+				if (m_modelEditor)
+					m_modelEditor->RenderSettings();
+			} else if (assetPath.extension() == ".nanomat") {
 				if (!m_materialEditor || m_lastPath != assetPath.string()) {
 					m_materialEditor = std::make_unique<MaterialEditor>();
 					if (m_materialEditor->LoadMaterial(assetPath.string(), Assets::AssetManager::GetInstance().RetrieveUUID(assetPath.string())))
@@ -535,260 +490,6 @@ namespace Editor {
 		}
 		ImGui::End();
 
-	}
-
-	void InspectorPanel::RenderTextureImportSettings(std::string metaPath) {
-		//static std::string s_LastMetaPath;
-		//static TextureImportSettings s_Settings{};
-		//static bool s_Loaded = false;
-		//static bool s_dirty = false;
-
-		//if (!s_Loaded || metaPath != s_LastMetaPath) {
-		//	if (!LoadTextureImportSettings(metaPath, s_Settings)) {
-		//		ImGui::TextUnformatted("Failed to load texture import settings.");
-		//		return;
-		//	}
-
-		//	s_LastMetaPath = metaPath;
-		//	s_Loaded = true;
-		//}
-
-		//static const char* TextureTypeNames[] = { "Default", "Normal Map", "Sprite" };
-		//static const char* TextureShapeNames[] = { "2D", "Cube", "2D Array" };
-		//static const char* TextureWrapMode[] = { "Repeat", "Clamp", "Mirror", "MirrorOnce", "PerAxis" };
-		//static const char* TextureFilterMode[] = { "Point", "Bilinear", "Trilinear" };
-		//static const char* AlphaSourceNames[] = { "InputTextureAlpha", "GrayscaleSource", "None" };
-
-		//// ----- Texture Type -----
-		//int currentType = static_cast<int>(s_Settings.type); // assuming enum starts at 0
-		//if (ImGui::Combo("Texture Type", &currentType, TextureTypeNames, IM_ARRAYSIZE(TextureTypeNames))) {
-		//	s_Settings.type = static_cast<TexType>(currentType);
-		//	s_dirty = true;
-		//}
-
-		//// ----- Shape -----
-		//int currentShape = static_cast<int>(s_Settings.shape); // TextureShape enum
-		//if (ImGui::Combo("Texture Shape", &currentShape, TextureShapeNames, IM_ARRAYSIZE(TextureShapeNames))) {
-		//	s_Settings.shape = static_cast<TexShape>(currentShape);
-		//	s_dirty = true;
-		//}
-
-		//// ----- sRGB -----
-		//bool isSRGB = s_Settings.sRGB;
-		//if (Editor::DrawCheckbox("sRGB (Color Texture)", isSRGB)) {
-		//	s_Settings.sRGB = isSRGB;
-		//	s_dirty = true;
-		//}
-
-		//// ----- Alpha Source -----
-		//int currentAlpha = static_cast<int>(s_Settings.alphaSource); // AlphaSource enum
-		//if (ImGui::Combo("Alpha Source", &currentAlpha, AlphaSourceNames, IM_ARRAYSIZE(AlphaSourceNames))) {
-		//	s_Settings.alphaSource = static_cast<TexAlphaSource>(currentAlpha);
-		//	s_dirty = true;
-		//}
-
-		//// ----- Advanced -----
-		//if (ImGui::TreeNode("Advanced")) {
-		//	bool generateMips = s_Settings.mips.generateMipmap;
-		//	bool preserveCoverage = s_Settings.mips.preserveCoverage;
-
-		//	if (Editor::DrawCheckbox("Generate Mipmaps", generateMips)) {
-		//		s_Settings.mips.generateMipmap = generateMips;
-		//		s_dirty = true;
-		//	}
-
-		//	if (Editor::DrawCheckbox("Preserve Coverage", preserveCoverage)) {
-		//		s_Settings.mips.preserveCoverage = preserveCoverage;
-		//		s_dirty = true;
-		//	}
-
-		//	ImGui::TreePop();
-		//}
-
-		//// ----- Filter -----
-		//int currentFilter = static_cast<int>(s_Settings.filterMode); // FilterMode enum
-		//if (ImGui::Combo("Filter Mode", &currentFilter, TextureFilterMode, IM_ARRAYSIZE(TextureFilterMode))) {
-		//	s_Settings.filterMode = static_cast<TexFilterMode>(currentFilter);
-		//	s_dirty = true;
-		//}
-
-		//// ----- Wrap -----
-		//int currentWrap = static_cast<int>(s_Settings.wrapMode); // WrapMode enum
-		//if (ImGui::Combo("Wrap Mode", &currentWrap, TextureWrapMode, IM_ARRAYSIZE(TextureWrapMode))) {
-		//	s_Settings.wrapMode = static_cast<TexWrapMode>(currentWrap);
-		//	s_dirty = true;
-		//}
-
-		//ImGui::BeginDisabled(!s_dirty);
-		//if (ImGui::Button("Apply")) {
-		//	if (!AssetManager::GetInstance().SaveTextureImportSettings(metaPath, s_Settings)) {
-		//		SPD_WARNING("Failed to save texture import settings for: " << metaPath);
-		//	}
-		//	else {
-		//		AssetManager::GetInstance().ReimportAsset(metaPath);
-		//	}
-
-		//	s_dirty = false;
-		//}
-		//ImGui::EndDisabled();
-	}
-
-	void InspectorPanel::RenderModelImportSettings(const std::string& metaPath) {
-		//static std::string s_LastMetaPath;
-		//static ModelImportSettings s_Settings{};
-		//static bool s_Loaded = false;
-
-		Assets::ModelImportSettings settings{};
-		if (!LoadModelImportSettings(metaPath, settings)) {
-			ImGui::TextUnformatted("Failed to load model import settings.");
-			return;
-		}
-
-		static int s_CurrentImportTab = 0;
-
-		const char* tabNames[] = { "Model", "Rig", "Animation", "Materials" };
-		constexpr int tabCount = IM_ARRAYSIZE(tabNames);
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		float fullWidth = ImGui::GetContentRegionAvail().x;
-
-		float totalButtonsWidth = 0.0f;
-		for (int i = 0; i < tabCount; ++i) {
-			ImVec2 textSize = ImGui::CalcTextSize(tabNames[i]);
-			float btnWidth = textSize.x + style.FramePadding.x * 2.0f;
-			totalButtonsWidth += btnWidth;
-			if (i + 1 < tabCount)
-				totalButtonsWidth += style.ItemInnerSpacing.x;
-		}
-
-		float cursorX = (fullWidth - totalButtonsWidth) * 0.5f;
-		if (cursorX < 0.0f) cursorX = 0.0f;
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + cursorX);
-
-		for (int i = 0; i < tabCount; ++i) {
-			bool isActive = (s_CurrentImportTab == i);
-
-			if (isActive)
-				ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_ButtonActive]);
-			else
-				ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_Button]);
-
-			if (ImGui::Button(tabNames[i]))
-				s_CurrentImportTab = i;
-
-			ImGui::PopStyleColor();
-
-			if (i + 1 < tabCount)
-				ImGui::SameLine();
-		}
-
-		ImGui::Separator();
-
-		auto DrawComboEnum = [](const char* label, int& currentIndex, const char* const* names, int count) {
-			ImGui::Combo(label, &currentIndex, names, count);
-			};
-
-		switch (s_CurrentImportTab) {
-		case 0:
-		{
-			if (ImGui::CollapsingHeader("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {
-				// SceneImportSettings
-				ImGui::DragFloat("Scale Factor", &settings.scene.scaleFactor, 0.01f, 0.0001f, 100.0f);
-				Editor::DrawCheckbox("Convert Units", settings.scene.convertUnits);
-				Editor::DrawCheckbox("Import Blend Shapes", settings.scene.importBlendShapes);
-				Editor::DrawCheckbox("Import Cameras", settings.scene.importCameras);
-				Editor::DrawCheckbox("Import Lights", settings.scene.importLights);
-				Editor::DrawCheckbox("Preserve Hierarchy", settings.scene.preserveHierarchy);
-			}
-
-			if (ImGui::CollapsingHeader("Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
-				// MeshImportSettings
-				const char* MeshOptNames[] = { "None", "Everything", "Polygon Order", "Vertex Order" };
-				int meshOptIndex = static_cast<int>(settings.mesh.meshOptimizationMode);
-				DrawComboEnum("Mesh Optimization", meshOptIndex, MeshOptNames, IM_ARRAYSIZE(MeshOptNames));
-				settings.mesh.meshOptimizationMode =
-					static_cast<Assets::MeshImportSettings::MeshOptimizationMode>(meshOptIndex);
-
-				Editor::DrawCheckbox("Generate Colliders", settings.mesh.generateColliders);
-				Editor::DrawCheckbox("Generate Mesh LODs", settings.mesh.generateMeshLODs);
-
-				Editor::DrawCheckbox("Keep Quads", settings.mesh.keepQuads);
-				Editor::DrawCheckbox("Weld Vertices", settings.mesh.weldVertices);
-
-				const char* IndexFormatNames[] = { "Auto", "UInt16", "UInt32" };
-				int indexFmtIndex = static_cast<int>(settings.mesh.indexFormat);
-				DrawComboEnum("Index Format", indexFmtIndex, IndexFormatNames, IM_ARRAYSIZE(IndexFormatNames));
-				settings.mesh.indexFormat = static_cast<Assets::MeshImportSettings::IndexFormat>(indexFmtIndex);
-
-				const char* NormalModeNames[] = { "Import", "Calculate", "None" };
-				int normalIndex = static_cast<int>(settings.mesh.normalMode);
-				DrawComboEnum("Normals", normalIndex, NormalModeNames, IM_ARRAYSIZE(NormalModeNames));
-				settings.mesh.normalMode = static_cast<Assets::MeshImportSettings::NormalMode>(normalIndex);
-
-				ImGui::DragFloat("Smoothing Angle", &settings.mesh.smoothingAngle, 1.0f, 0.0f, 180.0f);
-
-				const char* TangentModeNames[] = { "Import", "Calculate (MikkTSpace)", "None" };
-				int tangentIndex = static_cast<int>(settings.mesh.tangentMode);
-				DrawComboEnum("Tangents", tangentIndex, TangentModeNames, IM_ARRAYSIZE(TangentModeNames));
-				settings.mesh.tangentMode = static_cast<Assets::MeshImportSettings::TangentMode>(tangentIndex);
-
-				Editor::DrawCheckbox("Swap UVs", settings.mesh.swapUVs);
-			}
-			break;
-		}
-
-		case 1: // ----- RIG -----
-		{
-			if (ImGui::CollapsingHeader("Rig", ImGuiTreeNodeFlags_DefaultOpen)) {
-				const char* AnimTypeNames[] = { "None", "Generic", "Humanoid" };
-				int animTypeIndex = static_cast<int>(settings.rig.animationType);
-				DrawComboEnum("Animation Type", animTypeIndex, AnimTypeNames, IM_ARRAYSIZE(AnimTypeNames));
-				settings.rig.animationType = static_cast<Assets::RigImportSettings::AnimationType>(animTypeIndex);
-
-				Editor::DrawCheckbox("Strip Unused Bones", settings.rig.stripBones);
-			}
-			break;
-		}
-
-		case 2: // ----- ANIMATION -----
-		{
-			if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen)) {
-				Editor::DrawCheckbox("Import Animations", settings.animation.importAnimations);
-				Editor::DrawCheckbox("Import Constraints", settings.animation.importConstraints);
-				Editor::DrawCheckbox("Import Animated Custom Properties", settings.animation.importAnimatedCustomProperties);
-				Editor::DrawCheckbox("Auto Split Clips", settings.animation.autoSplitClips);
-
-				ImGui::DragFloat("Sample Rate", &settings.animation.sampleRate, 1.0f, 0.0f, 480.0f, "%.1f");
-
-				Editor::DrawCheckbox("Import Root Motion", settings.animation.importRootMotion);
-				Editor::DrawCheckbox("Lock Root Position XZ", settings.animation.lockRootPositionXZ);
-				Editor::DrawCheckbox("Lock Root Rotation Y", settings.animation.lockRootRotationY);
-			}
-			break;
-		}
-
-		case 3: // ----- MATERIALS -----
-		{
-			if (ImGui::CollapsingHeader("Materials", ImGuiTreeNodeFlags_DefaultOpen)) {
-				Editor::DrawCheckbox("Import Materials", settings.material.importMaterials);
-				Editor::DrawCheckbox("Try Reuse Existing Materials", settings.material.tryReuseExistingMaterials);
-
-				const char* MaterialModeNames[] = { "Per Submesh", "Per Mesh", "Per File" };
-				int matModeIndex = static_cast<int>(settings.material.creationMode);
-				DrawComboEnum("Material Creation", matModeIndex, MaterialModeNames, IM_ARRAYSIZE(MaterialModeNames));
-				settings.material.creationMode =
-					static_cast<Assets::MaterialImportSettings::MaterialCreationMode>(matModeIndex);
-			}
-			break;
-		}
-		}
-
-		ImGui::Spacing();
-		ImGui::Separator();
-
-		if (ImGui::Button("Apply")) {
-			//SaveModelImportSettings(metaPath, settings);
-		}
 	}
 
 	void InspectorPanel::DrawEntityMetaComponent(uint32_t entity) {
@@ -1438,8 +1139,13 @@ namespace Editor {
 					bool success = scriptInstance->SetFieldValueFromString(fieldName, value);
 					if (success) {
 						// Also update the component's serialized fields for persistence
+						// IMPORTANT: Read back the actual serialized value (may be LUID, not entity ID)
 						std::string key = NE::ECS::Component::NativeScript::GetFieldKey(scriptName, fieldName);
-						comp.SerializedFields[key] = value;
+						std::string actualValue = scriptInstance->GetFieldValueAsString(fieldName);
+						comp.SerializedFields[key] = actualValue;
+
+						// Mark scene as dirty so save is enabled
+						EditorScene::isDirty = true;
 					}
 					return success;
 				};
@@ -1595,9 +1301,86 @@ namespace Editor {
 									ImGui::Text("%s: %s (enum - no options)", fname.c_str(), fval.c_str());
 								}
 							}
+							else if (ftype == "transformref" || ftype == "rigidbodyref" || ftype == "rendererref") {
+								// Component reference field - display entity name and allow drag-drop
+								std::string componentType = (ftype == "transformref") ? "Transform" :
+								                             (ftype == "rigidbodyref") ? "Rigidbody" : "Renderer";
+								std::string displayName = "None";
+								uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+								std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+								// Try to resolve the stored value (could be Entity ID or component LUID)
+								if (!fval.empty() && fval != "0" && fval != noEntityStr) {
+									try {
+										uint64_t storedValue = std::stoull(fval);
+
+										// Try to interpret as Entity ID first (for simpler logic)
+										// The deserialization code handles LUID resolution internally
+										if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
+											assignedEntityId = static_cast<uint32_t>(storedValue);
+											if (assignedEntityId != NE::ECS::NO_ENTITY) {
+												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+												displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+											}
+										}
+										else {
+											// Large value - likely a LUID, show as assigned
+											displayName = "[Assigned]";
+										}
+									}
+									catch (...) {
+										displayName = "[Error]";
+									}
+								}
+
+								ImGui::Text("%s (%s)", fname.c_str(), componentType.c_str());
+								ImGui::PushID((fname + "_compref").c_str());
+
+								ImGui::Button(displayName.c_str(), ImVec2(200, 0));
+
+								if (ImGui::BeginDragDropTarget()) {
+									const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+									if (payload && payload->DataSize == sizeof(uint32_t)) {
+										uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+										// Validate that the entity has the required component
+										bool hasComponent = false;
+										if (ftype == "transformref") {
+											// Transform is always present
+											hasComponent = true;
+										}
+										else if (ftype == "rigidbodyref") {
+											hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Rigidbody>(droppedEntity);
+										}
+										else if (ftype == "rendererref") {
+											hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(droppedEntity);
+										}
+
+										if (hasComponent) {
+											// Pass entity ID - deserialization code will resolve to component LUID
+											bool success = UpdateFieldValue(fname, std::to_string(droppedEntity));
+											if (success) {
+												fieldChanged = true;
+											}
+										}
+										else {
+											SPD_WARNING("Entity does not have required " << componentType << " component");
+										}
+									}
+									ImGui::EndDragDropTarget();
+								}
+
+								ImGui::SameLine();
+								if (ImGui::Button("X")) {
+									UpdateFieldValue(fname, "0");
+									fieldChanged = true;
+								}
+
+								ImGui::PopID();
+							}
 							else if (ftype.starts_with("componentref:")) {
-								// Component reference field support currently disabled
-								ImGui::Text("%s (ComponentRef - not implemented)", fname.c_str());
+								// Generic component reference fallback
+								ImGui::Text("%s (ComponentRef - unsupported type)", fname.c_str());
 							}
 							else if (ftype == "materialref") {
 								// Material reference field
@@ -1767,6 +1550,70 @@ namespace Editor {
 											elemChanged = true;
 										}
 									}
+									else if (elementType == "transformref" || elementType == "rigidbodyref" || elementType == "rendererref") {
+										// Component reference in array
+										std::string componentType = (elementType == "transformref") ? "Transform" :
+										                             (elementType == "rigidbodyref") ? "Rigidbody" : "Renderer";
+										std::string displayName = "None";
+										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+										// Try to resolve the stored value (could be Entity ID or component LUID)
+										if (!elemValue.empty() && elemValue != "0" && elemValue != noEntityStr) {
+											try {
+												uint64_t storedValue = std::stoull(elemValue);
+												if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
+													assignedEntityId = static_cast<uint32_t>(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+													}
+												}
+												else {
+													displayName = "[Assigned]";
+												}
+											}
+											catch (...) {
+												displayName = "[Error]";
+											}
+										}
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+											if (payload && payload->DataSize == sizeof(uint32_t)) {
+												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+												// Validate component
+												bool hasComponent = false;
+												if (elementType == "transformref") {
+													hasComponent = true;
+												}
+												else if (elementType == "rigidbodyref") {
+													hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Rigidbody>(droppedEntity);
+												}
+												else if (elementType == "rendererref") {
+													hasComponent = NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(droppedEntity);
+												}
+
+												if (hasComponent) {
+													bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+													if (success) elemChanged = true;
+												}
+												else {
+													SPD_WARNING("Entity does not have required " << componentType << " component");
+												}
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, noEntityStr);
+											elemChanged = true;
+										}
+									}
 									else if (elementType == "entity") {
 										std::string entityIdStr = elemValue;
 										std::string displayName = "None";
@@ -1789,7 +1636,7 @@ namespace Editor {
 										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
 
 										if (ImGui::BeginDragDropTarget()) {
-											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("HIER_DRAG_ID");
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
 											if (payload && payload->DataSize == sizeof(uint32_t)) {
 												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
 												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));

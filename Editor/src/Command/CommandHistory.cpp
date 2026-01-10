@@ -5,6 +5,7 @@
 #include <Events/EventBus.hpp>
 #include "EditorCommands.hpp"
 #include "../EditorEvents.hpp"
+#include "../EditorScene.hpp"
 
 namespace Editor {
     CommandHistory& CommandHistory::GetInstance() {
@@ -15,43 +16,43 @@ namespace Editor {
     CommandHistory::CommandHistory() {
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateEmptyEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateEmptyEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreateEmptyEntityCommand>());
+            [&](const Events::CreateEmptyEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreateEmptyEntityCommand>(e.parentEntity));
             }
         );
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateCubeEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateCubeEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreateCubeEntityCommand>());
+            [&](const Events::CreateCubeEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreateCubeEntityCommand>(e.parentEntity));
             }
         );
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateSphereEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateSphereEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreateSphereEntityCommand>());
+            [&](const Events::CreateSphereEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreateSphereEntityCommand>(e.parentEntity));
             }
         );
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateCapsuleEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateCapsuleEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreateCapsuleEntityCommand>());
+            [&](const Events::CreateCapsuleEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreateCapsuleEntityCommand>(e.parentEntity));
             }
         );
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateCylinderEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateCylinderEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreateCylinderEntityCommand>());
+            [&](const Events::CreateCylinderEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreateCylinderEntityCommand>(e.parentEntity));
             }
         );
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreatePlaneEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreatePlaneEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreatePlaneEntityCommand>());
+            [&](const Events::CreatePlaneEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreatePlaneEntityCommand>(e.parentEntity));
             }
         );
 
@@ -81,6 +82,7 @@ namespace Editor {
         command->Execute();
         m_undoList.push_back(std::move(command));
         m_redoList.clear();
+        EditorScene::isDirty = true;
     }
 
     void CommandHistory::Undo() {

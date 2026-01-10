@@ -40,19 +40,6 @@ namespace NE::ECS::Systems {
 	}
 
 	void TransformSystem::Init() {
-		//const auto& entities = GetEntities();
-
-		//BuildLocalMatrices();
-
-		//Math::Mat4 I;
-		//I.SetToIdentity();
-
-		//for (Entity e : entities) {
-		//	auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
-		//	if (h.parent == Component::INVALID_PARENT) {
-		//		UpdateWorldRecursive(e, I, false);
-		//	}
-		//}
 		Update(0.0);
 	}
 

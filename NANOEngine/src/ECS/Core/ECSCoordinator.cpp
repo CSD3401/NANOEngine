@@ -87,7 +87,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::RigidbodySystem>(sig);
         }
 
-        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get(), m_entityManager.get());
+        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
@@ -103,7 +103,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::AudioSystem>(sig);
         }
         
-		m_scriptSystem = m_systemManager->RegisterSystem<Systems::ScriptSystem>(m_componentManager.get());
+		m_scriptSystem = m_systemManager->RegisterSystem<Systems::ScriptSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
 		{
 			Signature sig;
 			sig.set(GetComponentType<Component::NativeScript>());

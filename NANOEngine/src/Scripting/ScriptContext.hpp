@@ -13,6 +13,10 @@
 #include "../ECS/Core/EntityManager.hpp"
 #include "../Physics/PhysicsManager.hpp"
 
+namespace NE::Core {
+    class LUIDRegistry;
+}
+
 namespace NE {
 namespace Scripting {
 
@@ -28,12 +32,13 @@ namespace Scripting {
     public:
         ECS::ComponentManager* componentManager = nullptr;
         ECS::EntityManager* entityManager = nullptr;
+        Core::LUIDRegistry* luidRegistry = nullptr;  // NEW: Add LUID registry access
         // Note: PhysicsManager is static, accessed directly via static methods
 
         ScriptContext() = default;
 
-        explicit ScriptContext(ECS::ComponentManager* cm, ECS::EntityManager* em = nullptr)
-            : componentManager(cm), entityManager(em) {
+        explicit ScriptContext(ECS::ComponentManager* cm, ECS::EntityManager* em = nullptr, Core::LUIDRegistry* lr = nullptr)
+            : componentManager(cm), entityManager(em), luidRegistry(lr) {
             // PhysicsManager is accessed statically, no instance needed
         }
 
