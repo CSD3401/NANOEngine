@@ -27,6 +27,9 @@
 #include "Scripts/CameraController.hpp"
 #include "Scripts/RenderSettingsDemo.hpp"
 
+// GameObject Reference Test Scripts
+#include "Scripts/GameObjectTest.hpp"
+
 
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
@@ -120,6 +123,11 @@ extern "C" {
             return new Pickable();
             });
 
+        // GameObject Reference Test Script
+        registrar->RegisterScript("GameObjectTest", []() -> NE::Scripting::IScript* {
+            return new GameObjectTest();
+            });
+
         }
-    
+
 }

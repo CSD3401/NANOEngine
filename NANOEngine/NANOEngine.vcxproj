@@ -204,6 +204,7 @@
     <ClCompile Include="src\ECS\Systems\AudioSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\PipelineCache.cpp" />
     <ClCompile Include="src\Input\InputManager.cpp" />
+    <ClCompile Include="src\Scripting\GameObject.cpp" />
     <ClCompile Include="src\Scripting\ScriptAPI.cpp" />
     <ClCompile Include="src\Scripting\ScriptContextFactory.cpp" />
     <ClCompile Include="src\Scripting\ScriptTypes.cpp" />
