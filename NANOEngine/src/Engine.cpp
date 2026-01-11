@@ -173,8 +173,16 @@ namespace NE {
 		NE::Serialization::SerializeScene(GetScene().GetECSCoordinator(), rootNodes, _artifactPath);
 	}
 
-	void LoadScene(const std::string& _artifactPath) {
-		gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
+	bool LoadScene(const std::string& _artifactPath) {
+		return gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
+	}
+
+	void CreateSceneFallback(const std::string& _artifactPath) {
+		gSceneManager.CreateSceneFallback(_artifactPath);
+	}
+
+	void StartSceneFallback() {
+		gSceneManager.StartSceneFallback();
 	}
 
 	void CookPrefab(const ECS::Entity rootNode, const std::string& _artifactPath) {

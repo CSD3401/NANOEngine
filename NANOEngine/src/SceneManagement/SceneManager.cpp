@@ -8,11 +8,31 @@
 
 namespace NE::SceneManagement {
 
-	void SceneManager::LoadScene(const std::string& path) {
+	bool SceneManager::LoadScene(const std::string& path) {
 		m_loadedPath = path;
 		m_editor = std::make_unique<Scene>();
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
-		NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path);
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
+			m_editor.reset();
+			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+			return false;
+		}
+		m_editor->InitEdit();
+		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+		Prefab::PrefabManager::Init(m_editor.get());
+		//Prefab::PrefabManager::RebuildFromScene();
+		m_isPlaying = false;
+		m_runtime.reset();
+		return true;
+	}
+
+	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
+		m_loadedPath = scenePath;
+		m_editor = std::make_unique<Scene>();
+		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+	}
+
+	void SceneManager::StartSceneFallback() {
 		m_editor->InitEdit();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		Prefab::PrefabManager::Init(m_editor.get());

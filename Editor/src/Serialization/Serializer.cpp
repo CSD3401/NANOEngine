@@ -30,6 +30,30 @@
 #include <Scripting/ScriptingEngine.hpp>
 
 namespace Editor {
+	namespace {
+		using ComponentTypes = std::tuple<
+			NE::ECS::Component::EntityMeta,
+			NE::ECS::Component::Hierarchy,
+			NE::ECS::Component::Transform,
+			NE::ECS::Component::Renderer,
+			NE::ECS::Component::Light,
+			NE::ECS::Component::Collider,
+			NE::ECS::Component::Rigidbody,
+			NE::ECS::Component::NativeScript,
+			NE::ECS::Component::Camera,
+			NE::ECS::Component::UIRectTransform,
+			NE::ECS::Component::UICanvas,
+			NE::ECS::Component::UIImage
+		>;
+
+		template <class F>
+		void ForEachComponentType(F&& f) {
+			std::apply([&](auto&&... t) {
+				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
+				}, ComponentTypes{});
+		}
+	}
+
 	namespace Serialization {
 		namespace JSON {
 			namespace {
@@ -39,28 +63,6 @@ namespace Editor {
 					if (!NE::ECS::Query::HasComponent<C>(e)) return;
 					auto& c = NE::ECS::Query::GetComponent<C>(e);
 					ent.AddMember(rapidjson::Value(ComponentKey<C>::value, a), ToJSON(c, a), a);
-				}
-
-				using ComponentTypes = std::tuple<
-					NE::ECS::Component::EntityMeta,
-					NE::ECS::Component::Hierarchy,
-					NE::ECS::Component::Transform,
-					NE::ECS::Component::Renderer,
-					NE::ECS::Component::Light,
-					NE::ECS::Component::Collider,
-					NE::ECS::Component::Rigidbody,
-					NE::ECS::Component::NativeScript,
-					NE::ECS::Component::Camera,
-					NE::ECS::Component::UIRectTransform,
-					NE::ECS::Component::UICanvas,
-					NE::ECS::Component::UIImage
-				>;
-
-				template <class F>
-				void ForEachComponentType(F&& f) {
-					std::apply([&](auto&&... t) {
-						(f.template operator() < std::decay_t<decltype(t)> > (), ...);
-						}, ComponentTypes{});
 				}
 
 				rapidjson::Value WriteEntityRecursive(
@@ -160,4 +162,53 @@ namespace Editor {
 			}
 		}
 	}
+
+	namespace Deserialization {
+		namespace JSON {
+			namespace {
+				template <typename C>
+				void ReadComponentIfPresent(NE::ECS::Entity e,
+					const rapidjson::Value& ent) {
+					if (!ent.HasMember(ComponentKey<C>::value)) return;
+					C c{};
+					FromJSON(ent[ComponentKey<C>::value], c);
+					NE::ECS::Command::AddComponent<C>(e, c);
+				}
+			}
+
+			void DeserializeScene(const std::string& path) {
+				using rapidjson::Document;
+				using rapidjson::StringBuffer;
+				using rapidjson::PrettyWriter;
+
+				std::ifstream in(path, std::ios::binary);
+				if (!in) return;
+
+				std::string data((std::istreambuf_iterator<char>(in)), {});
+				Document doc; doc.Parse(data.c_str());
+
+				if (doc.HasMember("RenderSettings")) {
+					auto& rs = NE::Renderer::Command::GetRenderSettings();
+					FromJSON(doc["RenderSettings"], rs);
+				}
+
+				if (doc.HasMember("PostProcessingSettings")) {
+					auto& pps = NE::Renderer::Command::GetPostProcessingSettings();
+					FromJSON(doc["PostProcessingSettings"], pps);
+				}
+
+				if (!doc.IsObject() || !doc.HasMember("Entities")) return;
+
+				for (auto& entVal : doc["Entities"].GetArray()) {
+					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
+
+					ForEachComponentType([&]<typename C>() {
+						ReadComponentIfPresent<C>(e, entVal);
+					});
+				}
+			}
+		}
+	}
 }
+
+

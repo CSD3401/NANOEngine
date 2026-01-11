@@ -13,6 +13,7 @@ namespace Editor {
 
 	namespace Deserialization {
 		namespace JSON {
+			void DeserializeScene(const std::string& path);
 			void DeserializeEditorSettings();
 		}
 	}

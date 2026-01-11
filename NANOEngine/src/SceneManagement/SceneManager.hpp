@@ -10,10 +10,14 @@ namespace NE::SceneManagement {
 		SceneManager() = default;
 		~SceneManager() = default;
 
-		void LoadScene(const std::string& scenePath);
+		bool LoadScene(const std::string& scenePath);
 		void Update(double dt);
 		void Render();
 		void ExitScene();
+
+		// Fallbacks
+		void CreateSceneFallback(const std::string& scenePath);
+		void StartSceneFallback();
 
 		void LoadRuntime();
 		void StopRuntime();

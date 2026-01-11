@@ -48,7 +48,7 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 1;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 2;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 1;
@@ -345,10 +345,10 @@ namespace NE {
 			}
 		}
 
-		void DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path) {
+		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path) {
 			NE::ByteBuffer bytes;
 			if (!ReadAllBytes(path, bytes))
-				return;
+				return false;
 
 			const uint8_t* it = bytes.data();
 			const uint8_t* end = bytes.data() + bytes.size();
@@ -356,30 +356,30 @@ namespace NE {
 			uint64_t magic = 0;
 			uint64_t version = 0;
 
-			if (!ReadT(it, end, magic)) return;
-			if (magic != NSCE_MAGIC) return;
+			if (!ReadT(it, end, magic)) return false;
+			if (magic != NSCE_MAGIC) return false;
 
-			if (!ReadT(it, end, version)) return;
-			if (version != CURRENT_NANOSCENE_FORMAT_VERSION) return;
+			if (!ReadT(it, end, version)) return false;
+			if (version != CURRENT_NANOSCENE_FORMAT_VERSION) return false;
 
-			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return;
-			if (!ReadT(it, end, Graphics::GraphicsManager::postProcessingSettings)) return;
+			if (!ReadT(it, end, Graphics::GraphicsManager::renderSettings)) return false;
+			if (!ReadT(it, end, Graphics::GraphicsManager::postProcessingSettings)) return false;
 
 			std::uint64_t entityCount = 0;
-			if (!ReadT(it, end, entityCount)) return;
+			if (!ReadT(it, end, entityCount)) return false;
 
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
 				ECS::Entity e = ecs.CreateEntity();
 
 				std::uint64_t maskU64 = 0;
-				if (!ReadT(it, end, maskU64)) return;
+				if (!ReadT(it, end, maskU64)) return false;
 				const std::uint64_t mask = maskU64;
 
 				std::uint32_t idx = 0;
 				ForEachComponentType([&]<typename C>() {
 					if (mask & (std::uint64_t(1) << idx)) {
 						C c{};
-						if (!ReadT(it, end, c)) throw 1;  // will be caught below
+						if (!ReadT(it, end, c)) return false;
 						ecs.AddComponent<C>(e, c);
 					}
 					++idx;

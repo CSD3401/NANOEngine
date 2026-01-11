@@ -37,7 +37,11 @@ namespace NE {
 	NANOENGINE_API std::vector<uint32_t> GetPickedEntities(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 	
 	NANOENGINE_API void CookScene(const std::vector<ECS::Entity>& rootNodes, const std::string& _artifactPath);
-	NANOENGINE_API void LoadScene(const std::string& _artifactPath);
+	NANOENGINE_API bool LoadScene(const std::string& _artifactPath);
+
+	// For binary fail fallbacks
+	NANOENGINE_API void CreateSceneFallback(const std::string& _artifactPath);
+	NANOENGINE_API void StartSceneFallback();
 
 	NANOENGINE_API void CookPrefab(const ECS::Entity rootNodes, const std::string& _artifactPath);
 	NANOENGINE_API uint32_t LoadPrefab(const std::string& _uuid);
