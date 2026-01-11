@@ -17,11 +17,11 @@ namespace Editor::Assets {
 		return true;
 	}
 
-	bool PrefabAsset::LoadImportSettings(const std::string& sourcePath) { // No Import Settings
+	bool PrefabAsset::LoadImportSettings(const std::string& /*sourcePath*/) { // No Import Settings
 		return true;
 	}
 
-	bool PrefabAsset::SaveImportSettings(const std::string& sourcePath) { // No Import Settings
+	bool PrefabAsset::SaveImportSettings(const std::string& /*sourcePath*/) { // No Import Settings
 		return true;
 	}
 

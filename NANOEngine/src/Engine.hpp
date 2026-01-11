@@ -55,6 +55,8 @@ namespace NE {
 	NANOENGINE_API std::vector<uint8_t> CopyEntity(uint32_t entity);
 	NANOENGINE_API uint32_t PasteEntity(std::vector<uint8_t> clipboard);
 
+	NANOENGINE_API void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot = false);
+
 	//NANOENGINE_API const std::vector<std::pair<std::string, std::shared_ptr<Asset::AudioBank>>>& GetAllAudioBanks();
 
 	NANOENGINE_API bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages); // here for now

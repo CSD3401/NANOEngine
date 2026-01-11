@@ -630,11 +630,11 @@ namespace Editor {
 			openLayerSettings = false;
 		}
 
-		if (metaRO.prefabID != "") {
-			ImGui::Text("Prefab");
-			ImGui::SameLine();
-			ImGui::Text(metaRO.prefabID.c_str());
-		}
+		//if (metaRO.prefabID != "") {
+		//	ImGui::Text("Prefab");
+		//	ImGui::SameLine();
+		//	ImGui::Text(metaRO.prefabID.c_str());
+		//}
 	}
 
 	void InspectorPanel::DrawTransformComponent(uint32_t entity) {

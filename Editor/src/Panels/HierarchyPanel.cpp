@@ -375,7 +375,7 @@ namespace Editor {
 			&& ToLower(meta.name).find(m_searchLower) != std::string::npos;
 
 		bool isActive = meta.isActive;
-		bool isPrefab = !meta.prefabID.empty();
+		bool isPrefab = NE::ECS::Query::HasPrefabLink(e);
 
 		ImVec4 baseText = ImGui::GetStyleColorVec4(ImGuiCol_Text);
 		ImVec4 disabled = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);

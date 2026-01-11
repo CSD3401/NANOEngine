@@ -13,6 +13,7 @@ namespace NE::ECS::Component {
 	struct UICanvas;
 	struct UIImage;
     struct Hierarchy;
+	struct PrefabLink;
 }
 
 
@@ -34,4 +35,5 @@ NE_COMPONENT_KEY(NE::ECS::Component::Camera, "Camera")
 NE_COMPONENT_KEY(NE::ECS::Component::UIRectTransform, "UIRectTransform")
 NE_COMPONENT_KEY(NE::ECS::Component::UICanvas, "UICanvas")
 NE_COMPONENT_KEY(NE::ECS::Component::UIImage, "UIImage")
+NE_COMPONENT_KEY(NE::ECS::Component::PrefabLink, "PrefabLink")
 

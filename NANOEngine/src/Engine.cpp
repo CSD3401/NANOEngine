@@ -21,6 +21,8 @@
 #include "Serialisation/Serializer.hpp"
 #include "ResourceManagement/ResourcePaths.hpp"
 #include <glfw/glfw3.h>
+#include "ECS/Components/PrefabLink.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 
 namespace {
 
@@ -258,6 +260,20 @@ namespace NE {
 
 	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
 		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
+	}
+
+	void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot) {
+		auto& coordinator = GetScene().GetECSCoordinator();
+
+		coordinator.AddComponent<NE::ECS::Component::PrefabLink>(
+			entity, 
+			NE::ECS::Component::PrefabLink{ uuid, localID, isRoot });
+
+		auto& hier = coordinator.GetComponent<NE::ECS::Component::Hierarchy>(entity);
+		for (auto childID : hier.children) {
+			++localID;
+			CreatePrefabFromEntity(childID, uuid, localID);
+		}
 	}
 
 	// Internal use only

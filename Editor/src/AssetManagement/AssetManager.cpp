@@ -170,7 +170,7 @@ namespace Editor::Assets {
 		return am;
 	}
 
-    void AssetManager::GenerateMetadata(const std::string& sourcePath) {
+    void AssetManager::GenerateMetadata(const std::string& sourcePath, std::string _uuid) {
         namespace fs = std::filesystem;
         using rapidjson::Document;
         using rapidjson::IStreamWrapper;
@@ -206,7 +206,7 @@ namespace Editor::Assets {
                 type = GetAssetTypeFromString(doc["assetType"].GetString());
 
             if (uuid.empty())
-                uuid = GenerateUUID();
+                uuid = _uuid.empty() ? GenerateUUID() : std::move(_uuid);
             if (type == AssetType::Unknown)
                 type = GetAssetTypeFromExtension(fsSourcePath.extension().string());
 
@@ -227,7 +227,7 @@ namespace Editor::Assets {
             return;
         }
 
-        uuid = GenerateUUID();
+        uuid = _uuid.empty() ? GenerateUUID() : std::move(_uuid);
         type = GetAssetTypeFromExtension(fsSourcePath.extension().string());
 
         AssetRecord& rec = RegisterAsset(uuid, type, fsSourcePath);

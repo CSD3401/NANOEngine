@@ -33,6 +33,7 @@ namespace NE::ECS {
 		struct UIImage;
 		struct UICanvas;
 		struct Hierarchy;
+		struct PrefabLink;
 	}
 
 	namespace Query {
@@ -81,6 +82,7 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
+		NANOENGINE_API bool HasPrefabLink(uint32_t e);
 
 		// --- Component Existence Checks ---
 		NANOENGINE_API bool HasTransform(uint32_t e);

@@ -133,8 +133,8 @@ namespace Editor {
 				using rapidjson::PrettyWriter;
 
 				// Save all script instance field values to components before serialization
-				auto& coordinator = NE::GetScene().GetECSCoordinator();
-				auto& componentManager = coordinator.GetComponentManager();
+				//auto& coordinator = NE::GetScene().GetECSCoordinator();
+				//auto& componentManager = coordinator.GetComponentManager();
 
 				Document doc;
 				doc.SetObject();

@@ -2481,29 +2481,6 @@ namespace NE {
 			}
 		}*/
 
-		bool IScript::IsPrefabInstance(Entity entity) const {
-			if (!m_context->componentManager) return false;
-
-			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
-				return false;
-
-			const auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
-			return !meta.prefabID.empty();
-		}
-
-		bool IScript::IsPrefabRoot(Entity entity) const {
-			if (!m_context->componentManager) return false;
-
-			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
-				return false;
-
-			return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).isPrefabRoot;
-		}
-
 		// === Entity Active State Functions ===
 
 		bool IScript::IsActive(Entity e) const {

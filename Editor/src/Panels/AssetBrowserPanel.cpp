@@ -73,6 +73,11 @@ namespace Editor {
                     const uint32_t* entities = static_cast<const uint32_t*>(p->Data);
                     uint32_t dropped = entities[0]; // First entity
                     
+
+                    std::string uuid = Assets::GenerateUUID();
+                    uint32_t localIDs = 0;
+					NE::CreatePrefabFromEntity(dropped, uuid, localIDs, true);
+
                     auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
                     std::string prefabName = meta.name;
                     if (meta.name.empty())
@@ -80,9 +85,9 @@ namespace Editor {
 
                     std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
                     //SPD_INFO("Prefab created at: " << filePath);
-                    Assets::AssetManager::GetInstance().GenerateMetadata(filePath);
-                    std::string prefabID = Assets::AssetManager::GetInstance().RetrieveUUID(filePath);
-                    meta.prefabID = prefabID;
+                    Assets::AssetManager::GetInstance().GenerateMetadata(filePath, uuid);
+                    //std::string prefabID = Assets::AssetManager::GetInstance().RetrieveUUID(filePath);
+                    //meta.prefabID = prefabID;
                 }
             }
             ImGui::EndDragDropTarget();

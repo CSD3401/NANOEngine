@@ -58,11 +58,11 @@ namespace Editor::Assets {
 
 		return NE::CookShader(sourcePath, outPath, shaderStages);
 	}
-	bool ShaderAsset::LoadImportSettings(const std::string& sourcePath)
+	bool ShaderAsset::LoadImportSettings(const std::string& /*sourcePath*/)
 	{
 		return false;
 	}
-	bool ShaderAsset::SaveImportSettings(const std::string& sourcePath)
+	bool ShaderAsset::SaveImportSettings(const std::string& /*sourcePath*/)
 	{
 		return false;
 	}

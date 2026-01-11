@@ -13,6 +13,7 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Hierarchy.hpp"
+#include "../Components/PrefabLink.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -55,6 +56,7 @@ namespace NE::ECS {
 		RegisterComponent<Component::Camera>();
         RegisterComponent<Component::Hierarchy>();
         RegisterComponent<Component::NativeScript>();
+        RegisterComponent<Component::PrefabLink>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());

@@ -238,6 +238,7 @@
     <ClInclude Include="src\Physics\RaycastHit.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
+    <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
