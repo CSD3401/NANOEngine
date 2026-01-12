@@ -510,6 +510,143 @@ namespace NE {
 			return outNewRoot;
 		}
 
+		bool DeserializePrefab(ECS::ECSCoordinator& ecs, const std::string& path, uint32_t root) {
+			NE::ByteBuffer bytes;
+			if (!ReadAllBytes(path, bytes))
+				return false;
+
+			const uint8_t* it = bytes.data();
+			const uint8_t* end = bytes.data() + bytes.size();
+
+			uint64_t magic = 0;
+			uint64_t version = 0;
+
+			if (!ReadT(it, end, magic)) return false;
+			if (magic != NFAB_MAGIC)    return false;
+
+			if (!ReadT(it, end, version)) return false;
+			if (version != CURRENT_NANOPREFAB_FORMAT_VERSION) return false;
+
+			std::uint64_t entityCount64 = 0;
+			if (!ReadT(it, end, entityCount64)) return false;
+
+			const size_t count = static_cast<size_t>(entityCount64);
+			if (count == 0) return false;
+
+			const ECS::Entity attachRoot = root;
+			if (attachRoot == ECS::Component::INVALID_PARENT)
+				return false;
+
+			std::vector<ECS::Entity> created;
+			created.reserve(count > 0 ? count - 1 : 0);
+
+			std::unordered_map<uint64_t, ECS::Entity> oldLuidToEntity;
+			oldLuidToEntity.reserve(count);
+
+			std::unordered_map<uint64_t, uint64_t> oldLuidToNewLuid;
+			oldLuidToNewLuid.reserve(count);
+
+			struct PendingParent {
+				ECS::Entity e;
+				uint64_t oldMyLuid;
+				uint64_t oldParentLuid;
+			};
+			std::vector<PendingParent> pending;
+			pending.reserve(count);
+
+			bool ok = true;
+
+			uint64_t oldRootLuid = 0;
+			bool haveOldRootLuid = false;
+
+			for (size_t i = 0; i < count && ok; ++i) {
+				const bool skipFirst = (i == 0);
+
+				ECS::Entity e = ECS::Component::INVALID_PARENT;
+				if (!skipFirst) {
+					e = ecs.CreateEntity();
+					created.push_back(e);
+				}
+
+				std::uint64_t maskU64 = 0;
+				ok = ReadT(it, end, maskU64);
+				if (!ok) break;
+
+				const std::uint64_t mask = maskU64;
+
+				std::uint32_t idx = 0;
+				ForEachComponentType([&]<typename C>() {
+					if (!ok) { ++idx; return; }
+
+					if (mask & (std::uint64_t(1) << idx)) {
+						C c{};
+						if (!ReadT(it, end, c)) { ok = false; ++idx; return; }
+
+						if constexpr (std::is_same_v<C, ECS::Component::Hierarchy>) {
+							const uint64_t oldMy = c.luid;
+							const uint64_t oldParent = c.parentLuid;
+
+							if (skipFirst) {
+								// The first serialized entity is virtualized:
+								// map its old LUID to the provided attach root entity.
+								oldRootLuid = oldMy;
+								haveOldRootLuid = true;
+
+								// Attach root's hierarchy luid is the "new" luid for the virtual root
+								auto& attachH = ecs.GetComponent<ECS::Component::Hierarchy>(attachRoot);
+
+								oldLuidToEntity[oldMy] = attachRoot;
+								oldLuidToNewLuid[oldMy] = attachH.luid;
+
+								// do NOT add pending, do NOT create entity
+							} else {
+								const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
+								c.luid = newMy;
+
+								c.parent = ECS::Component::INVALID_PARENT;
+								c.parentLuid = 0;
+								c.children.clear();
+
+								ecs.AddComponent<ECS::Component::Hierarchy>(e, c);
+
+								oldLuidToEntity[oldMy] = e;
+								oldLuidToNewLuid[oldMy] = newMy;
+								pending.push_back({ e, oldMy, oldParent });
+							}
+						} else {
+							// still read everything, but for skipped entity, don't apply components
+							if (!skipFirst) {
+								ecs.AddComponent<C>(e, c);
+							}
+						}
+					}
+
+					++idx;
+				});
+			}
+
+			if (!ok) return false;
+
+			for (const auto& p : pending) {
+				auto parentEntIt = oldLuidToEntity.find(p.oldParentLuid);
+				if (parentEntIt == oldLuidToEntity.end()) continue;
+
+				auto newParentLuidIt = oldLuidToNewLuid.find(p.oldParentLuid);
+				if (newParentLuidIt == oldLuidToNewLuid.end()) continue;
+
+				ECS::Entity parentE = parentEntIt->second;
+
+				auto& childH = ecs.GetComponent<ECS::Component::Hierarchy>(p.e);
+				auto& parentH = ecs.GetComponent<ECS::Component::Hierarchy>(parentE);
+
+				childH.parent = parentE;
+				childH.parentLuid = newParentLuidIt->second;
+				parentH.children.push_back(p.e);
+			}
+
+			return true;
+		}
+
 		uint32_t DeserializeEntitiesFromMemory(ECS::ECSCoordinator& ecs, std::vector<uint8_t>& buffer) {
 			uint32_t outNewRoot = ECS::Component::INVALID_PARENT;
 

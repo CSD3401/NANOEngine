@@ -76,8 +76,6 @@ namespace Editor {
 					EditorScene::s_selection.SetDropped(dropped);
 
                     std::string uuid = Assets::GenerateUUID();
-                    uint32_t localIDs = 0;
-					NE::CreatePrefabFromEntity(dropped, uuid, localIDs, true);
 
                     auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
                     std::string prefabName = meta.name;
@@ -86,6 +84,7 @@ namespace Editor {
 
                     std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
                     Assets::AssetManager::GetInstance().GenerateMetadata(filePath, uuid);
+                    EditorScene::s_selection.Clear();
                 }
             }
             ImGui::EndDragDropTarget();
@@ -373,7 +372,7 @@ namespace Editor {
 						std::string prefabUUID = Assets::AssetManager::GetInstance().RetrieveUUID(entryPath.string());
                         if (NE::LoadPrefabScene(NE::Resource::ComputeArtifactPathFromUUID(prefabUUID, NE::Resource::ResourceType::Prefab))) {
                             EditorScene::BuildRoot();
-                            Editor::EditorScene::selectedPrefab = entryPath.string();
+                            Editor::EditorScene::selectedPrefab = prefabUUID;
                         }
                     }
                 }

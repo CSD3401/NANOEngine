@@ -135,7 +135,7 @@ namespace Editor {
 				if (out) out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
 			}
 
-			void SerializePrefab(const std::string& path) {
+			void SerializePrefab(const std::string& path, bool isScene) {
 				using rapidjson::Document;
 				using rapidjson::StringBuffer;
 				using rapidjson::PrettyWriter;
@@ -149,8 +149,12 @@ namespace Editor {
 				auto& a = doc.GetAllocator();
 
 				Value entities(rapidjson::Type::kArrayType);
-				const auto& prefabRoot = EditorScene::s_selection.GetLastDropped();
-				WriteEntityRecursive(prefabRoot, entities, a);
+				if (!isScene) {
+					const auto& prefabRoot = EditorScene::s_selection.GetLastDropped();
+					WriteEntityRecursive(prefabRoot, entities, a);
+				} else {
+					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a);
+				}
 				//for (auto e : sceneRoots) {
 				//	WriteEntityRecursive(e, entities, a);
 				//}

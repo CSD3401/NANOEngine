@@ -14,7 +14,9 @@ namespace Editor::Assets {
 		bool LoadImportSettings(const std::string& sourcePath) override;
 		bool SaveImportSettings(const std::string& sourcePath) override;
 
-		bool SavePrefab(const std::string& outPath);
+		bool SavePrefab(const std::string& outPath, bool isScene = false);
+	private:
+		bool m_isScene = false;
 	};
 }
 #endif

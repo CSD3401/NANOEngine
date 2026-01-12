@@ -223,12 +223,8 @@ namespace NE {
 		return gSceneManager.LoadPrefabScene(prefabPath);
 	}
 
-	void SavePrefabScene(std::string prefabPath) {
-		//Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), prefabPath);
-	}
-
-	void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath) {
-		NE::Prefab::PrefabManager::ReloadAllInstancesOfPrefab(prefabUUID, prefabPath);
+	void ReloadAllInstancesOfPrefab(std::string prefabUUID) {
+		NE::Prefab::PrefabManager::ReloadAllInstancesOfPrefab(prefabUUID);
 	}
 
 	void ClosePrefabScene() {

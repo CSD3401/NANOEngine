@@ -13,6 +13,8 @@
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
 #include "../Util/HierarchyUtils.hpp"
+#include "../AssetManagement/AssetManager.hpp"
+#include "../AssetManagement/Assets/PrefabAsset.hpp"
 
 namespace Editor {
 	namespace {
@@ -144,10 +146,15 @@ namespace Editor {
 			}
 
 			ImGui::SameLine();
-			ImGui::Text(EditorScene::selectedPrefab.c_str());
+			std::string selectedPrefabPath = Assets::AssetManager::GetInstance().RetrieveFilename(EditorScene::selectedPrefab);
+			ImGui::Text(selectedPrefabPath.c_str());
 			ImGui::SameLine();
 
 			if (ImGui::Button("Save")) {
+				auto record = Assets::AssetManager::GetInstance().GetRecord(EditorScene::selectedPrefab);
+				dynamic_cast<Assets::PrefabAsset*>(record->asset.get())->SavePrefab(record->sourcePath.string(), true);
+				
+				NE::ReloadAllInstancesOfPrefab(EditorScene::selectedPrefab);
 				//NE::SavePrefabScene(EditorScene::selectedPrefab);
 				//std::string uuid = AssetManager::GetInstance().RetrieveUUID(EditorScene::selectedPrefab);
 				//NE::ReloadAllInstancesOfPrefab(uuid, EditorScene::selectedPrefab);
@@ -538,6 +545,10 @@ namespace Editor {
 	}
 
 	void HierarchyPanel::DrawContextMenu() {
+		uint32_t parentEntityId = EditorScene::s_selection.GetLastClicked();
+		if (!EditorScene::selectedPrefab.empty() && parentEntityId == NE::ECS::NO_ENTITY)
+			parentEntityId = EditorScene::s_rootOrder[0];
+
 		if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
 			// TODO: implement cut
 		}

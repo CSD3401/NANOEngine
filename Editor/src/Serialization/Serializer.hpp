@@ -6,7 +6,7 @@ namespace Editor {
 	namespace Serialization {
 		namespace JSON {
 			void SerializeScene(const std::string& path);
-			void SerializePrefab(const std::string& path);
+			void SerializePrefab(const std::string& path, bool isScene = false);
 			void SerializeEditorSettings();
 		}
 	}

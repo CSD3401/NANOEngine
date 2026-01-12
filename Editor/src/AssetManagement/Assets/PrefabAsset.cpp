@@ -13,7 +13,10 @@ namespace Editor::Assets {
 
 	bool PrefabAsset::Cook(const std::string& sourcePath,
 		const std::string& outPath) const {
-		NE::CookPrefab(EditorScene::s_selection.GetLastDropped(), outPath);
+		if (m_isScene)
+			NE::CookPrefab(EditorScene::s_rootOrder[0], outPath);
+		else
+			NE::CookPrefab(EditorScene::s_selection.GetLastDropped(), outPath);
 		return true;
 	}
 
@@ -25,11 +28,18 @@ namespace Editor::Assets {
 		return true;
 	}
 
-	bool PrefabAsset::SavePrefab(const std::string& outPath) {
-		Serialization::JSON::SerializePrefab(outPath);
-
+	bool PrefabAsset::SavePrefab(const std::string& outPath, bool isScene) {
+		m_isScene = isScene;
 		auto record = AssetManager::GetInstance().GetRecordBySource(outPath);
 		auto path = NE::Resource::ComputeArtifactPathFromUUID(record->id, NE::Resource::ResourceType::Prefab);
+
+		uint32_t localIDs = 0;
+		if (m_isScene)
+			NE::CreatePrefabFromEntity(EditorScene::s_rootOrder[0], record->id, localIDs, true);
+		else
+			NE::CreatePrefabFromEntity(EditorScene::s_selection.GetLastDropped(), record->id, localIDs, true);
+
+		Serialization::JSON::SerializePrefab(outPath, isScene);
 
 		return Cook({}, path);
 	}

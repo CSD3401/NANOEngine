@@ -18,6 +18,7 @@ namespace NE {
 	namespace Deserialization {
 		bool DeserializeScene(ECS::ECSCoordinator& ecs, const std::string& path);
 		uint32_t DeserializePrefab(ECS::ECSCoordinator& ecs, const std::string& path);
+		bool DeserializePrefab(ECS::ECSCoordinator& ecs, const std::string& path, uint32_t root);
 		uint32_t DeserializeEntitiesFromMemory(ECS::ECSCoordinator& ecs, std::vector<uint8_t>& outBuffer);
 	}
 }
