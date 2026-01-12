@@ -292,6 +292,21 @@ namespace NE {
 		}
 	}
 
+	void UnpackPrefab(uint32_t entity, bool isRoot) {
+		auto& coordinator = GetScene().GetECSCoordinator();
+
+		if (isRoot) {
+			coordinator.RemoveComponent<NE::ECS::Component::PrefabInstance>(entity);
+		}
+
+		coordinator.RemoveComponent<NE::ECS::Component::PrefabLink>(entity);
+
+		auto& hier = coordinator.GetComponent<NE::ECS::Component::Hierarchy>(entity);
+		for (auto childID : hier.children) {
+			UnpackPrefab(childID);
+		}
+	}
+
 	// Internal use only
 	SceneManagement::Scene& GetScene() {
 		return *gSceneManager.GetActive();

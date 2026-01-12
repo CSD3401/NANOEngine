@@ -137,9 +137,9 @@ namespace Editor {
 
 		if (EditorScene::selectedPrefab != "") {
 			if (ImGui::Button("<")) {
-				NE::ClosePrefabScene();
 				EditorScene::s_selection.Clear();
-				//EditorScene::RebuildFromActiveScene();
+				NE::ClosePrefabScene();
+				EditorScene::BuildRoot();
 				EditorScene::selectedPrefab = "";
 			}
 
@@ -537,7 +537,7 @@ namespace Editor {
 	}
 
 	void HierarchyPanel::DrawContextMenu() {
-		if (ImGui::MenuItem("Cut", "Ctrl+X", false, !EditorScene::s_selection.Empty())) {
+		if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
 			// TODO: implement cut
 		}
 		if (ImGui::MenuItem("Copy", "Ctrl+C", false, !EditorScene::s_selection.Empty())) {
@@ -570,8 +570,30 @@ namespace Editor {
 
 		ImGui::Separator();
 		ImGui::MenuItem("Find References in Scene", "", false, false);
-		ImGui::Separator();
 
+		ImGui::Separator();
+		ImGui::MenuItem("Set as Default Parent", "", false, false);
+
+		if (NE::ECS::Query::HasPrefabInstance(EditorScene::s_selection.GetPrimary())) {
+			ImGui::Separator();
+			if (ImGui::BeginMenu("Prefab")) {
+				if (ImGui::MenuItem("Open Prefab", "", false, false)) {
+
+				}
+				if (ImGui::MenuItem("Unpack", "", false, true)) {
+					NE::UnpackPrefab(EditorScene::s_selection.GetPrimary(), true);
+				}
+				ImGui::EndMenu();
+			}
+
+			//if (ImGui::MenuItem("Select Prefab Root", "", false, true)) {
+			//	NE::ECS::Entity prefabRoot = NE::ECS::Query::GetPrefabInstanceRoot(
+			//		EditorScene::s_selection.GetPrimary());
+			//	EditorScene::s_selection.SetSingle(prefabRoot);
+			//}
+		}
+
+		ImGui::Separator();
 		if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
