@@ -230,7 +230,13 @@ namespace NE::Serialization {
                 RJson keyJson(name.c_str(), a);
 
                 // Check if this field contains entity references (needs LUID conversion)
-                if (script.EntityReferenceFields.count(name) > 0) {
+                // For multi-script support, the key may be "ScriptName.fieldName" but EntityReferenceFields
+                // stores only the bare field name "fieldName", so we need to extract it
+                std::string bareFieldName = NE::ECS::Component::NativeScript::GetFieldNameFromKey(name);
+                bool isEntityRef = (script.EntityReferenceFields.count(name) > 0 ||
+                                   script.EntityReferenceFields.count(bareFieldName) > 0);
+
+                if (isEntityRef) {
                     // This is an entity reference field - convert entity ID(s) to LUID(s)
 
                     // Check if it's a vector (contains commas) or single entity
@@ -243,7 +249,7 @@ namespace NE::Serialization {
                         while (std::getline(ss, entityIdStr, ',')) {
                             try {
                                 NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(entityIdStr));
-                                eidArray.PushBack(entityId, a);
+                                eidArray.PushBack(GetLUIDFromEntity(entityId), a);
                             } catch (...) {
                                 // Failed to parse - skip this entry
                             }
@@ -256,7 +262,7 @@ namespace NE::Serialization {
                             NE::ECS::Entity entityId = static_cast<NE::ECS::Entity>(std::stoul(value));
 
                             RJson eidJson;
-                            eidJson.SetUint64(entityId);
+                            eidJson.SetUint64(GetLUIDFromEntity(entityId));
                             fieldsObj.AddMember(keyJson, eidJson, a);
                         } catch (...) {
                             // Failed to parse - store as string
@@ -307,8 +313,8 @@ namespace NE::Serialization {
                 // Check the JSON value type to determine if it's an entity reference
                 if (it->value.IsUint64()) {
                     // Single entity LUID - convert to entity ID string
-                    uint64_t eid = it->value.GetUint64();
-                    NE::ECS::Entity entityId = (uint32_t)eid;
+                    uint64_t luid = it->value.GetUint64();
+                    NE::ECS::Entity entityId = GetEntityFromLUID(luid);
 
                     out.SerializedFields[fieldName] = std::to_string(entityId);
                 } else if (it->value.IsArray()) {
@@ -320,7 +326,7 @@ namespace NE::Serialization {
                         first = false;
 
                         uint64_t luid = luidValue.GetUint64();
-                        NE::ECS::Entity entityId = (uint32_t)luid;
+                        NE::ECS::Entity entityId = GetEntityFromLUID(luid);
                         ss << entityId;
                     }
                     out.SerializedFields[fieldName] = ss.str();

@@ -138,6 +138,11 @@ using String = ScriptFieldType::String;
 #define SCRIPT_PREFAB_REF(refName) \
     RegisterPrefabRefField(#refName, &this->refName)
 
+// SCRIPT_GAMEOBJECT_REF macro - registers GameObject references for editor exposure
+// Usage: SCRIPT_GAMEOBJECT_REF(targetEntity)
+#define SCRIPT_GAMEOBJECT_REF(refName) \
+    RegisterGameObjectRefField(#refName, &this->refName)
+
 // SCRIPT_FIELD_VECTOR macro - registers vector fields for editor exposure
 // Usage: SCRIPT_FIELD_VECTOR(myIntList, Int)
 #define SCRIPT_FIELD_VECTOR(fieldName, elementType) \
@@ -290,6 +295,7 @@ using Entity = NE::Scripting::Entity;
 using IScript = NE::Scripting::IScript;
 using RaycastHit = NE::Scripting::RaycastHit;
 using LayerMask = NE::Scripting::LayerMask;
+using GameObject = NE::Scripting::GameObject;
 
 // Component reference types
 using TransformRef = NE::Scripting::TransformRef;
@@ -297,6 +303,7 @@ using RigidbodyRef = NE::Scripting::RigidbodyRef;
 using AudioSourceRef = NE::Scripting::AudioSourceRef;
 using MaterialRef = NE::Scripting::MaterialRef;
 using PrefabRef = NE::Scripting::PrefabRef;
+using GameObjectRef = NE::Scripting::GameObjectRef;
 
 // Coroutine handle type
 using CoroutineHandle = NE::Scripting::CoroutineHandle;
@@ -312,10 +319,12 @@ namespace ChronoGame {
     using Entity = NE::Scripting::Entity;
     using IScript = NE::Scripting::IScript;
     using RaycastHit = NE::Scripting::RaycastHit;
+    using GameObject = NE::Scripting::GameObject;
 
     // Component reference types
     using TransformRef = NE::Scripting::TransformRef;
     using RigidbodyRef = NE::Scripting::RigidbodyRef;
     using AudioSourceRef = NE::Scripting::AudioSourceRef;
     using PrefabRef = NE::Scripting::PrefabRef;
+    using GameObjectRef = NE::Scripting::GameObjectRef;
 }

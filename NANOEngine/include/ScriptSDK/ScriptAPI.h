@@ -582,6 +582,7 @@ namespace Scripting {
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
         void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);
+        void RegisterGameObjectRefField(const std::string& name, GameObjectRef* memberPtr);
 
         // Vector field registration (native support - no override boilerplate needed!)
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
@@ -631,6 +632,22 @@ namespace Scripting {
         virtual void RemoveArrayElement(const std::string& fieldName, size_t index);
 
         void MarkFieldAsEntityReference(const std::string& name);
+
+        //=====================================================================
+        // GAME OBJECT ACCESS (Unity-style)
+        //=====================================================================
+
+        /**
+         * Get the GameObject wrapper for this script's entity.
+         * Similar to Unity's gameObject property.
+         *
+         * Example:
+         * @code
+         * // Get another script on the same GameObject
+         * auto otherScript = gameObject.GetComponent<OtherScript>();
+         * @endcode
+         */
+        class GameObject gameObject() const;
 
         //=====================================================================
         // INTERNAL ENGINE INTERFACE (Do not call from scripts)

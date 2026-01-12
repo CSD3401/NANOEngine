@@ -1447,6 +1447,53 @@ namespace Editor {
 
 							ImGui::PopID();
 						}
+						else if (ftype == "gameobjectref") {
+							// GameObject reference field - drag entity from hierarchy
+							std::string displayName = "None";
+							uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+							std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+							// Try to resolve the stored value (entity ID)
+							if (!fval.empty() && fval != "0" && fval != noEntityStr) {
+								try {
+									assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
+									if (assignedEntityId != NE::ECS::NO_ENTITY) {
+										const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+										displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+									}
+								}
+								catch (...) {
+									displayName = "[Error]";
+								}
+							}
+
+							ImGui::Text("%s (GameObject)", fname.c_str());
+							ImGui::PushID((fname + "_goref").c_str());
+
+							ImGui::Button(displayName.c_str(), ImVec2(200, 0));
+
+							if (ImGui::BeginDragDropTarget()) {
+								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+								if (payload && payload->DataSize == sizeof(uint32_t)) {
+									uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+									// Assign the entity
+									bool success = UpdateFieldValue(fname, std::to_string(droppedEntity));
+									if (success) {
+										fieldChanged = true;
+									}
+								}
+								ImGui::EndDragDropTarget();
+							}
+
+							ImGui::SameLine();
+							if (ImGui::Button("X")) {
+								UpdateFieldValue(fname, std::to_string(NE::ECS::NO_ENTITY));
+								fieldChanged = true;
+							}
+
+							ImGui::PopID();
+						}
 						else if (ftype.starts_with("vector<")) {
 							// Array/Vector support
 							size_t arraySize = scriptInstance->GetArraySize(fname);

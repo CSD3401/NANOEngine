@@ -179,6 +179,222 @@ namespace Scripting {
     using PrefabRef = ComponentRef<PrefabHandle>;
 
     //=========================================================================
+    // GAME OBJECT REFERENCE (For referencing other entities)
+    //=========================================================================
+
+    /**
+     * @struct GameObjectRef
+     * @brief Reference to another entity (GameObject)
+     *
+     * Use this field type to reference other entities in your scripts.
+     * In the editor, you can drag entities from the hierarchy to set this reference.
+     *
+     * Example:
+     * @code
+     * class PlayerScript : public IScript {
+     *     GameObjectRef target;  // Drag enemy from hierarchy in editor
+     *
+     *     void Initialize(Entity entity) override {
+     *         RegisterGameObjectField("Target", &target);
+     *     }
+     *
+     *     void Update(double deltaTime) override {
+     *         if (target) {
+     *             Vec3 targetPos = GetPosition(target.GetEntity());
+     *             // Do something with target position
+     *         }
+     *     }
+     * };
+     * @endcode
+     */
+    struct GameObjectRef {
+        Entity entity = INVALID_ENTITY;  // Referenced entity ID
+
+        GameObjectRef() = default;
+        explicit GameObjectRef(Entity e) : entity(e) {}
+
+        // Check if reference is valid
+        bool IsValid() const {
+            return entity != INVALID_ENTITY;
+        }
+
+        operator bool() const { return IsValid(); }
+
+        // Get the entity ID
+        Entity GetEntity() const { return entity; }
+
+        // Set the entity
+        void SetEntity(Entity e) { entity = e; }
+
+        // Clear the reference
+        void Clear() { entity = INVALID_ENTITY; }
+
+        // Comparison operators
+        bool operator==(const GameObjectRef& other) const { return entity == other.entity; }
+        bool operator!=(const GameObjectRef& other) const { return entity != other.entity; }
+    };
+
+    //=========================================================================
+    // GAME OBJECT WRAPPER (Script-to-Script Communication)
+    //=========================================================================
+
+    // Forward declarations
+    class ScriptContext;
+    class IScript;
+
+    // Internal helper functions (implemented in GameObject.cpp where ScriptContext is defined)
+    // These allow templates to work without needing full ScriptContext definition in the SDK header
+    SCRIPT_API IScript* GameObject_GetScriptByType(Entity entity, const std::string& typeName);
+    SCRIPT_API std::vector<Entity> GameObject_FindAllWithScript(const std::string& typeName);
+
+    /**
+     * @class GameObject
+     * @brief Wrapper for accessing scripts on other entities
+     *
+     * Provides Unity-like API for accessing script instances on entities.
+     * Focuses on script-to-script communication - accessing member functions
+     * and variables from other IScript classes.
+     *
+     * Example usage:
+     * @code
+     * // In your script
+     * GameObject player = GameObject::Find("Player");
+     * auto healthScript = player.GetComponent<HealthScript>();
+     * if (healthScript) {
+     *     healthScript->lives = 3;
+     *     healthScript->TakeDamage(1);
+     * }
+     * @endcode
+     *
+     * Note: For transform, active state, layer access, etc. use the IScript methods
+     * like GetPosition(), SetActive(), GetLayer() directly on your script instance.
+     */
+    class GameObject {
+    public:
+        //=====================================================================
+        // CONSTRUCTION
+        //=====================================================================
+
+        /** Default constructor - creates an invalid GameObject */
+        GameObject() = default;
+
+        /** Construct from an entity ID (exported - needs ScriptContext access) */
+        SCRIPT_API GameObject(Entity entity, ScriptContext* context = nullptr);
+
+        /** Copy constructor */
+        GameObject(const GameObject& other) = default;
+
+        /** Copy assignment */
+        GameObject& operator=(const GameObject& other) = default;
+
+        //=====================================================================
+        // ENTITY IDENTITY
+        //=====================================================================
+
+        /** Get the underlying entity ID */
+        Entity GetEntityId() const { return m_entity; }
+
+        /** Check if this GameObject is valid (has a valid entity) */
+        bool IsValid() const { return m_entity != INVALID_ENTITY; }
+
+        /** Explicit conversion to bool for validity checking */
+        explicit operator bool() const { return IsValid(); }
+
+        /** Comparison operators */
+        bool operator==(const GameObject& other) const { return m_entity == other.m_entity; }
+        bool operator!=(const GameObject& other) const { return m_entity != other.m_entity; }
+
+        //=====================================================================
+        // NAMING
+        //=====================================================================
+
+        /** Get the name of this GameObject (exported - needs ComponentManager access) */
+        SCRIPT_API std::string GetName() const;
+
+        /** Set the name of this GameObject (exported - needs ComponentManager access) */
+        SCRIPT_API void SetName(const std::string& name);
+
+        //=====================================================================
+        // SCRIPT ACCESS (GetComponent - The key feature)
+        //=====================================================================
+
+        /**
+         * Get a script component by type on this GameObject.
+         * This is similar to Unity's GetComponent<T>().
+         *
+         * @tparam T The script type (must inherit from IScript)
+         * @return Pointer to the script instance, or nullptr if not found
+         *
+         * Example:
+         * @code
+         * auto health = gameObject.GetComponent<HealthScript>();
+         * if (health) {
+         *     health->lives--;
+         *     health->TakeDamage(10);
+         * }
+         * @endcode
+         */
+        template<typename T>
+        T* GetComponent() const;
+
+        /**
+         * Get a script by name on this GameObject.
+         * Useful when you don't have access to the type at compile time.
+         *
+         * @param scriptName The registered name of the script
+         * @return Pointer to the script instance, or nullptr if not found
+         */
+        SCRIPT_API IScript* GetScript(const std::string& scriptName) const;
+
+        /**
+         * Check if this GameObject has a specific script type.
+         * @tparam T The script type to check for
+         * @return true if the script exists on this GameObject
+         */
+        template<typename T>
+        bool HasComponent() const;
+
+        /**
+         * Check if this GameObject has a script by name.
+         * @param scriptName The registered name of the script
+         * @return true if the script exists on this GameObject
+         */
+        SCRIPT_API bool HasScript(const std::string& scriptName) const;
+
+        //=====================================================================
+        // STATIC UTILITIES (Find GameObjects)
+        //=====================================================================
+
+        /**
+         * Find a GameObject by name.
+         * Similar to Unity's GameObject.Find().
+         *
+         * @param name The name to search for
+         * @return GameObject with the given name, or invalid GameObject if not found
+         */
+        SCRIPT_API static GameObject Find(const std::string& name);
+
+        /**
+         * Find all GameObjects with a specific script type.
+         * Similar to Unity's FindObjectsOfType<T>().
+         *
+         * @tparam T The script type to search for
+         * @return Vector of all GameObjects with the specified script
+         *
+         * Note: This is a slow O(n) operation that iterates all entities.
+         */
+        template<typename T>
+        static std::vector<GameObject> FindObjectsOfType();
+
+    private:
+        Entity m_entity = INVALID_ENTITY;
+        mutable ScriptContext* m_context = nullptr;  // Internal context for engine access (mutable for lazy initialization in const methods)
+
+        // Helper to get context from current entity if not set
+        SCRIPT_API void EnsureContext() const;
+    };
+
+    //=========================================================================
     // LAYER MASK (Physics layer filtering)
     //=========================================================================
 
@@ -260,3 +476,83 @@ namespace Scripting {
 
 } // namespace Scripting
 } // namespace NE
+
+//=============================================================================
+// GAME OBJECT TEMPLATE IMPLEMENTATIONS
+//=============================================================================
+
+// Internal forward declarations (required for template implementations)
+// These are NOT part of the public API and are only used by the internal implementation
+namespace NE { namespace ECS { namespace Component { struct NativeScript; } } }
+
+namespace NE::Scripting {
+
+    // Forward declaration
+    class IScript;
+
+    // Helper to get the script type name, with fallback options
+    template<typename T>
+    inline std::string GetScriptTypeName() {
+        // Try to create a temporary instance to get the type name
+        // This is safe because we're just calling a virtual method that returns a const char*
+        T temp;
+        return temp.GetTypeName();
+    }
+
+    /**
+     * Get a script component by type on this GameObject.
+     * @tparam T The script type (must inherit from IScript)
+     * @return Pointer to the script instance, or nullptr if not found
+     */
+    template<typename T>
+    inline T* GameObject::GetComponent() const {
+        if (!IsValid()) {
+            return nullptr;
+        }
+
+        // Get the script type name
+        std::string typeName = GetScriptTypeName<T>();
+
+        // Use helper function (implemented in GameObject.cpp where ScriptContext is defined)
+        IScript* script = GameObject_GetScriptByType(m_entity, typeName);
+
+        return static_cast<T*>(script);
+    }
+
+    /**
+     * Check if this GameObject has a specific script type.
+     * @tparam T The script type to check for
+     * @return true if the script exists on this GameObject
+     */
+    template<typename T>
+    inline bool GameObject::HasComponent() const {
+        return GetComponent<T>() != nullptr;
+    }
+
+    /**
+     * Find all GameObjects with a specific script type.
+     * @tparam T The script type to search for
+     * @return Vector of all GameObjects with the specified script
+     *
+     * Note: This is a slow O(n) operation that iterates all entities.
+     * Consider caching results if calling frequently.
+     */
+    template<typename T>
+    inline std::vector<GameObject> GameObject::FindObjectsOfType() {
+        std::vector<GameObject> result;
+
+        // Get the script type name we're looking for
+        std::string targetTypeName = GetScriptTypeName<T>();
+
+        // Use helper function (implemented in GameObject.cpp where ScriptContext is defined)
+        std::vector<Entity> entities = GameObject_FindAllWithScript(targetTypeName);
+
+        // Convert entities to GameObjects
+        for (Entity entity : entities) {
+            result.push_back(GameObject(entity));
+        }
+
+        return result;
+    }
+
+} // namespace Scripting
