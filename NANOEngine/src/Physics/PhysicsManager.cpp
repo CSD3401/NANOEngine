@@ -337,12 +337,14 @@ namespace NE::Physics {
         t.isDirty = true;
     }
 
-    void PhysicsManager::DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t) {
+    void PhysicsManager::DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col) {
         auto& shapeSettings = m_shapes.at(entityLUID);
 
         JPH::RMat44 com = ToJoltRMat44(t.worldMatrix.GetTranslation());
 
-        shapeSettings->Draw(m_debugRenderer.get(), com, JPH::Vec3::sReplicate(1.f), JPH::Color::sGreen, false, true);
+        JPH::RMat44 worldWithCenter = com * JPH::RMat44::sTranslation(JPH::Vec3(col.center.x, col.center.y, col.center.z));
+
+        shapeSettings->Draw(m_debugRenderer.get(), worldWithCenter, JPH::Vec3::sReplicate(1.f), JPH::Color::sGreen, false, true);
     }
 
     void PhysicsManager::DrawBodies() {

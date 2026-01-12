@@ -64,7 +64,7 @@ namespace NE::Physics {
 
         void SyncBodiesToTransform(uint64_t entityLUID, ECS::Component::Transform& t) const;
 
-        void DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t);
+        void DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col);
         void DrawBodies();
 
         bool Raycast(Math::Vec3 origin, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask);

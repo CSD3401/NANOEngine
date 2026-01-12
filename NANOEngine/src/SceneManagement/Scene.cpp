@@ -86,7 +86,7 @@ namespace NE::SceneManagement {
 	void Scene::Render() {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawFrame();
-		Graphics::GraphicsManager::DrawAllDebugGeometry();
+		//Graphics::GraphicsManager::DrawAllDebugGeometry();
 		Graphics::GraphicsManager::EndFrame();
 		//Graphics::GraphicsManager::DrawUI();
 	}
