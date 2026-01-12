@@ -629,7 +629,7 @@ namespace NE::Scripting {
                         continue;
                     }
 
-                    Scripting::LinkScriptToEngine(instance, &componentMgr, &entityMgr, &luidRegistry);
+                    Scripting::LinkScriptToEngine(instance, &componentMgr, &entityMgr, &luidRegistry, this);
                     instance->_SetEntity(entity);
                     instance->Awake();
                     instance->Initialize(entity);
@@ -732,8 +732,6 @@ namespace NE::Scripting {
                 nsc.SerializedFields[key] = value;
             }
         }
-
-        SPD_DEBUG("Saved " << nsc.SerializedFields.size() << " fields for entity " << (int)entity);
     }
 
     void ScriptingEngine::RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc) {
@@ -753,7 +751,6 @@ namespace NE::Scripting {
         }
 
         const std::vector<IScript*>& instances = it->second;
-        int restoredCount = 0;
 
         // Restore fields to each script instance
         for (size_t i = 0; i < instances.size() && i < nsc.ScriptNames.size(); ++i) {
@@ -761,8 +758,6 @@ namespace NE::Scripting {
             if (!instance) continue;
 
             const std::string& scriptName = nsc.ScriptNames[i];
-
-            // Build the prefix for this script's fields
             std::string prefix = scriptName + ".";
 
             // Restore each serialized field value that matches this script
@@ -772,20 +767,11 @@ namespace NE::Scripting {
 
                 // Check if this field belongs to this script (starts with "scriptname.")
                 if (key.find(prefix) == 0) {
-                    // Extract the field name (remove the prefix)
                     std::string fieldName = key.substr(prefix.length());
-
-                    bool success = instance->SetFieldValueFromString(fieldName, value);
-                    if (!success) {
-                        SPD_WARNING("Failed to restore field '" << key << "' for script '" << scriptName << "'");
-                    } else {
-                        restoredCount++;
-                    }
+                    instance->SetFieldValueFromString(fieldName, value);
                 }
             }
         }
-
-        SPD_DEBUG("Restored " << restoredCount << " fields for entity " << (int)entity);
     }
     
     void ScriptingEngine::OnScriptComponentDestroyed(NE::ECS::Entity entity) {
@@ -854,7 +840,7 @@ namespace NE::Scripting {
             }
 
             // Link to engine
-            Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry);
+            Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry, this);
             instance->_SetEntity(entity);
 
             instances.push_back(instance);
@@ -993,7 +979,7 @@ namespace NE::Scripting {
                 if (factory) {
                     IScript* instance = factory();
                     if (instance) {
-                        Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry);
+                        Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry, this);
                         instance->_SetEntity(entity);
                         instance->Awake();
                         instance->Initialize(entity);
@@ -1171,41 +1157,50 @@ namespace NE::Scripting {
         NE::ECS::ComponentManager& sourceComponentManager,
         NE::ECS::ComponentManager& targetComponentManager) {
 
-        // Build map of LUID -> SerializedFields from source scene
-        std::unordered_map<uint64_t, std::unordered_map<std::string, std::string>> fieldsByLUID;
-        std::unordered_map<uint64_t, std::unordered_set<std::string>> refFieldsByLUID;
+        // Build map of script hash -> SerializedFields from source scene
+        // We use script hash as the key because editor/runtime entities have different LUIDs
+        // but the same script types should match
+        std::unordered_map<size_t, std::unordered_map<std::string, std::string>> fieldsByScriptHash;
+        std::unordered_map<size_t, std::unordered_set<std::string>> refFieldsByScriptHash;
 
         auto& sourceEntities = sourceComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
-        SPD_INFO("TransferScriptFields: Source has " << sourceEntities.size() << " entities");
 
         for (NE::ECS::Entity entity : sourceEntities) {
             auto& nsc = sourceComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
 
-            SPD_INFO("  Source LUID " << nsc.luid << " (entity " << (int)entity << "): " << nsc.SerializedFields.size() << " fields");
+            // Create a hash of the script names to uniquely identify this entity's script configuration
+            std::string scriptNamesStr;
+            for (const auto& name : nsc.ScriptNames) {
+                scriptNamesStr += name + ",";
+            }
+            size_t scriptHash = std::hash<std::string>{}(scriptNamesStr);
 
-            // Store fields by LUID for matching
-            fieldsByLUID[nsc.luid] = nsc.SerializedFields;
-            refFieldsByLUID[nsc.luid] = nsc.EntityReferenceFields;
+            // Store fields by script hash
+            fieldsByScriptHash[scriptHash] = nsc.SerializedFields;
+            refFieldsByScriptHash[scriptHash] = nsc.EntityReferenceFields;
         }
 
-        // Apply to target scene by matching LUIDs
+        // Apply to target scene by matching script hash
         auto& targetEntities = targetComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
-        SPD_INFO("TransferScriptFields: Target has " << targetEntities.size() << " entities");
 
         for (NE::ECS::Entity entity : targetEntities) {
             auto& targetNsc = targetComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
 
-            // Find matching source component by LUID
-            auto fieldsIt = fieldsByLUID.find(targetNsc.luid);
-            if (fieldsIt != fieldsByLUID.end()) {
-                SPD_INFO("  Target LUID " << targetNsc.luid << " (entity " << (int)entity << "): Transferred " << fieldsIt->second.size() << " fields");
+            // Create a hash of the target's script names
+            std::string scriptNamesStr;
+            for (const auto& name : targetNsc.ScriptNames) {
+                scriptNamesStr += name + ",";
+            }
+            size_t scriptHash = std::hash<std::string>{}(scriptNamesStr);
+
+            // Find matching source by script hash
+            auto fieldsIt = fieldsByScriptHash.find(scriptHash);
+            if (fieldsIt != fieldsByScriptHash.end()) {
                 targetNsc.SerializedFields = fieldsIt->second;
-            } else {
-                SPD_WARNING("  Target LUID " << targetNsc.luid << " (entity " << (int)entity << "): No matching source found");
             }
 
-            auto refFieldsIt = refFieldsByLUID.find(targetNsc.luid);
-            if (refFieldsIt != refFieldsByLUID.end()) {
+            auto refFieldsIt = refFieldsByScriptHash.find(scriptHash);
+            if (refFieldsIt != refFieldsByScriptHash.end()) {
                 targetNsc.EntityReferenceFields = refFieldsIt->second;
             }
         }

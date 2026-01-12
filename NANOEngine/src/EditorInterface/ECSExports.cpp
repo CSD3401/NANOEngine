@@ -487,13 +487,24 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		// internal
+		void DestroyRecursive(uint32_t e) {
+			auto& hierarchy = GetScene().GetECSCoordinator().GetComponent<Component::Hierarchy>(e);
+
+			for (auto child : hierarchy.children) {
+				DestroyRecursive(child);
+			}
+			GetScene().GetECSCoordinator().DestroyEntity(e);
+		}
+
 		void DestroyEntity(uint32_t e) {
 			auto& hierarchy = GetScene().GetECSCoordinator().GetComponent<Component::Hierarchy>(e);
 			if (hierarchy.parent != Component::INVALID_PARENT) {
 				// change this to purely deleting from parent vector
 				GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(e, Component::INVALID_PARENT);
 			}
-			GetScene().GetECSCoordinator().DestroyEntity(e);
+
+			DestroyRecursive(e);
 		}
 
 		void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos) {

@@ -55,7 +55,7 @@ namespace NE {
 	NANOENGINE_API void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath);
 	NANOENGINE_API void ClosePrefabScene();
 
-	NANOENGINE_API std::vector<uint32_t> DuplicateEntity(uint32_t entity);
+	NANOENGINE_API uint32_t DuplicateEntity(uint32_t entity);
 	NANOENGINE_API std::vector<uint8_t> CopyEntity(uint32_t entity);
 	NANOENGINE_API uint32_t PasteEntity(std::vector<uint8_t> clipboard);
 

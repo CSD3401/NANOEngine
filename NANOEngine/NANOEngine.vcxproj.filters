@@ -82,6 +82,7 @@
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
     <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
+    <ClCompile Include="src\Scripting\GameObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
