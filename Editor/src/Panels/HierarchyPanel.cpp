@@ -260,6 +260,22 @@ namespace Editor {
 		if (m_dragRep != NE::ECS::NO_ENTITY &&
 			ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			if (hierHovered && !m_draggedEntities.empty()) {
+				if (EditorScene::selectedPrefab.empty()) {
+					for (auto child : m_draggedEntities) {
+						if (NE::ECS::Query::HasPrefabLink(child)) {
+							m_dragRep = NE::ECS::NO_ENTITY;
+							m_draggedEntities.clear();
+							m_previewAsChild = false;
+							m_previewParent = NE::ECS::NO_ENTITY;
+							m_previewParentForInsert = NE::ECS::NO_ENTITY;
+							m_previewInsert = -1;
+							m_previewLineY = -1.f;
+							ImGui::End();
+							return;
+						}
+					}
+				}
+
 				if (m_previewAsChild && m_previewParent != NE::ECS::NO_ENTITY) {
 					for (auto child : m_draggedEntities) {
 						if (child == m_previewParent)
@@ -607,42 +623,42 @@ namespace Editor {
 		}
 
 		ImGui::Separator();
-		if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
+		if (ImGui::MenuItem("Create Entity", "", false, true)) {
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
-				Events::CreateEmptyEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+				Events::CreateEmptyEntityEvent{ parentEntityId }
 			);
 		}
 
 		if (ImGui::BeginMenu("3D Object")) {
-			if (ImGui::MenuItem("Cube", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Cube", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCubeEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateCubeEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Sphere", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Sphere", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateSphereEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateSphereEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Capsule", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Capsule", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCapsuleEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateCapsuleEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Cylinder", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Cylinder", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCylinderEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateCylinderEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Plane", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Plane", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreatePlaneEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreatePlaneEntityEvent{ parentEntityId }
 				);
 			}
 			//ImGui::MenuItem("Quad", "", false, false);

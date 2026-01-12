@@ -55,13 +55,12 @@ namespace NE::ECS {
 
         template<typename T>
         void RemoveComponent(Entity e) {
-            m_componentManager->RemoveComponent<T>(e);
-
             auto signature = m_entityManager->GetSignature(e);
             signature.set(GetComponentType<T>(), false);
             m_entityManager->SetSignature(e, signature);
 
             m_systemManager->EntitySignatureChanged(e, signature);
+            m_componentManager->RemoveComponent<T>(e);
         }
 
         template<typename T>
