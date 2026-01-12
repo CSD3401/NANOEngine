@@ -72,20 +72,13 @@ namespace NE::ECS {
                 bool shouldHave = (entitySig & sysSig) == sysSig;
                 bool has = system->m_entities.Contains(entity);
 
-                //std::cout << "Checking Entity " << entity
-                //    << ": shouldHave=" << shouldHave
-                //    << ", has=" << has << std::endl;
-
-                //std::cout << "Entity Signature: " << entitySig << "\nSystem Signature: " << sysSig << std::endl;
                 if (shouldHave != has) {
                     if (shouldHave) {
-                        //std::cout << "[SYSTEM INSERT] Entity: " << entity << " added to " << type.name() << std::endl;
-
                         system->m_entities.Insert(entity);
                         system->OnEntityAdded(entity);
                     } else {
-                        system->m_entities.Remove(entity);
                         system->OnEntityRemoved(entity);
+                        system->m_entities.Remove(entity);
                     }
                 }
             }

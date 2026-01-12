@@ -21,6 +21,9 @@
 #include "Serialisation/Serializer.hpp"
 #include "ResourceManagement/ResourcePaths.hpp"
 #include <glfw/glfw3.h>
+#include "ECS/Components/PrefabLink.hpp"
+#include "ECS/Components/PrefabInstance.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 
 namespace {
 
@@ -171,17 +174,29 @@ namespace NE {
 		NE::Serialization::SerializeScene(GetScene().GetECSCoordinator(), rootNodes, _artifactPath);
 	}
 
-	void LoadScene(const std::string& _artifactPath) {
-		gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
+	bool LoadScene(const std::string& _artifactPath) {
+		return gSceneManager.LoadScene(Resource::ComputeArtifactPathFromUUID(_artifactPath, Resource::ResourceType::Scene));
+	}
+
+	void CreateSceneFallback(const std::string& _artifactPath) {
+		gSceneManager.CreateSceneFallback(_artifactPath);
+	}
+
+	void StartSceneFallback() {
+		gSceneManager.StartSceneFallback();
+	}
+
+	void CookPrefab(const ECS::Entity rootNode, const std::string& _artifactPath) {
+		NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
+	}
+
+	uint32_t LoadPrefab(const std::string& _uuid) {
+		auto artifactPath = Resource::ComputeArtifactPathFromUUID(_uuid, Resource::ResourceType::Prefab);
+		return NE::Deserialization::DeserializePrefab(GetScene().GetECSCoordinator(), artifactPath);
 	}
 
 	const std::vector<uint32_t>& GetNumEntities() {
 		return gSceneManager.GetActive()->GetECSCoordinator().GetUsedEntities();
-	}
-
-	std::string SerializePrefab(uint32_t entt, std::string targetPath) {
-		//return Serialization::JsonSceneSerializer::SerializePrefab(*gSceneManager.GetActive(), entt, targetPath);
-		return "";
 	}
 
 	 std::vector<uint32_t> DeserializePrefab(std::string prefabPath) {
@@ -204,16 +219,12 @@ namespace NE {
 		return std::vector<uint32_t>();
 	}
 
-	void LoadPrefabScene(std::string prefabPath) {
-		gSceneManager.LoadPrefabScene(prefabPath);
+	bool LoadPrefabScene(std::string prefabPath) {
+		return gSceneManager.LoadPrefabScene(prefabPath);
 	}
 
-	void SavePrefabScene(std::string prefabPath) {
-		//Serialization::JsonSceneSerializer::Serialize(*gSceneManager.GetActive(), prefabPath);
-	}
-
-	void ReloadAllInstancesOfPrefab(std::string prefabUUID, std::string prefabPath) {
-		NE::Prefab::PrefabManager::ReloadAllInstancesOfPrefab(prefabUUID, prefabPath);
+	void ReloadAllInstancesOfPrefab(std::string prefabUUID) {
+		NE::Prefab::PrefabManager::ReloadAllInstancesOfPrefab(prefabUUID);
 	}
 
 	void ClosePrefabScene() {
@@ -228,18 +239,49 @@ namespace NE {
 	}
 
 	std::vector<uint8_t> CopyEntity(uint32_t entity) {
-		//std::vector<uint8_t> buffer;
-		//NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
 		std::vector<uint8_t> buffer;
 		NE::Serialization::SerializeEntitiesToMemory(gSceneManager.GetActive()->GetECSCoordinator(), entity, buffer);
 		return buffer;
 	}
 
 	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
-		//auto newEntities =
-		//	NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), clipboard);
-
 		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
+	}
+
+	void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot) {
+		auto& coordinator = GetScene().GetECSCoordinator();
+
+		if (isRoot) {
+			coordinator.AddComponent<NE::ECS::Component::PrefabInstance>(
+				entity, 
+				NE::ECS::Component::PrefabInstance{ uuid }
+			);
+		}
+
+		coordinator.AddComponent<NE::ECS::Component::PrefabLink>(
+			entity, 
+			NE::ECS::Component::PrefabLink{ uuid, localID });
+
+		auto& hier = coordinator.GetComponent<NE::ECS::Component::Hierarchy>(entity);
+		for (auto childID : hier.children) {
+			++localID;
+			CreatePrefabFromEntity(childID, uuid, localID);
+		}
+	}
+
+	void UnpackPrefab(uint32_t entity, bool isRoot) {
+		auto& coordinator = GetScene().GetECSCoordinator();
+
+		if (isRoot) {
+			coordinator.RemoveComponent<NE::ECS::Component::PrefabInstance>(entity);
+		}
+
+		coordinator.RemoveComponent<NE::ECS::Component::PrefabLink>(entity);
+
+		auto& hier = coordinator.GetComponent<NE::ECS::Component::Hierarchy>(entity);
+		for (auto childID : hier.children) {
+			UnpackPrefab(childID);
+		}
 	}
 
 	// Internal use only
@@ -322,22 +364,6 @@ namespace NE {
 	void StopRuntime() {
 		gSceneManager.StopRuntime();
 	}
-
-	//void EditorPlay() {
-	//	g_EngineState = EngineState::Play;
-	//	gSceneManager.BeginPlay();
-	//	glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	//}
-
-	//void EditorPause() {
-	//	g_EngineState = EngineState::Play;
-	//	gSceneManager.GetActive()->ScriptPause();
-	//}
-
-	//void EditorEdit() {
-	//	g_EngineState = EngineState::Edit;
-	//	gSceneManager.StopPlay();
-	//}
 
 	int GetDrawCallCount() {
 		return Graphics::GraphicsManager::drawCount;

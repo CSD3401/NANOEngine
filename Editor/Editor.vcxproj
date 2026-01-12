@@ -164,6 +164,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\AssetManagement\Assets\PrefabAsset.cpp" />
     <ClCompile Include="src\Layers\LayerDatabase.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Interfaces\ModelSettingsEditor.cpp" />

@@ -55,7 +55,7 @@ namespace Editor {
 
         newIndex = std::max(0, std::min(newIndex, static_cast<int>(s_rootOrder.size()) - 1));
 
-        int currentIndex = std::distance(s_rootOrder.begin(), it);
+        int currentIndex = static_cast<int>(std::distance(s_rootOrder.begin(), it));
 
         if (currentIndex == newIndex) return;
 

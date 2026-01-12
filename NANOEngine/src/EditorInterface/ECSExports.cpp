@@ -11,6 +11,8 @@
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
+#include "../ECS/Components/PrefabLink.hpp"
+#include "../ECS/Components/PrefabInstance.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -29,7 +31,6 @@ namespace NE {
 
 namespace NE::ECS {
 	namespace Query {
-
 		uint64_t GetEntitySignature(uint32_t e) {
 			return GetScene().GetECSCoordinator().GetSignature(e).to_ullong();
 		}
@@ -102,6 +103,14 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
 		}
 
+		bool HasPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		bool HasPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::PrefabInstance>(e);
+		}
+
 		bool HasRenderer(uint32_t e) {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Renderer>(e);
 		}
@@ -140,6 +149,14 @@ namespace NE::ECS {
 
 		const Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
+		}
+
+		const Component::PrefabLink& GetPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		const Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
 		}
 
 		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
@@ -198,6 +215,10 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::Camera>();
 		}
 
+		ComponentType GetPrefabInstanceComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::PrefabInstance>();
+		}
+
 		uint32_t GetParent(uint32_t child) {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
 
@@ -220,10 +241,14 @@ namespace NE::ECS {
 	}
 
 	namespace Command {
+		uint32_t CreateEntityNoComponents() {
+			return GetScene().GetECSCoordinator().CreateEntity();
+		}
+
 		uint32_t CreateEmptyEntity(uint32_t parentEntt) {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
-				newEntity, 
+				newEntity,
 				Component::EntityMeta{ .luid = Core::LUIDGenerator::Generate("em") }
 			);
 
@@ -260,7 +285,7 @@ namespace NE::ECS {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
-				Component::EntityMeta{ .name{"Cube"}, .luid = Core::LUIDGenerator::Generate("em")}
+				Component::EntityMeta{ .name{"Cube"}, .luid = Core::LUIDGenerator::Generate("em") }
 			);
 
 			GetScene().GetECSCoordinator().AddComponent(
@@ -516,6 +541,70 @@ namespace NE::ECS {
 
 		void AddCameraComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
+		}
+
+		void AddEntityMetaComponent(uint32_t e, const Component::EntityMeta& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::EntityMeta>(e, c);
+		}
+
+		void AddTransformComponent(uint32_t e, const Component::Transform& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Transform>(e, c);
+		}
+
+		void AddHierarchyComponent(uint32_t e, const Component::Hierarchy& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Hierarchy>(e, c);
+		}
+
+		void AddRendererComponent(uint32_t e, const Component::Renderer& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Renderer>(e, c);
+		}
+
+		void AddLightComponent(uint32_t e, const Component::Light& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Light>(e, c);
+		}
+
+		void AddRigidbodyComponent(uint32_t e, const Component::Rigidbody& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Rigidbody>(e, c);
+		}
+
+		void AddColliderComponent(uint32_t e, const Component::Collider& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Collider>(e, c);
+		}
+
+		void AddAudioSourceComponent(uint32_t e, const Component::AudioSource& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::AudioSource>(e, c);
+		}
+
+		void AddScriptComponent(uint32_t e, const Component::NativeScript& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::NativeScript>(e, c);
+		}
+
+		void AddCameraComponent(uint32_t e, const Component::Camera& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Camera>(e, c);
+		}
+
+		void AddAnimatorComponent(uint32_t e, const Component::Animator& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Animator>(e, c);
+		}
+
+		void AddUIRectTransformComponent(uint32_t e, const Component::UIRectTransform& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIRectTransform>(e, c);
+		}
+
+		void AddUICanvasComponent(uint32_t e, const Component::UICanvas& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UICanvas>(e, c);
+		}
+
+		void AddUIImageComponent(uint32_t e, const Component::UIImage& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIImage>(e, c);
+		}
+
+		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::PrefabLink>(e, c);
+		}
+
+		void AddPrefabInstanceComponent(uint32_t e, const Component::PrefabInstance& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::PrefabInstance>(e, c);
 		}
 
 		void RemoveLightComponent(uint32_t e) {

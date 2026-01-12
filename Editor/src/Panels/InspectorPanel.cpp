@@ -19,6 +19,7 @@
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
+#include <ECS/Components/PrefabInstance.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -372,19 +373,20 @@ namespace Editor {
 	InspectorPanel::InspectorPanel() {
 
 		m_drawers = {
-			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",		&InspectorPanel::DrawEntityMetaComponent	},
-			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",		&InspectorPanel::DrawTransformComponent},
-			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",			&InspectorPanel::DrawRendererComponent		},
-			{ NE::ECS::Query::GetLightComponentType(),				"Light",			&InspectorPanel::DrawLightComponent			},
-			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",			&InspectorPanel::DrawColliderComponent		},
-			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",		&InspectorPanel::DrawRigidbodyComponent		},
-			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",		&InspectorPanel::DrawAudioSourceComponent	},
-			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",			&InspectorPanel::DrawCameraComponent		},
-			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",			&InspectorPanel::DrawAnimatorComponent		},
-			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",	&InspectorPanel::DrawRectTransformComponent	},
-			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",			&InspectorPanel::DrawCanvasComponent		},
-			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",			&InspectorPanel::DrawImageComponent			},
-			{ NE::ECS::Query::GetScriptComponentType(),				"Script",			&InspectorPanel::DrawScriptComponent		},
+			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",		&InspectorPanel::DrawEntityMetaComponent		},
+			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",	&InspectorPanel::DrawPrefabInstanceComponent	},
+			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",		&InspectorPanel::DrawTransformComponent			},
+			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",			&InspectorPanel::DrawRendererComponent			},
+			{ NE::ECS::Query::GetLightComponentType(),				"Light",			&InspectorPanel::DrawLightComponent				},
+			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",			&InspectorPanel::DrawColliderComponent			},
+			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",		&InspectorPanel::DrawRigidbodyComponent			},
+			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",		&InspectorPanel::DrawAudioSourceComponent		},
+			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",			&InspectorPanel::DrawCameraComponent			},
+			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",			&InspectorPanel::DrawAnimatorComponent			},
+			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",	&InspectorPanel::DrawRectTransformComponent		},
+			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",			&InspectorPanel::DrawCanvasComponent			},
+			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",			&InspectorPanel::DrawImageComponent				},
+			{ NE::ECS::Query::GetScriptComponentType(),				"Script",			&InspectorPanel::DrawScriptComponent			}
 		};
 	}
 
@@ -630,11 +632,27 @@ namespace Editor {
 			openLayerSettings = false;
 		}
 
-		if (metaRO.prefabID != "") {
-			ImGui::Text("Prefab");
-			ImGui::SameLine();
-			ImGui::Text(metaRO.prefabID.c_str());
-		}
+		//if (metaRO.prefabID != "") {
+		//	ImGui::Text("Prefab");
+		//	ImGui::SameLine();
+		//	ImGui::Text(metaRO.prefabID.c_str());
+		//}
+	}
+
+	void InspectorPanel::DrawPrefabInstanceComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Query::GetPrefabInstance(entity);
+
+		bool openPopup = false;
+		DrawAssetField("Prefab", Assets::AssetManager::GetInstance().RetrieveFilename(comp.prefabUUID), "+", 0.f, &openPopup);
+
+		ImGui::Button("Overrides");
+		ImGui::SameLine();
+		ImGui::Button("Select");
+		ImGui::SameLine();
+		ImGui::Button("Open");
+		//if (openPopup) {
+		//	ImGui::OpenPopup("AssetPicker_Model");
+		//}
 	}
 
 	void InspectorPanel::DrawTransformComponent(uint32_t entity) {

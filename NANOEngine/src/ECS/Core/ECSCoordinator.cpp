@@ -13,6 +13,8 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Hierarchy.hpp"
+#include "../Components/PrefabLink.hpp"
+#include "../Components/PrefabInstance.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -25,6 +27,7 @@
 #include "../Systems/UITransformSystem.hpp"
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/HierarchySystem.hpp"
+#include "../Systems/PrefabSystem.hpp"
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
@@ -55,6 +58,8 @@ namespace NE::ECS {
 		RegisterComponent<Component::Camera>();
         RegisterComponent<Component::Hierarchy>();
         RegisterComponent<Component::NativeScript>();
+        RegisterComponent<Component::PrefabLink>();
+        RegisterComponent<Component::PrefabInstance>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
@@ -145,6 +150,13 @@ namespace NE::ECS {
             Signature sig;
             sig.set(GetComponentType<Component::Hierarchy>());
             SetSystemSignature<Systems::HierarchySystem>(sig);
+        }
+
+        m_prefabSystem = m_systemManager->RegisterSystem<Systems::PrefabSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::PrefabInstance>());
+            SetSystemSignature<Systems::PrefabSystem>(sig);
         }
     }
 
