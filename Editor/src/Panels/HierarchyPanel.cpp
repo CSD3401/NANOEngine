@@ -240,7 +240,8 @@ namespace Editor {
 			}
 
 			if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && !EditorScene::s_selection.Empty()) {
-				std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+				//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+				std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] };
 
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
@@ -560,7 +561,8 @@ namespace Editor {
 			//		DeleteEntityEvent{ idToDelete }
 			//	);
 			//}
-			std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+			//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+			std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] }; // just delete the first selected for now
 
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
