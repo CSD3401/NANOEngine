@@ -110,6 +110,21 @@ namespace Editor {
         style.ItemSpacing = ImVec2(8, 6);
         style.ScrollbarSize = 14.0f;
 
+        io.Fonts->Clear();
+
+        ImFontConfig config;
+        config.OversampleH = 2;
+        config.OversampleV = 2;
+        config.PixelSnapH = false;
+
+        ImFont* uiFont = io.Fonts->AddFontFromFileTTF(
+            "Library/Fonts/NotoSans-Regular.ttf",
+            15.0f,
+            &config
+        );
+
+        io.FontDefault = uiFont;
+
         ImGui_ImplGlfw_InitForOpenGL(window, false);
         ImGui_ImplOpenGL3_Init("#version 430");
     }

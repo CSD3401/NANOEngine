@@ -35,10 +35,10 @@
 
 // FIXME: cfg.OversampleH, OversampleV are not supported, but generally not necessary with this rasterizer because Hinting makes everything look better.
 
-#include "imgui.h"
+#include "../../imgui.h"
 #ifndef IMGUI_DISABLE
 #include "imgui_freetype.h"
-#include "imgui_internal.h"     // ImMin,ImMax,ImFontAtlasBuild*,
+#include "../../imgui_internal.h"     // ImMin,ImMax,ImFontAtlasBuild*,
 #include <stdint.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H          // <freetype/freetype.h>
