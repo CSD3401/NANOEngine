@@ -220,30 +220,11 @@ namespace NE {
 		gSceneManager.ClosePrefabScene();
 	}
 
-	std::vector<uint32_t> DuplicateEntity(uint32_t entity) {
-		//std::vector<uint8_t> buffer;
-		//NE::Serialization::JsonSceneSerializer::SerializePrefabToMemory(*gSceneManager.GetActive(), entity, buffer);
+	uint32_t DuplicateEntity(uint32_t entity) {
+		std::vector<uint8_t> buffer;
+		NE::Serialization::SerializeEntitiesToMemory(gSceneManager.GetActive()->GetECSCoordinator(), entity, buffer);
 
-		//if (buffer.empty())
-		//	return std::vector<uint32_t>{};
-
-		//auto newEntities =
-		//	NE::Serialization::JsonSceneSerializer::DeserializePrefabFromMemory(*gSceneManager.GetActive(), buffer);
-
-		//if (newEntities.empty())
-		//	return std::vector<uint32_t>{};
-
-		//auto& transform = gSceneManager.
-		//	GetActive()->GetECSCoordinator().
-		//	GetComponent<ECS::Component::Transform>(newEntities[0]);
-
-		//transform.localPosition.x += 0.5f;
-		//transform.localPosition.y += 0.5f;
-		//transform.localPosition.z += 0.5f;
-		//transform.isDirty = true;
-
-		//return newEntities;
-		return std::vector<uint32_t>();
+		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), buffer);
 	}
 
 	std::vector<uint8_t> CopyEntity(uint32_t entity) {
