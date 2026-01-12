@@ -22,6 +22,7 @@
 #include "ResourceManagement/ResourcePaths.hpp"
 #include <glfw/glfw3.h>
 #include "ECS/Components/PrefabLink.hpp"
+#include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 
 namespace {
@@ -218,8 +219,8 @@ namespace NE {
 		return std::vector<uint32_t>();
 	}
 
-	void LoadPrefabScene(std::string prefabPath) {
-		gSceneManager.LoadPrefabScene(prefabPath);
+	bool LoadPrefabScene(std::string prefabPath) {
+		return gSceneManager.LoadPrefabScene(prefabPath);
 	}
 
 	void SavePrefabScene(std::string prefabPath) {
@@ -273,9 +274,16 @@ namespace NE {
 	void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot) {
 		auto& coordinator = GetScene().GetECSCoordinator();
 
+		if (isRoot) {
+			coordinator.AddComponent<NE::ECS::Component::PrefabInstance>(
+				entity, 
+				NE::ECS::Component::PrefabInstance{ uuid }
+			);
+		}
+
 		coordinator.AddComponent<NE::ECS::Component::PrefabLink>(
 			entity, 
-			NE::ECS::Component::PrefabLink{ uuid, localID, isRoot });
+			NE::ECS::Component::PrefabLink{ uuid, localID });
 
 		auto& hier = coordinator.GetComponent<NE::ECS::Component::Hierarchy>(entity);
 		for (auto childID : hier.children) {

@@ -19,9 +19,13 @@
 #include <ECS/Components/UICanvas.hpp>
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/Hierarchy.hpp>
+#include <ECS/Components/PrefabLink.hpp>
+#include <ECS/Components/PrefabInstance.hpp>
+
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <ECS/Components/ComponentKey.hpp>
+
 #include <Graphics/Core/RenderSettings.hpp>
 #include <Graphics/Core/PostProcessingSettings.hpp>
 
@@ -34,6 +38,8 @@ namespace Editor {
 		using ComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
 			NE::ECS::Component::Hierarchy,
+			NE::ECS::Component::PrefabInstance,
+			NE::ECS::Component::PrefabLink,
 			NE::ECS::Component::Transform,
 			NE::ECS::Component::Renderer,
 			NE::ECS::Component::Light,
@@ -143,10 +149,11 @@ namespace Editor {
 				auto& a = doc.GetAllocator();
 
 				Value entities(rapidjson::Type::kArrayType);
-				const auto& sceneRoots = EditorScene::s_rootOrder;
-				for (auto e : sceneRoots) {
-					WriteEntityRecursive(e, entities, a);
-				}
+				const auto& prefabRoot = EditorScene::s_selection.GetLastDropped();
+				WriteEntityRecursive(prefabRoot, entities, a);
+				//for (auto e : sceneRoots) {
+				//	WriteEntityRecursive(e, entities, a);
+				//}
 				doc.AddMember("Entities", entities, a);
 
 				StringBuffer sb;

@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
+    <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
@@ -177,6 +179,7 @@
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
     <ClCompile Include="src\Core\LayerRegistry.cpp" />

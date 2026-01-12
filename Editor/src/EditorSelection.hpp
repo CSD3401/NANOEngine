@@ -13,6 +13,7 @@ namespace Editor {
         const std::vector<NE::ECS::Entity>& GetSelection() const;
         NE::ECS::Entity GetPrimary()    const;
         NE::ECS::Entity GetLastClicked() const;
+        NE::ECS::Entity GetLastDropped() const;
 
         bool Contains(NE::ECS::Entity e) const;
         bool Empty() const;
@@ -23,6 +24,7 @@ namespace Editor {
         void Clear();
 
         void SetSingle(NE::ECS::Entity e);
+		void SetDropped(NE::ECS::Entity e);
 
         void Toggle(NE::ECS::Entity e);
 
@@ -41,6 +43,7 @@ namespace Editor {
         std::vector<NE::ECS::Entity>    m_selection;
         NE::ECS::Entity m_primary =     NE::ECS::NO_ENTITY; // the active one (Inspector)
         NE::ECS::Entity m_lastClicked = NE::ECS::NO_ENTITY; // for Shift-range
+		NE::ECS::Entity m_lastDropped = NE::ECS::NO_ENTITY; // for drag-drop operations
 
         std::vector<NE::ECS::Entity> m_lastPreorder;
     };

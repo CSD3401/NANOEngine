@@ -34,6 +34,7 @@ namespace NE::ECS {
 		struct UICanvas;
 		struct Hierarchy;
 		struct PrefabLink;
+		struct PrefabInstance;
 	}
 
 	namespace Query {
@@ -56,6 +57,8 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
+		NANOENGINE_API const Component::PrefabLink& GetPrefabLink(uint32_t e);
+		NANOENGINE_API const Component::PrefabInstance& GetPrefabInstance(uint32_t e);
 
 		// to move to this in the future
 		// also need to find a way to enforce C as component
@@ -75,6 +78,8 @@ namespace NE::ECS {
 		template<> inline const Component::Hierarchy& GetComponent<Component::Hierarchy>(uint32_t e) { return GetEntityHierarchy(e); }
 		template<> inline const Component::Camera& GetComponent<Component::Camera>(uint32_t e) { return GetEntityCamera(e); }
 		template<> inline const Component::Animator& GetComponent<Component::Animator>(uint32_t e) { return GetEntityAnimator(e); }
+		template<> inline const Component::PrefabLink& GetComponent<Component::PrefabLink>(uint32_t e) { return GetPrefabLink(e); }
+		template<> inline const Component::PrefabInstance& GetComponent<Component::PrefabInstance>(uint32_t e) { return GetPrefabInstance(e); }
 
 		NANOENGINE_API bool HasEntityMeta(uint32_t e);
 		NANOENGINE_API bool HasHierarchy(uint32_t e);
@@ -83,9 +88,7 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
 		NANOENGINE_API bool HasPrefabLink(uint32_t e);
-
-		// --- Component Existence Checks ---
-		NANOENGINE_API bool HasTransform(uint32_t e);
+		NANOENGINE_API bool HasPrefabInstance(uint32_t e);
 		NANOENGINE_API bool HasRenderer(uint32_t e);
 		NANOENGINE_API bool HasLight(uint32_t e);
 		NANOENGINE_API bool HasRigidbody(uint32_t e);
@@ -111,6 +114,8 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::NativeScript>(uint32_t e) { return HasScript(e); }
 		template<> inline bool HasComponent<Component::Animator>(uint32_t e) { return HasAnimator(e); }
 		template<> inline bool HasComponent<Component::Camera>(uint32_t e) { return HasCamera(e); }
+		template<> inline bool HasComponent<Component::PrefabLink>(uint32_t e) { return HasPrefabLink(e); }
+		template<> inline bool HasComponent<Component::PrefabInstance>(uint32_t e) { return HasPrefabInstance(e); }
 
 		//template <typename C>
 		//ComponentType GetComponentType() {
@@ -130,6 +135,7 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetUICanvasComponentType();
 		NANOENGINE_API ComponentType GetEntityAnimatorComponentType();
 		NANOENGINE_API ComponentType GetEntityCameraComponentType();
+		NANOENGINE_API ComponentType GetPrefabInstanceComponentType();
 
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
@@ -179,6 +185,8 @@ namespace NE::ECS {
 		NANOENGINE_API void AddUIRectTransformComponent(uint32_t e, const Component::UIRectTransform& c);
 		NANOENGINE_API void AddUICanvasComponent(uint32_t e, const Component::UICanvas& c);
 		NANOENGINE_API void AddUIImageComponent(uint32_t e, const Component::UIImage& c);
+		NANOENGINE_API void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c);
+		NANOENGINE_API void AddPrefabInstanceComponent(uint32_t e, const Component::PrefabInstance& c);
 
 		template <typename C>
 		void AddComponent(Entity e, const C& component);
@@ -196,6 +204,8 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::UIRectTransform>(uint32_t e, const Component::UIRectTransform& component) { AddUIRectTransformComponent(e, component); }
 		template<> inline void AddComponent<Component::UICanvas>(uint32_t e, const Component::UICanvas& component) { AddUICanvasComponent(e, component); }
 		template<> inline void AddComponent<Component::UIImage>(uint32_t e, const Component::UIImage& component) { AddUIImageComponent(e, component); }
+		template<> inline void AddComponent<Component::PrefabLink>(uint32_t e, const Component::PrefabLink& component) { AddPrefabLinkComponent(e, component); }
+		template<> inline void AddComponent<Component::PrefabInstance>(uint32_t e, const Component::PrefabInstance& component) { AddPrefabInstanceComponent(e, component); }
 
 		NANOENGINE_API void RemoveLightComponent(uint32_t e);
 		NANOENGINE_API void RemoveRendererComponent(uint32_t e);

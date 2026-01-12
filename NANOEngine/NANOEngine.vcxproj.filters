@@ -81,6 +81,7 @@
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
+    <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -239,6 +240,8 @@
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
+    <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
+    <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

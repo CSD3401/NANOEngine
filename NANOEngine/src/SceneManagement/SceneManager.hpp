@@ -24,7 +24,7 @@ namespace NE::SceneManagement {
 
 		bool IsPlaying() const;
 
-		void LoadPrefabScene(const std::string& prefabPath);
+		bool LoadPrefabScene(const std::string& prefabPath);
 		void ClosePrefabScene();
 
 		bool IsEditingPrefab() const { return m_isEditingPrefab; }

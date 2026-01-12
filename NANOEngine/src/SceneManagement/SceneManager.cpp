@@ -1,6 +1,7 @@
 #include "SceneManager.hpp"
 
 #include "Scripting/ScriptingEngine.hpp"
+#include "Core/SpdLogger.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
@@ -122,7 +123,7 @@ namespace NE::SceneManagement {
 		}
 	}
 
-	void SceneManager::LoadPrefabScene(const std::string& path) {
+	bool SceneManager::LoadPrefabScene(const std::string& path) {
 		if (m_prefabScene) {
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
@@ -130,11 +131,17 @@ namespace NE::SceneManagement {
 
 		m_prefabScene = std::make_unique<Scene>();
 
-		//NE::Serialization::JsonSceneSerializer::Deserialize(*m_prefabScene, path);
+		if (NE::Deserialization::DeserializePrefab(m_prefabScene->GetECSCoordinator(), path) == UINT32_MAX) {
+			m_prefabScene->ExitEdit();
+			m_prefabScene.reset();
+			SPD_WARNING("Failed to load prefab, try reimporting");
+			return false;
+		}
 		m_prefabScene->InitEdit();
 
 		m_prefabPath = path;
 		m_isEditingPrefab = true;
+		return true;
 	}
 
 	void SceneManager::ClosePrefabScene() {

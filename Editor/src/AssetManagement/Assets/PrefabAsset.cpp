@@ -13,7 +13,7 @@ namespace Editor::Assets {
 
 	bool PrefabAsset::Cook(const std::string& sourcePath,
 		const std::string& outPath) const {
-		NE::CookPrefab(EditorScene::s_selection.GetLastPreorder().front(), outPath);
+		NE::CookPrefab(EditorScene::s_selection.GetLastDropped(), outPath);
 		return true;
 	}
 

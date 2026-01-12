@@ -73,6 +73,7 @@ namespace Editor {
                     const uint32_t* entities = static_cast<const uint32_t*>(p->Data);
                     uint32_t dropped = entities[0]; // First entity
                     
+					EditorScene::s_selection.SetDropped(dropped);
 
                     std::string uuid = Assets::GenerateUUID();
                     uint32_t localIDs = 0;
@@ -84,10 +85,7 @@ namespace Editor {
                         prefabName = "Prefab";
 
                     std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
-                    //SPD_INFO("Prefab created at: " << filePath);
                     Assets::AssetManager::GetInstance().GenerateMetadata(filePath, uuid);
-                    //std::string prefabID = Assets::AssetManager::GetInstance().RetrieveUUID(filePath);
-                    //meta.prefabID = prefabID;
                 }
             }
             ImGui::EndDragDropTarget();
@@ -369,17 +367,14 @@ namespace Editor {
                     } else if (entryPath.extension() == ".scene") {
                         m_selectedPath = entryPath;
                         m_confirmChangeScenePopupOpen = true;
-                        // NE::LoadTargetScene(entryPath.string());
-                        // for (const auto& entt : NE::GetEntities()) {
-                        //     EditorScene::s_entities.push_back({ entt });
-                        // }
-
                     } else if (entryPath.extension() == ".nfab") {
                         EditorScene::s_selection.Clear();
                         EditorScene::selectedAsset = "";
-                        NE::LoadPrefabScene(entryPath.string());
-
-                        Editor::EditorScene::selectedPrefab = entryPath.string();
+						std::string prefabUUID = Assets::AssetManager::GetInstance().RetrieveUUID(entryPath.string());
+                        if (NE::LoadPrefabScene(NE::Resource::ComputeArtifactPathFromUUID(prefabUUID, NE::Resource::ResourceType::Prefab))) {
+                            EditorScene::BuildRoot();
+                            Editor::EditorScene::selectedPrefab = entryPath.string();
+                        }
                     }
                 }
             }
