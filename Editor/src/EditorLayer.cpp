@@ -63,7 +63,7 @@ namespace Editor {
 				!ImGui::IsAnyItemFocused()) {
 				bool canEditHierarchy = EditorScene::selectedPrefab.empty();
 				if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-					//EditorScene::DuplicateSelected();
+					EditorScene::DuplicateSelected();
 				} else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
 					EditorScene::CopySelected();
 				} else if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
@@ -75,39 +75,6 @@ namespace Editor {
 		for (auto& panel : m_panels) {
 			panel->OnImGuiRender();
 		}
-
-		//// === STATUS BAR (Integrated at bottom of main window) ===
-		//ImGui::Separator();
-
-		//ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-
-		//if (ImGui::BeginChild("##StatusBar", ImVec2(0, 25.0f), false, ImGuiWindowFlags_NoScrollbar)) {
-		//	ImGui::SetCursorPosY(4.0f); // Center text vertically
-
-		//	// Scene path on the left
-		//	ImGui::Text("  %s", EditorScene::s_currentScenePath.c_str());
-
-		//	// Dirty indicator on the right
-		//	ImGui::SameLine();
-		//	float rightOffset = ImGui::GetWindowWidth() - 120.0f;
-		//	if (rightOffset > ImGui::GetCursorPosX()) {
-		//		ImGui::SetCursorPosX(rightOffset);
-		//	}
-
-		//	//bool isSceneDirty = NE::IsSceneDirty();
-		//	//if (isSceneDirty) {
-		//	//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.0f, 1.0f)); // Orange
-		//	//	ImGui::Text("* UNSAVED");
-		//	//	ImGui::PopStyleColor();
-		//	//} else {
-		//	//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // Green
-		//	//	ImGui::Text("Saved");
-		//	//	ImGui::PopStyleColor();
-		//	//}
-		//}
-		//ImGui::EndChild();
-
-		//ImGui::PopStyleColor();
 
 		ImGui::End();
 	}

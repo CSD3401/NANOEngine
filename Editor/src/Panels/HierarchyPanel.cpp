@@ -548,7 +548,7 @@ namespace Editor {
 			EditorScene::PasteSelected();
 		}
 		if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, !EditorScene::s_selection.Empty())) {
-			//EditorScene::DuplicateSelected();
+			EditorScene::DuplicateSelected();
 		}
 		if (ImGui::MenuItem("Delete", "Del", false, !EditorScene::s_selection.Empty())) {
 			//uint32_t idToDelete = contextEntityId;
