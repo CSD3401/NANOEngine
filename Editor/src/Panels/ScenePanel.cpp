@@ -72,9 +72,9 @@ namespace Editor {
 	}
 
 	ScenePanel::ScenePanel() {
-		NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
-		NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
-		NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
+		//NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
+		//NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
+		//NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
 
 		m_fov = 60;
 		m_aspectRatio = 1920.f / 1080.f;
@@ -82,8 +82,8 @@ namespace Editor {
 		m_farPlane = 1000.0f;
 
 		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
-		EditorScene::m_editorCamera.SetPosition(position);
-		EditorScene::m_editorCamera.LookAt(target, up);
+		//EditorScene::m_editorCamera.SetPosition(position);
+		//EditorScene::m_editorCamera.LookAt(target, up);
 
 		// Give address of the editor camera to the scene camera tweener
 		sceneCameraTweener.SetSceneCamera(&EditorScene::m_editorCamera);
@@ -160,14 +160,14 @@ namespace Editor {
 				}
 
 				ImGui::Text("Navigation");
-				Editor::DrawCheckbox("Camera Easing", m_cameraUseEasing);
-				Editor::DrawCheckbox("Camera Acceleration", m_cameraUseAcceleration);
+				Editor::DrawCheckbox("Camera Easing", EditorScene::m_cameraUseEasing);
+				Editor::DrawCheckbox("Camera Acceleration", EditorScene::m_cameraUseAcceleration);
 				Editor::DrawFloatSliderWithField(
-					"Camera Speed", m_cameraSpeed, m_cameraMinSpeed, m_cameraMaxSpeed, 0.01f, true
+					"Camera Speed", EditorScene::m_cameraSpeed, EditorScene::m_cameraMinSpeed, EditorScene::m_cameraMaxSpeed, 0.01f, true
 				);
 				ImGui::Indent(50.f);
-				Editor::DrawFloatField("Min", m_cameraMinSpeed, 0.01f, true);
-				Editor::DrawFloatField("Max", m_cameraMaxSpeed, 0.01f, true);
+				Editor::DrawFloatField("Min", EditorScene::m_cameraMinSpeed, 0.01f, true);
+				Editor::DrawFloatField("Max", EditorScene::m_cameraMaxSpeed, 0.01f, true);
 				ImGui::Unindent(50.f);
 
 				ImGui::EndPopup();
@@ -450,22 +450,22 @@ namespace Editor {
 				bool boost = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
 
 				if (hasInput) {
-					if (m_cameraUseAcceleration) {
+					if (EditorScene::m_cameraUseAcceleration) {
 						if (m_currentMoveSpeed <= 0.0f) {
-							m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraMinSpeed;
+							m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraMinSpeed;
 						}
 
 						m_currentMoveSpeed += m_cameraAcceleration * deltaTime;
 
-						if (!boost && m_currentMoveSpeed > m_cameraMaxSpeed) {
-							m_currentMoveSpeed = m_cameraMaxSpeed;
+						if (!boost && m_currentMoveSpeed > EditorScene::m_cameraMaxSpeed) {
+							m_currentMoveSpeed = EditorScene::m_cameraMaxSpeed;
 						}
 					} else {
-						m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraSpeed;
+						m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraSpeed;
 					}
 				} else {
 					// No input but RMB still held
-					if (m_cameraUseEasing) {
+					if (EditorScene::m_cameraUseEasing) {
 						m_currentMoveSpeed -= m_cameraDeceleration * deltaTime;
 						if (m_currentMoveSpeed < 0.0f)
 							m_currentMoveSpeed = 0.0f;
@@ -497,11 +497,11 @@ namespace Editor {
 				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
 				m_lastMousePos = io.MousePos;
 
-				m_cameraYaw += delta.x * m_mouseSensitivity;
-				m_cameraPitch -= delta.y * m_mouseSensitivity;
+				EditorScene::m_cameraYaw += delta.x * m_mouseSensitivity;
+				EditorScene::m_cameraPitch -= delta.y * m_mouseSensitivity;
 
-				if (m_cameraPitch > 89.0f) m_cameraPitch = 89.0f;
-				if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
+				if (EditorScene::m_cameraPitch > 89.0f) EditorScene::m_cameraPitch = 89.0f;
+				if (EditorScene::m_cameraPitch < -89.0f) EditorScene::m_cameraPitch = -89.0f;
 			} else {
 				m_rightMouseHeld = false;
 				m_currentMoveSpeed = 0.0f;
@@ -741,9 +741,9 @@ namespace Editor {
 
 		// Calculate camera's look direction regardless of input
 		Vec3 dir;
-		dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
-		dir.y = sinf(Radians(m_cameraPitch));
-		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
+		dir.x = cosf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
+		dir.y = sinf(Radians(EditorScene::m_cameraPitch));
+		dir.z = sinf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
 		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
 		NE::UpdateEditorCameraData();

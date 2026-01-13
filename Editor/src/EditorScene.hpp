@@ -23,6 +23,13 @@ namespace Editor {
         static Layers::LayerDatabase layerDatabase;
 
         static NE::Graphics::EditorCamera m_editorCamera;
+        static float m_cameraSpeed;
+        static bool m_cameraUseEasing;
+        static bool m_cameraUseAcceleration;
+        static float m_cameraMinSpeed;
+        static float m_cameraMaxSpeed;
+        static float m_cameraYaw;  // looking along -Z
+        static float m_cameraPitch;
 
         static std::vector<uint8_t> clipboard;
 

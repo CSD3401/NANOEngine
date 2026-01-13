@@ -61,8 +61,11 @@ namespace Editor {
 
 		std::string projectSettingsLoc = "ProjectSettings/";
 		std::string layerSettingsLoc = projectSettingsLoc + "LayerSettings.json";
-
 		constexpr uint32_t kLayerSettingsVersion = 1;
+
+		std::string userSettingsFolder = "UserSettings/";
+		std::string userSettingsLoc = userSettingsFolder + "UserSettings.json";
+		constexpr uint32_t kUserSettingsVersion = 1;
 
 		bool ReadAllText(const std::filesystem::path& p, std::string& out)
 		{
@@ -273,7 +276,35 @@ namespace Editor {
 			}
 
 			void SerializeUserSettings() {
+				namespace fs = std::filesystem;
 
+				fs::create_directories(userSettingsFolder);
+
+				rapidjson::Document doc;
+				doc.SetObject();
+				auto& a = doc.GetAllocator();
+
+				doc.AddMember("version", kUserSettingsVersion, a);
+				doc.AddMember("sessionScenePath", ToJSON(EditorScene::s_currentScenePath, a), a);
+				doc.AddMember("sessionSceneUUID", ToJSON(EditorScene::s_currentSceneUUID, a), a);
+
+				rapidjson::Value obj(rapidjson::kObjectType);
+				obj.AddMember("position", ToJSON(EditorScene::m_editorCamera.GetPosition(), a), a);
+				obj.AddMember("yaw", ToJSON(EditorScene::m_cameraYaw, a), a);
+				obj.AddMember("pitch", ToJSON(EditorScene::m_cameraPitch, a), a);
+				obj.AddMember("speed", ToJSON(EditorScene::m_cameraSpeed, a), a);
+				obj.AddMember("minSpeed", ToJSON(EditorScene::m_cameraMinSpeed, a), a);
+				obj.AddMember("maxSpeed", ToJSON(EditorScene::m_cameraMaxSpeed, a), a);
+				obj.AddMember("hasEasing", ToJSON(EditorScene::m_cameraUseEasing, a), a);
+				obj.AddMember("hasAcceleration", ToJSON(EditorScene::m_cameraUseAcceleration, a), a);
+
+				doc.AddMember("editorCamera", obj, a);
+
+				rapidjson::StringBuffer sb;
+				rapidjson::PrettyWriter<rapidjson::StringBuffer> w(sb);
+				doc.Accept(w);
+
+				WriteAllText(userSettingsLoc, sb.GetString());
 			}
 		}
 	}
@@ -317,9 +348,11 @@ namespace Editor {
 				for (auto& entVal : doc["Entities"].GetArray()) {
 					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
 
-					uint8_t layer = 0;
-					FromJSON(entVal["Layer"], layer);
-					NE::ECS::Command::SetLayer(e, layer);
+					if (doc.HasMember("Layer")) {
+						uint8_t layer = 0;
+						FromJSON(entVal["Layer"], layer);
+						NE::ECS::Command::SetLayer(e, layer);
+					}
 
 					ForEachComponentType([&]<typename C>() {
 						ReadComponentIfPresent<C>(e, entVal);
@@ -331,7 +364,7 @@ namespace Editor {
 				namespace fs = std::filesystem;
 				using namespace NE::Core;
 
-				fs::create_directories(projectSettingsLoc);
+				//fs::create_directories(projectSettingsLoc);
 
 				Editor::Layers::LayerDatabase db;
 
@@ -405,6 +438,52 @@ namespace Editor {
 
 				for (LayerID i = 0; i < MAX_LAYERS; ++i)
 					db.SetCollisionMask(i, symMasks[i]);
+			}
+
+			void DeserializeUserSettings() {
+				namespace fs = std::filesystem;
+
+				if (!fs::exists(userSettingsLoc)) {
+					Serialization::JSON::SerializeUserSettings();
+					return;
+				}
+				std::string text;
+				if (!ReadAllText(userSettingsLoc, text))
+					return;
+
+				rapidjson::Document doc;
+				doc.Parse(text.c_str());
+				if (doc.HasParseError() || !doc.IsObject())
+					return;
+
+				if (doc.HasMember("sessionScenePath") && doc["sessionScenePath"].IsString())
+					EditorScene::s_currentScenePath = doc["sessionScenePath"].GetString();
+
+				if (doc.HasMember("sessionSceneUUID") && doc["sessionSceneUUID"].IsString())
+					EditorScene::s_currentSceneUUID = doc["sessionSceneUUID"].GetString();
+
+				if (doc.HasMember("editorCamera") && doc["editorCamera"].IsObject()) {
+					auto& camObj = doc["editorCamera"];
+					if (camObj.HasMember("position")) {
+						NE::Math::Vec3 position{ 0.f, 0.f, 0.f };
+						FromJSON(camObj["position"], position);
+						EditorScene::m_editorCamera.SetPosition(position);
+					}
+					if (camObj.HasMember("yaw"))
+						FromJSON(camObj["yaw"], EditorScene::m_cameraYaw);
+					if (camObj.HasMember("pitch"))
+						FromJSON(camObj["pitch"], EditorScene::m_cameraPitch);
+					if (camObj.HasMember("speed"))
+						FromJSON(camObj["speed"], EditorScene::m_cameraSpeed);
+					if (camObj.HasMember("minSpeed"))
+						FromJSON(camObj["minSpeed"], EditorScene::m_cameraMinSpeed);
+					if (camObj.HasMember("maxSpeed"))
+						FromJSON(camObj["maxSpeed"], EditorScene::m_cameraMaxSpeed);
+					if (camObj.HasMember("hasEasing"))
+						FromJSON(camObj["hasEasing"], EditorScene::m_cameraUseEasing);
+					if (camObj.HasMember("hasAcceleration"))
+						FromJSON(camObj["hasAcceleration"], EditorScene::m_cameraUseAcceleration);
+				}
 			}
 		}
 	}
