@@ -13,6 +13,7 @@
 #include "Assets/MaterialAsset.hpp"
 #include "Assets/ShaderAsset.hpp"
 #include "Assets/SceneAsset.hpp"
+#include "Assets/PrefabAsset.hpp"
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
@@ -49,6 +50,7 @@ namespace Editor::Assets {
             case Assets::AssetType::Material:   return std::make_unique<Assets::MaterialAsset>();
             case Assets::AssetType::Shader:     return std::make_unique<Assets::ShaderAsset>();
             case Assets::AssetType::Scene:      return std::make_unique<Assets::SceneAsset>();
+            case Assets::AssetType::Prefab:     return std::make_unique<Assets::PrefabAsset>();
             default:                            return nullptr;
             }
         }
@@ -168,7 +170,7 @@ namespace Editor::Assets {
 		return am;
 	}
 
-    void AssetManager::GenerateMetadata(const std::string& sourcePath) {
+    void AssetManager::GenerateMetadata(const std::string& sourcePath, std::string _uuid) {
         namespace fs = std::filesystem;
         using rapidjson::Document;
         using rapidjson::IStreamWrapper;
@@ -204,7 +206,7 @@ namespace Editor::Assets {
                 type = GetAssetTypeFromString(doc["assetType"].GetString());
 
             if (uuid.empty())
-                uuid = GenerateUUID();
+                uuid = _uuid.empty() ? GenerateUUID() : std::move(_uuid);
             if (type == AssetType::Unknown)
                 type = GetAssetTypeFromExtension(fsSourcePath.extension().string());
 
@@ -213,6 +215,7 @@ namespace Editor::Assets {
                 rec.asset = CreateImporterForType(type, uuid, fsSourcePath.filename().string());
             }
 
+            if (fs::is_directory(fsSourcePath)) return;
             
             const auto cookedPath = 
                 NE::Resource::ComputeArtifactPathFromUUID(uuid, GetResourceTypeFromAssetType(type));
@@ -224,7 +227,7 @@ namespace Editor::Assets {
             return;
         }
 
-        uuid = GenerateUUID();
+        uuid = _uuid.empty() ? GenerateUUID() : std::move(_uuid);
         type = GetAssetTypeFromExtension(fsSourcePath.extension().string());
 
         AssetRecord& rec = RegisterAsset(uuid, type, fsSourcePath);
@@ -255,12 +258,14 @@ namespace Editor::Assets {
             return;
         }
 
+        if (fs::is_directory(fsSourcePath)) return;
+
         OStreamWrapper osw(ofs);
         PrettyWriter<OStreamWrapper> writer(osw);
         writer.SetIndent(' ', 4);
         outDoc.Accept(writer);
 
-        if (rec.type != AssetType::Scene) {
+        if (rec.type != AssetType::Scene && rec.type != AssetType::Prefab) {
             if (rec.asset) {
                 rec.asset->SaveImportSettings(sourcePath); // create and save default settings first
 
@@ -269,6 +274,8 @@ namespace Editor::Assets {
                 rec.asset->Cook(fsSourcePath.string(), cookedPath);
                 rec.isLoaded = true;
             }
+        } else if (rec.type == AssetType::Prefab) {
+            dynamic_cast<Assets::PrefabAsset*>(rec.asset.get())->SavePrefab(sourcePath);
         }
     }
 
@@ -491,6 +498,7 @@ namespace Editor::Assets {
         else if (e == ".nanomat")                                       return Assets::AssetType::Material;
         else if (e == ".wav" || e == ".mp3")                            return Assets::AssetType::Audio;
         else if (e == ".scene")                                         return Assets::AssetType::Scene;
+        else if (e == ".nfab")                                          return Assets::AssetType::Prefab;
 		return Assets::AssetType::Unknown;
 	}
 

@@ -13,8 +13,8 @@ namespace Editor {
 		static void TweenCameraToEntity(Events::SelectEntityEvent const& event);
 		void SetSceneCamera(NE::Graphics::EditorCamera* camera);
 
-		static constexpr float tweenDuration = 0.5f;
-		static constexpr float tweenDistanceFactor = 10.0f;
+		static constexpr float tweenDuration = 0.2f;
+		static constexpr float tweenDistanceFactor = 2.0f;
 
 	private:
 		static NE::Graphics::EditorCamera* sceneCamera;

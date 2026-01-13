@@ -19,6 +19,7 @@
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
+#include <ECS/Components/PrefabInstance.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -372,19 +373,20 @@ namespace Editor {
 	InspectorPanel::InspectorPanel() {
 
 		m_drawers = {
-			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",		&InspectorPanel::DrawEntityMetaComponent	},
-			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",		&InspectorPanel::DrawTransformComponent},
-			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",			&InspectorPanel::DrawRendererComponent		},
-			{ NE::ECS::Query::GetLightComponentType(),				"Light",			&InspectorPanel::DrawLightComponent			},
-			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",			&InspectorPanel::DrawColliderComponent		},
-			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",		&InspectorPanel::DrawRigidbodyComponent		},
-			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",		&InspectorPanel::DrawAudioSourceComponent	},
-			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",			&InspectorPanel::DrawCameraComponent		},
-			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",			&InspectorPanel::DrawAnimatorComponent		},
-			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",	&InspectorPanel::DrawRectTransformComponent	},
-			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",			&InspectorPanel::DrawCanvasComponent		},
-			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",			&InspectorPanel::DrawImageComponent			},
-			{ NE::ECS::Query::GetScriptComponentType(),				"Script",			&InspectorPanel::DrawScriptComponent		},
+			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",		&InspectorPanel::DrawEntityMetaComponent		},
+			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",	&InspectorPanel::DrawPrefabInstanceComponent	},
+			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",		&InspectorPanel::DrawTransformComponent			},
+			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",			&InspectorPanel::DrawRendererComponent			},
+			{ NE::ECS::Query::GetLightComponentType(),				"Light",			&InspectorPanel::DrawLightComponent				},
+			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",			&InspectorPanel::DrawColliderComponent			},
+			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",		&InspectorPanel::DrawRigidbodyComponent			},
+			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",		&InspectorPanel::DrawAudioSourceComponent		},
+			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",			&InspectorPanel::DrawCameraComponent			},
+			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",			&InspectorPanel::DrawAnimatorComponent			},
+			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",	&InspectorPanel::DrawRectTransformComponent		},
+			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",			&InspectorPanel::DrawCanvasComponent			},
+			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",			&InspectorPanel::DrawImageComponent				},
+			{ NE::ECS::Query::GetScriptComponentType(),				"Script",			&InspectorPanel::DrawScriptComponent			}
 		};
 	}
 
@@ -630,11 +632,27 @@ namespace Editor {
 			openLayerSettings = false;
 		}
 
-		if (metaRO.prefabID != "") {
-			ImGui::Text("Prefab");
-			ImGui::SameLine();
-			ImGui::Text(metaRO.prefabID.c_str());
-		}
+		//if (metaRO.prefabID != "") {
+		//	ImGui::Text("Prefab");
+		//	ImGui::SameLine();
+		//	ImGui::Text(metaRO.prefabID.c_str());
+		//}
+	}
+
+	void InspectorPanel::DrawPrefabInstanceComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Query::GetPrefabInstance(entity);
+
+		bool openPopup = false;
+		DrawAssetField("Prefab", Assets::AssetManager::GetInstance().RetrieveFilename(comp.prefabUUID), "+", 0.f, &openPopup);
+
+		ImGui::Button("Overrides");
+		ImGui::SameLine();
+		ImGui::Button("Select");
+		ImGui::SameLine();
+		ImGui::Button("Open");
+		//if (openPopup) {
+		//	ImGui::OpenPopup("AssetPicker_Model");
+		//}
 	}
 
 	void InspectorPanel::DrawTransformComponent(uint32_t entity) {
@@ -733,9 +751,10 @@ namespace Editor {
 			return;
 
 		// Model field
-		bool openPopup = false;
-		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
-		if (openPopup) {
+		bool openModelPopup = false;
+		//DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
+		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), &openModelPopup);
+		if (openModelPopup) {
 			ImGui::OpenPopup("AssetPicker_Model");
 		}
 
@@ -770,10 +789,11 @@ namespace Editor {
 			ImGui::EndPopup();
 		}
 
-		// Material field
-		char bufMat[256];
-		strncpy_s(bufMat, Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID).c_str(), sizeof(bufMat));
-		ImGui::InputText("Material", bufMat, sizeof(bufMat));
+		bool openMaterialPopup = false;
+		DrawAssetField("Material", Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID), &openMaterialPopup);
+		if (openMaterialPopup) {
+			ImGui::OpenPopup("AssetPicker_Material");
+		}
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
@@ -782,6 +802,27 @@ namespace Editor {
 				NE::Renderer::Command::AssignMaterial(entity, uuid);
 			}
 			ImGui::EndDragDropTarget();
+		}
+
+		if (ImGui::BeginPopup("AssetPicker_Material")) {
+			ImGui::Text("Select a Material");
+			ImGui::Separator();
+			auto& materialList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Material);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [materialName, uuid] : materialList) {
+					ImSearch::SearchableItem(materialName.c_str(), [&, materialName](const char*) {
+						if (ImGui::Selectable(materialName.c_str())) {
+							NE::Renderer::Command::AssignMaterial(entity, uuid);
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
 		}
 
 		static const char* ShadowCastModeNames[] = { "Off", "On", "TwoSided", "ShadowsOnly" };
@@ -1442,6 +1483,53 @@ namespace Editor {
 							ImGui::SameLine();
 							if (ImGui::Button("X")) {
 								UpdateFieldValue(fname, "");
+								fieldChanged = true;
+							}
+
+							ImGui::PopID();
+						}
+						else if (ftype == "gameobjectref") {
+							// GameObject reference field - drag entity from hierarchy
+							std::string displayName = "None";
+							uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+							std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+							// Try to resolve the stored value (entity ID)
+							if (!fval.empty() && fval != "0" && fval != noEntityStr) {
+								try {
+									assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
+									if (assignedEntityId != NE::ECS::NO_ENTITY) {
+										const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+										displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+									}
+								}
+								catch (...) {
+									displayName = "[Error]";
+								}
+							}
+
+							ImGui::Text("%s (GameObject)", fname.c_str());
+							ImGui::PushID((fname + "_goref").c_str());
+
+							ImGui::Button(displayName.c_str(), ImVec2(200, 0));
+
+							if (ImGui::BeginDragDropTarget()) {
+								const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+								if (payload && payload->DataSize == sizeof(uint32_t)) {
+									uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+									// Assign the entity
+									bool success = UpdateFieldValue(fname, std::to_string(droppedEntity));
+									if (success) {
+										fieldChanged = true;
+									}
+								}
+								ImGui::EndDragDropTarget();
+							}
+
+							ImGui::SameLine();
+							if (ImGui::Button("X")) {
+								UpdateFieldValue(fname, std::to_string(NE::ECS::NO_ENTITY));
 								fieldChanged = true;
 							}
 

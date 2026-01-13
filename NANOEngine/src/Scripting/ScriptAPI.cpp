@@ -10,6 +10,7 @@
 #include "../../include/ScriptSDK/ScriptMacros.h"
 #include "ScriptContext.hpp"
 #include "ScriptContextFactory.hpp"
+#include "ScriptingEngine.hpp"
 
  // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
@@ -1648,6 +1649,44 @@ namespace NE {
 			);
 		}
 
+		void IScript::RegisterGameObjectRefField(const std::string& name, GameObjectRef* memberPtr) {
+			RegisterFieldInternal(
+				name,
+				"gameobjectref",
+				memberPtr,
+				[memberPtr]() -> std::string {
+					// For GameObjectRef, store the entity ID
+					if (!memberPtr->IsValid()) {
+						return std::to_string(INVALID_ENTITY);
+					}
+					return std::to_string(memberPtr->GetEntity());
+				},
+				[this, memberPtr, name](const std::string& value) -> bool {
+					try {
+						// Parse entity ID from string
+						Entity entityId = INVALID_ENTITY;
+						if (!value.empty()) {
+							try {
+								entityId = static_cast<Entity>(std::stoul(value));
+							} catch (...) {
+								entityId = INVALID_ENTITY;
+							}
+						}
+
+						memberPtr->SetEntity(entityId);
+
+						// Track as an entity reference for serialization
+						MarkFieldAsEntityReference(name);
+
+						return true;
+					} catch (const std::exception& e) {
+						SPD_ERROR("[GameObjectRef] setValue exception for field " << name << ": " << e.what());
+						return false;
+					}
+				}
+			);
+		}
+
 		void IScript::RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr) {
 			if (!m_fieldRegistry) {
 				m_fieldRegistry = new FieldRegistry();
@@ -2481,29 +2520,6 @@ namespace NE {
 			}
 		}*/
 
-		bool IScript::IsPrefabInstance(Entity entity) const {
-			if (!m_context->componentManager) return false;
-
-			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
-				return false;
-
-			const auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
-			return !meta.prefabID.empty();
-		}
-
-		bool IScript::IsPrefabRoot(Entity entity) const {
-			if (!m_context->componentManager) return false;
-
-			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
-				return false;
-
-			return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).isPrefabRoot;
-		}
-
 		// === Entity Active State Functions ===
 
 		bool IScript::IsActive(Entity e) const {
@@ -3053,5 +3069,6 @@ namespace NE {
 			auto& settings = Renderer::Command::GetRenderSettings();
 			settings.fogDensity = density;
 		}
+
 	} // namespace Scripting
 } // namespace NE

@@ -1,16 +1,21 @@
 #include "AssetBrowserPanel.hpp"
+#include <fstream>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-#include <Engine.hpp>
-#include "../../src/EditorScene.hpp"
-#include "../AssetManagement/AssetManager.hpp"
-#include <Core/SpdLogger.hpp>
-#include <fstream>
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
+
+#include <Engine.hpp>
+#include <Core/SpdLogger.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <ResourceManagement/ResourcePaths.hpp>
+#include <Events/EventBus.hpp>
+
+#include "../EditorScene.hpp"
+#include "../AssetManagement/AssetManager.hpp"
+#include "../EditorEvents.hpp"
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
@@ -27,6 +32,13 @@ namespace Editor {
 
             Assets::AssetManager::GetInstance().GenerateMetadata(entry.path().string());
         }
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::GotoAssetPathEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::GotoAssetPathEvent& e) {
+                GotoAssetFolder(e.assetPath);
+            }
+        );
     }
 
     AssetBrowserPanel::~AssetBrowserPanel() {
@@ -65,23 +77,23 @@ namespace Editor {
             draw->AddRect(drop_rect.Min, drop_rect.Max,
                 ImGui::GetColorU32(ImVec4(1, 1, 0, 0.3f)),
                 0.0f, 0, 2.0f);
-            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("HIER_DRAG_ID")) {
-                if (p->DataSize == sizeof(uint32_t)) {
-                    uint32_t dropped = *static_cast<const uint32_t*>(p->Data);
+            if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ENTITY_DRAG")) {
+                if (p->DataSize >= sizeof(uint32_t)) {
+                    const uint32_t* entities = static_cast<const uint32_t*>(p->Data);
+                    uint32_t dropped = entities[0]; // First entity
                     
+					EditorScene::s_selection.SetDropped(dropped);
+
+                    std::string uuid = Assets::GenerateUUID();
+
                     auto& meta = NE::ECS::Command::GetEntityMeta(dropped);
                     std::string prefabName = meta.name;
                     if (meta.name.empty())
                         prefabName = "Prefab";
 
                     std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
-                    SPD_INFO("Prefab created at: " << filePath);
-                    std::ofstream create(filePath, std::ios::binary | std::ios::trunc);
-                    Assets::AssetManager::GetInstance().GenerateMetadata(filePath);
-                    std::string prefabID = Assets::AssetManager::GetInstance().RetrieveUUID(filePath);
-                    meta.prefabID = prefabID;
-
-                    NE::SerializePrefab(dropped, filePath);
+                    Assets::AssetManager::GetInstance().GenerateMetadata(filePath, uuid);
+                    EditorScene::s_selection.Clear();
                 }
             }
             ImGui::EndDragDropTarget();
@@ -363,17 +375,14 @@ namespace Editor {
                     } else if (entryPath.extension() == ".scene") {
                         m_selectedPath = entryPath;
                         m_confirmChangeScenePopupOpen = true;
-                        // NE::LoadTargetScene(entryPath.string());
-                        // for (const auto& entt : NE::GetEntities()) {
-                        //     EditorScene::s_entities.push_back({ entt });
-                        // }
-
                     } else if (entryPath.extension() == ".nfab") {
                         EditorScene::s_selection.Clear();
                         EditorScene::selectedAsset = "";
-                        NE::LoadPrefabScene(entryPath.string());
-
-                        Editor::EditorScene::selectedPrefab = entryPath.string();
+						std::string prefabUUID = Assets::AssetManager::GetInstance().RetrieveUUID(entryPath.string());
+                        if (NE::LoadPrefabScene(NE::Resource::ComputeArtifactPathFromUUID(prefabUUID, NE::Resource::ResourceType::Prefab))) {
+                            EditorScene::BuildRoot();
+                            Editor::EditorScene::selectedPrefab = prefabUUID;
+                        }
                     }
                 }
             }
@@ -705,6 +714,13 @@ namespace Editor {
             std::filesystem::rename(sourceMetaPath, destMetaPath, ec);
             // Optional: handle ec here if you care about meta file move failures
         }
+    }
+
+    void AssetBrowserPanel::GotoAssetFolder(const std::string& assetPath) {
+        std::filesystem::path fullPath = std::filesystem::absolute(assetPath);
+		m_currentDirectory = fullPath.parent_path();
+
+		ImGui::SetWindowFocus("Asset Browser");
     }
 
 }

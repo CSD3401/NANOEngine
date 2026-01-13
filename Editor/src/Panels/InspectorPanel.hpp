@@ -33,6 +33,7 @@ namespace Editor {
 		//void RenderModelImportSettings(const std::string& metaPath);
 
 		void DrawEntityMetaComponent(uint32_t entity);
+		void DrawPrefabInstanceComponent(uint32_t entity);
 		void DrawTransformComponent(uint32_t entity);
 		void DrawRendererComponent(uint32_t entity);
 		void DrawRigidbodyComponent(uint32_t entity);

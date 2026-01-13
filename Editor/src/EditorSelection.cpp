@@ -16,6 +16,10 @@ namespace Editor {
 		return m_lastClicked; 
 	}
 
+	NE::ECS::Entity EditorSelection::GetLastDropped() const {
+		return m_lastDropped;
+	}
+
 	bool EditorSelection::Contains(NE::ECS::Entity e) const {
 		return std::find(m_selection.begin(), m_selection.end(), e) != m_selection.end();
 	}
@@ -50,6 +54,7 @@ namespace Editor {
 		m_selection.clear();
 		m_primary = NE::ECS::NO_ENTITY;
 		m_lastClicked = NE::ECS::NO_ENTITY;
+		m_lastDropped = NE::ECS::NO_ENTITY;
 	}
 
 	void EditorSelection::SetSingle(NE::ECS::Entity e) {
@@ -63,16 +68,18 @@ namespace Editor {
 		m_lastClicked = e;
 	}
 
+	void EditorSelection::SetDropped(NE::ECS::Entity e) {
+		m_lastDropped = e;
+	}
+
 	void EditorSelection::Toggle(NE::ECS::Entity e) {
 		if (e == NE::ECS::NO_ENTITY) return;
 
 		auto it = std::find(m_selection.begin(), m_selection.end(), e);
 		if (it == m_selection.end()) {
-			// add
 			m_selection.push_back(e);
-			m_primary = e;      // make it active; feels natural
+			m_primary = e;
 		} else {
-			// remove
 			m_selection.erase(it);
 			if (m_primary == e)
 				m_primary = m_selection.empty() ? NE::ECS::NO_ENTITY : m_selection.back();
