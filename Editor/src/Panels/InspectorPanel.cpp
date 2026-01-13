@@ -1188,16 +1188,15 @@ namespace Editor {
 				bool headerOpen = ImGui::CollapsingHeader(headerLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 				ImGui::PopStyleColor(3);
 
-				// Add remove button on the same line as the header (right side)
-				ImGui::SameLine(ImGui::GetWindowWidth() - 100);
-				if (ImGui::Button(("Remove##" + std::to_string(scriptIdx)).c_str(), ImVec2(80, 0))) {
-					// Remove this specific script by index
-					NE::ECS::Command::RemoveEntityScriptByIndex(entity, scriptIdx);
-					headerOpen = false; // Skip rendering this script since it was removed
-				}
-
 				if (headerOpen) {
-				if (!scriptInstance) {
+					// Remove button at the top of the collapsible content
+					if (ImGui::Button(("Remove##" + std::to_string(scriptIdx)).c_str())) {
+						// Remove this specific script by index
+						NE::ECS::Command::RemoveEntityScriptByIndex(entity, scriptIdx);
+					}
+					ImGui::Separator();
+
+					if (!scriptInstance) {
 					// Check if script is registered in the DLL
 					bool isRegistered = NE::ECS::Command::IsScriptRegistered(scriptName);
 
