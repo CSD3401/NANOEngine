@@ -1544,8 +1544,6 @@ namespace NE::Graphics {
 
         // setup shader
         glUseProgram(debugShaderProgram);
-        //glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, view.Data());
-        //glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, projection.Data());
         glUniformMatrix4fv(s_DebugViewLoc, 1, GL_FALSE, s_EditorCamera->GetViewMatrix().Data());
         glUniformMatrix4fv(s_DebugProjLoc, 1, GL_FALSE, s_EditorCamera->GetProjectionMatrix().Data());
         glBindVertexArray(debugVAO);

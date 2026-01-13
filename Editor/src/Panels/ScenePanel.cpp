@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
-#include <ECS/Components/EntityMeta.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
@@ -20,10 +19,9 @@
 #include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
-#include "../Util/DrawSelectedCollider.hpp"
 #include <algorithm>
 #include "../EditorState.hpp"
-#include "../AssetManagement/AssetManager.hpp"
+
 
 namespace {
 	// helper function for ui
@@ -107,28 +105,6 @@ namespace Editor {
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
 		if (ImGui::BeginMenuBar()) {
-			//if (ImGui::BeginMenu("Toggle Grid")) {
-			//	ImGui::Text("[Under Development]");
-
-			//	ImGui::EndMenu();
-			//}
-
-			//if (ImGui::BeginMenu("Camera Settings")) {
-			//	bool changed = false;
-			//	ImGui::Text("Scene Camera");
-			//	changed |= Editor::DrawFloatSliderWithValue("Field of View", m_fov, 4.f, 120.f, 0.01f);
-			//	ImGui::Text("Clipping Planes");
-			//	ImGui::SameLine();
-			//	changed |= Editor::DrawFloatControl("Near", m_nearPlane);
-			//	changed |= Editor::DrawFloatControl("Far", m_farPlane);
-
-			//	if (changed) {
-			//		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
-			//	}
-
-			//	ImGui::EndMenu();
-			//}
-
 			ImGuiStyle& style = ImGui::GetStyle();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, style.ItemSpacing.y));
