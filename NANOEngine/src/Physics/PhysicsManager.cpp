@@ -39,6 +39,7 @@
 #include "BroadPhaseLayerInterfaceImpl.hpp"
 #include "ObjectVsBroadPhaseLayerFilterImpl.hpp"
 #include "ObjectLayerFilterImpl.hpp"
+#include "Core/LayerRegistry.hpp"
 
 namespace NE::Physics {
     namespace {
@@ -90,8 +91,10 @@ namespace NE::Physics {
         m_tempAllocator = std::make_unique<JPH::TempAllocatorImpl>(10 * 1024 * 1024);
         m_jobSystem = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
 
-        for (int a = 0; a < Core::MAX_LAYERS; ++a)
-            m_collisionMatrix[a] = ~Core::LayerMask(0);
+        const auto& layerMatrix = Core::LayerRegistry::GetInstance().GetCollisionMatrix();
+        for (int a = 0; a < Core::MAX_LAYERS; ++a) {
+            m_collisionMatrix[a] = layerMatrix[a];
+        }
 
         m_objectLayerPairFilter = std::make_unique<ObjectLayerPairFilterImpl>(m_collisionMatrix);
 

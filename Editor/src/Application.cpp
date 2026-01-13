@@ -118,6 +118,7 @@ namespace Editor {
 		editorLayer.AddPanel<LoggerPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
+		Deserialization::JSON::DeserializeProjectSettings();
 	}
 
 	void Application::Run()
@@ -186,9 +187,10 @@ namespace Editor {
 		}
 	}
 
-	void Application::Exit()
-	{
+	void Application::Exit() {
 		ShutdownImGui();
+
+		Serialization::JSON::SerializeProjectSettings();
 
 		NE::Shutdown();
 	}

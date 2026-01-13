@@ -374,9 +374,6 @@
     <ClInclude Include="src\TagDatabase.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Layers\LayerDefs.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Layers\LayerModal.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
