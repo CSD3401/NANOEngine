@@ -630,6 +630,10 @@ namespace NE::Graphics {
             if (!instanceData.empty()) {
                 flushBatch();
             }
+
+            if (handle == 1) // Assuming editor camera handle will always be 1
+                DrawAllDebugGeometry();
+
             ++renderedViews;
             s_RenderViewManager->Unbind();
         }

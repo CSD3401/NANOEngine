@@ -12,7 +12,7 @@ namespace NE::Graphics {
     std::shared_ptr<Model> CreatePlane(float width = 1.f,
         float depth = 1.f);
 
-    std::shared_ptr<Model> CreateCylinder(float radius = 1.f,
+    std::shared_ptr<Model> CreateCylinder(float radius = 0.5f,
         float height = 1.f,
         int segments = 20);
 

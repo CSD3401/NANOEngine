@@ -989,6 +989,8 @@ namespace Editor {
 			}, comp.data
 		);
 
+		NE::Physics::Command::DrawSelectedCollider(entity);
+
 		if (copyComp) {
 
 		}

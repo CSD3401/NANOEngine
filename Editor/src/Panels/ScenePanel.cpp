@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
-#include <ECS/Components/EntityMeta.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
@@ -20,10 +19,9 @@
 #include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
-#include "../Util/DrawSelectedCollider.hpp"
 #include <algorithm>
 #include "../EditorState.hpp"
-#include "../AssetManagement/AssetManager.hpp"
+
 
 namespace {
 	// helper function for ui
@@ -67,7 +65,7 @@ namespace Editor {
 	static NE::Math::Mat4 s_gizmoPivotStartWorld;
 
 	static bool s_usingUIGizmo = false;
-	static bool s_showSelectedCollider = false;
+
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
 		return deg * 3.14159265358979323846f / 180.0f;
@@ -107,28 +105,6 @@ namespace Editor {
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
 		if (ImGui::BeginMenuBar()) {
-			//if (ImGui::BeginMenu("Toggle Grid")) {
-			//	ImGui::Text("[Under Development]");
-
-			//	ImGui::EndMenu();
-			//}
-
-			//if (ImGui::BeginMenu("Camera Settings")) {
-			//	bool changed = false;
-			//	ImGui::Text("Scene Camera");
-			//	changed |= Editor::DrawFloatSliderWithValue("Field of View", m_fov, 4.f, 120.f, 0.01f);
-			//	ImGui::Text("Clipping Planes");
-			//	ImGui::SameLine();
-			//	changed |= Editor::DrawFloatControl("Near", m_nearPlane);
-			//	changed |= Editor::DrawFloatControl("Far", m_farPlane);
-
-			//	if (changed) {
-			//		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
-			//	}
-
-			//	ImGui::EndMenu();
-			//}
-
 			ImGuiStyle& style = ImGui::GetStyle();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, style.ItemSpacing.y));
@@ -147,13 +123,8 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
-			bool openView = ImGui::Button("Collider Draw");
-			ImVec2 viewMin = ImGui::GetItemRectMin();
-			ImVec2 viewMax = ImGui::GetItemRectMax();
-
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
-			if (openView) ImGui::OpenPopup("ViewPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -199,11 +170,6 @@ namespace Editor {
 				Editor::DrawFloatField("Max", m_cameraMaxSpeed, 0.01f, true);
 				ImGui::Unindent(50.f);
 
-				ImGui::EndPopup();
-			}
-			ImGui::SetNextWindowPos(ImVec2(viewMin.x, viewMax.y), ImGuiCond_Appearing);
-			if (ImGui::BeginPopup("ViewPopup")) {
-				ImGui::Checkbox("Show Collider (Selected)", &s_showSelectedCollider);
 				ImGui::EndPopup();
 			}
 			ImGui::PopStyleVar(3);
