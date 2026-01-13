@@ -389,6 +389,7 @@ namespace NE {
 					++idx;
 				});
 			}
+			return true;
 		}
 
 		uint32_t DeserializePrefab(ECS::ECSCoordinator& ecs, const std::string& path) {

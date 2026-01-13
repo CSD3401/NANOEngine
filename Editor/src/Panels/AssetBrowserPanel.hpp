@@ -27,6 +27,8 @@ namespace Editor {
 		void DeleteAssetWithMeta(const std::filesystem::path& assetPath);
 		void MoveAssetWithMeta(const std::filesystem::path& source, const std::filesystem::path& destination);
 
+		void GotoAssetFolder(const std::string& assetPath);
+
 		std::filesystem::path m_rootDirectory;
 		std::filesystem::path m_currentDirectory;
 
