@@ -66,7 +66,7 @@ namespace Editor {
 	static NE::Math::Mat4 s_gizmoPivotStartWorld;
 
 	static bool s_usingUIGizmo = false;
-	static bool s_showSelectedCollider = false;
+
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
 		return deg * 3.14159265358979323846f / 180.0f;
@@ -146,13 +146,8 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
-			bool openView = ImGui::Button("Collider Draw");
-			ImVec2 viewMin = ImGui::GetItemRectMin();
-			ImVec2 viewMax = ImGui::GetItemRectMax();
-
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
-			if (openView) ImGui::OpenPopup("ViewPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -198,11 +193,6 @@ namespace Editor {
 				Editor::DrawFloatField("Max", m_cameraMaxSpeed, 0.01f, true);
 				ImGui::Unindent(50.f);
 
-				ImGui::EndPopup();
-			}
-			ImGui::SetNextWindowPos(ImVec2(viewMin.x, viewMax.y), ImGuiCond_Appearing);
-			if (ImGui::BeginPopup("ViewPopup")) {
-				ImGui::Checkbox("Show Collider (Selected)", &s_showSelectedCollider);
 				ImGui::EndPopup();
 			}
 			ImGui::PopStyleVar(3);
