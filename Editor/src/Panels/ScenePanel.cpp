@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
-#include <ECS/Components/EntityMeta.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
@@ -20,10 +19,9 @@
 #include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
-#include "../Util/DrawSelectedCollider.hpp"
 #include <algorithm>
 #include "../EditorState.hpp"
-#include "../AssetManagement/AssetManager.hpp"
+
 
 namespace {
 	// helper function for ui
@@ -67,16 +65,16 @@ namespace Editor {
 	static NE::Math::Mat4 s_gizmoPivotStartWorld;
 
 	static bool s_usingUIGizmo = false;
-	static bool s_showSelectedCollider = false;
+
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
 		return deg * 3.14159265358979323846f / 180.0f;
 	}
 
 	ScenePanel::ScenePanel() {
-		NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
-		NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
-		NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
+		//NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
+		//NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
+		//NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
 
 		m_fov = 60;
 		m_aspectRatio = 1920.f / 1080.f;
@@ -84,8 +82,8 @@ namespace Editor {
 		m_farPlane = 1000.0f;
 
 		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
-		EditorScene::m_editorCamera.SetPosition(position);
-		EditorScene::m_editorCamera.LookAt(target, up);
+		//EditorScene::m_editorCamera.SetPosition(position);
+		//EditorScene::m_editorCamera.LookAt(target, up);
 
 		// Give address of the editor camera to the scene camera tweener
 		sceneCameraTweener.SetSceneCamera(&EditorScene::m_editorCamera);
@@ -107,28 +105,6 @@ namespace Editor {
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
 		if (ImGui::BeginMenuBar()) {
-			//if (ImGui::BeginMenu("Toggle Grid")) {
-			//	ImGui::Text("[Under Development]");
-
-			//	ImGui::EndMenu();
-			//}
-
-			//if (ImGui::BeginMenu("Camera Settings")) {
-			//	bool changed = false;
-			//	ImGui::Text("Scene Camera");
-			//	changed |= Editor::DrawFloatSliderWithValue("Field of View", m_fov, 4.f, 120.f, 0.01f);
-			//	ImGui::Text("Clipping Planes");
-			//	ImGui::SameLine();
-			//	changed |= Editor::DrawFloatControl("Near", m_nearPlane);
-			//	changed |= Editor::DrawFloatControl("Far", m_farPlane);
-
-			//	if (changed) {
-			//		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
-			//	}
-
-			//	ImGui::EndMenu();
-			//}
-
 			ImGuiStyle& style = ImGui::GetStyle();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, style.ItemSpacing.y));
@@ -147,13 +123,8 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
-			bool openView = ImGui::Button("Collider Draw");
-			ImVec2 viewMin = ImGui::GetItemRectMin();
-			ImVec2 viewMax = ImGui::GetItemRectMax();
-
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
-			if (openView) ImGui::OpenPopup("ViewPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -189,21 +160,16 @@ namespace Editor {
 				}
 
 				ImGui::Text("Navigation");
-				Editor::DrawCheckbox("Camera Easing", m_cameraUseEasing);
-				Editor::DrawCheckbox("Camera Acceleration", m_cameraUseAcceleration);
+				Editor::DrawCheckbox("Camera Easing", EditorScene::m_cameraUseEasing);
+				Editor::DrawCheckbox("Camera Acceleration", EditorScene::m_cameraUseAcceleration);
 				Editor::DrawFloatSliderWithField(
-					"Camera Speed", m_cameraSpeed, m_cameraMinSpeed, m_cameraMaxSpeed, 0.01f, true
+					"Camera Speed", EditorScene::m_cameraSpeed, EditorScene::m_cameraMinSpeed, EditorScene::m_cameraMaxSpeed, 0.01f, true
 				);
 				ImGui::Indent(50.f);
-				Editor::DrawFloatField("Min", m_cameraMinSpeed, 0.01f, true);
-				Editor::DrawFloatField("Max", m_cameraMaxSpeed, 0.01f, true);
+				Editor::DrawFloatField("Min", EditorScene::m_cameraMinSpeed, 0.01f, true);
+				Editor::DrawFloatField("Max", EditorScene::m_cameraMaxSpeed, 0.01f, true);
 				ImGui::Unindent(50.f);
 
-				ImGui::EndPopup();
-			}
-			ImGui::SetNextWindowPos(ImVec2(viewMin.x, viewMax.y), ImGuiCond_Appearing);
-			if (ImGui::BeginPopup("ViewPopup")) {
-				ImGui::Checkbox("Show Collider (Selected)", &s_showSelectedCollider);
 				ImGui::EndPopup();
 			}
 			ImGui::PopStyleVar(3);
@@ -378,6 +344,7 @@ namespace Editor {
 					NE::StartRuntime();
 					EditorScene::BuildRoot();
 					g_EditorState = EditorState::Play;
+					ImGui::SetWindowFocus("Game");
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Pause")) {
@@ -393,6 +360,7 @@ namespace Editor {
 					NE::StopRuntime();
 					g_EditorState = EditorState::Edit;
 					EditorScene::BuildRoot();
+					ImGui::SetWindowFocus("Scene");
 				}
 			}
 			ImGui::End();
@@ -482,22 +450,22 @@ namespace Editor {
 				bool boost = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
 
 				if (hasInput) {
-					if (m_cameraUseAcceleration) {
+					if (EditorScene::m_cameraUseAcceleration) {
 						if (m_currentMoveSpeed <= 0.0f) {
-							m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraMinSpeed;
+							m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraMinSpeed;
 						}
 
 						m_currentMoveSpeed += m_cameraAcceleration * deltaTime;
 
-						if (!boost && m_currentMoveSpeed > m_cameraMaxSpeed) {
-							m_currentMoveSpeed = m_cameraMaxSpeed;
+						if (!boost && m_currentMoveSpeed > EditorScene::m_cameraMaxSpeed) {
+							m_currentMoveSpeed = EditorScene::m_cameraMaxSpeed;
 						}
 					} else {
-						m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraSpeed;
+						m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraSpeed;
 					}
 				} else {
 					// No input but RMB still held
-					if (m_cameraUseEasing) {
+					if (EditorScene::m_cameraUseEasing) {
 						m_currentMoveSpeed -= m_cameraDeceleration * deltaTime;
 						if (m_currentMoveSpeed < 0.0f)
 							m_currentMoveSpeed = 0.0f;
@@ -529,11 +497,11 @@ namespace Editor {
 				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
 				m_lastMousePos = io.MousePos;
 
-				m_cameraYaw += delta.x * m_mouseSensitivity;
-				m_cameraPitch -= delta.y * m_mouseSensitivity;
+				EditorScene::m_cameraYaw += delta.x * m_mouseSensitivity;
+				EditorScene::m_cameraPitch -= delta.y * m_mouseSensitivity;
 
-				if (m_cameraPitch > 89.0f) m_cameraPitch = 89.0f;
-				if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
+				if (EditorScene::m_cameraPitch > 89.0f) EditorScene::m_cameraPitch = 89.0f;
+				if (EditorScene::m_cameraPitch < -89.0f) EditorScene::m_cameraPitch = -89.0f;
 			} else {
 				m_rightMouseHeld = false;
 				m_currentMoveSpeed = 0.0f;
@@ -773,9 +741,9 @@ namespace Editor {
 
 		// Calculate camera's look direction regardless of input
 		Vec3 dir;
-		dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
-		dir.y = sinf(Radians(m_cameraPitch));
-		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
+		dir.x = cosf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
+		dir.y = sinf(Radians(EditorScene::m_cameraPitch));
+		dir.z = sinf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
 		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
 		NE::UpdateEditorCameraData();

@@ -39,6 +39,7 @@
 #include "BroadPhaseLayerInterfaceImpl.hpp"
 #include "ObjectVsBroadPhaseLayerFilterImpl.hpp"
 #include "ObjectLayerFilterImpl.hpp"
+#include "Core/LayerRegistry.hpp"
 
 namespace NE::Physics {
     namespace {
@@ -90,8 +91,10 @@ namespace NE::Physics {
         m_tempAllocator = std::make_unique<JPH::TempAllocatorImpl>(10 * 1024 * 1024);
         m_jobSystem = std::make_unique<JPH::JobSystemSingleThreaded>(JPH::cMaxPhysicsJobs);
 
-        for (int a = 0; a < Core::MAX_LAYERS; ++a)
-            m_collisionMatrix[a] = ~Core::LayerMask(0);
+        const auto& layerMatrix = Core::LayerRegistry::GetInstance().GetCollisionMatrix();
+        for (int a = 0; a < Core::MAX_LAYERS; ++a) {
+            m_collisionMatrix[a] = layerMatrix[a];
+        }
 
         m_objectLayerPairFilter = std::make_unique<ObjectLayerPairFilterImpl>(m_collisionMatrix);
 
@@ -337,12 +340,14 @@ namespace NE::Physics {
         t.isDirty = true;
     }
 
-    void PhysicsManager::DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t) {
+    void PhysicsManager::DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col) {
         auto& shapeSettings = m_shapes.at(entityLUID);
 
         JPH::RMat44 com = ToJoltRMat44(t.worldMatrix.GetTranslation());
 
-        shapeSettings->Draw(m_debugRenderer.get(), com, JPH::Vec3::sReplicate(1.f), JPH::Color::sGreen, false, true);
+        JPH::RMat44 worldWithCenter = com * JPH::RMat44::sTranslation(JPH::Vec3(col.center.x, col.center.y, col.center.z));
+
+        shapeSettings->Draw(m_debugRenderer.get(), worldWithCenter, JPH::Vec3::sReplicate(1.f), JPH::Color::sGreen, false, true);
     }
 
     void PhysicsManager::DrawBodies() {

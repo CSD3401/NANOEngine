@@ -65,6 +65,8 @@ namespace NE::ECS::Systems {
 			}
 
 			//if (col.type != Component::Collider::ColliderType::Mesh)
+			//	Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t, col);
+			//if (col.type != Component::Collider::ColliderType::Mesh)
 			//	Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t);
 		}
 	}

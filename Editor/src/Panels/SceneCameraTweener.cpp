@@ -40,22 +40,19 @@ namespace Editor {
 		uint32_t entity = event.selectedEntity;
 
 		// Skip UI entities - they don't have Transform component
-		if (!NE::ECS::Query::HasTransform(entity))
-		{
-			return;
-		}
+		if (!NE::ECS::Query::HasTransform(entity)) return;
 
 		// Get transform
 		NE::ECS::Component::Transform const& entityTransform = NE::ECS::Query::GetEntityTransform(entity);
 
 		// Get position
-		NE::Math::Vec3 entityPosition = entityTransform.localPosition;
+		NE::Math::Vec3 entityPosition = entityTransform.worldMatrix.GetTranslation();
 
 		// Get camera's look direction, and reverse it
 		NE::Math::Vec3 reversedCameraLookDirection = -sceneCamera->GetForward();
 
 		// Get scale
-		NE::Math::Vec3 entityScale = entityTransform.localScale;
+		NE::Math::Vec3 entityScale = entityTransform.worldMatrix.GetScale();
 
 		// Get the maximum scale value to approximate required distance
 		float distance = std::max(std::max(entityScale.x, entityScale.y), entityScale.z);

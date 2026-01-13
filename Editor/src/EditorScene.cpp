@@ -6,8 +6,8 @@
 namespace Editor {
     std::vector<NE::ECS::Entity> EditorScene::s_rootOrder;
     EditorSelection EditorScene::s_selection;
-    std::string EditorScene::s_currentSceneUUID;
-    std::string EditorScene::s_currentScenePath("Assets/NewScene.scene"); // temp
+    std::string EditorScene::s_currentSceneUUID("Assets/NewScene.scene");
+    std::string EditorScene::s_currentScenePath; // temp
     Layers::LayerDatabase EditorScene::layerDatabase;
 
     std::string EditorScene::selectedAsset;
@@ -15,6 +15,13 @@ namespace Editor {
     std::vector<uint8_t> EditorScene::clipboard;
 
     NE::Graphics::EditorCamera EditorScene::m_editorCamera;
+    float EditorScene::m_cameraSpeed = 1.0f;
+    bool EditorScene::m_cameraUseEasing = false;
+    bool EditorScene::m_cameraUseAcceleration = false;
+    float EditorScene::m_cameraMinSpeed = 0.01f;
+    float EditorScene::m_cameraMaxSpeed = 2.f;
+    float EditorScene::m_cameraYaw = -90.0f;  // looking along -Z
+    float EditorScene::m_cameraPitch = 0.0f;
 
     bool EditorScene::isDirty = false;
 

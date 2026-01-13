@@ -255,6 +255,13 @@ namespace Editor {
 					Events::DeleteEntityEvent{ toDelete }
 				);
 			}
+
+			if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::SelectEntityEvent(EditorScene::s_selection.GetLastClicked())
+				);
+			}
 		}
 
 		if (m_dragRep != NE::ECS::NO_ENTITY &&
@@ -443,13 +450,6 @@ namespace Editor {
 			m_clickHadCtrl = io.KeyCtrl;
 			m_clickHadShift = io.KeyShift;
 			m_clickThisFrame = true;
-		}
-
-		if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-			NANOEngine::Events::EventBus::Get().Dispatch(
-				NANOEngine::Events::EventDomain::Editor,
-				Events::SelectEntityEvent(EditorScene::s_selection.GetLastClicked())
-			);
 		}
 
 		if (ImGui::BeginPopupContextItem("HierarchyContext")) {

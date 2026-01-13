@@ -58,6 +58,70 @@ namespace Editor {
 				(f.template operator() < std::decay_t<decltype(t)> > (), ...);
 				}, ComponentTypes{});
 		}
+
+		std::string projectSettingsLoc = "ProjectSettings/";
+		std::string layerSettingsLoc = projectSettingsLoc + "LayerSettings.json";
+		constexpr uint32_t kLayerSettingsVersion = 1;
+
+		std::string userSettingsFolder = "UserSettings/";
+		std::string userSettingsLoc = userSettingsFolder + "UserSettings.json";
+		constexpr uint32_t kUserSettingsVersion = 1;
+
+		bool ReadAllText(const std::filesystem::path& p, std::string& out)
+		{
+			std::ifstream f(p, std::ios::binary);
+			if (!f) return false;
+
+			f.seekg(0, std::ios::end);
+			const size_t sz = static_cast<size_t>(f.tellg());
+			f.seekg(0, std::ios::beg);
+
+			out.resize(sz);
+			if (sz) f.read(out.data(), static_cast<std::streamsize>(sz));
+			return true;
+		}
+
+		bool WriteAllText(const std::filesystem::path& p, const std::string& s)
+		{
+			std::ofstream f(p, std::ios::binary);
+			if (!f) return false;
+			f.write(s.data(), static_cast<std::streamsize>(s.size()));
+			return true;
+		}
+
+		// Make sure collision matrix is symmetric.
+		// If file had mismatches, we pick AND ("most restrictive").
+		std::array<NE::Core::LayerMask, NE::Core::MAX_LAYERS>
+			SymmetrizeAND(const std::array<NE::Core::LayerMask, NE::Core::MAX_LAYERS>& in)
+		{
+			using namespace NE::Core;
+
+			auto out = in;
+
+			for (LayerID i = 0; i < MAX_LAYERS; ++i)
+				out[i] |= LayerBit(i); // always collide with self
+
+			for (LayerID a = 0; a < MAX_LAYERS; ++a) {
+				for (LayerID b = static_cast<LayerID>(a + 1); b < MAX_LAYERS; ++b) {
+					const LayerMask bitA = LayerBit(a);
+					const LayerMask bitB = LayerBit(b);
+
+					const bool ab = (in[a] & bitB) != 0;
+					const bool ba = (in[b] & bitA) != 0;
+					const bool en = ab && ba;
+
+					if (en) {
+						out[a] |= bitB;
+						out[b] |= bitA;
+					} else {
+						out[a] &= ~bitB;
+						out[b] &= ~bitA;
+					}
+				}
+			}
+
+			return out;
+		}
 	}
 
 	namespace Serialization {
@@ -77,6 +141,7 @@ namespace Editor {
 					rapidjson::Document::AllocatorType& a) {
 					rapidjson::Value ent(rapidjson::kObjectType);
 
+					ent.AddMember("Layer", ToJSON(NE::ECS::Query::GetLayer(e), a), a);
 					ForEachComponentType([&]<typename C>() {
 						WriteComponentIfPresent<C>(e, ent, a);
 					});
@@ -155,9 +220,6 @@ namespace Editor {
 				} else {
 					WriteEntityRecursive(EditorScene::s_rootOrder[0], entities, a);
 				}
-				//for (auto e : sceneRoots) {
-				//	WriteEntityRecursive(e, entities, a);
-				//}
 				doc.AddMember("Entities", entities, a);
 
 				StringBuffer sb;
@@ -168,8 +230,81 @@ namespace Editor {
 				if (out) out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
 			}
 
-			void SerializeEditorSettings() {
+			void SerializeProjectSettings() {
+				namespace fs = std::filesystem;
+				using namespace NE::Core;
 
+				fs::create_directories(projectSettingsLoc);
+
+				Editor::Layers::LayerDatabase db;
+
+				rapidjson::Document d;
+				d.SetObject();
+				auto& a = d.GetAllocator();
+
+				d.AddMember("version", kLayerSettingsVersion, a);
+
+				rapidjson::Value layers(rapidjson::kArrayType);
+				layers.Reserve(static_cast<rapidjson::SizeType>(MAX_LAYERS), a);
+
+				for (LayerID id = 0; id < MAX_LAYERS; ++id) {
+					rapidjson::Value obj(rapidjson::kObjectType);
+
+					const bool used = db.IsUsed(id);
+					std::string_view nameSV = db.GetName(id);
+					const LayerMask mask = db.GetCollisionMask(id);
+
+					obj.AddMember("id", static_cast<uint32_t>(id), a);
+					obj.AddMember("used", used, a);
+
+					rapidjson::Value name;
+					name.SetString(nameSV.data(), static_cast<rapidjson::SizeType>(nameSV.size()), a);
+					obj.AddMember("name", name, a);
+
+					obj.AddMember("collidesWith", static_cast<uint32_t>(mask), a);
+
+					layers.PushBack(obj, a);
+				}
+
+				d.AddMember("layers", layers, a);
+
+				rapidjson::StringBuffer sb;
+				rapidjson::PrettyWriter<rapidjson::StringBuffer> w(sb);
+				d.Accept(w);
+
+				WriteAllText(layerSettingsLoc, sb.GetString());
+			}
+
+			void SerializeUserSettings() {
+				namespace fs = std::filesystem;
+
+				fs::create_directories(userSettingsFolder);
+
+				rapidjson::Document doc;
+				doc.SetObject();
+				auto& a = doc.GetAllocator();
+
+				doc.AddMember("version", kUserSettingsVersion, a);
+				doc.AddMember("sessionScenePath", ToJSON(EditorScene::s_currentScenePath, a), a);
+				doc.AddMember("sessionSceneUUID", ToJSON(EditorScene::s_currentSceneUUID, a), a);
+
+				rapidjson::Value obj(rapidjson::kObjectType);
+				obj.AddMember("position", ToJSON(EditorScene::m_editorCamera.GetPosition(), a), a);
+				obj.AddMember("yaw", ToJSON(EditorScene::m_cameraYaw, a), a);
+				obj.AddMember("pitch", ToJSON(EditorScene::m_cameraPitch, a), a);
+				obj.AddMember("speed", ToJSON(EditorScene::m_cameraSpeed, a), a);
+				obj.AddMember("minSpeed", ToJSON(EditorScene::m_cameraMinSpeed, a), a);
+				obj.AddMember("maxSpeed", ToJSON(EditorScene::m_cameraMaxSpeed, a), a);
+				obj.AddMember("hasEasing", ToJSON(EditorScene::m_cameraUseEasing, a), a);
+				obj.AddMember("hasAcceleration", ToJSON(EditorScene::m_cameraUseAcceleration, a), a);
+
+				doc.AddMember("editorCamera", obj, a);
+
+				rapidjson::StringBuffer sb;
+				rapidjson::PrettyWriter<rapidjson::StringBuffer> w(sb);
+				doc.Accept(w);
+
+				WriteAllText(userSettingsLoc, sb.GetString());
 			}
 		}
 	}
@@ -213,9 +348,141 @@ namespace Editor {
 				for (auto& entVal : doc["Entities"].GetArray()) {
 					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
 
+					if (doc.HasMember("Layer")) {
+						uint8_t layer = 0;
+						FromJSON(entVal["Layer"], layer);
+						NE::ECS::Command::SetLayer(e, layer);
+					}
+
 					ForEachComponentType([&]<typename C>() {
 						ReadComponentIfPresent<C>(e, entVal);
 					});
+				}
+			}
+
+			void DeserializeProjectSettings() {
+				namespace fs = std::filesystem;
+				using namespace NE::Core;
+
+				//fs::create_directories(projectSettingsLoc);
+
+				Editor::Layers::LayerDatabase db;
+
+				if (!fs::exists(layerSettingsLoc)) {
+					Serialization::JSON::SerializeProjectSettings();
+					return;
+				}
+
+				std::string text;
+				if (!ReadAllText(layerSettingsLoc, text))
+					return;
+
+				rapidjson::Document d;
+				d.Parse(text.c_str());
+				if (d.HasParseError() || !d.IsObject())
+					return;
+
+				if (!d.HasMember("layers") || !d["layers"].IsArray())
+					return;
+
+				// 1) Apply names/used flags first
+				//    (we treat "used=false" or empty name as delete/clear)
+				for (auto& it : d["layers"].GetArray()) {
+					if (!it.IsObject()) continue;
+					if (!it.HasMember("id") || !it["id"].IsUint()) continue;
+
+					const uint32_t idU = it["id"].GetUint();
+					if (idU >= MAX_LAYERS) continue;
+
+					const LayerID id = static_cast<LayerID>(idU);
+
+					// Layer 0 is always Default; ignore file attempts to rename/disable it.
+					if (id == 0) continue;
+
+					bool used = true;
+					if (it.HasMember("used") && it["used"].IsBool())
+						used = it["used"].GetBool();
+
+					std::string_view nameSV{};
+					if (it.HasMember("name") && it["name"].IsString())
+						nameSV = it["name"].GetString();
+
+					if (!used || nameSV.empty()) {
+						// Clear layer slot (your RenameLayer supports empty -> used=false)
+						db.RenameLayer(id, "");
+					} else {
+						// Set/overwrite (RenameLayer works even if slot was unused)
+						db.RenameLayer(id, nameSV);
+					}
+				}
+
+				// 2) Read collision masks (full matrix), then symmetrize, then apply
+				std::array<LayerMask, MAX_LAYERS> loadedMasks{};
+				for (LayerID i = 0; i < MAX_LAYERS; ++i)
+					loadedMasks[i] = db.GetCollisionMask(i); // fallback to current if not present in file
+
+				for (auto& it : d["layers"].GetArray()) {
+					if (!it.IsObject()) continue;
+					if (!it.HasMember("id") || !it["id"].IsUint()) continue;
+
+					const uint32_t idU = it["id"].GetUint();
+					if (idU >= MAX_LAYERS) continue;
+
+					const LayerID id = static_cast<LayerID>(idU);
+
+					if (it.HasMember("collidesWith") && it["collidesWith"].IsUint())
+						loadedMasks[id] = static_cast<LayerMask>(it["collidesWith"].GetUint());
+				}
+
+				const auto symMasks = SymmetrizeAND(loadedMasks);
+
+				for (LayerID i = 0; i < MAX_LAYERS; ++i)
+					db.SetCollisionMask(i, symMasks[i]);
+			}
+
+			void DeserializeUserSettings() {
+				namespace fs = std::filesystem;
+
+				if (!fs::exists(userSettingsLoc)) {
+					Serialization::JSON::SerializeUserSettings();
+					return;
+				}
+				std::string text;
+				if (!ReadAllText(userSettingsLoc, text))
+					return;
+
+				rapidjson::Document doc;
+				doc.Parse(text.c_str());
+				if (doc.HasParseError() || !doc.IsObject())
+					return;
+
+				if (doc.HasMember("sessionScenePath") && doc["sessionScenePath"].IsString())
+					EditorScene::s_currentScenePath = doc["sessionScenePath"].GetString();
+
+				if (doc.HasMember("sessionSceneUUID") && doc["sessionSceneUUID"].IsString())
+					EditorScene::s_currentSceneUUID = doc["sessionSceneUUID"].GetString();
+
+				if (doc.HasMember("editorCamera") && doc["editorCamera"].IsObject()) {
+					auto& camObj = doc["editorCamera"];
+					if (camObj.HasMember("position")) {
+						NE::Math::Vec3 position{ 0.f, 0.f, 0.f };
+						FromJSON(camObj["position"], position);
+						EditorScene::m_editorCamera.SetPosition(position);
+					}
+					if (camObj.HasMember("yaw"))
+						FromJSON(camObj["yaw"], EditorScene::m_cameraYaw);
+					if (camObj.HasMember("pitch"))
+						FromJSON(camObj["pitch"], EditorScene::m_cameraPitch);
+					if (camObj.HasMember("speed"))
+						FromJSON(camObj["speed"], EditorScene::m_cameraSpeed);
+					if (camObj.HasMember("minSpeed"))
+						FromJSON(camObj["minSpeed"], EditorScene::m_cameraMinSpeed);
+					if (camObj.HasMember("maxSpeed"))
+						FromJSON(camObj["maxSpeed"], EditorScene::m_cameraMaxSpeed);
+					if (camObj.HasMember("hasEasing"))
+						FromJSON(camObj["hasEasing"], EditorScene::m_cameraUseEasing);
+					if (camObj.HasMember("hasAcceleration"))
+						FromJSON(camObj["hasAcceleration"], EditorScene::m_cameraUseAcceleration);
 				}
 			}
 		}

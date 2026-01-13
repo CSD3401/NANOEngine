@@ -52,23 +52,6 @@ namespace NE::ECS::Systems {
     }
 
     void RenderSystem::Init() {
-		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
-		//Graphics::PipelineSpecification pipelineSpec;
-		//pipelineSpec.shader = basicShader;
-		//pipelineSpec.CullMode = GL_BACK;
-		//pipelineSpec.PolygonMode = GL_FILL;
-		//pipelineSpec.EnableDepthTest = true;
-		//pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
-		//material = std::make_shared<Graphics::Material>(pipeline);
-
-        //pickingShader = NE::Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>("nepicking");
-        //Graphics::PipelineSpecification pickSpec;
-        //pickSpec.shader = pickingShader;
-        //pickSpec.CullMode = GL_BACK;
-        //pickSpec.PolygonMode = GL_FILL;
-        //pickSpec.EnableDepthTest = true;
-        //pickingPipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pickSpec, "Picking");
-        //pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
     }
 
     void RenderSystem::Update(double deltaTime) {

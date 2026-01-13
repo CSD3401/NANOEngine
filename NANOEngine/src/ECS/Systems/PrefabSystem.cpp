@@ -28,7 +28,7 @@ namespace NE::ECS::Systems {
 	void PrefabSystem::Init() {
 	}
 
-	void PrefabSystem::Update(double deltaTime) {
+	void PrefabSystem::Update(double /*deltaTime*/) {
 	}
 
 	void PrefabSystem::Exit() {

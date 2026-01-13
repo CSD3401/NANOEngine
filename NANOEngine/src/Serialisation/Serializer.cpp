@@ -52,7 +52,7 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 2;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 5;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 1;
@@ -138,6 +138,9 @@ namespace NE {
 			}
 
 			void WriteOneEntity(ECS::ECSCoordinator& ecs, ByteBuffer& buf, ECS::Entity e) {
+				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
+				ToBinary(buf, layer);
+
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
 				ForEachComponentType([&]<typename C>() {
@@ -163,6 +166,9 @@ namespace NE {
 				ECS::Entity e,
 				const std::unordered_map<ECS::Entity, uint64_t>& entityToLocalId)
 			{
+				const uint8_t layer = static_cast<uint8_t>(ecs.GetEntityManager().GetLayer(e));
+				ToBinary(buf, layer);
+
 				ComponentMask mask = 0;
 				uint32_t idx = 0;
 				ForEachComponentType([&]<typename C>() {
@@ -375,6 +381,10 @@ namespace NE {
 			for (std::uint64_t i = 0; i < entityCount; ++i) {
 				ECS::Entity e = ecs.CreateEntity();
 
+				uint8_t layer = 0;
+				ReadT(it, end, layer);
+				ecs.GetEntityManager().SetLayer(e, layer);
+
 				std::uint64_t maskU64 = 0;
 				if (!ReadT(it, end, maskU64)) return false;
 				const std::uint64_t mask = maskU64;
@@ -389,6 +399,7 @@ namespace NE {
 					++idx;
 				});
 			}
+			return true;
 		}
 
 		uint32_t DeserializePrefab(ECS::ECSCoordinator& ecs, const std::string& path) {
