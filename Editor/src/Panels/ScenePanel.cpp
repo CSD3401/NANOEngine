@@ -378,6 +378,7 @@ namespace Editor {
 					NE::StartRuntime();
 					EditorScene::BuildRoot();
 					g_EditorState = EditorState::Play;
+					ImGui::SetWindowFocus("Game");
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Pause")) {
@@ -393,6 +394,7 @@ namespace Editor {
 					NE::StopRuntime();
 					g_EditorState = EditorState::Edit;
 					EditorScene::BuildRoot();
+					ImGui::SetWindowFocus("Scene");
 				}
 			}
 			ImGui::End();
