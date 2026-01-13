@@ -53,7 +53,7 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void HierarchySystem::OnEntityRemoved(Entity e) {
+	void HierarchySystem::OnEntityRemoved(Entity /*e*/) {
 	}
 
 	void HierarchySystem::Init() {
@@ -214,7 +214,7 @@ namespace NE::ECS::Systems {
             if (!m_componentManager->HasComponent<Component::Hierarchy>(pp.child))
                 continue;
 
-            auto& childH = m_componentManager->GetComponent<Component::Hierarchy>(pp.child);
+            //auto& childH = m_componentManager->GetComponent<Component::Hierarchy>(pp.child);
 
             auto it = m_luidToEntity.find(pp.parentLuid);
             if (it != m_luidToEntity.end()) {

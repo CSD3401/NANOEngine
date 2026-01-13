@@ -35,4 +35,8 @@ namespace Editor::Events {
 	struct SelectEntityEvent {
 		uint32_t selectedEntity;
 	};
+
+	struct GotoAssetPathEvent {
+		std::string assetPath;
+	};
 }

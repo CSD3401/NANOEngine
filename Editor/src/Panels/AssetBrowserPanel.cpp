@@ -11,9 +11,11 @@
 #include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/EntityMeta.hpp>
 #include <ResourceManagement/ResourcePaths.hpp>
+#include <Events/EventBus.hpp>
 
 #include "../EditorScene.hpp"
 #include "../AssetManagement/AssetManager.hpp"
+#include "../EditorEvents.hpp"
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
@@ -30,6 +32,13 @@ namespace Editor {
 
             Assets::AssetManager::GetInstance().GenerateMetadata(entry.path().string());
         }
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::GotoAssetPathEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::GotoAssetPathEvent& e) {
+                GotoAssetFolder(e.assetPath);
+            }
+        );
     }
 
     AssetBrowserPanel::~AssetBrowserPanel() {
@@ -705,6 +714,13 @@ namespace Editor {
             std::filesystem::rename(sourceMetaPath, destMetaPath, ec);
             // Optional: handle ec here if you care about meta file move failures
         }
+    }
+
+    void AssetBrowserPanel::GotoAssetFolder(const std::string& assetPath) {
+        std::filesystem::path fullPath = std::filesystem::absolute(assetPath);
+		m_currentDirectory = fullPath.parent_path();
+
+		ImGui::SetWindowFocus("Asset Browser");
     }
 
 }

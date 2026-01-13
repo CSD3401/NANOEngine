@@ -6,7 +6,7 @@
 #include "ECS/Core/Entity.hpp"
 
 namespace NE::SceneManagement {
-    struct SceneManager;
+    class SceneManager;
 }
 
 namespace NE::Prefab {

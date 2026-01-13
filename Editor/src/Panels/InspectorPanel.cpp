@@ -751,9 +751,10 @@ namespace Editor {
 			return;
 
 		// Model field
-		bool openPopup = false;
-		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
-		if (openPopup) {
+		bool openModelPopup = false;
+		//DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
+		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), &openModelPopup);
+		if (openModelPopup) {
 			ImGui::OpenPopup("AssetPicker_Model");
 		}
 
@@ -788,10 +789,11 @@ namespace Editor {
 			ImGui::EndPopup();
 		}
 
-		// Material field
-		char bufMat[256];
-		strncpy_s(bufMat, Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID).c_str(), sizeof(bufMat));
-		ImGui::InputText("Material", bufMat, sizeof(bufMat));
+		bool openMaterialPopup = false;
+		DrawAssetField("Material", Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID), &openMaterialPopup);
+		if (openMaterialPopup) {
+			ImGui::OpenPopup("AssetPicker_Material");
+		}
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
@@ -800,6 +802,27 @@ namespace Editor {
 				NE::Renderer::Command::AssignMaterial(entity, uuid);
 			}
 			ImGui::EndDragDropTarget();
+		}
+
+		if (ImGui::BeginPopup("AssetPicker_Material")) {
+			ImGui::Text("Select a Material");
+			ImGui::Separator();
+			auto& materialList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Material);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [materialName, uuid] : materialList) {
+					ImSearch::SearchableItem(materialName.c_str(), [&, materialName](const char*) {
+						if (ImGui::Selectable(materialName.c_str())) {
+							NE::Renderer::Command::AssignMaterial(entity, uuid);
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
 		}
 
 		static const char* ShadowCastModeNames[] = { "Off", "On", "TwoSided", "ShadowsOnly" };
