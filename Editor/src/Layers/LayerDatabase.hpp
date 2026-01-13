@@ -1,8 +1,5 @@
 #pragma once
-
-#include "LayerDefs.hpp"
-#include <unordered_map>
-#include <string>
+#include <Core/LayerRegistry.hpp>
 
 namespace Editor::Layers {
 	class LayerDatabase {
@@ -23,20 +20,10 @@ namespace Editor::Layers {
 
 		template<typename Fn>
 		void ForEachUsed(Fn&& fn) const {
-			for (NE::Core::LayerID i = 0; i < NE::Core::MAX_LAYERS; ++i) {
-				if (!m_data.slots[i].used) continue;
-				if (m_data.slots[i].name.empty()) continue;
-				fn(i, std::string_view(m_data.slots[i].name));
-			}
+			m_registry.ForEachUsed(std::forward<Fn>(fn));
 		}
 	private:
-		LayerDatabaseData m_data{};
-		std::unordered_map<std::string, NE::Core::LayerID> m_nameToId;
-
-		void RebuildNameMap();
-		static std::string Normalize(std::string_view s);
-		NE::Core::LayerID FindFreeSlot() const;
-		bool IsValidLayerId(NE::Core::LayerID id) const noexcept;
+		NE::Core::LayerRegistry& m_registry;
 	};
 }
 
