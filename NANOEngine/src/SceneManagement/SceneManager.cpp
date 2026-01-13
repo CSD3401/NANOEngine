@@ -1,6 +1,7 @@
 #include "SceneManager.hpp"
 
 #include "Scripting/ScriptingEngine.hpp"
+#include "Core/SpdLogger.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
@@ -8,15 +9,33 @@
 
 namespace NE::SceneManagement {
 
-	void SceneManager::LoadScene(const std::string& path) {
+	bool SceneManager::LoadScene(const std::string& path) {
 		m_loadedPath = path;
 		m_editor = std::make_unique<Scene>();
+		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
-		NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path);
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
+			m_editor.reset();
+			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+			return false;
+		}
 		m_editor->InitEdit();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
-		Prefab::PrefabManager::Init(m_editor.get());
-		//Prefab::PrefabManager::RebuildFromScene();
+		m_isPlaying = false;
+		m_runtime.reset();
+		return true;
+	}
+
+	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
+		m_loadedPath = scenePath;
+		m_editor = std::make_unique<Scene>();
+		Prefab::PrefabManager::Init(this);
+		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+	}
+
+	void SceneManager::StartSceneFallback() {
+		m_editor->InitEdit();
+		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		m_isPlaying = false;
 		m_runtime.reset();
 	}
@@ -102,7 +121,7 @@ namespace NE::SceneManagement {
 		}
 	}
 
-	void SceneManager::LoadPrefabScene(const std::string& path) {
+	bool SceneManager::LoadPrefabScene(const std::string& path) {
 		if (m_prefabScene) {
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
@@ -110,11 +129,17 @@ namespace NE::SceneManagement {
 
 		m_prefabScene = std::make_unique<Scene>();
 
-		//NE::Serialization::JsonSceneSerializer::Deserialize(*m_prefabScene, path);
+		m_isEditingPrefab = true;
+		if (NE::Deserialization::DeserializePrefab(m_prefabScene->GetECSCoordinator(), path) == UINT32_MAX) {
+			m_prefabScene->ExitEdit();
+			m_prefabScene.reset();
+			SPD_WARNING("Failed to load prefab, try reimporting");
+			return false;
+		}
 		m_prefabScene->InitEdit();
 
 		m_prefabPath = path;
-		m_isEditingPrefab = true;
+		return true;
 	}
 
 	void SceneManager::ClosePrefabScene() {

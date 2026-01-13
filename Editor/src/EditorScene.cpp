@@ -55,7 +55,7 @@ namespace Editor {
 
         newIndex = std::max(0, std::min(newIndex, static_cast<int>(s_rootOrder.size()) - 1));
 
-        int currentIndex = std::distance(s_rootOrder.begin(), it);
+        int currentIndex = static_cast<int>(std::distance(s_rootOrder.begin(), it));
 
         if (currentIndex == newIndex) return;
 
@@ -100,8 +100,15 @@ namespace Editor {
         auto rootEntt = NE::PasteEntity(clipboard);
         RegisterRoot(rootEntt);
         s_selection.SetSingle(rootEntt);
+
+        EditorScene::isDirty = true;
     }
 
     void EditorScene::DuplicateSelected() {
+		auto rootEntt = NE::DuplicateEntity(s_selection.GetLastClicked());
+        RegisterRoot(rootEntt);
+        s_selection.SetSingle(rootEntt);
+
+        EditorScene::isDirty = true;
     }
 }

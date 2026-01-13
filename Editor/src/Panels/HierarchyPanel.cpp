@@ -13,6 +13,8 @@
 #include "Events/EventBus.hpp"
 #include "../EditorEvents.hpp"
 #include "../Util/HierarchyUtils.hpp"
+#include "../AssetManagement/AssetManager.hpp"
+#include "../AssetManagement/Assets/PrefabAsset.hpp"
 
 namespace Editor {
 	namespace {
@@ -137,17 +139,22 @@ namespace Editor {
 
 		if (EditorScene::selectedPrefab != "") {
 			if (ImGui::Button("<")) {
-				NE::ClosePrefabScene();
 				EditorScene::s_selection.Clear();
-				//EditorScene::RebuildFromActiveScene();
+				NE::ClosePrefabScene();
+				EditorScene::BuildRoot();
 				EditorScene::selectedPrefab = "";
 			}
 
 			ImGui::SameLine();
-			ImGui::Text(EditorScene::selectedPrefab.c_str());
+			std::string selectedPrefabPath = Assets::AssetManager::GetInstance().RetrieveFilename(EditorScene::selectedPrefab);
+			ImGui::Text(selectedPrefabPath.c_str());
 			ImGui::SameLine();
 
 			if (ImGui::Button("Save")) {
+				auto record = Assets::AssetManager::GetInstance().GetRecord(EditorScene::selectedPrefab);
+				dynamic_cast<Assets::PrefabAsset*>(record->asset.get())->SavePrefab(record->sourcePath.string(), true);
+				
+				NE::ReloadAllInstancesOfPrefab(EditorScene::selectedPrefab);
 				//NE::SavePrefabScene(EditorScene::selectedPrefab);
 				//std::string uuid = AssetManager::GetInstance().RetrieveUUID(EditorScene::selectedPrefab);
 				//NE::ReloadAllInstancesOfPrefab(uuid, EditorScene::selectedPrefab);
@@ -240,7 +247,8 @@ namespace Editor {
 			}
 
 			if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && !EditorScene::s_selection.Empty()) {
-				std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+				//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+				std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] };
 
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
@@ -252,6 +260,22 @@ namespace Editor {
 		if (m_dragRep != NE::ECS::NO_ENTITY &&
 			ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			if (hierHovered && !m_draggedEntities.empty()) {
+				if (EditorScene::selectedPrefab.empty()) {
+					for (auto child : m_draggedEntities) {
+						if (NE::ECS::Query::HasPrefabLink(child)) {
+							m_dragRep = NE::ECS::NO_ENTITY;
+							m_draggedEntities.clear();
+							m_previewAsChild = false;
+							m_previewParent = NE::ECS::NO_ENTITY;
+							m_previewParentForInsert = NE::ECS::NO_ENTITY;
+							m_previewInsert = -1;
+							m_previewLineY = -1.f;
+							ImGui::End();
+							return;
+						}
+					}
+				}
+
 				if (m_previewAsChild && m_previewParent != NE::ECS::NO_ENTITY) {
 					for (auto child : m_draggedEntities) {
 						if (child == m_previewParent)
@@ -375,7 +399,7 @@ namespace Editor {
 			&& ToLower(meta.name).find(m_searchLower) != std::string::npos;
 
 		bool isActive = meta.isActive;
-		bool isPrefab = !meta.prefabID.empty();
+		bool isPrefab = NE::ECS::Query::HasPrefabLink(e);
 
 		ImVec4 baseText = ImGui::GetStyleColorVec4(ImGuiCol_Text);
 		ImVec4 disabled = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
@@ -537,7 +561,11 @@ namespace Editor {
 	}
 
 	void HierarchyPanel::DrawContextMenu() {
-		if (ImGui::MenuItem("Cut", "Ctrl+X", false, !EditorScene::s_selection.Empty())) {
+		uint32_t parentEntityId = EditorScene::s_selection.GetLastClicked();
+		if (!EditorScene::selectedPrefab.empty() && parentEntityId == NE::ECS::NO_ENTITY)
+			parentEntityId = EditorScene::s_rootOrder[0];
+
+		if (ImGui::MenuItem("Cut", "Ctrl+X", false, false)) {
 			// TODO: implement cut
 		}
 		if (ImGui::MenuItem("Copy", "Ctrl+C", false, !EditorScene::s_selection.Empty())) {
@@ -547,7 +575,7 @@ namespace Editor {
 			EditorScene::PasteSelected();
 		}
 		if (ImGui::MenuItem("Duplicate", "Ctrl+D", false, !EditorScene::s_selection.Empty())) {
-			//EditorScene::DuplicateSelected();
+			EditorScene::DuplicateSelected();
 		}
 		if (ImGui::MenuItem("Delete", "Del", false, !EditorScene::s_selection.Empty())) {
 			//uint32_t idToDelete = contextEntityId;
@@ -560,7 +588,8 @@ namespace Editor {
 			//		DeleteEntityEvent{ idToDelete }
 			//	);
 			//}
-			std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+			//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
+			std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] }; // just delete the first selected for now
 
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
@@ -570,44 +599,66 @@ namespace Editor {
 
 		ImGui::Separator();
 		ImGui::MenuItem("Find References in Scene", "", false, false);
-		ImGui::Separator();
 
-		if (ImGui::MenuItem("Create Entity", "", false, EditorScene::selectedPrefab.empty())) {
+		ImGui::Separator();
+		ImGui::MenuItem("Set as Default Parent", "", false, false);
+
+		if (NE::ECS::Query::HasPrefabInstance(EditorScene::s_selection.GetPrimary())) {
+			ImGui::Separator();
+			if (ImGui::BeginMenu("Prefab")) {
+				if (ImGui::MenuItem("Open Prefab", "", false, false)) {
+
+				}
+				if (ImGui::MenuItem("Unpack", "", false, true)) {
+					NE::UnpackPrefab(EditorScene::s_selection.GetPrimary(), true);
+				}
+				ImGui::EndMenu();
+			}
+
+			//if (ImGui::MenuItem("Select Prefab Root", "", false, true)) {
+			//	NE::ECS::Entity prefabRoot = NE::ECS::Query::GetPrefabInstanceRoot(
+			//		EditorScene::s_selection.GetPrimary());
+			//	EditorScene::s_selection.SetSingle(prefabRoot);
+			//}
+		}
+
+		ImGui::Separator();
+		if (ImGui::MenuItem("Create Entity", "", false, true)) {
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
-				Events::CreateEmptyEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+				Events::CreateEmptyEntityEvent{ parentEntityId }
 			);
 		}
 
 		if (ImGui::BeginMenu("3D Object")) {
-			if (ImGui::MenuItem("Cube", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Cube", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCubeEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateCubeEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Sphere", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Sphere", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateSphereEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateSphereEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Capsule", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Capsule", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCapsuleEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateCapsuleEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Cylinder", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Cylinder", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreateCylinderEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreateCylinderEntityEvent{ parentEntityId }
 				);
 			}
-			if (ImGui::MenuItem("Plane", "", false, EditorScene::selectedPrefab.empty())) {
+			if (ImGui::MenuItem("Plane", "", false, true)) {
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::CreatePlaneEntityEvent{ EditorScene::s_selection.GetLastClicked() }
+					Events::CreatePlaneEntityEvent{ parentEntityId }
 				);
 			}
 			//ImGui::MenuItem("Quad", "", false, false);

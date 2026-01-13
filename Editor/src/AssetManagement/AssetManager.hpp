@@ -20,7 +20,7 @@ namespace Editor::Assets {
 	public:
 		static AssetManager& GetInstance();
 
-		void GenerateMetadata(const std::string& sourcePath);
+		void GenerateMetadata(const std::string& sourcePath, std::string uuid = "");
 		void ReimportAsset(const std::string& sourcePath);
 
 		std::string RetrieveUUID(const std::string& sourcePath);

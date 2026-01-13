@@ -26,6 +26,7 @@
 #include <Input/InputManager.hpp>
 #include "EditorScene.hpp"
 #include "AssetManagement/AssetManager.hpp"
+#include "Serialization/Serializer.hpp"
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -102,7 +103,12 @@ namespace Editor {
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
 		EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
-		NE::LoadScene(EditorScene::s_currentSceneUUID);
+		if (!NE::LoadScene(EditorScene::s_currentSceneUUID)) {
+			SPD_ERROR("Failed to load scene binary, attempting fallback deserialization.");
+			NE::CreateSceneFallback(EditorScene::s_currentSceneUUID);
+			Deserialization::JSON::DeserializeScene(EditorScene::s_currentScenePath);
+			NE::StartSceneFallback();
+		}
 		EditorScene::isDirty = false;
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>();
 		editorLayer.AddPanel<GamePanel>();

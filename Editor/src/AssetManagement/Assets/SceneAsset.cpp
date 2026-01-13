@@ -12,7 +12,7 @@ namespace Editor::Assets {
 
     bool SceneAsset::Cook(const std::string& /*sourcePath*/, const std::string& outPath) const {
         NE::CookScene(EditorScene::s_rootOrder, outPath);
-        return false;
+        return true;
     }
 
     bool SceneAsset::LoadImportSettings(const std::string& sourcePath) { // No Import Settings
