@@ -102,7 +102,11 @@ namespace Editor {
 
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
-		EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
+		Deserialization::JSON::DeserializeUserSettings();
+		if (EditorScene::s_currentScenePath.empty() || EditorScene::s_currentSceneUUID.empty()) {
+			EditorScene::s_currentScenePath = "Assets/NewScene.scene";
+			EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
+		}
 		if (!NE::LoadScene(EditorScene::s_currentSceneUUID)) {
 			SPD_ERROR("Failed to load scene binary, attempting fallback deserialization.");
 			NE::CreateSceneFallback(EditorScene::s_currentSceneUUID);
@@ -191,6 +195,7 @@ namespace Editor {
 		ShutdownImGui();
 
 		Serialization::JSON::SerializeProjectSettings();
+		Serialization::JSON::SerializeUserSettings();
 
 		NE::Shutdown();
 	}
