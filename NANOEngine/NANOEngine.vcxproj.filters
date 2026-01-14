@@ -48,6 +48,7 @@
     <ClCompile Include="src\Graphics\Core\Window.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
+    <ClCompile Include="src\Math\Quat.cpp" />
     <ClCompile Include="src\Math\Vec2.cpp" />
     <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\Math\Vec4.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="src\Graphics\Interfaces\IVertexBuffer.hpp" />
     <ClInclude Include="src\Math\Mat3.hpp" />
     <ClInclude Include="src\Math\Mat4.hpp" />
+    <ClInclude Include="src\Math\Quat.hpp" />
     <ClInclude Include="src\Math\Math.hpp" />
     <ClInclude Include="src\Math\Vec2.hpp" />
     <ClInclude Include="src\Math\Vec3.hpp" />
