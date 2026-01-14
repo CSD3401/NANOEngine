@@ -148,6 +148,20 @@ namespace NE::Math {
 		return Quat(-x * invLenSq, -y * invLenSq, -z * invLenSq, w * invLenSq);
 	}
 
+	Quat Quat::InverseFast() const noexcept
+	{
+		// For unit quaternions, inverse == conjugate
+		return Conjugate();
+	}
+
+	bool Quat::RotationEquals(const Quat& rhs) const noexcept
+	{
+		// q and -q represent the same rotation
+		// Check if dot product is close to 1 or -1
+		float dot = Dot(rhs);
+		return std::fabs(std::fabs(dot) - 1.0f) <= EPSILON;
+	}
+
 	Mat4 Quat::ToMat4() const
 	{
 		// Assumes quaternion is normalized
@@ -255,14 +269,15 @@ namespace NE::Math {
 
 	Quat Quat::FromAxisAngle(const Vec3& axis, float angleDegrees)
 	{
+		Vec3 n = axis.Normalized();
 		float angleRad = angleDegrees * DEG_TO_RAD;
 		float halfAngle = angleRad * 0.5f;
 		float s = std::sin(halfAngle);
 
 		return Quat(
-			axis.x * s,
-			axis.y * s,
-			axis.z * s,
+			n.x * s,
+			n.y * s,
+			n.z * s,
 			std::cos(halfAngle)
 		);
 	}

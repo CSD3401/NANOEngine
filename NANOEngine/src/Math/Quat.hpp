@@ -150,7 +150,8 @@ namespace NE::Math {
 
 		/*!***********************************************************************
 		\brief
-			Returns the inverse of this quaternion.
+			Returns the inverse of this quaternion (safe version).
+			Works for any quaternion, not just unit quaternions.
 		\return
 			Inverse quaternion.
 		*************************************************************************/
@@ -158,7 +159,29 @@ namespace NE::Math {
 
 		/*!***********************************************************************
 		\brief
+			Returns the inverse of this quaternion (fast version).
+			Only valid for unit quaternions - returns conjugate.
+		\return
+			Inverse quaternion (conjugate).
+		*************************************************************************/
+		Quat InverseFast() const noexcept;
+
+		/*!***********************************************************************
+		\brief
+			Checks if two quaternions represent the same rotation.
+			Unlike operator==, this handles q == -q (same rotation).
+		\param[in] const Quat& rhs
+			Quaternion to compare with.
+		\return
+			True if both quaternions represent the same rotation.
+		*************************************************************************/
+		bool RotationEquals(const Quat& rhs) const noexcept;
+
+		/*!***********************************************************************
+		\brief
 			Converts this quaternion to a 4x4 rotation matrix.
+			NOTE: Assumes quaternion is normalized. Call Normalized() first
+			if unsure.
 		\return
 			Rotation matrix.
 		*************************************************************************/
