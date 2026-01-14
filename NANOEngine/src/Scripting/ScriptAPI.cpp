@@ -345,8 +345,8 @@ namespace NE {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
-			float pitch = rotation.x * (3.14159265f / 180.0f);
-			float yaw = rotation.y * (3.14159265f / 180.0f);
+			float pitch = rotation.x * Math::DEG_TO_RAD;
+			float yaw = rotation.y * Math::DEG_TO_RAD;
 
 			Vec3 forward;
 			forward.x = std::cos(pitch) * std::cos(yaw);
@@ -361,7 +361,7 @@ namespace NE {
 			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
 			// Convert degrees to radians
-			float yaw = rotation.y * (3.14159265f / 180.0f);
+			float yaw = rotation.y * Math::DEG_TO_RAD;
 
 			// Right vector is perpendicular to forward in XZ plane
 			Vec3 right;

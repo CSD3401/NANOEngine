@@ -147,6 +147,7 @@
       <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(SolutionDir)NANOEngine\src;$(SolutionDir)NANOEngine\vendor\include;$(ProjectDir)vendor\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/w34996 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
