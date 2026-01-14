@@ -22,6 +22,7 @@
     <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\BroadPhaseLayerInterfaceImpl.hpp" />
@@ -57,6 +58,7 @@
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoMatHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoModelHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoShdHeader.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoThumbHeader.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryView.hpp" />
     <ClInclude Include="src\ResourceManagement\IResource.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoTexHeader.hpp" />
@@ -154,7 +156,6 @@
     <ClInclude Include="src\Graphics\Interfaces\IPipeline.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLContext.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IRenderContext.hpp" />
-    <ClInclude Include="src\Graphics\OpenGL\GLUtilities.hpp" />
     <ClInclude Include="src\Graphics\Vulkan\VkContext.hpp" />
     <ClInclude Include="src\Graphics\Core\Window.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IGeometryBuffer.hpp" />
@@ -247,7 +248,6 @@
     <ClCompile Include="src\Graphics\OpenGL\GLCommandBuffer.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\glad.c" />
     <ClCompile Include="src\Graphics\OpenGL\GLContext.cpp" />
-    <ClCompile Include="src\Graphics\OpenGL\GLUtilities.cpp" />
     <ClCompile Include="src\Graphics\Core\Window.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
@@ -355,7 +355,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>false</TreatWarningAsError>
@@ -384,7 +384,7 @@ xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Con
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;NDEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;NDEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>false</TreatWarningAsError>
