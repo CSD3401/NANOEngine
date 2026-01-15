@@ -600,6 +600,7 @@ namespace NE::Graphics {
                 auto mesh = command.mesh;
                 auto material = command.material;
                 bool receives = command.receivesShadow;
+                
 
                 // Check compatibility with current batch
                 bool compatible =
