@@ -1,5 +1,4 @@
 #include "Material.hpp"
-#include <fstream>
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
@@ -9,6 +8,8 @@
 #include <glad/glad.h>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <cctype>
 
 namespace {
     static bool IsEngineUniform(std::string_view n) {
@@ -33,6 +34,29 @@ namespace {
             return true;
         default: return false;
         }
+    }
+
+    static NE::Graphics::RenderQueue ParseRenderQueue(std::string_view name) {
+        using namespace NE::Graphics;
+		// Case-insensitive comparison
+        auto equalsIgnoreCase = [](std::string_view a, std::string_view b) {
+            if (a.size() != b.size()) return false;
+            for (size_t i = 0; i < a.size(); ++i) {
+                if (std::tolower(static_cast<unsigned char>(a[i])) !=
+                    std::tolower(static_cast<unsigned char>(b[i])))
+                    return false;
+            }
+            return true;
+        };
+
+        if (equalsIgnoreCase(name, "Background"))  return RenderQueue::BACKGROUND;
+        if (equalsIgnoreCase(name, "Geometry"))    return RenderQueue::GEOMETRY;
+        if (equalsIgnoreCase(name, "AlphaTest"))   return RenderQueue::ALPHATEST;
+        if (equalsIgnoreCase(name, "Transparent")) return RenderQueue::TRANSPARENT;
+        if (equalsIgnoreCase(name, "Overlay"))     return RenderQueue::OVERLAY;
+
+		SPD_WARNING("Unknown render queue name '" << name << "', defaulting to GEOMETRY");
+        return RenderQueue::GEOMETRY;
     }
 }
 
@@ -74,7 +98,7 @@ namespace NE::Graphics {
 		m_BaseRQ = queue;
     }
 
-	void Material::SetQueueOffset(uint16_t offset) {
+	void Material::SetQueueOffset(int32_t offset) {
 		m_OffsetRQ = offset;
 	}
 
@@ -136,12 +160,27 @@ namespace NE::Graphics {
                 m_IntUniforms.emplace(u.name, 0);
                 break;
             case GL_FLOAT:
+                // Albedo default
                 if (u.name.find("Color") != std::string::npos ||
                     u.name.find("color") != std::string::npos ||
-                    u.name.find("albedo") != std::string::npos)
+                    u.name.find("albedo") != std::string::npos) {
                     m_FloatUniforms.emplace(u.name, 1.0f);
-                else
+                }
+				// AlphaCutoff default
+                else if (u.name.find("AlphaCutoff") != std::string::npos ||
+                         u.name.find("Alphacutoff") != std::string::npos ||
+                         u.name.find("alphacutoff") != std::string::npos) {
+                    m_FloatUniforms.emplace(u.name, 0.5f);
+				}
+				// Opacity default
+                else if (u.name.find("Opacity") != std::string::npos ||
+                         u.name.find("opacity") != std::string::npos) {
+                    m_FloatUniforms.emplace(u.name, 1.0f);
+                }
+				// Standard default
+                else {
                     m_FloatUniforms.emplace(u.name, 0.0f);
+                }
                 break;
             case GL_FLOAT_VEC3:
                 if (u.name.find("Color") != std::string::npos ||
@@ -176,6 +215,19 @@ namespace NE::Graphics {
         m_stage.blend = (h->blendMode != 0);
         m_stage.cullMode = h->cullMode;
         m_stage.polygonMode = h->polygonMode;
+
+        m_stage.rqOffset = h->renderQueueOffset;
+        if (h->renderQueueNameOffset != 0 && h->renderQueueNameLen != 0) {
+            if (size_t(h->renderQueueNameOffset) + h->renderQueueNameLen > blob.size) return false;
+
+            const char* rq0 = reinterpret_cast<const char*>(blob.data + h->renderQueueNameOffset);
+            std::string_view rqView(rq0, rq0 + h->renderQueueNameLen);
+            m_stage.rqBase = ParseRenderQueue(rqView);
+        }
+        else {
+            // Backward compat default (or if not authored)
+            m_stage.rqBase = RenderQueue::GEOMETRY;
+        }
 
         const size_t recTableSize = size_t(h->propCount) * sizeof(NE::Resource::MatPropRecord);
         if (h->propsOffset + recTableSize > blob.size) return false;
@@ -239,6 +291,9 @@ namespace NE::Graphics {
 
         m_Pipeline = NE::Graphics::GetPipelineCache().GetOrCreate(spec);
 
+		m_BaseRQ = m_stage.rqBase;
+		m_OffsetRQ = m_stage.rqOffset;
+
         for (const auto& p : m_stage.props) {
             switch (p.type) {
             case NE::Resource::MatPropType::INT: {
@@ -295,4 +350,13 @@ namespace NE::Graphics {
         m_stage = {};
     }
 
+    void Material::ApplyPipelineSpec(const PipelineSpecification& requested) {
+        PipelineSpecification spec = requested;
+
+        if (!spec.shader && !spec.shaderName.empty()) {
+            spec.shader = Resource::ResourceManager::GetInstance()
+                .LoadResource<Graphics::OpenGL::GLShader>(spec.shaderName);
+        }
+        m_Pipeline = NE::Graphics::GetPipelineCache().GetOrCreate(spec);
+    }
 }

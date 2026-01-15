@@ -7,7 +7,7 @@
 #endif
 
 namespace NE::Graphics {  
-   enum class RenderQueue : uint16_t {  
+   enum class RenderQueue : uint32_t {  
        BACKGROUND = 1000,  
        GEOMETRY = 2000,  
        ALPHATEST = 2450, 

@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
+#include <algorithm>
 #include "../Interfaces/IPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
 #include "../../../src/Math/Vec3.hpp"
@@ -32,9 +33,16 @@ namespace NE::Graphics {
         void SetUniformMat4(const std::string& name, const Mat4& value);
         void SetTexture(const std::string& name, const std::string& uuid);
         void SetQueueBase(RenderQueue queue);
-        void SetQueueOffset(uint16_t offset);
+        void SetQueueOffset(int32_t offset);
 
         void Bind() const;
+
+        //void SaveMaterial(const std::string& path) const;
+        void SetShader(const std::string& shaderUUID);
+        bool Preload(Resource::BinaryView blob) override;
+        void Finalize() override;
+
+        void ApplyPipelineSpec(const PipelineSpecification& requested);
 
         std::shared_ptr<IPipeline> GetPipeline() const { return m_Pipeline; }
 
@@ -45,21 +53,17 @@ namespace NE::Graphics {
         const std::unordered_map<std::string, Vec3>& GetVec3Uniforms() const { return m_Vec3Uniforms; }
         const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
         const RenderQueue& GetQueueBase() const { return m_BaseRQ; }
-		    const uint16_t& GetQueueOffset() const { return m_OffsetRQ; }
-		    const uint16_t GetQueueOrder() const { return static_cast<uint16_t>(m_BaseRQ) + m_OffsetRQ; }
+		const int32_t& GetQueueOffset() const { return m_OffsetRQ; }
+        const uint32_t GetQueueOrder() const { return static_cast<uint32_t>(std::max<int64_t>(static_cast<int64_t>(m_BaseRQ) + m_OffsetRQ, 0)); }
         const std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>>& GetTextures() const { return m_Textures; }
 
-        //void SaveMaterial(const std::string& path) const;
-        void SetShader(const std::string& shaderUUID);
-
-        bool Preload(Resource::BinaryView blob) override;
-        void Finalize() override;
         static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::Material; }
         Resource::ResourceType GetType() const override { return GetStaticType(); }
 
+
         //void SetUniformMat4Array(const std::string& name, const std::vector<NE::Math::Mat4>& values); // warning: definition not found
 
-        // public member vars for now
+    public:
         std::shared_ptr<IPipeline> m_Pipeline;
 
         std::unordered_map<std::string, int>  m_IntUniforms;
@@ -68,6 +72,11 @@ namespace NE::Graphics {
         std::unordered_map<std::string, Mat4> m_Mat4Uniforms;
 
         std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;
+
+        // Render queue
+        RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
+        int32_t m_OffsetRQ = 0;
+
     private:
 
         struct MatStage {
@@ -76,6 +85,9 @@ namespace NE::Graphics {
             bool  blend = false;
             uint32_t cullMode = 0;
             uint32_t polygonMode = 0;
+
+			NE::Graphics::RenderQueue rqBase = NE::Graphics::RenderQueue::GEOMETRY;
+			int32_t rqOffset = 0;
 
             struct Prop {
                 std::string name;
@@ -86,12 +98,8 @@ namespace NE::Graphics {
             bool has = false; // parsed ok
         } m_stage;
 
-
-
-        // Render queue
-        RenderQueue m_BaseRQ = RenderQueue::GEOMETRY;
-        uint16_t m_OffsetRQ = 0;
-        };
+        
+    };
 
 }
 
