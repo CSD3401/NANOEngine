@@ -15,6 +15,7 @@ namespace Editor::Assets {
         static ThumbnailManager& GetInstance();
 
         unsigned int GetThumbnail(const std::filesystem::path& filePath);
+        unsigned int GetThumbnailByUUID(const std::string& uuid);
 
 		void GenerateThumbnail(const std::filesystem::path& sourceImagePath, const std::string& uuid);
     private:

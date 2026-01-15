@@ -139,6 +139,14 @@ namespace Editor::Assets {
         return m_fileIcon;
     }
 
+    unsigned int ThumbnailManager::GetThumbnailByUUID(const std::string& uuid) {
+        auto thumbnail = LoadCookedThumbnail(uuid);
+        if (thumbnail != 0) {
+            return thumbnail;
+        }
+        return 0;
+    }
+
     void ThumbnailManager::GenerateThumbnail(const std::filesystem::path& sourceImagePath, const std::string& uuid) {
         std::filesystem::path destPath = NE::Resource::ComputeThumbnailPathFromUUID(uuid);
 
