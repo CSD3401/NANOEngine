@@ -8,6 +8,7 @@
 #include "Graphics/Core/Material.hpp"
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
+#include "Math/Quat.hpp"
 #include "ECS/Core/Entity.hpp"
 #include "Graphics/OpenGL/GLShader.hpp"
 
