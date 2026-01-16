@@ -44,7 +44,6 @@
     <ClCompile Include="src\Graphics\OpenGL\GLCommandBuffer.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\glad.c" />
     <ClCompile Include="src\Graphics\OpenGL\GLContext.cpp" />
-    <ClCompile Include="src\Graphics\OpenGL\GLUtilities.cpp" />
     <ClCompile Include="src\Graphics\Core\Window.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
@@ -167,7 +166,6 @@
     <ClInclude Include="src\Graphics\Interfaces\IPipeline.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLContext.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IRenderContext.hpp" />
-    <ClInclude Include="src\Graphics\OpenGL\GLUtilities.hpp" />
     <ClInclude Include="src\Graphics\Vulkan\VkContext.hpp" />
     <ClInclude Include="src\Graphics\Core\Window.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IGeometryBuffer.hpp" />
@@ -245,6 +243,8 @@
     <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
     <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoThumbHeader.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

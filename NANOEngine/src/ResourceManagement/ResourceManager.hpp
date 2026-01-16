@@ -78,6 +78,9 @@ namespace NE::Resource {
 			return nullptr;
 		}
 
+		unsigned int LoadCookedThumbnailGL(const std::string& uuid);
+		void DestroyGLTexture(unsigned int id);
+
 	private:
 		ResourceManager() = default;
 		~ResourceManager() = default;
