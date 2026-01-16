@@ -21,7 +21,6 @@
 #include "Panels/GamePanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image/stb_image.h>
 #include <Input/InputManager.hpp>
 #include "EditorScene.hpp"

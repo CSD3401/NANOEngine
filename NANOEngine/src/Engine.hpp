@@ -73,4 +73,7 @@ namespace NE {
 	NANOENGINE_API int GetDrawCallCount();
 
 	NANOENGINE_API void DisplayFinalOutput(int windowWidth, int windowHeight);
+
+	NANOENGINE_API unsigned int LoadCookedThumbnailGL(const std::string& uuid);
+	NANOENGINE_API void DestroyGLTexture(unsigned int id);
 }
