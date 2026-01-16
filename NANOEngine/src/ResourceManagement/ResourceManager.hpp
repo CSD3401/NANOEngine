@@ -8,7 +8,8 @@
 #include "ResourcePaths.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Graphics/Core/Primitives.hpp"
-//#include "Graphics/OpenGL/GLShader.hpp"
+#include "Graphics/Core/Shaders.hpp"
+#include "Graphics/OpenGL/GLShader.hpp"
 #include "ResourceTypes.hpp"
 
 namespace NE::Resource {
@@ -74,7 +75,32 @@ namespace NE::Resource {
 				if (id == "builtin:model/capsule")
 					return std::static_pointer_cast<T>(NE::Graphics::CreateCapsule());
 			} 
-			//else if constexpr (std::is_same_v<T, NE::Graphics::OpenGL::Shader>)
+			else if constexpr (std::is_same_v<T, NE::Graphics::OpenGL::GLShader>) {
+				if (id == "neunlit")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Unlit.nanoshader"));
+				if (id == "nelitpbr")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Lit_PBR.nanoshader"));
+				if (id == "nebloomblur")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomBlur.nanoshader"));
+				if (id == "nebloomcomposite")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomComposite.nanoshader"));
+				if (id == "nebloomdownsample")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomDownsample.nanoshader"));
+				if (id == "nebloomupsample")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomUpsample.nanoshader"));
+				if (id == "nebrightpass")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BrightPass.nanoshader"));
+				if (id == "neskybox")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Skybox.nanoshader"));
+				if (id == "nefpfill")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/FP_Fill.nanoshader"));
+				if (id == "nefpcount")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/FP_Count.nanoshader"));
+				if (id == "neshadowdepth")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/ShadowDepth.nanoshader"));
+				if (id == "nessao")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSAO.nanoshader"));
+			}
 			return nullptr;
 		}
 

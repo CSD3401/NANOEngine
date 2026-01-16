@@ -83,6 +83,7 @@
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
     <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
     <ClCompile Include="src\Scripting\GameObject.cpp" />
+    <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -245,6 +246,8 @@
     <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
     <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoThumbHeader.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
+    <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
+    <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -266,9 +269,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\OpenGL\GLPipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\OpenGL\GLUtilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Math\Vec3.cpp">
