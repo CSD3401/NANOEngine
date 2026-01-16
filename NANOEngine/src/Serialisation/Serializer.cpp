@@ -578,8 +578,12 @@ namespace NE {
 				const bool skipFirst = (i == 0);
 
 				ECS::Entity e = ECS::Component::INVALID_PARENT;
+				uint8_t layer;
+				ReadT(it, end, layer);
+
 				if (!skipFirst) {
 					e = ecs.CreateEntity();
+					ecs.GetEntityManager().SetLayer(e, layer);
 					created.push_back(e);
 				}
 
