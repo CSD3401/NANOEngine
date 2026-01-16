@@ -67,8 +67,8 @@ namespace Editor::Assets {
 
 			CMP_CompressOptions opts{};
 			opts.dwSize = sizeof(opts);
-			opts.fquality = quality;   // 0 to 1
-			opts.dwnumThreads = threads;   // 0 = auto
+			//opts.fquality = quality;   // 0 to 1
+			//opts.dwnumThreads = threads;   // 0 = auto
 
 			CMP_ERROR err = CMP_ConvertTexture(&src, &dst, &opts, &Progress);
 			if (err == CMP_OK) {
@@ -104,8 +104,8 @@ namespace Editor::Assets {
 
 			CMP_CompressOptions opts{};
 			opts.dwSize = sizeof(opts);
-			opts.fquality = quality;
-			opts.dwnumThreads = threads;
+			//opts.fquality = quality;
+			//opts.dwnumThreads = threads;
 
 			CMP_ERROR err = CMP_ConvertTexture(&src, &dst, &opts, &Progress);
 			if (err == CMP_OK) {
@@ -170,7 +170,7 @@ namespace Editor::Assets {
 		std::vector<uint8_t> compressed;
 		TexFormat fmt = TexFormat::BC7_UNORM;
 
-		const float    quality = 0.5f;  // maybe expose via settings later
+		const float    quality = 0.05f;  // maybe expose via settings later
 		const uint32_t threads = 0;
 
 		if (isNormalMap) {
