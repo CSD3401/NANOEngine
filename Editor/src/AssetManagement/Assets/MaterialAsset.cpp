@@ -24,12 +24,15 @@ namespace Editor::Assets {
         h.blendMode = doc.HasMember("BlendMode") ? (doc["BlendMode"].GetBool() ? 1 : 0) : 0;
         h.cullMode = doc.HasMember("CullMode") ? doc["CullMode"].GetUint() : 0;
         h.polygonMode = doc.HasMember("PolygonMode") ? doc["PolygonMode"].GetUint() : 0;
+		h.renderQueueOffset = doc.HasMember("RenderQueueOffset") ? doc["RenderQueueOffset"].GetInt() : 0;
+
+		const char* rqName = doc.HasMember("RenderQueueBase") ? doc["RenderQueueBase"].GetString() : "Geometry";
+		const uint32_t rqNameLen = (uint32_t)std::strlen(rqName);
 
         const char* shaderName = doc.HasMember("Shader") ? doc["Shader"].GetString() : "Basic";
         if (strcmp(shaderName, "50f92895-66cc-459d-ad25-0fd250c91f3c") == 0) {
             shaderName = "nelitpbr";
         }
-
         const uint32_t shaderNameLen = (uint32_t)std::strlen(shaderName);
 
         // Tables to build
@@ -38,6 +41,10 @@ namespace Editor::Assets {
 
         std::string strings; // shared string blob (for BOTH prop names and tex names)
         std::string payload; // only for prop data (ints/floats/matrices)
+
+        const uint32_t rqNameRelOffset = (uint32_t)strings.size();
+        strings.append(rqName, rqNameLen);
+        h.renderQueueNameLen = rqNameLen;
 
         if (doc.HasMember("Properties") && doc["Properties"].IsObject()) {
             for (auto it = doc["Properties"].MemberBegin(); it != doc["Properties"].MemberEnd(); ++it) {
@@ -151,6 +158,9 @@ namespace Editor::Assets {
         // shared string blob (for prop names + tex names)
         const uint32_t stringsBase = (uint32_t)offset;
         offset += (uint32_t)strings.size();
+
+		// render queue name info
+		h.renderQueueNameOffset = stringsBase + rqNameRelOffset;
 
         // payload (for prop data)
         const uint32_t payloadBase = (uint32_t)offset;

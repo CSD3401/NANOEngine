@@ -40,7 +40,13 @@ namespace NE::Graphics::OpenGL {
 				glDisable(GL_BLEND);
 			}
 			// Culling
-			glCullFace(spec.CullMode);
+			if (spec.CullMode != GL_NONE) {
+				glEnable(GL_CULL_FACE);
+				glCullFace(spec.CullMode);
+			}
+			else {
+				glDisable(GL_CULL_FACE);
+			}
 			// Polygon mode
 			glPolygonMode(GL_FRONT_AND_BACK, spec.PolygonMode);
 			// Shader

@@ -4,7 +4,7 @@
 namespace NE::Resource {
 
 	inline constexpr uint32_t NMAT_MAGIC = 0x4E4D4154;
-	inline constexpr int CURRENT_NANOMAT_FORMAT_VERSION = 1;
+	inline constexpr int CURRENT_NANOMAT_FORMAT_VERSION = 2;
 
 #pragma pack(push, 1)
 	struct NanoMatHeader {
@@ -17,6 +17,11 @@ namespace NE::Resource {
         uint16_t reserved = 0;
         uint32_t cullMode = 0;   // GL enum (your int)
         uint32_t polygonMode = 0;   // GL enum (your int)
+
+        // Render queue
+        uint32_t renderQueueNameOffset = 0; // absolute file offset
+        uint32_t renderQueueNameLen = 0; // bytes (no null terminator)
+        int32_t renderQueueOffset = 0;    // added to base
 
         // Counts + sizes
         uint16_t propCount = 0;   // number of uniform-like properties

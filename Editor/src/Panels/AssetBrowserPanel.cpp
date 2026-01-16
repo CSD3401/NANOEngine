@@ -662,6 +662,9 @@ namespace Editor {
         doc.AddMember("CullMode", 1029, alloc);
         doc.AddMember("PolygonMode", 6914, alloc);
 
+		doc.AddMember("RenderQueueBase", rapidjson::Value("Geometry", alloc), alloc);
+		doc.AddMember("RenderQueueOffset", 0, alloc);
+
         rapidjson::Value props(rapidjson::kObjectType);
         doc.AddMember("Properties", props, alloc);
 
