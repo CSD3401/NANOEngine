@@ -35,8 +35,8 @@ namespace NE::Scripting {
      */
     struct ScriptEngineConfig {
         std::string scriptDLLName = "ChronoGame.dll";
-        std::string scriptSourceDirectory = "../../../ChronoGame/Scripts/";
-        std::string scriptProjectPath = "../../../ChronoGame/ChronoGame.vcxproj";
+        std::string scriptSourceDirectory = "ChronoGame/Scripts/";
+        std::string scriptProjectPath = "ChronoGame/ChronoGame.vcxproj";
         std::string buildConfiguration = "Release";
         std::string buildPlatform = "x64";
     };
