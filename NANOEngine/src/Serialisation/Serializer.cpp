@@ -606,18 +606,13 @@ namespace NE {
 							const uint64_t oldParent = c.parentLuid;
 
 							if (skipFirst) {
-								// The first serialized entity is virtualized:
-								// map its old LUID to the provided attach root entity.
 								oldRootLuid = oldMy;
 								haveOldRootLuid = true;
 
-								// Attach root's hierarchy luid is the "new" luid for the virtual root
 								auto& attachH = ecs.GetComponent<ECS::Component::Hierarchy>(attachRoot);
 
 								oldLuidToEntity[oldMy] = attachRoot;
 								oldLuidToNewLuid[oldMy] = attachH.luid;
-
-								// do NOT add pending, do NOT create entity
 							} else {
 								const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
 								c.luid = newMy;
@@ -633,7 +628,6 @@ namespace NE {
 								pending.push_back({ e, oldMy, oldParent });
 							}
 						} else {
-							// still read everything, but for skipped entity, don't apply components
 							if (!skipFirst) {
 								ecs.AddComponent<C>(e, c);
 							}
@@ -700,6 +694,10 @@ namespace NE {
 			for (size_t i = 0; i < count && ok; ++i) {
 				ECS::Entity e = ecs.CreateEntity();
 				created.push_back(e);
+
+				uint8_t layer;
+				ReadT(it, end, layer);
+				ecs.GetEntityManager().SetLayer(e, layer);
 
 				uint64_t mask64 = 0;
 				ok = FromBinary(it, end, mask64);
