@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
     <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
+    <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
@@ -182,6 +184,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
     <ClCompile Include="src\Core\LayerRegistry.cpp" />
