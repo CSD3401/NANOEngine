@@ -451,6 +451,10 @@ namespace NE {
 				ECS::Entity e = ecs.CreateEntity();
 				created.push_back(e);
 
+				uint8_t layer;
+				ReadT(it, end, layer);
+				ecs.GetEntityManager().SetLayer(e, layer);
+
 				std::uint64_t maskU64 = 0;
 				ok = ReadT(it, end, maskU64);
 				if (!ok) break;
