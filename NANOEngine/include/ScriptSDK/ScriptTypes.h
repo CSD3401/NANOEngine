@@ -246,6 +246,8 @@ namespace Scripting {
     // These allow templates to work without needing full ScriptContext definition in the SDK header
     SCRIPT_API IScript* GameObject_GetScriptByType(Entity entity, const std::string& typeName);
     SCRIPT_API std::vector<Entity> GameObject_FindAllWithScript(const std::string& typeName);
+    SCRIPT_API void GameObject_SetStaticContext(class ScriptContext* context);  // Called when scripts are linked
+    SCRIPT_API void GameObject_ResetStaticContext();  // Called by ScriptingEngine during shutdown
 
     /**
      * @class GameObject
@@ -522,6 +524,9 @@ namespace NE::Scripting {
             return nullptr;
         }
 
+        // Ensure context is valid (needed when GameObject was created from GameObjectRef)
+        const_cast<GameObject*>(this)->EnsureContext();
+
         // Get the script type name
         std::string typeName = GetScriptTypeName<T>();
 
@@ -559,7 +564,7 @@ namespace NE::Scripting {
         // Use helper function (implemented in GameObject.cpp where ScriptContext is defined)
         std::vector<Entity> entities = GameObject_FindAllWithScript(targetTypeName);
 
-        // Convert entities to GameObjects
+        // Convert entities to GameObjects (context will be initialized via EnsureContext when needed)
         for (Entity entity : entities) {
             result.push_back(GameObject(entity));
         }

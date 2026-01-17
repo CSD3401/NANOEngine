@@ -55,6 +55,8 @@ namespace Scripting {
     inline void LinkScriptToEngine(IScript* script, ECS::ComponentManager* componentManager, ECS::EntityManager* entityManager = nullptr, Core::LUIDRegistry* luidRegistry = nullptr, ScriptingEngine* scriptingEngine = nullptr) {
         ScriptContext* context = CreateScriptContext(componentManager, entityManager, luidRegistry, scriptingEngine);
         script->_LinkToEngine(context);
+        // Update static context so GameObject::Find and GetComponent work properly
+        GameObject_SetStaticContext(context);
     }
 
 } // namespace Scripting
