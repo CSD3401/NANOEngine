@@ -397,6 +397,8 @@ namespace NE::Graphics {
             }
         }
 
+        SetShader(spec.shaderName);
+
         m_stage = {};
     }
 
