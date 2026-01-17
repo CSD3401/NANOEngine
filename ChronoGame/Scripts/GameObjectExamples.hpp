@@ -150,8 +150,9 @@ public:
 					LOG_DEBUG("  Found TestScript on target entity!");
 
 					// Access TestScript members
-					// float bounceHeight = testScript->bounceHeight;
-					// LOG_DEBUG("  Target bounceHeight: {}", bounceHeight);
+					/*float bounceHeight = testScript->bounceHeight;
+					LOG_DEBUG("  Target bounceHeight: " << bounceHeight);*/
+					testScript->TestPrint();
 
 					// Modify TestScript members
 					// testScript->bounceHeight = 2.0f;

@@ -126,6 +126,10 @@ public:
 	void OnTriggerEnter(Entity other) override {}
 	void OnTriggerExit(Entity other) override {}
 
+	void TestPrint() {
+		LOG_DEBUG("TestPrintFromGameObj!");
+	}
+
 private:
 	void TriggerRespawn() {
 		if (m_isRespawning) {
