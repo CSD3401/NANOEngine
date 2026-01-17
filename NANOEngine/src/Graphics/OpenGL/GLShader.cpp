@@ -9,68 +9,72 @@
 #include "Math/Mat4.hpp"
 #include "ResourceManagement/BinaryHeaders/NanoShdHeader.hpp"
 
-namespace {
-	// These stage flags must match those in CookShader
-	enum : uint32_t {
-		STAGE_VS = 1u << 0,
-		STAGE_FS = 1u << 4,
-		STAGE_CS = 1u << 8
-	};
+namespace NE::Graphics::OpenGL {
+	namespace {
+		// These stage flags must match those in CookShader
+		enum : uint32_t {
+			STAGE_VS = 1u << 0,
+			STAGE_FS = 1u << 4,
+			STAGE_CS = 1u << 8
+		};
 
-	static GLuint CompileStage(GLenum type, std::string_view src) {
-		GLuint sh = glCreateShader(type);
-		if (!sh) return 0;
-		const char* ptr = src.data();
-		GLint len = static_cast<GLint>(src.size());
-		glShaderSource(sh, 1, &ptr, &len);
-		glCompileShader(sh);
-		GLint ok = GL_FALSE;
-		glGetShaderiv(sh, GL_COMPILE_STATUS, &ok);
-		if (ok == GL_TRUE) return sh;
+		GLuint CompileStage(GLenum type, std::string_view src) {
+			GLuint sh = glCreateShader(type);
+			if (!sh) return 0;
+			const char* ptr = src.data();
+			GLint len = static_cast<GLint>(src.size());
+			glShaderSource(sh, 1, &ptr, &len);
+			glCompileShader(sh);
+			GLint ok = GL_FALSE;
+			glGetShaderiv(sh, GL_COMPILE_STATUS, &ok);
+			if (ok == GL_TRUE) return sh;
 
-		// log
-		GLint logLen = 0; glGetShaderiv(sh, GL_INFO_LOG_LENGTH, &logLen);
-		std::string log(logLen ? logLen : 1, '\0');
-		if (logLen) glGetShaderInfoLog(sh, logLen, nullptr, log.data());
-		SPD_WARNING("Shader stage compile failed: " << log);
-		glDeleteShader(sh);
-		return 0;
-	}
-
-	static GLuint LinkProgram(GLuint vs, GLuint fs) {
-		GLuint prog = glCreateProgram();
-		if (!prog) return 0;
-
-		// Ensure binary can be retrieved if you want to re-dump later
-		glProgramParameteri(prog, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
-
-		glAttachShader(prog, vs);
-		glAttachShader(prog, fs);
-		glLinkProgram(prog);
-
-		GLint ok = GL_FALSE;
-		glGetProgramiv(prog, GL_LINK_STATUS, &ok);
-		if (ok == GL_TRUE) {
-			glDetachShader(prog, vs);
-			glDetachShader(prog, fs);
-			return prog;
+			// log
+			GLint logLen = 0; glGetShaderiv(sh, GL_INFO_LOG_LENGTH, &logLen);
+			std::string log(logLen ? logLen : 1, '\0');
+			if (logLen) glGetShaderInfoLog(sh, logLen, nullptr, log.data());
+			SPD_WARNING("Shader stage compile failed: " << log);
+			glDeleteShader(sh);
+			return 0;
 		}
 
-		// log
-		GLint logLen = 0; glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLen);
-		std::string log(logLen ? logLen : 1, '\0');
-		if (logLen) glGetProgramInfoLog(prog, logLen, nullptr, log.data());
-		SPD_WARNING("Program link failed: " << log);
+		GLuint LinkProgram(GLuint vs, GLuint fs) {
+			GLuint prog = glCreateProgram();
+			if (!prog) return 0;
 
-		glDetachShader(prog, vs);
-		glDetachShader(prog, fs);
-		glDeleteProgram(prog);
-		return 0;
+			// Ensure binary can be retrieved if you want to re-dump later
+			glProgramParameteri(prog, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+
+			glAttachShader(prog, vs);
+			glAttachShader(prog, fs);
+			glLinkProgram(prog);
+
+			GLint ok = GL_FALSE;
+			glGetProgramiv(prog, GL_LINK_STATUS, &ok);
+			if (ok == GL_TRUE) {
+				glDetachShader(prog, vs);
+				glDetachShader(prog, fs);
+				return prog;
+			}
+
+			// log
+			GLint logLen = 0; glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLen);
+			std::string log(logLen ? logLen : 1, '\0');
+			if (logLen) glGetProgramInfoLog(prog, logLen, nullptr, log.data());
+			SPD_WARNING("Program link failed: " << log);
+
+			glDetachShader(prog, vs);
+			glDetachShader(prog, fs);
+			glDeleteProgram(prog);
+			return 0;
+		}
 	}
-}
 
-namespace NE::Graphics::OpenGL {
 	GLShader::GLShader() : m_programID(0)
+	{
+	}
+
+	GLShader::GLShader(uint32_t programID) : m_programID(programID)
 	{
 	}
 

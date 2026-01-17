@@ -24,6 +24,7 @@
 #include "ECS/Components/PrefabLink.hpp"
 #include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/Hierarchy.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 namespace {
 
@@ -371,5 +372,13 @@ namespace NE {
 
 	void DisplayFinalOutput(int windowWidth, int windowHeight) {
 		Graphics::GraphicsManager::DisplayFinalOutput(windowWidth, windowHeight);
+	}
+
+	unsigned int LoadCookedThumbnailGL(const std::string& uuid) {
+		return Resource::ResourceManager::GetInstance().LoadCookedThumbnailGL(uuid);
+	}
+
+	void DestroyGLTexture(unsigned int id) {
+		Resource::ResourceManager::GetInstance().DestroyGLTexture(id);
 	}
 }

@@ -4,6 +4,7 @@
 #include <imgui/widgets/imsearch/imsearch.h>
 #include <Events/EventBus.hpp>
 #include "EditorEvents.hpp"
+#include "ThumbnailManager.hpp"
 
 namespace Editor {
 
@@ -554,12 +555,14 @@ namespace Editor {
         ImGui::TextUnformatted(label);
 
         // preview of tex
-        ImTextureID img{};
+        //ImTextureID img{};
         if (slotTex) {
-            if (auto* gltex = dynamic_cast<NE::Graphics::OpenGL::GLTexture*>(slotTex.get()))
-                img = (ImTextureID)(uintptr_t)gltex->GLName();
+            //if (auto* gltex = dynamic_cast<NE::Graphics::OpenGL::GLTexture*>(slotTex.get()))
+            //    img = (ImTextureID)(uintptr_t)gltex->GLName();
 
-            ImGui::Image(img, ImVec2(previewSize, previewSize));
+            unsigned int img = Assets::ThumbnailManager::GetInstance().GetThumbnailByUUID(slotTex->uuid);
+
+            ImGui::Image((ImTextureID)(intptr_t)img, ImVec2(previewSize, previewSize));
             ImGui::SameLine();
             if (ImGui::Button("x")) {
                 assignById("");

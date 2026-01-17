@@ -8,6 +8,7 @@
 
 namespace NE::Resource {
 	constexpr std::string_view artifactPath = "Library/Artifacts/";
+	constexpr std::string_view thumbnailPath = "Library/.thumbs/";
 
 	inline std::string ComputeArtifactPathFromUUID(std::string_view uuid, ResourceType type) {
 		std::string path;
@@ -27,6 +28,20 @@ namespace NE::Resource {
 		default:
 			SPD_WARNING("Invalid Artifact Path");
 			break;
+		}
+
+		return path;
+	}
+
+	inline std::string ComputeThumbnailPathFromUUID(std::string_view uuid, bool withExtension = true) {
+		std::string path;
+		path += thumbnailPath;
+		path.append(uuid.substr(0, 2));
+		path += '/';
+		path += uuid;
+
+		if (withExtension) {
+			path += ".thumb";
 		}
 
 		return path;

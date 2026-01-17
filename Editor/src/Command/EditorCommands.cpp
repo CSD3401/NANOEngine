@@ -194,7 +194,7 @@ namespace Editor {
 
 	void DeleteEntityCommand::Undo() {
 		for (auto& e : m_entities) {
-			NE::ECS::Command::CreateEmptyEntity(INT32_MAX);
+			NE::ECS::Command::CreateEmptyEntity(UINT32_MAX);
 			EditorScene::RegisterRoot(e);
 		}
 		//// sort entities so parents are recreated before children

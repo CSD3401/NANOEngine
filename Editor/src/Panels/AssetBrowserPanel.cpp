@@ -16,14 +16,12 @@
 #include "../EditorScene.hpp"
 #include "../AssetManagement/AssetManager.hpp"
 #include "../EditorEvents.hpp"
+#include "../ThumbnailManager.hpp"
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
         : m_rootDirectory(root), m_currentDirectory(root)
     {
-        m_thumbnailManager.Init();
-        //m_DirectoryIcon = m_thumbnailManager.GetThumbnail("Resources/Icons/icon_folder.png");
-        //m_FileIcon = m_thumbnailManager.GetThumbnail("Resources/Icons/icon_file.png");
 
         for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
             std::filesystem::path filePath = entry.path();
@@ -31,6 +29,10 @@ namespace Editor {
             if (filePath.extension() == ".meta") continue;
 
             Assets::AssetManager::GetInstance().GenerateMetadata(entry.path().string());
+            Assets::ThumbnailManager::GetInstance().GenerateThumbnail(
+                entry.path(),
+                Assets::AssetManager::GetInstance().RetrieveUUID(entry.path().string())
+			);
         }
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::GotoAssetPathEvent>(
@@ -42,7 +44,6 @@ namespace Editor {
     }
 
     AssetBrowserPanel::~AssetBrowserPanel() {
-        m_thumbnailManager.Shutdown();
     }
 
 	void AssetBrowserPanel::OnImGuiRender() {
@@ -285,20 +286,28 @@ namespace Editor {
     }
 
     void AssetBrowserPanel::RenderDirectoryContents(const std::filesystem::path& path) {
-        float padding = 16.0f;
         float thumbnailSize = 64.0f;
-        float cellSize = thumbnailSize + padding;
+        float cellPaddingX = 20.0f;
+        float cellPaddingY = 18.0f;
+
+        float cellWidth = thumbnailSize + cellPaddingX;
+        float textLineH = ImGui::GetTextLineHeight();
+        float cellHeight = thumbnailSize + 4.0f + textLineH + cellPaddingY;
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
-        int columnCount = (int)(panelWidth / cellSize);
-        if (columnCount < 1) columnCount = 1; // NOLINT 
+        int columnCount = (int)(panelWidth / cellWidth);
+        if (columnCount < 1) columnCount = 1;
 
-        ImGui::Columns(columnCount, 0, false);
+        ImGui::Columns(columnCount, nullptr, false);
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4, 0.4, 0.4, 0.4));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
 
         for (auto& entry : std::filesystem::directory_iterator(path)) {
             const auto& name = entry.path().filename().string();
 
-            if (entry.path().extension() == ".meta") continue; // Skip metadata files
+            if (entry.path().extension() == ".meta") continue;
 
             // Search filter
             if (strlen(m_searchBuffer) > 0) {
@@ -316,13 +325,12 @@ namespace Editor {
 
             ImGui::PushID(name.c_str());
 
-            GLuint iconTexture = entry.is_directory() ? m_thumbnailManager.m_DirectoryIcon : m_thumbnailManager.m_FileIcon;
+			unsigned int iconTexture = Assets::ThumbnailManager::GetInstance().GetThumbnail(entry.path());
 
-            // Draw icon button
             ImGui::ImageButton("##btn",
                 (ImTextureID)(intptr_t)iconTexture,
                 ImVec2(thumbnailSize, thumbnailSize),
-                ImVec2(1, 0), ImVec2(0, 1)
+                ImVec2(0, 1), ImVec2(1, 0)
             );
 
             // Universal drag source for moving files/folders
@@ -454,7 +462,27 @@ namespace Editor {
                 }
             }
             else {
-                ImGui::TextWrapped("%s", name.c_str());
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+
+                float lineH = ImGui::GetTextLineHeight();
+                ImVec2 bbMin = ImGui::GetCursorScreenPos();
+                ImVec2 bbMax = bbMin + ImVec2(cellWidth, lineH);
+
+                ImVec2 full = ImGui::CalcTextSize(name.c_str());
+                float startX = bbMin.x + (cellWidth - full.x) * 0.5f;
+                if (startX < bbMin.x) startX = bbMin.x;
+
+                ImGui::RenderTextEllipsis(
+                    dl,
+                    ImVec2(startX, bbMin.y),
+                    bbMax,
+                    bbMax.x,
+                    name.c_str(),
+                    nullptr,
+                    &full
+                );
+
+                ImGui::Dummy(ImVec2(0, lineH));
 
                 if (m_triggerRenameNextFrame && m_selectedPath == entry.path()) {
                     m_isRenaming = true;
@@ -467,6 +495,7 @@ namespace Editor {
             ImGui::NextColumn();
             ImGui::PopID();
         }
+        ImGui::PopStyleColor(3);
 
         ImGui::Columns();
 
@@ -632,6 +661,9 @@ namespace Editor {
 
         doc.AddMember("CullMode", 1029, alloc);
         doc.AddMember("PolygonMode", 6914, alloc);
+
+		doc.AddMember("RenderQueueBase", rapidjson::Value("Geometry", alloc), alloc);
+		doc.AddMember("RenderQueueOffset", 0, alloc);
 
         rapidjson::Value props(rapidjson::kObjectType);
         doc.AddMember("Properties", props, alloc);

@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <vector>
 #include <string>
-#include "../ThumbnailManager.hpp"
 
 namespace Editor {
 	class AssetBrowserPanel : public IPanel {
@@ -47,7 +46,5 @@ namespace Editor {
 		// Drag and drop state for moving files
 		std::filesystem::path m_draggedAssetPath;
 		bool m_isDraggingAsset = false;
-
-		ThumbnailManager m_thumbnailManager;
 	};
 }

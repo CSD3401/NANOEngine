@@ -451,6 +451,10 @@ namespace NE {
 				ECS::Entity e = ecs.CreateEntity();
 				created.push_back(e);
 
+				uint8_t layer;
+				ReadT(it, end, layer);
+				ecs.GetEntityManager().SetLayer(e, layer);
+
 				std::uint64_t maskU64 = 0;
 				ok = ReadT(it, end, maskU64);
 				if (!ok) break;
@@ -574,8 +578,12 @@ namespace NE {
 				const bool skipFirst = (i == 0);
 
 				ECS::Entity e = ECS::Component::INVALID_PARENT;
+				uint8_t layer;
+				ReadT(it, end, layer);
+
 				if (!skipFirst) {
 					e = ecs.CreateEntity();
+					ecs.GetEntityManager().SetLayer(e, layer);
 					created.push_back(e);
 				}
 
@@ -598,18 +606,13 @@ namespace NE {
 							const uint64_t oldParent = c.parentLuid;
 
 							if (skipFirst) {
-								// The first serialized entity is virtualized:
-								// map its old LUID to the provided attach root entity.
 								oldRootLuid = oldMy;
 								haveOldRootLuid = true;
 
-								// Attach root's hierarchy luid is the "new" luid for the virtual root
 								auto& attachH = ecs.GetComponent<ECS::Component::Hierarchy>(attachRoot);
 
 								oldLuidToEntity[oldMy] = attachRoot;
 								oldLuidToNewLuid[oldMy] = attachH.luid;
-
-								// do NOT add pending, do NOT create entity
 							} else {
 								const uint64_t newMy = Core::LUIDGenerator::Generate("hr");
 								c.luid = newMy;
@@ -625,7 +628,6 @@ namespace NE {
 								pending.push_back({ e, oldMy, oldParent });
 							}
 						} else {
-							// still read everything, but for skipped entity, don't apply components
 							if (!skipFirst) {
 								ecs.AddComponent<C>(e, c);
 							}
@@ -692,6 +694,10 @@ namespace NE {
 			for (size_t i = 0; i < count && ok; ++i) {
 				ECS::Entity e = ecs.CreateEntity();
 				created.push_back(e);
+
+				uint8_t layer;
+				ReadT(it, end, layer);
+				ecs.GetEntityManager().SetLayer(e, layer);
 
 				uint64_t mask64 = 0;
 				ok = FromBinary(it, end, mask64);

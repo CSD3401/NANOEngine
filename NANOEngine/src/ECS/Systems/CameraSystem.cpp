@@ -143,7 +143,9 @@ namespace NE::ECS::Systems {
 	void CameraSystem::BuildProjection(Camera& cam)
 	{
 		// Build perspective projection matrix
-		float f = 1.0f / std::tan(cam.fovY * 0.5f);
+		// Convert FOV from degrees to radians
+		float fovYRadians = cam.fovY * Math::DEG_TO_RAD;
+		float f = 1.0f / std::tan(fovYRadians * 0.5f);
 		float& aspect = cam.aspectRatio;
 		float& nearPlane = cam.nearPlane;
 		float& farPlane = cam.farPlane;
@@ -172,8 +174,8 @@ namespace NE::ECS::Systems {
 
 	inline Vec3 CameraSystem::ForwardFromEuler(const Vec3& euler)
 	{
-		float pitch = euler.x * (3.14159265f / 180.0f);
-		float yaw = euler.y * (3.14159265f / 180.0f);
+		float pitch = euler.x * Math::DEG_TO_RAD;
+		float yaw = euler.y * Math::DEG_TO_RAD;
 
 		Vec3 forward;
 		forward.x = std::cos(yaw) * std::cos(pitch);
