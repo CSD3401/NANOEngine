@@ -281,6 +281,10 @@ namespace Scripting {
         /** Construct from an entity ID (exported - needs ScriptContext access) */
         SCRIPT_API GameObject(Entity entity, ScriptContext* context = nullptr);
 
+        /** Construct from a GameObjectRef (convenience for using ref fields) */
+        inline GameObject(const GameObjectRef& ref, ScriptContext* context = nullptr)
+            : GameObject(ref.GetEntity(), context) {}
+
         /** Copy constructor */
         GameObject(const GameObject& other) = default;
 
@@ -355,6 +359,16 @@ namespace Scripting {
         bool HasComponent() const;
 
         /**
+         * Check if this GameObject has a specific script type (alias for HasComponent<T>).
+         * @tparam T The script type to check for
+         * @return true if the script exists on this GameObject
+         */
+        template<typename T>
+        inline bool HasScript() const {
+            return HasComponent<T>();
+        }
+
+        /**
          * Check if this GameObject has a script by name.
          * @param scriptName The registered name of the script
          * @return true if the script exists on this GameObject
@@ -397,8 +411,6 @@ namespace Scripting {
     //=========================================================================
     // LAYER MASK (Physics layer filtering)
     //=========================================================================
-
-    /// Layer mask for physics filtering - similar to Unity's LayerMask
     /// Stores a bitmask of enabled layers for collision/raycast filtering
     struct SCRIPT_API LayerMask {
         uint32_t mask = 0;  ///< Bitmask of enabled layers

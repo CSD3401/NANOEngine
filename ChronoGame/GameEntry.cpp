@@ -29,6 +29,7 @@
 
 // GameObject Reference Test Scripts
 #include "Scripts/GameObjectTest.hpp"
+#include "Scripts/GameObjectExamples.hpp"
 
 
 
@@ -126,6 +127,11 @@ extern "C" {
         // GameObject Reference Test Script
         registrar->RegisterScript("GameObjectTest", []() -> NE::Scripting::IScript* {
             return new GameObjectTest();
+            });
+
+        // GameObject Comprehensive Examples
+        registrar->RegisterScript("GameObjectExamples", []() -> NE::Scripting::IScript* {
+            return new GameObjectExamples();
             });
 
         }
