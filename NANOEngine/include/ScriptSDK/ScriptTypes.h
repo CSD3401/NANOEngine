@@ -235,6 +235,57 @@ namespace Scripting {
     };
 
     //=========================================================================
+    // LAYER REFERENCE (For referencing a single layer from LayerRegistry)
+    //=========================================================================
+
+    /**
+     * @struct LayerRef
+     * @brief Reference to a single layer from the LayerRegistry
+     *
+     * Use this field type to reference a layer in your scripts.
+     * In the editor, this will show a dropdown of all available layers.
+     *
+     * Example:
+     * @code
+     * class EnemyScript : public IScript {
+     *     LayerRef targetLayer;  // Select layer from dropdown in editor
+     *
+     *     void Initialize(Entity entity) override {
+     *         RegisterLayerRefField("Target Layer", &targetLayer);
+     *     }
+     *
+     *     void Update(double deltaTime) override {
+     *         // Use targetLayer.GetID() for raycasting layer mask, etc.
+     *         uint32_t mask = 1u << targetLayer.GetID();
+     *         RaycastHit hit = Raycast(GetPosition(), GetForward(), 100.0f, mask);
+     *     }
+     * };
+     * @endcode
+     */
+    struct LayerRef {
+        uint8_t layerID = 0;  // Layer ID (0-31, corresponds to LayerRegistry slots)
+
+        LayerRef() = default;
+        explicit LayerRef(uint8_t id) : layerID(id) {}
+
+        // Get the layer ID
+        uint8_t GetID() const { return layerID; }
+
+        // Set the layer ID
+        void SetID(uint8_t id) { layerID = id; }
+
+        // Convert to layer mask bit
+        uint32_t ToMask() const { return 1u << static_cast<uint32_t>(layerID); }
+
+        // Check if this references a valid layer (ID within range)
+        bool IsValid() const { return layerID < 32; }
+
+        // Comparison operators
+        bool operator==(const LayerRef& other) const { return layerID == other.layerID; }
+        bool operator!=(const LayerRef& other) const { return layerID != other.layerID; }
+    };
+
+    //=========================================================================
     // GAME OBJECT WRAPPER (Script-to-Script Communication)
     //=========================================================================
 

@@ -1536,6 +1536,48 @@ namespace Editor {
 
 							ImGui::PopID();
 						}
+						else if (ftype == "layerref") {
+							// Layer reference field - show layer dropdown from LayerDatabase
+							NE::Core::LayerID currentLayerId = 0;
+							if (!fval.empty()) {
+								try {
+									currentLayerId = static_cast<NE::Core::LayerID>(std::stoi(fval));
+								} catch (...) {
+									currentLayerId = 0;
+								}
+							}
+
+							// Get layer name for preview
+							std::string_view layerName = EditorScene::layerDatabase.GetName(currentLayerId);
+							std::string preview = layerName.empty() ? "<Unassigned>" : std::string(layerName);
+
+							ImGui::PushID((fname + "_layerref").c_str());
+
+							ImGui::Text("%s", fname.c_str());
+							ImGui::SameLine();
+
+							ImGui::PushItemWidth(140.0f);
+							if (Editor::BeginPillCombo("##layercombo", preview.c_str())) {
+								EditorScene::layerDatabase.ForEachUsed([&](NE::Core::LayerID id, std::string_view name) {
+									const bool selected = (id == currentLayerId);
+
+									std::string label = std::to_string(static_cast<int>(id));
+									label += ": ";
+									label += name;
+
+									if (ImGui::Selectable(label.c_str(), selected)) {
+										UpdateFieldValue(fname, std::to_string(static_cast<int>(id)));
+										fieldChanged = true;
+									}
+									if (selected) ImGui::SetItemDefaultFocus();
+								});
+
+								Editor::EndPillCombo();
+							}
+							ImGui::PopItemWidth();
+
+							ImGui::PopID();
+						}
 						else if (ftype.starts_with("vector<")) {
 							// Array/Vector support
 							size_t arraySize = scriptInstance->GetArraySize(fname);

@@ -583,6 +583,7 @@ namespace Scripting {
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
         void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);
         void RegisterGameObjectRefField(const std::string& name, GameObjectRef* memberPtr);
+        void RegisterLayerRefField(const std::string& name, LayerRef* memberPtr);
 
         // Vector field registration (native support - no override boilerplate needed!)
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
