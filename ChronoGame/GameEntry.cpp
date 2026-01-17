@@ -30,6 +30,9 @@
 // GameObject Reference Test Scripts
 #include "Scripts/GameObjectExamples.hpp"
 
+// LayerRef Test Script
+#include "Scripts/LayerRefTestScript.hpp"
+
 
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
@@ -126,6 +129,11 @@ extern "C" {
         // GameObject Comprehensive Examples
         registrar->RegisterScript("GameObjectExamples", []() -> NE::Scripting::IScript* {
             return new GameObjectExamples();
+            });
+
+        // LayerRef Test Script
+        registrar->RegisterScript("LayerRefTestScript", []() -> NE::Scripting::IScript* {
+            return new LayerRefTestScript();
             });
 
         }
