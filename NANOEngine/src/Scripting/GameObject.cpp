@@ -10,7 +10,7 @@
 namespace NE::Scripting {
 
     //=========================================================================
-    // Static context for Find operations (set when first script is linked)
+    // Static context for Find operations (set when scripts are linked)
     //=========================================================================
 
     static ScriptContext* g_staticContext = nullptr;
@@ -20,9 +20,11 @@ namespace NE::Scripting {
     }
 
     inline void SetStaticContext(ScriptContext* context) {
-        if (!g_staticContext) {
-            g_staticContext = context;
-        }
+        g_staticContext = context;
+    }
+
+    inline void ResetStaticContext() {
+        g_staticContext = nullptr;
     }
 
     //=========================================================================
@@ -104,8 +106,21 @@ namespace NE::Scripting {
 
     SCRIPT_API IScript* GameObject_GetScriptByType(Entity entity, const std::string& typeName) {
         ScriptContext* ctx = GetStaticContext();
-        if (!ctx || !ctx->scriptingEngine || entity == INVALID_ENTITY) {
+        if (!ctx || !ctx->scriptingEngine || !ctx->entityManager || entity == INVALID_ENTITY) {
             return nullptr;
+        }
+
+        // Verify entity is still alive (not destroyed) before accessing script instances
+        const auto& usedEntities = ctx->entityManager->GetUsedEntities();
+        bool entityAlive = false;
+        for (Entity e : usedEntities) {
+            if (e == entity) {
+                entityAlive = true;
+                break;
+            }
+        }
+        if (!entityAlive) {
+            return nullptr;  // Entity was destroyed
         }
 
         return ctx->scriptingEngine->GetScriptInstanceByName(entity, typeName);
@@ -146,6 +161,18 @@ namespace NE::Scripting {
     SCRIPT_API GameObject IScript::gameObject() const {
         SetStaticContext(m_context);
         return GameObject(m_entity, m_context);
+    }
+
+    //=========================================================================
+    // Static Context Management (called by Engine)
+    //=========================================================================
+
+    SCRIPT_API void GameObject_SetStaticContext(ScriptContext* context) {
+        SetStaticContext(context);
+    }
+
+    SCRIPT_API void GameObject_ResetStaticContext() {
+        ResetStaticContext();
     }
 
 } // namespace NE::Scripting

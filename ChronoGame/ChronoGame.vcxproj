@@ -163,6 +163,7 @@
     <ClInclude Include="Scripts\CameraController.hpp" />
     <ClInclude Include="Scripts\EngineAPI.hpp" />
     <ClInclude Include="Scripts\FollowerScript.hpp" />
+    <ClInclude Include="Scripts\GameObjectExamples.hpp" />
     <ClInclude Include="Scripts\Gears.hpp" />
     <ClInclude Include="Scripts\k1bswitch.hpp" />
     <ClInclude Include="Scripts\k2bswitch.hpp" />

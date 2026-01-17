@@ -28,7 +28,7 @@
 #include "Scripts/RenderSettingsDemo.hpp"
 
 // GameObject Reference Test Scripts
-#include "Scripts/GameObjectTest.hpp"
+#include "Scripts/GameObjectExamples.hpp"
 
 
 
@@ -123,9 +123,9 @@ extern "C" {
             return new Pickable();
             });
 
-        // GameObject Reference Test Script
-        registrar->RegisterScript("GameObjectTest", []() -> NE::Scripting::IScript* {
-            return new GameObjectTest();
+        // GameObject Comprehensive Examples
+        registrar->RegisterScript("GameObjectExamples", []() -> NE::Scripting::IScript* {
+            return new GameObjectExamples();
             });
 
         }
