@@ -15,6 +15,7 @@ namespace NE::Graphics {
 	struct PostProcessingSettings;
 	class Material;
 	class RenderGraph;
+	class TexturePool;
 }
 
 namespace NE::Renderer {
@@ -25,6 +26,7 @@ namespace NE::Renderer {
 		NANOENGINE_API const Graphics::RenderSettings& GetRenderSettings();
 		NANOENGINE_API const Graphics::PostProcessingSettings& GetPostProcessingSettings();
 		NANOENGINE_API Graphics::RenderGraph* GetRenderGraph();
+		NANOENGINE_API Graphics::TexturePool* GetTexturePool();
 	}
 
 	namespace Command {

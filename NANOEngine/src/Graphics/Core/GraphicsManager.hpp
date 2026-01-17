@@ -26,6 +26,7 @@ namespace NE {
         class DrawQueue;
         class RenderViewManager;
         class RenderGraph;
+        class TexturePool;
         struct DrawCommand;
         struct RenderView;
         struct RenderSettings;
@@ -142,6 +143,8 @@ namespace NE::Graphics {
 
         // Render Graph
         static RenderGraph* GetRenderGraph();
+        static TexturePool* GetTexturePool();
+        static void SetupPostProcessGraph(RenderViewHandle sourceView, RenderViewHandle destView, bool isSceneView);
 
     private:
         static uint32_t s_ScreenWidth;
@@ -175,6 +178,7 @@ namespace NE::Graphics {
 
         // Render Graph
         static std::unique_ptr<RenderGraph> s_RenderGraph;
+        static std::unique_ptr<TexturePool> s_TexturePool;
 
         // Debug
         static std::vector<float> s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations

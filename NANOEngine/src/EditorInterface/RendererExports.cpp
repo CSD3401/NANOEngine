@@ -47,6 +47,10 @@ namespace NE::Renderer {
 			return Graphics::GraphicsManager::GetRenderGraph();
 		}
 
+		Graphics::TexturePool* GetTexturePool() {
+			return Graphics::GraphicsManager::GetTexturePool();
+		}
+
 		NANOENGINE_API std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef)
 		{
 			return NE::Scripting::GetMaterialUUIDFromRef(materialRef);

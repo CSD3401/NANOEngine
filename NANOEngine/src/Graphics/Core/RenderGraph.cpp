@@ -96,6 +96,121 @@ namespace NE::Graphics {
     }
 
     //==========================================================================
+    // TexturePool Implementation
+    //==========================================================================
+
+    TexturePool::~TexturePool() {
+        Clear();
+    }
+
+    PooledTexture* TexturePool::Acquire(uint32_t width, uint32_t height, TextureFormat format) {
+        // First, try to find an existing texture that matches and is not in use
+        for (auto& tex : m_Textures) {
+            if (!tex->inUse &&
+                tex->width == width &&
+                tex->height == height &&
+                tex->format == format) {
+                tex->inUse = true;
+                m_Stats.hits++;
+                m_Stats.inUseCount++;
+                return tex.get();
+            }
+        }
+
+        // No match found, create a new texture
+        m_Stats.misses++;
+        m_Stats.totalAllocated++;
+
+        auto pooledTex = std::make_unique<PooledTexture>();
+        pooledTex->width = width;
+        pooledTex->height = height;
+        pooledTex->format = format;
+        pooledTex->inUse = true;
+
+        // Create OpenGL texture
+        GLuint textureId;
+        glGenTextures(1, &textureId);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+
+        GLenum internalFormat = GetGLInternalFormat(format);
+        GLenum glFormat = GetGLFormat(format);
+        GLenum type = GetGLType(format);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,
+                     width, height, 0,
+                     glFormat, type, nullptr);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        pooledTex->textureId = textureId;
+
+        // Create FBO for this texture
+        GLuint fboId;
+        glGenFramebuffers(1, &fboId);
+        glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+
+        if (IsDepthFormat(format)) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                   GL_TEXTURE_2D, textureId, 0);
+            glDrawBuffer(GL_NONE);
+            glReadBuffer(GL_NONE);
+        } else {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                   GL_TEXTURE_2D, textureId, 0);
+        }
+
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            SPD_ERROR("TexturePool: Failed to create FBO, status: {}", status);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        pooledTex->fboId = fboId;
+
+        PooledTexture* result = pooledTex.get();
+        m_Textures.push_back(std::move(pooledTex));
+        m_Stats.poolSize++;
+        m_Stats.inUseCount++;
+
+        return result;
+    }
+
+    void TexturePool::Release(PooledTexture* texture) {
+        if (texture && texture->inUse) {
+            texture->inUse = false;
+            if (m_Stats.inUseCount > 0) {
+                m_Stats.inUseCount--;
+            }
+        }
+    }
+
+    void TexturePool::ReleaseAll() {
+        for (auto& tex : m_Textures) {
+            tex->inUse = false;
+        }
+        m_Stats.inUseCount = 0;
+    }
+
+    void TexturePool::Clear() {
+        for (auto& tex : m_Textures) {
+            if (tex->fboId != 0) {
+                glDeleteFramebuffers(1, &tex->fboId);
+            }
+            if (tex->textureId != 0) {
+                glDeleteTextures(1, &tex->textureId);
+            }
+        }
+        m_Textures.clear();
+        m_Stats = TexturePoolStats{};
+    }
+
+    //==========================================================================
     // RenderGraphContext Implementation
     //==========================================================================
 
@@ -206,6 +321,9 @@ namespace NE::Graphics {
            SPD_ERROR("RenderGraph: Cyclic dependency detected!");
             return;
         }
+
+        // Compute resource lifetimes for visualization and future pooling
+        ComputeResourceLifetimes();
 
         // Allocate transient resources
         AllocateTransientResources();
@@ -360,12 +478,68 @@ namespace NE::Graphics {
         }
     }
 
+    void RenderGraph::ComputeResourceLifetimes() {
+        m_ResourceLifetimes.clear();
+        m_ResourceLifetimes.resize(m_Resources.size());
+
+        // Initialize lifetimes
+        for (size_t i = 0; i < m_Resources.size(); ++i) {
+            m_ResourceLifetimes[i].resourceId = static_cast<uint32_t>(i);
+            m_ResourceLifetimes[i].firstPassIndex = -1;
+            m_ResourceLifetimes[i].lastPassIndex = -1;
+            m_ResourceLifetimes[i].isImported = (m_Resources[i].type != ResourceType::TransientTexture);
+        }
+
+        // Scan passes in execution order to find first/last usage
+        for (size_t execIdx = 0; execIdx < m_ExecutionOrder.size(); ++execIdx) {
+            size_t passIdx = m_ExecutionOrder[execIdx];
+            const auto& pass = m_Passes[passIdx];
+
+            // Check reads
+            for (const auto& res : pass.reads) {
+                if (res.IsValid() && res.id < m_ResourceLifetimes.size()) {
+                    auto& lifetime = m_ResourceLifetimes[res.id];
+                    if (lifetime.firstPassIndex == -1) {
+                        lifetime.firstPassIndex = static_cast<int>(execIdx);
+                    }
+                    lifetime.lastPassIndex = static_cast<int>(execIdx);
+                }
+            }
+
+            // Check writes
+            for (const auto& res : pass.writes) {
+                if (res.IsValid() && res.id < m_ResourceLifetimes.size()) {
+                    auto& lifetime = m_ResourceLifetimes[res.id];
+                    if (lifetime.firstPassIndex == -1) {
+                        lifetime.firstPassIndex = static_cast<int>(execIdx);
+                    }
+                    lifetime.lastPassIndex = static_cast<int>(execIdx);
+                }
+            }
+        }
+    }
+
     void RenderGraph::AllocateTransientResources() {
+        const bool usePool = IsPoolingEnabled();
+
         for (auto& resource : m_Resources) {
             if (resource.type == ResourceType::TransientTexture && !resource.allocated) {
                 const auto& desc = resource.desc;
 
-                // Create texture
+                if (usePool) {
+                    // Use pooled allocation
+                    PooledTexture* pooled = m_TexturePool->Acquire(desc.width, desc.height, desc.format);
+                    if (pooled) {
+                        resource.pooledTexture = pooled;
+                        resource.transientTextureId = pooled->textureId;
+                        resource.transientFboId = pooled->fboId;
+                        resource.allocated = true;
+                        continue;
+                    }
+                    // Fall through to direct allocation if pool fails
+                }
+
+                // Direct allocation (no pool or pool failed)
                 GLuint textureId;
                 glGenTextures(1, &textureId);
                 glBindTexture(GL_TEXTURE_2D, textureId);
@@ -412,6 +586,7 @@ namespace NE::Graphics {
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
                 resource.transientFboId = fboId;
+                resource.pooledTexture = nullptr;
                 resource.allocated = true;
             }
         }
@@ -420,14 +595,23 @@ namespace NE::Graphics {
     void RenderGraph::FreeTransientResources() {
         for (auto& resource : m_Resources) {
             if (resource.type == ResourceType::TransientTexture && resource.allocated) {
-                if (resource.transientFboId != 0) {
-                    glDeleteFramebuffers(1, &resource.transientFboId);
-                    resource.transientFboId = 0;
+                if (resource.pooledTexture) {
+                    // Return to pool (pool manages the GPU resources)
+                    if (m_TexturePool) {
+                        m_TexturePool->Release(resource.pooledTexture);
+                    }
+                    resource.pooledTexture = nullptr;
+                } else {
+                    // Direct deallocation
+                    if (resource.transientFboId != 0) {
+                        glDeleteFramebuffers(1, &resource.transientFboId);
+                    }
+                    if (resource.transientTextureId != 0) {
+                        glDeleteTextures(1, &resource.transientTextureId);
+                    }
                 }
-                if (resource.transientTextureId != 0) {
-                    glDeleteTextures(1, &resource.transientTextureId);
-                    resource.transientTextureId = 0;
-                }
+                resource.transientFboId = 0;
+                resource.transientTextureId = 0;
                 resource.allocated = false;
             }
         }

@@ -13,6 +13,7 @@ namespace NE::Graphics {
     class IFrameBuffer;
     class RenderGraph;
     class RenderGraphBuilder;
+    struct PooledTexture;
 
     //==========================================================================
     // RenderGraphResource - Handle-based resource reference
@@ -85,6 +86,9 @@ namespace NE::Graphics {
         uint32_t transientTextureId = 0;
         uint32_t transientFboId = 0;
         bool allocated = false;
+
+        // For pooled allocation (null if not using pool or not allocated)
+        PooledTexture* pooledTexture = nullptr;
     };
 
     //==========================================================================
@@ -105,6 +109,75 @@ namespace NE::Graphics {
         std::vector<RenderGraphResource> reads;
         std::vector<RenderGraphResource> writes;
         std::function<void(const RenderGraphContext&)> executeCallback;
+    };
+
+    //==========================================================================
+    // ResourceLifetime - Tracks when a resource is used across passes
+    //==========================================================================
+    struct ResourceLifetime {
+        uint32_t resourceId = RenderGraphResource::InvalidId;
+        int firstPassIndex = -1;   // First pass (in execution order) that uses this resource
+        int lastPassIndex = -1;    // Last pass (in execution order) that uses this resource
+        bool isImported = false;   // Imported resources are "always alive"
+    };
+
+    //==========================================================================
+    // PooledTexture - Cached texture for reuse
+    //==========================================================================
+    struct PooledTexture {
+        uint32_t textureId = 0;
+        uint32_t fboId = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        TextureFormat format = TextureFormat::RGBA8;
+        bool inUse = false;
+    };
+
+    //==========================================================================
+    // TexturePoolStats - Statistics for debugging
+    //==========================================================================
+    struct TexturePoolStats {
+        size_t poolSize = 0;        // Total textures in pool
+        size_t inUseCount = 0;      // Textures currently allocated
+        size_t hits = 0;            // Times a pooled texture was reused
+        size_t misses = 0;          // Times a new texture had to be created
+        size_t totalAllocated = 0;  // Lifetime allocation count
+    };
+
+    //==========================================================================
+    // TexturePool - Manages reusable texture cache
+    //==========================================================================
+    class NANOENGINE_API TexturePool {
+    public:
+        TexturePool() = default;
+        ~TexturePool();
+
+        // Non-copyable
+        TexturePool(const TexturePool&) = delete;
+        TexturePool& operator=(const TexturePool&) = delete;
+
+        // Acquire a texture matching the description
+        // Returns existing pooled texture if available, creates new otherwise
+        PooledTexture* Acquire(uint32_t width, uint32_t height, TextureFormat format);
+
+        // Release a texture back to the pool for reuse
+        void Release(PooledTexture* texture);
+
+        // Release all textures (marks all as available)
+        void ReleaseAll();
+
+        // Clear the pool (deletes all GPU resources)
+        void Clear();
+
+        // Get statistics
+        const TexturePoolStats& GetStats() const { return m_Stats; }
+
+        // Get all pooled textures (for debugging)
+        const std::vector<std::unique_ptr<PooledTexture>>& GetTextures() const { return m_Textures; }
+
+    private:
+        std::vector<std::unique_ptr<PooledTexture>> m_Textures;
+        TexturePoolStats m_Stats;
     };
 
     //==========================================================================
@@ -199,12 +272,27 @@ namespace NE::Graphics {
         size_t GetResourceCount() const { return m_Resources.size(); }
 
         //----------------------------------------------------------------------
+        // Texture Pooling
+        //----------------------------------------------------------------------
+
+        // Set external texture pool (graph does NOT own this pool)
+        void SetTexturePool(TexturePool* pool) { m_TexturePool = pool; }
+
+        // Get current texture pool
+        TexturePool* GetTexturePool() const { return m_TexturePool; }
+
+        // Enable/disable pooling (if pool is set)
+        void SetPoolingEnabled(bool enabled) { m_PoolingEnabled = enabled; }
+        bool IsPoolingEnabled() const { return m_PoolingEnabled && m_TexturePool != nullptr; }
+
+        //----------------------------------------------------------------------
         // Debug/Visualization Access
         //----------------------------------------------------------------------
 
         const std::vector<RenderPassData>& GetPasses() const { return m_Passes; }
         const std::vector<ResourceData>& GetResources() const { return m_Resources; }
         const std::vector<size_t>& GetExecutionOrder() const { return m_ExecutionOrder; }
+        const std::vector<ResourceLifetime>& GetResourceLifetimes() const { return m_ResourceLifetimes; }
 
         // Get resource name by handle
         const std::string& GetResourceName(RenderGraphResource handle) const;
@@ -233,10 +321,18 @@ namespace NE::Graphics {
             std::vector<std::vector<size_t>>& adjacency,
             std::vector<size_t>& inDegree) const;
 
+        // Internal: Compute resource lifetimes
+        void ComputeResourceLifetimes();
+
         std::vector<RenderPassData> m_Passes;
         std::vector<ResourceData> m_Resources;
         std::vector<size_t> m_ExecutionOrder;
+        std::vector<ResourceLifetime> m_ResourceLifetimes;
         bool m_Compiled = false;
+
+        // Texture pooling
+        TexturePool* m_TexturePool = nullptr;  // External pool (not owned)
+        bool m_PoolingEnabled = true;          // Whether to use pool when available
     };
 
 } // namespace NE::Graphics

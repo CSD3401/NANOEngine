@@ -17,6 +17,8 @@ namespace Editor {
         void DrawPassList();
         void DrawResourceList();
         void DrawPassDetails(size_t passIndex);
+        void DrawLifetimes();
+        void DrawPoolStats();
 
         NE::Graphics::RenderGraph* m_RenderGraph = nullptr;
         int m_SelectedPass = -1;

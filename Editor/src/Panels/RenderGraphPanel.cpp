@@ -40,6 +40,14 @@ namespace Editor {
                 DrawResourceList();
                 ImGui::EndTabItem();
             }
+            if (ImGui::BeginTabItem("Lifetimes")) {
+                DrawLifetimes();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Pool Stats")) {
+                DrawPoolStats();
+                ImGui::EndTabItem();
+            }
             ImGui::EndTabBar();
         }
 
@@ -249,6 +257,252 @@ namespace Editor {
         } else {
             ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Execute callback: Not set!");
         }
+    }
+
+    void RenderGraphPanel::DrawLifetimes() {
+        if (!m_RenderGraph->IsCompiled()) {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "Graph not compiled - no lifetime data");
+            return;
+        }
+
+        const auto& passes = m_RenderGraph->GetPasses();
+        const auto& resources = m_RenderGraph->GetResources();
+        const auto& executionOrder = m_RenderGraph->GetExecutionOrder();
+        const auto& lifetimes = m_RenderGraph->GetResourceLifetimes();
+
+        if (executionOrder.empty() || lifetimes.empty()) {
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "No lifetime data available");
+            return;
+        }
+
+        const int numPasses = static_cast<int>(executionOrder.size());
+
+        // Draw header with pass names
+        ImGui::Text("Resource Lifetimes (horizontal bars show when each resource is alive)");
+        ImGui::Separator();
+
+        // Calculate layout
+        const float nameColumnWidth = 150.0f;
+        const float barAreaWidth = ImGui::GetContentRegionAvail().x - nameColumnWidth - 20.0f;
+        const float passWidth = barAreaWidth / static_cast<float>(numPasses);
+        const float barHeight = 18.0f;
+        const float rowSpacing = 4.0f;
+
+        // Draw pass labels at top
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + nameColumnWidth);
+        for (size_t i = 0; i < executionOrder.size(); ++i) {
+            size_t passIdx = executionOrder[i];
+            const auto& pass = passes[passIdx];
+
+            // Truncate name if too long
+            char shortName[16];
+            snprintf(shortName, sizeof(shortName), "%zu", i + 1);
+
+            float xPos = nameColumnWidth + i * passWidth;
+            ImGui::SetCursorPosX(xPos);
+            ImGui::Text("%s", shortName);
+
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("%zu. %s", i + 1, pass.name.c_str());
+                ImGui::EndTooltip();
+            }
+
+            if (i < executionOrder.size() - 1) {
+                ImGui::SameLine();
+            }
+        }
+
+        ImGui::Separator();
+
+        // Draw each resource's lifetime bar
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        for (size_t resIdx = 0; resIdx < lifetimes.size(); ++resIdx) {
+            const auto& lifetime = lifetimes[resIdx];
+            const auto& resource = resources[resIdx];
+
+            // Resource name (fixed width column)
+     ImVec2 textStartPos = ImGui::GetCursorScreenPos();
+     ImGui::Text("%s", resource.name.c_str());
+    
+            // Move to next line for the bar
+      ImVec2 barLinePos = ImGui::GetCursorScreenPos();
+
+       // Calculate bar position (aligned with pass columns)
+            float barStartX = textStartPos.x + nameColumnWidth;
+            float barY = textStartPos.y;
+
+   // Choose color based on resource type
+         ImU32 barColor;
+            if (lifetime.isImported) {
+        barColor = IM_COL32(100, 150, 255, 200); // Blue for imported
+         } else {
+barColor = IM_COL32(255, 180, 100, 200); // Orange for transient
+            }
+            ImU32 barColorDark = IM_COL32(60, 60, 60, 150);
+
+    // Draw background (full width, darker)
+ImVec2 bgStart(barStartX, barY);
+            ImVec2 bgEnd(barStartX + barAreaWidth, barY + barHeight - 2.0f);
+ drawList->AddRectFilled(bgStart, bgEnd, barColorDark, 2.0f);
+
+   // Draw lifetime bar
+          if (lifetime.isImported) {
+      // Imported resources span entire lifetime
+   ImVec2 barStart(bgStart.x, barY);
+          ImVec2 barEnd(bgEnd.x, barY + barHeight - 2.0f);
+       drawList->AddRectFilled(barStart, barEnd, barColor, 2.0f);
+ } else if (lifetime.firstPassIndex >= 0 && lifetime.lastPassIndex >= 0) {
+                // Transient resources show actual lifetime
+                float startX = barStartX + lifetime.firstPassIndex * passWidth;
+    float endX = barStartX + (lifetime.lastPassIndex + 1) * passWidth;
+
+    ImVec2 barStart(startX, barY);
+  ImVec2 barEnd(endX, barY + barHeight - 2.0f);
+  drawList->AddRectFilled(barStart, barEnd, barColor, 2.0f);
+            }
+
+      // Draw pass dividers
+            for (int i = 1; i < numPasses; ++i) {
+  float divX = barStartX + i * passWidth;
+    drawList->AddLine(
+          ImVec2(divX, barY),
+            ImVec2(divX, barY + barHeight - 2.0f),
+              IM_COL32(80, 80, 80, 100)
+          );
+            }
+
+         ImGui::Dummy(ImVec2(0, rowSpacing));
+ }
+
+        // Legend
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Text("Legend:");
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.4f, 0.6f, 1.0f, 1.0f), "[Imported: always alive]");
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.4f, 1.0f), "[Transient: limited lifetime]");
+    }
+
+    void RenderGraphPanel::DrawPoolStats() {
+        auto* pool = NE::Renderer::Query::GetTexturePool();
+
+        if (!pool) {
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "No texture pool available");
+            return;
+        }
+
+        const auto& stats = pool->GetStats();
+        bool poolEnabled = m_RenderGraph && m_RenderGraph->IsPoolingEnabled();
+
+        // Pooling status
+        if (poolEnabled) {
+            ImGui::TextColored(ImVec4(0.3f, 0.8f, 0.3f, 1.0f), "Texture Pooling: ENABLED");
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.2f, 1.0f), "Texture Pooling: DISABLED");
+        }
+        ImGui::Separator();
+
+        // Statistics
+        ImGui::Text("Pool Statistics:");
+        ImGui::Indent();
+
+        ImGui::Text("Pool Size:       %zu textures", stats.poolSize);
+        ImGui::Text("Currently In Use: %zu", stats.inUseCount);
+        ImGui::Text("Available:       %zu", stats.poolSize - stats.inUseCount);
+        ImGui::Spacing();
+
+        // Hit/miss stats
+        size_t totalRequests = stats.hits + stats.misses;
+        float hitRate = totalRequests > 0 ? (static_cast<float>(stats.hits) / totalRequests * 100.0f) : 0.0f;
+
+        ImGui::Text("Cache Hits:      %zu", stats.hits);
+        ImGui::Text("Cache Misses:    %zu", stats.misses);
+        if (totalRequests > 0) {
+            ImVec4 hitColor = hitRate > 80.0f ? ImVec4(0.3f, 0.8f, 0.3f, 1.0f) :
+                             hitRate > 50.0f ? ImVec4(1.0f, 0.8f, 0.2f, 1.0f) :
+                                               ImVec4(1.0f, 0.4f, 0.2f, 1.0f);
+            ImGui::TextColored(hitColor, "Hit Rate:        %.1f%%", hitRate);
+        }
+        ImGui::Spacing();
+        ImGui::Text("Total Allocated: %zu", stats.totalAllocated);
+
+        ImGui::Unindent();
+        ImGui::Separator();
+
+        // Pooled texture list
+        const auto& textures = pool->GetTextures();
+        if (!textures.empty()) {
+            ImGui::Text("Pooled Textures (%zu):", textures.size());
+
+            if (ImGui::BeginTable("PooledTextureTable", 5,
+                ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable)) {
+
+                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 40.0f);
+                ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+                ImGui::TableSetupColumn("Format", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("GL ID", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+                ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                ImGui::TableHeadersRow();
+
+                for (size_t i = 0; i < textures.size(); ++i) {
+                    const auto& tex = textures[i];
+
+                    ImGui::TableNextRow();
+
+                    // ID
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%zu", i);
+
+                    // Size
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%ux%u", tex->width, tex->height);
+
+                    // Format
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", NE::Graphics::RenderGraph::GetTextureFormatString(tex->format));
+
+                    // GL ID
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%u", tex->textureId);
+
+                    // Status
+                    ImGui::TableNextColumn();
+                    if (tex->inUse) {
+                        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "In Use");
+                    } else {
+                        ImGui::TextColored(ImVec4(0.3f, 0.8f, 0.3f, 1.0f), "Available");
+                    }
+                }
+
+                ImGui::EndTable();
+            }
+        } else {
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Pool is empty");
+        }
+
+        // Memory estimation
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Text("Memory Savings Estimate:");
+        ImGui::Indent();
+
+        if (stats.hits > 0) {
+            // Rough estimate: average texture size * hits avoided
+            // Assume average 1920x1080 RGBA16F texture = ~16MB
+            size_t avgTextureSizeMB = 16;
+            size_t estimatedSavingsMB = stats.hits * avgTextureSizeMB;
+            ImGui::TextColored(ImVec4(0.3f, 0.8f, 0.3f, 1.0f),
+                "Avoided ~%zu texture allocations", stats.hits);
+            ImGui::TextColored(ImVec4(0.3f, 0.8f, 0.3f, 1.0f),
+                "Estimated savings: ~%zu MB (assuming avg 16MB/texture)", estimatedSavingsMB);
+        } else {
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "No savings yet (no cache hits)");
+        }
+
+        ImGui::Unindent();
     }
 
 }
