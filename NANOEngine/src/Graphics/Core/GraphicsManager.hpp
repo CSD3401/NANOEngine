@@ -25,6 +25,7 @@ namespace NE {
         class ICommandBuffer;
         class DrawQueue;
         class RenderViewManager;
+        class RenderGraph;
         struct DrawCommand;
         struct RenderView;
         struct RenderSettings;
@@ -138,6 +139,10 @@ namespace NE::Graphics {
 
         static void UpdateShadowMaps();
         static void RenderShadowMapForLight(ECS::Component::Light& light, const std::vector<DrawCommand>& commands);
+
+        // Render Graph
+        static RenderGraph* GetRenderGraph();
+
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
@@ -167,6 +172,9 @@ namespace NE::Graphics {
 
 		// Clustered Lighting System for forward+ rendering
         static std::shared_ptr<IClusteredLighting> s_clusteredLighting;
+
+        // Render Graph
+        static std::unique_ptr<RenderGraph> s_RenderGraph;
 
         // Debug
         static std::vector<float> s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations

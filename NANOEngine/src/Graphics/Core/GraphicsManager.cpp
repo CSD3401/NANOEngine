@@ -1,4 +1,5 @@
 #include "GraphicsManager.hpp"
+#include "RenderGraph.hpp"
 
 #include "EditorCamera.hpp"
 #include "Skybox.hpp"
@@ -79,6 +80,7 @@ namespace NE::Graphics {
     RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
     RenderViewHandle GraphicsManager::s_FinalGameOutputHandle;
 	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
+    std::unique_ptr<RenderGraph> GraphicsManager::s_RenderGraph;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
     std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
@@ -455,8 +457,68 @@ namespace NE::Graphics {
         // initialize UI renderer
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
-        
+
         UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
+
+        // Initialize Render Graph with demo passes
+        s_RenderGraph = std::make_unique<RenderGraph>();
+
+        // Import existing scene framebuffer resources
+        auto sceneFB = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        auto sceneColor = s_RenderGraph->ImportTexture(sceneFB->GetColorAttachment(), "SceneColor");
+        auto sceneDepth = s_RenderGraph->ImportTexture(sceneFB->GetDepthAttachment(), "SceneDepth");
+
+        // Create transient textures for post-processing
+        auto ssaoTex = s_RenderGraph->CreateTexture({1920, 1080, TextureFormat::R8, "SSAO"});
+        auto brightTex = s_RenderGraph->CreateTexture({1920, 1080, TextureFormat::RGBA16F, "BrightPass"});
+        auto bloomBlurH = s_RenderGraph->CreateTexture({960, 540, TextureFormat::RGBA16F, "BloomBlurH"});
+        auto bloomBlurV = s_RenderGraph->CreateTexture({960, 540, TextureFormat::RGBA16F, "BloomBlurV"});
+        auto finalOutput = s_RenderGraph->CreateTexture({1920, 1080, TextureFormat::RGBA8, "FinalOutput"});
+
+        // SSAO Pass
+        s_RenderGraph->AddPass("SSAO")
+            .Read(sceneDepth)
+            .Write(ssaoTex)
+            .Execute([](const RenderGraphContext& ctx) {
+                // SSAO would be computed here
+            });
+
+        // Bloom Bright Pass - extract bright areas
+        s_RenderGraph->AddPass("Bloom Bright")
+            .Read(sceneColor)
+            .Write(brightTex)
+            .Execute([](const RenderGraphContext& ctx) {
+                // Bright pass extraction
+            });
+
+        // Bloom Blur Horizontal
+        s_RenderGraph->AddPass("Bloom Blur H")
+            .Read(brightTex)
+            .Write(bloomBlurH)
+            .Execute([](const RenderGraphContext& ctx) {
+                // Horizontal gaussian blur
+            });
+
+        // Bloom Blur Vertical
+        s_RenderGraph->AddPass("Bloom Blur V")
+            .Read(bloomBlurH)
+            .Write(bloomBlurV)
+            .Execute([](const RenderGraphContext& ctx) {
+                // Vertical gaussian blur
+            });
+
+        // Final Composite Pass
+        s_RenderGraph->AddPass("Composite")
+            .Read(sceneColor)
+            .Read(ssaoTex)
+            .Read(bloomBlurV)
+            .Write(finalOutput)
+            .Execute([](const RenderGraphContext& ctx) {
+                // Combine scene + SSAO + bloom
+            });
+
+        // Compile the graph to compute execution order
+        s_RenderGraph->Compile();
     }
 
     void GraphicsManager::BeginFrame() 
@@ -1105,8 +1167,13 @@ namespace NE::Graphics {
         s_DrawQueue->Clear();
 	}
 
-    void GraphicsManager::Shutdown() 
+    RenderGraph* GraphicsManager::GetRenderGraph() {
+        return s_RenderGraph.get();
+    }
+
+    void GraphicsManager::Shutdown()
     {
+        s_RenderGraph.reset();
 		s_RenderViewManager->Shutdown();
         s_skybox.reset();
         s_CommandBuffer.reset();
