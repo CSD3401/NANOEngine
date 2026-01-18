@@ -9,6 +9,7 @@ namespace Editor {
 	public:
 
 		bool LoadMaterial(std::string filePath, std::string uuid);
+		void RefreshShader();
 		void RenderSettings();
 		void Save();
 

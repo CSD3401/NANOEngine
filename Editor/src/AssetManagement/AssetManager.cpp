@@ -224,6 +224,10 @@ namespace Editor::Assets {
                 rec.isLoaded = true;
             }
 
+    //        if (fsSourcePath.extension() == ".nanomat") {
+				//rec.asset->Cook(fsSourcePath.string(), cookedPath);
+    //        }
+
             return;
         }
 

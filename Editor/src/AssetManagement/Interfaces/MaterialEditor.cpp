@@ -22,6 +22,13 @@ namespace Editor {
 		return true;
 	}
 
+    void MaterialEditor::RefreshShader() {
+        if (m_material) {
+            auto shaderUUID = m_material->GetPipeline()->GetSpecification().shaderName;
+            m_material->SetShader(shaderUUID);
+		}
+    }
+
 	void MaterialEditor::RenderSettings() {
         if (!m_material) {
             ImGui::TextDisabled("Material Failed To Load");

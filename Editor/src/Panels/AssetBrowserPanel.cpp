@@ -17,6 +17,7 @@
 #include "../AssetManagement/AssetManager.hpp"
 #include "../EditorEvents.hpp"
 #include "../ThumbnailManager.hpp"
+#include "../AssetManagement/Interfaces/MaterialEditor.hpp"
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
@@ -33,6 +34,14 @@ namespace Editor {
                 entry.path(),
                 Assets::AssetManager::GetInstance().RetrieveUUID(entry.path().string())
 			);
+
+    //        if (filePath.extension() == ".nanomat") {
+				//MaterialEditor materialEditor;
+    //            materialEditor.LoadMaterial(filePath.string(),
+				//	Assets::AssetManager::GetInstance().RetrieveUUID(filePath.string()));
+    //            materialEditor.RefreshShader();
+    //            materialEditor.Save();
+    //        }
         }
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::GotoAssetPathEvent>(

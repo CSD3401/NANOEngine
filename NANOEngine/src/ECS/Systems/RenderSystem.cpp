@@ -33,12 +33,24 @@ namespace NE::ECS::Systems {
     void RenderSystem::OnEntityAdded(Entity entity) {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
-        if (!renderer.materialUUID.empty())
+        if (!renderer.materialUUID.empty()) {
             renderer.material = Resource::ResourceManager::GetInstance().
             LoadResource<Graphics::Material>(renderer.materialUUID);
-        if (!renderer.modelUUID.empty())
+            if (!renderer.material) {
+				renderer.materialUUID = "neunlitmat";
+                renderer.material = Resource::ResourceManager::GetInstance().
+                    LoadResource<Graphics::Material>(renderer.materialUUID);
+			}
+        }
+        if (!renderer.modelUUID.empty()) {
             renderer.model = Resource::ResourceManager::GetInstance().
             LoadResource<Graphics::Model>(renderer.modelUUID);
+            if (!renderer.model) {
+                renderer.modelUUID = "builtin:model/cube";
+                renderer.model = Resource::ResourceManager::GetInstance().
+                    LoadResource<Graphics::Model>(renderer.modelUUID);
+            }
+        }
 
         if (renderer.luid == 0)
             renderer.luid = Core::LUIDGenerator::Generate("rd");
