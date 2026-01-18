@@ -1687,6 +1687,41 @@ namespace NE {
 			);
 		}
 
+		void IScript::RegisterLayerRefField(const std::string& name, LayerRef* memberPtr) {
+			RegisterFieldInternal(
+				name,
+				"layerref",
+				memberPtr,
+				[memberPtr]() -> std::string {
+					// Store the layer ID as a string
+					return std::to_string(static_cast<int>(memberPtr->GetID()));
+				},
+				[memberPtr, name](const std::string& value) -> bool {
+					try {
+						// Parse layer ID from string
+						uint8_t layerId = 0;
+						if (!value.empty()) {
+							try {
+								int parsed = std::stoi(value);
+								// Clamp to valid layer range (0-31)
+								if (parsed < 0) parsed = 0;
+								if (parsed > 31) parsed = 31;
+								layerId = static_cast<uint8_t>(parsed);
+							} catch (...) {
+								layerId = 0;
+							}
+						}
+
+						memberPtr->SetID(layerId);
+						return true;
+					} catch (const std::exception& e) {
+						SPD_ERROR("[LayerRef] setValue exception for field " << name << ": " << e.what());
+						return false;
+					}
+				}
+			);
+		}
+
 		void IScript::RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr) {
 			if (!m_fieldRegistry) {
 				m_fieldRegistry = new FieldRegistry();

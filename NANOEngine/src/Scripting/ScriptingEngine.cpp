@@ -11,6 +11,7 @@
 #include "SceneManagement/Scene.hpp"
 #include "Events/EventBus.hpp"
 #include "Core/Couroutine.hpp"
+#include "../../include/ScriptSDK/ScriptAPI.h"  // For GameObject_ResetStaticContext
 
 namespace {
     // ScriptState moved to ScriptingEngine class definition
@@ -302,6 +303,10 @@ namespace NE::Scripting {
         }
 
         SPD_INFO("Shutting down ScriptingEngine...");
+
+        // Clear static GameObject context to prevent dangling pointers
+        // when stopping/starting play mode
+        GameObject_ResetStaticContext();
 
         // Stop file watching
         m_sourceWatcher.reset();
@@ -882,23 +887,61 @@ namespace NE::Scripting {
     }
 
     IScript* ScriptingEngine::GetScriptInstanceByName(NE::ECS::Entity entity, const std::string& scriptName) const {
+        // Validate entity ID
+        if (entity == INVALID_ENTITY) {
+            return nullptr;
+        }
+
+        // Validate component manager
+        if (!m_componentManager) {
+            return nullptr;
+        }
+
+        // Check if entity exists before accessing the map
+        if (m_entityManager) {
+            const auto& usedEntities = m_entityManager->GetUsedEntities();
+            bool entityExists = false;
+            for (Entity e : usedEntities) {
+                if (e == entity) {
+                    entityExists = true;
+                    break;
+                }
+            }
+            if (!entityExists) {
+                return nullptr;  // Entity was destroyed
+            }
+        }
+
+        // Now safely access the map
         auto it = m_scriptInstances.find(entity);
         if (it == m_scriptInstances.end()) {
             return nullptr;
         }
 
-        // For single-script compatibility, if there's only one instance and the name matches (or is empty), return it
+        // Validate instances vector
+        if (it->second.empty()) {
+            return nullptr;
+        }
+
+        // For single-script compatibility, if there's only one instance, return it
         if (it->second.size() == 1) {
             return it->second[0];
         }
 
-        // Search for the script by name - requires matching with component's ScriptNames
-        if (m_componentManager && m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
-            auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
-            for (size_t i = 0; i < nsc.ScriptNames.size() && i < it->second.size(); ++i) {
-                if (nsc.ScriptNames[i] == scriptName) {
-                    return it->second[i];
+        // Multi-script case: Search for the script by name
+        if (m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+            try {
+                auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
+                // Ensure ScriptNames size matches instances size
+                size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
+                for (size_t i = 0; i < searchCount; ++i) {
+                    if (nsc.ScriptNames[i] == scriptName) {
+                        return it->second[i];
+                    }
                 }
+            } catch (...) {
+                // Component access failed - component may be invalid
+                return nullptr;
             }
         }
 

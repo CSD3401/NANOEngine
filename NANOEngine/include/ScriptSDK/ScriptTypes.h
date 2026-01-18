@@ -235,6 +235,57 @@ namespace Scripting {
     };
 
     //=========================================================================
+    // LAYER REFERENCE (For referencing a single layer from LayerRegistry)
+    //=========================================================================
+
+    /**
+     * @struct LayerRef
+     * @brief Reference to a single layer from the LayerRegistry
+     *
+     * Use this field type to reference a layer in your scripts.
+     * In the editor, this will show a dropdown of all available layers.
+     *
+     * Example:
+     * @code
+     * class EnemyScript : public IScript {
+     *     LayerRef targetLayer;  // Select layer from dropdown in editor
+     *
+     *     void Initialize(Entity entity) override {
+     *         RegisterLayerRefField("Target Layer", &targetLayer);
+     *     }
+     *
+     *     void Update(double deltaTime) override {
+     *         // Use targetLayer.GetID() for raycasting layer mask, etc.
+     *         uint32_t mask = 1u << targetLayer.GetID();
+     *         RaycastHit hit = Raycast(GetPosition(), GetForward(), 100.0f, mask);
+     *     }
+     * };
+     * @endcode
+     */
+    struct LayerRef {
+        uint8_t layerID = 0;  // Layer ID (0-31, corresponds to LayerRegistry slots)
+
+        LayerRef() = default;
+        explicit LayerRef(uint8_t id) : layerID(id) {}
+
+        // Get the layer ID
+        uint8_t GetID() const { return layerID; }
+
+        // Set the layer ID
+        void SetID(uint8_t id) { layerID = id; }
+
+        // Convert to layer mask bit
+        uint32_t ToMask() const { return 1u << static_cast<uint32_t>(layerID); }
+
+        // Check if this references a valid layer (ID within range)
+        bool IsValid() const { return layerID < 32; }
+
+        // Comparison operators
+        bool operator==(const LayerRef& other) const { return layerID == other.layerID; }
+        bool operator!=(const LayerRef& other) const { return layerID != other.layerID; }
+    };
+
+    //=========================================================================
     // GAME OBJECT WRAPPER (Script-to-Script Communication)
     //=========================================================================
 
@@ -246,6 +297,8 @@ namespace Scripting {
     // These allow templates to work without needing full ScriptContext definition in the SDK header
     SCRIPT_API IScript* GameObject_GetScriptByType(Entity entity, const std::string& typeName);
     SCRIPT_API std::vector<Entity> GameObject_FindAllWithScript(const std::string& typeName);
+    SCRIPT_API void GameObject_SetStaticContext(class ScriptContext* context);  // Called when scripts are linked
+    SCRIPT_API void GameObject_ResetStaticContext();  // Called by ScriptingEngine during shutdown
 
     /**
      * @class GameObject
@@ -280,6 +333,10 @@ namespace Scripting {
 
         /** Construct from an entity ID (exported - needs ScriptContext access) */
         SCRIPT_API GameObject(Entity entity, ScriptContext* context = nullptr);
+
+        /** Construct from a GameObjectRef (convenience for using ref fields) */
+        inline GameObject(const GameObjectRef& ref, ScriptContext* context = nullptr)
+            : GameObject(ref.GetEntity(), context) {}
 
         /** Copy constructor */
         GameObject(const GameObject& other) = default;
@@ -355,6 +412,16 @@ namespace Scripting {
         bool HasComponent() const;
 
         /**
+         * Check if this GameObject has a specific script type (alias for HasComponent<T>).
+         * @tparam T The script type to check for
+         * @return true if the script exists on this GameObject
+         */
+        template<typename T>
+        inline bool HasScript() const {
+            return HasComponent<T>();
+        }
+
+        /**
          * Check if this GameObject has a script by name.
          * @param scriptName The registered name of the script
          * @return true if the script exists on this GameObject
@@ -397,8 +464,6 @@ namespace Scripting {
     //=========================================================================
     // LAYER MASK (Physics layer filtering)
     //=========================================================================
-
-    /// Layer mask for physics filtering - similar to Unity's LayerMask
     /// Stores a bitmask of enabled layers for collision/raycast filtering
     struct SCRIPT_API LayerMask {
         uint32_t mask = 0;  ///< Bitmask of enabled layers
@@ -510,6 +575,9 @@ namespace NE::Scripting {
             return nullptr;
         }
 
+        // Ensure context is valid (needed when GameObject was created from GameObjectRef)
+        const_cast<GameObject*>(this)->EnsureContext();
+
         // Get the script type name
         std::string typeName = GetScriptTypeName<T>();
 
@@ -547,7 +615,7 @@ namespace NE::Scripting {
         // Use helper function (implemented in GameObject.cpp where ScriptContext is defined)
         std::vector<Entity> entities = GameObject_FindAllWithScript(targetTypeName);
 
-        // Convert entities to GameObjects
+        // Convert entities to GameObjects (context will be initialized via EnsureContext when needed)
         for (Entity entity : entities) {
             result.push_back(GameObject(entity));
         }

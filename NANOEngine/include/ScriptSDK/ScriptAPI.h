@@ -583,6 +583,7 @@ namespace Scripting {
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
         void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);
         void RegisterGameObjectRefField(const std::string& name, GameObjectRef* memberPtr);
+        void RegisterLayerRefField(const std::string& name, LayerRef* memberPtr);
 
         // Vector field registration (native support - no override boilerplate needed!)
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
@@ -648,6 +649,52 @@ namespace Scripting {
          * @endcode
          */
         class GameObject gameObject() const;
+
+        /**
+         * Get a script component by type on this entity.
+         * Shortcut for gameObject.GetComponent<T>().
+         * Similar to Unity's GetComponent<T>() on MonoBehaviour.
+         *
+         * Example:
+         * @code
+         * // In PlayerScript, access TestScript on the same entity
+         * auto testScript = GetComponent<TestScript>();
+         * if (testScript) {
+         *     testScript->ExampleFunction();
+         *     testScript->someValue = 42;
+         * }
+         * @endcode
+         *
+         * @tparam T The script type (must inherit from IScript)
+         * @return Pointer to the script instance, or nullptr if not found
+         */
+        template<typename T>
+        inline T* GetComponent() const {
+            return gameObject().GetComponent<T>();
+        }
+
+        /**
+         * Check if this entity has a specific script type.
+         * Shortcut for gameObject.HasComponent<T>().
+         *
+         * @tparam T The script type to check for
+         * @return true if the script exists on this entity
+         */
+        template<typename T>
+        inline bool HasScript() const {
+            return GetComponent<T>() != nullptr;
+        }
+
+        /**
+         * Get a script by name on this entity.
+         * Shortcut for gameObject.GetScript(name).
+         *
+         * @param scriptName The registered name of the script
+         * @return Pointer to the script instance, or nullptr if not found
+         */
+        inline IScript* GetScript(const std::string& scriptName) const {
+            return gameObject().GetScript(scriptName);
+        }
 
         //=====================================================================
         // INTERNAL ENGINE INTERFACE (Do not call from scripts)
