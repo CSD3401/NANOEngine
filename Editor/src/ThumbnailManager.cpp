@@ -255,6 +255,7 @@ namespace Editor::Assets {
         glBindTexture(GL_TEXTURE_2D, 0);
 
         stbi_image_free(data);
+        stbi_set_flip_vertically_on_load(false);
 
         return textureID;
     }
