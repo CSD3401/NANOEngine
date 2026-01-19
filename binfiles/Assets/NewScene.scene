@@ -1,3 +1,44 @@
 {
+    "RenderSettings": {
+        "envSource": 2,
+        "ambientColour": {
+            "x": 0.5,
+            "y": 0.5,
+            "z": 0.5
+        },
+        "ambientIntensity": 0.0,
+        "fogEnabled": 0,
+        "fogMode": 0,
+        "fogColour": {
+            "x": 0.5,
+            "y": 0.5,
+            "z": 0.5
+        },
+        "fogStart": 0.0,
+        "fogEnd": 100.0,
+        "fogDensity": 0.10000000149011612
+    },
+    "PostProcessingSettings": {
+        "bloomSettings": {
+            "tint": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "brightThreshold": 1.0,
+            "brightScale": 1.0,
+            "softKnee": 0.20000000298023224,
+            "bloomRadius": 1.0,
+            "bloomIntensity": 0.10000000149011612,
+            "exposure": 1.0
+        },
+        "ssaoSettings": {
+            "enabled": 0,
+            "radius": 0.5,
+            "bias": 0.02500000037252903,
+            "intensity": 1.0,
+            "power": 1.5
+        }
+    },
     "Entities": []
 }
