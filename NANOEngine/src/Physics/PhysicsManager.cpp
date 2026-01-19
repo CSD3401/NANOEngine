@@ -442,13 +442,10 @@ namespace NE::Physics {
 
         JPH::RefConst<JPH::Shape> sphereShape = sphereResult.Get();
 
-        // World transform for the *casted shape* at start (identity rotation, translated to origin)
         JPH::RMat44 startWorld = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
 
-        // Direction *length* of the cast (Jolt expects "direction and length")
         JPH::Vec3 castDir = joltDir * maxDistance;
 
-        // Build the shape cast using world transform (avoids you needing COM transform manually)
         JPH::RShapeCast sphereCast =
             JPH::RShapeCast::sFromWorldTransform(
                 sphereShape.GetPtr(),
@@ -475,7 +472,7 @@ namespace NE::Physics {
             layerFilter,
             JPH::BodyFilter(),
             JPH::ShapeFilter()
-        ); // :contentReference[oaicite:2]{index=2}
+        );
 
         if (!collector.HadHit() || collector.mHit.mBodyID2.IsInvalid())
             return false;
