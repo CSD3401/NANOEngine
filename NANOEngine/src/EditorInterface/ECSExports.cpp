@@ -435,7 +435,7 @@ namespace NE::ECS {
 
 			GetScene().GetECSCoordinator().AddComponent(
 				newEntity,
-				Component::Transform{}
+				Component::Transform{ .localRotationEuler = Math::Vec3(-90.f, 0.f, 0.f) }
 			);
 
 			GetScene().GetECSCoordinator().AddComponent(
