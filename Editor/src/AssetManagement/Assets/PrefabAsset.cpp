@@ -13,6 +13,12 @@ namespace Editor::Assets {
 
 	bool PrefabAsset::Cook(const std::string& sourcePath,
 		const std::string& outPath) const {
+
+		if (EditorScene::s_selection.GetLastDropped() == NE::ECS::NO_ENTITY && !m_isScene) {
+			SPD_ERROR("No entity selected to cook prefab from: {}", sourcePath);
+			return false;
+		}
+
 		if (m_isScene)
 			NE::CookPrefab(EditorScene::s_rootOrder[0], outPath);
 		else
