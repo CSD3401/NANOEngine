@@ -56,6 +56,13 @@ namespace Editor {
             }
         );
 
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateQuadEntityEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateQuadEntityEvent& e) {
+                ExecuteCommand(std::make_unique<CreateQuadEntityCommand>(e.parentEntity));
+            }
+        );
+
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateDirectionalLightEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const Events::CreateDirectionalLightEvent& e) {

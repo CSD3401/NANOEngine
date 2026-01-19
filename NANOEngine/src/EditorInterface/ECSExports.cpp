@@ -426,6 +426,35 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		uint32_t CreateQuadEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Quad"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/quad"},
+					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
 		uint32_t CreateDirectionalLightEntity(uint32_t parentEntt) {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
