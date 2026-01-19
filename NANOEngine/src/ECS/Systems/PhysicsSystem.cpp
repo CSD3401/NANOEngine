@@ -4,6 +4,10 @@
 #include "../../ECS/Components/Rigidbody.hpp"
 #include "../../ECS/Components/Renderer.hpp"
 #include "../../ECS/Components/EntityMeta.hpp"
+#include "../../ECS/Components/Collider.hpp"
+#include "../../ECS/Components/NativeScript.hpp"
+#include "../../Scripting/ScriptingEngine.hpp"
+#include "../../Scripting/ScriptSDK/ScriptAPI.h"
 //#include "EngineState.hpp"
 
 namespace NE::ECS::Systems
@@ -105,59 +109,69 @@ namespace NE::ECS::Systems
 
     void PhysicsSystem::HandleCollisionEnter(const NE::Physics::CollisionInfo& collision)
     {
-        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
-        //{
-        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
-        //    if (collider.onCollisionEnter)
-        //    {
-        //        collider.onCollisionEnter(collision.entityB);
-        //    }
-        //}
+        // Helper lambda to trigger callbacks for a single entity
+        auto triggerCallbacks = [&](Entity entity, Entity otherEntity) {
+            // Get script instances for this entity
+            const auto* scripts = NE::Scripting::ScriptingEngine::GetInstance().GetScriptInstances(entity);
+            if (!scripts) return;
 
-        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityB))
-        //{
-        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
-        //    if (collider.onCollisionEnter) {
-        //        collider.onCollisionEnter(collision.entityA);
-        //    }
-        //}
+            // Check if collider is a trigger
+            bool isTrigger = false;
+            if (m_componentManager->HasComponent<Component::Collider>(entity)) {
+                auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+                isTrigger = collider.isTrigger;
+            }
+
+            // Call appropriate callback on all scripts
+            for (auto* script : *scripts) {
+                if (isTrigger) {
+                    script->OnTriggerEnter(static_cast<NE::Scripting::Entity>(otherEntity));
+                } else {
+                    script->OnCollisionEnter(static_cast<NE::Scripting::Entity>(otherEntity));
+                }
+            }
+        };
+
+        // Trigger callbacks for both entities
+        triggerCallbacks(collision.entityA, collision.entityB);
+        triggerCallbacks(collision.entityB, collision.entityA);
     }
 
     void PhysicsSystem::HandleCollisionStay(const NE::Physics::CollisionInfo& collision)
     {
-        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
-        //{
-        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
-        //    if (collider.onCollisionStay) {
-        //        collider.onCollisionStay(collision.entityB);
-        //    }
-        //}
-
-        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityB))
-        //{
-        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
-        //    if (collider.onCollisionStay) {
-        //        collider.onCollisionStay(collision.entityA);
-        //    }
-        //}
+        // Note: CollisionStay callbacks are not implemented in the current IScript interface
+        // The IScript interface only has OnCollisionEnter, OnCollisionExit, OnTriggerEnter, OnTriggerExit
+        // If CollisionStay is needed in the future, add the virtual method to IScript
     }
 
     void PhysicsSystem::HandleCollisionExit(const NE::Physics::CollisionInfo& collision)
     {
-        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityA))
-        //{
-        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityA);
-        //    if (collider.onCollisionExit) {
-        //        collider.onCollisionExit(collision.entityB);
-        //    }
-        //}
+        // Helper lambda to trigger callbacks for a single entity
+        auto triggerCallbacks = [&](Entity entity, Entity otherEntity) {
+            // Get script instances for this entity
+            const auto* scripts = NE::Scripting::ScriptingEngine::GetInstance().GetScriptInstances(entity);
+            if (!scripts) return;
 
-        //if (m_componentManager->HasComponent<Component::Collider>(collision.entityB)) {
-        //    auto& collider = m_componentManager->GetComponent<Component::Collider>(collision.entityB);
-        //    if (collider.onCollisionExit) {
-        //        collider.onCollisionExit(collision.entityA);
-        //    }
-        //}
+            // Check if collider is a trigger
+            bool isTrigger = false;
+            if (m_componentManager->HasComponent<Component::Collider>(entity)) {
+                auto& collider = m_componentManager->GetComponent<Component::Collider>(entity);
+                isTrigger = collider.isTrigger;
+            }
+
+            // Call appropriate callback on all scripts
+            for (auto* script : *scripts) {
+                if (isTrigger) {
+                    script->OnTriggerExit(static_cast<NE::Scripting::Entity>(otherEntity));
+                } else {
+                    script->OnCollisionExit(static_cast<NE::Scripting::Entity>(otherEntity));
+                }
+            }
+        };
+
+        // Trigger callbacks for both entities
+        triggerCallbacks(collision.entityA, collision.entityB);
+        triggerCallbacks(collision.entityB, collision.entityA);
     }
 
     void PhysicsSystem::SyncCollidersToPhysics()

@@ -22,6 +22,7 @@
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
 #include "../Physics/PhysicsManager.hpp"
+#include "../Physics/ForceMode.hpp"
 #include "../Physics/RaycastHit.hpp"
 #include "../Core/LUIDRegistry.hpp"
 #include <Math/Vec3.hpp>
@@ -439,9 +440,10 @@ namespace NE {
 		//=========================================================================
 
 		bool IScript::HasRigidbody(Entity entity) const {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			return Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity);*/
-			return false;
+			CHECK_CONTEXT_OR_RETURN(false);
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			return m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity);
 		}
 
 		float IScript::GetMass(Entity entity) const {
@@ -526,37 +528,81 @@ namespace NE {
 		}
 
 		Vec3 IScript::GetVelocity(Entity entity) const {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
 				return Vec3::Zero();
 			}
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));*/
-			return {};
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetLinearVelocity(meta.luid));
 		}
 
 		void IScript::SetVelocity(const Vec3& velocity, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			CHECK_CONTEXT_OR_RETURN();
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));*/
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().SetLinearVelocity(meta.luid, ToEngineVec3(velocity));
 		}
 
 		void IScript::SetVelocity(float x, float y, float z, Entity entity) {
 			SetVelocity(Vec3(x, y, z), entity);
 		}
 
+		Vec3 IScript::GetAngularVelocity(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return Vec3::Zero();
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetAngularVelocity(meta.luid));
+		}
+
+		void IScript::SetAngularVelocity(const Vec3& angularVelocity, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().SetAngularVelocity(meta.luid, ToEngineVec3(angularVelocity));
+		}
+
+		void IScript::SetAngularVelocity(float x, float y, float z, Entity entity) {
+			SetAngularVelocity(Vec3(x, y, z), entity);
+		}
+
 		void IScript::AddForce(const Vec3& force, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			CHECK_CONTEXT_OR_RETURN();
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));*/
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(force));
 		}
 
 		void IScript::AddForce(float x, float y, float z, Entity entity) {
@@ -564,12 +610,17 @@ namespace NE {
 		}
 
 		void IScript::AddImpulse(const Vec3& impulse, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			CHECK_CONTEXT_OR_RETURN();
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::AddImpulse(bodyID, ToEngineVec3(impulse));*/
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(impulse), Physics::ForceMode::Impulse);
 		}
 
 		void IScript::AddImpulse(float x, float y, float z, Entity entity) {
@@ -1338,6 +1389,36 @@ namespace NE {
 
 			if (entityLUID != 0) {
 				Physics::PhysicsManager::GetInstance().AddForce(entityLUID, ToEngineVec3(force));
+			}
+		}
+
+		//=========================================================================
+		// Renderer ComponentRef Operations
+		//=========================================================================
+
+		MaterialRef IScript::GetMaterialRef(const RendererRef& ref) const {
+			if (!ref.IsValid() || !m_context) return MaterialRef();
+
+			Entity entity = ref.GetEntity();
+			return GetEntityMaterial(entity);
+		}
+
+		void IScript::SetMaterialRef(const RendererRef& ref, const MaterialRef& materialRef) {
+			if (!ref.IsValid() || !m_context) return;
+
+			Entity entity = ref.GetEntity();
+
+			// Get material UUID from MaterialRef
+			std::string materialUUID = GetMaterialUUIDFromRef(materialRef);
+			if (materialUUID.empty()) {
+				materialUUID = "empty uuid";
+			}
+
+			// Set the material UUID on the entity's renderer component
+			if (m_context->componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
+				auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
+				renderer.materialUUID = materialUUID;
+				renderer.isDirty = true;
 			}
 		}
 

@@ -336,6 +336,11 @@ namespace Scripting {
         void SetVelocity(const Vec3& velocity, Entity entity = DEFAULT_ENTITY_PARAM);
         void SetVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
+        // Angular Velocity (Rotation)
+        Vec3 GetAngularVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void SetAngularVelocity(const Vec3& angularVelocity, Entity entity = DEFAULT_ENTITY_PARAM);
+        void SetAngularVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+
         // Forces
         void AddForce(const Vec3& force, Entity entity = DEFAULT_ENTITY_PARAM);
         void AddForce(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
@@ -580,6 +585,10 @@ namespace Scripting {
         Vec3 GetVelocity(const RigidbodyRef& ref) const;
         void SetVelocity(const RigidbodyRef& ref, const Vec3& velocity);
         void AddForce(const RigidbodyRef& ref, const Vec3& force);
+
+        // Renderer operations on ComponentRef
+        MaterialRef GetMaterialRef(const RendererRef& ref) const;
+        void SetMaterialRef(const RendererRef& ref, const MaterialRef& materialRef);
 
         //=====================================================================
         // FIELD REGISTRATION FOR EDITOR (Protected - use macros in scripts)
