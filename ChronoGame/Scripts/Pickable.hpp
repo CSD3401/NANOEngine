@@ -37,8 +37,8 @@ public:
 
 	void Update(double deltaTime) override {
 		if (picked) {
-			Vec3 forward = GetForward(pickedBy);
-			SetPosition(forward * pickDistance);
+			Vec3 forward = TF_GetForward(pickedBy);
+			TF_SetPosition(forward * pickDistance);
 
 			if (Input::WasMouseReleased(0)) picked = false;
 		}

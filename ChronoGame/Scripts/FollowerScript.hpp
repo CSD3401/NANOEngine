@@ -33,7 +33,7 @@ public:
 
         // Get target position using SDK method
         Vec3 targetPos = GetPosition(targetTransform);
-        Vec3 myPos = GetPosition();
+        Vec3 myPos = TF_GetPosition();
 
         // Calculate direction to target
         Vec3 direction = {
@@ -58,7 +58,7 @@ public:
 
             // Move towards target
             float moveAmount = followSpeed * static_cast<float>(deltaTime);
-            Translate(
+            TF_Translate(
                 direction.x * moveAmount,
                 direction.y * moveAmount,
                 direction.z * moveAmount

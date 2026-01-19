@@ -85,7 +85,7 @@ public:
             std::cout << "[LayerRefTestScript] Raycasting on layer " << (int)raycastLayer.GetID()
                       << " (mask: " << layerMask << ")" << std::endl;
 
-            RaycastHit hit = Raycast(GetPosition(), GetForward(), rayDistance, layerMask);
+            RaycastHit hit = Raycast(TF_GetPosition(), TF_GetForward(), rayDistance, layerMask);
 
             if (hit.hasHit) {
                 std::cout << "  HIT! Entity: " << hit.entity

@@ -136,7 +136,7 @@ private:
     // - yaw = parent.yaw + camera.localYaw (covers both styles)
     // - pitch = camera.localPitch (typical FPS)
     Vec3 ComputeRayDir() {
-        if (!clickRayOrigin.IsValid()) return GetForward().Normalized();
+        if (!clickRayOrigin.IsValid()) return TF_GetForward().Normalized();
 
         Vec3 camEuler = GetRotation(clickRayOrigin); // LOCAL from SDK
         float pitch = camEuler.x;
@@ -154,7 +154,7 @@ private:
     // (Assumes parent has no parent and no non-uniform scale; fits common player/camera rigs)
     Vec3 ComputeRayOrigin() {
         if (!clickRayOrigin.IsValid())
-            return GetPosition();
+            return TF_GetPosition();
 
         Vec3 camLocalPos = GetPosition(clickRayOrigin); // LOCAL
         if (!rayParent.IsValid())
