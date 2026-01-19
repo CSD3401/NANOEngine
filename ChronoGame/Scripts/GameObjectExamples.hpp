@@ -324,7 +324,7 @@ public:
 			myGO.SetName(name);  // Restore original name
 
 			// Get position (using IScript method, not GameObject)
-			Vec3 pos = GetPosition();
+			Vec3 pos = TF_GetPosition();
 			LOG_DEBUG("  Position: (" << pos.x << ", " << pos.y << ", " << pos.z << ")");
 		}
 	}

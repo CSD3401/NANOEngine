@@ -22,6 +22,7 @@
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
 #include "../Physics/PhysicsManager.hpp"
+#include "../Physics/ForceMode.hpp"
 #include "../Physics/RaycastHit.hpp"
 #include "../Core/LUIDRegistry.hpp"
 #include <Math/Vec3.hpp>
@@ -220,7 +221,7 @@ namespace NE {
 		// Transform Operations
 		//=========================================================================
 
-		Vec3 IScript::GetPosition(Entity entity) const {
+		Vec3 IScript::TF_GetPosition(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			// Use m_entity if entity is DEFAULT_ENTITY_PARAM
@@ -233,7 +234,7 @@ namespace NE {
 			return ToSDKVec3(transform.localPosition);
 		}
 
-		Vec3 IScript::GetWorldPosition(Entity entity) const {
+		Vec3 IScript::TF_GetWorldPosition(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -247,7 +248,7 @@ namespace NE {
 			return ToSDKVec3(worldPos);
 		}
 
-		void IScript::SetPosition(const Vec3& pos, Entity entity) {
+		void IScript::TF_SetPosition(const Vec3& pos, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -259,11 +260,11 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetPosition(float x, float y, float z, Entity entity) {
-			SetPosition(Vec3(x, y, z), entity);
+		void IScript::TF_SetPosition(float x, float y, float z, Entity entity) {
+			TF_SetPosition(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetRotation(Entity entity) const {
+		Vec3 IScript::TF_GetRotation(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -275,7 +276,7 @@ namespace NE {
 			return ToSDKVec3(transform.localRotationEuler);
 		}
 
-		void IScript::SetRotation(const Vec3& rot, Entity entity) {
+		void IScript::TF_SetRotation(const Vec3& rot, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -287,11 +288,11 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetRotation(float x, float y, float z, Entity entity) {
-			SetRotation(Vec3(x, y, z), entity);
+		void IScript::TF_SetRotation(float x, float y, float z, Entity entity) {
+			TF_SetRotation(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetScale(Entity entity) const {
+		Vec3 IScript::TF_GetScale(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::One());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -303,7 +304,7 @@ namespace NE {
 			return ToSDKVec3(transform.localScale);
 		}
 
-		void IScript::SetScale(const Vec3& scale, Entity entity) {
+		void IScript::TF_SetScale(const Vec3& scale, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -315,35 +316,35 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetScale(float x, float y, float z, Entity entity) {
-			SetScale(Vec3(x, y, z), entity);
+		void IScript::TF_SetScale(float x, float y, float z, Entity entity) {
+			TF_SetScale(Vec3(x, y, z), entity);
 		}
 
-		void IScript::SetScale(float uniformScale, Entity entity) {
-			SetScale(Vec3(uniformScale, uniformScale, uniformScale), entity);
+		void IScript::TF_SetScale(float uniformScale, Entity entity) {
+			TF_SetScale(Vec3(uniformScale, uniformScale, uniformScale), entity);
 		}
 
-		void IScript::Translate(const Vec3& translation, Entity entity) {
+		void IScript::TF_Translate(const Vec3& translation, Entity entity) {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			SetPosition(GetPosition(targetEntity) + translation, targetEntity);
+			TF_SetPosition(TF_GetPosition(targetEntity) + translation, targetEntity);
 		}
 
-		void IScript::Translate(float x, float y, float z, Entity entity) {
-			Translate(Vec3(x, y, z), entity);
+		void IScript::TF_Translate(float x, float y, float z, Entity entity) {
+			TF_Translate(Vec3(x, y, z), entity);
 		}
 
-		void IScript::Rotate(const Vec3& rotation, Entity entity) {
+		void IScript::TF_Rotate(const Vec3& rotation, Entity entity) {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			SetRotation(GetRotation(targetEntity) + rotation, targetEntity);
+			TF_SetRotation(TF_GetRotation(targetEntity) + rotation, targetEntity);
 		}
 
-		void IScript::Rotate(float x, float y, float z, Entity entity) {
-			Rotate(Vec3(x, y, z), entity);
+		void IScript::TF_Rotate(float x, float y, float z, Entity entity) {
+			TF_Rotate(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetForward(Entity entity) const {
+		Vec3 IScript::TF_GetForward(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
 			float pitch = rotation.x * Math::DEG_TO_RAD;
 			float yaw = rotation.y * Math::DEG_TO_RAD;
@@ -356,9 +357,9 @@ namespace NE {
 			return forward.Normalized();
 		}
 
-		Vec3 IScript::GetRight(Entity entity) const {
+		Vec3 IScript::TF_GetRight(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
 			// Convert degrees to radians
 			float yaw = rotation.y * Math::DEG_TO_RAD;
@@ -372,7 +373,7 @@ namespace NE {
 			return Normalize(right);
 		}
 
-		Vec3 IScript::GetUp(Entity entity) const {
+		Vec3 IScript::TF_GetUp(Entity entity) const {
 			// Up is always world up in this simple implementation
 			// For more complex scenarios, you might want to calculate it from forward and right
 			return Vec3(0.0f, 1.0f, 0.0f);
@@ -438,13 +439,14 @@ namespace NE {
 		// Rigidbody Physics
 		//=========================================================================
 
-		bool IScript::HasRigidbody(Entity entity) const {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			return Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity);*/
-			return false;
+		bool IScript::RB_HasRigidbody(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(false);
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			return m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity);
 		}
 
-		float IScript::GetMass(Entity entity) const {
+		float IScript::RB_GetMass(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(0.0f);
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -455,7 +457,7 @@ namespace NE {
 			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).mass;
 		}
 
-		void IScript::SetMass(float mass, Entity entity) {
+		void IScript::RB_SetMass(float mass, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -466,7 +468,7 @@ namespace NE {
 			}
 		}
 
-		bool IScript::GetUseGravity(Entity entity) const {
+		bool IScript::RB_GetUseGravity(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(false);
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -477,7 +479,7 @@ namespace NE {
 			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).useGravity;
 		}
 
-		void IScript::SetUseGravity(bool use, Entity entity) {
+		void IScript::RB_SetUseGravity(bool use, Entity entity) {
 			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			//if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -493,7 +495,7 @@ namespace NE {
 			//}
 		}
 
-		bool IScript::IsStatic(Entity entity) const {
+		bool IScript::RB_IsStatic(Entity entity) const {
 			/*if (!m_context || !m_context->componentManager) return false;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -505,7 +507,7 @@ namespace NE {
 			return false;
 		}
 
-		void IScript::SetStatic(bool isStatic, Entity entity) {
+		void IScript::RB_SetStatic(bool isStatic, Entity entity) {
 			/*if (!m_context || !m_context->componentManager) return;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -516,7 +518,7 @@ namespace NE {
 			}*/
 		}
 
-		void IScript::LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
+		void IScript::RB_LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
 			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -525,55 +527,104 @@ namespace NE {
 			Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);*/
 		}
 
-		Vec3 IScript::GetVelocity(Entity entity) const {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		Vec3 IScript::RB_GetVelocity(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
 				return Vec3::Zero();
 			}
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));*/
-			return {};
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetLinearVelocity(meta.luid));
 		}
 
-		void IScript::SetVelocity(const Vec3& velocity, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		void IScript::RB_SetVelocity(const Vec3& velocity, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));*/
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().SetLinearVelocity(meta.luid, ToEngineVec3(velocity));
 		}
 
-		void IScript::SetVelocity(float x, float y, float z, Entity entity) {
-			SetVelocity(Vec3(x, y, z), entity);
+		void IScript::RB_SetVelocity(float x, float y, float z, Entity entity) {
+			RB_SetVelocity(Vec3(x, y, z), entity);
 		}
 
-		void IScript::AddForce(const Vec3& force, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		Vec3 IScript::RB_GetAngularVelocity(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));*/
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return Vec3::Zero();
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetAngularVelocity(meta.luid));
 		}
 
-		void IScript::AddForce(float x, float y, float z, Entity entity) {
-			AddForce(Vec3(x, y, z), entity);
+		void IScript::RB_SetAngularVelocity(const Vec3& angularVelocity, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().SetAngularVelocity(meta.luid, ToEngineVec3(angularVelocity));
 		}
 
-		void IScript::AddImpulse(const Vec3& impulse, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
-
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::AddImpulse(bodyID, ToEngineVec3(impulse));*/
+		void IScript::RB_SetAngularVelocity(float x, float y, float z, Entity entity) {
+			RB_SetAngularVelocity(Vec3(x, y, z), entity);
 		}
 
-		void IScript::AddImpulse(float x, float y, float z, Entity entity) {
-			AddImpulse(Vec3(x, y, z), entity);
+		void IScript::RB_AddForce(const Vec3& force, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(force));
+		}
+
+		void IScript::RB_AddForce(float x, float y, float z, Entity entity) {
+			RB_AddForce(Vec3(x, y, z), entity);
+		}
+
+		void IScript::RB_AddImpulse(const Vec3& impulse, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(impulse), Physics::ForceMode::Impulse);
+		}
+
+		void IScript::RB_AddImpulse(float x, float y, float z, Entity entity) {
+			RB_AddImpulse(Vec3(x, y, z), entity);
 		}
 
 		//=========================================================================
@@ -647,6 +698,50 @@ namespace NE {
 
 			//return results;
 			return {};
+		}
+
+		//=========================================================================
+		// Physics Sphere Casting
+		//=========================================================================
+
+		RaycastHit IScript::SphereCast(const Vec3& origin, float radius, const Vec3& direction, float maxDistance, uint32_t layerMask) const {
+			RaycastHit sdkHit;
+			sdkHit.hasHit = false;
+
+			if (!m_context || !m_context->componentManager) {
+				return sdkHit;
+			}
+
+			// Call PhysicsManager sphere cast with engine types
+			Physics::RaycastHit engineHit;
+			bool hasHit = Physics::PhysicsManager::GetInstance().SphereCast(
+				ToEngineVec3(origin),
+				radius,
+				ToEngineVec3(direction),
+				engineHit,
+				maxDistance,
+				layerMask
+			);
+
+			// Convert to SDK RaycastHit (scripts only see Entity, not LUIDs)
+			sdkHit.hasHit = hasHit;
+			sdkHit.point = ToSDKVec3(engineHit.point);
+			sdkHit.normal = ToSDKVec3(engineHit.normal);
+			sdkHit.distance = engineHit.distance;
+			sdkHit.entity = engineHit.colliderEntityID;
+
+			return sdkHit;
+		}
+
+		RaycastHit IScript::SphereCast(float originX, float originY, float originZ,
+			float radius,
+			float dirX, float dirY, float dirZ,
+			float maxDistance, uint32_t layerMask) const {
+			return SphereCast(Vec3(originX, originY, originZ),
+				radius,
+				Vec3(dirX, dirY, dirZ),
+				maxDistance,
+				layerMask);
 		}
 
 		//=========================================================================
@@ -932,11 +1027,24 @@ namespace NE {
 		}
 
 		MaterialRef IScript::GetMaterialRef(const std::string& materialUUID) const {
-			if (materialUUID.empty()) return MaterialRef();
+			if (materialUUID.empty() || materialUUID == "empty uuid") return MaterialRef();
 
 			// Get or create an ID for this material UUID
 			uint32_t materialID = GetMaterialRegistry().GetOrCreateID(materialUUID);
 			return MaterialRef(materialID);
+		}
+
+		MaterialRef IScript::GetEntityMaterial(Entity entity) const {
+			// Get the material UUID from the entity's renderer component
+			std::string materialUUID = NE::Renderer::Query::GetMaterial(entity);
+
+			// Check if it's the empty UUID (no material assigned)
+			if (materialUUID.empty() || materialUUID == "empty uuid") {
+				return MaterialRef();
+			}
+
+			// Convert UUID to MaterialRef
+			return GetMaterialRef(materialUUID);
 		}
 
 		//=========================================================================
@@ -1281,6 +1389,36 @@ namespace NE {
 
 			if (entityLUID != 0) {
 				Physics::PhysicsManager::GetInstance().AddForce(entityLUID, ToEngineVec3(force));
+			}
+		}
+
+		//=========================================================================
+		// Renderer ComponentRef Operations
+		//=========================================================================
+
+		MaterialRef IScript::GetMaterialRef(const RendererRef& ref) const {
+			if (!ref.IsValid() || !m_context) return MaterialRef();
+
+			Entity entity = ref.GetEntity();
+			return GetEntityMaterial(entity);
+		}
+
+		void IScript::SetMaterialRef(const RendererRef& ref, const MaterialRef& materialRef) {
+			if (!ref.IsValid() || !m_context) return;
+
+			Entity entity = ref.GetEntity();
+
+			// Get material UUID from MaterialRef
+			std::string materialUUID = GetMaterialUUIDFromRef(materialRef);
+			if (materialUUID.empty()) {
+				materialUUID = "empty uuid";
+			}
+
+			// Set the material UUID on the entity's renderer component
+			if (m_context->componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
+				auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
+				renderer.materialUUID = materialUUID;
+				renderer.isDirty = true;
 			}
 		}
 

@@ -46,7 +46,7 @@
         void Update(double deltaTime) override {
             // Manual spawning with keyboard input
             if (Input::WasKeyPressed('P')) {
-                SpawnPrefabAtPosition(GetPosition());
+                SpawnPrefabAtPosition(TF_GetPosition());
                 LOG_INFO("Manually spawned prefab at spawner position");
             }
 
@@ -107,8 +107,8 @@
 
                 // Optionally, you can modify the spawned entity here
                 // For example, add velocity, change scale, etc.
-                if (HasRigidbody(spawnedEntity)) {
-                    SetVelocity(0.0f, 5.0f, 0.0f, spawnedEntity);
+                if (RB_HasRigidbody(spawnedEntity)) {
+                    RB_SetVelocity(0.0f, 5.0f, 0.0f, spawnedEntity);
                 }
             } else {
                 LOG_ERROR("Failed to spawn prefab!");
@@ -126,7 +126,7 @@
                 sin(angle) * distance
             );
 
-            return GetPosition() + offset;
+            return TF_GetPosition() + offset;
         }
 
     private:

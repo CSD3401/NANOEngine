@@ -15,7 +15,7 @@ public:
         SCRIPT_FIELD(targetDistance, Float);
 
         // Store initial position
-        initialPosition = GetPosition();
+        initialPosition = TF_GetPosition();
     }
 
     void Start() override {
@@ -27,13 +27,13 @@ public:
         if (Input::WasKeyPressed('1')) {
             LOG_DEBUG("Starting Vec3 position tween");
 
-            Vec3 startPos = GetPosition();
+            Vec3 startPos = TF_GetPosition();
             Vec3 targetPos = Vec3(startPos.x + targetDistance, startPos.y, startPos.z);
 
             // Using Tweener::StartVec3 with lambda
             Tweener::StartVec3(
                 [this](const Vec3& pos) {
-                    SetPosition(pos);
+                    TF_SetPosition(pos);
                 },
                 startPos,
                 targetPos,
@@ -47,7 +47,7 @@ public:
         if (Input::WasKeyPressed('2')) {
             LOG_DEBUG("Starting lambda tween");
 
-            Vec3 startPos = GetPosition();
+            Vec3 startPos = TF_GetPosition();
             Vec3 targetPos = Vec3(startPos.x, startPos.y + targetDistance, startPos.z);
 
             // Using Tweener::StartLambda - captures start and target, receives t from 0 to 1
@@ -58,7 +58,7 @@ public:
                         startPos.y + (targetPos.y - startPos.y) * t,
                         startPos.z + (targetPos.z - startPos.z) * t
                     );
-                    SetPosition(currentPos);
+                    TF_SetPosition(currentPos);
                 },
                 tweenDuration,
                 Tweener::Type::LINEAR,
@@ -70,12 +70,12 @@ public:
         if (Input::WasKeyPressed('3')) {
             LOG_DEBUG("Starting rotation tween");
 
-            Vec3 startRot = GetRotation();
+            Vec3 startRot = TF_GetRotation();
             Vec3 targetRot = Vec3(startRot.x, startRot.y + 360.0f, startRot.z);
 
             Tweener::StartVec3(
                 [this](const Vec3& rot) {
-                    SetRotation(rot);
+                    TF_SetRotation(rot);
                 },
                 startRot,
                 targetRot,
@@ -89,12 +89,12 @@ public:
         if (Input::WasKeyPressed('4')) {
             LOG_DEBUG("Starting scale tween");
 
-            Vec3 startScale = GetScale();
+            Vec3 startScale = TF_GetScale();
             Vec3 targetScale = Vec3(startScale.x * 2.0f, startScale.y * 2.0f, startScale.z * 2.0f);
 
             Tweener::StartVec3(
                 [this](const Vec3& scale) {
-                    SetScale(scale);
+                    TF_SetScale(scale);
                 },
                 startScale,
                 targetScale,
@@ -125,13 +125,13 @@ public:
         if (Input::WasKeyPressed('6')) {
             LOG_DEBUG("Starting multi-step tween sequence");
 
-            Vec3 currentPos = GetPosition();
+            Vec3 currentPos = TF_GetPosition();
             Vec3 upPos = Vec3(currentPos.x, currentPos.y + 5.0f, currentPos.z);
             Vec3 downPos = Vec3(currentPos.x, currentPos.y, currentPos.z);
 
             // First tween: move up
             Tweener::StartVec3(
-                [this](const Vec3& pos) { SetPosition(pos); },
+                [this](const Vec3& pos) { TF_SetPosition(pos); },
                 currentPos,
                 upPos,
                 tweenDuration * 0.5f,
@@ -163,9 +163,9 @@ public:
         // Reset position when pressing 'R'
         if (Input::WasKeyPressed('R')) {
             LOG_DEBUG("Resetting position");
-            SetPosition(initialPosition);
-            SetRotation(Vec3(0, 0, 0));
-            SetScale(Vec3(1, 1, 1));
+            TF_SetPosition(initialPosition);
+            TF_SetRotation(Vec3(0, 0, 0));
+            TF_SetScale(Vec3(1, 1, 1));
         }
     }
 
