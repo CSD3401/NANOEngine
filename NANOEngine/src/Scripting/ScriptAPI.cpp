@@ -221,7 +221,7 @@ namespace NE {
 		// Transform Operations
 		//=========================================================================
 
-		Vec3 IScript::GetPosition(Entity entity) const {
+		Vec3 IScript::TF_GetPosition(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			// Use m_entity if entity is DEFAULT_ENTITY_PARAM
@@ -234,7 +234,7 @@ namespace NE {
 			return ToSDKVec3(transform.localPosition);
 		}
 
-		Vec3 IScript::GetWorldPosition(Entity entity) const {
+		Vec3 IScript::TF_GetWorldPosition(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -248,7 +248,7 @@ namespace NE {
 			return ToSDKVec3(worldPos);
 		}
 
-		void IScript::SetPosition(const Vec3& pos, Entity entity) {
+		void IScript::TF_SetPosition(const Vec3& pos, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -260,11 +260,11 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetPosition(float x, float y, float z, Entity entity) {
-			SetPosition(Vec3(x, y, z), entity);
+		void IScript::TF_SetPosition(float x, float y, float z, Entity entity) {
+			TF_SetPosition(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetRotation(Entity entity) const {
+		Vec3 IScript::TF_GetRotation(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -276,7 +276,7 @@ namespace NE {
 			return ToSDKVec3(transform.localRotationEuler);
 		}
 
-		void IScript::SetRotation(const Vec3& rot, Entity entity) {
+		void IScript::TF_SetRotation(const Vec3& rot, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -288,11 +288,11 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetRotation(float x, float y, float z, Entity entity) {
-			SetRotation(Vec3(x, y, z), entity);
+		void IScript::TF_SetRotation(float x, float y, float z, Entity entity) {
+			TF_SetRotation(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetScale(Entity entity) const {
+		Vec3 IScript::TF_GetScale(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::One());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -304,7 +304,7 @@ namespace NE {
 			return ToSDKVec3(transform.localScale);
 		}
 
-		void IScript::SetScale(const Vec3& scale, Entity entity) {
+		void IScript::TF_SetScale(const Vec3& scale, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -316,35 +316,35 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetScale(float x, float y, float z, Entity entity) {
-			SetScale(Vec3(x, y, z), entity);
+		void IScript::TF_SetScale(float x, float y, float z, Entity entity) {
+			TF_SetScale(Vec3(x, y, z), entity);
 		}
 
-		void IScript::SetScale(float uniformScale, Entity entity) {
-			SetScale(Vec3(uniformScale, uniformScale, uniformScale), entity);
+		void IScript::TF_SetScale(float uniformScale, Entity entity) {
+			TF_SetScale(Vec3(uniformScale, uniformScale, uniformScale), entity);
 		}
 
-		void IScript::Translate(const Vec3& translation, Entity entity) {
+		void IScript::TF_Translate(const Vec3& translation, Entity entity) {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			SetPosition(GetPosition(targetEntity) + translation, targetEntity);
+			TF_SetPosition(TF_GetPosition(targetEntity) + translation, targetEntity);
 		}
 
-		void IScript::Translate(float x, float y, float z, Entity entity) {
-			Translate(Vec3(x, y, z), entity);
+		void IScript::TF_Translate(float x, float y, float z, Entity entity) {
+			TF_Translate(Vec3(x, y, z), entity);
 		}
 
-		void IScript::Rotate(const Vec3& rotation, Entity entity) {
+		void IScript::TF_Rotate(const Vec3& rotation, Entity entity) {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			SetRotation(GetRotation(targetEntity) + rotation, targetEntity);
+			TF_SetRotation(TF_GetRotation(targetEntity) + rotation, targetEntity);
 		}
 
-		void IScript::Rotate(float x, float y, float z, Entity entity) {
-			Rotate(Vec3(x, y, z), entity);
+		void IScript::TF_Rotate(float x, float y, float z, Entity entity) {
+			TF_Rotate(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetForward(Entity entity) const {
+		Vec3 IScript::TF_GetForward(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
 			float pitch = rotation.x * Math::DEG_TO_RAD;
 			float yaw = rotation.y * Math::DEG_TO_RAD;
@@ -357,9 +357,9 @@ namespace NE {
 			return forward.Normalized();
 		}
 
-		Vec3 IScript::GetRight(Entity entity) const {
+		Vec3 IScript::TF_GetRight(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
 			// Convert degrees to radians
 			float yaw = rotation.y * Math::DEG_TO_RAD;
@@ -373,7 +373,7 @@ namespace NE {
 			return Normalize(right);
 		}
 
-		Vec3 IScript::GetUp(Entity entity) const {
+		Vec3 IScript::TF_GetUp(Entity entity) const {
 			// Up is always world up in this simple implementation
 			// For more complex scenarios, you might want to calculate it from forward and right
 			return Vec3(0.0f, 1.0f, 0.0f);
@@ -439,14 +439,14 @@ namespace NE {
 		// Rigidbody Physics
 		//=========================================================================
 
-		bool IScript::HasRigidbody(Entity entity) const {
+		bool IScript::RB_HasRigidbody(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(false);
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 			return m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity);
 		}
 
-		float IScript::GetMass(Entity entity) const {
+		float IScript::RB_GetMass(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(0.0f);
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -457,7 +457,7 @@ namespace NE {
 			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).mass;
 		}
 
-		void IScript::SetMass(float mass, Entity entity) {
+		void IScript::RB_SetMass(float mass, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -468,7 +468,7 @@ namespace NE {
 			}
 		}
 
-		bool IScript::GetUseGravity(Entity entity) const {
+		bool IScript::RB_GetUseGravity(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(false);
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -479,7 +479,7 @@ namespace NE {
 			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).useGravity;
 		}
 
-		void IScript::SetUseGravity(bool use, Entity entity) {
+		void IScript::RB_SetUseGravity(bool use, Entity entity) {
 			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			//if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -495,7 +495,7 @@ namespace NE {
 			//}
 		}
 
-		bool IScript::IsStatic(Entity entity) const {
+		bool IScript::RB_IsStatic(Entity entity) const {
 			/*if (!m_context || !m_context->componentManager) return false;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -507,7 +507,7 @@ namespace NE {
 			return false;
 		}
 
-		void IScript::SetStatic(bool isStatic, Entity entity) {
+		void IScript::RB_SetStatic(bool isStatic, Entity entity) {
 			/*if (!m_context || !m_context->componentManager) return;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -518,7 +518,7 @@ namespace NE {
 			}*/
 		}
 
-		void IScript::LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
+		void IScript::RB_LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
 			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -527,7 +527,7 @@ namespace NE {
 			Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);*/
 		}
 
-		Vec3 IScript::GetVelocity(Entity entity) const {
+		Vec3 IScript::RB_GetVelocity(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -541,7 +541,7 @@ namespace NE {
 			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetLinearVelocity(meta.luid));
 		}
 
-		void IScript::SetVelocity(const Vec3& velocity, Entity entity) {
+		void IScript::RB_SetVelocity(const Vec3& velocity, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -555,11 +555,11 @@ namespace NE {
 			Physics::PhysicsManager::GetInstance().SetLinearVelocity(meta.luid, ToEngineVec3(velocity));
 		}
 
-		void IScript::SetVelocity(float x, float y, float z, Entity entity) {
-			SetVelocity(Vec3(x, y, z), entity);
+		void IScript::RB_SetVelocity(float x, float y, float z, Entity entity) {
+			RB_SetVelocity(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetAngularVelocity(Entity entity) const {
+		Vec3 IScript::RB_GetAngularVelocity(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -573,7 +573,7 @@ namespace NE {
 			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetAngularVelocity(meta.luid));
 		}
 
-		void IScript::SetAngularVelocity(const Vec3& angularVelocity, Entity entity) {
+		void IScript::RB_SetAngularVelocity(const Vec3& angularVelocity, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -587,11 +587,11 @@ namespace NE {
 			Physics::PhysicsManager::GetInstance().SetAngularVelocity(meta.luid, ToEngineVec3(angularVelocity));
 		}
 
-		void IScript::SetAngularVelocity(float x, float y, float z, Entity entity) {
-			SetAngularVelocity(Vec3(x, y, z), entity);
+		void IScript::RB_SetAngularVelocity(float x, float y, float z, Entity entity) {
+			RB_SetAngularVelocity(Vec3(x, y, z), entity);
 		}
 
-		void IScript::AddForce(const Vec3& force, Entity entity) {
+		void IScript::RB_AddForce(const Vec3& force, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -605,11 +605,11 @@ namespace NE {
 			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(force));
 		}
 
-		void IScript::AddForce(float x, float y, float z, Entity entity) {
-			AddForce(Vec3(x, y, z), entity);
+		void IScript::RB_AddForce(float x, float y, float z, Entity entity) {
+			RB_AddForce(Vec3(x, y, z), entity);
 		}
 
-		void IScript::AddImpulse(const Vec3& impulse, Entity entity) {
+		void IScript::RB_AddImpulse(const Vec3& impulse, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -623,8 +623,8 @@ namespace NE {
 			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(impulse), Physics::ForceMode::Impulse);
 		}
 
-		void IScript::AddImpulse(float x, float y, float z, Entity entity) {
-			AddImpulse(Vec3(x, y, z), entity);
+		void IScript::RB_AddImpulse(float x, float y, float z, Entity entity) {
+			RB_AddImpulse(Vec3(x, y, z), entity);
 		}
 
 		//=========================================================================
