@@ -369,6 +369,7 @@ namespace Editor {
 
 		if (ImGui::BeginPopupContextWindow("HierarchyContext",
 			ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight)) {
+			EditorScene::s_selection.Clear();
 			DrawContextMenu();
 			ImGui::EndPopup();
 		}
