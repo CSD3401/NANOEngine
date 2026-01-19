@@ -375,4 +375,50 @@ namespace Editor {
 		NE::ECS::Command::SetLayer(m_entity, static_cast<NE::Core::LayerID>(m_before));
 	}
 
+	CreateDirectionalLightCommand::CreateDirectionalLightCommand(uint32_t parentEntity)
+		: m_entity(0), m_parentEntity(parentEntity) {
+	}
+
+	void CreateDirectionalLightCommand::Execute() {
+		m_entity = NE::ECS::Command::CreateDirectionalLightEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
+	}
+
+	void CreateDirectionalLightCommand::Undo() {
+		EditorScene::UnregisterRoot(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
+	CreatePointLightCommand::CreatePointLightCommand(uint32_t parentEntity)
+		: m_entity(0), m_parentEntity(parentEntity) {
+	}
+
+	void CreatePointLightCommand::Execute() {
+		m_entity = NE::ECS::Command::CreatePointLightEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
+	}
+
+	void CreatePointLightCommand::Undo() {
+		EditorScene::UnregisterRoot(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
+	CreateSpotLightCommand::CreateSpotLightCommand(uint32_t parentEntity)
+		: m_entity(0), m_parentEntity(parentEntity) {
+	}
+
+	void CreateSpotLightCommand::Execute() {
+		m_entity = NE::ECS::Command::CreateSpotLightEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
+	}
+
+
+	void CreateSpotLightCommand::Undo() {
+		EditorScene::UnregisterRoot(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
 }

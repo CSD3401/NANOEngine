@@ -4,6 +4,16 @@
 #include <cmath>
 
 namespace NE::Math {
+	namespace {
+		Quat FromAxisAngleRadians(const Vec3& axis, float angleRad)
+		{
+			Vec3 n = axis.Normalized();
+			float half = angleRad * 0.5f;
+			float s = std::sin(half);
+			return Quat(n.x * s, n.y * s, n.z * s, std::cos(half));
+		}
+	}
+
 	constexpr float EPSILON = 1e-6f;
 
 	Quat::Quat() noexcept
@@ -238,28 +248,16 @@ namespace NE::Math {
 		return v + ((uv * w) + uuv) * 2.0f;
 	}
 
-	Quat Quat::FromEulerRadians(float pitch, float yaw, float roll)
-	{
-		// Half angles
-		float cp = std::cos(pitch * 0.5f);
-		float sp = std::sin(pitch * 0.5f);
-		float cy = std::cos(yaw * 0.5f);
-		float sy = std::sin(yaw * 0.5f);
-		float cr = std::cos(roll * 0.5f);
-		float sr = std::sin(roll * 0.5f);
+	Quat Quat::FromEulerRadians(float pitchX, float yawY, float rollZ) {
+		Quat qx = FromAxisAngleRadians(Vec3(1, 0, 0), pitchX);
+		Quat qy = FromAxisAngleRadians(Vec3(0, 1, 0), yawY);
+		Quat qz = FromAxisAngleRadians(Vec3(0, 0, 1), rollZ);
 
-		Quat q;
-		q.w = cr * cp * cy + sr * sp * sy;
-		q.x = sr * cp * cy - cr * sp * sy;
-		q.y = cr * sp * cy + sr * cp * sy;
-		q.z = cr * cp * sy - sr * sp * cy;
-
-		return q;
+		return (qz * qx * qy).Normalized();
 	}
 
-	Quat Quat::FromEulerDegrees(float pitch, float yaw, float roll)
-	{
-		return FromEulerRadians(pitch * DEG_TO_RAD, yaw * DEG_TO_RAD, roll * DEG_TO_RAD);
+	Quat Quat::FromEulerDegrees(float pitchX, float yawY, float rollZ) {
+		return FromEulerRadians(pitchX * DEG_TO_RAD, yawY * DEG_TO_RAD, rollZ * DEG_TO_RAD);
 	}
 
 	Quat Quat::FromEulerDegrees(const Vec3& euler)

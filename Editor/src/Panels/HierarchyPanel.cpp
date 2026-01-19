@@ -664,5 +664,29 @@ namespace Editor {
 			//ImGui::MenuItem("Quad", "", false, false);
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::BeginMenu("Light")) {
+			if (ImGui::MenuItem("Directional Light", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateDirectionalLightEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Point Light", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreatePointLightEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Spot Light", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateSpotLightEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Area Light", "", false, false)) {
+			}
+			ImGui::EndMenu();
+		}
 	}
 }

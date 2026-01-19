@@ -163,6 +163,11 @@ using String = ScriptFieldType::String;
 #define SCRIPT_FIELD_LAYERMASK(fieldName) \
     RegisterLayerMaskField(#fieldName, &this->fieldName)
 
+// SCRIPT_FIELD_LAYERREF macro - registers LayerRef fields with layer dropdown
+// Usage: SCRIPT_FIELD_LAYERREF(targetLayer)
+#define SCRIPT_FIELD_LAYERREF(fieldName) \
+    RegisterLayerRefField(#fieldName, &this->fieldName)
+
 // ============ CONVENIENCE NAMESPACES (GLOBAL SCOPE) ============
 // Similar pattern to Input, Events, Coroutines namespaces in ScriptAPI.h
 
@@ -295,6 +300,7 @@ using Entity = NE::Scripting::Entity;
 using IScript = NE::Scripting::IScript;
 using RaycastHit = NE::Scripting::RaycastHit;
 using LayerMask = NE::Scripting::LayerMask;
+using LayerRef = NE::Scripting::LayerRef;
 using GameObject = NE::Scripting::GameObject;
 
 // Component reference types

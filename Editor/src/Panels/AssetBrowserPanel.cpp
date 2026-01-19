@@ -17,6 +17,7 @@
 #include "../AssetManagement/AssetManager.hpp"
 #include "../EditorEvents.hpp"
 #include "../ThumbnailManager.hpp"
+#include "../Serialization/Serializer.hpp"
 
 namespace Editor {
     AssetBrowserPanel::AssetBrowserPanel(const std::filesystem::path& root)
@@ -138,7 +139,9 @@ namespace Editor {
 
             if (ImGui::Button("Yes")) {
                 auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(m_selectedPath.string());
-                NE::LoadScene(uuid);
+                NE::CreateSceneFallback(uuid);
+                Deserialization::JSON::DeserializeScene(m_selectedPath.string());
+                NE::StartSceneFallback();
                 EditorScene::BuildRoot();
                 EditorScene::s_currentScenePath = m_selectedPath.string();
                 EditorScene::s_currentSceneUUID = uuid;
@@ -292,7 +295,7 @@ namespace Editor {
 
         float cellWidth = thumbnailSize + cellPaddingX;
         float textLineH = ImGui::GetTextLineHeight();
-        float cellHeight = thumbnailSize + 4.0f + textLineH + cellPaddingY;
+        //float cellHeight = thumbnailSize + 4.0f + textLineH + cellPaddingY;
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
         int columnCount = (int)(panelWidth / cellWidth);
@@ -300,9 +303,9 @@ namespace Editor {
 
         ImGui::Columns(columnCount, nullptr, false);
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4, 0.4, 0.4, 0.4));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.4f, 0.4f, 0.4f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
 
         for (auto& entry : std::filesystem::directory_iterator(path)) {
             const auto& name = entry.path().filename().string();
@@ -695,6 +698,53 @@ namespace Editor {
         } while (fs::exists(scenePath));
 
         std::ofstream out(scenePath);
+		out << 
+R"(
+    {
+        "RenderSettings": {
+            "envSource": 2,
+            "ambientColour": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "ambientIntensity": 0.0,
+            "fogEnabled": 0,
+            "fogMode": 0,
+            "fogColour": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "fogStart": 0.0,
+            "fogEnd": 100.0,
+            "fogDensity": 0.10000000149011612
+        },
+        "PostProcessingSettings": {
+            "bloomSettings": {
+                "tint": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "brightThreshold": 1.0,
+                "brightScale": 1.0,
+                "softKnee": 0.20000000298023224,
+                "bloomRadius": 1.0,
+                "bloomIntensity": 0.10000000149011612,
+                "exposure": 1.0
+            },
+            "ssaoSettings": {
+                "enabled": 0,
+                "radius": 0.5,
+                "bias": 0.02500000037252903,
+                "intensity": 1.0,
+                "power": 1.5
+            }
+        },
+        "Entities": []
+    }
+)";
         out.close();
 
         Assets::AssetManager::GetInstance().GenerateMetadata(scenePath.string());

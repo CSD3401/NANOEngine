@@ -37,7 +37,7 @@ namespace Editor {
         // =========================
         bool openShaderPopup = false;
         std::string uuidToName = Assets::AssetManager::GetInstance().RetrieveFilename(mat.GetPipeline()->GetSpecification().shaderName);
-        DrawAssetField("Shader", uuidToName.c_str(), "+", 0.f, &openShaderPopup);
+        DrawAssetField("Shader", uuidToName, &openShaderPopup);
         if (openShaderPopup) ImGui::OpenPopup("AssetPicker_Shader");
 
         if (ImGui::BeginPopup("AssetPicker_Shader")) {
@@ -61,9 +61,41 @@ namespace Editor {
         }
 
         // =========================
+        // Uniforms
+        // =========================
+        ImGui::SeparatorText("Uniforms");
+
+        for (auto& [name, val] : mat.GetFloatUniforms()) {
+            float f = val;
+            if (Editor::DrawFloatControl(name.c_str(), f, 0.1f)) mat.SetUniformFloat(name, f);
+        }
+
+        for (auto& [name, val] : mat.GetVec3Uniforms()) {
+            auto v = val;
+            if (Editor::DrawVec3Control(name.c_str(), v, 0.f, 100.f)) mat.SetUniformVec3(name, v);
+        }
+
+        for (auto& [name, val] : mat.GetIntUniforms()) {
+            if (name.rfind("h_", 0) == 0) continue;
+            int i = val;
+            if (ImGui::DragInt(name.c_str(), &i)) mat.SetUniformInt(name, i);
+        }
+
+        ImGui::SeparatorText("Textures");
+        for (auto& [uname, tex] : mat.GetTextures()) {
+            DrawTextureField(uname.c_str(), tex, 48.f,
+                [&](const std::string& uuid) {
+                    mat.SetTexture(uname, uuid);
+                    std::string has = "h_Has" + uname.substr(2);
+                    if (mat.GetIntUniforms().contains(has))
+                        mat.SetUniformInt(has, uuid != "" ? 1 : 0);
+                });
+        }
+
+        // =========================
         // Pipeline Settings
         // =========================
-        if (ImGui::CollapsingHeader("Pipeline Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("Pipeline Settings")) {
             // Copy the pipeline spec (do not edit shared pipeline state)
             NE::Graphics::PipelineSpecification spec = mat.GetPipeline()->GetSpecification();
 
@@ -72,16 +104,16 @@ namespace Editor {
             pipelineChanged |= ImGui::Checkbox("Depth Test", &spec.EnableDepthTest);
             pipelineChanged |= ImGui::Checkbox("Blending", &spec.EnableBlending);
 
-			// Note: CullMode and PolygonMode are currently serialized directly as GL enums, 
+            // Note: CullMode and PolygonMode are currently serialized directly as GL enums, 
             // but should be abstracted later because exposing GL enums directly is not ideal for cross-API compatibility
-            
+
             // ---- Cull Mode ----
             const char* cullItems[] = { "None", "Back", "Front", "Front & Back" };
 
             constexpr int CULL_NONE = 0;
-			constexpr int CULL_BACK = 0x0405; // GL_BACK
-			constexpr int CULL_FRONT = 0x0404; // GL_FRONT
-			constexpr int CULL_FRONT_AND_BACK = 0x0408; // GL_FRONT_AND_BACK
+            constexpr int CULL_BACK = 0x0405; // GL_BACK
+            constexpr int CULL_FRONT = 0x0404; // GL_FRONT
+            constexpr int CULL_FRONT_AND_BACK = 0x0408; // GL_FRONT_AND_BACK
 
             auto CullEnumToIndex = [](int v) -> int {
                 switch (v) {
@@ -91,7 +123,7 @@ namespace Editor {
                 case CULL_FRONT_AND_BACK: return 3;
                 default:                  return 1; // default Back
                 }
-            };
+                };
             auto CullIndexToEnum = [](int i) -> int {
                 switch (i) {
                 case 0:  return CULL_NONE;
@@ -100,7 +132,7 @@ namespace Editor {
                 case 3:  return CULL_FRONT_AND_BACK;
                 default: return CULL_BACK;
                 }
-            };
+                };
 
             int cullIdx = CullEnumToIndex(spec.CullMode);
             if (ImGui::Combo("Cull Mode", &cullIdx, cullItems, IM_ARRAYSIZE(cullItems))) {
@@ -111,9 +143,9 @@ namespace Editor {
             // ---- Polygon Mode ----
             const char* polyItems[] = { "Fill", "Wireframe", "Point" };
 
-			constexpr int POLY_FILL = 0x1B02; // GL_FILL
-			constexpr int POLY_LINE = 0x1B01; // GL_LINE
-			constexpr int POLY_POINT = 0x1B00; // GL_POINT
+            constexpr int POLY_FILL = 0x1B02; // GL_FILL
+            constexpr int POLY_LINE = 0x1B01; // GL_LINE
+            constexpr int POLY_POINT = 0x1B00; // GL_POINT
 
             auto PolyEnumToIndex = [](int v) -> int {
                 switch (v) {
@@ -122,7 +154,7 @@ namespace Editor {
                 case POLY_POINT: return 2;
                 default:         return 0; // default Fill
                 }
-            };
+                };
             auto PolyIndexToEnum = [](int i) -> int {
                 switch (i) {
                 case 0:  return POLY_FILL;
@@ -130,7 +162,7 @@ namespace Editor {
                 case 2:  return POLY_POINT;
                 default: return POLY_FILL;
                 }
-            };
+                };
 
             int polyIdx = PolyEnumToIndex(spec.PolygonMode);
             if (ImGui::Combo("Polygon Mode", &polyIdx, polyItems, IM_ARRAYSIZE(polyItems))) {
@@ -177,37 +209,6 @@ namespace Editor {
             }
 
             ImGui::Text("Final Queue: %u", mat.GetQueueOrder());
-        }
-
-        // =========================
-        // Uniforms
-        // =========================
-        ImGui::SeparatorText("Uniforms");
-
-        for (auto& [name, val] : mat.GetFloatUniforms()) {
-            float f = val;
-            if (Editor::DrawFloatControl(name.c_str(), f, 0.1f)) mat.SetUniformFloat(name, f);
-        }
-
-        for (auto& [name, val] : mat.GetVec3Uniforms()) {
-            auto v = val;
-            if (Editor::DrawVec3Control(name.c_str(), v, 0.f, 100.f)) mat.SetUniformVec3(name, v);
-        }
-
-        for (auto& [name, val] : mat.GetIntUniforms()) {
-            int i = val;
-            if (ImGui::DragInt(name.c_str(), &i)) mat.SetUniformInt(name, i);
-        }
-
-        ImGui::SeparatorText("Textures");
-        for (auto& [uname, tex] : mat.GetTextures()) {
-            DrawTextureField(uname.c_str(), tex, 48.f,
-                [&](const std::string& uuid) {
-                    mat.SetTexture(uname, uuid);
-                    std::string has = "u_Has" + uname.substr(2);
-                    if (mat.GetIntUniforms().contains(has))
-                        mat.SetUniformInt(has, uuid != "" ? 1 : 0);
-                });
         }
 
         if (ImGui::Button("Save Material", { 120, 28 })) {

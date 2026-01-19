@@ -56,6 +56,27 @@ namespace Editor {
             }
         );
 
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateDirectionalLightEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateDirectionalLightEvent& e) {
+                ExecuteCommand(std::make_unique<CreateDirectionalLightCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreatePointLightEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreatePointLightEvent& e) {
+                ExecuteCommand(std::make_unique<CreatePointLightCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateSpotLightEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateSpotLightEvent& e) {
+                ExecuteCommand(std::make_unique<CreateSpotLightCommand>(e.parentEntity));
+            }
+        );
+
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUICanvasEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const Events::CreateUICanvasEntityEvent&) {

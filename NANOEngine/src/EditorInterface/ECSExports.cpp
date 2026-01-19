@@ -426,6 +426,93 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
+		uint32_t CreateDirectionalLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Directional Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.type = Component::Light::Type::Directional,
+					.data = Component::Light::DirectionalLightData{}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreatePointLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Point Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.type = Component::Light::Type::Point,
+					.data = Component::Light::PointLightData{}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateSpotLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Spot Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.type = Component::Light::Type::Spot,
+					.data = Component::Light::SpotLightData{}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
 		uint32_t CreateUICanvasEntity() {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
