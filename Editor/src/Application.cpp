@@ -47,7 +47,7 @@ namespace Editor {
 
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
-			glfwSetWindowIcon(window, 1, &icon);
+		glfwSetWindowIcon(window, 1, &icon);
 
 		GLuint texID;
 		glGenTextures(1, &texID);
@@ -69,22 +69,22 @@ namespace Editor {
 		glfwSetKeyCallback(window, [](GLFWwindow* w, int key, int sc, int action, int mods) {
 			ImGui_ImplGlfw_KeyCallback(w, key, sc, action, mods);
 			//if (!ImGui::GetIO().WantCaptureKeyboard)
-				NE::InputManager::OnKey(key, sc, action, mods);
+			NE::InputManager::OnKey(key, sc, action, mods);
 			});
 		glfwSetMouseButtonCallback(window, [](GLFWwindow* w, int button, int action, int mods) {
 			ImGui_ImplGlfw_MouseButtonCallback(w, button, action, mods);
 			//if (!ImGui::GetIO().WantCaptureMouse)
-				NE::InputManager::OnMouseButton(button, action, mods);
+			NE::InputManager::OnMouseButton(button, action, mods);
 			});
 		glfwSetCursorPosCallback(window, [](GLFWwindow* w, double x, double y) {
 			ImGui_ImplGlfw_CursorPosCallback(w, x, y);
 			//if (!ImGui::GetIO().WantCaptureMouse)
-				NE::InputManager::OnCursorPos(x, y);
+			NE::InputManager::OnCursorPos(x, y);
 			});
 		glfwSetScrollCallback(window, [](GLFWwindow* w, double xoff, double yoff) {
 			ImGui_ImplGlfw_ScrollCallback(w, xoff, yoff);
 			//if (!ImGui::GetIO().WantCaptureMouse)
-				NE::InputManager::OnScroll(xoff, yoff);
+			NE::InputManager::OnScroll(xoff, yoff);
 			});
 		glfwSetCharCallback(window, [](GLFWwindow* w, unsigned int c) {
 			ImGui_ImplGlfw_CharCallback(w, c);
@@ -199,4 +199,3 @@ namespace Editor {
 		NE::Shutdown();
 	}
 }
-

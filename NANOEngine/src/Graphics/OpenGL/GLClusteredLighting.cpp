@@ -225,19 +225,41 @@ namespace NE::Graphics::OpenGL {
             dst.color[0] = src->color.x;
             dst.color[1] = src->color.y;
             dst.color[2] = src->color.z;
-            dst.color[3] = src->intensity;
+            dst.color[3] = 1.f;
 
             // params:  inner / outer / radius / padding
-            dst.params[0] = std::cos(Radians(src->innerCutoff));
-            dst.params[1] = std::cos(Radians(src->outerCutoff));
-            dst.params[2] = src->radius;
+            dst.params[0] = 0.f;
+            dst.params[1] = 0.f;
+            dst.params[2] = 0.f;
             dst.params[3] = static_cast<float>(src->shadowIndex);
 
             // direction.xyz + padding
-            dst.direction[0] = src->direction.x;
-            dst.direction[1] = src->direction.y;
-            dst.direction[2] = src->direction.z;
+            Vec3 dir = src->direction.Normalized();
+            dst.direction[0] = dir.x;
+            dst.direction[1] = dir.y;
+            dst.direction[2] = dir.z;
             dst.direction[3] = static_cast<float>(src->shadowType);
+
+            std::visit([&](const auto& d) {
+                using T = std::decay_t<decltype(d)>;
+
+                // intensity exists on all your payload structs
+                dst.color[3] = d.intensity;
+
+                if constexpr (std::is_same_v<T, ECS::Component::Light::SpotLightData>) {
+                    // Degrees -> radians -> cos
+                    dst.params[0] = std::cos(Radians(d.innerConeAngleDeg));
+                    dst.params[1] = std::cos(Radians(d.outerConeAngleDeg));
+                    dst.params[2] = d.range;
+                } else if constexpr (std::is_same_v<T, ECS::Component::Light::PointLightData>) {
+                    dst.params[2] = d.range;
+                } else if constexpr (std::is_same_v<T, ECS::Component::Light::AreaLightData>) {
+                    dst.params[2] = d.range;
+                    // width/height not used in your current packed struct; see note below
+                } else if constexpr (std::is_same_v<T, ECS::Component::Light::DirectionalLightData>) {
+                    // no range; keep params[2] = 0
+                }
+            }, src->data);
         }
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lightSSBO);

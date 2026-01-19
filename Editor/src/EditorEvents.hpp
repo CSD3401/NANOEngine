@@ -23,6 +23,18 @@ namespace Editor::Events {
 		uint32_t parentEntity;
 	};
 
+	struct CreateDirectionalLightEvent {
+		uint32_t parentEntity;
+	};
+
+	struct CreatePointLightEvent {
+		uint32_t parentEntity;
+	};
+
+	struct CreateSpotLightEvent {
+		uint32_t parentEntity;
+	};
+
 	struct DeleteEntityEvent {
 		std::vector<uint32_t> entitiesToBeDeleted;
 	};
