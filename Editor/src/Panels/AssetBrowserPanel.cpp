@@ -292,7 +292,7 @@ namespace Editor {
 
         float cellWidth = thumbnailSize + cellPaddingX;
         float textLineH = ImGui::GetTextLineHeight();
-        float cellHeight = thumbnailSize + 4.0f + textLineH + cellPaddingY;
+        //float cellHeight = thumbnailSize + 4.0f + textLineH + cellPaddingY;
 
         float panelWidth = ImGui::GetContentRegionAvail().x;
         int columnCount = (int)(panelWidth / cellWidth);
@@ -300,9 +300,9 @@ namespace Editor {
 
         ImGui::Columns(columnCount, nullptr, false);
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4, 0.4, 0.4, 0.4));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.4f, 0.4f, 0.4f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.f, 0.f, 0.f, 0.f));
 
         for (auto& entry : std::filesystem::directory_iterator(path)) {
             const auto& name = entry.path().filename().string();

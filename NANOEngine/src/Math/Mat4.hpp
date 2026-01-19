@@ -399,7 +399,9 @@ namespace NE::Math {
 			*this * rhs.
 		*************************************************************************/
 		Vec4 operator*(const Vec4& rhs);
+		Vec4 operator*(const Vec4& rhs) const;
 		Vec3 operator*(const Vec3& rhs);
+		Vec3 operator*(const Vec3& rhs) const;
 
 		/*!***********************************************************************
 		\brief
@@ -467,6 +469,10 @@ namespace NE::Math {
 		Vec3 GetScale() const;
 
 		Vec3 GetRotation() const;
+
+		Vec3 Right() const;
+		Vec3 Up()    const;
+		Vec3 Forward() const;
 
 		const float* Data() const { return a; }
 		float* Data() { return a; }

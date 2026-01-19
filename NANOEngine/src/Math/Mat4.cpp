@@ -303,6 +303,42 @@ namespace NE::Math {
 		return screenToNDC;
 	}
 
+	Vec4 Mat4::operator*(const Vec4& rhs) const {
+		return Vec4(
+			a[0] * rhs.x + a[4] * rhs.y + a[8] * rhs.z + a[12] * rhs.w,
+			a[1] * rhs.x + a[5] * rhs.y + a[9] * rhs.z + a[13] * rhs.w,
+			a[2] * rhs.x + a[6] * rhs.y + a[10] * rhs.z + a[14] * rhs.w,
+			a[3] * rhs.x + a[7] * rhs.y + a[11] * rhs.z + a[15] * rhs.w
+		);
+	}
+
+	Vec4 Mat4::operator*(const Vec4& rhs) {
+		return Vec4(
+			a[0] * rhs.x + a[4] * rhs.y + a[8] * rhs.z + a[12] * rhs.w,
+			a[1] * rhs.x + a[5] * rhs.y + a[9] * rhs.z + a[13] * rhs.w,
+			a[2] * rhs.x + a[6] * rhs.y + a[10] * rhs.z + a[14] * rhs.w,
+			a[3] * rhs.x + a[7] * rhs.y + a[11] * rhs.z + a[15] * rhs.w
+		);
+	}
+
+	Vec3 Mat4::operator*(const Vec3& rhs) const {
+		float invW = 1.0f / (a[3] * rhs.x + a[7] * rhs.y + a[11] * rhs.z + a[15]);
+		return Vec3(
+			(a[0] * rhs.x + a[4] * rhs.y + a[8] * rhs.z + a[12]) * invW,
+			(a[1] * rhs.x + a[5] * rhs.y + a[9] * rhs.z + a[13]) * invW,
+			(a[2] * rhs.x + a[6] * rhs.y + a[10] * rhs.z + a[14]) * invW
+		);
+	}
+
+	Vec3 Mat4::operator*(const Vec3& rhs) {
+		float invW = 1.0f / (a[3] * rhs.x + a[7] * rhs.y + a[11] * rhs.z + a[15]);
+		return Vec3(
+			(a[0] * rhs.x + a[4] * rhs.y + a[8] * rhs.z + a[12]) * invW,
+			(a[1] * rhs.x + a[5] * rhs.y + a[9] * rhs.z + a[13]) * invW,
+			(a[2] * rhs.x + a[6] * rhs.y + a[10] * rhs.z + a[14]) * invW
+		);
+	}
+
 	Vec4 Mat4::GetRow4(unsigned int row) const {
 		return Vec4(GetElement(row, 0), GetElement(row, 1), GetElement(row, 2), GetElement(row, 3));
 	}
@@ -423,6 +459,18 @@ namespace NE::Math {
 		float roll = std::atan2(-normalized.a[1], normalized.a[0]);
 
 		return Vec3(pitch, yaw, roll);
+	}
+
+	Vec3 Mat4::Right() const { 
+		return GetCol3(0);
+	}
+
+	Vec3 Mat4::Up()    const { 
+		return GetCol3(1);
+	}
+
+	Vec3 Mat4::Forward() const { 
+		return -GetCol3(2); 
 	}
 
 	Mat4 Mat4::operator*(const Mat4& rhs) const

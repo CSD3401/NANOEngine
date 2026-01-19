@@ -85,6 +85,45 @@ namespace Editor {
         uint32_t m_parentEntity;
     };
 
+    class CreateDirectionalLightCommand final : public ICommand {
+    public:
+        CreateDirectionalLightCommand(uint32_t parentEntity);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Directional Light"; }
+
+    private:
+        uint32_t m_entity;
+        uint32_t m_parentEntity;
+    };
+
+    class CreatePointLightCommand final : public ICommand {
+    public:
+        CreatePointLightCommand(uint32_t parentEntity);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Point Light"; }
+
+    private:
+        uint32_t m_entity;
+        uint32_t m_parentEntity;
+    };
+
+    class CreateSpotLightCommand final : public ICommand {
+    public:
+        CreateSpotLightCommand(uint32_t parentEntity);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Spot Light"; }
+
+    private:
+        uint32_t m_entity;
+        uint32_t m_parentEntity;
+    };
+
     class CreateUICanvasEntityCommand final : public ICommand {
     public:
         CreateUICanvasEntityCommand();
