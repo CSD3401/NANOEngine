@@ -69,6 +69,8 @@ namespace NE::Physics {
 
         bool Raycast(Math::Vec3 origin, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask);
         bool Raycast(Ray ray, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask);
+		bool SphereCast(Math::Vec3 origin, float radius, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask);
+        bool SphereCast(Ray ray, float radius, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask);
 
         void AddForce(uint64_t entityLUID, Math::Vec3 force, ForceMode forceMode = ForceMode::Force);
 

@@ -51,17 +51,142 @@
 #include <glad/glad.h>
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
-// Experimental stuff
-#include "ResourceManagement/ResourceManager.hpp"
 #include "Input/InputManager.hpp"
 
-namespace {
-    float Radians(float deg) {
-        return deg * 3.14159265358979323846f / 180.0f;
-    }
-}
 
 namespace NE::Graphics {
+    namespace {
+        float Radians(float deg) {
+            return deg * 3.14159265358979323846f / 180.0f;
+        }
+
+        static inline Math::Vec3 TransformPoint(const Math::Mat4& m, const Math::Vec3& p, float w = 1.0f)
+        {
+            // Replace this with your own Mat4 * Vec4 if you already have it.
+            // Assuming Mat4::Data() is column-major float[16] like GL.
+            const float* a = m.Data();
+
+            float x = a[0] * p.x + a[4] * p.y + a[8] * p.z + a[12] * w;
+            float y = a[1] * p.x + a[5] * p.y + a[9] * p.z + a[13] * w;
+            float z = a[2] * p.x + a[6] * p.y + a[10] * p.z + a[14] * w;
+            float ww = a[3] * p.x + a[7] * p.y + a[11] * p.z + a[15] * w;
+
+            if (std::abs(ww) > 1e-6f) {
+                float invW = 1.0f / ww;
+                x *= invW; y *= invW; z *= invW;
+            }
+            return { x, y, z };
+        }
+
+        static inline Math::Vec3 TransformVector(const Math::Mat4& m, const Math::Vec3& v)
+        {
+            // w=0 for direction vectors
+            return TransformPoint(m, v, 0.0f);
+        }
+
+        static inline void BuildStableBasisFromDir(const Math::Vec3& dirN, Math::Vec3& outRight, Math::Vec3& outUp)
+        {
+            // Avoid hard flipping based on thresholds if you can
+            Math::Vec3 worldUp = { 0.f, 1.f, 0.f };
+
+            float d = std::abs(dirN.Dot(worldUp));
+            if (d > 0.99f) worldUp = { 0.f, 0.f, 1.f };
+
+            outRight = worldUp.Cross(dirN).Normalized();
+            outUp = dirN.Cross(outRight).Normalized();
+        }
+
+        Math::Mat4 BuildDirectionalLightVP_FitToView(const RenderView& view, Math::Vec3 lightDirWorld, int shadowRes)
+        {
+            using Math::Vec3;
+            using Math::Mat4;
+
+            Vec3 dir = lightDirWorld.Normalized();
+
+            // 1) Get 8 frustum corners in WORLD space
+            Mat4 viewProj = view.projection * view.view;
+            Mat4 invViewProj = viewProj.Inverse();
+
+            const Vec3 ndcCorners[8] = {
+                { -1, -1, -1 }, {  1, -1, -1 }, {  1,  1, -1 }, { -1,  1, -1 },
+                { -1, -1,  1 }, {  1, -1,  1 }, {  1,  1,  1 }, { -1,  1,  1 }
+            };
+
+            Vec3 frustumWS[8];
+            for (int i = 0; i < 8; ++i)
+                frustumWS[i] = TransformPoint(invViewProj, ndcCorners[i], 1.0f);
+
+            // 2) Compute frustum center
+            Vec3 center = { 0, 0, 0 };
+            for (auto& p : frustumWS) center += p;
+            center *= (1.0f / 8.0f);
+
+            // 3) Build light view matrix
+            Vec3 right, up;
+            BuildStableBasisFromDir(dir, right, up);
+
+            // Calculate frustum radius for stable pullback
+            float radius = 0.0f;
+            for (auto& p : frustumWS) {
+                float dist = (p - center).Length();
+                radius = std::max(radius, dist);
+            }
+
+            Vec3 eye = center - dir * (radius + 50.0f);  // Dynamic pullback based on frustum size
+            Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
+
+            // 4) Transform corners to light space and compute bounds
+            float minX = +FLT_MAX, minY = +FLT_MAX, minZ = +FLT_MAX;
+            float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
+
+            for (auto& pWS : frustumWS) {
+                Vec3 pLS = TransformPoint(lightView, pWS, 1.0f);
+                minX = std::min(minX, pLS.x); maxX = std::max(maxX, pLS.x);
+                minY = std::min(minY, pLS.y); maxY = std::max(maxY, pLS.y);
+                minZ = std::min(minZ, pLS.z); maxZ = std::max(maxZ, pLS.z);
+            }
+
+            // 5) TEXEL SNAPPING - snap both extent AND center
+            float extentX = maxX - minX;
+            float extentY = maxY - minY;
+
+            // Round extent up to be a multiple of (2 * texel size) for stability
+            float unitsPerTexelX = extentX / float(shadowRes);
+            float unitsPerTexelY = extentY / float(shadowRes);
+
+            // Snap extents to texel boundaries
+            extentX = std::ceil(extentX / unitsPerTexelX) * unitsPerTexelX;
+            extentY = std::ceil(extentY / unitsPerTexelY) * unitsPerTexelY;
+
+            // Recalculate units per texel with snapped extents
+            unitsPerTexelX = extentX / float(shadowRes);
+            unitsPerTexelY = extentY / float(shadowRes);
+
+            // Snap center to texel grid
+            float cx = 0.5f * (minX + maxX);
+            float cy = 0.5f * (minY + maxY);
+            cx = std::floor(cx / unitsPerTexelX) * unitsPerTexelX;
+            cy = std::floor(cy / unitsPerTexelY) * unitsPerTexelY;
+
+            minX = cx - 0.5f * extentX;
+            maxX = cx + 0.5f * extentX;
+            minY = cy - 0.5f * extentY;
+            maxY = cy + 0.5f * extentY;
+
+            // 6) Near/Far - extend behind for shadow casters outside view frustum
+            const float padZ = 100.0f;  // Increased to catch shadow casters behind camera
+            float nearP = -maxZ - padZ;
+            float farP = -minZ + padZ;
+
+            // Ensure valid range
+            if (nearP < 0.1f) nearP = 0.1f;
+            if (farP <= nearP) farP = nearP + 1.0f;
+
+            Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
+            return lightProj * lightView;
+        }
+    }
+
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
     uint32_t GraphicsManager::s_ScreenHeight = 1080;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
@@ -157,6 +282,37 @@ namespace NE::Graphics {
         }
     }
 
+    void GraphicsManager::UpdateShadowMapsForView(const RenderView& view) {
+        const auto& commands = s_DrawQueue->GetCommands();
+        if (m_lights.empty() || commands.empty())
+            return;
+
+        if (!s_ShadowShader) {
+            s_ShadowShader = Resource::ResourceManager::GetInstance()
+                .LoadResource<OpenGL::GLShader>("neshadowdepth");
+        }
+
+        for (auto* light : m_lights) {
+            if (!light) continue;
+
+            if (light->shadowType == ECS::Component::Light::ShadowType::None)
+                continue;
+
+            switch (light->shadowUpdateMode) {
+            case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
+                continue;
+
+            case ECS::Component::Light::ShadowUpdateMode::StaticBake:
+                if (light->shadowBaked)
+                    continue;
+
+            case ECS::Component::Light::ShadowUpdateMode::Realtime:
+                RenderShadowMapForLight(*light, commands);
+                break;
+            }
+        }
+    }
+
     void GraphicsManager::RenderShadowMapForLight(ECS::Component::Light& light,
         const std::vector<DrawCommand>& commands)
     {
@@ -169,6 +325,8 @@ namespace NE::Graphics {
                     GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
                 float border[4] = { 1,1,1,1 };
@@ -186,11 +344,7 @@ namespace NE::Graphics {
             Math::Mat4 lightProj;
 
             Math::Vec3 dir = light.direction.Normalized();
-
-            Math::Vec3 up{ 0.f, 1.f, 0.f };
-            if (std::fabs(dir.y) > 0.9f) {
-                up = { 0.f, 0.f, 1.f };
-            }
+            Math::Vec3 up = (std::abs(dir.y) > 0.99f) ? Math::Vec3{ 0.f, 0.f, 1.f } : Math::Vec3{ 0.f, 1.f, 0.f };
 
             if (light.type == ECS::Component::Light::Type::Directional) {
                 lightView = Math::Mat4::BuildViewMtx(
@@ -199,20 +353,31 @@ namespace NE::Graphics {
                     up
                 );
                 float size = 20.f;
+
                 lightProj = Math::Mat4::BuildOrtho(-size, size, -size, size, 0.1f, 100.f);
-            } else {
+                //light.lightViewProj = BuildDirectionalLightVP_FitToView(view, dir, SHADOW_RES);
+            } else if (light.type == ECS::Component::Light::Type::Spot) {
                 lightView = Math::Mat4::BuildViewMtx(
                     light.position,
                     light.position + dir,
                     up
                 );
-                float fov = Radians(light.outerCutoff) * 2.0f;
+
+                const auto* spot = std::get_if<ECS::Component::Light::SpotLightData>(&light.data);
+
+                float outerDeg = spot->outerConeAngleDeg;
+
+                outerDeg = std::clamp(outerDeg, 0.5f, 89.0f);
+
+                float fov = Radians(outerDeg) * 2.0f;
                 float nearP = 0.1f;
-                float farP = light.radius > 0.f ? light.radius : 50.f;
+
+                float farP = std::max(spot->range, nearP + 0.01f);
+
                 lightProj = Math::Mat4::BuildSymPerspective(fov, 1.0f, nearP, farP);
+                light.lightViewProj = lightProj * lightView;
             }
 
-            light.lightViewProj = lightProj * lightView;
 
             glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
             glViewport(0, 0, SHADOW_RES, SHADOW_RES);
@@ -773,6 +938,7 @@ namespace NE::Graphics {
         for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
             if (view.isMain && view.order == 0) s_GameViewHandle = handle;
+
 
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();

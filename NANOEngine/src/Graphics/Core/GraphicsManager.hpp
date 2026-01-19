@@ -35,9 +35,6 @@ namespace NE {
 	}
     namespace ECS {
         namespace Component {
-            struct DirectionalLight;
-            struct PointLight;
-            struct SpotLight;
             struct Light;
         }
 	}
@@ -139,6 +136,8 @@ namespace NE::Graphics {
         static PostProcessingSettings postProcessingSettings;
 
         static void UpdateShadowMaps();
+
+        static void UpdateShadowMapsForView(const RenderView& view);
         static void RenderShadowMapForLight(ECS::Component::Light& light, const std::vector<DrawCommand>& commands);
 
         // Render Graph

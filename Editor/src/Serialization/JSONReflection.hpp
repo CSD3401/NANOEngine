@@ -7,6 +7,7 @@
 #include <Math/Vec2.hpp>
 #include <Math/Vec3.hpp>
 #include <Math/Vec4.hpp>
+#include <Core/Reflection.hpp>
 
 namespace Editor {
 	using Alloc = rapidjson::Document::AllocatorType;

@@ -43,7 +43,7 @@
 #include <Core/SpdLogger.hpp>
 #include <fstream>
 #include <rapidjson/document.h>
-#include <Serialisation/ReflectionJson.hpp>
+#include "../Serialization/JSONReflection.hpp"
 #include <rapidjson/istreamwrapper.h>
 #include "../Command/EditorCommands.hpp"
 #include "../Layers/LayerDatabase.hpp"
@@ -149,6 +149,27 @@ namespace {
 		const FieldT& after)
 	{
 		using Cmd = Editor::SetColliderVariantFieldCommand<Alt, FieldT>;
+
+		auto cmd = std::make_unique<Cmd>(
+			entity,
+			std::string(fieldName),
+			member,
+			before,
+			after
+		);
+
+		Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(cmd));
+	}
+
+	template <typename Alt, typename FieldT>
+	static void SubmitSetLightVariantFieldCommand(
+		uint32_t entity,
+		std::string_view fieldName,
+		FieldT Alt::* member,
+		const FieldT& before,
+		const FieldT& after)
+	{
+		using Cmd = Editor::SetLightVariantFieldCommand<Alt, FieldT>;
 
 		auto cmd = std::make_unique<Cmd>(
 			entity,
@@ -643,7 +664,7 @@ namespace Editor {
 		auto& comp = NE::ECS::Query::GetPrefabInstance(entity);
 
 		bool openPopup = false;
-		DrawAssetField("Prefab", Assets::AssetManager::GetInstance().RetrieveFilename(comp.prefabUUID), "+", 0.f, &openPopup);
+		DrawAssetField("Prefab", Assets::AssetManager::GetInstance().RetrieveFilename(comp.prefabUUID), &openPopup);
 
 		ImGui::Button("Overrides");
 		ImGui::SameLine();
@@ -1004,7 +1025,7 @@ namespace Editor {
 	void InspectorPanel::DrawLightComponent(uint32_t entity) {
 		using Light = NE::ECS::Component::Light;
 
-		auto& comp = NE::ECS::Query::GetEntityLight(entity);
+		auto& comp = NE::ECS::Command::GetEntityLight(entity);
 
 		bool copyComp = false;
 		bool deleteComp = false;
@@ -1019,26 +1040,74 @@ namespace Editor {
 		if (!open)
 			return;
 
-		static const char* LightTypeNames[] = { "Directional", "Point", "Spot" };
+		static const char* LightTypeNames[] = { "Directional", "Point", "Spot", "Area" };
 		int currentType = static_cast<int>(comp.type);
-		if (ImGui::Combo("Type", &currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames))) {
-			auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
-			tempLight.type = static_cast<NE::ECS::Component::Light::Type>(currentType);
-		}
 
-		static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
-		int shadowType = static_cast<int>(comp.shadowType);
-		if (ImGui::Combo("Shadow Type", &shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames))) {
-			auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
-			tempLight.shadowType = static_cast<NE::ECS::Component::Light::ShadowType>(shadowType);
+		if (DrawEnumPillCombo("Type", currentType, LightTypeNames, IM_ARRAYSIZE(LightTypeNames), 300.0f)) {
+			auto newType =
+				static_cast<Light::Type>(currentType);
+
+			if (newType != comp.type) {
+				comp.type = newType;
+
+				switch (newType) {
+				case Light::Type::Directional:
+					comp.data.emplace<Light::DirectionalLightData>();
+					break;
+				case Light::Type::Point:
+					comp.data.emplace<Light::PointLightData>();
+					break;
+				case Light::Type::Spot:
+					comp.data.emplace<Light::SpotLightData>();
+					break;
+				case Light::Type::Area:
+					comp.data.emplace<Light::AreaLightData>();
+					break;
+				}
+
+				comp.isDirty = true;
+			}
 		}
 
 		static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
 		int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
-		if (ImGui::Combo("Shadow Update Mode", &shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames))) {
-			auto& tempLight = NE::ECS::Command::GetEntityLight(entity);
-			tempLight.shadowUpdateMode = static_cast<NE::ECS::Component::Light::ShadowUpdateMode>(shadowUpdateMode);
+
+		if (DrawEnumPillCombo("Shadow Update Mode", shadowUpdateMode, shadowUpdateModeNames, IM_ARRAYSIZE(shadowUpdateModeNames), 300.0f)) {
+			comp.shadowUpdateMode =
+				static_cast<Light::ShadowUpdateMode>(shadowUpdateMode);
 		}
+
+		if (shadowUpdateMode != 0) {
+			static const char* shadowTypeNames[] = { "None", "Hard", "Soft" };
+			int shadowType = static_cast<int>(comp.shadowType);
+
+			if (DrawEnumPillCombo("Shadow Type", shadowType, shadowTypeNames, IM_ARRAYSIZE(shadowTypeNames), 300.0f)) {
+				comp.shadowType =
+					static_cast<Light::ShadowType>(shadowType);
+			}
+
+		}
+
+		std::visit([&](auto& shape) {
+			using Alt = std::decay_t<decltype(shape)>;
+
+			NE::Core::ForEachFieldView<Alt>(shape, [&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+				if (DrawField(desc, edited)) {
+					SubmitSetLightVariantFieldCommand<Alt, FieldT>(
+						entity,
+						desc.name,
+						desc.member,
+						currentValue,
+						edited
+					);
+				}
+				});
+
+			}, comp.data
+		);
 
 		NE::Core::ForEachFieldView<Light>(comp,
 			[&](auto const& desc, auto const& currentValue) {
@@ -1051,7 +1120,9 @@ namespace Editor {
 						entity, desc, currentValue, edited
 					);
 				}
-			});
+			}
+		);
+
 
 		if (copyComp) {
 
@@ -1068,7 +1139,7 @@ namespace Editor {
 		ImGui::SeparatorText("AudioSource");
 
 		bool openPopup = false;
-		DrawAssetField("Audio", comp.modelPath.string(), "+", 0.f, &openPopup);
+		DrawAssetField("Audio", comp.modelPath.string(), &openPopup);
 		if (openPopup) {
 			ImGui::OpenPopup("AudioPicker_Model");
 		}
@@ -1204,7 +1275,7 @@ namespace Editor {
 				std::string headerLabel = scriptName + "##script_" + std::to_string(scriptIdx);
 
 				// Push ID for this script
-				ImGui::PushID(scriptIdx);
+				ImGui::PushID(static_cast<int>(scriptIdx));
 
 				// Collapsing header for each script (default open)
 				ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.3f, 0.4f, 1.0f));

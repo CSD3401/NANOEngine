@@ -369,6 +369,7 @@ namespace Editor {
 
 		if (ImGui::BeginPopupContextWindow("HierarchyContext",
 			ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight)) {
+			EditorScene::s_selection.Clear();
 			DrawContextMenu();
 			ImGui::EndPopup();
 		}
@@ -661,7 +662,36 @@ namespace Editor {
 					Events::CreatePlaneEntityEvent{ parentEntityId }
 				);
 			}
-			//ImGui::MenuItem("Quad", "", false, false);
+			if (ImGui::MenuItem("Quad", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateQuadEntityEvent{ parentEntityId }
+				);
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Light")) {
+			if (ImGui::MenuItem("Directional Light", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateDirectionalLightEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Point Light", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreatePointLightEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Spot Light", "", false, true)) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateSpotLightEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Area Light", "", false, false)) {
+			}
 			ImGui::EndMenu();
 		}
 	}

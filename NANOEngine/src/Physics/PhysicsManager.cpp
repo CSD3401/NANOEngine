@@ -20,6 +20,7 @@
 
 // Raycasting includes
 #include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Geometry/IndexedTriangle.h>
@@ -362,9 +363,7 @@ namespace NE::Physics {
 
     bool PhysicsManager::Raycast(Math::Vec3 origin, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask) {
         JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
-        float dirLength = joltDir.Length();
-
-        joltDir /= dirLength;
+        joltDir = joltDir.Normalized();
 
         JPH::RRayCast joltRay{ ToJoltVec3(origin), ToJoltVec3(direction * maxDistance) };
 
@@ -427,6 +426,91 @@ namespace NE::Physics {
 
     bool PhysicsManager::Raycast(Ray ray, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask) {
         return Raycast(ray.origin, ray.direction, outHitInfo, maxDistance, layerMask);
+    }
+
+    bool PhysicsManager::SphereCast(Math::Vec3 origin, float radius, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask) {
+        JPH::Vec3 joltDir(direction.x, direction.y, direction.z);
+        joltDir = joltDir.Normalized();
+        
+		JPH::SphereShapeSettings sphereSettings(radius);
+		JPH::ShapeSettings::ShapeResult sphereResult = sphereSettings.Create();
+
+		if (sphereResult.HasError()) {
+			SPD_WARNING("Failed to create sphere shape for sphere cast");
+			return false;
+		}
+
+        JPH::RefConst<JPH::Shape> sphereShape = sphereResult.Get();
+
+        JPH::RMat44 startWorld = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
+
+        JPH::Vec3 castDir = joltDir * maxDistance;
+
+        JPH::RShapeCast sphereCast =
+            JPH::RShapeCast::sFromWorldTransform(
+                sphereShape.GetPtr(),
+                JPH::Vec3::sReplicate(1.0f),
+                startWorld,
+                castDir
+            );
+
+        ObjectLayerFilterImpl layerFilter(layerMask);
+
+        using CollectorT = JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector>;
+        CollectorT collector;
+
+        JPH::ShapeCastSettings settings;
+
+        JPH::RVec3 baseOffset = JPH::RVec3::sZero();
+
+        m_physicsSystem->GetNarrowPhaseQuery().CastShape(
+            sphereCast,
+            settings,
+            baseOffset,
+            collector,
+            JPH::BroadPhaseLayerFilter(),
+            layerFilter,
+            JPH::BodyFilter(),
+            JPH::ShapeFilter()
+        );
+
+        if (!collector.HadHit() || collector.mHit.mBodyID2.IsInvalid())
+            return false;
+
+        const JPH::ShapeCastResult& hit = collector.mHit;
+
+        outHitInfo.distance = hit.mFraction * maxDistance;
+
+        const JPH::Vec3 p = hit.mContactPointOn2;
+        outHitInfo.point = Math::Vec3(p.GetX(), p.GetY(), p.GetZ());
+
+        JPH::Vec3 n = -hit.mPenetrationAxis.Normalized();
+        outHitInfo.normal = Math::Vec3(n.GetX(), n.GetY(), n.GetZ());
+
+        JPH::BodyLockRead lock(m_physicsSystem->GetBodyLockInterface(), hit.mBodyID2);
+        if (lock.Succeeded()) {
+            const JPH::Body& body = lock.GetBody();
+
+            ECS::Entity hitEntity = static_cast<ECS::Entity>(body.GetUserData());
+            outHitInfo.colliderEntityID = hitEntity;
+
+            if (m_componentManager) {
+                if (m_componentManager->HasComponent<ECS::Component::Transform>(hitEntity))
+                    outHitInfo.transformLuid = m_componentManager->GetComponent<ECS::Component::Transform>(hitEntity).luid;
+
+                if (m_componentManager->HasComponent<ECS::Component::Rigidbody>(hitEntity))
+                    outHitInfo.rigidbodyLuid = m_componentManager->GetComponent<ECS::Component::Rigidbody>(hitEntity).luid;
+
+                if (m_componentManager->HasComponent<ECS::Component::Collider>(hitEntity))
+                    outHitInfo.colliderLuid = m_componentManager->GetComponent<ECS::Component::Collider>(hitEntity).luid;
+            }
+        }
+
+        return true;
+    }
+
+    bool PhysicsManager::SphereCast(Ray ray, float radius, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask) {
+		return SphereCast(ray.origin, radius, ray.direction, outHitInfo, maxDistance, layerMask);
     }
 
     void PhysicsManager::AddForce(uint64_t entityLUID, Math::Vec3 force, ForceMode forceMode) {
