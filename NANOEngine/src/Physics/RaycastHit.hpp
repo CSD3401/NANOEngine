@@ -3,12 +3,6 @@
 #include "ECS/Core/Entity.hpp"
 #include "Math/Vec3.hpp"
 
-namespace NE::ECS::Components {
-	struct Collider;
-	struct Rigidbody;
-	struct Transform;
-}
-
 namespace NE::Physics {
 	struct RaycastHit {
 		Math::Vec3 point{ 0.f, 0.f, 0.f };
