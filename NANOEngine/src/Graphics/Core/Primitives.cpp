@@ -7,7 +7,6 @@
 
 namespace NE::Graphics {
 	std::shared_ptr<Model> CreateCube(float width, float height, float depth) {
-		using namespace OpenGL;
 		float hw = width * 0.5f;
 		float hh = height * 0.5f;
 		float hd = depth * 0.5f;
@@ -58,12 +57,12 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices.assign(std::begin(verts), std::end(verts));
 		sub.indices.assign(std::begin(inds), std::end(inds));
-		auto vb = std::make_shared<GLVertexBuffer>(sub.vertices.data(),
+		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
 			sizeof(Vertex));
-		auto ib = std::make_shared<GLIndexBuffer>(sub.indices.data(),
+		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
-		sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
+		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
 		model->meshes.push_back(std::move(sub));
 
 		//model->ComputeModelSphereBounds();
@@ -72,7 +71,6 @@ namespace NE::Graphics {
 	}
 
 	std::shared_ptr<Model> CreatePlane(float width, float depth) {
-		using namespace OpenGL;
 		float hw = width * 0.5f;
 		float hd = depth * 0.5f;
 
@@ -92,12 +90,12 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices.assign(std::begin(verts), std::end(verts));
 		sub.indices.assign(std::begin(inds), std::end(inds));
-		auto vb = std::make_shared<GLVertexBuffer>(sub.vertices.data(),
+		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
 			sizeof(Vertex));
-		auto ib = std::make_shared<GLIndexBuffer>(sub.indices.data(),
+		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
-		sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
+		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
 		model->meshes.push_back(std::move(sub));
 
 		//model->ComputeModelSphereBounds();
@@ -106,7 +104,6 @@ namespace NE::Graphics {
 	}
 
 	std::shared_ptr<Model> CreateCylinder(float radius, float height, int segments) {
-		using namespace OpenGL;
 		float hh = height * 0.5f;
 		const float step = 2.f * static_cast<float>(M_PI) / segments;
 
@@ -173,12 +170,12 @@ namespace NE::Graphics {
 		SubMesh sub;
 		sub.vertices = std::move(verts);
 		sub.indices = std::move(inds);
-		auto vb = std::make_shared<GLVertexBuffer>(sub.vertices.data(),
+		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
 			sizeof(Vertex));
-		auto ib = std::make_shared<GLIndexBuffer>(sub.indices.data(),
+		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
-		sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
+		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
 		model->meshes.push_back(std::move(sub));
 
 		//model->ComputeModelSphereBounds();
@@ -250,7 +247,6 @@ namespace NE::Graphics {
 	}
 
 	std::shared_ptr<Model> CreateCapsule(float radius, float height, int slices, int stacks) {
-		using namespace OpenGL;
 		slices = std::max(3, slices);
 		stacks = std::max(2, stacks);
 
@@ -333,6 +329,40 @@ namespace NE::Graphics {
 		sub.vertices = std::move(verts);
 		sub.indices = std::move(inds);
 
+		auto vb = std::make_shared<OpenGL::GLVertexBuffer>(sub.vertices.data(),
+			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
+			sizeof(Vertex));
+		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
+			static_cast<uint32_t>(sub.indices.size()));
+		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
+		model->meshes.push_back(std::move(sub));
+		//model->ComputeModelSphereBounds();
+		return model;
+	}
+
+	std::shared_ptr<Model> CreateQuad(float width, float height) {
+		// Unity built-in Quad is 1x1 on XY, centered at origin, normal +Z.
+		using namespace OpenGL;
+		float hw = width * 0.5f;
+		float hh = height * 0.5f;
+
+		Vertex verts[] = {
+			{{-hw, -hh, 0.f}, {0.f, 0.f, 1.f}, {0.f, 0.f}},
+			{{ hw, -hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}},
+			{{ hw,  hh, 0.f}, {0.f, 0.f, 1.f}, {1.f, 1.f}},
+			{{-hw,  hh, 0.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}}
+		};
+
+		uint32_t inds[] = {
+			0, 1, 2,
+			2, 3, 0
+		};
+
+		auto model = std::make_shared<Model>();
+		SubMesh sub;
+		sub.vertices.assign(std::begin(verts), std::end(verts));
+		sub.indices.assign(std::begin(inds), std::end(inds));
+
 		auto vb = std::make_shared<GLVertexBuffer>(sub.vertices.data(),
 			static_cast<uint32_t>(sub.vertices.size() * sizeof(Vertex)),
 			sizeof(Vertex));
@@ -340,7 +370,10 @@ namespace NE::Graphics {
 			static_cast<uint32_t>(sub.indices.size()));
 		sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
 		model->meshes.push_back(std::move(sub));
+
 		//model->ComputeModelSphereBounds();
+
 		return model;
 	}
+
 } // namespace NANOEngine::Graphics

@@ -421,4 +421,19 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
+	CreateQuadEntityCommand::CreateQuadEntityCommand(uint32_t parentEntity)
+		: m_entity(0), m_parentEntity(parentEntity) {
+	}
+
+	void CreateQuadEntityCommand::Execute() {
+		m_entity = NE::ECS::Command::CreateQuadEntity(m_parentEntity);
+		if (m_parentEntity == NE::ECS::NO_ENTITY)
+			EditorScene::s_rootOrder.push_back(m_entity);
+	}
+
+	void CreateQuadEntityCommand::Undo() {
+		EditorScene::UnregisterRoot(m_entity);
+		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
 }

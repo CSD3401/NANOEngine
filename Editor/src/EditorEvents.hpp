@@ -22,6 +22,9 @@ namespace Editor::Events {
 	struct CreatePlaneEntityEvent {
 		uint32_t parentEntity;
 	};
+	struct CreateQuadEntityEvent {
+		uint32_t parentEntity;
+	};
 
 	struct CreateDirectionalLightEvent {
 		uint32_t parentEntity;

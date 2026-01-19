@@ -85,6 +85,19 @@ namespace Editor {
         uint32_t m_parentEntity;
     };
 
+    class CreateQuadEntityCommand final : public ICommand {
+    public:
+        CreateQuadEntityCommand(uint32_t parentEntity);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create Quad"; }
+
+    private:
+        uint32_t m_entity;
+        uint32_t m_parentEntity;
+    };
+
     class CreateDirectionalLightCommand final : public ICommand {
     public:
         CreateDirectionalLightCommand(uint32_t parentEntity);
