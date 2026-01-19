@@ -74,6 +74,8 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::CreateSphere());
 				if (id == "builtin:model/capsule")
 					return std::static_pointer_cast<T>(NE::Graphics::CreateCapsule());
+				if (id == "builtin:model/quad")
+					return std::static_pointer_cast<T>(NE::Graphics::CreateQuad());
 			} 
 			else if constexpr (std::is_same_v<T, NE::Graphics::OpenGL::GLShader>) {
 				if (id == "neunlit")
