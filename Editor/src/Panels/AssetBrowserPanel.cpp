@@ -137,6 +137,7 @@ namespace Editor {
             ImGui::Separator();
 
             if (ImGui::Button("Yes")) {
+                EditorScene::s_selection.Clear();
                 auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(m_selectedPath.string());
                 NE::LoadScene(uuid);
                 EditorScene::BuildRoot();
