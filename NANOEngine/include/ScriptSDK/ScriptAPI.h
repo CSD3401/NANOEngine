@@ -358,6 +358,14 @@ namespace Scripting {
         std::vector<RaycastHit> RaycastAll(const Vec3& origin, const Vec3& direction,
                                             float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
 
+        RaycastHit SphereCast(const Vec3& origin, float radius, const Vec3& direction,
+                              float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+
+        RaycastHit SphereCast(float originX, float originY, float originZ,
+                              float radius,
+                              float dirX, float dirY, float dirZ,
+                              float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+
         //=====================================================================
         // AUDIO SOURCE
         // All functions support optional Entity parameter
@@ -514,6 +522,14 @@ namespace Scripting {
          * @return Material reference (check IsValid() before use)
          */
         MaterialRef GetMaterialRef(const std::string& materialUUID) const;
+
+        /**
+         * Get the material reference from an entity's renderer component.
+         * Convenience helper that combines GetMaterial() and GetMaterialRef().
+         * @param entity Entity ID to get material from
+         * @return Material reference (check IsValid() before use)
+         */
+        MaterialRef GetEntityMaterial(Entity entity) const;
 
         /**
          * Get a reference to a prefab asset by UUID.

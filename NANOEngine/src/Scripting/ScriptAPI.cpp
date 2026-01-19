@@ -650,6 +650,50 @@ namespace NE {
 		}
 
 		//=========================================================================
+		// Physics Sphere Casting
+		//=========================================================================
+
+		RaycastHit IScript::SphereCast(const Vec3& origin, float radius, const Vec3& direction, float maxDistance, uint32_t layerMask) const {
+			RaycastHit sdkHit;
+			sdkHit.hasHit = false;
+
+			if (!m_context || !m_context->componentManager) {
+				return sdkHit;
+			}
+
+			// Call PhysicsManager sphere cast with engine types
+			Physics::RaycastHit engineHit;
+			bool hasHit = Physics::PhysicsManager::GetInstance().SphereCast(
+				ToEngineVec3(origin),
+				radius,
+				ToEngineVec3(direction),
+				engineHit,
+				maxDistance,
+				layerMask
+			);
+
+			// Convert to SDK RaycastHit (scripts only see Entity, not LUIDs)
+			sdkHit.hasHit = hasHit;
+			sdkHit.point = ToSDKVec3(engineHit.point);
+			sdkHit.normal = ToSDKVec3(engineHit.normal);
+			sdkHit.distance = engineHit.distance;
+			sdkHit.entity = engineHit.colliderEntityID;
+
+			return sdkHit;
+		}
+
+		RaycastHit IScript::SphereCast(float originX, float originY, float originZ,
+			float radius,
+			float dirX, float dirY, float dirZ,
+			float maxDistance, uint32_t layerMask) const {
+			return SphereCast(Vec3(originX, originY, originZ),
+				radius,
+				Vec3(dirX, dirY, dirZ),
+				maxDistance,
+				layerMask);
+		}
+
+		//=========================================================================
 		// Audio Source
 		//=========================================================================
 
@@ -932,11 +976,24 @@ namespace NE {
 		}
 
 		MaterialRef IScript::GetMaterialRef(const std::string& materialUUID) const {
-			if (materialUUID.empty()) return MaterialRef();
+			if (materialUUID.empty() || materialUUID == "empty uuid") return MaterialRef();
 
 			// Get or create an ID for this material UUID
 			uint32_t materialID = GetMaterialRegistry().GetOrCreateID(materialUUID);
 			return MaterialRef(materialID);
+		}
+
+		MaterialRef IScript::GetEntityMaterial(Entity entity) const {
+			// Get the material UUID from the entity's renderer component
+			std::string materialUUID = NE::Renderer::Query::GetMaterial(entity);
+
+			// Check if it's the empty UUID (no material assigned)
+			if (materialUUID.empty() || materialUUID == "empty uuid") {
+				return MaterialRef();
+			}
+
+			// Convert UUID to MaterialRef
+			return GetMaterialRef(materialUUID);
 		}
 
 		//=========================================================================
