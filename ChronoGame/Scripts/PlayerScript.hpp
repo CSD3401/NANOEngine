@@ -130,26 +130,26 @@ public:
 
 		// Update state based on input
 		if (Input::IsKeyDown('D')) {
-			Translate(moveSpeed, 0, 0);
+			TF_Translate(moveSpeed, 0, 0);
 			state = PlayerState::Walking;
 		}
 		else if (Input::IsKeyDown('A')) {
-			Translate(-moveSpeed, 0, 0);
+			TF_Translate(-moveSpeed, 0, 0);
 			state = PlayerState::Walking;
 		}
 		else if (Input::IsKeyDown('W')) {
-			Translate(0, moveSpeed, 0);
+			TF_Translate(0, moveSpeed, 0);
 			state = PlayerState::Running;
 		}
 		else if (Input::IsKeyDown('S')) {
-			Translate(0, -moveSpeed, 0);
+			TF_Translate(0, -moveSpeed, 0);
 			state = PlayerState::Walking;
 		}
 		else {
 			state = PlayerState::Idle;
 		}
 
-		SetPosition(tref0, GetPosition() + Vec3(1.0,1.0,0));
+		SetPosition(tref0, TF_GetPosition() + Vec3(1.0,1.0,0));
 
 		if (Input::WasKeyPressed('K')) {
 			/*int dmg = 20;
@@ -188,7 +188,7 @@ public:
 			static size_t currentWaypoint = 0;
 			float targetX = waypoints[currentWaypoint % waypoints.size()];
 
-			if (abs(GetPosition().x - targetX) < 0.5f) {
+			if (abs(TF_GetPosition().x - targetX) < 0.5f) {
 				currentWaypoint++;
 				//LOG_DEBUG("Reached waypoint {}, moving to next", currentWaypoint - 1);
 			}

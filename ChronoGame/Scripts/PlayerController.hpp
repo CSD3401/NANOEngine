@@ -39,7 +39,7 @@ public:
                 << GetEntity() << " – ground checks may be inaccurate.");
         }
 
-        if (!HasRigidbody()) {
+        if (!RB_HasRigidbody()) {
             LOG_ERROR("PlayerController: Rigidbody is required but not found on entity "
                 << GetEntity());
         }
@@ -49,10 +49,10 @@ public:
     }
 
     void Update(double deltaTime) override {
-        if (!HasRigidbody())
+        if (!RB_HasRigidbody())
             return;
 
-        LockRotation(true, false, true);
+        RB_LockRotation(true, false, true);
         const float dt = static_cast<float>(deltaTime);
 
         UpdateGroundedState();
@@ -86,7 +86,7 @@ private:
         m_lastGroundHit = {};
 
         Entity bottomEntity = playerBottom.IsValid() ? playerBottom.GetEntity() : GetEntity();
-        Vec3 feetPos = GetWorldPosition(bottomEntity);
+        Vec3 feetPos = TF_GetWorldPosition(bottomEntity);
 
         Vec3 origin = feetPos;
         origin.y += groundProbeStartOffset;
@@ -114,7 +114,7 @@ private:
     }
 
     void UpdateHorizontalVelocity(float dt) {
-        if (!HasRigidbody()) return;
+        if (!RB_HasRigidbody()) return;
 
         Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
 
@@ -140,7 +140,7 @@ private:
             inputDir.z = 0.0f;
         }
 
-        Vec3 vel = GetVelocity();
+        Vec3 vel = RB_GetVelocity();
 
         Vec3 horizVel = vel;
         horizVel.y = 0.0f;
@@ -180,17 +180,17 @@ private:
         vel.x = horizVel.x;
         vel.z = horizVel.z;
 
-        SetVelocity(vel);
+        RB_SetVelocity(vel);
     }
 
     void HandleJump() {
-        if (!HasRigidbody()) return;
+        if (!RB_HasRigidbody()) return;
 
         if (Input::WasKeyPressed(GLFW_KEY_SPACE)) {
             if (m_isGrounded && !m_hasJumpedThisFrame) {
-                Vec3 vel = GetVelocity();
+                Vec3 vel = RB_GetVelocity();
                 vel.y = jumpForce;
-                SetVelocity(vel);
+                RB_SetVelocity(vel);
 
                 m_hasJumpedThisFrame = true;
                 m_isGrounded = false;
@@ -203,12 +203,12 @@ private:
     }
 
     void ClampFallSpeed() {
-        if (!HasRigidbody()) return;
+        if (!RB_HasRigidbody()) return;
 
-        Vec3 vel = GetVelocity();
+        Vec3 vel = RB_GetVelocity();
         if (vel.y < maxFallSpeed) {
             vel.y = maxFallSpeed;
-            SetVelocity(vel);
+            RB_SetVelocity(vel);
         }
     }
 
@@ -216,7 +216,7 @@ private:
         if (!m_lastGroundHit.hasHit) return;
 
         Entity bottomEntity = playerBottom.IsValid() ? playerBottom.GetEntity() : GetEntity();
-        Vec3 feetPos = GetPosition(bottomEntity);
+        Vec3 feetPos = TF_GetPosition(bottomEntity);
         Vec3 origin = feetPos;
         origin.y += groundProbeStartOffset;
 
@@ -227,9 +227,9 @@ private:
         float delta = currentDist - desiredDist;
         if (std::fabs(delta) < 0.0001f) return;
 
-        Vec3 pos = GetPosition();
+        Vec3 pos = TF_GetPosition();
         pos.y -= delta;
-        SetPosition(pos);
+        TF_SetPosition(pos);
     }
 
     // Helper

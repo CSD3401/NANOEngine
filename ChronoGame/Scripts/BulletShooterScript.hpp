@@ -67,12 +67,12 @@
 
         void Fire() {
             // Calculate spawn position (forward of the shooter)
-            Vec3 shooterPos = GetPosition();
-            Vec3 shooterForward = GetForward();
+            Vec3 shooterPos = TF_GetPosition();
+            Vec3 shooterForward = TF_GetForward();
             Vec3 spawnPosition = shooterPos + shooterForward * spawnOffset.z + Vec3(0, spawnOffset.y, 0);
 
             // Get shooter rotation for bullet
-            Vec3 shooterRotation = GetRotation();
+            Vec3 shooterRotation = TF_GetRotation();
 
             // Spawn the bullet prefab
             Entity bullet = InstantiatePrefab(bulletPrefab, spawnPosition, shooterRotation);
@@ -81,8 +81,8 @@
                 // Apply velocity to the bullet in the forward direction
                 Vec3 bulletVelocity = shooterForward * bulletSpeed;
 
-                if (HasRigidbody(bullet)) {
-                    SetVelocity(bulletVelocity, bullet);
+                if (RB_HasRigidbody(bullet)) {
+                    RB_SetVelocity(bulletVelocity, bullet);
                 }
 
                 // Set fire cooldown based on fire rate

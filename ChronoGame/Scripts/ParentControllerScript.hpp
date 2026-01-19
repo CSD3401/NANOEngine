@@ -42,7 +42,7 @@ public:
             LOG_INFO("  Child " << i << " has entity ID: " << childEntity);
         }
 
-        initialRotation = GetRotation();
+        initialRotation = TF_GetRotation();
     }
 
     void Update(double deltaTime) override {

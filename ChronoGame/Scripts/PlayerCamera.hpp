@@ -38,12 +38,12 @@ public:
         if (m_pitch > 89.0f)  m_pitch = 89.0f;
         if (m_pitch < -89.0f) m_pitch = -89.0f;
 
-        SetRotation(m_pitch, m_yaw, 0.0f);
+        TF_SetRotation(m_pitch, m_yaw, 0.0f);
         
         if (Input::WasMousePressed(0)) {
-            auto forward = GetForward();
-            auto hit = Raycast(GetWorldPosition(), forward, 5.f);
-            LOG_DEBUG("Position: " << GetPosition().x << " : " << GetPosition().y << " : " << GetPosition().z);
+            auto forward = TF_GetForward();
+            auto hit = Raycast(TF_GetWorldPosition(), forward, 5.f);
+            LOG_DEBUG("Position: " << TF_GetPosition().x << " : " << TF_GetPosition().y << " : " << TF_GetPosition().z);
             LOG_DEBUG("Forward: " << forward.x << " : " << forward.y << " : " << forward.z);
             
             LOG_DEBUG("Entity Hit: " << hit.entity);

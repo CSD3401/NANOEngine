@@ -81,17 +81,17 @@ public:
 
 	void Start() override {
 		// Ensure rigidbody exists
-		if (!HasRigidbody()) {
+		if (!RB_HasRigidbody()) {
 			LOG_ERROR("PhysicsPlayerController requires a Rigidbody component!");
 			return;
 		}
 
 		// Configure rigidbody for character
-		SetUseGravity(false);  // CRITICAL: Disable physics engine gravity
-		SetMass(70.0f);        // 70kg player mass
+		RB_SetUseGravity(false);  // CRITICAL: Disable physics engine gravity
+		RB_SetMass(70.0f);        // 70kg player mass
 
 		// Lock rotations to prevent tipping
-		LockRotation(true, false, true); // Lock X and Z, allow Y for turning
+		RB_LockRotation(true, false, true); // Lock X and Z, allow Y for turning
 
 		// Hook into collider callbacks for ground detection
 		if (Command::HasComponent<NE::ECS::Component::Collider>(GetEntity())) {
@@ -122,14 +122,14 @@ public:
 	}
 
 	void Update(double deltaTime) override {
-		if (!HasRigidbody()) return;
+		if (!RB_HasRigidbody()) return;
 
 		// CRITICAL: Process pending collision events FIRST, after physics step completes
 		// This is safe because we're now outside the physics callback context
 		ProcessPendingCollisions();
 
 		// Ensure rotation lock stays active
-		LockRotation(true, false, true);
+		RB_LockRotation(true, false, true);
 
 		// 1. GROUND CHECK - Using collision detection or optional raycast
 		bool isGrounded = CheckIfGrounded();
@@ -143,7 +143,7 @@ public:
 		}
 
 		// 2. Get current velocity
-		Vec3 velocity = GetVelocity();
+		Vec3 velocity = RB_GetVelocity();
 
 		// 3. JUMPING - Check if we should jump
 		bool attemptingJump = HandleJump(velocity, isGrounded);
@@ -248,7 +248,7 @@ private:
 		}
 
 		// Get our position (safe because we're in Update, not in callback)
-		Vec3 ourPos = GetPosition();
+		Vec3 ourPos = TF_GetPosition();
 		float ourBottom = ourPos.y - m_colliderHalfHeight;
 
 		// Get other entity's position and collider
@@ -294,14 +294,14 @@ private:
 	bool CheckIfGrounded() const {
 		// If moving upward significantly, we're not grounded (even if touching ground)
 		// This handles the brief moment after jumping where collision exit hasn't fired yet
-		Vec3 velocity = GetVelocity();
+		Vec3 velocity = RB_GetVelocity();
 		if (velocity.y > 1.0f) {  // Moving upward faster than 1 unit/sec = definitely airborne
 			return false;
 		}
 
 		if (useRaycastGroundCheck) {
 			// Optional raycast mode (for compatibility)
-			Vec3 origin = GetPosition();
+			Vec3 origin = TF_GetPosition();
 			origin.y -= m_colliderHalfHeight; // Start at feet
 
 			Vec3 downDirection{ 0, -1, 0 };
@@ -342,8 +342,8 @@ private:
 	 * Cast forward rays to detect entities in front of player
 	 */
 	void PerformForwardRaycast(bool verbose) {
-		Vec3 forward = GetForward();
-		Vec3 playerPos = GetPosition();
+		Vec3 forward = TF_GetForward();
+		Vec3 playerPos = TF_GetPosition();
 
 		// Start raycast slightly in front and at custom height
 		Vec3 origin = playerPos;
@@ -495,7 +495,7 @@ private:
 		bool isMoving = inputMagnitude > 0.01f;
 
 		// Get current velocity
-		Vec3 newVelocity = GetVelocity();
+		Vec3 newVelocity = RB_GetVelocity();
 
 		// === HORIZONTAL MOVEMENT ===
 		if (isMoving) {
@@ -549,7 +549,7 @@ private:
 			}
 		}
 
-		SetVelocity(newVelocity);
+		RB_SetVelocity(newVelocity);
 	}
 
 	bool HandleJump(Vec3& velocity, bool isGrounded) {

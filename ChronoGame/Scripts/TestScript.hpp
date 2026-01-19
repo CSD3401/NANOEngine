@@ -84,9 +84,9 @@ public:
 		totalTime += static_cast<float>(deltaTime);
 
 		// Simple bobbing motion using bounce height using SDK methods
-		Vec3 currentPos = GetPosition();
+		Vec3 currentPos = TF_GetPosition();
 		currentPos.y = std::sin(totalTime * 2.0f) * bounceHeight;
-		SetPosition(currentPos);
+		TF_SetPosition(currentPos);
 
 		// === Auto-Respawn Demo ===
 		if (enableAutoRespawn) {
