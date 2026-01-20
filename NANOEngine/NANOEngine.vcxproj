@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
     <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
     <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
     <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
@@ -183,6 +184,7 @@
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />

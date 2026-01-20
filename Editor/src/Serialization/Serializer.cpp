@@ -21,6 +21,7 @@
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/PrefabLink.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
+#include <ECS/Components/CharacterController.hpp>
 
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
@@ -49,7 +50,8 @@ namespace Editor {
 			NE::ECS::Component::Camera,
 			NE::ECS::Component::UIRectTransform,
 			NE::ECS::Component::UICanvas,
-			NE::ECS::Component::UIImage
+			NE::ECS::Component::UIImage,
+			NE::ECS::Component::CharacterController
 		>;
 
 		template <class F>
