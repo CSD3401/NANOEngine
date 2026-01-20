@@ -275,20 +275,6 @@ namespace NE::ECS {
 				Component::Hierarchy{}
 			);
 
-			//if (gSceneManager.GetCurrentPrefabPath().empty()) {
-			//	GetScene().GetECSCoordinator().AddComponent(
-			//		newEntity,
-			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
-			//} else {
-			//	auto& rootT = GetScene().GetECSCoordinator().GetComponent<Component::Transform>(0);
-
-			//	GetScene().GetECSCoordinator().AddComponent(
-			//		newEntity,
-			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr"), .parent = 0, .parentLuid = rootT.luid });
-
-			//	rootT.children.push_back(newEntity);
-			//}
-
 			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
 
 			return newEntity;
@@ -316,6 +302,14 @@ namespace NE::ECS {
 				Component::Renderer{
 					.modelUUID{"builtin:model/cube"},
 					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::BoxColliderData{},
+					.type = Component::Collider::ColliderType::Box,
 				}
 			);
 
@@ -348,6 +342,14 @@ namespace NE::ECS {
 				}
 			);
 
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::SphereColliderData{},
+					.type = Component::Collider::ColliderType::Sphere,
+				}
+			);
+
 			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
 			return newEntity;
 		}
@@ -377,6 +379,14 @@ namespace NE::ECS {
 				}
 			);
 
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::CylinderColliderData{},
+					.type = Component::Collider::ColliderType::Cylinder,
+				}
+			);
+
 			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
 			return newEntity;
 		}
@@ -403,6 +413,14 @@ namespace NE::ECS {
 				Component::Renderer{
 					.modelUUID{"builtin:model/capsule"},
 					.materialUUID{"neunlitmat"}
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::CapsuleColliderData{},
+					.type = Component::Collider::ColliderType::Capsule,
 				}
 			);
 

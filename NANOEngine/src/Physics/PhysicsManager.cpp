@@ -501,7 +501,10 @@ namespace NE::Physics {
     }
 
     void PhysicsManager::DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col) {
-        auto& shapeSettings = m_shapes.at(entityLUID);
+        auto it = m_shapes.find(entityLUID);
+        if (it == m_shapes.end()) return;
+
+        auto& shapeSettings = it->second;
 
         JPH::RMat44 com = ToJoltRMat44(t.worldMatrix.GetTranslation());
 

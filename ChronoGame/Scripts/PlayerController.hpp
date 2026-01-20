@@ -30,40 +30,53 @@ public:
     }
 
     void Start() override {
-        if (Command::HasComponent<Component::Collider>(GetEntity())) {
-            auto& col = Command::GetComponent<Component::Collider>(GetEntity());
-            m_colliderHalfHeight = col.halfExtents.y;
-            LOG_INFO("PlayerController: collider half-height = " << m_colliderHalfHeight);
-        } else {
-            LOG_WARNING("PlayerController: no Collider found on entity "
-                << GetEntity() << " – ground checks may be inaccurate.");
-        }
-
-        if (!RB_HasRigidbody()) {
-            LOG_ERROR("PlayerController: Rigidbody is required but not found on entity "
-                << GetEntity());
-        }
-
         m_isGrounded = false;
         m_hasJumpedThisFrame = false;
     }
 
     void Update(double deltaTime) override {
-        if (!RB_HasRigidbody())
-            return;
 
-        RB_LockRotation(true, false, true);
-        const float dt = static_cast<float>(deltaTime);
+		bool isGrounded = CC_IsGrounded();
 
-        UpdateGroundedState();
-        UpdateHorizontalVelocity(dt);
-        HandleJump();
-        ClampFallSpeed();
-
-        // tiny vertical snap to ground while grounded
-        if (m_isGrounded && m_lastGroundHit.hasHit) {
-            ApplyGroundSnap();
+        if (isGrounded) {
+            if (playerVelocity.y < -2.f)
+                playerVelocity.y = -2.f;
         }
+
+        Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
+
+        if (Input::IsKeyDown('W')) inputDir.x += 1.0f;
+        if (Input::IsKeyDown('S')) inputDir.x -= 1.0f;
+        if (Input::IsKeyDown('A')) inputDir.z -= 1.0f;
+        if (Input::IsKeyDown('D')) inputDir.z += 1.0f;
+
+        float mag = std::sqrt(inputDir.x * inputDir.x + inputDir.z * inputDir.z);
+        if (mag > 0.01f) {
+            inputDir.x /= mag;
+            inputDir.z /= mag;
+        } else {
+            inputDir.x = 0.0f;
+            inputDir.z = 0.0f;
+        }
+
+        static bool wasJumpKeyDown = false;
+        bool isJumpKeyDown = Input::IsKeyDown(' ');
+
+        if (isGrounded && isJumpKeyDown && !wasJumpKeyDown) {
+            const float jumpHeight = 1.5f;
+            const float gravity = -9.81f;
+            playerVelocity.y = std::sqrt(jumpHeight * -2.0f * gravity);
+        }
+        wasJumpKeyDown = isJumpKeyDown;
+
+        const float gravity = -9.81f;
+        playerVelocity.y += gravity * deltaTime;
+
+        Vec3 horizontalMove = inputDir * moveSpeed;
+        Vec3 verticalMove = Vec3(0.0f, playerVelocity.y, 0.0f);
+        Vec3 finalMove = (horizontalMove + verticalMove) * deltaTime;
+
+        CC_Move(finalMove);
     }
 
     void OnDestroy() override {}
@@ -114,8 +127,6 @@ private:
     }
 
     void UpdateHorizontalVelocity(float dt) {
-        if (!RB_HasRigidbody()) return;
-
         Vec3 inputDir{ 0.0f, 0.0f, 0.0f };
 
         if (Input::IsKeyDown('W')) {
@@ -140,47 +151,49 @@ private:
             inputDir.z = 0.0f;
         }
 
-        Vec3 vel = RB_GetVelocity();
+		CC_Move(inputDir * moveSpeed * dt);
 
-        Vec3 horizVel = vel;
-        horizVel.y = 0.0f;
+        //Vec3 vel = RB_GetVelocity();
 
-        if (mag > 0.0f) {
-            Vec3 targetVel{
-                inputDir.x * moveSpeed,
-                0.0f,
-                inputDir.z * moveSpeed
-            };
+        //Vec3 horizVel = vel;
+        //horizVel.y = 0.0f;
 
-            float control = m_isGrounded ? 1.0f : airControl;
-            control = std::clamp(control, 0.0f, 1.0f);
+        //if (mag > 0.0f) {
+        //    Vec3 targetVel{
+        //        inputDir.x * moveSpeed,
+        //        0.0f,
+        //        inputDir.z * moveSpeed
+        //    };
 
-            // Snappiness factor
-            float t = control * dt * 10.0f;
-            t = std::clamp(t, 0.0f, 1.0f);
+        //    float control = m_isGrounded ? 1.0f : airControl;
+        //    control = std::clamp(control, 0.0f, 1.0f);
 
-            horizVel.x = Lerp(horizVel.x, targetVel.x, t);
-            horizVel.z = Lerp(horizVel.z, targetVel.z, t);
-        } else if (m_isGrounded) {
-            // Simple custom friction when grounded and no input
-            float speed = std::sqrt(horizVel.x * horizVel.x + horizVel.z * horizVel.z);
-            if (speed > 0.01f) {
-                float friction = groundFriction * dt;
-                float newSpeed = std::max(0.0f, speed - friction);
-                float factor = (speed > 0.0f) ? (newSpeed / speed) : 0.0f;
+        //    // Snappiness factor
+        //    float t = control * dt * 10.0f;
+        //    t = std::clamp(t, 0.0f, 1.0f);
 
-                horizVel.x *= factor;
-                horizVel.z *= factor;
-            } else {
-                horizVel.x = 0.0f;
-                horizVel.z = 0.0f;
-            }
-        }
+        //    horizVel.x = Lerp(horizVel.x, targetVel.x, t);
+        //    horizVel.z = Lerp(horizVel.z, targetVel.z, t);
+        //} else if (m_isGrounded) {
+        //    // Simple custom friction when grounded and no input
+        //    float speed = std::sqrt(horizVel.x * horizVel.x + horizVel.z * horizVel.z);
+        //    if (speed > 0.01f) {
+        //        float friction = groundFriction * dt;
+        //        float newSpeed = std::max(0.0f, speed - friction);
+        //        float factor = (speed > 0.0f) ? (newSpeed / speed) : 0.0f;
 
-        vel.x = horizVel.x;
-        vel.z = horizVel.z;
+        //        horizVel.x *= factor;
+        //        horizVel.z *= factor;
+        //    } else {
+        //        horizVel.x = 0.0f;
+        //        horizVel.z = 0.0f;
+        //    }
+        //}
 
-        RB_SetVelocity(vel);
+        //vel.x = horizVel.x;
+        //vel.z = horizVel.z;
+
+        //RB_SetVelocity(vel);
     }
 
     void HandleJump() {
@@ -240,6 +253,8 @@ private:
 
 private:
     TransformRef playerBottom{};
+
+	Vec3 playerVelocity{ 0.0f, 0.0f, 0.0f };
 
     float moveSpeed = 5.0f;
     float jumpForce = 8.0f;
