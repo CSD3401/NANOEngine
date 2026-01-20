@@ -18,6 +18,7 @@ namespace NE::ECS::Component {
     struct Collider;
     struct Transform;
     struct Rigidbody;
+	struct CharacterController;
 }
 
 namespace NE::Math {
@@ -30,6 +31,7 @@ namespace JPH {
     class TempAllocatorImpl;
     class JobSystemSingleThreaded;
     class BodyID;
+    class CharacterVirtual;
 }
 
 namespace NE::Physics {
@@ -43,6 +45,16 @@ namespace NE::Physics {
     class JoltDebugRenderer;
 
     class PhysicsManager {
+        struct CharacterRuntime {
+            JPH::Ref<JPH::CharacterVirtual> controller;
+            JPH::Vec3 velocity = JPH::Vec3::sZero();
+            JPH::Vec3 pendingDelta = JPH::Vec3::sZero();
+            bool hasPendingDelta = false;
+
+            uint32_t entity = 0;
+            uint64_t luid = 0;
+            uint8_t layerID = 0;
+        };
     public:
         static PhysicsManager& GetInstance();
 
@@ -58,11 +70,21 @@ namespace NE::Physics {
         void CreateOrUpdateShape(const uint64_t entityLUID, const ECS::Component::Collider& col);
         void RemoveShape(const uint64_t entityLUID);
 
+        // Character Controller
+        void CreateCharacterController(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::CharacterController& cc, const ECS::Component::Collider& col, uint8_t layerID);
+        void UpdateCharacters(float dt);
+
+		bool CharacterIsGrounded(uint64_t entityLUID) const;
+		void CharacterMove(uint64_t entityLUID, const Math::Vec3& displacement);
+		void CharacterRotateYaw(uint64_t entityLUID, float yawDegrees);
+		Math::Vec3 CharacterGetVelocity(uint64_t entityLUID) const;
+
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID);
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col, uint8_t layerID);
         void DestroyBody(uint64_t entityLUID);
 
-        void SyncBodiesToTransform(uint64_t entityLUID, ECS::Component::Transform& t) const;
+        void SyncTransformToBodies(uint64_t entityLUID, ECS::Component::Transform& t) const;
+		void SyncTransformToCharacters(uint64_t entityLUID, ECS::Component::Transform& t) const;
 
         void DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col);
         void DrawBodies();
@@ -97,6 +119,8 @@ namespace NE::Physics {
 
         std::unordered_map<uint64_t, JPH::ShapeRefC> m_shapes;
         std::unordered_map<uint64_t, JPH::BodyID> m_bodies;
+
+        std::unordered_map<uint64_t, CharacterRuntime> m_characters;
 
         // to move to settings
         float m_fixedDt = 1.0f / 60.0f;

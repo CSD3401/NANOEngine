@@ -18,6 +18,7 @@ namespace NE::ECS::Systems {
 	class CameraSystem;
     class HierarchySystem;
     class PrefabSystem;
+	class CharacterControllerSystem;
 }
 
 namespace NE::ECS {
@@ -118,6 +119,7 @@ namespace NE::ECS {
         std::shared_ptr<Systems::CameraSystem> m_cameraSystem;
         std::shared_ptr<Systems::HierarchySystem> m_hierarchySystem;
         std::shared_ptr<Systems::PrefabSystem> m_prefabSystem;
+		std::shared_ptr<Systems::CharacterControllerSystem> m_characterControllerSystem;
 
     private:
 

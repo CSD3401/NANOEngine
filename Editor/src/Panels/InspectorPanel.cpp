@@ -20,6 +20,7 @@
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
+#include <ECS/Components/CharacterController.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -124,6 +125,8 @@ namespace {
 				return NE::ECS::Command::GetEntityRenderer(e);
 			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
 				return NE::ECS::Command::GetEntityLight(e);
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::CharacterController>) {
+				return NE::ECS::Command::GetCharacterController(e);
 			} else {
 				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
 			}
@@ -394,20 +397,21 @@ namespace Editor {
 	InspectorPanel::InspectorPanel() {
 
 		m_drawers = {
-			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",		&InspectorPanel::DrawEntityMetaComponent		},
-			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",	&InspectorPanel::DrawPrefabInstanceComponent	},
-			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",		&InspectorPanel::DrawTransformComponent			},
-			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",			&InspectorPanel::DrawRendererComponent			},
-			{ NE::ECS::Query::GetLightComponentType(),				"Light",			&InspectorPanel::DrawLightComponent				},
-			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",			&InspectorPanel::DrawColliderComponent			},
-			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",		&InspectorPanel::DrawRigidbodyComponent			},
-			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",		&InspectorPanel::DrawAudioSourceComponent		},
-			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",			&InspectorPanel::DrawCameraComponent			},
-			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",			&InspectorPanel::DrawAnimatorComponent			},
-			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",	&InspectorPanel::DrawRectTransformComponent		},
-			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",			&InspectorPanel::DrawCanvasComponent			},
-			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",			&InspectorPanel::DrawImageComponent				},
-			{ NE::ECS::Query::GetScriptComponentType(),				"Script",			&InspectorPanel::DrawScriptComponent			}
+			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",			&InspectorPanel::DrawEntityMetaComponent			},
+			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",		&InspectorPanel::DrawPrefabInstanceComponent		},
+			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",			&InspectorPanel::DrawTransformComponent				},
+			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",				&InspectorPanel::DrawRendererComponent				},
+			{ NE::ECS::Query::GetLightComponentType(),				"Light",				&InspectorPanel::DrawLightComponent					},
+			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",				&InspectorPanel::DrawColliderComponent				},
+			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",			&InspectorPanel::DrawRigidbodyComponent				},
+			{ NE::ECS::Query::GetRigidbodyComponentType(),			"CharacterController",	&InspectorPanel::DrawCharacterControllerComponent	},
+			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",			&InspectorPanel::DrawAudioSourceComponent			},
+			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",				&InspectorPanel::DrawCameraComponent				},
+			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",				&InspectorPanel::DrawAnimatorComponent				},
+			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",		&InspectorPanel::DrawRectTransformComponent			},
+			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",				&InspectorPanel::DrawCanvasComponent				},
+			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",				&InspectorPanel::DrawImageComponent					},
+			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
 		};
 	}
 
@@ -2916,5 +2920,45 @@ namespace Editor {
 				ImGui::Unindent();
 			}
 		}
+	}
+
+	void InspectorPanel::DrawCharacterControllerComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Query::GetCharacterController(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"CharacterController",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		NE::Core::ForEachFieldView<NE::ECS::Component::CharacterController>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::CharacterController, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			}
+		);
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			//NE::ECS::Command::RemoveRigidbodyComponent(entity);
+		}
+
+		ImGui::TreePop();
 	}
 }

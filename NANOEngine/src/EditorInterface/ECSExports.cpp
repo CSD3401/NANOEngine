@@ -13,6 +13,7 @@
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/PrefabLink.hpp"
 #include "../ECS/Components/PrefabInstance.hpp"
+#include "../ECS/Components/CharacterController.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -143,6 +144,10 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Camera>(e);
 		}
 
+		bool HasCharacterController(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::CharacterController>(e);
+		}
+
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
@@ -157,6 +162,10 @@ namespace NE::ECS {
 
 		const Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
+		}
+
+		const Component::CharacterController& GetCharacterController(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
 
 		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
@@ -217,6 +226,10 @@ namespace NE::ECS {
 
 		ComponentType GetPrefabInstanceComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::PrefabInstance>();
+		}
+
+		ComponentType GetCharacterControllerComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::CharacterController>();
 		}
 
 		uint32_t GetParent(uint32_t child) {
@@ -723,6 +736,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::PrefabInstance>(e, c);
 		}
 
+		void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::CharacterController>(e, c);
+		}
+
 		void RemoveLightComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Light>(e);
 		}
@@ -796,6 +813,10 @@ namespace NE::ECS {
 
 		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
+		Component::CharacterController& GetCharacterController(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {

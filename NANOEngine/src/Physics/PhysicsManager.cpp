@@ -11,12 +11,15 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/BackFaceMode.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterMask.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterMask.h>
+#include <Jolt/Math/Math.h>
 
 // Raycasting includes
 #include <Jolt/Physics/Collision/RayCast.h>
@@ -34,6 +37,7 @@
 #include "RaycastHit.hpp"
 #include "ECS/Components/Collider.hpp"
 #include "ECS/Components/Rigidbody.hpp"
+#include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ECS/Core/ComponentManager.hpp"
 #include "ObjectLayerPairFilterImpl.hpp"
@@ -141,6 +145,8 @@ namespace NE::Physics {
                 m_jobSystem.get()
             );
 
+            UpdateCharacters(m_fixedDt);
+
             // (Optional) handle err; in practice you can log it
             (void)err;
 
@@ -187,13 +193,13 @@ namespace NE::Physics {
         } break;
         case Collider::ColliderType::Capsule: {
             auto& data = std::get<Collider::CapsuleColliderData>(col.data);
-            JPH::CapsuleShapeSettings s(data.height * 0.5, data.radius);
+            JPH::CapsuleShapeSettings s(data.height * 0.5f, data.radius);
 
             base = CreateShape(s);
         } break;
         case Collider::ColliderType::Cylinder: {
             auto& data = std::get<Collider::CylinderColliderData>(col.data);
-            JPH::CylinderShapeSettings s(data.height * 0.5, data.radius);
+            JPH::CylinderShapeSettings s(data.height * 0.5f, data.radius);
 
             base = CreateShape(s);
         } break;
@@ -219,6 +225,146 @@ namespace NE::Physics {
 
     void PhysicsManager::RemoveShape(const uint64_t entityLUID) {
         m_shapes.erase(entityLUID);
+    }
+
+    void PhysicsManager::CreateCharacterController(uint32_t entity, uint64_t entityLUID, 
+        const ECS::Component::Transform& t, const ECS::Component::CharacterController& cc, 
+        const ECS::Component::Collider& col, uint8_t layerID) 
+    {
+        JPH::RefConst<JPH::Shape> shape;
+
+        auto itShape = m_shapes.find(entityLUID);
+        if (itShape != m_shapes.end() && itShape->second) {
+            shape = itShape->second.GetPtr();
+        }
+
+        if (!shape) {
+            SPD_WARNING("CreateCharacterController failed: missing shape for LUID" << entityLUID);
+            return;
+        }
+
+        const Math::Vec3 pos = t.worldMatrix.GetTranslation();
+        const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
+
+        const float yawRad = JPH::DegreesToRadians(t.localRotationEuler.y);
+        const JPH::Quat jRot = JPH::Quat::sRotation(JPH::Vec3::sAxisY(), yawRad);
+
+        JPH::CharacterVirtualSettings settings;
+        settings.mShape = shape;
+
+        settings.mMaxSlopeAngle = JPH::DegreesToRadians(cc.maxSlopeAngleDeg);
+        settings.mMaxStrength = cc.maxStrength;
+        settings.mCharacterPadding = cc.characterPadding;
+        settings.mPenetrationRecoverySpeed = cc.penRecoverySpeed;
+        settings.mPredictiveContactDistance = cc.predictiveContactDistance;
+        settings.mBackFaceMode = JPH::EBackFaceMode::CollideWithBackFaces;
+        settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.supportingVolumeDepth);
+
+        JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(
+            &settings,
+            jPos,
+            jRot,
+            m_physicsSystem.get()
+        );
+
+        CharacterRuntime rt;
+        rt.controller = character;
+        rt.velocity = JPH::Vec3::sZero();
+        rt.entity = entity;
+        rt.luid = entityLUID;
+        rt.layerID = layerID;
+
+        m_characters[entityLUID] = std::move(rt);
+    }
+
+    void PhysicsManager::UpdateCharacters(float dt) {
+        const JPH::Vec3 gravity = m_physicsSystem->GetGravity();
+
+        for (auto& [luid, rt] : m_characters) {
+            JPH::CharacterVirtual& ch = *rt.controller;
+
+            if (rt.hasPendingDelta) {
+                rt.velocity = rt.pendingDelta / dt;
+                rt.pendingDelta = JPH::Vec3::sZero();
+                rt.hasPendingDelta = false;
+            } else {
+                rt.velocity = JPH::Vec3::sZero();
+            }
+
+            ch.SetLinearVelocity(rt.velocity);
+
+            const uint32_t layerMask = m_collisionMatrix[rt.layerID];
+            ObjectLayerFilterImpl layerFilter(layerMask);
+            
+            ch.Update(
+                dt,
+                gravity,
+                JPH::BroadPhaseLayerFilter(),
+                layerFilter,
+                JPH::BodyFilter(),
+                JPH::ShapeFilter(),
+				*m_tempAllocator
+            );
+
+            rt.velocity = ch.GetLinearVelocity();
+
+            ECS::Entity e = static_cast<ECS::Entity>(rt.entity);
+            if (m_componentManager->HasComponent<ECS::Component::Transform>(e)) {
+                auto& tr = m_componentManager->GetComponent<ECS::Component::Transform>(e);
+
+                const JPH::RVec3 p = ch.GetPosition();
+                tr.localPosition = ToEngineVec3(p);
+
+                // Yaw-only is recommended for capsule characters:
+                auto euler = JQuatToDegreeEuler(ch.GetRotation());
+                euler.x = 0.0f;
+                euler.z = 0.0f;
+                tr.localRotationEuler = euler;
+
+                tr.isDirty = true;
+            }
+        }
+    }
+
+    bool PhysicsManager::CharacterIsGrounded(uint64_t entityLUID) const {
+        auto it = m_characters.find(entityLUID);
+        if (it == m_characters.end()) return false;
+
+        const CharacterRuntime& rt = it->second;
+
+        return rt.controller->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
+    }
+
+    void PhysicsManager::CharacterMove(uint64_t entityLUID, const Math::Vec3& delta) {
+        auto it = m_characters.find(entityLUID);
+        if (it == m_characters.end()) return;
+
+        CharacterRuntime& rt = it->second;
+
+        // Unity semantics: multiple Move() calls in same frame add up
+        if (rt.hasPendingDelta)
+            rt.pendingDelta += JPH::Vec3(delta.x, delta.y, delta.z);
+        else {
+            rt.pendingDelta = JPH::Vec3(delta.x, delta.y, delta.z);
+            rt.hasPendingDelta = true;
+        }
+    }
+
+    void PhysicsManager::CharacterRotateYaw(uint64_t entityLUID, float yawDegrees) {
+        auto it = m_characters.find(entityLUID);
+        if (it == m_characters.end()) return;
+
+        it->second.controller->SetRotation(
+            JPH::Quat::sRotation(JPH::Vec3::sAxisY(), JPH::DegreesToRadians(yawDegrees))
+        );
+    }
+
+    Math::Vec3 PhysicsManager::CharacterGetVelocity(uint64_t entityLUID) const {
+        auto it = m_characters.find(entityLUID);
+        if (it == m_characters.end()) return { 0.f, 0.f, 0.f };
+
+        const JPH::Vec3& v = it->second.velocity;
+		return Math::Vec3(v.GetX(), v.GetY(), v.GetZ());
     }
 
     void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
@@ -331,12 +477,25 @@ namespace NE::Physics {
         bi.DestroyBody(id);
     }
 
-    void PhysicsManager::SyncBodiesToTransform(uint64_t luid, ECS::Component::Transform& t) const {
+    void PhysicsManager::SyncTransformToBodies(uint64_t luid, ECS::Component::Transform& t) const {
         JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
 
         auto& bodyID = m_bodies.at(luid);
         t.localPosition = ToEngineVec3(bi.GetPosition(bodyID));
         t.localRotationEuler = JQuatToDegreeEuler(bi.GetRotation(bodyID));
+
+        t.isDirty = true;
+    }
+
+    void PhysicsManager::SyncTransformToCharacters(uint64_t entityLUID, ECS::Component::Transform& t) const {
+        auto& rt = m_characters.at(entityLUID);
+		auto& ch = *rt.controller;
+        t.localPosition = ToEngineVec3(ch.GetPosition());
+        
+        auto euler = JQuatToDegreeEuler(ch.GetRotation());
+        euler.x = 0.0f;
+        euler.z = 0.0f;
+        t.localRotationEuler = euler;
 
         t.isDirty = true;
     }
@@ -575,6 +734,7 @@ namespace NE::Physics {
             bi.DestroyBody(id);
         }
         m_bodies.clear();
+        m_characters.clear();
     }
 
     void PhysicsManager::SetComponentManager(ECS::ComponentManager* cm) {
