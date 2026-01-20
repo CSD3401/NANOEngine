@@ -44,7 +44,8 @@ namespace NE::ECS {
 
         template<typename T>
         void AddComponent(Entity e, const T& comp) {
-            if (m_componentManager->HasComponent<T>(e)) return;
+            if (m_componentManager->HasComponent<T>(e)) 
+                return;
             m_componentManager->AddComponent<T>(e, comp);
 
             auto signature = m_entityManager->GetSignature(e);

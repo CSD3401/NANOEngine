@@ -259,7 +259,7 @@ namespace NE::Physics {
         settings.mPredictiveContactDistance = cc.predictiveContactDistance;
         settings.mBackFaceMode = JPH::EBackFaceMode::CollideWithBackFaces;
         settings.mSupportingVolume = JPH::Plane(JPH::Vec3::sAxisY(), -cc.supportingVolumeDepth);
-
+		
         JPH::Ref<JPH::CharacterVirtual> character = new JPH::CharacterVirtual(
             &settings,
             jPos,
@@ -734,6 +734,7 @@ namespace NE::Physics {
             bi.DestroyBody(id);
         }
         m_bodies.clear();
+
         m_characters.clear();
     }
 

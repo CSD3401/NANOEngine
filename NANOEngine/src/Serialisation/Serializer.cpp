@@ -22,6 +22,7 @@
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/PrefabLink.hpp"
 #include "ECS/Components/PrefabInstance.hpp"
+#include "ECS/Components/CharacterController.hpp"
 
 namespace NE {
 	namespace {
@@ -39,7 +40,8 @@ namespace NE {
 			ECS::Component::Camera,
 			ECS::Component::UIRectTransform,
 			ECS::Component::UICanvas,
-			ECS::Component::UIImage
+			ECS::Component::UIImage,
+			ECS::Component::CharacterController
 		>;
 
 		using ComponentMask = std::uint64_t;

@@ -404,7 +404,7 @@ namespace Editor {
 			{ NE::ECS::Query::GetLightComponentType(),				"Light",				&InspectorPanel::DrawLightComponent					},
 			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",				&InspectorPanel::DrawColliderComponent				},
 			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",			&InspectorPanel::DrawRigidbodyComponent				},
-			{ NE::ECS::Query::GetRigidbodyComponentType(),			"CharacterController",	&InspectorPanel::DrawCharacterControllerComponent	},
+			{ NE::ECS::Query::GetCharacterControllerComponentType(),"CharacterController",	&InspectorPanel::DrawCharacterControllerComponent	},
 			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",			&InspectorPanel::DrawAudioSourceComponent			},
 			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",				&InspectorPanel::DrawCameraComponent				},
 			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",				&InspectorPanel::DrawAnimatorComponent				},
@@ -446,6 +446,9 @@ namespace Editor {
 				if (ImGui::MenuItem("Rigidbody")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
 					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selection.GetLastClicked());
+				}
+				if (ImGui::MenuItem("Character Controller")) {
+					NE::ECS::Command::AddCharacterControllerComponent(EditorScene::s_selection.GetLastClicked(), NE::ECS::Component::CharacterController{});
 				}
 				if (ImGui::MenuItem("Collider")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
