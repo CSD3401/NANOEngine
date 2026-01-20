@@ -453,7 +453,7 @@ namespace Editor {
 			m_clickThisFrame = true;
 		}
 
-		if (ImGui::BeginPopupContextItem("HierarchyContext")) {
+		if (ImGui::BeginPopupContextItem()) {
 			auto& sel = EditorScene::s_selection;
 			if (!sel.Contains(e)) {
 				sel.SetSingle(e);
