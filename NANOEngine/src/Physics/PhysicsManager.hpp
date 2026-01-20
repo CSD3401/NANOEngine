@@ -78,6 +78,7 @@ namespace NE::Physics {
 		void CharacterMove(uint64_t entityLUID, const Math::Vec3& displacement);
 		void CharacterRotateYaw(uint64_t entityLUID, float yawDegrees);
 		Math::Vec3 CharacterGetVelocity(uint64_t entityLUID) const;
+		Math::Vec3 CharacterGetGroundNormal(uint64_t entityLUID) const;
 
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID);
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col, uint8_t layerID);
@@ -87,7 +88,6 @@ namespace NE::Physics {
 		void SyncTransformToCharacters(uint64_t entityLUID, ECS::Component::Transform& t) const;
 
         void DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col);
-        void DrawBodies();
 
         bool Raycast(Math::Vec3 origin, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask);
         bool Raycast(Ray ray, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask);

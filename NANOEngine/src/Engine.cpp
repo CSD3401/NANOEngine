@@ -105,7 +105,6 @@ namespace NE {
 		//s_window->PollEvents();
 
 		//Physics::PhysicsManager::Update(static_cast<float>(dt));
-		Physics::PhysicsManager::GetInstance().DrawBodies();
 		Physics::JoltDebugRenderer::BeginFrame();
 		
 		gSceneManager.Update(dt);

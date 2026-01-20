@@ -654,6 +654,15 @@ namespace NE {
 			return Physics::PhysicsManager::GetInstance().CharacterIsGrounded(meta.luid);
 		}
 
+		Vec3 IScript::CC_GetGroundNormal(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3{});
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return Vec3(Physics::PhysicsManager::GetInstance().CharacterGetGroundNormal(meta.luid));
+		}
+
 		//=========================================================================
 		// Physics Raycasting
 		//=========================================================================

@@ -341,7 +341,6 @@ namespace NE::Physics {
 
         CharacterRuntime& rt = it->second;
 
-        // Unity semantics: multiple Move() calls in same frame add up
         if (rt.hasPendingDelta)
             rt.pendingDelta += JPH::Vec3(delta.x, delta.y, delta.z);
         else {
@@ -365,6 +364,21 @@ namespace NE::Physics {
 
         const JPH::Vec3& v = it->second.velocity;
 		return Math::Vec3(v.GetX(), v.GetY(), v.GetZ());
+    }
+
+    Math::Vec3 PhysicsManager::CharacterGetGroundNormal(uint64_t entityLUID) const {
+        auto it = m_characters.find(entityLUID);
+        if (it == m_characters.end() || !it->second.controller)
+            return { 0.f, 1.f, 0.f };
+
+        const JPH::CharacterVirtual& ch = *it->second.controller;
+
+        if (ch.GetGroundState() != JPH::CharacterVirtual::EGroundState::OnGround)
+            return { 0.f, 1.f, 0.f };
+
+        const JPH::Vec3 n = ch.GetGroundNormal();
+
+        return { n.GetX(), n.GetY(), n.GetZ() };
     }
 
     void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
@@ -506,21 +520,28 @@ namespace NE::Physics {
 
         auto& shapeSettings = it->second;
 
-        JPH::RMat44 com = ToJoltRMat44(t.worldMatrix.GetTranslation());
+        const Math::Vec3 pos = t.worldMatrix.GetTranslation();
+        const JPH::Quat rot = JPH::Quat::sEulerAngles({
+                JPH::DegreesToRadians(t.localRotationEuler.x),
+                JPH::DegreesToRadians(t.localRotationEuler.y),
+                JPH::DegreesToRadians(t.localRotationEuler.z)
+            }
+        );
 
-        JPH::RMat44 worldWithCenter = com * JPH::RMat44::sTranslation(JPH::Vec3(col.center.x, col.center.y, col.center.z));
+        JPH::RMat44 world = JPH::RMat44::sRotationTranslation(
+            rot,
+            JPH::RVec3((double)pos.x, (double)pos.y, (double)pos.z)
+        );
 
-        shapeSettings->Draw(m_debugRenderer.get(), worldWithCenter, JPH::Vec3::sReplicate(1.f), JPH::Color::sGreen, false, true);
-    }
+        world = world * JPH::RMat44::sTranslation(JPH::Vec3(col.center.x, col.center.y, col.center.z));
 
-    void PhysicsManager::DrawBodies() {
-
-        //JPH::BodyManager::DrawSettings ds;
-        //ds.mDrawShape = true;
-        //ds.mDrawShapeWireframe = true;
-
-        //m_physicsSystem->DrawBodies(ds, m_debugRenderer.get());
-        //m_physicsSystem->DrawConstraints(ds, m_debugRenderer.get());
+        it->second->Draw(m_debugRenderer.get(),
+            world,
+            JPH::Vec3::sReplicate(1.f),
+            JPH::Color::sGreen,
+            false,
+            true
+        );
     }
 
     bool PhysicsManager::Raycast(Math::Vec3 origin, Math::Vec3 direction, RaycastHit& outHitInfo, float maxDistance, uint32_t layerMask) {
