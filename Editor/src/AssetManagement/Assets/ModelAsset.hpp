@@ -4,6 +4,9 @@
 #include "IAsset.hpp"
 
 #include <optional>
+#include <string>
+#include <vector>
+#include <rapidjson/document.h>
 
 #include "../Settings/ModelImportSettings.hpp"
 
@@ -19,6 +22,15 @@ namespace Editor::Assets {
 		ModelImportSettings& GetImportSettings();
 
 	private:
+		void ParseSubmeshes(const rapidjson::Value& arr);
+
+		struct SubmeshEntry {
+			std::string name;
+			int32_t index;
+		};
+
+		mutable std::string m_uuid;
+		mutable std::vector<SubmeshEntry> m_submeshes;
 		std::optional<ModelImportSettings> importSettings;
 	};
 }

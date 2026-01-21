@@ -862,6 +862,7 @@ namespace Editor {
 
 		if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
 		}
+		ImGui::InputInt("Submesh Index", &tempR.subMeshIndex);
 
 		if (copyComp) {
 

@@ -21,6 +21,7 @@
 #include <limits>
 #include <algorithm>
 #include "../EditorState.hpp"
+#include "../Serialization/Serializer.hpp"
 
 
 namespace {
@@ -53,6 +54,8 @@ namespace {
 namespace Editor {
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
+
+	static bool rebuildScene = false;
 
 	struct GizmoMultiTarget {
 		uint32_t entity;
@@ -94,6 +97,10 @@ namespace Editor {
 	void ScenePanel::OnImGuiRender()
 	{
 		using namespace NE::Math;
+		if (rebuildScene) {
+			EditorScene::BuildRoot();
+			rebuildScene = false;
+		}
 
 		ImGui::Begin("Scene", nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
@@ -276,6 +283,12 @@ namespace Editor {
 
 				//// Clear asset selection since we just selected an entity
 				//Editor::EditorScene::selectedAsset.clear();
+			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
+				//std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string metaPath = dropped + ".meta";
+				Deserialization::JSON::DeserializeModel(metaPath);
+				rebuildScene = true;
 			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
 				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
