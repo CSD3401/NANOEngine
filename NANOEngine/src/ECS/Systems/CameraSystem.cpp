@@ -162,25 +162,7 @@ namespace NE::ECS::Systems {
 		//cam.projectionMtx = Mat4::BuildOrtho(left, right, bottom, top, nearPlane, farPlane);
 	}
 
-	void CameraSystem::BuildView(Camera& cam, Transform& transform)
-	{
-		const Vec3 eye = transform.worldMatrix.GetTranslation();
-		const Vec3 fwd = ForwardFromEuler(transform.localRotationEuler);
-		const Vec3 target = eye + fwd;
-		const Vec3 up = Vec3{ 0.0f, 1.0f, 0.0f };
-
-		cam.viewMtx = Mat4::BuildViewMtx(eye, target, up);
-	}
-
-	inline Vec3 CameraSystem::ForwardFromEuler(const Vec3& euler)
-	{
-		float pitch = euler.x * Math::DEG_TO_RAD;
-		float yaw = euler.y * Math::DEG_TO_RAD;
-
-		Vec3 forward;
-		forward.x = std::cos(yaw) * std::cos(pitch);
-		forward.y = std::sin(pitch);
-		forward.z = std::sin(yaw) * std::cos(pitch);
-		return forward.Normalize();
+	void CameraSystem::BuildView(Camera& cam, Transform& transform) {
+		cam.viewMtx = transform.worldMatrix.Inverse();
 	}
 }
