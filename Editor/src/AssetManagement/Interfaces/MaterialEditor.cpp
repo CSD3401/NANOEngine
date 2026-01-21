@@ -294,5 +294,15 @@ namespace Editor {
         Assets::AssetManager::GetInstance().ReimportAsset(m_path);
 	}
 
+    void MaterialEditor::SetShader(std::string shaderUUID) {
+        if (m_material) {
+            m_material->SetShader(shaderUUID);
+		}
+    }
+
+    std::shared_ptr<NE::Graphics::Material> MaterialEditor::GetMaterial() {
+        return m_material;
+    }
+
 }
 

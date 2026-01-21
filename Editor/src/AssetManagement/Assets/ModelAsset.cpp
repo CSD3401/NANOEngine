@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <unordered_map>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -18,9 +19,13 @@
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/Renderer.hpp>
+#include <Graphics/Core/Material.hpp>
 
 #include "../AssetManager.hpp"
 #include "../../Serialization/JSONReflection.hpp"
+#include "../Interfaces/MaterialEditor.hpp"
+#include "TextureAsset.hpp"
+#include <ResourceManagement/ResourcePaths.hpp>
 
 namespace Editor::Assets {
 	namespace {
@@ -31,6 +36,18 @@ namespace Editor::Assets {
 			float nx, ny, nz;
 			float u, v;
 		};
+
+		NE::Resource::ResourceType GetResourceTypeFromAssetType(Assets::AssetType type) {
+			switch (type) {
+			case Assets::AssetType::Texture:    return NE::Resource::ResourceType::Texture;
+			case Assets::AssetType::Model:      return NE::Resource::ResourceType::Model;
+			case Assets::AssetType::Material:   return NE::Resource::ResourceType::Material;
+			case Assets::AssetType::Shader:     return NE::Resource::ResourceType::Shader;
+			case Assets::AssetType::Scene:      return NE::Resource::ResourceType::Scene;
+			case Assets::AssetType::Prefab:     return NE::Resource::ResourceType::Prefab;
+			default:                            return NE::Resource::ResourceType::Unknown;
+			}
+		}
 
 		NE::Math::Vec3 QuatToEulerXYZ_Degrees(const aiQuaternion& q) {
 			const double x = q.x, y = q.y, z = q.z, w = q.w;
@@ -209,6 +226,310 @@ namespace Editor::Assets {
 			for (unsigned c = 0; c < node->mNumChildren; ++c) {
 				GatherSubmeshEntries(scene, node->mChildren[c], nodePath, outNameByMeshIdx);
 			}
+		}
+
+		struct ImportedMatDesc {
+			std::string name;
+
+			NE::Math::Vec3 baseColor{ 1.f, 1.f, 1.f };
+			float metallic = 0.f;
+			float roughness = 0.f;
+			float opacity = 1.0f;
+			NE::Math::Vec3 emissive{ 0,0,0 };
+
+			std::string albedoMapUUID;
+			std::string normalMapUUID;
+			std::string metallicMapUUID;
+			std::string roughnessMapUUID;
+			std::string ambientOcclusionMapUUID;
+			std::string emissionMapUUID;
+			std::string opacityMapUUID;
+		};
+
+		bool GetTexturePath(const aiMaterial* mat, aiTextureType type, aiString& out) {
+			if (!mat || mat->GetTextureCount(type) == 0) return false;
+			return mat->GetTexture(type, 0, &out) == AI_SUCCESS;
+		}
+
+		ImportedMatDesc ExtractMaterialFBX(const aiMaterial* mat, const std::filesystem::path& parentDir) {
+			ImportedMatDesc d{};
+
+			const std::filesystem::path mandatoryTexDir = parentDir / "Textures";
+
+			aiString n;
+			if (mat->Get(AI_MATKEY_NAME, n) == AI_SUCCESS) d.name = n.C_Str();
+			if (d.name.empty()) d.name = "Material";
+
+			aiColor3D kd(1, 1, 1), ke(0, 0, 0);
+			float opacity = 1.0f;
+			float shininess = 0.0f;
+
+			mat->Get(AI_MATKEY_COLOR_DIFFUSE, kd);
+			mat->Get(AI_MATKEY_COLOR_EMISSIVE, ke);
+			mat->Get(AI_MATKEY_OPACITY, opacity);
+			mat->Get(AI_MATKEY_SHININESS, shininess);
+
+			d.baseColor = { kd.r, kd.g, kd.b };
+			d.emissive = { ke.r, ke.g, ke.b };
+			d.opacity = opacity;
+
+			if (shininess > 0.0f) {
+				float r = std::sqrt(2.0f / (shininess + 2.0f));
+				d.roughness = std::clamp(r, 0.0f, 1.0f);
+			}
+
+			SPD_WARNING("Material Name: " << d.name);
+
+			aiString p;
+			if (GetTexturePath(mat, aiTextureType_DIFFUSE, p)) {
+				std::filesystem::path texName = std::filesystem::path(p.C_Str()).filename();
+				SPD_DEBUG("AlbedoMap: " << texName.string());
+				std::filesystem::path albedoMapPath = (mandatoryTexDir / texName).lexically_normal();
+				if (std::filesystem::exists(albedoMapPath)) {
+					AssetManager::GetInstance().GenerateMetadata(albedoMapPath.string());
+					auto rec = AssetManager::GetInstance().
+						GetRecordBySource(albedoMapPath.string());
+
+					auto asset = dynamic_cast<TextureAsset*>(rec->asset.get());
+
+					asset->SaveImportSettings(albedoMapPath.string());
+					d.albedoMapUUID = AssetManager::GetInstance().RetrieveUUID(albedoMapPath.string());
+
+					if (!rec->isLoaded) {
+						asset->Cook(albedoMapPath.string(), 
+							NE::Resource::ComputeArtifactPathFromUUID(d.albedoMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
+						rec->isLoaded = true;
+					}
+				}
+			}
+
+			if (GetTexturePath(mat, aiTextureType_NORMALS, p)) {
+				std::filesystem::path texName = std::filesystem::path(p.C_Str()).filename();
+				SPD_DEBUG("NormalMap: " << texName.string());
+				std::filesystem::path normalMapPath = (mandatoryTexDir / texName).lexically_normal();
+				if (std::filesystem::exists(normalMapPath)) {
+					AssetManager::GetInstance().GenerateMetadata(normalMapPath.string());
+					auto rec = AssetManager::GetInstance().
+						GetRecordBySource(normalMapPath.string());
+
+					auto asset = dynamic_cast<TextureAsset*>(rec->asset.get());
+
+					asset->GetImportSettings(normalMapPath.string()).type = Assets::TexType::NormalMap;
+					asset->SaveImportSettings(normalMapPath.string());
+
+					d.normalMapUUID = AssetManager::GetInstance().RetrieveUUID(normalMapPath.string());
+
+					if (!rec->isLoaded) {
+						asset->Cook(normalMapPath.string(),
+							NE::Resource::ComputeArtifactPathFromUUID(d.normalMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
+						rec->isLoaded = true;
+					}
+				}
+			}
+			//else if (GetTexturePath(mat, aiTextureType_HEIGHT, p)) {
+			//	d.normalMap = (mandatoryTexDir / p.C_Str()).lexically_normal();
+
+			//}
+
+			if (GetTexturePath(mat, aiTextureType_EMISSIVE, p)) {
+				std::filesystem::path texName = std::filesystem::path(p.C_Str()).filename();
+				SPD_DEBUG("EmissiveMap: " << texName.string());
+				std::filesystem::path emissionMapPath = (mandatoryTexDir / texName).lexically_normal();
+				if (std::filesystem::exists(emissionMapPath)) {
+					AssetManager::GetInstance().GenerateMetadata(emissionMapPath.string());
+					auto rec = AssetManager::GetInstance().
+						GetRecordBySource(emissionMapPath.string());
+
+					auto asset = dynamic_cast<TextureAsset*>(rec->asset.get());
+
+					asset->SaveImportSettings(emissionMapPath.string());
+					d.emissionMapUUID = AssetManager::GetInstance().RetrieveUUID(emissionMapPath.string());
+
+					if (!rec->isLoaded) {
+						asset->Cook(emissionMapPath.string(),
+							NE::Resource::ComputeArtifactPathFromUUID(d.emissionMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
+						rec->isLoaded = true;
+					}
+				}
+			}
+			if (GetTexturePath(mat, aiTextureType_OPACITY, p)) {
+				std::filesystem::path texName = std::filesystem::path(p.C_Str()).filename();
+				SPD_DEBUG("OpacityMap: " << texName.string());
+				std::filesystem::path opacityMapPath = (mandatoryTexDir / texName).lexically_normal();
+				if (std::filesystem::exists(opacityMapPath)) {
+					AssetManager::GetInstance().GenerateMetadata(opacityMapPath.string());
+					auto rec = AssetManager::GetInstance().
+						GetRecordBySource(opacityMapPath.string());
+
+					auto asset = dynamic_cast<TextureAsset*>(rec->asset.get());
+
+					asset->GetImportSettings(opacityMapPath.string()).sRGB = false;
+					asset->SaveImportSettings(opacityMapPath.string());
+
+					d.opacityMapUUID = AssetManager::GetInstance().RetrieveUUID(opacityMapPath.string());
+
+					if (!rec->isLoaded) {
+						asset->Cook(opacityMapPath.string(),
+							NE::Resource::ComputeArtifactPathFromUUID(d.opacityMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
+						rec->isLoaded = true;
+					}
+				}
+			}
+
+			if (GetTexturePath(mat, aiTextureType_METALNESS, p)) {
+				std::filesystem::path texName = std::filesystem::path(p.C_Str()).filename();
+				SPD_DEBUG("MetallicMap: " << texName.string());
+				std::filesystem::path metallicMapPath = (mandatoryTexDir / texName).lexically_normal();
+				if (std::filesystem::exists(metallicMapPath)) {
+					AssetManager::GetInstance().GenerateMetadata(metallicMapPath.string());
+					auto rec = AssetManager::GetInstance().
+						GetRecordBySource(metallicMapPath.string());
+
+					auto asset = dynamic_cast<TextureAsset*>(rec->asset.get());
+
+					asset->GetImportSettings(metallicMapPath.string()).sRGB = false;
+					asset->SaveImportSettings(metallicMapPath.string());
+					
+					d.metallicMapUUID = AssetManager::GetInstance().RetrieveUUID(metallicMapPath.string());
+
+					if (!rec->isLoaded) {
+						asset->Cook(metallicMapPath.string(),
+							NE::Resource::ComputeArtifactPathFromUUID(d.metallicMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
+						rec->isLoaded = true;
+					}
+				}
+			}
+			if (GetTexturePath(mat, aiTextureType_DIFFUSE_ROUGHNESS, p)) {
+				std::filesystem::path texName = std::filesystem::path(p.C_Str()).filename();
+				SPD_DEBUG("RoughnessMap: " << texName.string());
+				std::filesystem::path roughnessMapPath = (mandatoryTexDir / texName).lexically_normal();
+				if (std::filesystem::exists(roughnessMapPath)) {
+					AssetManager::GetInstance().GenerateMetadata(roughnessMapPath.string());
+					auto rec = AssetManager::GetInstance().
+						GetRecordBySource(roughnessMapPath.string());
+
+					auto asset = dynamic_cast<TextureAsset*>(rec->asset.get());
+
+					asset->GetImportSettings(roughnessMapPath.string()).sRGB = false;
+					asset->SaveImportSettings(roughnessMapPath.string());
+
+					d.roughnessMapUUID = AssetManager::GetInstance().RetrieveUUID(roughnessMapPath.string());
+
+					if (!rec->isLoaded) {
+						asset->Cook(roughnessMapPath.string(),
+							NE::Resource::ComputeArtifactPathFromUUID(d.roughnessMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
+						rec->isLoaded = true;
+					}
+				}
+			}
+			if (GetTexturePath(mat, aiTextureType_AMBIENT_OCCLUSION, p)) {
+				std::filesystem::path texName = std::filesystem::path(p.C_Str()).filename();
+				SPD_DEBUG("AOMap: " << texName.string());
+				std::filesystem::path ambientOcclusionMapPath = (mandatoryTexDir / texName).lexically_normal();
+				if (std::filesystem::exists(ambientOcclusionMapPath)) {
+					AssetManager::GetInstance().GenerateMetadata(ambientOcclusionMapPath.string());
+					auto rec = AssetManager::GetInstance().
+						GetRecordBySource(ambientOcclusionMapPath.string());
+
+					auto asset = dynamic_cast<TextureAsset*>(rec->asset.get());
+
+					asset->GetImportSettings(ambientOcclusionMapPath.string()).sRGB = false;
+					asset->SaveImportSettings(ambientOcclusionMapPath.string());
+
+					d.ambientOcclusionMapUUID = AssetManager::GetInstance().RetrieveUUID(ambientOcclusionMapPath.string());
+
+					if (!rec->isLoaded) {
+						asset->Cook(ambientOcclusionMapPath.string(),
+							NE::Resource::ComputeArtifactPathFromUUID(d.ambientOcclusionMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
+						rec->isLoaded = true;
+					}
+				}
+			}
+
+			return d;
+		}
+
+		std::string SanitizeFileName(std::string s) {
+			const std::string illegal = "\\/:*?\"<>|";
+			for (char& c : s) {
+				if (illegal.find(c) != std::string::npos) c = '_';
+			}
+			while (!s.empty() && (s.back() == ' ' || s.back() == '.')) s.pop_back();
+			if (s.empty()) s = "Material";
+			return s;
+		}
+
+		std::string ImportMaterials(const std::string& materialPath, ImportedMatDesc& desc) {
+			namespace fs = std::filesystem;
+			
+			fs::path targetDir = materialPath + "/Materials";
+			fs::create_directories(targetDir);
+
+			std::string safe = SanitizeFileName(desc.name);
+			fs::path matPath = targetDir / (safe + ".nanomat");
+
+			rapidjson::Document doc;
+			doc.SetObject();
+			auto& alloc = doc.GetAllocator();
+
+			doc.AddMember("Shader", rapidjson::Value("nelitpbr", alloc), alloc);
+
+			doc.AddMember("DepthTest", true, alloc);
+			doc.AddMember("BlendMode", true, alloc);
+
+			doc.AddMember("CullMode", 1029, alloc);
+			doc.AddMember("PolygonMode", 6914, alloc);
+
+			doc.AddMember("RenderQueueBase", rapidjson::Value("Geometry", alloc), alloc);
+			doc.AddMember("RenderQueueOffset", 0, alloc);
+
+			rapidjson::Value props(rapidjson::kObjectType);
+			doc.AddMember("Properties", props, alloc);
+
+			rapidjson::StringBuffer buffer;
+			rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+			doc.Accept(writer);
+
+			std::ofstream out(matPath);
+			if (out.is_open()) {
+				out << buffer.GetString();
+				out.close();
+			}
+
+			Assets::AssetManager::GetInstance().GenerateMetadata(matPath.string()); // let it cook first
+
+			MaterialEditor matEd;
+			matEd.LoadMaterial(matPath.string(),
+				Assets::AssetManager::GetInstance().RetrieveUUID(matPath.string()));
+
+			matEd.SetShader("nelitpbr");
+
+			auto mat = matEd.GetMaterial();
+
+			mat->SetUniformVec3("u_BaseColor", desc.baseColor);
+			mat->SetUniformFloat("u_Metallic", desc.metallic);
+			mat->SetUniformFloat("u_Roughness", desc.roughness);
+			mat->SetUniformFloat("u_Opacity", desc.opacity);
+			mat->SetUniformVec3("u_Emissive", desc.emissive);
+
+			mat->SetTexture("u_AlbedoMap", desc.albedoMapUUID);
+			mat->SetUniformInt("h_HasAlbedoMap", desc.albedoMapUUID != "" ? 1 : 0);
+
+			mat->SetTexture("u_NormalMap", desc.normalMapUUID);
+			mat->SetUniformInt("h_HasNormalMap", desc.normalMapUUID != "" ? 1 : 0);
+
+			mat->SetTexture("u_RoughnessMap", desc.roughnessMapUUID);
+			mat->SetUniformInt("h_HasRoughnessMap", desc.roughnessMapUUID != "" ? 1 : 0);
+
+			mat->SetTexture("u_MetallicMap", desc.metallicMapUUID);
+			mat->SetUniformInt("h_HasMetallicMap", desc.metallicMapUUID != "" ? 1 : 0);
+
+			mat->SetTexture("u_AmbientOcclusion", desc.ambientOcclusionMapUUID);
+			mat->SetUniformInt("h_HasAmbientOcclusionMap", desc.ambientOcclusionMapUUID != "" ? 1 : 0);
+
+			matEd.Save();
+
+			return Assets::AssetManager::GetInstance().RetrieveUUID(matPath.string());
 		}
 	}
 
@@ -412,7 +733,13 @@ namespace Editor::Assets {
 		rapidjson::Value ents(rapidjson::kArrayType);
 		uint64_t next = 1;
 
-		std::vector<std::string> materialUUIDByAssimpMat(scene->mNumMaterials); // empty strings for now
+		std::vector<std::string> materialUUIDByAssimpMat(scene->mNumMaterials);
+		std::filesystem::path dirPath = std::filesystem::path(sourcePath).parent_path();
+
+		for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
+			ImportedMatDesc desc = ExtractMaterialFBX(scene->mMaterials[i], dirPath);
+			materialUUIDByAssimpMat[i] = ImportMaterials(dirPath.string(), desc);
+		}
 
 		BuildGeneratedPrefabRecursive(
 			scene,

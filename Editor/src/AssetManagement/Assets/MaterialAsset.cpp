@@ -74,7 +74,7 @@ namespace Editor::Assets {
                             (float)v[1].GetDouble(),
                             (float)v[2].GetDouble()
                         };
-                        SPD_INFO("uniform name: " << name << " value: " << v[0].GetDouble() << ", " << v[1].GetDouble() << ", " << v[2].GetDouble());
+                        //SPD_INFO("uniform name: " << name << " value: " << v[0].GetDouble() << ", " << v[1].GetDouble() << ", " << v[2].GetDouble());
                         r.type = (uint8_t)NE::Resource::MatPropType::VEC3;
                         payload.append(reinterpret_cast<const char*>(f), sizeof(f));
                     } else if (v.IsArray() && v.Size() == 16) {

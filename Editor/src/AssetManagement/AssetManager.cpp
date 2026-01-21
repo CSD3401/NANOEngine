@@ -181,11 +181,11 @@ namespace Editor::Assets {
         fs::path fsSourcePath = sourcePath;
         fs::path metaPath = fsSourcePath;
         metaPath += ".meta";
-
+        
         UUID uuid;
         AssetType type = AssetType::Unknown;
 
-        if (fs::exists(metaPath)) {
+        if (!std::filesystem::is_directory(fsSourcePath) && fs::exists(metaPath)) {
             std::ifstream ifs(metaPath);
             if (!ifs) {
                 SPD_WARNING("Failed to read meta file: " << metaPath.string());
