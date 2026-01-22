@@ -627,6 +627,42 @@ namespace NE {
 			RB_AddImpulse(Vec3(x, y, z), entity);
 		}
 
+		void IScript::CC_Move(const Vec3& displacement, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().CharacterMove(meta.luid, ToEngineVec3(displacement));
+		}
+
+		void IScript::CC_Rotate(float yawDegrees, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().CharacterRotateYaw(meta.luid, yawDegrees);
+		}
+
+		bool IScript::CC_IsGrounded(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(false);
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return Physics::PhysicsManager::GetInstance().CharacterIsGrounded(meta.luid);
+		}
+
+		Vec3 IScript::CC_GetGroundNormal(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3{});
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return Vec3(Physics::PhysicsManager::GetInstance().CharacterGetGroundNormal(meta.luid));
+		}
+
 		//=========================================================================
 		// Physics Raycasting
 		//=========================================================================

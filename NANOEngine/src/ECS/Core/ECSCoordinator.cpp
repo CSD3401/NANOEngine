@@ -15,6 +15,7 @@
 #include "../Components/Hierarchy.hpp"
 #include "../Components/PrefabLink.hpp"
 #include "../Components/PrefabInstance.hpp"
+#include "../Components/CharacterController.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -28,6 +29,7 @@
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/HierarchySystem.hpp"
 #include "../Systems/PrefabSystem.hpp"
+#include "../Systems/CharacterControllerSystem.hpp"
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
@@ -60,6 +62,7 @@ namespace NE::ECS {
         RegisterComponent<Component::NativeScript>();
         RegisterComponent<Component::PrefabLink>();
         RegisterComponent<Component::PrefabInstance>();
+        RegisterComponent<Component::CharacterController>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
@@ -157,6 +160,15 @@ namespace NE::ECS {
             Signature sig;
             sig.set(GetComponentType<Component::PrefabInstance>());
             SetSystemSignature<Systems::PrefabSystem>(sig);
+        }
+
+        m_characterControllerSystem = m_systemManager->RegisterSystem<Systems::CharacterControllerSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Transform>());
+            sig.set(GetComponentType<Component::Collider>());
+            sig.set(GetComponentType<Component::CharacterController>());
+            SetSystemSignature<Systems::CharacterControllerSystem>(sig);
         }
     }
 

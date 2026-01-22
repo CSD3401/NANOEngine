@@ -84,6 +84,7 @@
     <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
     <ClCompile Include="src\Scripting\GameObject.cpp" />
     <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
+    <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -248,6 +249,7 @@
     <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
     <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
     <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
+    <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

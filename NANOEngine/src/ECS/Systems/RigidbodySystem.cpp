@@ -41,13 +41,13 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void RigidbodySystem::Update(double dt) {
+	void RigidbodySystem::Update(double /*dt*/) {
 		auto& allEntities = m_entities.GetDenseContainer();
 
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
-			Physics::PhysicsManager::GetInstance().SyncBodiesToTransform(meta.luid, t);
+			Physics::PhysicsManager::GetInstance().SyncTransformToBodies(meta.luid, t);
 		}
 	}
 
