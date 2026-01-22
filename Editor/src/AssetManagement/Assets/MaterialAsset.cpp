@@ -20,8 +20,9 @@ namespace Editor::Assets {
         if (!doc.IsObject()) return false;
 
         NE::Resource::NanoMatHeader h{};
-        h.depthTest = doc.HasMember("DepthTest") ? (doc["DepthTest"].GetBool() ? 1 : 0) : 1;
         h.blendMode = doc.HasMember("BlendMode") ? (doc["BlendMode"].GetBool() ? 1 : 0) : 0;
+        h.depthTest = doc.HasMember("DepthTest") ? (doc["DepthTest"].GetBool() ? 1 : 0) : 1;
+		h.depthWrite = doc.HasMember("DepthWrite") ? (doc["DepthWrite"].GetBool() ? 1 : 0) : 1;
         h.cullMode = doc.HasMember("CullMode") ? doc["CullMode"].GetUint() : 0;
         h.polygonMode = doc.HasMember("PolygonMode") ? doc["PolygonMode"].GetUint() : 0;
 		h.renderQueueOffset = doc.HasMember("RenderQueueOffset") ? doc["RenderQueueOffset"].GetInt() : 0;
