@@ -72,7 +72,7 @@ namespace Editor {
         RenderDirectoryContents(m_currentDirectory);
 
         ImGuiWindow* child = ImGui::GetCurrentWindow();
-        ImRect drop_rect = child->InnerRect;      // or child->ContentRegionRect depending on what you want
+        ImRect drop_rect = child->InnerRect;
 
         if (ImGui::BeginDragDropTargetCustom(drop_rect, child->ID)) {
             auto* draw = child->DrawList;
@@ -82,7 +82,7 @@ namespace Editor {
             if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ENTITY_DRAG")) {
                 if (p->DataSize >= sizeof(uint32_t)) {
                     const uint32_t* entities = static_cast<const uint32_t*>(p->Data);
-                    uint32_t dropped = entities[0]; // First entity
+                    uint32_t dropped = entities[0]; // First entity for now
                     
 					EditorScene::s_selection.SetDropped(dropped);
 
@@ -93,8 +93,8 @@ namespace Editor {
                     if (meta.name.empty())
                         prefabName = "Prefab";
 
-                    std::string filePath = m_currentDirectory.string() + "/" + prefabName + ".nfab";
-                    Assets::AssetManager::GetInstance().GenerateMetadata(filePath, uuid);
+                    std::filesystem::path filePath = m_currentDirectory / (prefabName + ".nfab");
+                    Assets::AssetManager::GetInstance().GenerateMetadata(filePath.string(), uuid);
                     EditorScene::s_selection.Clear();
                 }
             }
