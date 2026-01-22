@@ -37,6 +37,40 @@ namespace Editor::Assets {
 			float u, v;
 		};
 
+		struct Bounds {
+			NE::Math::Vec3 minP{ FLT_MAX, FLT_MAX, FLT_MAX };
+			NE::Math::Vec3 maxP{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+			bool valid = false;
+
+			void Expand(float x, float y, float z) {
+				minP.x = std::min(minP.x, x); minP.y = std::min(minP.y, y); minP.z = std::min(minP.z, z);
+				maxP.x = std::max(maxP.x, x); maxP.y = std::max(maxP.y, y); maxP.z = std::max(maxP.z, z);
+				valid = true;
+			}
+		};
+
+		inline void WriteBoundsToDesc(const Bounds& b,
+			float aabbMin[3], float aabbMax[3],
+			float sphereCenter[3], float& sphereRadius)
+		{
+			if (!b.valid) {
+				aabbMin[0] = aabbMin[1] = aabbMin[2] = 0;
+				aabbMax[0] = aabbMax[1] = aabbMax[2] = 0;
+				sphereCenter[0] = sphereCenter[1] = sphereCenter[2] = 0;
+				sphereRadius = 0;
+				return;
+			}
+
+			aabbMin[0] = b.minP.x; aabbMin[1] = b.minP.y; aabbMin[2] = b.minP.z;
+			aabbMax[0] = b.maxP.x; aabbMax[1] = b.maxP.y; aabbMax[2] = b.maxP.z;
+
+			NE::Math::Vec3 c = (b.minP + b.maxP) * 0.5f;
+			NE::Math::Vec3 e = (b.maxP - b.minP) * 0.5f;
+
+			sphereCenter[0] = c.x; sphereCenter[1] = c.y; sphereCenter[2] = c.z;
+			sphereRadius = std::sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+		}
+
 		NE::Resource::ResourceType GetResourceTypeFromAssetType(Assets::AssetType type) {
 			switch (type) {
 			case Assets::AssetType::Texture:    return NE::Resource::ResourceType::Texture;
@@ -560,13 +594,12 @@ namespace Editor::Assets {
 		};
 		std::vector<RawBlob> blobs(scene->mNumMeshes);
 
-		// bounds
-		bool hasBounds = false;
-		NE::Math::Vec3 minP(FLT_MAX, FLT_MAX, FLT_MAX);
-		NE::Math::Vec3 maxP(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+		Bounds globalB;
 
 		for (unsigned m = 0; m < scene->mNumMeshes; ++m) {
 			const aiMesh* mesh = scene->mMeshes[m];
+			Bounds subB;
 
 			RawBlob& rb = blobs[m];
 			rb.vertices.resize(mesh->mNumVertices * sizeof(CookVertex));
@@ -596,13 +629,8 @@ namespace Editor::Assets {
 				vout[i] = v;
 
 				// expand bounds
-				minP.x = std::min(minP.x, v.px);
-				minP.y = std::min(minP.y, v.py);
-				minP.z = std::min(minP.z, v.pz);
-				maxP.x = std::max(maxP.x, v.px);
-				maxP.y = std::max(maxP.y, v.py);
-				maxP.z = std::max(maxP.z, v.pz);
-				hasBounds = true;
+				subB.Expand(v.px, v.py, v.pz);
+				globalB.Expand(v.px, v.py, v.pz);
 			}
 
 			// indices
@@ -618,27 +646,20 @@ namespace Editor::Assets {
 
 			subdescs[m].vertexCount = mesh->mNumVertices;
 			subdescs[m].indexCount = static_cast<uint32_t>(idx.size());
-		}
 
-		// compute sphere from AABB
-		//NE::Math::Vec3 center(0, 0, 0);
-		//float radius = 0.0f;
-		//if (hasBounds) {
-		//    center = (minP + maxP) * 0.5f;
-		//    NE::Math::Vec3 ext = maxP - center;
-		//    radius = std::max(std::max(ext.x, ext.y), ext.z);
-		//}s
+			WriteBoundsToDesc(subB,
+				subdescs[m].aabbMin, subdescs[m].aabbMax,
+				subdescs[m].sphereCenter, subdescs[m].sphereRadius);
+		}
 
 		std::ofstream ofs(outPath, std::ios::binary);
 		if (!ofs) return false;
 
 		NE::Resource::NanoMeshHeader header{};
 		header.submeshCount = static_cast<uint16_t>(scene->mNumMeshes);
-
-		//header.sphereCenter[0] = center.x;
-		//header.sphereCenter[1] = center.y;
-		//header.sphereCenter[2] = center.z;
-		//header.sphereRadius = radius;
+		WriteBoundsToDesc(globalB,
+			header.aabbMin, header.aabbMax,
+			header.sphereCenter, header.sphereRadius);
 
 		ofs.write(reinterpret_cast<const char*>(&header), sizeof(header));
 
