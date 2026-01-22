@@ -808,6 +808,9 @@ namespace NE::Graphics {
             drawCount /= renderedViews;
         }
 
+		// Note: Reset should be called right before any post-processing
+        s_StateCache->Reset();
+
 #pragma region EXPERIMENTAL
         {
             uint32_t sceneTex = 0;
