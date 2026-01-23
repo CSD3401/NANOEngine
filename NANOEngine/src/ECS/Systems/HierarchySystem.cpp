@@ -37,15 +37,19 @@ namespace NE::ECS::Systems {
 	HierarchySystem::HierarchySystem(ComponentManager* cm) : m_componentManager(cm) {}
 
 	void HierarchySystem::OnEntityAdded(Entity e) {
-		if (!m_componentManager->HasComponent<Component::Hierarchy>(e))
-			return;
-
 		auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
+		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 
 		if (h.luid != 0) {
 			m_luidToEntity[h.luid] = e;
         } else {
             h.luid = Core::LUIDGenerator::Generate("hr");
+        }
+
+        if (meta.luid != 0) {
+            m_luidToEntity[meta.luid] = e;
+        } else {
+            meta.luid = Core::LUIDGenerator::Generate("em");
         }
 
 		if (h.parentLuid != 0) {

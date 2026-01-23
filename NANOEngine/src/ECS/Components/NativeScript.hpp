@@ -46,7 +46,7 @@ namespace NE::ECS::Component {
         std::vector<std::string> _lastScriptNames;
 
         // LUID for serialization
-        uint64_t luid;
+        uint64_t luid = 0;
 
         // Helper to get a field key in the format "ScriptName.fieldName"
         static std::string GetFieldKey(const std::string& scriptName, const std::string& fieldName) {

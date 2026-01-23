@@ -137,11 +137,7 @@ namespace Editor {
 				void WriteComponentIfPresent(NE::ECS::Entity e,
 					rapidjson::Value& ent, rapidjson::Document::AllocatorType& a) {
 					if (!NE::ECS::Query::HasComponent<C>(e)) return;
-					auto& c = NE::ECS::Command::GetComponent<C>(e);
-
-					if constexpr (!std::is_same_v<C, NE::ECS::Component::Hierarchy>) {
-						if constexpr (requires(C x) { x.luid; }) c.luid = 0;
-					}
+					auto& c = NE::ECS::Query::GetComponent<C>(e);
 
 					ent.AddMember(rapidjson::Value(ComponentKey<C>::value, a), ToJSON(c, a), a);
 				}
