@@ -97,7 +97,7 @@ namespace NE {
 
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::GetInstance().Init();
-		Scripting::ScriptingEngine::GetInstance().Initialize(gSceneManager);
+		Scripting::ScriptingEngine::GetInstance().Initialize();
 	}
 
 	void Run(double dt) {
