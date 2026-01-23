@@ -21,6 +21,7 @@
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
+#include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../Physics/ForceMode.hpp"
 #include "../Physics/RaycastHit.hpp"
