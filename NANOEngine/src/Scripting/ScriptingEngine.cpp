@@ -1200,50 +1200,35 @@ namespace NE::Scripting {
         NE::ECS::ComponentManager& sourceComponentManager,
         NE::ECS::ComponentManager& targetComponentManager) {
 
-        // Build map of script hash -> SerializedFields from source scene
-        // We use script hash as the key because editor/runtime entities have different LUIDs
-        // but the same script types should match
-        std::unordered_map<size_t, std::unordered_map<std::string, std::string>> fieldsByScriptHash;
-        std::unordered_map<size_t, std::unordered_set<std::string>> refFieldsByScriptHash;
+        // Build map of LUID -> SerializedFields from source scene
+        // We use LUID as the key because it uniquely identifies each entity across editor/runtime
+        std::unordered_map<uint64_t, std::unordered_map<std::string, std::string>> fieldsByLuid;
+        std::unordered_map<uint64_t, std::unordered_set<std::string>> refFieldsByLuid;
 
         auto& sourceEntities = sourceComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
 
         for (NE::ECS::Entity entity : sourceEntities) {
             auto& nsc = sourceComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
 
-            // Create a hash of the script names to uniquely identify this entity's script configuration
-            std::string scriptNamesStr;
-            for (const auto& name : nsc.ScriptNames) {
-                scriptNamesStr += name + ",";
-            }
-            size_t scriptHash = std::hash<std::string>{}(scriptNamesStr);
-
-            // Store fields by script hash
-            fieldsByScriptHash[scriptHash] = nsc.SerializedFields;
-            refFieldsByScriptHash[scriptHash] = nsc.EntityReferenceFields;
+            // Store fields by LUID - this uniquely identifies each entity
+            fieldsByLuid[nsc.luid] = nsc.SerializedFields;
+            refFieldsByLuid[nsc.luid] = nsc.EntityReferenceFields;
         }
 
-        // Apply to target scene by matching script hash
+        // Apply to target scene by matching LUID
         auto& targetEntities = targetComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
 
         for (NE::ECS::Entity entity : targetEntities) {
             auto& targetNsc = targetComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
 
-            // Create a hash of the target's script names
-            std::string scriptNamesStr;
-            for (const auto& name : targetNsc.ScriptNames) {
-                scriptNamesStr += name + ",";
-            }
-            size_t scriptHash = std::hash<std::string>{}(scriptNamesStr);
-
-            // Find matching source by script hash
-            auto fieldsIt = fieldsByScriptHash.find(scriptHash);
-            if (fieldsIt != fieldsByScriptHash.end()) {
+            // Find matching source by LUID
+            auto fieldsIt = fieldsByLuid.find(targetNsc.luid);
+            if (fieldsIt != fieldsByLuid.end()) {
                 targetNsc.SerializedFields = fieldsIt->second;
             }
 
-            auto refFieldsIt = refFieldsByScriptHash.find(scriptHash);
-            if (refFieldsIt != refFieldsByScriptHash.end()) {
+            auto refFieldsIt = refFieldsByLuid.find(targetNsc.luid);
+            if (refFieldsIt != refFieldsByLuid.end()) {
                 targetNsc.EntityReferenceFields = refFieldsIt->second;
             }
         }
