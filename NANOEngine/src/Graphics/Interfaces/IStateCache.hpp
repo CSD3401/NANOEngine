@@ -11,6 +11,7 @@ namespace NE::Graphics {
     public:
         virtual ~IStateCache() = default;
         virtual void InvalidateAll() = 0;
+        virtual void Reset() = 0;
         virtual void Bind(const PipelineSpecification& spec) = 0;
 		virtual void Bind(const std::shared_ptr<IPipeline>& pipeline) = 0;
     };

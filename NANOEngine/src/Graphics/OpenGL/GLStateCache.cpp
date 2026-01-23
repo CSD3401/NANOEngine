@@ -18,6 +18,16 @@ namespace NE::Graphics::OpenGL {
 		m_Valid = false;
 	}
 
+	void GLStateCache::Reset() 
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_BLEND);
+		m_Valid = false;
+	}
+
 	void GLStateCache::Bind(const PipelineSpecification& spec)
 	{
 		if (!spec.shader) return;
@@ -81,7 +91,13 @@ namespace NE::Graphics::OpenGL {
 			}
 			// Culling
 			if (m_CurrentState.CullMode != spec.CullMode) {
-				glCullFace(spec.CullMode);
+				if (spec.CullMode != GL_NONE) {
+					glEnable(GL_CULL_FACE);
+					glCullFace(spec.CullMode);
+				}
+				else {
+					glDisable(GL_CULL_FACE);
+				}
 				m_CurrentState.CullMode = spec.CullMode;
 			}
 			// Polygon mode

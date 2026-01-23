@@ -108,19 +108,17 @@ namespace Editor {
             // but should be abstracted later because exposing GL enums directly is not ideal for cross-API compatibility
 
             // ---- Cull Mode ----
-            const char* cullItems[] = { "None", "Back", "Front", "Front & Back" };
+            const char* cullItems[] = { "None", "Back", "Front" };
 
             constexpr int CULL_NONE = 0;
             constexpr int CULL_BACK = 0x0405; // GL_BACK
             constexpr int CULL_FRONT = 0x0404; // GL_FRONT
-            constexpr int CULL_FRONT_AND_BACK = 0x0408; // GL_FRONT_AND_BACK
 
             auto CullEnumToIndex = [](int v) -> int {
                 switch (v) {
                 case CULL_NONE:           return 0;
                 case CULL_BACK:           return 1;
                 case CULL_FRONT:          return 2;
-                case CULL_FRONT_AND_BACK: return 3;
                 default:                  return 1; // default Back
                 }
                 };
@@ -129,7 +127,6 @@ namespace Editor {
                 case 0:  return CULL_NONE;
                 case 1:  return CULL_BACK;
                 case 2:  return CULL_FRONT;
-                case 3:  return CULL_FRONT_AND_BACK;
                 default: return CULL_BACK;
                 }
                 };
