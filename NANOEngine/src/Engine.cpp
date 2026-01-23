@@ -187,7 +187,7 @@ namespace NE {
 	}
 
 	void CookPrefab(const ECS::Entity rootNode, const std::string& _artifactPath) {
-		NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
+		//NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
 	}
 
 	uint32_t LoadPrefab(const std::string& _uuid) {

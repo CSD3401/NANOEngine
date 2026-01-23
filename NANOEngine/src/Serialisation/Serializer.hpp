@@ -11,6 +11,8 @@ namespace NE::ECS { class ECSCoordinator; }
 namespace NE {
 	namespace Serialization {
 		void SerializeScene(ECS::ECSCoordinator& ecs, const std::vector<ECS::Entity>& rootNodes, const std::string& path);
+
+		[[deprecated("No longer being used due to instability")]]
 		void SerializePrefab(ECS::ECSCoordinator& ecs, const ECS::Entity rootNodes, const std::string& path);
 		void SerializeEntitiesToMemory(ECS::ECSCoordinator& ecs, const uint32_t rootEnt, std::vector<uint8_t>& outBuffer);
 	}
