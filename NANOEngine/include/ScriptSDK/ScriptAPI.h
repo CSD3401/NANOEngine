@@ -248,17 +248,19 @@ namespace Scripting {
 
         // Position
         Vec3 TF_GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        Vec3 TF_GetWorldPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
         void TF_SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
         void TF_SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Rotation (Euler angles in degrees)
         Vec3 TF_GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
         void TF_SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
         void TF_SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Scale
         Vec3 TF_GetScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
         void TF_SetScale(const Vec3& scale, Entity entity = DEFAULT_ENTITY_PARAM);
         void TF_SetScale(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
         void TF_SetScale(float uniformScale, Entity entity = DEFAULT_ENTITY_PARAM);
