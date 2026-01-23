@@ -759,9 +759,6 @@ namespace Scripting {
             std::function<std::string()> getValue,
             std::function<bool(const std::string&)> setValue);
 
-        // Helper function for Unity-style hierarchy active state propagation
-        void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
-
         // Helper methods for template functions to access FieldRegistry
         void SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options);
         void SetFieldEnumCallbacks(const std::string& name,

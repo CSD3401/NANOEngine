@@ -21,6 +21,7 @@
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
+#include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../Physics/ForceMode.hpp"
 #include "../Physics/RaycastHit.hpp"
@@ -3244,47 +3245,17 @@ namespace NE {
 		}
 
 		void IScript::SetActive(bool active, Entity entity) {
-			//if (!m_context->componentManager) return;
+			if (!m_context || !m_context->componentManager) return;
 
-			//Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-			//	auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+			// Ensure entity has EntityMeta component
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+				return;
+			}
 
-			//	// Only update if changed
-			//	if (meta.isActive != active) {
-			//		meta.isActive = active;
-
-			//		// 1. Update rendering visibility
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
-			//			auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
-			//			renderer.visible = active && IsActiveInHierarchy();
-			//		}
-
-			//		// 2. Update physics state
-			//		if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
-			//			uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
-
-			//			if (active && IsActiveInHierarchy()) {
-			//				// Reactivate physics body only if parent hierarchy is also active
-			//				NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//			} else {
-			//				// Deactivate physics body (stops collision and physics simulation)
-			//				NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//			}
-			//		}
-
-			//		// 3. Update script enabled state
-			//		// When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
-			//		// No need to manually disable here - the hierarchy check in ScriptSystem handles it
-
-			//		// 4. Recursively propagate to all children (Unity-style)
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(e)) {
-			//			auto& hierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(e);
-			//			PropagateActiveStateToChildren(hierarchy.children, active);
-			//		}
-			//	}
-			//}
+			// Use HierarchySystem to set active state (handles hierarchy propagation)
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(e, active);
 		}
 
 		bool IScript::IsActiveInHierarchy() const {
@@ -3332,45 +3303,6 @@ namespace NE {
 			}
 
 			return true; // All parents are active
-		}
-
-		void IScript::PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const {
-			//if (!m_context || !m_context->componentManager) return;
-
-			//for (Entity childEntity : children) {
-			//	// Get child's own isActive state
-			//	if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
-			//		continue;
-			//	}
-
-			//	auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
-
-			//	// Determine effective active state: parent must be active AND child must be active
-			//	bool effectiveActive = parentActive && childMeta.isActive;
-
-			//	// Update child's rendering
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
-			//		auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
-			//		renderer.visible = effectiveActive;
-			//	}
-
-			//	// Update child's physics
-			//	if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
-			//		uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
-
-			//		if (effectiveActive) {
-			//			NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//		} else {
-			//			NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//		}
-			//	}
-
-			//	// Recursively propagate to grandchildren
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(childEntity)) {
-			//		auto& childHierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(childEntity);
-			//		PropagateActiveStateToChildren(childHierarchy.children, effectiveActive);
-			//	}
-			//}
 		}
 
 		//=========================================================================
