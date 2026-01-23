@@ -147,6 +147,10 @@ namespace NE::ECS {
 
 		NANOENGINE_API const Core::LayerID GetLayer(Entity e);
 		NANOENGINE_API const Core::LayerMask GetLayerBit(Entity e);
+
+		// Resolve a component LUID to its owning entity
+		// Returns INVALID_ENTITY if the LUID is not found
+		NANOENGINE_API Entity ResolveComponentLuidToEntity(uint64_t luid);
 	}
 
 	namespace Command {

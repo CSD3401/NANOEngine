@@ -1434,18 +1434,24 @@ namespace Editor {
 									try {
 										uint64_t storedValue = std::stoull(fval);
 
-										// Try to interpret as Entity ID first (for simpler logic)
-										// The deserialization code handles LUID resolution internally
+										// Check if it looks like an Entity ID (small value)
 										if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
 											assignedEntityId = static_cast<uint32_t>(storedValue);
 											if (assignedEntityId != NE::ECS::NO_ENTITY) {
 												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-												displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+												displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
 											}
 										}
 										else {
-											// Large value - likely a LUID, show as assigned
-											displayName = "[Assigned]";
+											// Large value - likely a LUID, resolve it to entity
+											assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+											if (assignedEntityId != NE::ECS::NO_ENTITY) {
+												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+												displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+											}
+											else {
+												displayName = "[Invalid Reference]";
+											}
 										}
 									}
 									catch (...) {
@@ -1492,7 +1498,7 @@ namespace Editor {
 
 								ImGui::SameLine();
 								if (ImGui::Button("X")) {
-									UpdateFieldValue(fname, "0");
+									UpdateFieldValue(fname, std::to_string(NE::ECS::NO_ENTITY));
 									fieldChanged = true;
 								}
 
@@ -1771,15 +1777,24 @@ namespace Editor {
 										if (!elemValue.empty() && elemValue != "0" && elemValue != noEntityStr) {
 											try {
 												uint64_t storedValue = std::stoull(elemValue);
+												// Check if it looks like an Entity ID (small value)
 												if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
 													assignedEntityId = static_cast<uint32_t>(storedValue);
 													if (assignedEntityId != NE::ECS::NO_ENTITY) {
 														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-														displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
 													}
 												}
 												else {
-													displayName = "[Assigned]";
+													// Large value - likely a LUID, resolve it to entity
+													assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+													}
+													else {
+														displayName = "[Invalid Reference]";
+													}
 												}
 											}
 											catch (...) {
