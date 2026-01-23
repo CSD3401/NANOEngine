@@ -282,6 +282,12 @@ namespace Editor {
 					});
 				}
 
+				std::filesystem::path filePath(binPath);
+				std::filesystem::path directory = filePath.parent_path();
+				if (!directory.empty() && !std::filesystem::exists(directory)) {
+					std::filesystem::create_directories(directory);
+				}
+
 				std::ofstream ofs(binPath, std::ios::binary);
 				if (!ofs.is_open()) return false;
 				ofs.write(reinterpret_cast<const char*>(outputBuffer.data()), outputBuffer.size());
