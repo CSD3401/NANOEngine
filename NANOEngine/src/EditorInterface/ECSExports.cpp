@@ -261,6 +261,27 @@ namespace NE::ECS {
 
 			return static_cast<Entity>(record->m_entityOwner);
 		}
+
+		Entity ResolveEntityMetaLuidToEntity(uint64_t luid) {
+			if (luid == 0) return 0;
+
+			auto& ecs = GetScene().GetECSCoordinator();
+			auto& entityManager = ecs.GetEntityManager();
+			auto& componentManager = ecs.GetComponentManager();
+
+			// Iterate through all active entities to find matching EntityMeta LUID
+			const auto& usedEntities = entityManager.GetUsedEntities();
+			for (Entity entity : usedEntities) {
+				if (componentManager.HasComponent<ECS::Component::EntityMeta>(entity)) {
+					const auto& meta = componentManager.GetComponent<ECS::Component::EntityMeta>(entity);
+					if (meta.luid == luid) {
+						return entity;
+					}
+				}
+			}
+
+			return 0;
+		}
 	}
 
 	namespace Command {
