@@ -225,19 +225,6 @@ namespace NE {
 		Vec3 IScript::TF_GetPosition(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-			// Use m_entity if entity is DEFAULT_ENTITY_PARAM
-			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
-				return Vec3::Zero();
-
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
-			return ToSDKVec3(transform.localPosition);
-		}
-
-		Vec3 IScript::TF_GetWorldPosition(Entity entity) const {
-			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
-
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
@@ -247,6 +234,19 @@ namespace NE {
 			Math::Mat4 m = transform.worldMatrix;
 			Math::Vec3 worldPos = m.GetTranslation();
 			return ToSDKVec3(worldPos);
+		}
+
+		Vec3 IScript::TF_GetLocalPosition(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+			// Use m_entity if entity is DEFAULT_ENTITY_PARAM
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+				return Vec3::Zero();
+
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			return ToSDKVec3(transform.localPosition);
 		}
 
 		void IScript::TF_SetPosition(const Vec3& pos, Entity entity) {
@@ -266,6 +266,20 @@ namespace NE {
 		}
 
 		Vec3 IScript::TF_GetRotation(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+				return Vec3::Zero();
+
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			Math::Vec3 worldRot = m.GetRotation();
+			return ToSDKVec3(worldRot);
+		}
+
+		Vec3 IScript::TF_GetLocalRotation(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -294,6 +308,20 @@ namespace NE {
 		}
 
 		Vec3 IScript::TF_GetScale(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::One());
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+				return Vec3::One();
+
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			Math::Vec3 worldScale = m.GetRotation();
+			return ToSDKVec3(worldScale);
+		}
+
+		Vec3 IScript::TF_GetLocalScale(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::One());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -345,33 +373,36 @@ namespace NE {
 
 		Vec3 IScript::TF_GetForward(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			//Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
-			float pitch = rotation.x * Math::DEG_TO_RAD;
-			float yaw = rotation.y * Math::DEG_TO_RAD;
+			//float pitch = rotation.x * Math::DEG_TO_RAD;
+			//float yaw = rotation.y * Math::DEG_TO_RAD;
 
-			Vec3 forward;
-			forward.x = std::cos(pitch) * std::cos(yaw);
-			forward.y = std::sin(pitch);
-			forward.z = std::cos(pitch) * std::sin(yaw);
+			//Vec3 forward;
+			//forward.x = std::cos(pitch) * std::cos(yaw);
+			//forward.y = std::sin(pitch);
+			//forward.z = std::cos(pitch) * std::sin(yaw);
 
-			return forward.Normalized();
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			return Vec3(m.Forward());
 		}
 
 		Vec3 IScript::TF_GetRight(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			//Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
-			// Convert degrees to radians
-			float yaw = rotation.y * Math::DEG_TO_RAD;
+			//// Convert degrees to radians
+			//float yaw = rotation.y * Math::DEG_TO_RAD;
 
-			// Right vector is perpendicular to forward in XZ plane
-			Vec3 right;
-			right.x = std::cos(yaw);
-			right.y = 0.0f;
-			right.z = std::sin(yaw);
-
-			return Normalize(right);
+			//// Right vector is perpendicular to forward in XZ plane
+			//Vec3 right;
+			//right.x = std::cos(yaw);
+			//right.y = 0.0f;
+			//right.z = std::sin(yaw);
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			return Vec3(m.Right());
 		}
 
 		Vec3 IScript::TF_GetUp(Entity entity) const {
