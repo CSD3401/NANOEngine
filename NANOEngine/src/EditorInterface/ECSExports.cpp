@@ -835,12 +835,25 @@ namespace NE::ECS {
 		Component::UICanvas& GetUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
+
+		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
+		Component::Animator& GetEntityAnimator(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
+		}
+
 		Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
-		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		Component::PrefabLink& GetPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
 		}
 
 		Component::CharacterController& GetCharacterController(uint32_t e) {
@@ -972,10 +985,6 @@ namespace NE::ECS {
 			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Animator>(e))
 				return;
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Animator{});
-		}
-
-		Component::Animator& GetEntityAnimator(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
 
 		void SetLayer(Entity e, Core::LayerID layer) {
