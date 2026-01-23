@@ -102,6 +102,13 @@ namespace Editor {
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
 
+		float newAspect = (panelSize.y > 0.0f) ? (panelSize.x / panelSize.y) : (16.0f / 9.0f);
+
+		if (fabsf(newAspect - m_aspectRatio) > 1e-4f) {
+			m_aspectRatio = newAspect;
+			EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
+		}
+
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
 		if (ImGui::BeginMenuBar()) {

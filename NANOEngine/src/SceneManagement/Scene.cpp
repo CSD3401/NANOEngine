@@ -13,6 +13,7 @@
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
 #include "ECS/Systems/UITransformSystem.hpp"
+#include "ECS/Systems/CharacterControllerSystem.hpp"
 #include "../Animation/TransformClipIO.hpp"
 #include "Core/Couroutine.hpp"
 #include "Physics/PhysicsManager.hpp"
@@ -38,9 +39,10 @@ namespace NE::SceneManagement {
 		// Initialize PhysicsManager with ComponentManager for LUID resolution
 		Physics::PhysicsManager::GetInstance().SetComponentManager(&m_ecsCoordinator.GetComponentManager());
 
-		m_ecsCoordinator.m_rigidbodySystem->Init();
 		m_ecsCoordinator.m_hierarchySystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
+		m_ecsCoordinator.m_rigidbodySystem->Init();
+		m_ecsCoordinator.m_characterControllerSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_cameraSystem->Init();
 		m_ecsCoordinator.m_colliderSystem->Init();
@@ -70,6 +72,7 @@ namespace NE::SceneManagement {
 	void Scene::UpdateRuntime(double dt) {
 		Physics::PhysicsManager::GetInstance().Update(dt);
 		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
+		m_ecsCoordinator.m_characterControllerSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);

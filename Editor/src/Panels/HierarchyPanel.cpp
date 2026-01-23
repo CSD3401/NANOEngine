@@ -440,12 +440,14 @@ namespace Editor {
 		}
 		bool open = ImGui::TreeNodeEx((void*)(intptr_t)e, flags, "%s", name);
 
+		const bool toggledOpen = ImGui::IsItemToggledOpen();
+
 		if (useCustomColor)
 			ImGui::PopStyleColor();
 
 		HandleDragSource(e, preorder);
 
-		if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+		if (!toggledOpen && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
 			ImGuiIO& io = ImGui::GetIO();
 			m_clickCandidate = e;
 			m_clickHadCtrl = io.KeyCtrl;
@@ -453,7 +455,7 @@ namespace Editor {
 			m_clickThisFrame = true;
 		}
 
-		if (ImGui::BeginPopupContextItem("HierarchyContext")) {
+		if (ImGui::BeginPopupContextItem()) {
 			auto& sel = EditorScene::s_selection;
 			if (!sel.Contains(e)) {
 				sel.SetSingle(e);
@@ -693,6 +695,17 @@ namespace Editor {
 			if (ImGui::MenuItem("Area Light", "", false, false)) {
 			}
 			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Audio")) {
+			if (ImGui::MenuItem("Audio Source", "", false, false)) {
+
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::MenuItem("Camera", "", false, false)) {
+
 		}
 	}
 }

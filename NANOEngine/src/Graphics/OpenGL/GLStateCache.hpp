@@ -11,6 +11,7 @@ namespace NE::Graphics::OpenGL {
 		~GLStateCache() = default;
 
 		void InvalidateAll() override;
+		void Reset() override;
 		void Bind(const PipelineSpecification& spec) override;
 		void Bind(const std::shared_ptr<IPipeline>&) override;
 

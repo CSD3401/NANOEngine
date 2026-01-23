@@ -54,7 +54,7 @@ namespace NE::ECS::Systems {
     void RenderSystem::Init() {
     }
 
-    void RenderSystem::Update(double deltaTime) {
+    void RenderSystem::Update(double /*deltaTime*/) {
 		NE_PROFILE_FUNCTION();
 
         FrustumCulling();

@@ -350,6 +350,16 @@ namespace Scripting {
         void RB_AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
+        // CHARACTER CONTROLLER PHYSICS (CC_*)
+        // All functions support optional Entity parameter
+        //=====================================================================
+
+		void CC_Move(const Vec3& displacement, Entity entity = DEFAULT_ENTITY_PARAM);
+		void CC_Rotate(float yawDegrees, Entity entity = DEFAULT_ENTITY_PARAM);
+        bool CC_IsGrounded(Entity entity = DEFAULT_ENTITY_PARAM) const;
+		Vec3 CC_GetGroundNormal(Entity entity = DEFAULT_ENTITY_PARAM) const;
+
+        //=====================================================================
         // PHYSICS RAYCASTING
         //=====================================================================
 

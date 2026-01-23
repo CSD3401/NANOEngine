@@ -35,6 +35,7 @@ namespace NE::ECS {
 		struct Hierarchy;
 		struct PrefabLink;
 		struct PrefabInstance;
+		struct CharacterController;
 	}
 
 	namespace Query {
@@ -59,6 +60,7 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
 		NANOENGINE_API const Component::PrefabLink& GetPrefabLink(uint32_t e);
 		NANOENGINE_API const Component::PrefabInstance& GetPrefabInstance(uint32_t e);
+		NANOENGINE_API const Component::CharacterController& GetCharacterController(uint32_t e);
 
 		// to move to this in the future
 		// also need to find a way to enforce C as component
@@ -80,6 +82,7 @@ namespace NE::ECS {
 		template<> inline const Component::Animator& GetComponent<Component::Animator>(uint32_t e) { return GetEntityAnimator(e); }
 		template<> inline const Component::PrefabLink& GetComponent<Component::PrefabLink>(uint32_t e) { return GetPrefabLink(e); }
 		template<> inline const Component::PrefabInstance& GetComponent<Component::PrefabInstance>(uint32_t e) { return GetPrefabInstance(e); }
+		template<> inline const Component::CharacterController& GetComponent<Component::CharacterController>(uint32_t e) { return GetCharacterController(e); }
 
 		NANOENGINE_API bool HasEntityMeta(uint32_t e);
 		NANOENGINE_API bool HasHierarchy(uint32_t e);
@@ -97,6 +100,7 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasScript(uint32_t e);
 		NANOENGINE_API bool HasAnimator(uint32_t e);
 		NANOENGINE_API bool HasCamera(uint32_t e);
+		NANOENGINE_API bool HasCharacterController(uint32_t e);
 
 		template <typename C>
 		bool HasComponent(Entity e);
@@ -116,6 +120,7 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::Camera>(uint32_t e) { return HasCamera(e); }
 		template<> inline bool HasComponent<Component::PrefabLink>(uint32_t e) { return HasPrefabLink(e); }
 		template<> inline bool HasComponent<Component::PrefabInstance>(uint32_t e) { return HasPrefabInstance(e); }
+		template<> inline bool HasComponent<Component::CharacterController>(uint32_t e) { return HasCharacterController(e); }
 
 		//template <typename C>
 		//ComponentType GetComponentType() {
@@ -136,6 +141,7 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetEntityAnimatorComponentType();
 		NANOENGINE_API ComponentType GetEntityCameraComponentType();
 		NANOENGINE_API ComponentType GetPrefabInstanceComponentType();
+		NANOENGINE_API ComponentType GetCharacterControllerComponentType();
 
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
@@ -191,6 +197,7 @@ namespace NE::ECS {
 		NANOENGINE_API void AddUIImageComponent(uint32_t e, const Component::UIImage& c);
 		NANOENGINE_API void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c);
 		NANOENGINE_API void AddPrefabInstanceComponent(uint32_t e, const Component::PrefabInstance& c);
+		NANOENGINE_API void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c);
 
 		template <typename C>
 		void AddComponent(Entity e, const C& component);
@@ -210,6 +217,7 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::UIImage>(uint32_t e, const Component::UIImage& component) { AddUIImageComponent(e, component); }
 		template<> inline void AddComponent<Component::PrefabLink>(uint32_t e, const Component::PrefabLink& component) { AddPrefabLinkComponent(e, component); }
 		template<> inline void AddComponent<Component::PrefabInstance>(uint32_t e, const Component::PrefabInstance& component) { AddPrefabInstanceComponent(e, component); }
+		template<> inline void AddComponent<Component::CharacterController>(uint32_t e, const Component::CharacterController& component) { AddCharacterControllerComponent(e, component); }
 
 		NANOENGINE_API void RemoveLightComponent(uint32_t e);
 		NANOENGINE_API void RemoveRendererComponent(uint32_t e);
@@ -217,8 +225,6 @@ namespace NE::ECS {
 		NANOENGINE_API void RemoveColliderComponent(uint32_t e);
 		NANOENGINE_API void RemoveAudioSourceComponent(uint32_t e);
 		NANOENGINE_API void RemoveCameraComponent(uint32_t e);
-
-
 
 		// --- Editor Component Mutators --- //
 		NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
@@ -234,6 +240,7 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
 		NANOENGINE_API Component::Hierarchy& GetEntityHierarchy(uint32_t e);
+		NANOENGINE_API Component::CharacterController& GetCharacterController(uint32_t e);
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();
