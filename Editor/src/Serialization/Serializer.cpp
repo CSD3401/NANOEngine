@@ -33,9 +33,13 @@
 #include "JSONReflection.hpp"
 #include "../EditorScene.hpp"
 #include <Scripting/ScriptingEngine.hpp>
+#include <Serialisation/BinaryReflection.hpp>
 
 namespace Editor {
 	namespace {
+		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 1;
+
 		using ComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
 			NE::ECS::Component::Hierarchy,
@@ -230,6 +234,61 @@ namespace Editor {
 
 				std::ofstream out(path, std::ios::binary);
 				if (out) out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
+			}
+
+			bool CookPrefabToBinary(const std::string& jsonPath, const std::string& binPath) {
+				std::string jsonContent;
+				if (!ReadAllText(jsonPath, jsonContent)) return false;
+
+				rapidjson::Document doc;
+				doc.Parse(jsonContent.c_str());
+				if (doc.HasParseError() || !doc.HasMember("Entities")) return false;
+
+				NE::ByteBuffer outputBuffer;
+
+				NE::Serialization::ToBinary(outputBuffer, static_cast<uint64_t>(NFAB_MAGIC));
+				NE::Serialization::ToBinary(outputBuffer, static_cast<uint64_t>(CURRENT_NANOPREFAB_FORMAT_VERSION));
+
+				const auto& entities = doc["Entities"].GetArray();
+				uint64_t entityCount = static_cast<uint64_t>(entities.Size());
+				NE::Serialization::ToBinary(outputBuffer, entityCount);
+
+				for (const auto& entVal : entities) {
+					uint8_t layer = 0;
+					if (entVal.HasMember("Layer")) {
+						Deserialization::FromJSON(entVal["Layer"], layer);
+					}
+					NE::Serialization::ToBinary(outputBuffer, layer);
+
+					uint64_t mask = 0;
+					uint32_t bitIdx = 0;
+					ForEachComponentType([&]<typename C>() {
+						if (entVal.HasMember(ComponentKey<C>::value)) {
+							mask |= (uint64_t(1) << bitIdx);
+						}
+						bitIdx++;
+					});
+
+					NE::Serialization::ToBinary(outputBuffer, mask);
+
+					ForEachComponentType([&]<typename C>() {
+						const char* key = ComponentKey<C>::value;
+						if (entVal.HasMember(key)) {
+							C tempComp{};
+							Deserialization::FromJSON(entVal[key], tempComp);
+
+							if constexpr (!std::is_same_v<C, NE::ECS::Component::NativeScript>) {
+								NE::Serialization::ToBinary(outputBuffer, tempComp);
+							}
+						}
+					});
+				}
+
+				std::ofstream ofs(binPath, std::ios::binary);
+				if (!ofs.is_open()) return false;
+				ofs.write(reinterpret_cast<const char*>(outputBuffer.data()), outputBuffer.size());
+
+				return true;
 			}
 
 			void SerializeProjectSettings() {
