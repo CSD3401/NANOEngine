@@ -491,6 +491,9 @@ namespace NE {
 							if (oldMy == 0)
 								outNewRoot = e;
 						} else {
+							if constexpr (HasLuid<C>) {
+								c.luid = 0;
+							}
 							ecs.AddComponent<C>(e, c);
 						}
 					}
