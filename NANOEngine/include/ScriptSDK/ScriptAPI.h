@@ -628,6 +628,12 @@ namespace Scripting {
         void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
         void RegisterPrefabRefVectorField(const std::string& name, std::vector<PrefabRef>* memberPtr);
+        void RegisterGameObjectRefVectorField(const std::string& name, std::vector<GameObjectRef>* memberPtr);
+        void RegisterTransformRefVectorField(const std::string& name, std::vector<TransformRef>* memberPtr);
+        void RegisterRigidbodyRefVectorField(const std::string& name, std::vector<RigidbodyRef>* memberPtr);
+        void RegisterRendererRefVectorField(const std::string& name, std::vector<RendererRef>* memberPtr);
+        void RegisterAudioSourceRefVectorField(const std::string& name, std::vector<AudioSourceRef>* memberPtr);
+        void RegisterLayerRefVectorField(const std::string& name, std::vector<LayerRef>* memberPtr);
 
         // Enum field registration (with automatic enum options)
         template<typename EnumType>
@@ -752,9 +758,6 @@ namespace Scripting {
             void* memberPtr,
             std::function<std::string()> getValue,
             std::function<bool(const std::string&)> setValue);
-
-        // Helper function for Unity-style hierarchy active state propagation
-        void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
 
         // Helper methods for template functions to access FieldRegistry
         void SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options);

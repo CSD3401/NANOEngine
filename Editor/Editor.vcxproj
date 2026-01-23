@@ -226,6 +226,7 @@
     <ClInclude Include="src\EditorState.hpp" />
     <ClInclude Include="src\Layers\LayerModal.hpp" />
     <ClInclude Include="src\Serialization\JSONReflection.hpp" />
+    <ClInclude Include="src\Serialization\ReflectionConverter.hpp" />
     <ClInclude Include="src\Serialization\Serializer.hpp" />
     <ClInclude Include="src\AssetManagement\AssetManager.hpp" />
     <ClInclude Include="resource.h" />

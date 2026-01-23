@@ -21,6 +21,7 @@
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
+#include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../Physics/ForceMode.hpp"
 #include "../Physics/RaycastHit.hpp"
@@ -2438,6 +2439,509 @@ namespace NE {
 			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
 		}
 
+		void IScript::RegisterGameObjectRefVectorField(const std::string& name, std::vector<GameObjectRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<gameobjectref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size id1 id2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					oss << " " << ref.entity;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint32_t entityId;
+						if (!(iss >> entityId)) return false;
+						memberPtr->push_back(GameObjectRef(static_cast<Entity>(entityId)));
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				return std::to_string((*memberPtr)[index].entity);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					(*memberPtr)[index].entity = static_cast<Entity>(std::stoul(value));
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(GameObjectRef(NE::ECS::NO_ENTITY));
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterTransformRefVectorField(const std::string& name, std::vector<TransformRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<transformref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..." (LUID or entity ID as fallback)
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						TransformRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(TransformRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterRigidbodyRefVectorField(const std::string& name, std::vector<RigidbodyRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<rigidbodyref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						RigidbodyRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(RigidbodyRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterRendererRefVectorField(const std::string& name, std::vector<RendererRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<rendererref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						RendererRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(RendererRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterAudioSourceRefVectorField(const std::string& name, std::vector<AudioSourceRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<audiosourceref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						AudioSourceRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(AudioSourceRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterLayerRefVectorField(const std::string& name, std::vector<LayerRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<layerref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size id1 id2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					oss << " " << static_cast<int>(ref.layerID);
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						int layerId;
+						if (!(iss >> layerId)) return false;
+						memberPtr->push_back(LayerRef(static_cast<uint8_t>(layerId)));
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				return std::to_string(static_cast<int>((*memberPtr)[index].layerID));
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					(*memberPtr)[index].layerID = static_cast<uint8_t>(std::stoi(value));
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(LayerRef(0));
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+		}
+
 		void IScript::RegisterLayerMaskField(const std::string& name, LayerMask* memberPtr) {
 			RegisterFieldInternal(
 				name,
@@ -2741,47 +3245,17 @@ namespace NE {
 		}
 
 		void IScript::SetActive(bool active, Entity entity) {
-			//if (!m_context->componentManager) return;
+			if (!m_context || !m_context->componentManager) return;
 
-			//Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-			//	auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+			// Ensure entity has EntityMeta component
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+				return;
+			}
 
-			//	// Only update if changed
-			//	if (meta.isActive != active) {
-			//		meta.isActive = active;
-
-			//		// 1. Update rendering visibility
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
-			//			auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
-			//			renderer.visible = active && IsActiveInHierarchy();
-			//		}
-
-			//		// 2. Update physics state
-			//		if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
-			//			uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
-
-			//			if (active && IsActiveInHierarchy()) {
-			//				// Reactivate physics body only if parent hierarchy is also active
-			//				NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//			} else {
-			//				// Deactivate physics body (stops collision and physics simulation)
-			//				NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//			}
-			//		}
-
-			//		// 3. Update script enabled state
-			//		// When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
-			//		// No need to manually disable here - the hierarchy check in ScriptSystem handles it
-
-			//		// 4. Recursively propagate to all children (Unity-style)
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(e)) {
-			//			auto& hierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(e);
-			//			PropagateActiveStateToChildren(hierarchy.children, active);
-			//		}
-			//	}
-			//}
+			// Use HierarchySystem to set active state (handles hierarchy propagation)
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(e, active);
 		}
 
 		bool IScript::IsActiveInHierarchy() const {
@@ -2829,45 +3303,6 @@ namespace NE {
 			}
 
 			return true; // All parents are active
-		}
-
-		void IScript::PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const {
-			//if (!m_context || !m_context->componentManager) return;
-
-			//for (Entity childEntity : children) {
-			//	// Get child's own isActive state
-			//	if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
-			//		continue;
-			//	}
-
-			//	auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
-
-			//	// Determine effective active state: parent must be active AND child must be active
-			//	bool effectiveActive = parentActive && childMeta.isActive;
-
-			//	// Update child's rendering
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
-			//		auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
-			//		renderer.visible = effectiveActive;
-			//	}
-
-			//	// Update child's physics
-			//	if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
-			//		uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
-
-			//		if (effectiveActive) {
-			//			NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//		} else {
-			//			NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//		}
-			//	}
-
-			//	// Recursively propagate to grandchildren
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(childEntity)) {
-			//		auto& childHierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(childEntity);
-			//		PropagateActiveStateToChildren(childHierarchy.children, effectiveActive);
-			//	}
-			//}
 		}
 
 		//=========================================================================

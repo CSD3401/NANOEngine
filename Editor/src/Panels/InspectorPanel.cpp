@@ -1434,18 +1434,24 @@ namespace Editor {
 									try {
 										uint64_t storedValue = std::stoull(fval);
 
-										// Try to interpret as Entity ID first (for simpler logic)
-										// The deserialization code handles LUID resolution internally
+										// Check if it looks like an Entity ID (small value)
 										if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
 											assignedEntityId = static_cast<uint32_t>(storedValue);
 											if (assignedEntityId != NE::ECS::NO_ENTITY) {
 												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-												displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+												displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
 											}
 										}
 										else {
-											// Large value - likely a LUID, show as assigned
-											displayName = "[Assigned]";
+											// Large value - likely a LUID, resolve it to entity
+											assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+											if (assignedEntityId != NE::ECS::NO_ENTITY) {
+												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+												displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+											}
+											else {
+												displayName = "[Invalid Reference]";
+											}
 										}
 									}
 									catch (...) {
@@ -1492,7 +1498,7 @@ namespace Editor {
 
 								ImGui::SameLine();
 								if (ImGui::Button("X")) {
-									UpdateFieldValue(fname, "0");
+									UpdateFieldValue(fname, std::to_string(NE::ECS::NO_ENTITY));
 									fieldChanged = true;
 								}
 
@@ -1771,15 +1777,24 @@ namespace Editor {
 										if (!elemValue.empty() && elemValue != "0" && elemValue != noEntityStr) {
 											try {
 												uint64_t storedValue = std::stoull(elemValue);
+												// Check if it looks like an Entity ID (small value)
 												if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
 													assignedEntityId = static_cast<uint32_t>(storedValue);
 													if (assignedEntityId != NE::ECS::NO_ENTITY) {
 														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-														displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
 													}
 												}
 												else {
-													displayName = "[Assigned]";
+													// Large value - likely a LUID, resolve it to entity
+													assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+													}
+													else {
+														displayName = "[Invalid Reference]";
+													}
 												}
 											}
 											catch (...) {
@@ -1850,6 +1865,168 @@ namespace Editor {
 												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
 												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
 												if (success) elemChanged = true;
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, noEntityStr);
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "gameobjectref") {
+										// GameObject reference in array - same as entity but with consistent naming
+										std::string entityIdStr = elemValue;
+										std::string displayName = "None";
+										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+										if (!entityIdStr.empty() && entityIdStr != "0" && entityIdStr != noEntityStr) {
+											try {
+												assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+												if (assignedEntityId != NE::ECS::NO_ENTITY) {
+													const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+													displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+												}
+											}
+											catch (...) {
+												displayName = "[Error]";
+											}
+										}
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+											if (payload && payload->DataSize == sizeof(uint32_t)) {
+												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+												if (success) elemChanged = true;
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, noEntityStr);
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "layerref") {
+										// Layer reference in array - show layer dropdown
+										NE::Core::LayerID currentLayerId = 0;
+										if (!elemValue.empty()) {
+											try {
+												currentLayerId = static_cast<NE::Core::LayerID>(std::stoi(elemValue));
+											} catch (...) {
+												currentLayerId = 0;
+											}
+										}
+
+										// Get layer name for preview
+										std::string_view layerName = EditorScene::layerDatabase.GetName(currentLayerId);
+										std::string preview = layerName.empty() ? "<Unassigned>" : std::string(layerName);
+
+										ImGui::PushItemWidth(120.0f);
+										if (Editor::BeginPillCombo("##layercombo", preview.c_str())) {
+											EditorScene::layerDatabase.ForEachUsed([&](NE::Core::LayerID id, std::string_view name) {
+												const bool selected = (id == currentLayerId);
+
+												std::string label = std::to_string(static_cast<int>(id));
+												label += ": ";
+												label += name;
+
+												if (ImGui::Selectable(label.c_str(), selected)) {
+													scriptInstance->SetArrayElement(fname, i, std::to_string(static_cast<int>(id)));
+													elemChanged = true;
+												}
+												if (selected) ImGui::SetItemDefaultFocus();
+											});
+
+											Editor::EndPillCombo();
+										}
+										ImGui::PopItemWidth();
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, "0");
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "prefabref") {
+										// Prefab reference in array
+										std::string prefabPath = elemValue;
+										std::string displayName = prefabPath.empty() ? "None" : prefabPath;
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
+											if (payload && payload->DataSize > 0) {
+												std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+												bool success = scriptInstance->SetArrayElement(fname, i, droppedPath);
+												if (success) elemChanged = true;
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, "");
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "audiosourceref") {
+										// AudioSource reference in array
+										std::string displayName = "None";
+										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+										// Try to resolve the stored value (could be Entity ID or component LUID)
+										if (!elemValue.empty() && elemValue != "0" && elemValue != noEntityStr) {
+											try {
+												uint64_t storedValue = std::stoull(elemValue);
+												// Check if it looks like an Entity ID (small value)
+												if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
+													assignedEntityId = static_cast<uint32_t>(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+													}
+												}
+												else {
+													// Large value - likely a LUID, resolve it to entity
+													assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+													}
+													else {
+														displayName = "[Invalid Reference]";
+													}
+												}
+											}
+											catch (...) {
+												displayName = "[Error]";
+											}
+										}
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+											if (payload && payload->DataSize == sizeof(uint32_t)) {
+												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+												// Validate that the entity has AudioSource component
+												if (NE::ECS::Query::HasComponent<NE::ECS::Component::AudioSource>(droppedEntity)) {
+													bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+													if (success) elemChanged = true;
+												}
+												else {
+													SPD_WARNING("Entity does not have required AudioSource component");
+												}
 											}
 											ImGui::EndDragDropTarget();
 										}
