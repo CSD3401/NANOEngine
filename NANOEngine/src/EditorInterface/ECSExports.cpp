@@ -251,6 +251,16 @@ namespace NE::ECS {
 		const Core::LayerMask GetLayerBit(Entity e) {
 			return GetScene().GetECSCoordinator().GetEntityManager().GetLayerBit(e);
 		}
+
+		Entity ResolveComponentLuidToEntity(uint64_t luid) {
+			if (luid == 0) return 0; //Invalid entity
+
+			auto& luidRegistry = GetScene().GetECSCoordinator().GetLUIDRegistry();
+			const Core::LuidRecord* record = luidRegistry.Find(luid);
+			if (!record) return 0; //Invalid Entity
+
+			return static_cast<Entity>(record->m_entityOwner);
+		}
 	}
 
 	namespace Command {
