@@ -53,6 +53,22 @@
 #endif
 
 //=============================================================================
+// VECTOR FIELD REGISTRATION MACROS
+//=============================================================================
+
+/**
+ * Register a vector field for editor exposure.
+ * @param fieldName The member variable name
+ * @param elementType The element type (Int, Float, Bool, String, GameObjectRef, TransformRef, etc.)
+ */
+#ifndef SCRIPT_VECTOR_FIELD
+#define SCRIPT_VECTOR_FIELD(fieldName, elementType) \
+    Register##elementType##VectorField(#fieldName, &this->fieldName)
+#endif
+
+//=============================================================================
+// LEGACY COMPATIBILITY MACROS
+//=============================================================================
 // LEGACY COMPATIBILITY MACROS
 //=============================================================================
 
