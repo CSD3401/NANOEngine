@@ -47,5 +47,8 @@ namespace Editor {
 		ImVec2 m_dragEndScreen = {};
 
 		SceneCameraTweener sceneCameraTweener;
+
+		bool m_wrapMouse = false;
+		ImVec2 m_wrapThreshold = { 50.0f, 50.0f };
 	};
 }

@@ -10,6 +10,8 @@ typedef unsigned int ImU32;
 namespace Editor {
 	class EditorLayer {
 	public:
+		EditorLayer();
+
 		void OnImGuiRender();
 
         template<typename T, typename... Args>
@@ -24,6 +26,10 @@ namespace Editor {
 		void DrawCustomTitleBar(const char* title, float height, ImU32 bgColor);
 		ImTextureID icon;
 		std::vector<std::shared_ptr<IPanel>> m_panels;
+
+		ImTextureID playIcon;
+		ImTextureID pauseIcon;
+		ImTextureID stopIcon;
 	};
 }
 

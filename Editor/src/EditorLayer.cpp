@@ -8,9 +8,6 @@
 #include <glfw/glfw3.h>
 #include "Command/CommandHistory.hpp"
 #include "Panels/InspectorPanel.hpp"
-//#include "Panels/AnimationPanel.hpp"
-//#include "Panels/AnimationRuntimePanel.hpp"
-//#include "Panels/AnimationGraphPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LightingPanel.hpp"
 #include <Core/SpdLogger.hpp>
@@ -18,8 +15,18 @@
 #include "AssetManagement/AssetManager.hpp"
 #include "AssetManagement/Assets/SceneAsset.hpp"
 #include "EditorState.hpp"
+#include "ThumbnailManager.hpp"
 
 namespace Editor {
+	EditorLayer::EditorLayer() : icon(0), playIcon(0), pauseIcon(0), stopIcon(0), m_panels({}) {
+		playIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
+			LoadRawIcon("Library/Icons/icon_play.png")));
+		pauseIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
+			LoadRawIcon("Library/Icons/icon_pause.png")));
+		stopIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
+			LoadRawIcon("Library/Icons/icon_stop.png")));
+	}
+
 	void EditorLayer::OnImGuiRender() {
 		static bool dockspaceOpen = true;
 		static bool opt_fullscreen_persistent = true;
@@ -250,6 +257,60 @@ namespace Editor {
 
 			ImGui::EndPopup();
 		}
+
+		// Editor Play Controls Overlay
+		ImVec2 overlaySize(200, 40);
+		ImVec2 overlayPos(menuBarSize.x + menuBarSize.x * 0.5f - overlaySize.x * 0.5f,
+			menuBarSize.y + 10.0f);
+
+		ImGui::SetNextWindowPos(overlayPos);
+		ImGui::SetNextWindowSize(overlaySize);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f)); // translucent
+
+		if (ImGui::Begin("PlayControls", nullptr,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse)) {
+			static bool playing = false;
+			static bool paused = false;
+
+			if (ImGui::ImageButton("##Play", playIcon, ImVec2(24, 24))) {
+				playing = true;
+				paused = false;
+				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+				NE::StartRuntime();
+				EditorScene::BuildRoot();
+				g_EditorState = EditorState::Play;
+				ImGui::SetWindowFocus("Game");
+			}
+			ImGui::SameLine();
+
+			if (ImGui::ImageButton("##Pause", pauseIcon, ImVec2(24, 24))) {
+				if (playing) paused = !paused;
+				g_EditorState = EditorState::Paused;
+			}
+			ImGui::SameLine();
+
+			if (ImGui::ImageButton("##Stop", stopIcon, ImVec2(24, 24))) {
+				playing = false;
+				paused = false;
+				NE::StopRuntime();
+				g_EditorState = EditorState::Edit;
+				EditorScene::BuildRoot();
+				ImGui::SetWindowFocus("Scene");
+			}
+
+			// Optional: Add tooltips
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				ImGui::SetTooltip("Stop");
+			}
+		}
+		ImGui::End();
+		ImGui::PopStyleColor();
+		ImGui::PopStyleVar(2);
 
 		// --- History button (top-right), before window controls ---
 		float buttonSize = 20.0f;

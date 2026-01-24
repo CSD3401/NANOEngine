@@ -323,58 +323,6 @@ namespace Editor {
 			}
 			ImGui::EndDragDropTarget();
 		}
-		// --- Floating Play Controls ---
-		{
-			// Centered at the top of the viewport
-			ImVec2 overlaySize(200, 40);
-			ImVec2 overlayPos(panelPos.x + panelSize.x * 0.5f - overlaySize.x * 0.5f,
-				panelPos.y + 10.0f);
-
-			ImGui::SetNextWindowPos(overlayPos);
-			ImGui::SetNextWindowSize(overlaySize);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f)); // translucent
-
-			if (ImGui::Begin("PlayControls", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-				ImGuiWindowFlags_NoScrollWithMouse)) {
-				static bool playing = false;
-				static bool paused = false;
-
-				if (ImGui::Button("Play")) {
-					playing = true;
-					paused = false;
-					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
-					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
-					NE::StartRuntime();
-					EditorScene::BuildRoot();
-					g_EditorState = EditorState::Play;
-					ImGui::SetWindowFocus("Game");
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Pause")) {
-					if (playing) paused = !paused;
-
-					g_EditorState = EditorState::Paused;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Stop")) {
-					playing = false;
-					paused = false;
-
-					NE::StopRuntime();
-					g_EditorState = EditorState::Edit;
-					EditorScene::BuildRoot();
-					ImGui::SetWindowFocus("Scene");
-				}
-			}
-			ImGui::End();
-			ImGui::PopStyleColor();
-			ImGui::PopStyleVar(2);
-		}
-
 		
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -443,6 +391,7 @@ namespace Editor {
 					m_rightMouseHeld = true;
 					m_currentMoveSpeed = 0.0f;
 					m_lastMoveDir = Vec3(0.0f);
+					m_wrapMouse = true;
 				}
 
 				Vec3 move(0.0f);
