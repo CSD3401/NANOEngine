@@ -1860,23 +1860,42 @@ namespace NE {
 				name,
 				"gameobjectref",
 				memberPtr,
-				[memberPtr]() -> std::string {
-					// For GameObjectRef, store the entity ID
+				[this, memberPtr]() -> std::string {
+					// For GameObjectRef, store the EntityMeta LUID (stable across sessions)
 					if (!memberPtr->IsValid()) {
-						return std::to_string(INVALID_ENTITY);
+						return std::to_string(uint64_t(0));
 					}
-					return std::to_string(memberPtr->GetEntity());
+					Entity entity = memberPtr->GetEntity();
+					if (entity == INVALID_ENTITY) {
+						return std::to_string(uint64_t(0));
+					}
+
+					// Get LUID from EntityMeta component
+					uint64_t luid = 0;
+					if (m_context && m_context->componentManager) {
+						if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+							luid = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity).luid;
+						}
+					}
+
+					return std::to_string(luid);
 				},
 				[this, memberPtr, name](const std::string& value) -> bool {
 					try {
-						// Parse entity ID from string
-						Entity entityId = INVALID_ENTITY;
+						// Parse LUID from string and resolve to Entity ID
+						uint64_t luid = 0;
 						if (!value.empty()) {
 							try {
-								entityId = static_cast<Entity>(std::stoul(value));
+								luid = std::stoull(value);
 							} catch (...) {
-								entityId = INVALID_ENTITY;
+								luid = 0;
 							}
+						}
+
+						Entity entityId = INVALID_ENTITY;
+						if (luid != 0) {
+							// Resolve LUID to Entity ID
+							entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
 						}
 
 						memberPtr->SetEntity(entityId);
@@ -2405,18 +2424,22 @@ namespace NE {
 			entry.typeToken = "vector<entity>";
 			entry.memberPtr = memberPtr;
 
-			// getValue: Serialize entire vector as "size id1 id2 ..."
-			entry.getValue = [memberPtr]() -> std::string {
+			// getValue: Serialize entire vector as "size luid1 luid2 ..." (using EntityMeta LUIDs)
+			entry.getValue = [this, memberPtr]() -> std::string {
 				std::ostringstream oss;
 				oss << memberPtr->size();
 				for (const auto& entity : *memberPtr) {
-					oss << " " << entity;
+					uint64_t luid = 0;
+					if (m_context && m_context->componentManager) {
+						luid = GetLUIDFromEntity(entity, m_context->componentManager);
+					}
+					oss << " " << luid;
 				}
 				return oss.str();
 				};
 
-			// setValue: Deserialize entire vector from "size id1 id2 ..."
-			entry.setValue = [memberPtr](const std::string& value) -> bool {
+			// setValue: Deserialize entire vector from "size luid1 luid2 ..." (resolve LUIDs to Entity IDs with fallback)
+			entry.setValue = [this, memberPtr](const std::string& value) -> bool {
 				try {
 					std::istringstream iss(value);
 					size_t size;
@@ -2426,9 +2449,15 @@ namespace NE {
 					memberPtr->reserve(size);
 
 					for (size_t i = 0; i < size; ++i) {
-						uint32_t entityId;
-						if (!(iss >> entityId)) return false;
-						memberPtr->push_back(static_cast<Entity>(entityId));
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+						// Try to resolve LUID to Entity ID
+						Entity entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+						// Fallback: if LUID resolution failed, treat value as Entity ID (backwards compatibility)
+						if (entityId == INVALID_ENTITY && luid <= static_cast<uint64_t>(UINT32_MAX)) {
+							entityId = static_cast<Entity>(luid);
+						}
+						memberPtr->push_back(entityId);
 					}
 					return true;
 				} catch (...) {
@@ -2441,15 +2470,26 @@ namespace NE {
 				return memberPtr->size();
 				};
 
-			entry.getElement = [memberPtr](size_t index) -> std::string {
+			entry.getElement = [this, memberPtr](size_t index) -> std::string {
 				if (index >= memberPtr->size()) return "";
-				return std::to_string((*memberPtr)[index]);
+				Entity entity = (*memberPtr)[index];
+				uint64_t luid = 0;
+				if (m_context && m_context->componentManager) {
+					luid = GetLUIDFromEntity(entity, m_context->componentManager);
+				}
+				return std::to_string(luid);
 				};
 
-			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+			entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
 				if (index >= memberPtr->size()) return false;
 				try {
-					(*memberPtr)[index] = static_cast<Entity>(std::stoul(value));
+					uint64_t luid = std::stoull(value);
+					// Resolve LUID to Entity ID
+					Entity entityId = INVALID_ENTITY;
+					if (m_context && m_context->componentManager && m_context->entityManager) {
+						entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+					}
+					(*memberPtr)[index] = entityId;
 					return true;
 				} catch (...) {
 					return false;
@@ -2479,18 +2519,22 @@ namespace NE {
 			entry.typeToken = "vector<gameobjectref>";
 			entry.memberPtr = memberPtr;
 
-			// getValue: Serialize entire vector as "size id1 id2 ..."
-			entry.getValue = [memberPtr]() -> std::string {
+			// getValue: Serialize entire vector as "size luid1 luid2 ..." (using EntityMeta LUIDs)
+			entry.getValue = [this, memberPtr]() -> std::string {
 				std::ostringstream oss;
 				oss << memberPtr->size();
 				for (const auto& ref : *memberPtr) {
-					oss << " " << ref.entity;
+					uint64_t luid = 0;
+					if (m_context && m_context->componentManager) {
+						luid = GetLUIDFromEntity(ref.entity, m_context->componentManager);
+					}
+					oss << " " << luid;
 				}
 				return oss.str();
 			};
 
-			// setValue: Deserialize entire vector
-			entry.setValue = [memberPtr](const std::string& value) -> bool {
+			// setValue: Deserialize entire vector (resolve LUIDs to Entity IDs)
+			entry.setValue = [this, memberPtr](const std::string& value) -> bool {
 				try {
 					std::istringstream iss(value);
 					size_t size;
@@ -2500,9 +2544,11 @@ namespace NE {
 					memberPtr->reserve(size);
 
 					for (size_t i = 0; i < size; ++i) {
-						uint32_t entityId;
-						if (!(iss >> entityId)) return false;
-						memberPtr->push_back(GameObjectRef(static_cast<Entity>(entityId)));
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+						// Resolve LUID to Entity ID
+						Entity entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+						memberPtr->push_back(GameObjectRef(entityId));
 					}
 					return true;
 				} catch (...) {
@@ -2515,15 +2561,26 @@ namespace NE {
 				return memberPtr->size();
 			};
 
-			entry.getElement = [memberPtr](size_t index) -> std::string {
+			entry.getElement = [this, memberPtr](size_t index) -> std::string {
 				if (index >= memberPtr->size()) return "";
-				return std::to_string((*memberPtr)[index].entity);
+				Entity entity = (*memberPtr)[index].entity;
+				uint64_t luid = 0;
+				if (m_context && m_context->componentManager) {
+					luid = GetLUIDFromEntity(entity, m_context->componentManager);
+				}
+				return std::to_string(luid);
 			};
 
-			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+			entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
 				if (index >= memberPtr->size()) return false;
 				try {
-					(*memberPtr)[index].entity = static_cast<Entity>(std::stoul(value));
+					uint64_t luid = std::stoull(value);
+					// Resolve LUID to Entity ID
+					Entity entityId = INVALID_ENTITY;
+					if (m_context && m_context->componentManager && m_context->entityManager) {
+						entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+					}
+					(*memberPtr)[index].entity = entityId;
 					return true;
 				} catch (...) {
 					return false;
