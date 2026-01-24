@@ -46,7 +46,7 @@ namespace NE::ECS::Component {
         std::vector<std::string> _lastScriptNames;
 
         // LUID for serialization
-        uint64_t luid;
+        uint64_t luid = 0;
 
         // Helper to get a field key in the format "ScriptName.fieldName"
         static std::string GetFieldKey(const std::string& scriptName, const std::string& fieldName) {
@@ -72,11 +72,10 @@ namespace NE::ECS::Component {
         }
 
         NE_REFLECT_BEGIN(NativeScript)
-            NE_REFLECT_FIELD(ScriptNames)
-            // NOTE: SerializedFields and EntityReferenceFields use custom serialization
-            // See ReflectionJson.hpp to_json/from_json(NativeScript) for JSON/LUID conversion
-            // See BinaryReflection.hpp ToBinary/FromBinary(NativeScript) for binary serialization
-            // They are intentionally excluded from reflection macro (unsupported types)
+            NE_REFLECT_FIELD(ScriptNames),
+            NE_REFLECT_FIELD_HIDDEN(SerializedFields),
+            NE_REFLECT_FIELD_HIDDEN(EntityReferenceFields),
+            NE_REFLECT_FIELD_HIDDEN(luid)
         NE_REFLECT_END()
     };
 }

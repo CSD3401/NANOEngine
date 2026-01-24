@@ -38,7 +38,7 @@
 namespace Editor {
 	namespace {
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 1;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
 
 		using ComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
@@ -138,6 +138,7 @@ namespace Editor {
 					rapidjson::Value& ent, rapidjson::Document::AllocatorType& a) {
 					if (!NE::ECS::Query::HasComponent<C>(e)) return;
 					auto& c = NE::ECS::Query::GetComponent<C>(e);
+
 					ent.AddMember(rapidjson::Value(ComponentKey<C>::value, a), ToJSON(c, a), a);
 				}
 
@@ -174,12 +175,12 @@ namespace Editor {
 				auto& componentManager = coordinator.GetComponentManager();
 				auto& allEntities = coordinator.GetUsedEntities();
 
-				for (NE::ECS::Entity entity : allEntities) {
-					if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
-						auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
-						NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(entity, nsc);
-					}
-				}
+				//for (NE::ECS::Entity entity : allEntities) {
+				//	if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
+				//		auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
+				//		NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(entity, nsc);
+				//	}
+				//}
 
 				Document doc;
 				doc.SetObject();
@@ -210,10 +211,6 @@ namespace Editor {
 				using rapidjson::Document;
 				using rapidjson::StringBuffer;
 				using rapidjson::PrettyWriter;
-
-				// Save all script instance field values to components before serialization
-				//auto& coordinator = NE::GetScene().GetECSCoordinator();
-				//auto& componentManager = coordinator.GetComponentManager();
 
 				Document doc;
 				doc.SetObject();
@@ -276,12 +273,15 @@ namespace Editor {
 						if (entVal.HasMember(key)) {
 							C tempComp{};
 							Deserialization::FromJSON(entVal[key], tempComp);
-
-							if constexpr (!std::is_same_v<C, NE::ECS::Component::NativeScript>) {
-								NE::Serialization::ToBinary(outputBuffer, tempComp);
-							}
+							NE::Serialization::ToBinary(outputBuffer, tempComp);
 						}
 					});
+				}
+
+				std::filesystem::path filePath(binPath);
+				std::filesystem::path directory = filePath.parent_path();
+				if (!directory.empty() && !std::filesystem::exists(directory)) {
+					std::filesystem::create_directories(directory);
 				}
 
 				std::ofstream ofs(binPath, std::ios::binary);

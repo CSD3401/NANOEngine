@@ -57,7 +57,7 @@ namespace NE {
 		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 2;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
-		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 1;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
 
 		void AppendPreorder(ECS::ECSCoordinator& ecs, ECS::Entity e, std::vector<ECS::Entity>& out) {
 			out.push_back(e);
@@ -278,65 +278,65 @@ namespace NE {
 			outBuffer.assign(buf.data(), buf.data() + buf.size());
 		}
 
-		// Custom binary serialization for NativeScript component
-		size_t ToBinary(ByteBuffer& out, const NE::ECS::Component::NativeScript& nsc) {
-			const size_t before = out.size();
+		//// Custom binary serialization for NativeScript component
+		//size_t ToBinary(ByteBuffer& out, const NE::ECS::Component::NativeScript& nsc) {
+		//	const size_t before = out.size();
 
-			// Serialize ScriptNames using reflection
-			ToBinary(out, nsc.ScriptNames);
+		//	// Serialize ScriptNames using reflection
+		//	ToBinary(out, nsc.ScriptNames);
 
-			// Serialize SerializedFields (unordered_map<string, string>)
-			AppendU64LE(out, static_cast<uint64_t>(nsc.SerializedFields.size()));
-			for (const auto& [key, value] : nsc.SerializedFields) {
-				ToBinary(out, key);
-				ToBinary(out, value);
-			}
+		//	// Serialize SerializedFields (unordered_map<string, string>)
+		//	AppendU64LE(out, static_cast<uint64_t>(nsc.SerializedFields.size()));
+		//	for (const auto& [key, value] : nsc.SerializedFields) {
+		//		ToBinary(out, key);
+		//		ToBinary(out, value);
+		//	}
 
-			// Serialize EntityReferenceFields (unordered_set<string>)
-			AppendU64LE(out, static_cast<uint64_t>(nsc.EntityReferenceFields.size()));
-			for (const auto& field : nsc.EntityReferenceFields) {
-				ToBinary(out, field);
-			}
+		//	// Serialize EntityReferenceFields (unordered_set<string>)
+		//	AppendU64LE(out, static_cast<uint64_t>(nsc.EntityReferenceFields.size()));
+		//	for (const auto& field : nsc.EntityReferenceFields) {
+		//		ToBinary(out, field);
+		//	}
 
-			return out.size() - before;
-		}
+		//	return out.size() - before;
+		//}
 	}
 
 	namespace Deserialization {
 		// Custom deserialization for NativeScript component (must be BEFORE DeserializeScene)
-		bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::ECS::Component::NativeScript& nsc) {
-			// Deserialize ScriptNames using reflection
-			if (!FromBinary(it, end, nsc.ScriptNames))
-				return false;
+		//bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::ECS::Component::NativeScript& nsc) {
+		//	// Deserialize ScriptNames using reflection
+		//	if (!FromBinary(it, end, nsc.ScriptNames))
+		//		return false;
 
-			// Deserialize SerializedFields (unordered_map<string, string>)
-			uint64_t fieldsCount = 0;
-			if (!ReadU64LE(it, end, fieldsCount))
-				return false;
+		//	// Deserialize SerializedFields (unordered_map<string, string>)
+		//	uint64_t fieldsCount = 0;
+		//	if (!ReadU64LE(it, end, fieldsCount))
+		//		return false;
 
-			nsc.SerializedFields.clear();
-			for (uint64_t i = 0; i < fieldsCount; ++i) {
-				std::string key, value;
-				if (!FromBinary(it, end, key) || !FromBinary(it, end, value))
-					return false;
-				nsc.SerializedFields[key] = value;
-			}
+		//	nsc.SerializedFields.clear();
+		//	for (uint64_t i = 0; i < fieldsCount; ++i) {
+		//		std::string key, value;
+		//		if (!FromBinary(it, end, key) || !FromBinary(it, end, value))
+		//			return false;
+		//		nsc.SerializedFields[key] = value;
+		//	}
 
-			// Deserialize EntityReferenceFields (unordered_set<string>)
-			uint64_t refFieldsCount = 0;
-			if (!ReadU64LE(it, end, refFieldsCount))
-				return false;
+		//	// Deserialize EntityReferenceFields (unordered_set<string>)
+		//	uint64_t refFieldsCount = 0;
+		//	if (!ReadU64LE(it, end, refFieldsCount))
+		//		return false;
 
-			nsc.EntityReferenceFields.clear();
-			for (uint64_t i = 0; i < refFieldsCount; ++i) {
-				std::string field;
-				if (!FromBinary(it, end, field))
-					return false;
-				nsc.EntityReferenceFields.insert(field);
-			}
+		//	nsc.EntityReferenceFields.clear();
+		//	for (uint64_t i = 0; i < refFieldsCount; ++i) {
+		//		std::string field;
+		//		if (!FromBinary(it, end, field))
+		//			return false;
+		//		nsc.EntityReferenceFields.insert(field);
+		//	}
 
-			return true;
-		}
+		//	return true;
+		//}
 
 		namespace {
 			bool ReadAllBytes(const std::string& path, NE::ByteBuffer& out) {
@@ -491,6 +491,9 @@ namespace NE {
 							if (oldMy == 0)
 								outNewRoot = e;
 						} else {
+							if constexpr (HasLuid<C>) {
+								c.luid = 0;
+							}
 							ecs.AddComponent<C>(e, c);
 						}
 					}
