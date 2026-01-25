@@ -34,13 +34,6 @@ namespace NE::Graphics::OpenGL {
 
 		if (!m_Valid) {
 			// Apply all states
-			// Depth test
-			if (spec.EnableDepthTest) {
-				glEnable(GL_DEPTH_TEST);
-			}
-			else {
-				glDisable(GL_DEPTH_TEST);
-			}
 			// Blending
 			if (spec.EnableBlending) {
 				glEnable(GL_BLEND);
@@ -48,6 +41,20 @@ namespace NE::Graphics::OpenGL {
 			}
 			else {
 				glDisable(GL_BLEND);
+			}
+			// Depth test
+			if (spec.EnableDepthTest) {
+				glEnable(GL_DEPTH_TEST);
+			}
+			else {
+				glDisable(GL_DEPTH_TEST);
+			}
+			// Depth write
+			if (spec.DepthWrite) {
+				glDepthMask(GL_TRUE);
+			}
+			else {
+				glDepthMask(GL_FALSE);
 			}
 			// Culling
 			if (spec.CullMode != GL_NONE) {
@@ -68,16 +75,6 @@ namespace NE::Graphics::OpenGL {
 		}
 		else {
 			// Apply only changed states
-			// Depth test
-			if (m_CurrentState.EnableDepthTest != spec.EnableDepthTest) {
-				if (spec.EnableDepthTest) {
-					glEnable(GL_DEPTH_TEST);
-				}
-				else {
-					glDisable(GL_DEPTH_TEST);
-				}
-				m_CurrentState.EnableDepthTest = spec.EnableDepthTest;
-			}
 			// Blending
 			if (m_CurrentState.EnableBlending != spec.EnableBlending) {
 				if (spec.EnableBlending) {
@@ -88,6 +85,26 @@ namespace NE::Graphics::OpenGL {
 					glDisable(GL_BLEND);
 				}
 				m_CurrentState.EnableBlending = spec.EnableBlending;
+			}
+			// Depth test
+			if (m_CurrentState.EnableDepthTest != spec.EnableDepthTest) {
+				if (spec.EnableDepthTest) {
+					glEnable(GL_DEPTH_TEST);
+				}
+				else {
+					glDisable(GL_DEPTH_TEST);
+				}
+				m_CurrentState.EnableDepthTest = spec.EnableDepthTest;
+			}
+			// Depth write
+			if (m_CurrentState.DepthWrite != spec.DepthWrite) {
+				if (spec.DepthWrite) {
+					glDepthMask(GL_TRUE);
+				}
+				else {
+					glDepthMask(GL_FALSE);
+				}
+				m_CurrentState.DepthWrite = spec.DepthWrite;
 			}
 			// Culling
 			if (m_CurrentState.CullMode != spec.CullMode) {

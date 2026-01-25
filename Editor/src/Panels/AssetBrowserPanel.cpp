@@ -659,8 +659,9 @@ namespace Editor {
 
         doc.AddMember("Shader", rapidjson::Value("Unlit", alloc), alloc);
 
-        doc.AddMember("DepthTest", true, alloc);
         doc.AddMember("BlendMode", true, alloc);
+        doc.AddMember("DepthTest", true, alloc);
+		doc.AddMember("DepthWrite", true, alloc);
 
         doc.AddMember("CullMode", 1029, alloc);
         doc.AddMember("PolygonMode", 6914, alloc);

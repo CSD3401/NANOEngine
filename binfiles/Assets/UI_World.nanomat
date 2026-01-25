@@ -1,7 +1,8 @@
 {
     "Shader": "neunlit",
-    "DepthTest": true,
     "BlendMode": true,
+	"DepthTest": true,
+	"DepthWrite": false,
     "CullMode": 0,
     "PolygonMode": 6914,
 	"RenderQueueBase": "OVERLAY",
