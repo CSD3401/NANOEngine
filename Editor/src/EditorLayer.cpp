@@ -16,6 +16,8 @@
 #include "AssetManagement/Assets/SceneAsset.hpp"
 #include "EditorState.hpp"
 #include "ThumbnailManager.hpp"
+#include <Events/EventBus.hpp>
+#include "EditorEvents.hpp"
 
 namespace Editor {
 	void EditorLayer::Init() {
@@ -77,6 +79,13 @@ namespace Editor {
 					EditorScene::PasteSelected();
 				}
 			}
+		}
+
+		if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+			NANOEngine::Events::EventBus::Get().Dispatch(
+				NANOEngine::Events::EventDomain::Editor,
+				Events::ShowCursorEvent{}
+			);
 		}
 
 		for (auto& panel : m_panels) {
@@ -284,6 +293,11 @@ namespace Editor {
 					);
 				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
 				EditorScene::isDirty = false;
+
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::HideCursorEvent{}
+				);
 
 				NE::StartRuntime();
 				EditorScene::BuildRoot();
