@@ -13,6 +13,11 @@
 namespace Editor::Assets {
 	class ModelAsset final : public IAsset {
 	public:
+		struct SubmeshEntry {
+			std::string name;
+			int32_t index;
+		};
+
 		bool Cook(const std::string& sourcePath,
 			const std::string& outPath) const override;
 
@@ -21,13 +26,9 @@ namespace Editor::Assets {
 
 		ModelImportSettings& GetImportSettings();
 
+		std::vector<SubmeshEntry>& GetSubmeshes();
 	private:
 		void ParseSubmeshes(const rapidjson::Value& arr);
-
-		struct SubmeshEntry {
-			std::string name;
-			int32_t index;
-		};
 
 		mutable std::string m_uuid;
 		mutable std::vector<SubmeshEntry> m_submeshes;

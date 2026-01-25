@@ -163,6 +163,33 @@ namespace Editor::Assets {
             m_assetsByID[rec.id] = std::move(rec);
             shaders.push_back({ "Lit",     "nelitpbr" });
         }
+
+        typeIndex = static_cast<size_t>(AssetType::Material);
+        auto& materials = m_assetsByType[typeIndex];
+
+        {
+            AssetRecord rec;
+            rec.id = "neunlitmat";
+            rec.type = AssetType::Material;
+            rec.sourcePath = "Unlit Material";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            materials.push_back({ "Default Unlit",     "neunlitmat" });
+        }
+
+        {
+            AssetRecord rec;
+            rec.id = "nelitmat";
+            rec.type = AssetType::Material;
+            rec.sourcePath = "Lit Material";
+            rec.isLoaded = true;
+            rec.asset = nullptr;
+            m_idByPath[rec.sourcePath.string()] = rec.id;
+            m_assetsByID[rec.id] = std::move(rec);
+            materials.push_back({ "Default Lit",     "nelitmat" });
+        }
     }
 
 	AssetManager& AssetManager::GetInstance() {

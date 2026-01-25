@@ -829,6 +829,9 @@ namespace Editor::Assets {
 
 		const auto& jSettings = doc["modelImport"];
 
+		if (doc.HasMember("submeshes"))
+			ParseSubmeshes(doc["submeshes"]);
+
 		if (!importSettings)
 			importSettings.emplace();
 
@@ -887,6 +890,10 @@ namespace Editor::Assets {
 
 	ModelImportSettings& ModelAsset::GetImportSettings() {
 		return *importSettings;
+	}
+
+	std::vector<ModelAsset::SubmeshEntry>& ModelAsset::GetSubmeshes() {
+		return m_submeshes;
 	}
 
 	void ModelAsset::ParseSubmeshes(const rapidjson::Value& arr) {
