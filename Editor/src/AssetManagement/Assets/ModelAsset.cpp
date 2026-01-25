@@ -136,6 +136,59 @@ namespace Editor::Assets {
 			return c;
 		}
 
+		bool IsFbxPivotHelper(const aiNode* n) {
+			std::string name = n->mName.C_Str();
+			if (name.find("$AssimpFbx$") != std::string::npos) return true;
+
+			auto endsWith = [&](const char* s) {
+				if (name.size() < strlen(s)) return false;
+				return name.compare(name.size() - strlen(s), strlen(s), s) == 0;
+				};
+
+			return endsWith("_RotationPivot") ||
+				endsWith("_RotationPivotInverse") ||
+				endsWith("_ScalingPivot") ||
+				endsWith("_ScalingPivotInverse");
+		}
+
+		NE::Math::Mat4 ToMat4(const aiMatrix4x4& m) {
+			NE::Math::Mat4 r{ 
+				m.a1, m.b1, m.c1, m.d1, 
+				m.a2, m.b2, m.c2, m.d2, 
+				m.a3, m.b3, m.c3, m.d3, 
+				m.a4, m.b4, m.c4, m.d4 
+			};
+			//r[0][0] = m.a1; r[1][0] = m.a2; r[2][0] = m.a3; r[3][0] = m.a4;
+			//r[0][1] = m.b1; r[1][1] = m.b2; r[2][1] = m.b3; r[3][1] = m.b4;
+			//r[0][2] = m.c1; r[1][2] = m.c2; r[2][2] = m.c3; r[3][2] = m.c4;
+			//r[0][3] = m.d1; r[1][3] = m.d2; r[2][3] = m.d3; r[3][3] = m.d4;
+			return r;
+		}
+
+		//void FlattenNode(const aiScene* scene,
+		//	const aiNode* node,
+		//	const NE::Math::Mat4& parentWorld,
+		//	/*out*/ std::vector<ImportedMeshNode>& outMeshes)
+		//{
+		//	NE::Math::Mat4 local = ToMat4(node->mTransformation);
+		//	NE::Math::Mat4 world = parentWorld * local;
+
+		//	// If this node contains meshes, emit them with the final baked world transform.
+		//	for (unsigned i = 0; i < node->mNumMeshes; ++i) {
+		//		unsigned meshIndex = node->mMeshes[i];
+		//		outMeshes.push_back({
+		//			.name = node->mName.C_Str(),
+		//			.meshIndex = meshIndex,
+		//			.worldTransform = world
+		//			});
+		//	}
+
+		//	// Recurse children normally, but you can optionally suppress creating entities for helper nodes
+		//	// by just never "emitting" non-mesh nodes in your importer.
+		//	for (unsigned c = 0; c < node->mNumChildren; ++c)
+		//		FlattenNode(scene, node->mChildren[c], world, outMeshes);
+		//}
+
 		void EmitEntityMeta(rapidjson::Value& ent, rapidjson::Document::AllocatorType& a,
 			const std::string& name, uint64_t luid) {
 			NE::ECS::Component::EntityMeta meta{};
@@ -167,6 +220,21 @@ namespace Editor::Assets {
 			ent.AddMember("Transform", Editor::Serialization::ToJSON(tr, a), a);
 		}
 
+		void EmitTransformFromMat4(
+			rapidjson::Value& ent,
+			rapidjson::Document::AllocatorType& a,
+			uint64_t luid,
+			const NE::Math::Mat4& m
+		) {
+			NE::ECS::Component::Transform tr{};
+			tr.luid = luid;
+
+			tr.localPosition = m.GetTranslation();
+			tr.localScale = m.GetScale();
+			tr.localRotationEuler = m.GetRotation();
+			ent.AddMember("Transform", Editor::Serialization::ToJSON(tr, a), a);
+		}
+
 		void EmitRenderer(rapidjson::Value& ent, rapidjson::Document::AllocatorType& a,
 			uint64_t luid, const std::string& modelUUID, const std::string& materialUUID,
 			int32_t subMeshIndex) {
@@ -176,6 +244,102 @@ namespace Editor::Assets {
 			r.materialUUID = materialUUID;
 			r.subMeshIndex = subMeshIndex;
 			ent.AddMember("Renderer", Editor::Serialization::ToJSON(r, a), a);
+		}
+
+		void AddEntityFromNode(
+			const aiScene* scene,
+			const NE::Math::Mat4& finalLocal,
+			const aiNode* node,
+			uint64_t parentEnt,
+			const std::string& modelUUID,
+			const std::vector<std::string>& materialUUIDByAssimpMat,
+			rapidjson::Value& ents,
+			rapidjson::Document::AllocatorType& alloc,
+			uint64_t& thisEnt,
+			uint64_t& next)
+		{
+			// ----- Node entity -----
+			rapidjson::Value ent(rapidjson::kObjectType);
+			ent.AddMember("Layer", 0, alloc);
+
+			const std::string nodeName = SafeName(node->mName, "Node");
+			EmitEntityMeta(ent, alloc, nodeName, thisEnt);
+			EmitHierarchy(ent, alloc, thisEnt, parentEnt);
+
+			// IMPORTANT: use flattened matrix, not node->mTransformation
+			// You must implement this helper (see below)
+			EmitTransformFromMat4(ent, alloc, thisEnt, finalLocal);
+
+			ents.PushBack(ent, alloc);
+
+			// ----- One renderer entity per mesh -----
+			for (unsigned i = 0; i < node->mNumMeshes; ++i) {
+				const unsigned meshIdx = node->mMeshes[i];
+				const aiMesh* mesh = scene->mMeshes[meshIdx];
+
+				const uint64_t rendLuid = next++;
+
+				rapidjson::Value rend(rapidjson::kObjectType);
+				rend.AddMember("Layer", 0, alloc);
+
+				std::string meshName = (mesh && mesh->mName.length > 0)
+					? std::string(mesh->mName.C_Str())
+					: (nodeName + "_Mesh" + std::to_string(i));
+
+				// Keep your exact behavior: meta luid = 0
+				EmitEntityMeta(rend, alloc, meshName, 0);
+				EmitHierarchy(rend, alloc, rendLuid, thisEnt);
+
+				// Keep your exact behavior: renderer entity transform = identity
+				NE::ECS::Component::Transform tr{};
+				tr.luid = 0;
+				tr.localPosition = { 0,0,0 };
+				tr.localScale = { 1,1,1 };
+				tr.localRotationEuler = { 0,0,0 };
+				rend.AddMember("Transform", Editor::Serialization::ToJSON(tr, alloc), alloc);
+
+				std::string matUUID;
+				if (mesh && mesh->mMaterialIndex < materialUUIDByAssimpMat.size())
+					matUUID = materialUUIDByAssimpMat[mesh->mMaterialIndex]; // "" for default
+
+				// Keep your exact behavior: renderer luid param = 0
+				EmitRenderer(rend, alloc, 0, modelUUID, matUUID, (int32_t)meshIdx);
+
+				ents.PushBack(rend, alloc);
+			}
+		}
+
+		void BuildGeneratedPrefabRecursiveFlat(
+			const aiScene* scene,
+			const aiNode* node,
+			uint64_t parentEnt,
+			const NE::Math::Mat4& accumLocal,
+			const std::string& modelUUID,
+			const std::vector<std::string>& materialUUIDByAssimpMat,
+			rapidjson::Value& ents,
+			rapidjson::Document::AllocatorType& alloc,
+			uint64_t& next
+		) {
+			NE::Math::Mat4 nodeLocal = ToMat4(node->mTransformation);
+
+			if (IsFbxPivotHelper(node)) {
+				NE::Math::Mat4 nextAccum = accumLocal * nodeLocal;
+				for (unsigned c = 0; c < node->mNumChildren; ++c)
+					BuildGeneratedPrefabRecursiveFlat(scene, node->mChildren[c], parentEnt, nextAccum,
+						modelUUID, materialUUIDByAssimpMat, ents, alloc, next);
+				return;
+			}
+
+			NE::Math::Mat4 finalLocal = accumLocal * nodeLocal;
+
+			uint64_t thisEnt = next++;
+			AddEntityFromNode(scene, finalLocal, node, parentEnt, modelUUID,
+				materialUUIDByAssimpMat, ents, alloc, thisEnt, next);
+
+			NE::Math::Mat4 I; I.SetToIdentity();
+			for (unsigned c = 0; c < node->mNumChildren; ++c)
+				BuildGeneratedPrefabRecursiveFlat(scene, node->mChildren[c], thisEnt, I,
+					modelUUID, materialUUIDByAssimpMat, ents, alloc, next);
 		}
 
 		void BuildGeneratedPrefabRecursive(
@@ -779,16 +943,28 @@ namespace Editor::Assets {
 			materialUUIDByAssimpMat[i] = ImportMaterials(dirPath.string(), desc);
 		}
 
-		BuildGeneratedPrefabRecursive(
-			scene,
+		NE::Math::Mat4 I; I.SetToIdentity();
+		BuildGeneratedPrefabRecursiveFlat(scene,
 			scene->mRootNode,
 			0,
+			I,
 			cookedModelUUID,
 			materialUUIDByAssimpMat,
 			ents,
 			alloc,
 			next
 		);
+
+		//BuildGeneratedPrefabRecursive(
+		//	scene,
+		//	scene->mRootNode,
+		//	0,
+		//	cookedModelUUID,
+		//	materialUUIDByAssimpMat,
+		//	ents,
+		//	alloc,
+		//	next
+		//);
 
 		gen.AddMember("Entities", ents, alloc);
 
