@@ -31,6 +31,21 @@ namespace Editor::Assets {
 	namespace {
 		const double PI = 3.14159265358979323846;
 
+		float GuessScaleFactorFromExtension(std::string extension) {
+			const std::unordered_map<std::string, float> scaleGuesses = {
+				{ ".fbx", 0.01f },
+				{ ".obj", 1.0f },
+				{ ".dae", 1.0f },
+				{ ".gltf", 1.0f },
+				{ ".glb", 1.0f }
+			};
+			auto it = scaleGuesses.find(extension);
+			if (it != scaleGuesses.end()) {
+				return it->second;
+			}
+			return 1.0f;
+		}
+
 		struct CookVertex {
 			float px, py, pz;
 			float nx, ny, nz;
@@ -571,6 +586,8 @@ namespace Editor::Assets {
 		std::filesystem::path out = outPath;
 		std::filesystem::create_directories(out.parent_path());
 
+		std::filesystem::path srcPath = sourcePath;
+
 		Assimp::Importer importer;
 		const aiScene* scene = importer.ReadFile(sourcePath,
 			aiProcess_Triangulate |
@@ -594,8 +611,8 @@ namespace Editor::Assets {
 		};
 		std::vector<RawBlob> blobs(scene->mNumMeshes);
 
-
 		Bounds globalB;
+		const float scale = importSettings ? importSettings->scene.scaleFactor : GuessScaleFactorFromExtension(srcPath.extension().string());
 
 		for (unsigned m = 0; m < scene->mNumMeshes; ++m) {
 			const aiMesh* mesh = scene->mMeshes[m];
@@ -607,9 +624,9 @@ namespace Editor::Assets {
 
 			for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
 				CookVertex v{};
-				v.px = mesh->mVertices[i].x;
-				v.py = mesh->mVertices[i].y;
-				v.pz = mesh->mVertices[i].z;
+				v.px = mesh->mVertices[i].x * scale;
+				v.py = mesh->mVertices[i].y * scale;
+				v.pz = mesh->mVertices[i].z * scale;
 
 				if (mesh->HasNormals()) {
 					v.nx = mesh->mNormals[i].x;
