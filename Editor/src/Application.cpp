@@ -61,6 +61,8 @@ namespace Editor {
 
 		window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
 
+		editorLayer.Init();
+
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
 		glfwSetWindowIcon(window, 1, &icon);

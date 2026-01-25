@@ -10,8 +10,7 @@ typedef unsigned int ImU32;
 namespace Editor {
 	class EditorLayer {
 	public:
-		EditorLayer();
-
+		void Init();
 		void OnImGuiRender();
 
         template<typename T, typename... Args>

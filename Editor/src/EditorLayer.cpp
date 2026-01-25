@@ -18,7 +18,7 @@
 #include "ThumbnailManager.hpp"
 
 namespace Editor {
-	EditorLayer::EditorLayer() : icon(0), playIcon(0), pauseIcon(0), stopIcon(0), m_panels({}) {
+	void EditorLayer::Init() {
 		playIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
 			LoadRawIcon("Library/Icons/icon_play.png")));
 		pauseIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
@@ -258,59 +258,60 @@ namespace Editor {
 			ImGui::EndPopup();
 		}
 
-		// Editor Play Controls Overlay
-		ImVec2 overlaySize(200, 40);
-		ImVec2 overlayPos(menuBarSize.x + menuBarSize.x * 0.5f - overlaySize.x * 0.5f,
-			menuBarSize.y + 10.0f);
+		{
+			const float buttonSize = 14.f;
+			const float innerGap = ImGui::GetStyle().ItemInnerSpacing.x;
 
-		ImGui::SetNextWindowPos(overlayPos);
-		ImGui::SetNextWindowSize(overlaySize);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f)); // translucent
+			const float groupW = buttonSize * 3.0f + innerGap * 2.0f;
 
-		if (ImGui::Begin("PlayControls", nullptr,
-			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoScrollWithMouse)) {
+			float x = (menuBarSize.x * 0.5f) - (groupW * 0.5f);
+
+			ImGui::SetCursorPos(ImVec2(x, 0));
+
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 1, 1, 0.10f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1, 1, 1, 0.20f));
+
 			static bool playing = false;
 			static bool paused = false;
 
-			if (ImGui::ImageButton("##Play", playIcon, ImVec2(24, 24))) {
+			if (ImGui::ImageButton("##Play", playIcon, ImVec2(buttonSize, buttonSize))) {
 				playing = true;
 				paused = false;
-				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+
+				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(
+					Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get()
+					);
 				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+				EditorScene::isDirty = false;
+
 				NE::StartRuntime();
 				EditorScene::BuildRoot();
 				g_EditorState = EditorState::Play;
 				ImGui::SetWindowFocus("Game");
 			}
-			ImGui::SameLine();
 
-			if (ImGui::ImageButton("##Pause", pauseIcon, ImVec2(24, 24))) {
+			ImGui::SameLine(0.0f, innerGap);
+
+			if (ImGui::ImageButton("##Pause", pauseIcon, ImVec2(buttonSize, buttonSize))) {
 				if (playing) paused = !paused;
-				g_EditorState = EditorState::Paused;
+				g_EditorState = paused ? EditorState::Paused : EditorState::Play;
 			}
-			ImGui::SameLine();
 
-			if (ImGui::ImageButton("##Stop", stopIcon, ImVec2(24, 24))) {
+			ImGui::SameLine(0.0f, innerGap);
+
+			if (ImGui::ImageButton("##Stop", stopIcon, ImVec2(buttonSize, buttonSize))) {
 				playing = false;
 				paused = false;
+
 				NE::StopRuntime();
 				g_EditorState = EditorState::Edit;
 				EditorScene::BuildRoot();
 				ImGui::SetWindowFocus("Scene");
 			}
 
-			// Optional: Add tooltips
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-				ImGui::SetTooltip("Stop");
-			}
+			ImGui::PopStyleColor(3);
 		}
-		ImGui::End();
-		ImGui::PopStyleColor();
-		ImGui::PopStyleVar(2);
 
 		// --- History button (top-right), before window controls ---
 		float buttonSize = 20.0f;
