@@ -101,8 +101,9 @@ namespace Editor {
 
             bool pipelineChanged = false;
 
-            pipelineChanged |= ImGui::Checkbox("Depth Test", &spec.EnableDepthTest);
             pipelineChanged |= ImGui::Checkbox("Blending", &spec.EnableBlending);
+            pipelineChanged |= ImGui::Checkbox("Depth Test", &spec.EnableDepthTest);
+			pipelineChanged |= ImGui::Checkbox("Depth Write", &spec.DepthWrite);
 
             // Note: CullMode and PolygonMode are currently serialized directly as GL enums, 
             // but should be abstracted later because exposing GL enums directly is not ideal for cross-API compatibility
@@ -223,8 +224,9 @@ namespace Editor {
         if (mat.m_Pipeline) {
             doc.AddMember("Shader", rapidjson::Value(mat.m_Pipeline->GetSpecification().shaderName.data(), alloc).Move(), alloc);
             auto spec = mat.m_Pipeline->GetSpecification();
-            doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
             doc.AddMember("BlendMode", spec.EnableBlending, alloc);
+            doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
+			doc.AddMember("DepthWrite", spec.DepthWrite, alloc);
             doc.AddMember("CullMode", spec.CullMode, alloc);
             doc.AddMember("PolygonMode", spec.PolygonMode, alloc);
         }

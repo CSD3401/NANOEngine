@@ -261,6 +261,27 @@ namespace NE::ECS {
 
 			return static_cast<Entity>(record->m_entityOwner);
 		}
+
+		Entity ResolveEntityMetaLuidToEntity(uint64_t luid) {
+			if (luid == 0) return 0;
+
+			auto& ecs = GetScene().GetECSCoordinator();
+			auto& entityManager = ecs.GetEntityManager();
+			auto& componentManager = ecs.GetComponentManager();
+
+			// Iterate through all active entities to find matching EntityMeta LUID
+			const auto& usedEntities = entityManager.GetUsedEntities();
+			for (Entity entity : usedEntities) {
+				if (componentManager.HasComponent<ECS::Component::EntityMeta>(entity)) {
+					const auto& meta = componentManager.GetComponent<ECS::Component::EntityMeta>(entity);
+					if (meta.luid == luid) {
+						return entity;
+					}
+				}
+			}
+
+			return 0;
+		}
 	}
 
 	namespace Command {
@@ -835,12 +856,25 @@ namespace NE::ECS {
 		Component::UICanvas& GetUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
+
+		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
+		Component::Animator& GetEntityAnimator(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
+		}
+
 		Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
-		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		Component::PrefabLink& GetPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
 		}
 
 		Component::CharacterController& GetCharacterController(uint32_t e) {
@@ -972,10 +1006,6 @@ namespace NE::ECS {
 			if (GetScene().GetECSCoordinator().HasComponent<ECS::Component::Animator>(e))
 				return;
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Animator{});
-		}
-
-		Component::Animator& GetEntityAnimator(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
 
 		void SetLayer(Entity e, Core::LayerID layer) {

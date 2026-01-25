@@ -4,7 +4,7 @@
 namespace NE::Resource {
 
 	inline constexpr uint32_t NMAT_MAGIC = 0x4E4D4154;
-	inline constexpr int CURRENT_NANOMAT_FORMAT_VERSION = 2;
+	inline constexpr int CURRENT_NANOMAT_FORMAT_VERSION = 3;
 
 #pragma pack(push, 1)
 	struct NanoMatHeader {
@@ -12,9 +12,11 @@ namespace NE::Resource {
 		uint16_t version = CURRENT_NANOMAT_FORMAT_VERSION;
 
         // Pipeline state
-        uint8_t  depthTest = 1;   // bool
         uint8_t  blendMode = 0;   // bool
-        uint16_t reserved = 0;
+        uint8_t  depthTest = 1;   // bool
+		uint8_t  depthWrite = 1;  // bool
+        uint8_t  reserved = 0;
+
         uint32_t cullMode = 0;   // GL enum (your int)
         uint32_t polygonMode = 0;   // GL enum (your int)
 

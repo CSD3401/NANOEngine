@@ -1580,10 +1580,12 @@ namespace Editor {
 							uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
 							std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
 
-							// Try to resolve the stored value (entity ID)
+							// Try to resolve the stored LUID
 							if (!fval.empty() && fval != "0" && fval != noEntityStr) {
 								try {
-									assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
+									uint64_t luid = std::stoull(fval);
+									assignedEntityId = NE::ECS::Query::ResolveEntityMetaLuidToEntity(luid);
+
 									if (assignedEntityId != NE::ECS::NO_ENTITY) {
 										const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
 										displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
@@ -1604,8 +1606,15 @@ namespace Editor {
 								if (payload && payload->DataSize == sizeof(uint32_t)) {
 									uint32_t droppedEntity = *(const uint32_t*)payload->Data;
 
-									// Assign the entity
-									bool success = UpdateFieldValue(fname, std::to_string(droppedEntity));
+									// Get the EntityMeta LUID to store (stable across sessions)
+									uint64_t luid = 0;
+									if (NE::ECS::Query::HasEntityMeta(droppedEntity)) {
+										const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+										luid = meta.luid;
+									}
+
+									// Assign the LUID
+									bool success = UpdateFieldValue(fname, std::to_string(luid));
 									if (success) {
 										fieldChanged = true;
 									}
@@ -1847,7 +1856,9 @@ namespace Editor {
 
 										if (!entityIdStr.empty() && entityIdStr != noEntityStr) {
 											try {
-												assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+												uint64_t luid = std::stoull(entityIdStr);
+												assignedEntityId = NE::ECS::Query::ResolveEntityMetaLuidToEntity(luid);
+
 												if (assignedEntityId != NE::ECS::NO_ENTITY) {
 													const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
 													displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
@@ -1864,7 +1875,13 @@ namespace Editor {
 											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
 											if (payload && payload->DataSize == sizeof(uint32_t)) {
 												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
-												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+												// Get the EntityMeta LUID to store (stable across sessions)
+												uint64_t luid = 0;
+												if (NE::ECS::Query::HasEntityMeta(droppedEntity)) {
+													const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+													luid = meta.luid;
+												}
+												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(luid));
 												if (success) elemChanged = true;
 											}
 											ImGui::EndDragDropTarget();
@@ -1885,7 +1902,9 @@ namespace Editor {
 
 										if (!entityIdStr.empty() && entityIdStr != "0" && entityIdStr != noEntityStr) {
 											try {
-												assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+												uint64_t luid = std::stoull(entityIdStr);
+												assignedEntityId = NE::ECS::Query::ResolveEntityMetaLuidToEntity(luid);
+
 												if (assignedEntityId != NE::ECS::NO_ENTITY) {
 													const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
 													displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
@@ -1902,7 +1921,13 @@ namespace Editor {
 											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
 											if (payload && payload->DataSize == sizeof(uint32_t)) {
 												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
-												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+												// Get the EntityMeta LUID to store (stable across sessions)
+												uint64_t luid = 0;
+												if (NE::ECS::Query::HasEntityMeta(droppedEntity)) {
+													const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+													luid = meta.luid;
+												}
+												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(luid));
 												if (success) elemChanged = true;
 											}
 											ImGui::EndDragDropTarget();

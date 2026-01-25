@@ -57,24 +57,6 @@ namespace Editor::Assets {
 		const std::string& outPath) const {
 
 		return Serialization::JSON::CookPrefabToBinary(sourcePath, outPath);
-
-		//bool success = Editor::Utils::JSONToBinaryFile<MyLevelData>(
-		//	"assets/level1.json",
-		//	"assets/level1.bin"
-		//);
-
-		//if (EditorScene::s_selection.GetLastDropped() == NE::ECS::NO_ENTITY && !m_isScene) {
-		//	SPD_ERROR("No entity selected to cook prefab from: {}", sourcePath);
-		//	return false;
-		//}
-
-		//if (m_isScene)
-		//	NE::CookPrefab(EditorScene::s_rootOrder[0], outPath);
-		//else
-		//	NE::CookPrefab(EditorScene::s_selection.GetLastDropped(), outPath);
-
-
-		return true;
 	}
 
 	bool PrefabAsset::LoadImportSettings(const std::string& /*sourcePath*/) { // No Import Settings

@@ -3,6 +3,8 @@
 #include <rapidjson/document.h>
 #include <filesystem>
 #include <variant>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <Math/Vec2.hpp>
 #include <Math/Vec3.hpp>
@@ -14,6 +16,24 @@ namespace Editor {
 	using rapidjson::Value;
 
     namespace Serialization {
+
+        namespace Detail {
+            template <typename K>
+            inline bool KeyAsString(const K&) { return false; }
+
+            inline bool KeyAsString(const std::string&) { return true; }
+            inline bool KeyAsString(std::string_view) { return true; }
+            inline bool KeyAsString(const char*) { return true; }
+            inline bool KeyAsString(const std::filesystem::path&) { return true; }
+
+            inline Value KeyToJSONString(const std::string& k, Alloc& a) { return Value(k.c_str(), a); }
+            inline Value KeyToJSONString(std::string_view k, Alloc& a) { return Value(k.data(), static_cast<rapidjson::SizeType>(k.size()), a); }
+            inline Value KeyToJSONString(const char* k, Alloc& a) { return Value(k ? k : "", a); }
+            inline Value KeyToJSONString(const std::filesystem::path& k, Alloc& a) {
+                const std::string s = k.string();
+                return Value(s.c_str(), a);
+            }
+        }
 
         // forward decl for ToJson using Reflectable
         template <NE::Core::Reflectable T>
@@ -29,7 +49,7 @@ namespace Editor {
         }
 
         inline Value ToJSON(const std::string& s, Alloc& a) { return Value(s.c_str(), a); }
-        inline Value ToJSON(std::string_view s, Alloc& a) { return Value(s.data(), a); }
+        inline Value ToJSON(std::string_view s, Alloc& a) { return Value(s.data(), static_cast<rapidjson::SizeType>(s.size()), a); }
         inline Value ToJSON(const char* s, Alloc& a) { return Value(s, a); }
         inline Value ToJSON(const std::filesystem::path& p, Alloc& a) { return Value(p.string().c_str(), a); }
         inline Value ToJSON(const uint64_t& v, Alloc&) {
@@ -65,6 +85,48 @@ namespace Editor {
 
             obj.AddMember("value", payload, a);
             return obj;
+        }
+        
+		// unordered_map
+        template <typename K, typename V, typename Hash, typename Eq, typename AllocT>
+        Value ToJSON(const std::unordered_map<K, V, Hash, Eq, AllocT>& map, Alloc& a) {
+            // If key is string-like, write as JSON object for readability.
+            if constexpr (
+                std::is_same_v<K, std::string> ||
+                std::is_same_v<K, std::string_view> ||
+                std::is_same_v<K, const char*> ||
+                std::is_same_v<K, std::filesystem::path>
+                ) {
+                Value obj(rapidjson::kObjectType);
+
+                for (const auto& [k, v] : map) {
+                    Value key = Detail::KeyToJSONString(k, a);
+                    obj.AddMember(key, ToJSON(v, a), a);
+                }
+
+                return obj;
+            } else {
+                Value arr(rapidjson::kArrayType);
+
+                for (const auto& [k, v] : map) {
+                    Value pair(rapidjson::kObjectType);
+                    pair.AddMember("k", ToJSON(k, a), a);
+                    pair.AddMember("v", ToJSON(v, a), a);
+                    arr.PushBack(pair, a);
+                }
+
+                return arr;
+            }
+        }
+
+        // unordered_set
+        template <typename T, typename Hash, typename Eq, typename AllocT>
+        Value ToJSON(const std::unordered_set<T, Hash, Eq, AllocT>& set, Alloc& a) {
+            Value arr(rapidjson::kArrayType);
+            for (const auto& e : set) {
+                arr.PushBack(ToJSON(e, a), a);
+            }
+            return arr;
         }
 
         // enums
@@ -113,6 +175,20 @@ namespace Editor {
     }
 
     namespace Deserialization {
+        namespace Detail {
+            template <typename K>
+            inline void KeyFromJSONString(const Value& /*v*/, K& /*out*/) {
+            }
+
+            inline void KeyFromJSONString(const Value& v, std::string& out) {
+                out = v.GetString();
+            }
+
+            inline void KeyFromJSONString(const Value& v, std::filesystem::path& out) {
+                out = v.GetString();
+            }
+        }
+
         // forward decl
         template <NE::Core::Reflectable T>
         void FromJSON(const Value& v, T& out);
@@ -178,6 +254,65 @@ namespace Editor {
             }(std::make_index_sequence<sizeof...(Ts)>{});
         }
 
+		// unordered_map
+        template <typename K, typename V, typename Hash, typename Eq, typename AllocT>
+        void FromJSON(const Value& v, std::unordered_map<K, V, Hash, Eq, AllocT>& out) {
+            out.clear();
+
+            if (v.IsObject()) {
+                if constexpr (std::is_same_v<K, std::string> || std::is_same_v<K, std::filesystem::path>) {
+                    out.reserve(v.MemberCount());
+
+                    for (auto it = v.MemberBegin(); it != v.MemberEnd(); ++it) {
+                        K key{};
+                        // it->name is a JSON string
+                        Detail::KeyFromJSONString(it->name, key);
+
+                        V value{};
+                        FromJSON(it->value, value);
+
+                        out.insert_or_assign(std::move(key), std::move(value));
+                    }
+                    return;
+                } else {
+                    // If K isn't string-like but we received object form, ignore.
+                    // (or you could assert/log here)
+                    return;
+                }
+            }
+
+            if (v.IsArray()) {
+                out.reserve(v.Size());
+
+                for (const auto& item : v.GetArray()) {
+                    if (!item.IsObject()) continue;
+                    if (!item.HasMember("k") || !item.HasMember("v")) continue;
+
+                    K key{};
+                    V value{};
+
+                    FromJSON(item["k"], key);
+                    FromJSON(item["v"], value);
+
+                    out.insert_or_assign(std::move(key), std::move(value));
+                }
+            }
+        }
+
+		// unordered_set
+        template <typename T, typename Hash, typename Eq, typename AllocT>
+        void FromJSON(const Value& v, std::unordered_set<T, Hash, Eq, AllocT>& out) {
+            out.clear();
+            if (!v.IsArray()) return;
+
+            out.reserve(v.Size());
+
+            for (const auto& item : v.GetArray()) {
+                T value{};
+                FromJSON(item, value);
+                out.insert(std::move(value));
+            }
+        }
 
         // enums
         template <typename E>

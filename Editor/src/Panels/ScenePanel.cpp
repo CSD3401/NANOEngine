@@ -23,35 +23,80 @@
 #include "../EditorState.hpp"
 #include "../Serialization/Serializer.hpp"
 
+#define NOMINMAX
+#include <Windows.h>
 
-namespace {
-	// helper function for ui
-	// calculate world position by walking up parent hierarchy
-	ImVec2 CalculateUIWorldPosition(uint32_t entity) {
-		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
 
-		float worldX = rect.x;
-		float worldY = rect.y;
-
-		// Walk up parent chain
-		uint32_t currentParent = rect.parent;
-		while (currentParent != std::numeric_limits<uint32_t>::max()) {
-			if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
-				break;
-			}
-
-			auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
-			worldX += parentRect.x;
-			worldY += parentRect.y;
-
-			currentParent = parentRect.parent;
-		}
-
-		return ImVec2(worldX, worldY);
-	}
-}
 
 namespace Editor {
+	namespace {
+		// helper function for ui
+		// calculate world position by walking up parent hierarchy
+		ImVec2 CalculateUIWorldPosition(uint32_t entity) {
+			auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
+
+			float worldX = rect.x;
+			float worldY = rect.y;
+
+			// Walk up parent chain
+			uint32_t currentParent = rect.parent;
+			while (currentParent != std::numeric_limits<uint32_t>::max()) {
+				if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
+					break;
+				}
+
+				auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
+				worldX += parentRect.x;
+				worldY += parentRect.y;
+
+				currentParent = parentRect.parent;
+			}
+
+			return ImVec2(worldX, worldY);
+		}
+
+		bool WrapCursorInCurrentMonitor(bool useWorkArea, int marginPx, bool& outWarped) {
+			outWarped = false;
+
+			POINT p;
+			if (!GetCursorPos(&p))
+				return false;
+
+			HMONITOR mon = MonitorFromPoint(p, MONITOR_DEFAULTTONEAREST);
+
+			MONITORINFO mi{};
+			mi.cbSize = sizeof(mi);
+			if (!GetMonitorInfo(mon, &mi))
+				return false;
+
+			RECT r = useWorkArea ? mi.rcWork : mi.rcMonitor;
+
+			const int left = r.left;
+			const int top = r.top;
+			const int right = r.right;
+			const int bottom = r.bottom;
+
+			bool changed = false;
+
+			if (p.x <= left + marginPx) { p.x = right - marginPx - 1; changed = true; } else if (p.x >= right - marginPx) { p.x = left + marginPx + 1;  changed = true; }
+
+			if (p.y <= top + marginPx) { p.y = bottom - marginPx - 1; changed = true; } else if (p.y >= bottom - marginPx) { p.y = top + marginPx + 1;    changed = true; }
+
+			if (changed) {
+				SetCursorPos(p.x, p.y);
+				outWarped = true;
+			}
+
+			return true;
+		}
+
+		ImVec2 GetCursorScreenPosImVec2() {
+			POINT p;
+			GetCursorPos(&p);
+			return ImVec2((float)p.x, (float)p.y);
+		}
+	}
+
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
 
@@ -206,18 +251,18 @@ namespace Editor {
 			ImVec2 p1 = m_dragEndScreen;
 
 			// Normalize corners
-			ImVec2 min(
+			ImVec2 dragMin(
 				std::min(p0.x, p1.x),
 				std::min(p0.y, p1.y)
 			);
-			ImVec2 max(
+			ImVec2 dragMax(
 				std::max(p0.x, p1.x),
 				std::max(p0.y, p1.y)
 			);
 
-			dl->AddRect(min, max,
+			dl->AddRect(dragMin, dragMax,
 				IM_COL32(0, 150, 255, 200)); // outline
-			dl->AddRectFilled(min, max,
+			dl->AddRectFilled(dragMin, dragMax,
 				IM_COL32(0, 150, 255, 40));  // translucent fill
 		}
 
@@ -336,58 +381,6 @@ namespace Editor {
 			}
 			ImGui::EndDragDropTarget();
 		}
-		// --- Floating Play Controls ---
-		{
-			// Centered at the top of the viewport
-			ImVec2 overlaySize(200, 40);
-			ImVec2 overlayPos(panelPos.x + panelSize.x * 0.5f - overlaySize.x * 0.5f,
-				panelPos.y + 10.0f);
-
-			ImGui::SetNextWindowPos(overlayPos);
-			ImGui::SetNextWindowSize(overlaySize);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f)); // translucent
-
-			if (ImGui::Begin("PlayControls", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-				ImGuiWindowFlags_NoScrollWithMouse)) {
-				static bool playing = false;
-				static bool paused = false;
-
-				if (ImGui::Button("Play")) {
-					playing = true;
-					paused = false;
-					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
-					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
-					NE::StartRuntime();
-					EditorScene::BuildRoot();
-					g_EditorState = EditorState::Play;
-					ImGui::SetWindowFocus("Game");
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Pause")) {
-					if (playing) paused = !paused;
-
-					g_EditorState = EditorState::Paused;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Stop")) {
-					playing = false;
-					paused = false;
-
-					NE::StopRuntime();
-					g_EditorState = EditorState::Edit;
-					EditorScene::BuildRoot();
-					ImGui::SetWindowFocus("Scene");
-				}
-			}
-			ImGui::End();
-			ImGui::PopStyleColor();
-			ImGui::PopStyleVar(2);
-		}
-
 		
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -452,10 +445,12 @@ namespace Editor {
 		if (ImGui::IsWindowFocused()) {
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				if (!m_rightMouseHeld) {
-					m_lastMousePos = io.MousePos;
 					m_rightMouseHeld = true;
 					m_currentMoveSpeed = 0.0f;
 					m_lastMoveDir = Vec3(0.0f);
+
+					m_lastMousePos = GetCursorScreenPosImVec2();
+					m_wrapIgnoreNextDelta = true;
 				}
 
 				Vec3 move(0.0f);
@@ -484,7 +479,6 @@ namespace Editor {
 						m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraSpeed;
 					}
 				} else {
-					// No input but RMB still held
 					if (EditorScene::m_cameraUseEasing) {
 						m_currentMoveSpeed -= m_cameraDeceleration * deltaTime;
 						if (m_currentMoveSpeed < 0.0f)
@@ -514,12 +508,44 @@ namespace Editor {
 					);
 				}
 
-				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
-				m_lastMousePos = io.MousePos;
+
+
+				//ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
+				//m_lastMousePos = io.MousePos;
+
+				//if (m_wrapIgnoreNextDelta) {
+				//	delta = ImVec2(0, 0);
+				//	m_wrapIgnoreNextDelta = false;
+				//}
+
+				ImVec2 cur = GetCursorScreenPosImVec2();
+
+				// 2) Compute delta from OS cursor pos
+				ImVec2 delta = { cur.x - m_lastMousePos.x, cur.y - m_lastMousePos.y };
+
+				// 3) Warp (monitor wrap)
+				bool warped = false;
+				WrapCursorInCurrentMonitor(/*useWorkArea=*/true, /*marginPx=*/2, warped);
+
+				if (warped) {
+					// After warping, refresh OS cursor pos and reset tracking
+					ImVec2 afterWarp = GetCursorScreenPosImVec2();
+					m_lastMousePos = afterWarp;
+					m_wrapIgnoreNextDelta = true;
+					delta = ImVec2(0, 0);
+				} else {
+					// Normal path: advance last mouse
+					m_lastMousePos = cur;
+				}
+
+				if (m_wrapIgnoreNextDelta) {
+					delta = ImVec2(0, 0);
+					m_wrapIgnoreNextDelta = false;
+				}
 
 				EditorScene::m_cameraYaw += delta.x * m_mouseSensitivity;
 				EditorScene::m_cameraPitch -= delta.y * m_mouseSensitivity;
-
+				
 				if (EditorScene::m_cameraPitch > 89.0f) EditorScene::m_cameraPitch = 89.0f;
 				if (EditorScene::m_cameraPitch < -89.0f) EditorScene::m_cameraPitch = -89.0f;
 			} else {

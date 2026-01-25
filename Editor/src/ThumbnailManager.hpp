@@ -18,11 +18,11 @@ namespace Editor::Assets {
         unsigned int GetThumbnailByUUID(const std::string& uuid);
 
 		void GenerateThumbnail(const std::filesystem::path& sourceImagePath, const std::string& uuid);
+        unsigned int LoadRawIcon(const std::string& path);
     private:
         ThumbnailManager();
         ~ThumbnailManager();
 
-        unsigned int LoadRawIcon(const std::string& path);
 		unsigned int LoadCookedThumbnail(const std::string& uuid);
 
         unsigned int m_folderIcon = 0;
