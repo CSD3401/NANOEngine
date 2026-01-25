@@ -42,6 +42,9 @@ namespace Editor::Events {
 		std::vector<uint32_t> entitiesToBeDeleted;
 	};
 
+	struct HideCursorEvent {};
+	struct ShowCursorEvent {};
+
 
 	struct CreateUICanvasEntityEvent {};
 	struct CreateUIImageEntityEvent {
