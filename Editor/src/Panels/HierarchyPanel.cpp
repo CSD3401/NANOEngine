@@ -252,9 +252,11 @@ namespace Editor {
 				//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
 				std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] };
 
+				auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
+
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::DeleteEntityEvent{ toDelete }
+					Events::DeleteEntityEvent{ toDelete, h.parent }
 				);
 			}
 
@@ -623,9 +625,11 @@ namespace Editor {
 			//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
 			std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] }; // just delete the first selected for now
 
+			auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
+
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
-				Events::DeleteEntityEvent{ toDelete }
+				Events::DeleteEntityEvent{ toDelete, h.parent }
 			);
 		}
 
