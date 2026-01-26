@@ -136,6 +136,7 @@ namespace Editor {
 
 				if (ImGui::Button("Yes")) {
 					auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(m_selectedPath.string());
+					EditorScene::s_selection.Clear();
 					NE::CreateSceneFallback(uuid);
 					Deserialization::JSON::DeserializeScene(m_selectedPath.string());
 					NE::StartSceneFallback();
@@ -143,6 +144,11 @@ namespace Editor {
 					EditorScene::s_currentScenePath = m_selectedPath.string();
 					EditorScene::s_currentSceneUUID = uuid;
 					EditorScene::isDirty = false;
+
+					NANOEngine::Events::EventBus::Get().Dispatch(
+						NANOEngine::Events::EventDomain::Editor,
+						Events::SceneChangedEvent{ }
+					);
 
 					m_selectedPath.clear();
 					ImGui::CloseCurrentPopup();

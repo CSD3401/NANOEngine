@@ -103,6 +103,13 @@ namespace Editor {
 
 	HierarchyPanel::HierarchyPanel() {
 		EditorScene::BuildRoot();
+
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::SceneChangedEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::SceneChangedEvent& e) {
+				SceneChanged();
+			}
+		);
 	}
 
 	void HierarchyPanel::OnImGuiRender() {
@@ -375,6 +382,20 @@ namespace Editor {
 		}
 
 		ImGui::End();
+	}
+
+	void HierarchyPanel::SceneChanged() {
+		m_lastPrimary = NE::ECS::NO_ENTITY;
+		m_dragRep = NE::ECS::NO_ENTITY;
+		m_previewParentForInsert = NE::ECS::NO_ENTITY;
+		m_clickCandidate = NE::ECS::NO_ENTITY;
+		m_previewAsChild = false;
+
+		m_filtering = false;
+		m_visible.clear();
+
+		m_expanded.clear();
+		m_forceOpen.clear();
 	}
 
 	void HierarchyPanel::DrawEntityNode(NE::ECS::Entity e,
