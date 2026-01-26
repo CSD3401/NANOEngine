@@ -332,7 +332,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/cube"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 
@@ -369,7 +370,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/sphere"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 
@@ -406,7 +408,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/cylinder"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 
@@ -443,7 +446,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/capsule"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 
@@ -480,7 +484,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/plane"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 
@@ -509,7 +514,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/quad"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 

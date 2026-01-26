@@ -816,7 +816,7 @@ namespace Editor {
 				for (const auto& [modelName, uuid] : modelList) {
 					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
 						if (ImGui::Selectable(modelName.c_str())) {
-							NE::Renderer::Command::AssignModel(entity, uuid);
+							NE::Renderer::Command::AssignModel(entity, uuid, 0);
 							ImGui::CloseCurrentPopup();
 						}
 						});

@@ -2,6 +2,7 @@
 #include "../Components/Rigidbody.hpp"
 #include "../Components/Transform.hpp"
 #include "../Components/Collider.hpp"
+#include "../Components/Renderer.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
@@ -17,14 +18,22 @@ namespace NE::ECS::Systems {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
-		// Generate LUID if not set
 		if (col.luid == 0)
 			col.luid = Core::LUIDGenerator::Generate("co");
 
-		// Register with LUID registry
 		m_luidRegistry->Register(col.luid, &col, e);
 
-		// Existing physics shape creation
+		if (m_componentManager->HasComponent<Component::Renderer>(e)) {
+			if (col.type == Component::Collider::ColliderType::Box) {
+				auto& renderer = m_componentManager->GetComponent<Component::Renderer>(e);
+				if (renderer.model) {
+					Graphics::AABB bounds = renderer.model->meshes[renderer.subMeshIndex].localAABB;
+					auto& boxData = std::get<Component::Collider::BoxColliderData>(col.data);
+					boxData.halfExtents = (bounds.max - bounds.min) * 0.5f;
+				}
+			}
+		}
+
 		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
 	}
 
@@ -32,10 +41,8 @@ namespace NE::ECS::Systems {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
-		// Unregister from LUID registry
 		m_luidRegistry->Unregister(col.luid);
 
-		// Existing physics shape removal
 		Physics::PhysicsManager::GetInstance().RemoveShape(meta.luid);
 	}
 

@@ -6,6 +6,41 @@
 #include "../OpenGL/GLGeometryBuffer.hpp"
 
 namespace NE::Graphics {
+	namespace {
+		NE::Graphics::Sphere ComputeSphereBounds(const std::vector<Vertex>& vertices) {
+			float maxDistSq = 0.f;
+			for (const auto& v : vertices) {
+				float distSq = (v.Position).LengthSquared();
+				if (distSq > maxDistSq) {
+					maxDistSq = distSq;
+				}
+			}
+			NE::Graphics::Sphere sphere;
+			sphere.radius = std::sqrt(maxDistSq);
+			return sphere;
+		}
+
+		NE::Graphics::AABB ComputeAABBBounds(const std::vector<Vertex>& vertices) {
+			if (vertices.empty()) {
+				return NE::Graphics::AABB();
+			}
+			NE::Math::Vec3 min = vertices[0].Position;
+			NE::Math::Vec3 max = vertices[0].Position;
+			for (const auto& v : vertices) {
+				min.x = std::min(min.x, v.Position.x);
+				min.y = std::min(min.y, v.Position.y);
+				min.z = std::min(min.z, v.Position.z);
+				max.x = std::max(max.x, v.Position.x);
+				max.y = std::max(max.y, v.Position.y);
+				max.z = std::max(max.z, v.Position.z);
+			}
+			NE::Graphics::AABB aabb;
+			aabb.min = min;
+			aabb.max = max;
+			return aabb;
+		}
+	}
+
 	std::shared_ptr<Model> CreateCube(float width, float height, float depth) {
 		float hw = width * 0.5f;
 		float hh = height * 0.5f;
@@ -63,9 +98,9 @@ namespace NE::Graphics {
 		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
 		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
+		sub.localSphere = ComputeSphereBounds(sub.vertices);
+		sub.localAABB = ComputeAABBBounds(sub.vertices);
 		model->meshes.push_back(std::move(sub));
-
-		//model->ComputeModelSphereBounds();
 
 		return model;
 	}
@@ -96,9 +131,9 @@ namespace NE::Graphics {
 		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
 		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
+		sub.localSphere = ComputeSphereBounds(sub.vertices);
+		sub.localAABB = ComputeAABBBounds(sub.vertices);
 		model->meshes.push_back(std::move(sub));
-
-		//model->ComputeModelSphereBounds();
 
 		return model;
 	}
@@ -176,9 +211,9 @@ namespace NE::Graphics {
 		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
 		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
+		sub.localSphere = ComputeSphereBounds(sub.vertices);
+		sub.localAABB = ComputeAABBBounds(sub.vertices);
 		model->meshes.push_back(std::move(sub));
-
-		//model->ComputeModelSphereBounds();
 
 		return model;
 	}
@@ -241,8 +276,10 @@ namespace NE::Graphics {
 		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
 		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
+		sub.localSphere = ComputeSphereBounds(sub.vertices);
+		sub.localAABB = ComputeAABBBounds(sub.vertices);
 		model->meshes.push_back(std::move(sub));
-		//model->ComputeModelSphereBounds();
+
 		return model;
 	}
 
@@ -335,8 +372,10 @@ namespace NE::Graphics {
 		auto ib = std::make_shared<OpenGL::GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
 		sub.buffer = std::make_shared<OpenGL::GLGeometryBuffer>(vb, ib);
+		sub.localSphere = ComputeSphereBounds(sub.vertices);
+		sub.localAABB = ComputeAABBBounds(sub.vertices);
 		model->meshes.push_back(std::move(sub));
-		//model->ComputeModelSphereBounds();
+
 		return model;
 	}
 
@@ -369,11 +408,11 @@ namespace NE::Graphics {
 		auto ib = std::make_shared<GLIndexBuffer>(sub.indices.data(),
 			static_cast<uint32_t>(sub.indices.size()));
 		sub.buffer = std::make_shared<GLGeometryBuffer>(vb, ib);
+		sub.localSphere = ComputeSphereBounds(sub.vertices);
+		sub.localAABB = ComputeAABBBounds(sub.vertices);
 		model->meshes.push_back(std::move(sub));
-
-		//model->ComputeModelSphereBounds();
 
 		return model;
 	}
 
-} // namespace NANOEngine::Graphics
+}
