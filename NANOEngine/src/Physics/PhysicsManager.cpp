@@ -79,6 +79,25 @@ namespace NE::Physics {
             JPH::Vec3 angles = q.GetEulerAngles();
             return NE::Math::Vec3(JPH::RadiansToDegrees(angles.GetX()), JPH::RadiansToDegrees(angles.GetY()), JPH::RadiansToDegrees(angles.GetZ()));
         }
+
+        static float Wrap360(float deg) {
+            deg = std::fmod(deg, 360.0f);
+            if (deg < 0.0f) deg += 360.0f;
+            return deg;
+        }
+
+        float ExtractYawDegrees(const JPH::Quat& q)  {
+            // Choose your engine's forward. Common is +Z forward.
+            JPH::Vec3 fwd = q * JPH::Vec3(0, 0, 1);
+
+            // Yaw around Y axis (atan2(x, z)) if +Z is forward
+            float yawRad = std::atan2(fwd.GetX(), fwd.GetZ());
+            return JPH::RadiansToDegrees(yawRad);
+        }
+
+        NE::Math::Quat ToEngineQuat(const JPH::Quat& q) {
+            return NE::Math::Quat(q.GetX(), q.GetY(), q.GetZ(), q.GetW());
+		}
     }
 
     PhysicsManager& PhysicsManager::GetInstance() {
@@ -315,11 +334,16 @@ namespace NE::Physics {
                 const JPH::RVec3 p = ch.GetPosition();
                 tr.localPosition = ToEngineVec3(p);
 
-                // Yaw-only is recommended for capsule characters:
-                auto euler = JQuatToDegreeEuler(ch.GetRotation());
-                euler.x = 0.0f;
-                euler.z = 0.0f;
-                tr.localRotationEuler = euler;
+    //            float yaw = Wrap360(ExtractYawDegrees(ch.GetRotation()));
+				////SPD_WARNING("Yaw: " << yaw);
+    //            tr.localRotationEuler = { 0.0f, yaw, 0.0f };
+				//SPD_WARNING(tr.localRotationEuler);
+
+                Math::Quat q = ToEngineQuat(ch.GetRotation());
+                tr.localRotationQuat = q;
+
+                //Math::Vec3 e = QuatToEulerDegrees(q);                // any consistent order
+                //tr.localRotationEuler = StabilizeEulerForUI(e, tr.localRotationEuler);
 
                 tr.isDirty = true;
             }
