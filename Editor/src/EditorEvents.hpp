@@ -57,4 +57,8 @@ namespace Editor::Events {
 	struct GotoAssetPathEvent {
 		std::string assetPath;
 	};
+
+	struct SceneChangedEvent {
+
+	};
 }

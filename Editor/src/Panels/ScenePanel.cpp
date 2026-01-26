@@ -391,7 +391,7 @@ namespace Editor {
 				mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y;
 
-			if (insideScene) {
+			if (insideScene && !ImGui::IsAnyItemHovered()) {
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 					m_dragSelecting = true;
 					m_dragStartScreen = mousePos;
