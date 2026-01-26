@@ -791,6 +791,16 @@ namespace Editor {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 				NE::Renderer::Command::AssignModel(entity, uuid);
+			} else if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
+				std::string dropped((const char*)p->Data, p->DataSize - 1);
+				auto uuidSubmesh = std::find(dropped.begin(), dropped.end(), ':');
+				if (uuidSubmesh != dropped.end()) {
+					std::string meshPath(dropped.begin(), uuidSubmesh);
+					std::string submeshName(uuidSubmesh + 1, dropped.end());
+					auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(meshPath);
+					NE::Renderer::Command::AssignModel(entity, uuid, std::stoi(submeshName));
+				}
+
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -862,6 +872,7 @@ namespace Editor {
 
 		if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
 		}
+		//ImGui::InputInt("Submesh Index", &tempR.subMeshIndex);
 
 		if (copyComp) {
 

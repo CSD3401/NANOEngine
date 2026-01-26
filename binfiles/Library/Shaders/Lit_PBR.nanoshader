@@ -81,7 +81,7 @@ uniform int       h_HasMetallicMap;
 // Ambient Occlusion
 uniform float     u_AmbientOcclusion;
 uniform sampler2D u_AmbientOcclusionMap;
-uniform int       h_HasAOMap;
+uniform int       h_HasAmbientOcclusionMap;
 
 // UV Transform
 uniform vec3 	  u_Tiling; // uses .xy
@@ -455,7 +455,7 @@ void main() {
 
     // Ambient Occlusion
     float ao = 1.0;
-    if (h_HasAOMap != 0) {
+    if (h_HasAmbientOcclusionMap != 0) {
         ao = clamp(texture(u_AmbientOcclusionMap, uv).r, 0.0, 1.0);
     }
 

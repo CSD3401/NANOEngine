@@ -30,6 +30,8 @@ namespace Editor::Assets {
         unsigned int m_fileIcon = 0;
 		unsigned int m_materialIcon = 0;
 		unsigned int m_prefabIcon = 0;
+		unsigned int m_meshIcon = 0;
+		unsigned int m_subMeshIcon = 0;
 
         size_t m_maxThumbs = 512;
         std::unordered_map<std::string, ThumbCacheEntry> m_cache;

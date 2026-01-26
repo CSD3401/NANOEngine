@@ -65,6 +65,8 @@ namespace NE::ECS::Systems {
 	}
 
 	void HierarchySystem::Update(double) {
+		if (m_pendingParents.size() > 0)
+            ResolvePendingParentsForAll(false);
 	}
 
 	void HierarchySystem::Exit() {

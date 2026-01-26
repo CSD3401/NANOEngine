@@ -12,6 +12,8 @@ namespace Editor {
 		void RenderSettings();
 		void Save();
 
+		void SetShader(std::string shaderUUID);
+		std::shared_ptr<NE::Graphics::Material> GetMaterial();
 	private:
 		std::shared_ptr<NE::Graphics::Material> m_material;
 		std::string m_path;
