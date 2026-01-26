@@ -790,7 +790,7 @@ namespace Editor {
 			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-				NE::Renderer::Command::AssignModel(entity, uuid);
+				NE::Renderer::Command::AssignModel(entity, uuid, 0);
 			} else if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				auto uuidSubmesh = std::find(dropped.begin(), dropped.end(), ':');
