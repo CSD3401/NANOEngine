@@ -1128,6 +1128,7 @@ namespace Editor::Assets {
 	bool ModelAsset::SaveImportSettings(const std::string& sourcePath) {
 		using rapidjson::Value;
 
+		std::filesystem::path srcPath = sourcePath;
 		std::string metaPath = sourcePath + ".meta";
 
 		rapidjson::Document doc;
@@ -1147,6 +1148,8 @@ namespace Editor::Assets {
 		auto& alloc = doc.GetAllocator();
 
 		if (!importSettings) importSettings.emplace();
+		importSettings->scene.scaleFactor = GuessScaleFactorFromExtension(srcPath.extension().string());
+
 		auto jSettings = Serialization::ToJSON(*importSettings, alloc);
 
 		if (doc.HasMember("modelImport"))
