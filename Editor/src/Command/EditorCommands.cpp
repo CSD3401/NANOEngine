@@ -197,11 +197,10 @@ namespace Editor {
 	void DeleteEntityCommand::Undo() {
 		for (auto& e : m_entities) {
 			auto newEntt = NE::PasteEntity(m_data);
-			if (oldParentEntity != NE::ECS::NO_ENTITY) {
-				//NE::ECS::Command::SetParent(newEntt, oldParentEntity, -1, true);
-				EditorScene::SetParent(newEntt, oldParentEntity, -1, true);
-			}
-			//EditorScene::RegisterRoot(newEntt);
+			EditorScene::SetParent(newEntt, oldParentEntity, -1, true);
+
+			if (oldParentEntity == NE::ECS::NO_ENTITY)
+				EditorScene::RegisterRoot(newEntt);
 		}
 		//// sort entities so parents are recreated before children
 		//// (entities with no parent first, then their children, etc.)
