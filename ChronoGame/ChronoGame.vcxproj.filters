@@ -29,5 +29,24 @@
     <ClInclude Include="Scripts\Pickable.hpp" />
     <ClInclude Include="Scripts\RenderSettingsDemo.hpp" />
     <ClInclude Include="Scripts\GameObjectExamples.hpp" />
+    <ClInclude Include="Scripts\Example_Template.hpp" />
+    <ClInclude Include="Scripts\Grabbable.hpp" />
+    <ClInclude Include="Scripts\Grabber.hpp" />
+    <ClInclude Include="Scripts\Highlightable_.hpp" />
+    <ClInclude Include="Scripts\Highlightable_Material.hpp" />
+    <ClInclude Include="Scripts\Interactable_.hpp" />
+    <ClInclude Include="Scripts\Interactable_Bool.hpp" />
+    <ClInclude Include="Scripts\Interactable_WireButton.hpp" />
+    <ClInclude Include="Scripts\Manager_.hpp" />
+    <ClInclude Include="Scripts\Miscellaneous_ICOSwitcher.hpp" />
+    <ClInclude Include="Scripts\Player_Controller.hpp" />
+    <ClInclude Include="Scripts\Player_Raycast.hpp" />
+    <ClInclude Include="Scripts\Puzzle_.hpp" />
+    <ClInclude Include="Scripts\Puzzle_Lever.hpp" />
+    <ClInclude Include="Scripts\Puzzle_OneWaySwitch.hpp" />
+    <ClInclude Include="Scripts\Puzzle_Sinkhole.hpp" />
+    <ClInclude Include="Scripts\Puzzle_TwoStateRotater.hpp" />
+    <ClInclude Include="Scripts\Puzzle_Wire.hpp" />
+    <ClInclude Include="Scripts\WireChild.hpp" />
   </ItemGroup>
 </Project>
