@@ -101,7 +101,7 @@ namespace Editor {
         NANOEngine::Events::EventBus::Get().Subscribe<Events::DeleteEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const Events::DeleteEntityEvent& e) {
-                ExecuteCommand(std::make_unique<DeleteEntityCommand>(e.entitiesToBeDeleted));
+                ExecuteCommand(std::make_unique<DeleteEntityCommand>(e.entitiesToBeDeleted, e.oldParentEntity));
             }
         );
 
@@ -109,6 +109,13 @@ namespace Editor {
             NANOEngine::Events::EventDomain::Editor,
             [&](const Events::SceneChangedEvent& e) {
                 ClearHistory();
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::HierarchyChangeEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::HierarchyChangeEvent& e) {
+                ExecuteCommand(std::make_unique<HierarchyChangeCommand>(e.childEntity, e.newParentEntity, e.insertIndex));
             }
         );
     }

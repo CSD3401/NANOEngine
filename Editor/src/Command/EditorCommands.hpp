@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <ECS/Core/Entity.hpp>
+
 namespace Editor {
 
     class CreateEmptyEntityCommand final : public ICommand {
@@ -160,14 +162,16 @@ namespace Editor {
 
     class DeleteEntityCommand final : public ICommand {
     public:
-        DeleteEntityCommand(std::vector<uint32_t> deletedEntity);
+        DeleteEntityCommand(std::vector<uint32_t> deletedEntity, uint32_t oldParent);
 
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Delete Entity"; }
 
     private:
+        uint32_t oldParentEntity = NE::ECS::NO_ENTITY;
         std::vector<uint32_t> m_entities;
+        std::vector<uint8_t> m_data;
 
         //struct DeletedUIEntityInfo {
         //    uint32_t id;
@@ -176,6 +180,24 @@ namespace Editor {
         //    uint32_t parentId;  // For UI images
         //};
         //std::vector<DeletedUIEntityInfo> m_deletedEntities;
+    };
+
+    class HierarchyChangeCommand final : public ICommand {
+    public:
+        HierarchyChangeCommand(uint32_t child, uint32_t newParent, int newInsertIndex);
+
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Hierarchy Change"; }
+
+    private:
+        uint32_t childEntity = NE::ECS::NO_ENTITY;
+
+        uint32_t oldParentEntity = NE::ECS::NO_ENTITY;
+        int      oldInsertIndex = -1;
+
+        uint32_t newParentEntity = NE::ECS::NO_ENTITY;
+        int      newInsertIndex = -1;
     };
 
     class RenameEntityCommand final : public ICommand {
