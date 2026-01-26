@@ -436,4 +436,19 @@ namespace Editor {
 		NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
+	HierarchyChangeCommand::HierarchyChangeCommand(uint32_t child, uint32_t newParent, int newInsertIndex) 
+		: childEntity(child), newParentEntity(newParent), newInsertIndex(newInsertIndex) 
+	{
+		oldParentEntity = EditorScene::GetParent(childEntity);
+		oldInsertIndex = EditorScene::GetIndexInParentOrRoot(childEntity);
+	}
+
+	void HierarchyChangeCommand::Execute() {
+		EditorScene::SetParent(childEntity, newParentEntity, newInsertIndex, true);
+	}
+
+	void HierarchyChangeCommand::Undo() {
+		EditorScene::SetParent(childEntity, oldParentEntity, oldInsertIndex, true);
+	}
+
 }

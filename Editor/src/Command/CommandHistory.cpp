@@ -111,6 +111,13 @@ namespace Editor {
                 ClearHistory();
             }
         );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::HierarchyChangeEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::HierarchyChangeEvent& e) {
+                ExecuteCommand(std::make_unique<HierarchyChangeCommand>(e.childEntity, e.newParentEntity, e.insertIndex));
+            }
+        );
     }
 
     void CommandHistory::ClearHistory() {

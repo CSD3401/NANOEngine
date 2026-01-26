@@ -217,11 +217,6 @@ namespace Editor {
 
 		EditorScene::s_selection.SetLastPreorder(preorder);
 
-		//if (ImGui::BeginPopup("HierarchyContext")) {
-		//	DrawContextMenu();
-		//	ImGui::EndPopup();
-		//}
-
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		bool hierHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
@@ -298,10 +293,14 @@ namespace Editor {
 						if (IsAncestor(child, m_previewParent))
 							continue;
 
-						EditorScene::SetParent(child,
-							m_previewParent,
-							std::numeric_limits<int>::max(),
-							true);
+						//EditorScene::SetParent(child,
+						//	m_previewParent,
+						//	std::numeric_limits<int>::max(),
+						//	true);
+						NANOEngine::Events::EventBus::Get().Dispatch(
+							NANOEngine::Events::EventDomain::Editor,
+							Events::HierarchyChangeEvent{ child, m_previewParent, std::numeric_limits<int>::max() }
+						);
 					}
 				} else if (m_previewInsert >= 0) {
 					int insertIndex = m_previewInsert;
@@ -310,10 +309,14 @@ namespace Editor {
 						for (auto child : m_draggedEntities) {
 							auto& h = NE::ECS::Query::GetEntityHierarchy(child);
 							if (h.parent != NE::ECS::Component::INVALID_PARENT) {
-								EditorScene::SetParent(child,
-									NE::ECS::NO_ENTITY,
-									0,
-									true);
+								//EditorScene::SetParent(child,
+								//	NE::ECS::NO_ENTITY,
+								//	0,
+								//	true);
+								NANOEngine::Events::EventBus::Get().Dispatch(
+									NANOEngine::Events::EventDomain::Editor,
+									Events::HierarchyChangeEvent{ child, NE::ECS::NO_ENTITY, 0 }
+								);
 							}
 
 							EditorScene::ReorderRoot(child, insertIndex);
@@ -327,10 +330,15 @@ namespace Editor {
 							if (IsAncestor(child, m_previewParentForInsert))
 								continue;
 
-							EditorScene::SetParent(child,
-								m_previewParentForInsert,
-								insertIndex,
-								true);
+							//EditorScene::SetParent(child,
+							//	m_previewParentForInsert,
+							//	insertIndex,
+							//	true);
+							NANOEngine::Events::EventBus::Get().Dispatch(
+								NANOEngine::Events::EventDomain::Editor,
+								Events::HierarchyChangeEvent{ child, m_previewParentForInsert, insertIndex }
+							);
+
 							++insertIndex;
 						}
 					}
