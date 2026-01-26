@@ -432,6 +432,8 @@ namespace Editor {
 				Document doc; doc.Parse(data.c_str());
 				if (doc.HasParseError() || !doc.IsObject()) return;
 
+				if (!doc.HasMember("submeshes") || !doc["submeshes"].IsArray()) return;
+				auto& sms = doc["submeshes"];
 				if (!doc.HasMember("generatedPrefab") || !doc["generatedPrefab"].IsObject()) return;
 				auto& gp = doc["generatedPrefab"];
 				if (!gp.HasMember("Entities") || !gp["Entities"].IsArray()) return;
@@ -475,6 +477,15 @@ namespace Editor {
 							ReadComponentIfPresent<C>(e, entVal);
 						}
 					});
+
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(e)) {
+						auto& renderer = NE::ECS::Query::GetComponent<NE::ECS::Component::Renderer>(e);
+						NE::Math::Vec3 pivotOffset = {};
+						FromJSON(sms[renderer.subMeshIndex]["pivotOffset"], pivotOffset);
+
+						auto& transform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(e);
+						transform.localPosition = pivotOffset;
+					}
 
 					uint64_t tplLuid = readTemplateLuid(entVal);
 					uint64_t realLuid = (tplLuid != 0 && idxToReal.contains(tplLuid)) ? idxToReal[tplLuid] : 0;

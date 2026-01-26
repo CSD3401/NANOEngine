@@ -11,12 +11,6 @@ namespace NE::Resource {
         uint32_t magic = NMOD_MAGIC;
         uint16_t version = CURRENT_NANOMODEL_FORMAT_VERSION;
         uint16_t submeshCount = 0;
-
-        float aabbMin[3] = { 0,0,0 };
-        float aabbMax[3] = { 0,0,0 };
-
-        float sphereCenter[3] = { 0,0,0 };
-        float sphereRadius = 0.0f;
     };
 #pragma pack(pop)
 
@@ -31,7 +25,7 @@ namespace NE::Resource {
         float aabbMin[3] = { 0,0,0 };
         float aabbMax[3] = { 0,0,0 };
 
-        float sphereCenter[3] = { 0,0,0 };
+        //float sphereCenter[3] = { 0,0,0 };
         float sphereRadius = 0.0f;
     };
 #pragma pack(pop)

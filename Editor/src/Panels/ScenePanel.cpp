@@ -356,28 +356,28 @@ namespace Editor {
 							NE::Renderer::Command::AssignMaterial(id, uuid);
 					}
 				}
-			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
 				std::string dropped((const char*)modalPayload->Data, modalPayload->DataSize - 1);
 				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 
-				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-					ImVec2 mousePos = ImGui::GetMousePos();
-					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
-						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
-						float localX = mousePos.x - panelPos.x;
-						float localY = mousePos.y - panelPos.y;
-						float spMouseX = localX / panelSize.x;
-						float spMouseY = localY / panelSize.y;
+				//if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+				//	ImVec2 mousePos = ImGui::GetMousePos();
+				//	if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+				//		mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+				//		float localX = mousePos.x - panelPos.x;
+				//		float localY = mousePos.y - panelPos.y;
+				//		float spMouseX = localX / panelSize.x;
+				//		float spMouseY = localY / panelSize.y;
 
-						uint32_t x = static_cast<int>(spMouseX * 1920.f);
-						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
+				//		uint32_t x = static_cast<int>(spMouseX * 1920.f);
+				//		uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
 
-						uint32_t id = NE::GetPickedEntity(x, y);
+				//		uint32_t id = NE::GetPickedEntity(x, y);
 
-						if (id != NE::ECS::NO_ENTITY)
-							NE::Renderer::Command::AssignModel(id, uuid);
-					}
-				}
+				//		if (id != NE::ECS::NO_ENTITY)
+				//			NE::Renderer::Command::AssignModel(id, uuid);
+				//	}
+				//}
 			}
 			ImGui::EndDragDropTarget();
 		}

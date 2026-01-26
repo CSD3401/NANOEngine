@@ -33,9 +33,6 @@ namespace NE::Graphics {
     public:
         std::vector<SubMesh> meshes;
 
-        AABB   localAABB;
-        Sphere localSphere;
-
         bool Preload(Resource::BinaryView blob) override;
         void Finalize() override;
 

@@ -136,6 +136,44 @@ namespace Editor::Assets {
 			return c;
 		}
 
+		void DebugAccum(const aiMatrix4x4& M, const char* name) {
+			aiVector3D s, t;
+			aiQuaternion r;
+			M.Decompose(s, r, t);
+			SPD_ERROR("Position: " << t.x << ", " << t.y << ", " << t.z);
+		}
+
+		bool TryGetAIMetaVec3(const aiNode* node, const char* key, aiVector3D& out) {
+			if (!node || !node->mMetaData) return false;
+
+			//aiMetadataEntry e;
+			//if (!node->mMetaData->Get(key, e)) return false;
+
+			//if (e.mType == AI_AISTRING) return false; // ignore
+			//if (e.mType == AI_AIVECTOR3D) { out = *static_cast<aiVector3D*>(e.mData); return true; }
+
+			//return false;
+			return node->mMetaData->Get(key, out);
+		}
+
+		NE::Math::Mat4 MakeGeomMat(const aiNode* node) {
+			aiVector3D gt(0, 0, 0), gr(0, 0, 0), gs(1, 1, 1);
+			TryGetAIMetaVec3(node, "GeometricTranslation", gt);
+			TryGetAIMetaVec3(node, "GeometricRotation", gr);
+			TryGetAIMetaVec3(node, "GeometricScaling", gs);
+
+			NE::Math::Mat4 T{};
+			T = T.BuildTranslation({ gt.x, gt.y, gt.z });
+			NE::Math::Mat4 Rx = Rx.BuildXRotation(gr.x);
+			NE::Math::Mat4 Ry = Ry.BuildYRotation(gr.y);
+			NE::Math::Mat4 Rz = Rz.BuildZRotation(gr.z);
+			NE::Math::Mat4 R = Rz * Ry * Rx; // or Rx*Ry*Rz depending on your convention
+			NE::Math::Mat4 S;
+			S = S.BuildScaling(gs.x, gs.y, gs.z);
+
+			return T * R * S;
+		}
+
 		bool IsFbxPivotHelper(const aiNode* n) {
 			std::string name = n->mName.C_Str();
 			if (name.find("$AssimpFbx$") != std::string::npos) return true;
@@ -152,42 +190,13 @@ namespace Editor::Assets {
 		}
 
 		NE::Math::Mat4 ToMat4(const aiMatrix4x4& m) {
-			NE::Math::Mat4 r{ 
-				m.a1, m.b1, m.c1, m.d1, 
-				m.a2, m.b2, m.c2, m.d2, 
-				m.a3, m.b3, m.c3, m.d3, 
-				m.a4, m.b4, m.c4, m.d4 
-			};
-			//r[0][0] = m.a1; r[1][0] = m.a2; r[2][0] = m.a3; r[3][0] = m.a4;
-			//r[0][1] = m.b1; r[1][1] = m.b2; r[2][1] = m.b3; r[3][1] = m.b4;
-			//r[0][2] = m.c1; r[1][2] = m.c2; r[2][2] = m.c3; r[3][2] = m.c4;
-			//r[0][3] = m.d1; r[1][3] = m.d2; r[2][3] = m.d3; r[3][3] = m.d4;
-			return r;
+			return NE::Math::Mat4(
+				m.a1, m.a2, m.a3, m.a4,
+				m.b1, m.b2, m.b3, m.b4,
+				m.c1, m.c2, m.c3, m.c4,
+				m.d1, m.d2, m.d3, m.d4
+			);
 		}
-
-		//void FlattenNode(const aiScene* scene,
-		//	const aiNode* node,
-		//	const NE::Math::Mat4& parentWorld,
-		//	/*out*/ std::vector<ImportedMeshNode>& outMeshes)
-		//{
-		//	NE::Math::Mat4 local = ToMat4(node->mTransformation);
-		//	NE::Math::Mat4 world = parentWorld * local;
-
-		//	// If this node contains meshes, emit them with the final baked world transform.
-		//	for (unsigned i = 0; i < node->mNumMeshes; ++i) {
-		//		unsigned meshIndex = node->mMeshes[i];
-		//		outMeshes.push_back({
-		//			.name = node->mName.C_Str(),
-		//			.meshIndex = meshIndex,
-		//			.worldTransform = world
-		//			});
-		//	}
-
-		//	// Recurse children normally, but you can optionally suppress creating entities for helper nodes
-		//	// by just never "emitting" non-mesh nodes in your importer.
-		//	for (unsigned c = 0; c < node->mNumChildren; ++c)
-		//		FlattenNode(scene, node->mChildren[c], world, outMeshes);
-		//}
 
 		void EmitEntityMeta(rapidjson::Value& ent, rapidjson::Document::AllocatorType& a,
 			const std::string& name, uint64_t luid) {
@@ -224,14 +233,14 @@ namespace Editor::Assets {
 			rapidjson::Value& ent,
 			rapidjson::Document::AllocatorType& a,
 			uint64_t luid,
-			const NE::Math::Mat4& m
+			const NE::Math::Mat4& m, const float& sceneScale
 		) {
 			NE::ECS::Component::Transform tr{};
 			tr.luid = luid;
 
-			tr.localPosition = m.GetTranslation();
+			tr.localPosition = m.GetTranslation() * sceneScale;
 			tr.localScale = m.GetScale();
-			tr.localRotationEuler = m.GetRotation();
+			tr.localRotationEuler = m.GetRotation() * (180.0f / PI);
 			ent.AddMember("Transform", Editor::Serialization::ToJSON(tr, a), a);
 		}
 
@@ -249,6 +258,7 @@ namespace Editor::Assets {
 		void AddEntityFromNode(
 			const aiScene* scene,
 			const NE::Math::Mat4& finalLocal,
+			const float& sceneScale,
 			const aiNode* node,
 			uint64_t parentEnt,
 			const std::string& modelUUID,
@@ -266,9 +276,7 @@ namespace Editor::Assets {
 			EmitEntityMeta(ent, alloc, nodeName, thisEnt);
 			EmitHierarchy(ent, alloc, thisEnt, parentEnt);
 
-			// IMPORTANT: use flattened matrix, not node->mTransformation
-			// You must implement this helper (see below)
-			EmitTransformFromMat4(ent, alloc, thisEnt, finalLocal);
+			EmitTransformFromMat4(ent, alloc, thisEnt, finalLocal, sceneScale);
 
 			ents.PushBack(ent, alloc);
 
@@ -309,6 +317,79 @@ namespace Editor::Assets {
 			}
 		}
 
+		void BuildMeshesUnderRootFlat(
+			const aiScene* scene,
+			const aiNode* node,
+			uint64_t rootEnt,
+			const NE::Math::Mat4& accumLocal,
+			const float& sceneScale,
+			const std::string& modelUUID,
+			const std::vector<std::string>& materialUUIDByAssimpMat,
+			rapidjson::Value& ents,
+			rapidjson::Document::AllocatorType& alloc,
+			uint64_t& next
+		) {
+			NE::Math::Mat4 nodeLocal = ToMat4(node->mTransformation);
+			aiVector3D s, r, t;
+			node->mTransformation.Decompose(s, r, t);
+
+			NE::Math::Mat4 nextAccum = accumLocal * nodeLocal;
+
+			// If helper, don't emit anything, just continue traversal
+			if (IsFbxPivotHelper(node)) {
+				SPD_ERROR("Position: " << t.x << ", " << t.y << ", " << t.z);
+				SPD_ERROR("Scale: " << s.x << ", " << s.y << ", " << s.z);
+				SPD_ERROR("Rotation: " << r.x << ", " << r.y << ", " << r.z);
+				for (unsigned c = 0; c < node->mNumChildren; ++c)
+					BuildMeshesUnderRootFlat(scene, node->mChildren[c], rootEnt, nextAccum, sceneScale,
+						modelUUID, materialUUIDByAssimpMat, ents, alloc, next);
+				return;
+			}
+
+			// Emit one mesh entity per mesh reference on this node
+			const std::string nodeName = SafeName(node->mName, "Node");
+
+			for (unsigned i = 0; i < node->mNumMeshes; ++i) {
+				const unsigned meshIdx = node->mMeshes[i];
+				const aiMesh* mesh = scene->mMeshes[meshIdx];
+
+				uint64_t meshEnt = next++;
+
+				rapidjson::Value rend(rapidjson::kObjectType);
+				rend.AddMember("Layer", 0, alloc);
+
+				std::string meshName = (mesh && mesh->mName.length > 0)
+					? std::string(mesh->mName.C_Str())
+					: (nodeName + "_Mesh" + std::to_string(i));
+
+				EmitEntityMeta(rend, alloc, meshName, 0);
+				EmitHierarchy(rend, alloc, meshEnt, rootEnt);
+
+				//aiVector3D s, r, t;
+				//auto accT = nextAccum.GetTranslation();
+				//SPD_ERROR("Position: " << accT.x << ", " << accT.y << ", " << accT.z);
+				// HERE is the Unity behavior: mesh entity carries the baked transform
+				NE::Math::Mat4 geom = MakeGeomMat(node);      // node that owns the mesh
+				NE::Math::Mat4 final = nextAccum * geom;
+				auto t = final.GetTranslation();
+				SPD_ERROR("FINAL for mesh node: " << node->mName.C_Str() << "Position:" << t.x << ", " << t.y << ", " << t.z);
+				EmitTransformFromMat4(rend, alloc, meshEnt, final, sceneScale);
+
+				std::string matUUID;
+				if (mesh && mesh->mMaterialIndex < materialUUIDByAssimpMat.size())
+					matUUID = materialUUIDByAssimpMat[mesh->mMaterialIndex];
+
+				EmitRenderer(rend, alloc, 0, modelUUID, matUUID, (int32_t)meshIdx);
+
+				ents.PushBack(rend, alloc);
+			}
+
+			// Recurse children (keep accumulating)
+			for (unsigned c = 0; c < node->mNumChildren; ++c)
+				BuildMeshesUnderRootFlat(scene, node->mChildren[c], rootEnt, nextAccum, sceneScale,
+					modelUUID, materialUUIDByAssimpMat, ents, alloc, next);
+		}
+
 		void BuildGeneratedPrefabRecursiveFlat(
 			const aiScene* scene,
 			const aiNode* node,
@@ -333,8 +414,8 @@ namespace Editor::Assets {
 			NE::Math::Mat4 finalLocal = accumLocal * nodeLocal;
 
 			uint64_t thisEnt = next++;
-			AddEntityFromNode(scene, finalLocal, node, parentEnt, modelUUID,
-				materialUUIDByAssimpMat, ents, alloc, thisEnt, next);
+			//AddEntityFromNode(scene, finalLocal, node, parentEnt, modelUUID,
+			//	materialUUIDByAssimpMat, ents, alloc, thisEnt, next);
 
 			NE::Math::Mat4 I; I.SetToIdentity();
 			for (unsigned c = 0; c < node->mNumChildren; ++c)
@@ -509,7 +590,7 @@ namespace Editor::Assets {
 					d.albedoMapUUID = AssetManager::GetInstance().RetrieveUUID(albedoMapPath.string());
 
 					if (!rec->isLoaded) {
-						asset->Cook(albedoMapPath.string(), 
+						asset->Cook(albedoMapPath.string(),
 							NE::Resource::ComputeArtifactPathFromUUID(d.albedoMapUUID, GetResourceTypeFromAssetType(Assets::AssetType::Texture)));
 						rec->isLoaded = true;
 					}
@@ -602,7 +683,7 @@ namespace Editor::Assets {
 
 					asset->GetImportSettings(metallicMapPath.string()).sRGB = false;
 					asset->SaveImportSettings(metallicMapPath.string());
-					
+
 					d.metallicMapUUID = AssetManager::GetInstance().RetrieveUUID(metallicMapPath.string());
 
 					if (!rec->isLoaded) {
@@ -674,7 +755,7 @@ namespace Editor::Assets {
 
 		std::string ImportMaterials(const std::string& materialPath, ImportedMatDesc& desc) {
 			namespace fs = std::filesystem;
-			
+
 			fs::path targetDir = materialPath + "/Materials";
 			fs::create_directories(targetDir);
 
@@ -767,7 +848,7 @@ namespace Editor::Assets {
 
 		// one desc per mesh
 		std::vector<NE::Resource::NanoSubmeshDesc> subdescs(scene->mNumMeshes);
-
+		std::vector<NE::Math::Vec3> submeshPivots(scene->mNumMeshes);
 		// temp storage for actual vertex/index bytes
 		struct RawBlob {
 			std::vector<uint8_t> vertices;
@@ -775,7 +856,6 @@ namespace Editor::Assets {
 		};
 		std::vector<RawBlob> blobs(scene->mNumMeshes);
 
-		Bounds globalB;
 		const float scale = importSettings ? importSettings->scene.scaleFactor : GuessScaleFactorFromExtension(srcPath.extension().string());
 
 		for (unsigned m = 0; m < scene->mNumMeshes; ++m) {
@@ -809,12 +889,9 @@ namespace Editor::Assets {
 
 				vout[i] = v;
 
-				// expand bounds
 				subB.Expand(v.px, v.py, v.pz);
-				globalB.Expand(v.px, v.py, v.pz);
 			}
 
-			// indices
 			std::vector<uint32_t> idx;
 			idx.reserve(mesh->mNumFaces * 3);
 			for (unsigned f = 0; f < mesh->mNumFaces; ++f) {
@@ -828,9 +905,26 @@ namespace Editor::Assets {
 			subdescs[m].vertexCount = mesh->mNumVertices;
 			subdescs[m].indexCount = static_cast<uint32_t>(idx.size());
 
-			WriteBoundsToDesc(subB,
-				subdescs[m].aabbMin, subdescs[m].aabbMax,
-				subdescs[m].sphereCenter, subdescs[m].sphereRadius);
+			submeshPivots[m] = NE::Math::Vec3({
+				(subB.minP.x + subB.maxP.x) * 0.5f,
+				(subB.minP.y + subB.maxP.y) * 0.5f,
+				(subB.minP.z + subB.maxP.z) * 0.5f
+				});
+
+			for (unsigned i = 0; i < mesh->mNumVertices; ++i) {
+				vout[i].px -= submeshPivots[m].x;
+				vout[i].py -= submeshPivots[m].y;
+				vout[i].pz -= submeshPivots[m].z;
+			}
+
+			subB.minP = subB.minP - submeshPivots[m];
+			subB.maxP = subB.maxP - submeshPivots[m];
+
+			subdescs[m].aabbMin[0] = subB.minP.x; subdescs[m].aabbMin[1] = subB.minP.y; subdescs[m].aabbMin[2] = subB.minP.z;
+			subdescs[m].aabbMax[0] = subB.maxP.x; subdescs[m].aabbMax[1] = subB.maxP.y; subdescs[m].aabbMax[2] = subB.maxP.z;
+
+			NE::Math::Vec3 e = (subB.maxP - subB.minP) * 0.5f;
+			subdescs[m].sphereRadius = std::sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
 		}
 
 		std::ofstream ofs(outPath, std::ios::binary);
@@ -838,9 +932,6 @@ namespace Editor::Assets {
 
 		NE::Resource::NanoMeshHeader header{};
 		header.submeshCount = static_cast<uint16_t>(scene->mNumMeshes);
-		WriteBoundsToDesc(globalB,
-			header.aabbMin, header.aabbMax,
-			header.sphereCenter, header.sphereRadius);
 
 		ofs.write(reinterpret_cast<const char*>(&header), sizeof(header));
 
@@ -909,6 +1000,9 @@ namespace Editor::Assets {
 
 			entry.AddMember("name", rapidjson::Value(name.c_str(), alloc), alloc);
 			entry.AddMember("index", (int)i, alloc);
+
+			rapidjson::Value pivotObj = Serialization::ToJSON(submeshPivots[i], alloc);
+			entry.AddMember("pivotOffset", pivotObj, alloc);
 			submeshes.PushBack(entry, alloc);
 		}
 
@@ -943,11 +1037,24 @@ namespace Editor::Assets {
 			materialUUIDByAssimpMat[i] = ImportMaterials(dirPath.string(), desc);
 		}
 
+		uint64_t rootEnt = next++;
+		rapidjson::Value root(rapidjson::kObjectType);
+		root.AddMember("Layer", 0, alloc);
+
+		NE::Math::Mat4 rootTransform = ToMat4(scene->mRootNode->mTransformation);
+		EmitEntityMeta(root, alloc, srcPath.stem().string(), rootEnt);
+		EmitHierarchy(root, alloc, rootEnt, 0);
+		EmitTransformFromMat4(root, alloc, rootEnt, rootTransform, scale);
+
+		ents.PushBack(root, alloc);
+
 		NE::Math::Mat4 I; I.SetToIdentity();
-		BuildGeneratedPrefabRecursiveFlat(scene,
+		BuildMeshesUnderRootFlat(
+			scene,
 			scene->mRootNode,
-			0,
+			rootEnt,
 			I,
+			scale,
 			cookedModelUUID,
 			materialUUIDByAssimpMat,
 			ents,
@@ -955,38 +1062,23 @@ namespace Editor::Assets {
 			next
 		);
 
-		//BuildGeneratedPrefabRecursive(
-		//	scene,
-		//	scene->mRootNode,
-		//	0,
-		//	cookedModelUUID,
-		//	materialUUIDByAssimpMat,
-		//	ents,
-		//	alloc,
-		//	next
-		//);
-
 		gen.AddMember("Entities", ents, alloc);
 
-		// 3) Append/replace into doc
 		if (doc.HasMember("generatedPrefab"))
 			doc["generatedPrefab"].CopyFrom(gen, alloc);
 		else
 			doc.AddMember("generatedPrefab", gen, alloc);
 
-		// 4) Write meta back
-		{
-			std::ofstream ofs(metaPath);
-			if (!ofs) {
-				SPD_WARNING("Failed to write meta file: " << metaPath);
-				return false;
-			}
-
-			rapidjson::OStreamWrapper osw(ofs);
-			rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
-			writer.SetIndent(' ', 4);
-			doc.Accept(writer);
+		std::ofstream ofsMeta(metaPath);
+		if (!ofsMeta) {
+			SPD_WARNING("Failed to write meta file: " << metaPath);
+			return false;
 		}
+
+		rapidjson::OStreamWrapper osw(ofsMeta);
+		rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
+		writer.SetIndent(' ', 4);
+		doc.Accept(writer);
 
 		return true;
 	}

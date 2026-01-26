@@ -110,34 +110,35 @@ namespace NE::ECS::Systems {
 
 
             if (renderer.subMeshIndex < 0) {
-                const auto& ms = renderer.model->localSphere;
-                float baseR = ms.radius;
+                continue;
+       //         const auto& ms = renderer.model->localSphere;
+       //         float baseR = ms.radius;
 
-                bool visible = true;
-                if (baseR > 0.0f) {
-                    Vec3 centerWS = TransformPoint(transform.worldMatrix, ms.center);
-                    float rWS = baseR * MaxScaleAxis(transform.worldMatrix);
-                    visible = SphereInFrustum(frustum, centerWS, rWS);
-                }
+       //         bool visible = true;
+       //         if (baseR > 0.0f) {
+       //             Vec3 centerWS = TransformPoint(transform.worldMatrix, ms.center);
+       //             float rWS = baseR * MaxScaleAxis(transform.worldMatrix);
+       //             visible = SphereInFrustum(frustum, centerWS, rWS);
+       //         }
 
-                if (!visible) continue;
+       //         if (!visible) continue;
 
-			    for (auto& sub : renderer.model->meshes) {
-				    Graphics::DrawCommand cmd;
-				    cmd.mesh = sub.buffer;
-				    cmd.material = renderer.material;
-				    cmd.transform = transform.worldMatrix;
+			    //for (auto& sub : renderer.model->meshes) {
+				   // Graphics::DrawCommand cmd;
+				   // cmd.mesh = sub.buffer;
+				   // cmd.material = renderer.material;
+				   // cmd.transform = transform.worldMatrix;
 
-                    float r = (float)(entity & 0xFF) / 255.0f;
-                    float g = (float)((entity >> 8) & 0xFF) / 255.0f;
-                    float b = (float)((entity >> 16) & 0xFF) / 255.0f;
-				    cmd.idRGB = Vec3{ r, g, b };
+       //             float r = (float)(entity & 0xFF) / 255.0f;
+       //             float g = (float)((entity >> 8) & 0xFF) / 255.0f;
+       //             float b = (float)((entity >> 16) & 0xFF) / 255.0f;
+				   // cmd.idRGB = Vec3{ r, g, b };
 
-                    cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
-                    cmd.receivesShadow = renderer.receiveShadows;
+       //             cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
+       //             cmd.receivesShadow = renderer.receiveShadows;
 
-				    Graphics::GraphicsManager::Submit(cmd);
-			    }
+				   // Graphics::GraphicsManager::Submit(cmd);
+			    //}
             } else {
                 const auto& ms = renderer.model->meshes[renderer.subMeshIndex].localSphere;
                 float baseR = ms.radius;

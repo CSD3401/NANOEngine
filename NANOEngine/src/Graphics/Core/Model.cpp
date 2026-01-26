@@ -22,21 +22,7 @@ namespace NE::Graphics {
         if (!hdr) return false;
         if (hdr->magic != Resource::NMOD_MAGIC) return false;
 
-        // Allow older versions
-        if (hdr->version > Resource::CURRENT_NANOMODEL_FORMAT_VERSION) return false;
-
-        // --- read model-level bounds if present (v2+) ---
-        if (hdr->version >= 2) {
-            localAABB.min = { hdr->aabbMin[0], hdr->aabbMin[1], hdr->aabbMin[2] };
-            localAABB.max = { hdr->aabbMax[0], hdr->aabbMax[1], hdr->aabbMax[2] };
-
-            localSphere.center = { hdr->sphereCenter[0], hdr->sphereCenter[1], hdr->sphereCenter[2] };
-            localSphere.radius = hdr->sphereRadius;
-        } else {
-            // v1 fallback (no cooked bounds)
-            localAABB = {};
-            localSphere = {};
-        }
+        if (hdr->version != Resource::CURRENT_NANOMODEL_FORMAT_VERSION) return false;
 
         const size_t subTableOff = sizeof(Resource::NanoMeshHeader);
         const size_t subTableSize = static_cast<size_t>(hdr->submeshCount) * sizeof(Resource::NanoSubmeshDesc);
@@ -70,7 +56,7 @@ namespace NE::Graphics {
                 sm.localAABB.min = { d.aabbMin[0], d.aabbMin[1], d.aabbMin[2] };
                 sm.localAABB.max = { d.aabbMax[0], d.aabbMax[1], d.aabbMax[2] };
 
-                sm.localSphere.center = { d.sphereCenter[0], d.sphereCenter[1], d.sphereCenter[2] };
+                //sm.localSphere.center = { d.sphereCenter[0], d.sphereCenter[1], d.sphereCenter[2] };
                 sm.localSphere.radius = d.sphereRadius;
             }
 
