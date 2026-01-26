@@ -8,6 +8,8 @@
 #include "ICommand.hpp"
 #include <Core/Reflection.hpp>
 #include <Core/SpdLogger.hpp>  // For SPD_DEBUG logging
+#include <Math/Quat.hpp>
+#include <ECS/Components/Transform.hpp>
 
 namespace Editor {
 
@@ -36,6 +38,13 @@ namespace Editor {
 			c.*m_member = m_after;
 
             MarkDirtyIfPresent(c);
+
+            if constexpr (std::is_same_v<Owner, NE::ECS::Component::Transform> &&
+                std::is_same_v<T, NE::Math::Vec3>) {
+                if (m_member == &NE::ECS::Component::Transform::localRotationEuler) {
+                    c.localRotationQuat = NE::Math::Quat::FromEulerDegrees(c.localRotationEuler);
+                }
+            }
 		}
 
 		void Undo() override {
@@ -43,6 +52,13 @@ namespace Editor {
 			c.*m_member = m_before;
 
             MarkDirtyIfPresent(c);
+
+            if constexpr (std::is_same_v<Owner, NE::ECS::Component::Transform> &&
+                std::is_same_v<T, NE::Math::Vec3>) {
+                if (m_member == &NE::ECS::Component::Transform::localRotationEuler) {
+                    c.localRotationQuat = NE::Math::Quat::FromEulerDegrees(c.localRotationEuler);
+                }
+            }
 		}
 
 		const char* GetName() const override { return m_name.c_str(); }
