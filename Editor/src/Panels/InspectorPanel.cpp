@@ -790,7 +790,7 @@ namespace Editor {
 			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-				NE::Renderer::Command::AssignModel(entity, uuid, 0);
+				NE::Renderer::Command::AssignModel(entity, uuid);
 			} else if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				auto uuidSubmesh = std::find(dropped.begin(), dropped.end(), ':');
@@ -816,7 +816,7 @@ namespace Editor {
 				for (const auto& [modelName, uuid] : modelList) {
 					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
 						if (ImGui::Selectable(modelName.c_str())) {
-							NE::Renderer::Command::AssignModel(entity, uuid);
+							NE::Renderer::Command::AssignModel(entity, uuid, 0);
 							ImGui::CloseCurrentPopup();
 						}
 						});
