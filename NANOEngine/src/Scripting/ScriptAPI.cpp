@@ -1411,14 +1411,16 @@ namespace NE {
 			// Get material UUID from MaterialRef
 			std::string materialUUID = GetMaterialUUIDFromRef(materialRef);
 			if (materialUUID.empty()) {
-				materialUUID = "empty uuid";
+				materialUUID = "neunlitmat"; // defaults to neunlitmat if invalid
 			}
 
 			// Set the material UUID on the entity's renderer component
 			if (m_context->componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
-				auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
-				renderer.materialUUID = materialUUID;
-				renderer.isDirty = true;
+				//auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
+				//renderer.materialUUID = materialUUID;
+				//renderer.isDirty = true;
+
+				NE::Renderer::Command::AssignMaterial(entity, materialUUID);
 			}
 		}
 
