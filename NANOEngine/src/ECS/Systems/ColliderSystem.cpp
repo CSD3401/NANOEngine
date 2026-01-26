@@ -18,21 +18,22 @@ namespace NE::ECS::Systems {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
-		if (col.luid == 0)
+		if (col.luid == 0) {
 			col.luid = Core::LUIDGenerator::Generate("co");
 
-		m_luidRegistry->Register(col.luid, &col, e);
-
-		if (m_componentManager->HasComponent<Component::Renderer>(e)) {
-			if (col.type == Component::Collider::ColliderType::Box) {
-				auto& renderer = m_componentManager->GetComponent<Component::Renderer>(e);
-				if (renderer.model) {
-					Graphics::AABB bounds = renderer.model->meshes[renderer.subMeshIndex].localAABB;
-					auto& boxData = std::get<Component::Collider::BoxColliderData>(col.data);
-					boxData.halfExtents = (bounds.max - bounds.min) * 0.5f;
+			if (m_componentManager->HasComponent<Component::Renderer>(e)) {
+				if (col.type == Component::Collider::ColliderType::Box) {
+					auto& renderer = m_componentManager->GetComponent<Component::Renderer>(e);
+					if (renderer.model) {
+						Graphics::AABB bounds = renderer.model->meshes[renderer.subMeshIndex].localAABB;
+						auto& boxData = std::get<Component::Collider::BoxColliderData>(col.data);
+						boxData.halfExtents = (bounds.max - bounds.min) * 0.5f;
+					}
 				}
 			}
 		}
+
+		m_luidRegistry->Register(col.luid, &col, e);
 
 		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
 	}
