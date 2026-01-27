@@ -3106,6 +3106,35 @@ namespace NE {
 			}
 		}
 
+		void IScript::RegisterEnumVectorFieldInternal(
+			const std::string& name,
+			const std::vector<std::string>& enumOptions,
+			std::function<std::string()> getValue,
+			std::function<bool(const std::string&)> setValue,
+			std::function<size_t()> getSize,
+			std::function<std::string(size_t)> getElement,
+			std::function<bool(size_t, const std::string&)> setElement,
+			std::function<void()> addElement,
+			std::function<void(size_t)> removeElement) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<enum>";
+			entry.memberPtr = nullptr;
+			entry.getValue = std::move(getValue);
+			entry.setValue = std::move(setValue);
+			entry.getSize = std::move(getSize);
+			entry.getElement = std::move(getElement);
+			entry.setElement = std::move(setElement);
+			entry.addElement = std::move(addElement);
+			entry.removeElement = std::move(removeElement);
+			entry.enumOptions = enumOptions;
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+		}
+
 		//=========================================================================
 		// Field Query Interface
 		//=========================================================================
