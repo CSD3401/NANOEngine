@@ -166,6 +166,9 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Panels\AnimatorPanel.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\AnimationClipAsset.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\AnimationControllerAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\PrefabAsset.cpp" />
     <ClCompile Include="src\Layers\LayerDatabase.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
@@ -176,6 +179,7 @@
     <ClCompile Include="src\AssetManagement\Interfaces\MaterialEditor.cpp" />
     <ClCompile Include="src\EditorState.cpp" />
     <ClCompile Include="src\Layers\LayerModal.cpp" />
+    <ClCompile Include="src\Panels\AnimationPanel.cpp" />
     <ClCompile Include="src\Serialization\Serializer.cpp" />
     <ClCompile Include="src\AssetManagement\AssetManager.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\ShaderAsset.cpp" />
@@ -218,6 +222,10 @@
     <ClCompile Include="vendor\include\imgui\widgets\imsearch\imsearch_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AssetManagement\Settings\AnimClipImportSettings.hpp" />
+    <ClInclude Include="src\Panels\AnimatorPanel.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\AnimationClipAsset.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\AnimationControllerAsset.hpp" />
     <ClInclude Include="src\Layers\LayerDatabase.hpp" />
     <ClInclude Include="src\AssetManagement\AssetRecord.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />
@@ -225,6 +233,7 @@
     <ClInclude Include="src\AssetManagement\Interfaces\MaterialEditor.hpp" />
     <ClInclude Include="src\EditorState.hpp" />
     <ClInclude Include="src\Layers\LayerModal.hpp" />
+    <ClInclude Include="src\Panels\AnimationPanel.hpp" />
     <ClInclude Include="src\Serialization\JSONReflection.hpp" />
     <ClInclude Include="src\Serialization\ReflectionConverter.hpp" />
     <ClInclude Include="src\Serialization\Serializer.hpp" />

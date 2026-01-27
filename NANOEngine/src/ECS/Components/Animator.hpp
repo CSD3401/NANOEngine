@@ -1,39 +1,45 @@
-// NANOEngine/src/ECS/Components/Animator.hpp
 #pragma once
+
 #include <string>
-#include <unordered_map>
-#include <vector>
-#include "../../Core/Reflection.hpp"
+#include <memory>
+
+//#include "Animation/AnimatorController.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 
     struct Animator {
-        bool  playOnStart = false;
-        bool  loop = true;
-        float speed = 1.0f;
+        enum UpdateMode : uint8_t {
+            Normal,
+            Fixed,
+            UnscaledTime
+		};
 
-        // Persisted identifier (existing)
-        std::string activeClip;
+        enum CullingMode : uint8_t {
+            AlwaysAnimate,
+            CullUpdateTransforms,
+            CullCompletely
+		};
 
-        // NEW: controller asset path (persisted)
-        std::string controllerPath;
-
-        // Non-persisted runtime
-        bool  playing = false;
-        float time = 0.0f;
-
-        // NEW: runtime parameter overrides (non-persisted)
-        std::unordered_map<std::string, bool>  bools;
-        std::unordered_map<std::string, float> floats;
-        std::unordered_map<std::string, int>   ints;
-        std::vector<std::string>               setTriggers; // push names; system consumes
+        //std::string animControllerUUID;
+        std::string animClipUUID;
+        uint64_t luid;
+		//std::shared_ptr<Animation::AnimatorController> controller;
+		std::shared_ptr<Animation::AnimationClip> clip; // for now
+		bool applyRootMotion = false;
+		bool animatePhysics = false;
+		bool isPlaying = false; // runtime mayne ?
+        UpdateMode updateMode = UpdateMode::Normal;
+		CullingMode cullingMode = CullingMode::AlwaysAnimate;
 
         NE_REFLECT_BEGIN(Animator)
-            NE_REFLECT_FIELD_NAMED(playOnStart, "Play On Start"),
-            NE_REFLECT_FIELD_NAMED(loop, "Loop"),
-            NE_REFLECT_FIELD_NAMED(speed, "Speed"),
-            NE_REFLECT_FIELD_NAMED(activeClip, "Active Clip"),
-            NE_REFLECT_FIELD_NAMED(controllerPath, "Controller")
+            NE_REFLECT_FIELD_HIDDEN(animClipUUID),
+            NE_REFLECT_FIELD_NAMED(applyRootMotion, "Apply Root Motion"),
+            NE_REFLECT_FIELD_NAMED(animatePhysics, "Animate Physics"),
+            NE_REFLECT_FIELD_HIDDEN(updateMode),
+            NE_REFLECT_FIELD_HIDDEN(cullingMode),
+            NE_REFLECT_FIELD_HIDDEN(luid)
             NE_REFLECT_END()
     };
 }

@@ -174,7 +174,7 @@ namespace Editor {
 				// Save all script instance field values to components before serialization
 				auto& coordinator = NE::GetScene().GetECSCoordinator();
 				auto& componentManager = coordinator.GetComponentManager();
-				auto& allEntities = coordinator.GetUsedEntities();
+				//auto& allEntities = coordinator.GetUsedEntities();
 
 				//for (NE::ECS::Entity entity : allEntities) {
 				//	if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {

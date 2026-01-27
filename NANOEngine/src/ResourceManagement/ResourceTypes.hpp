@@ -11,7 +11,9 @@ namespace NE::Resource {
 		Material,
 		Audio,
 		Prefab,
-		Scene
+		Scene,
+		AnimationClip,
+		AnimatorController
 	};
 
 }

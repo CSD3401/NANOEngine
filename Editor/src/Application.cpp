@@ -21,6 +21,7 @@
 #include "Panels/GamePanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
+#include "Panels/AnimationPanel.hpp"
 #include <stb_image/stb_image.h>
 #include <Input/InputManager.hpp>
 #include "EditorScene.hpp"
@@ -137,6 +138,7 @@ namespace Editor {
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
+		editorLayer.AddPanel<AnimationPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
 		Deserialization::JSON::DeserializeProjectSettings();

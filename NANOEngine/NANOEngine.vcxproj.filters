@@ -85,6 +85,8 @@
     <ClCompile Include="src\Scripting\GameObject.cpp" />
     <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
     <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
+    <ClCompile Include="src\Animation\AnimationClip.cpp" />
+    <ClCompile Include="src\Animation\AnimatorController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -250,6 +252,9 @@
     <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
     <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
     <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
+    <ClInclude Include="src\Animation\AnimationClip.hpp" />
+    <ClInclude Include="src\Animation\AnimatorController.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoAnimClipHeader.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

@@ -400,6 +400,9 @@ namespace Editor {
 									EditorScene::BuildRoot();
 									Editor::EditorScene::selectedPrefab = prefabUUID;
 								}
+							} else if (entryPath.extension() == ".nanim") {
+								EditorScene::s_selection.Clear();
+								EditorScene::selectedAsset = entryPath.string();
 							}
 						}
 					}

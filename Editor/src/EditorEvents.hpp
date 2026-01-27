@@ -1,5 +1,6 @@
 #pragma once
-//#include <string>
+
+#include <string>
 #include <vector>
 
 namespace Editor::Events {
@@ -65,7 +66,10 @@ namespace Editor::Events {
 		std::string assetPath;
 	};
 
-	struct SceneChangedEvent {
+	struct SceneChangedEvent {};
 
+	struct AutoKeyRecordEvent {
+		uint32_t componentTypeId; 
+		uint32_t fieldId;
 	};
 }
