@@ -299,6 +299,7 @@ namespace NE {
 			if (m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity)) {
 				auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
 				transform.localRotationEuler = ToEngineVec3(rot);
+				transform.localRotationQuat = Math::Quat::FromEulerDegrees(transform.localRotationEuler);
 				transform.isDirty = true;
 			}
 		}
