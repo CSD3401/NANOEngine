@@ -554,8 +554,6 @@ namespace Editor {
         ImGui::PushID(label);
         ImGui::TextUnformatted(label);
 
-        // preview of tex
-        //ImTextureID img{};
         if (slotTex) {
             //if (auto* gltex = dynamic_cast<NE::Graphics::OpenGL::GLTexture*>(slotTex.get()))
             //    img = (ImTextureID)(uintptr_t)gltex->GLName();
