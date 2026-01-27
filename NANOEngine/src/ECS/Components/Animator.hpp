@@ -33,6 +33,10 @@ namespace NE::ECS::Component {
         UpdateMode updateMode = UpdateMode::Normal;
 		CullingMode cullingMode = CullingMode::AlwaysAnimate;
 
+        float time = 0.0f;
+        float speed = 1.0f;
+        float prevTime = 0.0f;
+
         NE_REFLECT_BEGIN(Animator)
             NE_REFLECT_FIELD_HIDDEN(animClipUUID),
             NE_REFLECT_FIELD_NAMED(applyRootMotion, "Apply Root Motion"),

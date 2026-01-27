@@ -109,7 +109,7 @@ namespace Editor {
             return FNV1a32(full);
         }
 
-        static void InsertOrUpdateKey(NE::Animation::AnimCurveF& c, float time, float value) {
+        void InsertOrUpdateKey(NE::Animation::AnimCurveF& c, float time, float value) {
             constexpr float eps = 1e-4f;
 
             // overwrite if key exists at time
@@ -230,6 +230,24 @@ namespace Editor {
 
             return wrote;
         }
+
+        void DrawTrackRowBackground(ImDrawList* dl, const ImRect& r, int index) {
+            ImU32 bg = (index % 2 == 0) ? IM_COL32(25, 25, 25, 255) : IM_COL32(30, 30, 30, 255);
+            dl->AddRectFilled(r.Min, r.Max, bg);
+        }
+
+        float ComputeMaxKeyTime(const NE::Animation::AnimationClip& clip) {
+            float mx = 0.0f;
+            for (auto const& tr : clip.GetTracks()) {
+                const int chN = ChannelCount(tr.type);
+                for (int ch = 0; ch < chN; ++ch) {
+                    auto const* c = GetCurveByChannel(tr, ch);
+                    for (auto const& k : c->keys)
+                        mx = std::max(mx, k.time);
+                }
+            }
+            return mx;
+        }
     }
 
     AnimationPanel::AnimationPanel() {
@@ -287,8 +305,18 @@ namespace Editor {
             return;
         }
 
-        const float L = m_loadedClip->GetLengthSeconds();
-        if (L <= 0.0f) { m_state.time = 0.0f; return; }
+        float L = m_loadedClip->GetLengthSeconds();
+        if (L <= 0.0f) L = ComputeMaxKeyTime(*m_loadedClip);
+
+        if (m_state.record && t > L) {
+            L = t;
+            m_loadedClip->SetLengthSeconds(L);
+        }
+
+        if (L <= 0.0f) {
+            m_state.time = std::max(0.0f, t);
+            return;
+        }
 
         if (m_loadedClip->IsLooping()) {
             t = std::fmod(t, L);
@@ -410,7 +438,10 @@ namespace Editor {
         ImGui::BeginDisabled(!hasClip);
 
         // Transport row
-        ImGui::Checkbox("Preview", &m_state.preview);
+        if (ImGui::Checkbox("Preview", &m_state.preview)) {
+            auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
+			animator.isPlaying = m_state.preview;
+		}
         ImGui::SameLine();
         ImGui::Checkbox("Record", &m_state.record);
 
@@ -601,7 +632,96 @@ namespace Editor {
                 ImGui::TextDisabled("(%s)", ValueTypeName(tr.type));
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::TextDisabled("...row drawing...");
+                // Establish row rect in screen space
+                ImVec2 cellPos = ImGui::GetCursorScreenPos();
+                ImVec2 cellAvail = ImGui::GetContentRegionAvail();
+                ImRect rowRect(cellPos, ImVec2(cellPos.x + cellAvail.x, cellPos.y + rowH));
+
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                DrawTrackRowBackground(dl, rowRect, ti);
+
+                DrawTrackKeys(dl, tr, ti, rowRect, pxPerSec, t0);
+
+                // Draw playhead overlay line
+                float phx = rowRect.Min.x + (m_state.time - t0) * pxPerSec;
+                dl->AddLine(ImVec2(phx, rowRect.Min.y), ImVec2(phx, rowRect.Max.y), IM_COL32(255, 120, 60, 140), 1.0f);
+
+                // Hit region for interactions (must be after drawing so it sits on top)
+                ImGui::SetCursorScreenPos(cellPos);
+                ImGui::InvisibleButton(("RowHit##" + std::to_string(ti)).c_str(), ImVec2(cellAvail.x, rowH));
+
+                const bool rowHovered = ImGui::IsItemHovered();
+
+                if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    ImVec2 mouse = io.MousePos;
+
+                    // Try pick a key
+                    KeyRef picked = PickKeyAt(tr, ti, rowRect, pxPerSec, t0, mouse);
+
+                    if (picked.trackIndex >= 0) {
+                        m_state.selectedKey = picked;
+                        m_state.selectedTrack = ti;
+
+                        // start dragging key
+                        auto* c = GetCurveByChannel(tr, picked.channel);
+                        m_state.selectedKeyOriginalTime = c->keys[picked.keyIndex].time;
+                        m_state.draggingKey = true;
+                    } else {
+                        // empty click => select track + scrub
+                        m_state.selectedTrack = ti;
+                        float t = t0 + (mouse.x - rowRect.Min.x) / pxPerSec;
+                        SetTime(t);
+                        m_state.selectedKey = {};
+                    }
+                }
+
+                // Dragging key retime
+                if (m_state.draggingKey &&
+                    m_state.selectedKey.trackIndex == ti &&
+                    ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                    auto& sTr = tracks[m_state.selectedKey.trackIndex];
+                    auto* c = GetCurveByChannel(sTr, m_state.selectedKey.channel);
+
+                    if (m_state.selectedKey.keyIndex >= 0 && m_state.selectedKey.keyIndex < (int)c->keys.size()) {
+                        float t = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec;
+
+                        // clamp to clip length
+                        float Lclip = m_loadedClip->GetLengthSeconds();
+                        t = Clamp(t, 0.0f, std::max(0.0f, Lclip));
+
+                        c->keys[m_state.selectedKey.keyIndex].time = t;
+
+                        std::sort(c->keys.begin(), c->keys.end(),
+                            [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
+
+                        // (v1) selection index may now refer to a different key after sort — acceptable for now.
+                    }
+                }
+                if (m_state.draggingKey && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+                    m_state.draggingKey = false;
+                }
+
+                // Right click context menu for row
+                if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                    ImGui::OpenPopup(("KeyMenu##" + std::to_string(ti)).c_str());
+                }
+
+                if (ImGui::BeginPopup(("KeyMenu##" + std::to_string(ti)).c_str())) {
+                    if (ImGui::MenuItem("Add key at playhead (all channels)")) {
+                        const int chN = ChannelCount(tr.type);
+                        for (int ch = 0; ch < chN; ++ch) {
+                            auto* c = GetCurveByChannel(tr, ch);
+                            InsertOrUpdateKey(*c, m_state.time, 0.0f);
+                        }
+                    }
+                    if (ImGui::MenuItem("Delete track")) {
+                        tracks.erase(tracks.begin() + ti);
+                        ImGui::EndPopup();
+                        ImGui::EndTable();
+                        return;
+                    }
+                    ImGui::EndPopup();
+                }
             }
 
             ImGui::EndTable();
@@ -617,18 +737,23 @@ namespace Editor {
 
         auto& tr = tracks[trackIndex];
         const float time = m_state.time;
-        
-        if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType()) {
-            return RecordTrackFromComponent<NE::ECS::Component::Transform>(m_selectedEntity, tr, time, "Transform");
-        }
-        if (tr.componentTypeId == NE::ECS::Query::GetRendererComponentType()) {
-            return RecordTrackFromComponent<NE::ECS::Component::Renderer>(m_selectedEntity, tr, time, "Renderer");
-        }
-        if (tr.componentTypeId == NE::ECS::Query::GetLightComponentType()) {
-            return RecordTrackFromComponent<NE::ECS::Component::Light>(m_selectedEntity, tr, time, "Light");
+
+        bool ok = false;
+        if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
+            ok = RecordTrackFromComponent<NE::ECS::Component::Transform>(m_selectedEntity, tr, time, "Transform");
+        else if (tr.componentTypeId == NE::ECS::Query::GetRendererComponentType())
+            ok = RecordTrackFromComponent<NE::ECS::Component::Renderer>(m_selectedEntity, tr, time, "Renderer");
+        else if (tr.componentTypeId == NE::ECS::Query::GetLightComponentType())
+            ok = RecordTrackFromComponent<NE::ECS::Component::Light>(m_selectedEntity, tr, time, "Light");
+
+        if (ok) {
+            float L = m_loadedClip->GetLengthSeconds();
+            if (time > L) {
+                m_loadedClip->SetLengthSeconds(time);
+            }
         }
 
-        return false;
+        return ok;
     }
 
     bool AnimationPanel::AutoKeyIfRecording(uint32_t componentTypeId, uint32_t fieldId) {
@@ -645,7 +770,44 @@ namespace Editor {
 
             keyedAny |= RecordKeyForTrack(i);
         }
+
+        if (keyedAny) {
+            float L = m_loadedClip->GetLengthSeconds();
+            if (m_state.time > L) m_loadedClip->SetLengthSeconds(m_state.time);
+        }
         return keyedAny;
+    }
+
+    void AnimationPanel::DrawTrackKeys(
+        ImDrawList* dl,
+        NE::Animation::AnimTrack& tr,
+        int ti,
+        const ImRect& rowRect,
+        float pxPerSec,
+        float t0
+    ) {
+        const float y = (rowRect.Min.y + rowRect.Max.y) * 0.5f;
+        const float r = 5.0f;
+
+        const int channels = ChannelCount(tr.type);
+
+        for (int ch = 0; ch < channels; ++ch) {
+            auto* c = GetCurveByChannel(tr, ch);
+            for (int ki = 0; ki < (int)c->keys.size(); ++ki) {
+                const float kt = c->keys[ki].time;
+                const float x = rowRect.Min.x + (kt - t0) * pxPerSec;
+
+                if (x < rowRect.Min.x - 10.0f || x > rowRect.Max.x + 10.0f) continue;
+
+                const bool selected =
+                    (m_state.selectedKey.trackIndex == ti &&
+                        m_state.selectedKey.channel == ch &&
+                        m_state.selectedKey.keyIndex == ki);
+
+                ImU32 col = selected ? IM_COL32(255, 220, 120, 255) : IM_COL32(220, 220, 220, 255);
+                DrawDiamond(dl, ImVec2(x, y), r, col);
+            }
+        }
     }
 
     void AnimationPanel::Menu_Transform(uint32_t e) {

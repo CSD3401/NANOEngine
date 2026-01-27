@@ -85,6 +85,10 @@ namespace NE::Animation {
 		return lengthSeconds;
 	}
 
+	void AnimationClip::SetLengthSeconds(float len) {
+		lengthSeconds = len;
+	}
+
 	bool AnimationClip::IsLooping() const {
 		return looping;
 	}

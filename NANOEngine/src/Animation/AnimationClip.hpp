@@ -79,6 +79,7 @@ namespace NE::Animation {
 
         const std::string& GetName() const;
         float GetLengthSeconds() const;
+		void SetLengthSeconds(float len);
         bool IsLooping() const;
 
         std::vector<AnimTrack>& GetTracksMutable();

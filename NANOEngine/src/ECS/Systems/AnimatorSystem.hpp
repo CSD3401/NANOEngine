@@ -10,6 +10,10 @@ namespace NE::Core {
     class LUIDRegistry;
 }
 
+namespace NE::Animation {
+    class AnimationClip;
+}
+
 namespace NE::ECS::Systems {
 
     class AnimatorSystem final : public System {
@@ -22,6 +26,8 @@ namespace NE::ECS::Systems {
         void Init() override;
         void Update(double deltaTime) override;
         void Exit() override;
+
+        void ApplyClipAtTime(Entity e, const Animation::AnimationClip& clip, float t);
 
     private:
         ComponentManager* m_componentManager;

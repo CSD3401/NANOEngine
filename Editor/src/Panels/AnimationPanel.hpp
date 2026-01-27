@@ -85,6 +85,8 @@ namespace Editor {
 
         bool AutoKeyIfRecording(uint32_t componentTypeId, uint32_t fieldId);
 
+        void DrawTrackKeys(ImDrawList* dl, NE::Animation::AnimTrack& tr, int ti, const ImRect& rowRect, float pxPerSec, float t0);
+
         void SetTime(float t);
         void StepToPrevKey();
         void StepToNextKey();
