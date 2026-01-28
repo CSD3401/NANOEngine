@@ -641,6 +641,10 @@ namespace Scripting {
         template<typename EnumType>
         void RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions);
 
+        // Enum vector field registration (vector of enums with dropdown support)
+        template<typename EnumType>
+        void RegisterEnumVectorField(const std::string& name, std::vector<EnumType>* memberPtr, const std::vector<std::string>& enumOptions);
+
         // LayerMask field registration (multi-select layer picker in editor)
         void RegisterLayerMaskField(const std::string& name, LayerMask* memberPtr);
 
@@ -770,6 +774,18 @@ namespace Scripting {
         void SetFieldLayerMaskCallbacks(const std::string& name,
             std::function<uint32_t()> getLayerMaskValue,
             std::function<void(uint32_t)> setLayerMaskValue);
+
+        // Helper for enum vector field registration
+        void RegisterEnumVectorFieldInternal(
+            const std::string& name,
+            const std::vector<std::string>& enumOptions,
+            std::function<std::string()> getValue,
+            std::function<bool(const std::string&)> setValue,
+            std::function<size_t()> getSize,
+            std::function<std::string(size_t)> getElement,
+            std::function<bool(size_t, const std::string&)> setElement,
+            std::function<void()> addElement,
+            std::function<void(size_t)> removeElement);
 
      Entity m_entity = INVALID_ENTITY;
         bool m_enabled = true;
@@ -1529,6 +1545,12 @@ namespace NE::Scripting {
      */
     template<typename EnumType>
     inline void IScript::RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions) {
+        // Store enum options FIRST (single copy)
+        SetFieldEnumOptions(name, enumOptions);
+
+        // Get the option count once for validation
+        const size_t optionCount = enumOptions.size();
+
         RegisterFieldInternal(
             name,
             "enum",
@@ -1537,11 +1559,11 @@ namespace NE::Scripting {
             [memberPtr]() -> std::string {
                 return std::to_string(static_cast<int>(*memberPtr));
             },
-            // setValue: Set enum from string index
-            [memberPtr, enumOptions](const std::string& value) -> bool {
+            // setValue: Set enum from string index (capture count, not vector)
+            [memberPtr, optionCount](const std::string& value) -> bool {
                 try {
                     int idx = std::stoi(value);
-                    if (idx >= 0 && idx < static_cast<int>(enumOptions.size())) {
+                    if (idx >= 0 && idx < static_cast<int>(optionCount)) {
                         *memberPtr = static_cast<EnumType>(idx);
                         return true;
                     }
@@ -1552,14 +1574,96 @@ namespace NE::Scripting {
             }
         );
 
-        // Store enum options and accessor functions using helper methods
-        SetFieldEnumOptions(name, enumOptions);
+        // Store accessor functions
         SetFieldEnumCallbacks(name,
             [memberPtr]() -> int {
                 return static_cast<int>(*memberPtr);
             },
             [memberPtr](int value) {
                 *memberPtr = static_cast<EnumType>(value);
+            }
+        );
+    }
+
+    /**
+     * Register a vector of enum field with dropdown support in editor
+     * @param name Field name
+     * @param memberPtr Pointer to vector of enum member variable
+     * @param enumOptions List of enum value names (in order)
+     */
+    template<typename EnumType>
+    inline void IScript::RegisterEnumVectorField(const std::string& name, std::vector<EnumType>* memberPtr, const std::vector<std::string>& enumOptions) {
+        // Get option count once for validation (avoids capturing vector by value)
+        const size_t optionCount = enumOptions.size();
+
+        RegisterEnumVectorFieldInternal(
+            name,
+            enumOptions,
+            // getValue: Serialize entire vector as "size idx0 idx1 idx2 ..."
+            [memberPtr]() -> std::string {
+                std::ostringstream oss;
+                oss << memberPtr->size();
+                for (const auto& val : *memberPtr) {
+                    oss << " " << static_cast<int>(val);
+                }
+                return oss.str();
+            },
+            // setValue: Deserialize entire vector from "size idx0 idx1 idx2 ..."
+            [memberPtr, optionCount](const std::string& value) -> bool {
+                try {
+                    std::istringstream iss(value);
+                    size_t size;
+                    iss >> size;
+
+                    memberPtr->clear();
+                    memberPtr->reserve(size);
+
+                    for (size_t i = 0; i < size; ++i) {
+                        int idx;
+                        iss >> idx;
+                        if (idx >= 0 && idx < static_cast<int>(optionCount)) {
+                            memberPtr->push_back(static_cast<EnumType>(idx));
+                        } else {
+                            memberPtr->push_back(static_cast<EnumType>(0));
+                        }
+                    }
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            },
+            // getSize
+            [memberPtr]() -> size_t {
+                return memberPtr->size();
+            },
+            // getElement
+            [memberPtr](size_t index) -> std::string {
+                if (index >= memberPtr->size()) return "0";
+                return std::to_string(static_cast<int>((*memberPtr)[index]));
+            },
+            // setElement
+            [memberPtr, optionCount](size_t index, const std::string& value) -> bool {
+                if (index >= memberPtr->size()) return false;
+                try {
+                    int idx = std::stoi(value);
+                    if (idx >= 0 && idx < static_cast<int>(optionCount)) {
+                        (*memberPtr)[index] = static_cast<EnumType>(idx);
+                        return true;
+                    }
+                    return false;
+                } catch (...) {
+                    return false;
+                }
+            },
+            // addElement
+            [memberPtr]() -> void {
+                memberPtr->push_back(static_cast<EnumType>(0));
+            },
+            // removeElement
+            [memberPtr](size_t index) -> void {
+                if (index < memberPtr->size()) {
+                    memberPtr->erase(memberPtr->begin() + index);
+                }
             }
         );
     }

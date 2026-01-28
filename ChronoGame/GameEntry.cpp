@@ -18,6 +18,7 @@
 #include "Scripts/Puzzle_TwoStateRotater.hpp"
 #include "Scripts/Puzzle_OneWaySwitch.hpp"
 #include "Scripts/Puzzle_Sinkhole.hpp"
+#include "Scripts/Example_EnumField.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -66,6 +67,9 @@ extern "C" {
             });
         registrar->RegisterScript("Puzzle_Sinkhole", []() -> NE::Scripting::IScript* {
             return new Puzzle_Sinkhole();
+            });
+        registrar->RegisterScript("Example_EnumField", []() -> NE::Scripting::IScript* {
+            return new Example_EnumField();
             });
     }
 }
