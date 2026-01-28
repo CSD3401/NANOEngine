@@ -29,6 +29,7 @@
     <ClInclude Include="Scripts\Pickable.hpp" />
     <ClInclude Include="Scripts\RenderSettingsDemo.hpp" />
     <ClInclude Include="Scripts\GameObjectExamples.hpp" />
+    <ClInclude Include="Scripts\Example_EnumField.hpp" />
     <ClInclude Include="Scripts\Example_Template.hpp" />
     <ClInclude Include="Scripts\Grabbable.hpp" />
     <ClInclude Include="Scripts\Grabber.hpp" />

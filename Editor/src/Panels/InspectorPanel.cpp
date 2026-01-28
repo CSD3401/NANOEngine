@@ -2073,6 +2073,41 @@ namespace Editor {
 											elemChanged = true;
 										}
 									}
+									else if (elementType == "enum") {
+										// Enum dropdown in array
+										auto enumOptions = scriptInstance->GetEnumOptions(fname);
+										if (!enumOptions.empty()) {
+											int currentValue = 0;
+											if (!elemValue.empty()) {
+												try {
+													currentValue = std::stoi(elemValue);
+												} catch (...) {
+													currentValue = 0;
+												}
+											}
+
+											// Clamp to valid range
+											if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
+												currentValue = 0;
+											}
+
+											if (ImGui::BeginCombo("##elem", enumOptions[currentValue].c_str())) {
+												for (int j = 0; j < static_cast<int>(enumOptions.size()); ++j) {
+													bool isSelected = (currentValue == j);
+													if (ImGui::Selectable(enumOptions[j].c_str(), isSelected)) {
+														scriptInstance->SetArrayElement(fname, i, std::to_string(j));
+														elemChanged = true;
+													}
+													if (isSelected) {
+														ImGui::SetItemDefaultFocus();
+													}
+												}
+												ImGui::EndCombo();
+											}
+										} else {
+											ImGui::Text("[%zu]: (enum - no options)", i);
+										}
+									}
 									else {
 										// Unknown type fallback - treat as string
 										char buf[256];
