@@ -9,7 +9,6 @@
 #include <concepts>
 
 #include <Events/EventBus.hpp>
-//#include <EditorInterface/ECSExports.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <Math/Vec4.hpp>
 
@@ -112,7 +111,6 @@ namespace Editor {
         void InsertOrUpdateKey(NE::Animation::AnimCurveF& c, float time, float value) {
             constexpr float eps = 1e-4f;
 
-            // overwrite if key exists at time
             for (auto& k : c.keys) {
                 if (std::fabs(k.time - time) <= eps) {
                     k.time = time;
@@ -248,14 +246,40 @@ namespace Editor {
             }
             return mx;
         }
+
+        struct FieldDisplay {
+            std::string component;
+            std::string field;
+        };
+
+        std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::string>> m_fieldNameByCompAndId;
+
+        template <typename CompT>
+        void CacheFieldsForComponent(uint32_t compTypeId, const char* compName) {
+            auto& map = m_fieldNameByCompAndId[compTypeId];
+            if (!map.empty()) return;
+
+            CompT dummy{};
+            NE::Core::ForEachFieldView(dummy, [&](auto&& desc, auto&&) {
+                const uint32_t fid = MakeFieldId(compName, desc.name);
+                map[fid] = std::string(desc.name);
+                });
+        }
+
     }
 
     AnimationPanel::AnimationPanel() {
         compEntries = {
-            { NE::ECS::Query::GetTransformComponentType(),  "Transform",    &AnimationPanel::Menu_Transform },
-            { NE::ECS::Query::GetRendererComponentType(),   "Renderer",     &AnimationPanel::Menu_Renderer  },
-            { NE::ECS::Query::GetLightComponentType(),      "Light",        &AnimationPanel::Menu_Light     }
+            { NE::ECS::Query::GetTransformComponentType(),  "EntityMeta",   &AnimationPanel::MenuEntityMeta },
+            { NE::ECS::Query::GetTransformComponentType(),  "Transform",    &AnimationPanel::MenuTransform  },
+            { NE::ECS::Query::GetRendererComponentType(),   "Renderer",     &AnimationPanel::MenuRenderer   },
+            { NE::ECS::Query::GetLightComponentType(),      "Light",        &AnimationPanel::MenuLight      }
 		};
+
+        CacheFieldsForComponent<NE::ECS::Component::EntityMeta>(NE::ECS::Query::GetEntityMetaComponentType(), "EntityMeta");
+        CacheFieldsForComponent<NE::ECS::Component::Transform>(NE::ECS::Query::GetTransformComponentType(), "Transform");
+        CacheFieldsForComponent<NE::ECS::Component::Renderer>(NE::ECS::Query::GetRendererComponentType(), "Renderer");
+        CacheFieldsForComponent<NE::ECS::Component::Light>(NE::ECS::Query::GetLightComponentType(), "Light");
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::AutoKeyRecordEvent>(
             NANOEngine::Events::EventDomain::Editor,
@@ -286,7 +310,7 @@ namespace Editor {
             const bool hasClip = (m_loadedClip != nullptr);
             if (!hasClip) m_state.playing = false;
 
-            ImGui::BeginChild("AnimLeft", ImVec2(320.0f, 0.0f), true);
+            ImGui::BeginChild("AnimLeft", ImVec2(300.0f, 0.0f), true);
             DrawLeftPanel(hasClip);
             ImGui::EndChild();
 
@@ -299,6 +323,30 @@ namespace Editor {
         ImGui::End();
     }
 
+    std::string AnimationPanel::GetTrackDisplayName(const NE::Animation::AnimTrack& tr) const {
+        const char* compName = "?";
+        if (tr.componentTypeId == NE::ECS::Query::GetEntityMetaComponentType()) {
+            compName = "EntityMeta";
+        } else if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType()) {
+            compName = "Transform";
+        } else if (tr.componentTypeId == NE::ECS::Query::GetRendererComponentType()) {
+            compName = "Renderer";
+        } else if (tr.componentTypeId == NE::ECS::Query::GetLightComponentType()) {
+            compName = "Light";
+        }
+
+        auto itComp = m_fieldNameByCompAndId.find(tr.componentTypeId);
+        if (itComp != m_fieldNameByCompAndId.end()) {
+            auto itField = itComp->second.find(tr.fieldId);
+            if (itField != itComp->second.end()) {
+                return std::string(compName) + "." + itField->second;
+            }
+        }
+
+        return std::string(compName) + ".(unknown)";
+    }
+
+
     void AnimationPanel::SetTime(float t) {
         if (!m_loadedClip) {
             m_state.time = std::max(0.0f, t);
@@ -308,9 +356,16 @@ namespace Editor {
         float L = m_loadedClip->GetLengthSeconds();
         if (L <= 0.0f) L = ComputeMaxKeyTime(*m_loadedClip);
 
-        if (m_state.record && t > L) {
-            L = t;
-            m_loadedClip->SetLengthSeconds(L);
+        if (m_state.record) {
+            if (t < 0.0f) t = 0.0f;
+
+            if (t > L) {
+                L = t;
+                m_loadedClip->SetLengthSeconds(L);
+            }
+
+            m_state.time = t;
+            return;
         }
 
         if (L <= 0.0f) {
@@ -429,12 +484,6 @@ namespace Editor {
     }
 
     void AnimationPanel::DrawLeftPanel(bool hasClip) {
-        if (!hasClip) {
-            ImGui::TextDisabled("No clip loaded.");
-            ImGui::Spacing();
-        }
-
-        // Left panel should be disabled when no clip
         ImGui::BeginDisabled(!hasClip);
 
         // Transport row
@@ -453,8 +502,12 @@ namespace Editor {
         ImGui::EndDisabled();
         ImGui::SameLine();
         if (ImGui::Button("Save")) {
-            //auto rec = Assets::AssetManager::GetInstance().GetRecordBySource(m_loadedClipPath);
-			//dynamic_cast<Assets::AnimationClipAsset*>(rec->asset.get())->SaveImportSettings(m_loadedClipPath);
+            auto rec = Assets::AssetManager::GetInstance().GetRecordBySource(m_loadedClipPath);
+            if (rec) {
+                if (auto* clipAsset = dynamic_cast<Assets::AnimationClipAsset*>(rec->asset.get())) {
+                    clipAsset->SaveAnimationClip(m_loadedClipPath, *m_loadedClip);
+                }
+            }
         }
 
         auto smallBtn = [&](const char* label) { return ImGui::Button(label, ImVec2(36, 0)); };
@@ -514,7 +567,6 @@ namespace Editor {
         ImGui::Separator();
         ImGui::Spacing();
 
-        // Selected key info (can keep even if clip exists)
         ImGui::TextUnformatted("Selected Key");
         if (m_state.selectedKey.trackIndex >= 0) {
             ImGui::Text("Track: %d  Ch: %d  Key: %d",
@@ -529,25 +581,39 @@ namespace Editor {
     }
 
     void AnimationPanel::DrawRightDopesheet(bool hasClip) {
+        if (!hasClip) {
+            float windowWidth = ImGui::GetWindowSize().x;
+            float textWidth = ImGui::CalcTextSize("No clip loaded :(").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+            float centeredPosX = (windowWidth - textWidth) * 0.5f;
+
+            float windowHeight = ImGui::GetWindowSize().y;
+            float textHeight = ImGui::CalcTextSize("No clip loaded :(").y + ImGui::GetStyle().FramePadding.y * 2.0f;
+            float centeredPosY = (windowHeight - textHeight) * 0.5f;
+
+            ImGui::SetCursorPos(ImVec2(centeredPosX, centeredPosY));
+            ImGui::TextDisabled("No clip loaded :(");
+            m_state.playing = false;
+            return;
+        }
+
         ImGuiIO& io = ImGui::GetIO();
 
-        // Playback only if clip exists
-        if (hasClip && m_state.playing) {
+        if (m_state.playing) {
             SetTime(m_state.time + io.DeltaTime * m_state.playbackSpeed);
             if (!m_loadedClip->IsLooping() && m_state.time >= m_loadedClip->GetLengthSeconds())
                 m_state.playing = false;
-        } else if (!hasClip) {
-            m_state.playing = false;
         }
+        //else if (!hasClip) {
+        //    m_state.playing = false;
+        //}
 
-        if (hasClip && m_state.record && m_state.selectedTrack >= 0) {
+        if (m_state.record && m_state.selectedTrack >= 0) {
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
                 ImGui::IsKeyPressed(ImGuiKey_K)) {
                 RecordKeyForTrack(m_state.selectedTrack);
             }
         }
 
-        // Zoom (UI-only; allowed always)
         if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
             if (io.KeyCtrl && io.MouseWheel != 0.0f) {
                 float oldPx = m_state.zoom;
@@ -584,14 +650,12 @@ namespace Editor {
 
             ImGui::InvisibleButton("RulerScrub", rulerSize);
 
-            // Scrub: if clip exists, clamp/wrap; else just move playhead visually
             if (ImGui::IsItemActive() || (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))) {
                 float mx = io.MousePos.x;
                 float t = t0 + (mx - rulerRect.Min.x) / pxPerSec;
                 SetTime(t);
             }
 
-            // Pan (always)
             if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
                 if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f)) {
                     m_state.viewStart -= io.MouseDelta.x / pxPerSec;
@@ -601,17 +665,6 @@ namespace Editor {
                     m_state.viewStart -= io.MouseWheel * (120.0f / pxPerSec);
                     m_state.viewStart = std::max(0.0f, m_state.viewStart);
                 }
-            }
-
-            // If no clip, show empty state and exit after ruler
-            if (!hasClip) {
-                ImGui::TableNextRow(ImGuiTableRowFlags_None, 26.0f);
-                ImGui::TableSetColumnIndex(0);
-                ImGui::TextDisabled("-");
-                ImGui::TableSetColumnIndex(1);
-                ImGui::TextDisabled("No clip loaded.");
-                ImGui::EndTable();
-                return;
             }
 
             // Track rows
@@ -624,15 +677,21 @@ namespace Editor {
                 ImGui::TableNextRow(ImGuiTableRowFlags_None, rowH);
 
                 ImGui::TableSetColumnIndex(0);
-                std::string label = tr.relativePath + "##track_" + std::to_string(ti);
+                //ImGui::TextUnformatted(tr.relativePath.c_str());
+                //ImGui::SameLine();
+                //ImGui::TextDisabled("%s", display.c_str());
+
+                std::string display = GetTrackDisplayName(tr);
+                std::string label = display + "##track_" + std::to_string(ti);
+
                 if (ImGui::Selectable(label.c_str(), m_state.selectedTrack == ti, ImGuiSelectableFlags_SpanAllColumns)) {
                     m_state.selectedTrack = ti;
                 }
-                ImGui::SameLine();
-                ImGui::TextDisabled("(%s)", ValueTypeName(tr.type));
+                //ImGui::SameLine();
+                //ImGui::TextDisabled("(%s)", ValueTypeName(tr.type));
 
                 ImGui::TableSetColumnIndex(1);
-                // Establish row rect in screen space
+
                 ImVec2 cellPos = ImGui::GetCursorScreenPos();
                 ImVec2 cellAvail = ImGui::GetContentRegionAvail();
                 ImRect rowRect(cellPos, ImVec2(cellPos.x + cellAvail.x, cellPos.y + rowH));
@@ -642,11 +701,9 @@ namespace Editor {
 
                 DrawTrackKeys(dl, tr, ti, rowRect, pxPerSec, t0);
 
-                // Draw playhead overlay line
                 float phx = rowRect.Min.x + (m_state.time - t0) * pxPerSec;
                 dl->AddLine(ImVec2(phx, rowRect.Min.y), ImVec2(phx, rowRect.Max.y), IM_COL32(255, 120, 60, 140), 1.0f);
 
-                // Hit region for interactions (must be after drawing so it sits on top)
                 ImGui::SetCursorScreenPos(cellPos);
                 ImGui::InvisibleButton(("RowHit##" + std::to_string(ti)).c_str(), ImVec2(cellAvail.x, rowH));
 
@@ -655,19 +712,16 @@ namespace Editor {
                 if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     ImVec2 mouse = io.MousePos;
 
-                    // Try pick a key
                     KeyRef picked = PickKeyAt(tr, ti, rowRect, pxPerSec, t0, mouse);
 
                     if (picked.trackIndex >= 0) {
                         m_state.selectedKey = picked;
                         m_state.selectedTrack = ti;
 
-                        // start dragging key
                         auto* c = GetCurveByChannel(tr, picked.channel);
                         m_state.selectedKeyOriginalTime = c->keys[picked.keyIndex].time;
                         m_state.draggingKey = true;
                     } else {
-                        // empty click => select track + scrub
                         m_state.selectedTrack = ti;
                         float t = t0 + (mouse.x - rowRect.Min.x) / pxPerSec;
                         SetTime(t);
@@ -675,7 +729,6 @@ namespace Editor {
                     }
                 }
 
-                // Dragging key retime
                 if (m_state.draggingKey &&
                     m_state.selectedKey.trackIndex == ti &&
                     ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -684,24 +737,26 @@ namespace Editor {
 
                     if (m_state.selectedKey.keyIndex >= 0 && m_state.selectedKey.keyIndex < (int)c->keys.size()) {
                         float t = t0 + (io.MousePos.x - rowRect.Min.x) / pxPerSec;
+                        if (t < 0.0f) t = 0.0f;
 
-                        // clamp to clip length
-                        float Lclip = m_loadedClip->GetLengthSeconds();
-                        t = Clamp(t, 0.0f, std::max(0.0f, Lclip));
+                        if (m_state.record) {
+                            float Lclip = m_loadedClip->GetLengthSeconds();
+                            if (t > Lclip) m_loadedClip->SetLengthSeconds(t);
+                        } else {
+                            float Lclip = m_loadedClip->GetLengthSeconds();
+                            t = Clamp(t, 0.0f, std::max(0.0f, Lclip));
+                        }
 
                         c->keys[m_state.selectedKey.keyIndex].time = t;
 
                         std::sort(c->keys.begin(), c->keys.end(),
                             [](const NE::Animation::AnimKeyF& a, const NE::Animation::AnimKeyF& b) { return a.time < b.time; });
-
-                        // (v1) selection index may now refer to a different key after sort — acceptable for now.
                     }
                 }
                 if (m_state.draggingKey && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
                     m_state.draggingKey = false;
                 }
 
-                // Right click context menu for row
                 if (rowHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
                     ImGui::OpenPopup(("KeyMenu##" + std::to_string(ti)).c_str());
                 }
@@ -739,7 +794,9 @@ namespace Editor {
         const float time = m_state.time;
 
         bool ok = false;
-        if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
+        if (tr.componentTypeId == NE::ECS::Query::GetEntityMetaComponentType())
+            ok = RecordTrackFromComponent<NE::ECS::Component::EntityMeta>(m_selectedEntity, tr, time, "EntityMeta");
+        else if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
             ok = RecordTrackFromComponent<NE::ECS::Component::Transform>(m_selectedEntity, tr, time, "Transform");
         else if (tr.componentTypeId == NE::ECS::Query::GetRendererComponentType())
             ok = RecordTrackFromComponent<NE::ECS::Component::Renderer>(m_selectedEntity, tr, time, "Renderer");
@@ -810,17 +867,23 @@ namespace Editor {
         }
     }
 
-    void AnimationPanel::Menu_Transform(uint32_t e) {
+
+    void AnimationPanel::MenuEntityMeta(uint32_t e) {
+        DrawAnimFieldMenuForComponent<NE::ECS::Component::EntityMeta>(
+            e, NE::ECS::Query::GetEntityMetaComponentType(), "EntityMeta");
+    }
+
+    void AnimationPanel::MenuTransform(uint32_t e) {
         DrawAnimFieldMenuForComponent<NE::ECS::Component::Transform>(
             e, NE::ECS::Query::GetTransformComponentType(), "Transform");
     }
 
-    void AnimationPanel::Menu_Renderer(uint32_t e) {
+    void AnimationPanel::MenuRenderer(uint32_t e) {
         DrawAnimFieldMenuForComponent<NE::ECS::Component::Renderer>(
             e, NE::ECS::Query::GetRendererComponentType(), "Renderer");
     }
 
-    void AnimationPanel::Menu_Light(uint32_t e) {
+    void AnimationPanel::MenuLight(uint32_t e) {
         DrawAnimFieldMenuForComponent<NE::ECS::Component::Light>(
             e, NE::ECS::Query::GetLightComponentType(), "Light");
     }

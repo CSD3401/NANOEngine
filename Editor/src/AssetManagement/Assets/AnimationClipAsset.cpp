@@ -9,7 +9,9 @@
 #include <rapidjson/istreamwrapper.h>
 
 #include <Serialisation/BinaryReflection.hpp>
+#include <ResourceManagement/ResourcePaths.hpp>
 
+#include "../AssetManager.hpp"
 #include "../Settings/AnimClipImportSettings.hpp"
 #include "../../Serialization/JSONReflection.hpp"
 
@@ -30,7 +32,6 @@ namespace Editor::Assets {
 
         NE::Animation::AnimClipBlob blob;
 
-        // If wrapped: { "clip": { ... } }
         if (d.HasMember("clip") && d["clip"].IsObject()) {
             Editor::Deserialization::FromJSON(d["clip"], blob);
         } else {
@@ -104,27 +105,37 @@ namespace Editor::Assets {
         return true;
     }
 
-    bool AnimationClipAsset::SaveAnimationClip(const std::string& outPath) const {
-        std::filesystem::path p = outPath;
-
-        AnimClipImportSettings settings{};
-
+    bool AnimationClipAsset::SaveAnimationClip(const std::string& sourcePath,
+        const NE::Animation::AnimationClip& clip) const {
         rapidjson::Document d;
         d.SetObject();
         auto& a = d.GetAllocator();
 
         d.AddMember("format", "NANO_ANIM_IMPORT", a);
         d.AddMember("version", 1, a);
-        d.AddMember("clip", Editor::Serialization::ToJSON(settings, a), a);
 
-        std::ofstream ofs(p);
+        AnimClipImportSettings src{};
+        src.name = clip.GetName();
+        src.lengthSeconds = clip.GetLengthSeconds();
+        src.looping = clip.IsLooping();
+        src.tracks = clip.GetTracks();
+
+        d.AddMember("clip", Editor::Serialization::ToJSON(src, a), a);
+
+        std::ofstream ofs(sourcePath);
         if (!ofs.is_open()) return false;
 
         rapidjson::OStreamWrapper osw(ofs);
         rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
         writer.SetIndent(' ', 2);
         d.Accept(writer);
+
+        auto record = AssetManager::GetInstance().GetRecordBySource(sourcePath);
+        auto path = NE::Resource::ComputeArtifactPathFromUUID(record->id, NE::Resource::ResourceType::AnimationClip);
+		Cook(sourcePath, path);
+
         return true;
     }
+
 }
 

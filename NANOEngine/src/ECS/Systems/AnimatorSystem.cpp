@@ -13,6 +13,7 @@
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Components/Light.hpp"
 
+#include "ResourceManagement/ResourceManager.hpp"
 #include "Animation/AnimationClip.hpp"
 
 namespace NE::ECS::Systems {
@@ -39,7 +40,6 @@ namespace NE::ECS::Systems {
             if (t <= keys.front().time) return keys.front().value;
             if (t >= keys.back().time)  return keys.back().value;
 
-            // find segment (simple linear scan; you can binary search later)
             for (size_t i = 0; i + 1 < keys.size(); ++i) {
                 const auto& a = keys[i];
                 const auto& b = keys[i + 1];
@@ -84,7 +84,6 @@ namespace NE::ECS::Systems {
                 out.w = EvalCurveLinear(tr.w, t);
                 return true;
             } else {
-                // reject unsupported types (e.g. int, Mat4, std::string, etc.)
                 return false;
             }
         }
@@ -151,6 +150,11 @@ namespace NE::ECS::Systems {
     void AnimatorSystem::OnEntityAdded(Entity e) {
         auto& anim = m_componentManager->GetComponent<Component::Animator>(e);
 
+        if (!anim.animClipUUID.empty() && !anim.clip) {
+            anim.clip = Resource::ResourceManager::GetInstance().
+                LoadResource<Animation::AnimationClip>(anim.animClipUUID);
+		}
+
         if (anim.luid == 0)
             anim.luid = Core::LUIDGenerator::Generate("ac");
 
@@ -192,7 +196,9 @@ namespace NE::ECS::Systems {
 
     void AnimatorSystem::ApplyClipAtTime(uint32_t e, const Animation::AnimationClip& clip, float t) {
         for (const auto& tr : clip.GetTracks()) {
-            if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Transform>()) {
+            if (tr.componentTypeId == m_componentManager->GetComponentType<Component::EntityMeta>()) {
+                ApplyTrackToComponent<NE::ECS::Component::EntityMeta>(e, m_componentManager, tr, t, "EntityMeta");
+            } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Transform>()) {
                 ApplyTrackToComponent<NE::ECS::Component::Transform>(e, m_componentManager, tr, t, "Transform");
             } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Renderer>()) {
                 ApplyTrackToComponent<NE::ECS::Component::Renderer>(e, m_componentManager, tr, t, "Renderer");

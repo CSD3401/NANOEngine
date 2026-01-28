@@ -9,6 +9,7 @@
 #include <Animation/AnimationClip.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <Core/Reflection.hpp>
+#include <ECS/Components/EntityMeta.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Renderer.hpp>
 #include <ECS/Components/Light.hpp>
@@ -63,6 +64,8 @@ namespace Editor {
 		AnimationPanel();
         void OnImGuiRender() override;
 
+        std::string GetTrackDisplayName(const NE::Animation::AnimTrack& tr) const;
+
         DopesheetState& State() { return m_state; }
     private:
         struct AnimCompEntry {
@@ -99,9 +102,10 @@ namespace Editor {
 
         KeyRef PickKeyAt(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, const ImVec2& mouse);
 
-        void Menu_Transform(uint32_t e);
-        void Menu_Renderer(uint32_t e);
-        void Menu_Light(uint32_t e);
+        void MenuEntityMeta(uint32_t e);
+        void MenuTransform(uint32_t e);
+        void MenuRenderer(uint32_t e);
+        void MenuLight(uint32_t e);
 
         template <typename C>
         void DrawAnimFieldMenuForComponent(uint32_t e, uint32_t componentTypeId, const char* componentName) {
