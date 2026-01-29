@@ -137,4 +137,12 @@ namespace NE::SceneManagement {
 		return m_ecsCoordinator;
 	}
 
+	void Scene::CameraEnter() {
+		m_ecsCoordinator.m_cameraSystem->Init();
+	}
+
+	void Scene::CameraExit() {
+		m_ecsCoordinator.m_cameraSystem->Exit();
+	}
+
 }
