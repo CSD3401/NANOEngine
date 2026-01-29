@@ -72,7 +72,7 @@ namespace Editor {
         float selectedKeyOriginalTime = 0.0f;
         bool draggingKey = false;
 
-        // add track UI (minimal)
+        // track UI
         char addRelativePath[256] = "Root";
         uint32_t addComponentTypeId = 0;
         uint32_t addFieldId = 0;
@@ -140,7 +140,6 @@ namespace Editor {
 
         template <typename C>
         void DrawAnimFieldMenuForComponent(uint32_t e, uint32_t componentTypeId, const char* componentName) {
-            // get component reference (you must adapt this line to your ECS API)
             const C& comp = NE::ECS::Query::GetComponent<C>(e);
 
             NE::Core::ForEachFieldView(comp, [&](auto&& desc, auto&& fieldValue) {
@@ -148,9 +147,8 @@ namespace Editor {
 
                 NE::Animation::AnimValueType animType;
                 if (!TryAnimValueType<FieldT>(animType))
-                    return; // skip non animatable types
+                    return;
 
-                // stable field id (hash of Component.Field)
                 std::string full;
                 full.reserve(std::strlen(componentName) + 1 + desc.name.size());
                 full.append(componentName);
@@ -158,17 +156,14 @@ namespace Editor {
                 full.append(desc.name.data(), desc.name.size());
                 const uint32_t fieldId = FNV1a32(full);
 
-                // show item
                 if (ImGui::MenuItem(full.c_str())) {
-                    // fill your add-track state
                     m_state.addComponentTypeId = componentTypeId;
                     m_state.addFieldId = fieldId;
                     m_state.addValueType = (int)animType;
 
-                    // optional: auto-fill relative path from selection
+                    // auto-fill relative path from selection
                     // snprintf(m_state.addRelativePath, sizeof(m_state.addRelativePath), "%s", ComputeRelativePath(...).c_str());
 
-                    // immediately add track (or keep selection and let user press Add Track)
                     if (m_loadedClip) {
                         auto& tracks = m_loadedClip->GetTracksMutable();
                         NE::Animation::AnimTrack tr{};

@@ -631,7 +631,6 @@ namespace Editor {
         auto& animator = NE::ECS::Command::GetEntityAnimator(m_previewEntity);
         animator.isPlaying = false;
 
-        // capture baseline (your existing code)
         std::unordered_set<BaselineKey, BaselineKeyHash> dedup;
         for (const auto& tr : m_loadedClip->GetTracks()) {
             if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
@@ -650,7 +649,6 @@ namespace Editor {
         if (!m_previewActive) return;
         if (m_previewEntity == NE::ECS::NO_ENTITY) return;
 
-        // restore baseline (your existing code)
         for (const auto& be : m_previewBaseline) {
             if (be.componentTypeId == NE::ECS::Query::GetTransformComponentType())
                 RestoreBaselineToComponent<NE::ECS::Component::Transform>(m_previewEntity, be, "Transform");
@@ -958,7 +956,7 @@ namespace Editor {
 
                         SetTime(kt);
                         ApplyPreviewPose();
-                        // (optional) start dragging key...
+                        // start dragging key...
                         //m_state.selectedKeyOriginalTime = c->keys[picked.keyIndex].time;
                         //m_state.draggingKey = true;
                     } else {
