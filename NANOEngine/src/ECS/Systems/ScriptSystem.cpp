@@ -12,6 +12,7 @@
 #include "Events/EventBus.hpp"
 #include "../../Scripting/ScriptingEngine.hpp"
 #include <algorithm>
+#include <Core/Profiler.hpp>
 
 namespace NE::ECS::Systems {
 	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
@@ -159,6 +160,10 @@ namespace NE::ECS::Systems {
 	}
 
 	void ScriptSystem::Update(double deltaTime) {
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		// --- Check for compile request ---
 		if (Scripting::ScriptingEngine::GetInstance().m_compileQueued.load()) {
 			Scripting::ScriptingEngine::GetInstance().m_compileQueued.store(false);
