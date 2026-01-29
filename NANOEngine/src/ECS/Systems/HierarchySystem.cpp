@@ -6,6 +6,7 @@
 #include "../Components/Transform.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "Math/Mat4.hpp"
+#include <Core/Profiler.hpp>
 
 namespace NE::ECS::Systems {
 
@@ -65,6 +66,10 @@ namespace NE::ECS::Systems {
 	}
 
 	void HierarchySystem::Update(double) {
+#ifndef PRODUCTION_BUILD
+        NE_PROFILE_FUNCTION();
+#endif
+
 		if (m_pendingParents.size() > 0)
             ResolvePendingParentsForAll(false);
 	}
