@@ -45,6 +45,7 @@
 #include "ObjectVsBroadPhaseLayerFilterImpl.hpp"
 #include "ObjectLayerFilterImpl.hpp"
 #include "Core/LayerRegistry.hpp"
+#include "Core/Profiler.hpp"
 
 namespace NE::Physics {
     namespace {
@@ -148,6 +149,10 @@ namespace NE::Physics {
     }
 
     void PhysicsManager::Update(double dt) {
+#ifndef PRODUCTION_BUILD
+        NE_PROFILE_FUNCTION();
+#endif
+
         if (!m_physicsSystem)
             return;
 

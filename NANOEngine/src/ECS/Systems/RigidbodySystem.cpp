@@ -6,6 +6,7 @@
 #include "Physics/PhysicsManager.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
+#include <Core/Profiler.hpp>
 
 namespace NE::ECS::Systems {
 
@@ -42,6 +43,10 @@ namespace NE::ECS::Systems {
 	}
 
 	void RigidbodySystem::Update(double /*dt*/) {
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		auto& allEntities = m_entities.GetDenseContainer();
 
 		for (auto& e : allEntities) {

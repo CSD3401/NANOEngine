@@ -27,6 +27,17 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
+		if (m_editor) {
+			m_editor->ExitEdit();
+			m_editor.reset();
+		}
+
+		if (m_runtime) {
+			m_runtime->ExitRuntime();
+			m_runtime.reset();
+			m_isPlaying = false;
+		}
+
 		m_loadedPath = scenePath;
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);

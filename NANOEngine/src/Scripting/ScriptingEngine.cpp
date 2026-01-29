@@ -12,6 +12,7 @@
 #include "Events/EventBus.hpp"
 #include "Core/Couroutine.hpp"
 #include "../../include/ScriptSDK/ScriptAPI.h"  // For GameObject_ResetStaticContext
+#include "Core/Profiler.hpp"
 
 namespace {
     // ScriptState moved to ScriptingEngine class definition
@@ -935,6 +936,12 @@ namespace NE::Scripting {
                 // Ensure ScriptNames size matches instances size
                 size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
                 for (size_t i = 0; i < searchCount; ++i) {
+                    std::string::size_type n;
+                    n = nsc.ScriptNames[i].find(scriptName);
+                    if (n != std::string::npos) {
+						return it->second[i];
+					}
+
                     if (nsc.ScriptNames[i] == scriptName) {
                         return it->second[i];
                     }
@@ -1058,6 +1065,10 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::UpdateScriptInstances(double deltaTime) {
+#ifndef PRODUCTION_BUILD
+        NE_PROFILE_FUNCTION();
+#endif
+
         for (const auto& pair : m_scriptInstances) {
             const std::vector<IScript*>& instances = pair.second;
             for (IScript* instance : instances) {
