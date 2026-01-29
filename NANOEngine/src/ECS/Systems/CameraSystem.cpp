@@ -4,6 +4,7 @@
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
+#include <Core/Profiler.hpp>
 
 namespace NE::ECS::Systems {
 
@@ -68,6 +69,10 @@ namespace NE::ECS::Systems {
 
 	void CameraSystem::Update(double)
 	{
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
