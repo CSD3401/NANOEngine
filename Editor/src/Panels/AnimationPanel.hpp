@@ -2,10 +2,12 @@
 #include "IPanel.hpp"
 
 #include <memory>
+#include <variant>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+#include <Math/Vec4.hpp>
 #include <Animation/AnimationClip.hpp>
 #include <EditorInterface/ECSExports.hpp>
 #include <Core/Reflection.hpp>
@@ -22,6 +24,26 @@ namespace Editor {
             return h;
         }
     }
+
+    struct BaselineKey {
+        uint32_t componentTypeId{};
+        uint32_t fieldId{};
+        bool operator==(const BaselineKey& o) const { return componentTypeId == o.componentTypeId && fieldId == o.fieldId; }
+    };
+    struct BaselineKeyHash {
+        size_t operator()(const BaselineKey& k) const {
+            return (size_t(k.componentTypeId) << 32) ^ size_t(k.fieldId);
+        }
+    };
+
+    using BaselineValue = std::variant<bool, float, NE::Math::Vec2, NE::Math::Vec3, NE::Math::Vec4>;
+
+    struct BaselineEntry {
+        uint32_t componentTypeId{};
+        uint32_t fieldId{};
+        NE::Animation::AnimValueType type{};
+        BaselineValue value{};
+    };
 
     struct KeyRef {
         int trackIndex = -1;
@@ -101,6 +123,14 @@ namespace Editor {
         void DrawDiamond(ImDrawList* dl, const ImVec2& c, float r, unsigned int col) const;
 
         KeyRef PickKeyAt(NE::Animation::AnimTrack& tr, int trackIndex, const ImRect& rowRect, float pxPerSec, float t0, const ImVec2& mouse);
+
+        bool m_previewActive = false;
+        uint32_t m_previewEntity = NE::ECS::NO_ENTITY;
+        std::vector<BaselineEntry> m_previewBaseline;
+
+        void BeginPreview(bool jumpToFirstKey);
+        void EndPreview();
+        void ApplyPreviewPose();
 
         void MenuEntityMeta(uint32_t e);
         void MenuTransform(uint32_t e);

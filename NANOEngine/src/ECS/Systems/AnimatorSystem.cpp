@@ -6,6 +6,7 @@
 #include "ECS/Core/ComponentManager.hpp"
 #include "Core/LUIDRegistry.hpp"
 #include "Core/LUIDGenerator.hpp"
+#include "Math/Quat.hpp"
 
 #include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Animator.hpp"
@@ -137,6 +138,9 @@ namespace NE::ECS::Systems {
                 applied = true;
                 }
             );
+
+            if constexpr (requires { comp.localRotationQuat; }) 
+                comp.localRotationQuat = NE::Math::Quat::FromEulerDegrees(comp.localRotationEuler);
 
             MarkDirtyIfPresent(comp);
 

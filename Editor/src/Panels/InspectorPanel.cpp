@@ -705,16 +705,6 @@ namespace Editor {
 	void InspectorPanel::DrawTransformComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 		ImGui::SeparatorText("Transform");
-		//NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
-		//    [&](auto const& desc, auto const& currentValue) {
-		//        using FieldT = std::decay_t<decltype(currentValue)>;
-
-		//        FieldT edited = currentValue;
-
-		//        if (DrawField(desc, edited)) {
-		//            SubmitSetFieldCommand(entity, desc, currentValue, edited);
-		//        }
-		//    });
 
 		NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
 			[&](auto const& desc, auto const& currentValue) {

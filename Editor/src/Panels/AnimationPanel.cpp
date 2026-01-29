@@ -29,7 +29,7 @@ namespace Editor {
         }
 
         template <typename T>
-        static bool TryAnimValueType(NE::Animation::AnimValueType& out) {
+        bool TryAnimValueType(NE::Animation::AnimValueType& out) {
             if constexpr (std::is_same_v<T, bool>) { out = NE::Animation::AnimValueType::Bool; return true; } 
             else if constexpr (std::is_same_v<T, float>) { out = NE::Animation::AnimValueType::Float; return true; }
             else if constexpr (std::is_same_v<T, NE::Math::Vec2>) { out = NE::Animation::AnimValueType::Vec2; return true; } 
@@ -266,6 +266,138 @@ namespace Editor {
                 });
         }
 
+        float ComputeMinKeyTime(const NE::Animation::AnimationClip& clip) {
+            float best = std::numeric_limits<float>::infinity();
+            for (const auto& tr : clip.GetTracks()) {
+                const int chN = ChannelCount(tr.type);
+                for (int ch = 0; ch < chN; ++ch) {
+                    const auto* c = GetCurveByChannel(tr, ch);
+                    for (const auto& k : c->keys) best = std::min(best, k.time);
+                }
+            }
+            return std::isfinite(best) ? best : 0.0f;
+        }
+
+        template <class T>
+        void SetBaselineVariant(BaselineEntry& e, const T& v) {
+            using U = std::remove_cvref_t<T>;
+
+            if constexpr (std::is_same_v<U, bool>) {
+                e.value = v;
+            } else if constexpr (std::is_same_v<U, float>) {
+                e.value = v;
+            } else if constexpr (std::is_same_v<U, NE::Math::Vec2>) {
+                e.value = v;
+            } else if constexpr (std::is_same_v<U, NE::Math::Vec3>) {
+                e.value = v;
+            } else if constexpr (std::is_same_v<U, NE::Math::Vec4>) {
+                e.value = v;
+            }
+            else {
+                // unsupported type
+            }
+        }
+
+        template<class T>
+        using DecayT = std::remove_cvref_t<T>;
+
+        template<class T>
+        concept BaselineSupported =
+            std::same_as<DecayT<T>, bool> ||
+            std::same_as<DecayT<T>, float> ||
+            std::same_as<DecayT<T>, NE::Math::Vec2> ||
+            std::same_as<DecayT<T>, NE::Math::Vec3> ||
+            std::same_as<DecayT<T>, NE::Math::Vec4>;
+
+        template<class FieldT>
+        DecayT<FieldT>* GetBaselinePtr(BaselineEntry& be) {
+            if constexpr (BaselineSupported<FieldT>) {
+                return std::get_if<DecayT<FieldT>>(&be.value);
+            } else {
+                return nullptr;
+            }
+        }
+
+        template<class FieldT>
+        const DecayT<FieldT>* GetBaselinePtr(const BaselineEntry& be) {
+            if constexpr (BaselineSupported<FieldT>) {
+                return std::get_if<DecayT<FieldT>>(&be.value);
+            } else {
+                return nullptr;
+            }
+        }
+
+
+        template <typename CompT>
+        static bool CaptureBaselineFromComponent(
+            uint32_t entity,
+            const NE::Animation::AnimTrack& tr,
+            const char* componentName,
+            std::vector<BaselineEntry>& out,
+            std::unordered_set<BaselineKey, BaselineKeyHash>& dedup
+        ) {
+            CompT& comp = NE::ECS::Command::GetComponent<CompT>(entity);
+
+            bool wrote = false;
+            NE::Core::ForEachFieldView(comp, [&](auto&& desc, auto&& currentValue) {
+                if (wrote) return;
+
+                const uint32_t fid = MakeFieldId(componentName, desc.name);
+                if (fid != tr.fieldId) return;
+
+                using FieldT = std::remove_cvref_t<decltype(currentValue)>;
+
+                NE::Animation::AnimValueType inferred;
+                if (!TryAnimValueType<FieldT>(inferred)) return;
+                if (inferred != tr.type) return;
+
+                BaselineKey k{ tr.componentTypeId, tr.fieldId };
+                if (dedup.find(k) != dedup.end()) { wrote = true; return; }
+
+                BaselineEntry e{};
+                e.componentTypeId = tr.componentTypeId;
+                e.fieldId = tr.fieldId;
+                e.type = tr.type;
+                SetBaselineVariant(e, currentValue);
+
+                out.push_back(std::move(e));
+                dedup.insert(k);
+                wrote = true;
+                });
+
+            return wrote;
+        }
+
+        template <typename CompT>
+        static bool RestoreBaselineToComponent(
+            uint32_t entity,
+            const BaselineEntry& be,
+            const char* componentName
+        ) {
+            CompT& comp = NE::ECS::Command::GetComponent<CompT>(entity);
+
+            bool wrote = false;
+            NE::Core::ForEachField(comp, [&](auto const& desc, auto&& fieldValue) {
+                if (wrote) return;
+
+                const uint32_t fid = MakeFieldId(componentName, desc.name);
+                if (fid != be.fieldId) return;
+
+                NE::Animation::AnimValueType inferred;
+                using FieldT = std::remove_cvref_t<decltype(fieldValue)>;
+                if (!TryAnimValueType<FieldT>(inferred)) return;
+                if (inferred != be.type) return;
+
+                if (auto* pv = GetBaselinePtr<FieldT>(be)) {
+                    fieldValue = *pv;
+                    if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
+                    wrote = true;
+                }
+            });
+
+            return wrote;
+        }
+
     }
 
     AnimationPanel::AnimationPanel() {
@@ -483,14 +615,89 @@ namespace Editor {
         return {};
     }
 
+    void AnimationPanel::BeginPreview(bool jumpToFirstKey) {
+        if (!m_loadedClip) return;
+        if (m_selectedEntity == NE::ECS::NO_ENTITY) return;
+
+        if (m_previewActive && m_previewEntity != m_selectedEntity) {
+            EndPreview();
+        }
+        if (m_previewActive) return;
+
+        m_previewActive = true;
+        m_previewEntity = m_selectedEntity;
+        m_previewBaseline.clear();
+
+        std::unordered_set<BaselineKey, BaselineKeyHash> dedup;
+
+        for (const auto& tr : m_loadedClip->GetTracks()) {
+            if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
+                CaptureBaselineFromComponent<NE::ECS::Component::Transform>(m_previewEntity, tr, "Transform", m_previewBaseline, dedup);
+            else if (tr.componentTypeId == NE::ECS::Query::GetRendererComponentType())
+                CaptureBaselineFromComponent<NE::ECS::Component::Renderer>(m_previewEntity, tr, "Renderer", m_previewBaseline, dedup);
+            else if (tr.componentTypeId == NE::ECS::Query::GetLightComponentType())
+                CaptureBaselineFromComponent<NE::ECS::Component::Light>(m_previewEntity, tr, "Light", m_previewBaseline, dedup);
+        }
+
+        //if (jumpToFirstKey) {
+        //    const float first = ComputeMinKeyTime(*m_loadedClip);
+        //    SetTime(first);
+        //}
+        SetTime(0.0f);
+
+        ApplyPreviewPose();
+    }
+
+    void AnimationPanel::EndPreview() {
+        if (!m_previewActive) return;
+        if (m_previewEntity == NE::ECS::NO_ENTITY) return;
+
+        for (const auto& be : m_previewBaseline) {
+            if (be.componentTypeId == NE::ECS::Query::GetTransformComponentType())
+                RestoreBaselineToComponent<NE::ECS::Component::Transform>(m_previewEntity, be, "Transform");
+            else if (be.componentTypeId == NE::ECS::Query::GetRendererComponentType())
+                RestoreBaselineToComponent<NE::ECS::Component::Renderer>(m_previewEntity, be, "Renderer");
+            else if (be.componentTypeId == NE::ECS::Query::GetLightComponentType())
+                RestoreBaselineToComponent<NE::ECS::Component::Light>(m_previewEntity, be, "Light");
+        }
+
+        m_previewBaseline.clear();
+        m_previewEntity = NE::ECS::NO_ENTITY;
+        m_previewActive = false;
+
+        m_state.playing = false;
+        auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
+        animator.isPlaying = m_state.playing;
+    }
+
+    void AnimationPanel::ApplyPreviewPose() {
+        if (!m_previewActive || !m_loadedClip) return;
+        if (m_previewEntity == NE::ECS::NO_ENTITY) return;
+
+		NE::PreviewAnimation(m_previewEntity, *m_loadedClip, m_state.time);
+    }
+
+
     void AnimationPanel::DrawLeftPanel(bool hasClip) {
         ImGui::BeginDisabled(!hasClip);
 
         // Transport row
+        bool prev = m_state.preview;
         if (ImGui::Checkbox("Preview", &m_state.preview)) {
-            auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
-			animator.isPlaying = m_state.preview;
-		}
+            //if (m_state.preview && !prev) BeginPreview(true);
+            //else if (!m_state.preview && prev) EndPreview();
+
+            if (m_state.preview && !prev) {
+                BeginPreview(true);          // capture baseline + jump to first key (optional)
+                // If you want: SetTime(0.0f);
+            } else if (!m_state.preview && prev) {
+                m_state.playing = false;     // stop playback when exiting preview
+                auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
+                animator.isPlaying = false;
+                EndPreview();                // restore baseline
+            }
+        }
+
         ImGui::SameLine();
         ImGui::Checkbox("Record", &m_state.record);
 
@@ -518,7 +725,20 @@ namespace Editor {
         ImGui::SameLine();
         if (smallBtn("<K")) StepToPrevKey();
         ImGui::SameLine();
-        if (smallBtn(m_state.playing ? "||" : ">")) m_state.playing = !m_state.playing;
+        if (smallBtn(m_state.playing ? "||" : ">")) { 
+            auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
+
+            // If user presses play while not previewing -> auto enter preview
+            if (!m_state.preview) {
+                m_state.preview = true;
+                BeginPreview(true);          // capture baseline + optionally jump to first key
+                // If you want play from beginning always:
+                // SetTime(0.0f);
+            }
+
+            m_state.playing = !m_state.playing;
+            animator.isPlaying = m_state.playing;
+        }
         ImGui::SameLine();
         if (smallBtn("K>")) StepToNextKey();
         ImGui::SameLine();
@@ -600,8 +820,11 @@ namespace Editor {
 
         if (m_state.playing) {
             SetTime(m_state.time + io.DeltaTime * m_state.playbackSpeed);
-            if (!m_loadedClip->IsLooping() && m_state.time >= m_loadedClip->GetLengthSeconds())
+            if (!m_loadedClip->IsLooping() && m_state.time >= m_loadedClip->GetLengthSeconds()) {
                 m_state.playing = false;
+                auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
+                animator.isPlaying = false;
+            }
         }
         //else if (!hasClip) {
         //    m_state.playing = false;
@@ -654,6 +877,7 @@ namespace Editor {
                 float mx = io.MousePos.x;
                 float t = t0 + (mx - rulerRect.Min.x) / pxPerSec;
                 SetTime(t);
+                if (m_state.preview) ApplyPreviewPose();
             }
 
             if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
@@ -715,12 +939,22 @@ namespace Editor {
                     KeyRef picked = PickKeyAt(tr, ti, rowRect, pxPerSec, t0, mouse);
 
                     if (picked.trackIndex >= 0) {
+                        if (!m_state.preview) {
+                            m_state.preview = true;
+                            BeginPreview(false);
+                        }
+
                         m_state.selectedKey = picked;
                         m_state.selectedTrack = ti;
 
                         auto* c = GetCurveByChannel(tr, picked.channel);
-                        m_state.selectedKeyOriginalTime = c->keys[picked.keyIndex].time;
-                        m_state.draggingKey = true;
+                        const float kt = c->keys[picked.keyIndex].time;
+
+                        SetTime(kt);
+                        ApplyPreviewPose();
+                        // (optional) start dragging key...
+                        //m_state.selectedKeyOriginalTime = c->keys[picked.keyIndex].time;
+                        //m_state.draggingKey = true;
                     } else {
                         m_state.selectedTrack = ti;
                         float t = t0 + (mouse.x - rowRect.Min.x) / pxPerSec;
