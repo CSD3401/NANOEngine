@@ -23,6 +23,7 @@
 #include "ECS/Components/PrefabLink.hpp"
 #include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/CharacterController.hpp"
+#include "ECS/Components/Animator.hpp"
 
 namespace NE {
 	namespace {
@@ -41,7 +42,8 @@ namespace NE {
 			ECS::Component::UIRectTransform,
 			ECS::Component::UICanvas,
 			ECS::Component::UIImage,
-			ECS::Component::CharacterController
+			ECS::Component::CharacterController,
+			ECS::Component::Animator
 		>;
 
 		using ComponentMask = std::uint64_t;

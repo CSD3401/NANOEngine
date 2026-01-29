@@ -25,6 +25,8 @@
 #include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "ECS/Systems/AnimatorSystem.hpp"
 
 namespace {
 
@@ -379,5 +381,9 @@ namespace NE {
 
 	void DestroyGLTexture(unsigned int id) {
 		Resource::ResourceManager::GetInstance().DestroyGLTexture(id);
+	}
+
+	void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds) {
+		gSceneManager.GetActive()->GetECSCoordinator().m_animatorSystem->ApplyClipAtTime(entity, animClip, timeInSeconds);
 	}
 }

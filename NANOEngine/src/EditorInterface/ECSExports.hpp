@@ -10,6 +10,7 @@
 #include "SceneManagement/SceneManager.hpp"
 #include "Engine.hpp"
 #include "Core/Layers.hpp"
+#include "Animation/AnimationClip.hpp"
 
 //namespace NE {
 //	SceneManagement::Scene& GetScene();
@@ -301,6 +302,9 @@ namespace NE::ECS {
 		NANOENGINE_API Component::Animator& GetEntityAnimator(uint32_t e);
 
 		NANOENGINE_API void SetLayer(Entity e, Core::LayerID layer);
+
+		NANOENGINE_API std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid);
+		NANOENGINE_API void AssignAnimClip(uint32_t e, const std::string& uuid);
 	}
 
 }

@@ -22,6 +22,7 @@
 #include <ECS/Components/PrefabLink.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
 #include <ECS/Components/CharacterController.hpp>
+#include <ECS/Components/Animator.hpp>
 
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
@@ -56,7 +57,8 @@ namespace Editor {
 			NE::ECS::Component::UIRectTransform,
 			NE::ECS::Component::UICanvas,
 			NE::ECS::Component::UIImage,
-			NE::ECS::Component::CharacterController
+			NE::ECS::Component::CharacterController,
+			NE::ECS::Component::Animator
 		>;
 
 		template <class F>
@@ -174,7 +176,7 @@ namespace Editor {
 				// Save all script instance field values to components before serialization
 				auto& coordinator = NE::GetScene().GetECSCoordinator();
 				auto& componentManager = coordinator.GetComponentManager();
-				auto& allEntities = coordinator.GetUsedEntities();
+				//auto& allEntities = coordinator.GetUsedEntities();
 
 				//for (NE::ECS::Entity entity : allEntities) {
 				//	if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {

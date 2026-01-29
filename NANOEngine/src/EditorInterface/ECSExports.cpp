@@ -25,6 +25,7 @@
 
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 namespace NE {
 	//SceneManagement::Scene& GetScene();
@@ -1016,6 +1017,16 @@ namespace NE::ECS {
 
 		void SetLayer(Entity e, Core::LayerID layer) {
 			GetScene().GetECSCoordinator().GetEntityManager().SetLayer(e, layer);
+		}
+
+		std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid) {
+			return Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
+		}
+		
+		void AssignAnimClip(uint32_t e, const std::string& uuid) {
+			auto& animator = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
+			animator.animClipUUID = uuid;
+			animator.clip = Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
 		}
 	}
 }

@@ -65,7 +65,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
-		m_ecsCoordinator.m_animatorSystem->Update(dt);
+		//m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 		Engine_UpdateCoroutines(static_cast<float>(dt));
 	}

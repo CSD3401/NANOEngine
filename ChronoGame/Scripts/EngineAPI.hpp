@@ -148,15 +148,10 @@ using String = ScriptFieldType::String;
 #define SCRIPT_FIELD_VECTOR(fieldName, elementType) \
     Register##elementType##VectorField(#fieldName, &this->fieldName)
 
-// SCRIPT_ENUM_FIELD macro - registers enum fields with dropdown options
-// Usage: SCRIPT_ENUM_FIELD(myState, "Idle", "Running", "Jumping")
-#define SCRIPT_ENUM_FIELD(fieldName, ...) \
-    RegisterEnumField(#fieldName, &this->fieldName, {__VA_ARGS__})
-
-// SCRIPT_ENUM_VECTOR_FIELD macro - registers vector of enum fields with dropdown options
-// Usage: SCRIPT_ENUM_VECTOR_FIELD(stateList, "Idle", "Running", "Jumping")
-#define SCRIPT_ENUM_VECTOR_FIELD(fieldName, ...) \
-    RegisterEnumVectorField(#fieldName, &this->fieldName, {__VA_ARGS__})
+// SCRIPT_FIELD_ENUM macro - registers enum fields with dropdown options
+// Usage: SCRIPT_FIELD_ENUM(myState, {"Idle", "Running", "Jumping"})
+//#define SCRIPT_FIELD_ENUM(fieldName, options) \
+//    RegisterEnumField(#fieldName, &this->fieldName, options)
 
 // SCRIPT_FIELD_STRUCT macro - registers struct fields using reflection
 // Usage: SCRIPT_FIELD_STRUCT(myStats)

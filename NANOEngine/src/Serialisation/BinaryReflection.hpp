@@ -15,19 +15,50 @@
 #include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
 #include "Core/Reflection.hpp"
+#include "Animation/AnimationClip.hpp"
 
 namespace NE::ECS::Component {
 	struct NativeScript;
 }
 
 namespace NE {
-	using ByteBuffer = std::vector<uint8_t>;
+	namespace {
+		using ByteBuffer = std::vector<uint8_t>;
+		template<typename T>
+		struct ForceElementSerialize : std::false_type {};
+
+		template<>
+		struct ForceElementSerialize<NE::Animation::AnimKeyF> : std::true_type {};
+	}
 
 	namespace Serialization {
 		// low-level helpers
 		inline void AppendBytes(ByteBuffer& out, const void* data, size_t size) {
 			const auto* p = static_cast<const std::uint8_t*>(data);
 			out.insert(out.end(), p, p + size);
+		}
+
+		inline void AppendU32LE(ByteBuffer& out, uint32_t v) {
+			uint8_t b[4];
+			b[0] = (uint8_t)((v >> 0) & 0xFF);
+			b[1] = (uint8_t)((v >> 8) & 0xFF);
+			b[2] = (uint8_t)((v >> 16) & 0xFF);
+			b[3] = (uint8_t)((v >> 24) & 0xFF);
+			AppendBytes(out, b, 4);
+		}
+
+		inline void AppendF32LE(ByteBuffer& out, float f) {
+			uint32_t bits = std::bit_cast<uint32_t>(f);
+			AppendU32LE(out, bits);
+		}
+
+		inline size_t ToBinary(ByteBuffer& out, const NE::Animation::AnimKeyF& k) {
+			const size_t before = out.size();
+			AppendF32LE(out, k.time);
+			AppendF32LE(out, k.value);
+			AppendF32LE(out, k.inTan);
+			AppendF32LE(out, k.outTan);
+			return out.size() - before;
 		}
 
 		// uint64 to little-endian
@@ -101,7 +132,7 @@ namespace NE {
 
 			AppendU64LE(out, static_cast<std::uint64_t>(vec.size()));
 
-			if constexpr (std::is_trivially_copyable_v<T>) {
+			if constexpr (std::is_trivially_copyable_v<T> && !ForceElementSerialize<T>::value) {
 				if (!vec.empty())
 					AppendBytes(out, vec.data(), vec.size() * sizeof(T));
 			} else {
@@ -204,6 +235,27 @@ namespace NE {
 	}
 
 	namespace Deserialization {
+		inline bool ReadU32LE(const uint8_t*& it, const uint8_t* end, uint32_t& out) {
+			if (it + 4 > end) return false;
+			out = (uint32_t(it[0]) << 0) | (uint32_t(it[1]) << 8) | (uint32_t(it[2]) << 16) | (uint32_t(it[3]) << 24);
+			it += 4;
+			return true;
+		}
+
+		inline bool ReadF32LE(const uint8_t*& it, const uint8_t* end, float& out) {
+			uint32_t bits;
+			if (!ReadU32LE(it, end, bits)) return false;
+			out = std::bit_cast<float>(bits);
+			return true;
+		}
+
+		inline bool FromBinary(const uint8_t*& it, const uint8_t* end, NE::Animation::AnimKeyF& k) {
+			return ReadF32LE(it, end, k.time)
+				&& ReadF32LE(it, end, k.value)
+				&& ReadF32LE(it, end, k.inTan)
+				&& ReadF32LE(it, end, k.outTan);
+		}
+
 		inline bool ReadBytes(const uint8_t*& it, const uint8_t* end, void* out, size_t size) {
 			if (it + size > end)
 				return false;
@@ -292,7 +344,7 @@ namespace NE {
 			vec.clear();
 			vec.resize(static_cast<size_t>(count));
 
-			if constexpr (std::is_trivially_copyable_v<T>) {
+			if constexpr (std::is_trivially_copyable_v<T> && !ForceElementSerialize<T>::value) {
 				const size_t bytes = vec.size() * sizeof(T);
 				return ReadBytes(it, end, vec.data(), bytes);
 			} else {

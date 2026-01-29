@@ -86,14 +86,12 @@ namespace NE::ECS::Systems {
             childWorldBefore = childT.worldMatrix;
         }
 
-        // Remove from old parent�s children list
         if (childH.parent != Component::INVALID_PARENT) {
             auto& oldParentH = m_componentManager->GetComponent<Component::Hierarchy>(childH.parent);
             auto& vec = oldParentH.children;
             vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
         }
 
-        // Set new parent
         childH.parent = (newParent == Component::INVALID_PARENT)
             ? Component::INVALID_PARENT
             : newParent;
@@ -102,13 +100,11 @@ namespace NE::ECS::Systems {
             auto& parentH = m_componentManager->GetComponent<Component::Hierarchy>(newParent);
             parentH.children.push_back(child);
 
-            // parentLuid from parent�s Hierarchy
             childH.parentLuid = parentH.luid;
         } else {
             childH.parentLuid = 0;
         }
 
-        // Adjust local if keepWorld
         if (keepWorld) {
             NE::Math::Mat4 localM;
             if (newParent != Component::INVALID_PARENT) {
@@ -215,7 +211,6 @@ namespace NE::ECS::Systems {
     //{
     //    SetParent(child, newParent, /*insertIndex*/ std::numeric_limits<int>::max(), keepWorld);
     //}
-
 
 	void HierarchySystem::ResolvePendingParentsForAll(bool keepWorldForNewParents) {
         std::vector<PendingParent> stillPending;

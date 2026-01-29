@@ -1784,7 +1784,7 @@ namespace NE {
 				},
 				[this, memberPtr, name](const std::string& value) -> bool {
 					try {
-						SPD_DEBUG("[MaterialRef] Setting field " << name);
+						//SPD_DEBUG("[MaterialRef] Setting field " << name);
 
 						// Empty string means no material
 						if (value.empty()) {
@@ -1800,7 +1800,7 @@ namespace NE {
 						}
 
 						*memberPtr = newRef;
-						SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
+						//SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
 						return true;
 					} catch (const std::exception& e) {
 						SPD_ERROR("[MaterialRef] setValue exception for field '{}': {}", name, e.what());
