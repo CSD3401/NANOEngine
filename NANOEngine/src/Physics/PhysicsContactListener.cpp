@@ -80,6 +80,9 @@ namespace NE::Physics
 		// Mark this collision as active this frame
 		m_CurrentCollisions[collisionKey] = true;
 
+		std::cout << "OnContactPersisted: Body " << body1ID.GetIndex() << " vs Body " << body2ID.GetIndex()
+			<< " | Key: " << collisionKey << std::endl;
+
 		NE::ECS::Entity entity1 = GetEntityFromBody(body1ID);
 		NE::ECS::Entity entity2 = GetEntityFromBody(body2ID);
 
@@ -180,7 +183,8 @@ namespace NE::Physics
 
 	void PhysicsContactListener::UpdateCollisionStates()
 	{
-		// Called once per frame AFTER physics step
+		std::cout << "UpdateCollisionStates: Current=" << m_CurrentCollisions.size()
+			<< ", Previous=" << m_PreviousCollisions.size() << std::endl;
 
 		// Check for collisions that ended (were in previous frame but not current)
 		for (const auto& [collisionKey, _] : m_PreviousCollisions)

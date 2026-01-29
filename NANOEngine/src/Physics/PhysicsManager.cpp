@@ -40,12 +40,15 @@
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Transform.hpp"
 #include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Components/NativeScript.hpp"
 #include "ObjectLayerPairFilterImpl.hpp"
 #include "BroadPhaseLayerInterfaceImpl.hpp"
 #include "ObjectVsBroadPhaseLayerFilterImpl.hpp"
 #include "ObjectLayerFilterImpl.hpp"
 #include "Core/LayerRegistry.hpp"
 #include "Core/Profiler.hpp"
+#include "PhysicsContactListener.hpp"
+#include "../Scripting/ScriptingEngine.hpp"
 
 namespace NE::Physics {
     namespace {
@@ -130,6 +133,8 @@ namespace NE::Physics {
         JPH::DebugRenderer::sInstance = m_debugRenderer.get();
         m_debugRenderer->Init();
 
+        m_contactListener = std::make_unique<PhysicsContactListener>();
+
         const uint32_t maxBodies = 8192;
         const uint32_t numBodyMutexes = 0;
         const uint32_t maxBodyPairs = 65536;
@@ -144,6 +149,8 @@ namespace NE::Physics {
             *m_objectVsBpFilter,
             *m_objectLayerPairFilter
         );
+
+        m_physicsSystem->SetContactListener(m_contactListener.get());
 
         m_physicsSystem->SetGravity(JPH::Vec3(0.f, -9.81f, 0.f));
     }
@@ -170,6 +177,11 @@ namespace NE::Physics {
             );
 
             UpdateCharacters(m_fixedDt);
+
+            // Update collision states to detect enter/exit events
+            if (m_contactListener) {
+                m_contactListener->UpdateCollisionStates();
+            }
 
             // (Optional) handle err; in practice you can log it
             (void)err;
@@ -469,6 +481,11 @@ namespace NE::Physics {
         bi.SetUserData(id, static_cast<JPH::uint64>(entity));
 
         m_bodies[luid] = id;
+
+        // Map body to entity for collision callbacks
+        if (m_contactListener) {
+            m_contactListener->MapBodyToEntity(id, entity);
+        }
     }
 
     void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
@@ -510,12 +527,23 @@ namespace NE::Physics {
         bi.SetUserData(id, static_cast<JPH::uint64>(entity));
 
         m_bodies[luid] = id;
+
+        // Map body to entity for collision callbacks
+        if (m_contactListener) {
+            m_contactListener->MapBodyToEntity(id, entity);
+        }
     }
 
     void PhysicsManager::DestroyBody(uint64_t luid) {
         JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
 
         auto& id = m_bodies.at(luid);
+
+        // Unmap body from collision callbacks
+        if (m_contactListener) {
+            m_contactListener->UnmapBody(id);
+        }
+
         bi.RemoveBody(id);
         bi.DestroyBody(id);
     }
@@ -793,5 +821,70 @@ namespace NE::Physics {
 
     void PhysicsManager::SetComponentManager(ECS::ComponentManager* cm) {
         m_componentManager = cm;
+    }
+
+    void PhysicsManager::RegisterCollisionCallbacks() {
+        if (!m_contactListener) return;
+
+        // Register collision enter callback
+        m_contactListener->RegisterCollisionEnterCallback([this](const Physics::CollisionInfo& info) {
+            // Get collider components to check if either is a trigger
+            bool entityAIsTrigger = IsTrigger(info.entityA);
+            bool entityBIsTrigger = IsTrigger(info.entityB);
+
+            // If either is a trigger, it's a trigger event, not a collision event
+            if (entityAIsTrigger || entityBIsTrigger) {
+                // Trigger enter events
+                if (entityAIsTrigger && m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityA)) {
+                    Scripting::ScriptingEngine::GetInstance().OnTriggerEnter(info.entityA, info.entityB);
+                }
+                if (entityBIsTrigger && m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityB)) {
+                    Scripting::ScriptingEngine::GetInstance().OnTriggerEnter(info.entityB, info.entityA);
+                }
+            }
+            else {
+                // Collision enter events (both directions)
+                if (m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityA)) {
+                    Scripting::ScriptingEngine::GetInstance().OnCollisionEnter(info.entityA, info.entityB);
+                }
+                if (m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityB)) {
+                    Scripting::ScriptingEngine::GetInstance().OnCollisionEnter(info.entityB, info.entityA);
+                }
+            }
+        });
+
+        // Register collision exit callback
+        m_contactListener->RegisterCollisionExitCallback([this](const Physics::CollisionInfo& info) {
+            bool entityAIsTrigger = IsTrigger(info.entityA);
+            bool entityBIsTrigger = IsTrigger(info.entityB);
+
+            // If either is a trigger, it's a trigger event, not a collision event
+            if (entityAIsTrigger || entityBIsTrigger) {
+                // Trigger exit events
+                if (entityAIsTrigger && m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityA)) {
+                    Scripting::ScriptingEngine::GetInstance().OnTriggerExit(info.entityA, info.entityB);
+                }
+                if (entityBIsTrigger && m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityB)) {
+                    Scripting::ScriptingEngine::GetInstance().OnTriggerExit(info.entityB, info.entityA);
+                }
+            }
+            else {
+                // Collision exit events (both directions)
+                if (m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityA)) {
+                    Scripting::ScriptingEngine::GetInstance().OnCollisionExit(info.entityA, info.entityB);
+                }
+                if (m_componentManager->HasComponent<ECS::Component::NativeScript>(info.entityB)) {
+                    Scripting::ScriptingEngine::GetInstance().OnCollisionExit(info.entityB, info.entityA);
+                }
+            }
+        });
+    }
+
+    bool PhysicsManager::IsTrigger(uint32_t entity) const {
+        if (!m_componentManager) return false;
+        if (!m_componentManager->HasComponent<ECS::Component::Collider>(entity)) return false;
+
+        const auto& collider = m_componentManager->GetComponent<ECS::Component::Collider>(entity);
+        return collider.isTrigger;
     }
 }

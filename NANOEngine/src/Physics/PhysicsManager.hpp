@@ -38,10 +38,11 @@ namespace NE::Physics {
     class ObjectLayerPairFilterImpl;
     class BroadPhaseLayerInterfaceImpl;
     class ObjectVsBroadPhaseLayerFilterImpl;
+    class PhysicsContactListener;
 
     struct Ray;
     struct RaycastHit;
-    
+
     class JoltDebugRenderer;
 
     class PhysicsManager {
@@ -101,6 +102,10 @@ namespace NE::Physics {
         Math::Vec3 GetAngularVelocity(uint64_t entityLUID) const;
         void SetAngularVelocity(uint64_t entityLUID, const Math::Vec3& angularVelocity);
 
+        // Collision callbacks
+        void RegisterCollisionCallbacks();
+        bool IsTrigger(uint32_t entity) const;
+
     private:
         ECS::ComponentManager* m_componentManager = nullptr;
 
@@ -116,6 +121,7 @@ namespace NE::Physics {
         std::unique_ptr<ObjectVsBroadPhaseLayerFilterImpl> m_objectVsBpFilter;
 
         std::unique_ptr<JoltDebugRenderer> m_debugRenderer;
+        std::unique_ptr<PhysicsContactListener> m_contactListener;
 
         std::unordered_map<uint64_t, JPH::ShapeRefC> m_shapes;
         std::unordered_map<uint64_t, JPH::BodyID> m_bodies;

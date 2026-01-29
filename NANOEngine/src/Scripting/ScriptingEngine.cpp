@@ -1232,4 +1232,52 @@ namespace NE::Scripting {
         }
     }
 
+    //=========================================================================
+    // COLLISION CALLBACKS
+    //=========================================================================
+
+    void ScriptingEngine::OnCollisionEnter(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionEnter(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnCollisionExit(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionExit(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerEnter(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerEnter(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerExit(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerExit(other);
+                }
+            }
+        }
+    }
+
 } // namespace NE::Scripting

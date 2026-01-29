@@ -19,6 +19,7 @@
 #include "Scripts/Puzzle_OneWaySwitch.hpp"
 #include "Scripts/Puzzle_Sinkhole.hpp"
 #include "Scripts/Example_EnumField.hpp"
+#include "Scripts/ColliderTest.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -70,6 +71,9 @@ extern "C" {
             });
         registrar->RegisterScript("Example_EnumField", []() -> NE::Scripting::IScript* {
             return new Example_EnumField();
+            });
+        registrar->RegisterScript("ColliderTest", []() -> NE::Scripting::IScript* {
+            return new ColliderTest();
             });
     }
 }
