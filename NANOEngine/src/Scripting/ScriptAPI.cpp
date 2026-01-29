@@ -1479,14 +1479,16 @@ namespace NE {
 			// Get material UUID from MaterialRef
 			std::string materialUUID = GetMaterialUUIDFromRef(materialRef);
 			if (materialUUID.empty()) {
-				materialUUID = "empty uuid";
+				materialUUID = "neunlitmat"; // defaults to neunlitmat if invalid
 			}
 
 			// Set the material UUID on the entity's renderer component
 			if (m_context->componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
-				auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
-				renderer.materialUUID = materialUUID;
-				renderer.isDirty = true;
+				//auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
+				//renderer.materialUUID = materialUUID;
+				//renderer.isDirty = true;
+
+				NE::Renderer::Command::AssignMaterial(entity, materialUUID);
 			}
 		}
 
@@ -3102,6 +3104,35 @@ namespace NE {
 				it->second.getLayerMaskValue = getLayerMaskValue;
 				it->second.setLayerMaskValue = setLayerMaskValue;
 			}
+		}
+
+		void IScript::RegisterEnumVectorFieldInternal(
+			const std::string& name,
+			const std::vector<std::string>& enumOptions,
+			std::function<std::string()> getValue,
+			std::function<bool(const std::string&)> setValue,
+			std::function<size_t()> getSize,
+			std::function<std::string(size_t)> getElement,
+			std::function<bool(size_t, const std::string&)> setElement,
+			std::function<void()> addElement,
+			std::function<void(size_t)> removeElement) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<enum>";
+			entry.memberPtr = nullptr;
+			entry.getValue = std::move(getValue);
+			entry.setValue = std::move(setValue);
+			entry.getSize = std::move(getSize);
+			entry.getElement = std::move(getElement);
+			entry.setElement = std::move(setElement);
+			entry.addElement = std::move(addElement);
+			entry.removeElement = std::move(removeElement);
+			entry.enumOptions = enumOptions;
+
+			m_fieldRegistry->fields[name] = std::move(entry);
 		}
 
 		//=========================================================================

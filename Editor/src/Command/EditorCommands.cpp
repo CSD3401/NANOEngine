@@ -137,10 +137,12 @@ namespace Editor {
 		//NE::ECS::Command::DestroyEntity(m_entity);
 	}
 
-	DeleteEntityCommand::DeleteEntityCommand(std::vector<uint32_t> deletedEntity) : m_entities(deletedEntity) {}
+	DeleteEntityCommand::DeleteEntityCommand(std::vector<uint32_t> deletedEntity, uint32_t oldParent) 
+		: m_entities(deletedEntity), oldParentEntity(oldParent) {}
 
 	void DeleteEntityCommand::Execute() {
 		for (auto& e : m_entities) {
+			m_data = NE::CopyEntity(e);
 			NE::ECS::Command::DestroyEntity(e);
 			EditorScene::UnregisterRoot(e);
 		}
@@ -194,8 +196,11 @@ namespace Editor {
 
 	void DeleteEntityCommand::Undo() {
 		for (auto& e : m_entities) {
-			NE::ECS::Command::CreateEmptyEntity(UINT32_MAX);
-			EditorScene::RegisterRoot(e);
+			auto newEntt = NE::PasteEntity(m_data);
+			EditorScene::SetParent(newEntt, oldParentEntity, -1, true);
+
+			if (oldParentEntity == NE::ECS::NO_ENTITY)
+				EditorScene::RegisterRoot(newEntt);
 		}
 		//// sort entities so parents are recreated before children
 		//// (entities with no parent first, then their children, etc.)
@@ -434,6 +439,21 @@ namespace Editor {
 	void CreateQuadEntityCommand::Undo() {
 		EditorScene::UnregisterRoot(m_entity);
 		NE::ECS::Command::DestroyEntity(m_entity);
+	}
+
+	HierarchyChangeCommand::HierarchyChangeCommand(uint32_t child, uint32_t newParent, int newInsertIndex) 
+		: childEntity(child), newParentEntity(newParent), newInsertIndex(newInsertIndex) 
+	{
+		oldParentEntity = EditorScene::GetParent(childEntity);
+		oldInsertIndex = EditorScene::GetIndexInParentOrRoot(childEntity);
+	}
+
+	void HierarchyChangeCommand::Execute() {
+		EditorScene::SetParent(childEntity, newParentEntity, newInsertIndex, true);
+	}
+
+	void HierarchyChangeCommand::Undo() {
+		EditorScene::SetParent(childEntity, oldParentEntity, oldInsertIndex, true);
 	}
 
 }

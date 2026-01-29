@@ -26,7 +26,7 @@ namespace NE::Resource {
 		case ResourceType::Prefab:		path += ".nfabbin"; break;
 		case ResourceType::Scene:		path += ".nscebin"; break;
 		default:
-			SPD_WARNING("Invalid Artifact Path");
+			//SPD_WARNING("Invalid Artifact Path");
 			break;
 		}
 

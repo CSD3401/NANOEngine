@@ -728,18 +728,18 @@ namespace NE::Graphics {
                 shader->SetUniformFloat("i_FogStart", renderSettings.fogStart);
                 shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
 
-                shader->SetUniformInt("u_ReceiveShadows", currentReceiveShadows ? 1 : 0);
+                shader->SetUniformInt("h_ReceiveShadows", currentReceiveShadows ? 1 : 0);
 
                 // Shadow arrays
                 int numShadows = static_cast<int>(shadowVPs.size());
                 if (numShadows > 16) numShadows = 16;
 
                 // Only set if the shader actually has these uniforms (PBR)
-                shader->SetUniformInt("u_NumShadowMaps", numShadows);
+                shader->SetUniformInt("h_NumShadowMaps", numShadows);
 
                 for (int i = 0; i < numShadows; ++i) {
-                    std::string vpName = "u_ShadowVP[" + std::to_string(i) + "]";
-                    std::string texName = "u_ShadowMaps[" + std::to_string(i) + "]";
+                    std::string vpName = "h_ShadowVP[" + std::to_string(i) + "]";
+                    std::string texName = "h_ShadowMaps[" + std::to_string(i) + "]";
 
                     shader->SetUniformMat4(vpName.c_str(), shadowVPs[i]);
 

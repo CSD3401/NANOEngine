@@ -103,6 +103,13 @@ namespace Editor {
 
 	HierarchyPanel::HierarchyPanel() {
 		EditorScene::BuildRoot();
+
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::SceneChangedEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::SceneChangedEvent& e) {
+				SceneChanged();
+			}
+		);
 	}
 
 	void HierarchyPanel::OnImGuiRender() {
@@ -210,11 +217,6 @@ namespace Editor {
 
 		EditorScene::s_selection.SetLastPreorder(preorder);
 
-		//if (ImGui::BeginPopup("HierarchyContext")) {
-		//	DrawContextMenu();
-		//	ImGui::EndPopup();
-		//}
-
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		bool hierHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
@@ -250,9 +252,11 @@ namespace Editor {
 				//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
 				std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] };
 
+				auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
+
 				NANOEngine::Events::EventBus::Get().Dispatch(
 					NANOEngine::Events::EventDomain::Editor,
-					Events::DeleteEntityEvent{ toDelete }
+					Events::DeleteEntityEvent{ toDelete, h.parent }
 				);
 			}
 
@@ -291,10 +295,14 @@ namespace Editor {
 						if (IsAncestor(child, m_previewParent))
 							continue;
 
-						EditorScene::SetParent(child,
-							m_previewParent,
-							std::numeric_limits<int>::max(),
-							true);
+						//EditorScene::SetParent(child,
+						//	m_previewParent,
+						//	std::numeric_limits<int>::max(),
+						//	true);
+						NANOEngine::Events::EventBus::Get().Dispatch(
+							NANOEngine::Events::EventDomain::Editor,
+							Events::HierarchyChangeEvent{ child, m_previewParent, std::numeric_limits<int>::max() }
+						);
 					}
 				} else if (m_previewInsert >= 0) {
 					int insertIndex = m_previewInsert;
@@ -303,10 +311,14 @@ namespace Editor {
 						for (auto child : m_draggedEntities) {
 							auto& h = NE::ECS::Query::GetEntityHierarchy(child);
 							if (h.parent != NE::ECS::Component::INVALID_PARENT) {
-								EditorScene::SetParent(child,
-									NE::ECS::NO_ENTITY,
-									0,
-									true);
+								//EditorScene::SetParent(child,
+								//	NE::ECS::NO_ENTITY,
+								//	0,
+								//	true);
+								NANOEngine::Events::EventBus::Get().Dispatch(
+									NANOEngine::Events::EventDomain::Editor,
+									Events::HierarchyChangeEvent{ child, NE::ECS::NO_ENTITY, 0 }
+								);
 							}
 
 							EditorScene::ReorderRoot(child, insertIndex);
@@ -320,10 +332,15 @@ namespace Editor {
 							if (IsAncestor(child, m_previewParentForInsert))
 								continue;
 
-							EditorScene::SetParent(child,
-								m_previewParentForInsert,
-								insertIndex,
-								true);
+							//EditorScene::SetParent(child,
+							//	m_previewParentForInsert,
+							//	insertIndex,
+							//	true);
+							NANOEngine::Events::EventBus::Get().Dispatch(
+								NANOEngine::Events::EventDomain::Editor,
+								Events::HierarchyChangeEvent{ child, m_previewParentForInsert, insertIndex }
+							);
+
 							++insertIndex;
 						}
 					}
@@ -375,6 +392,20 @@ namespace Editor {
 		}
 
 		ImGui::End();
+	}
+
+	void HierarchyPanel::SceneChanged() {
+		m_lastPrimary = NE::ECS::NO_ENTITY;
+		m_dragRep = NE::ECS::NO_ENTITY;
+		m_previewParentForInsert = NE::ECS::NO_ENTITY;
+		m_clickCandidate = NE::ECS::NO_ENTITY;
+		m_previewAsChild = false;
+
+		m_filtering = false;
+		m_visible.clear();
+
+		m_expanded.clear();
+		m_forceOpen.clear();
 	}
 
 	void HierarchyPanel::DrawEntityNode(NE::ECS::Entity e,
@@ -594,9 +625,11 @@ namespace Editor {
 			//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
 			std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] }; // just delete the first selected for now
 
+			auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
+
 			NANOEngine::Events::EventBus::Get().Dispatch(
 				NANOEngine::Events::EventDomain::Editor,
-				Events::DeleteEntityEvent{ toDelete }
+				Events::DeleteEntityEvent{ toDelete, h.parent }
 			);
 		}
 

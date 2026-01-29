@@ -134,6 +134,10 @@ namespace Editor::Assets {
             if (thumbnail != 0) {
                 return thumbnail;
             }
+        } else if (extension == ".obj" || extension == ".fbx") {
+            return m_meshIcon;
+		} else if (filePath == "submesh") {
+            return m_subMeshIcon;
         }
 
         return m_fileIcon;
@@ -218,6 +222,8 @@ namespace Editor::Assets {
         m_sceneIcon = LoadRawIcon("Library/Icons/icon_scene.png");
         m_prefabIcon = LoadRawIcon("Library/Icons/icon_prefab.png");
         m_materialIcon = LoadRawIcon("Library/Icons/icon_material.png");
+        m_meshIcon = LoadRawIcon("Library/Icons/icon_mesh.png");
+        m_subMeshIcon = LoadRawIcon("Library/Icons/icon_submesh.png");
     }
 
     ThumbnailManager::~ThumbnailManager() {

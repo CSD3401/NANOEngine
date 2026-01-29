@@ -18,11 +18,11 @@ namespace Editor::Assets {
         unsigned int GetThumbnailByUUID(const std::string& uuid);
 
 		void GenerateThumbnail(const std::filesystem::path& sourceImagePath, const std::string& uuid);
+        unsigned int LoadRawIcon(const std::string& path);
     private:
         ThumbnailManager();
         ~ThumbnailManager();
 
-        unsigned int LoadRawIcon(const std::string& path);
 		unsigned int LoadCookedThumbnail(const std::string& uuid);
 
         unsigned int m_folderIcon = 0;
@@ -30,6 +30,8 @@ namespace Editor::Assets {
         unsigned int m_fileIcon = 0;
 		unsigned int m_materialIcon = 0;
 		unsigned int m_prefabIcon = 0;
+		unsigned int m_meshIcon = 0;
+		unsigned int m_subMeshIcon = 0;
 
         size_t m_maxThumbs = 512;
         std::unordered_map<std::string, ThumbCacheEntry> m_cache;

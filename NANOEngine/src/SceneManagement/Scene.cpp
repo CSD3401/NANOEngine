@@ -56,6 +56,7 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::UpdateEdit(double dt) {
+		m_ecsCoordinator.m_hierarchySystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);

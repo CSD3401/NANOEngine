@@ -26,6 +26,7 @@
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <ECS/Components/ComponentKey.hpp>
+#include <Core/LUIDGenerator.hpp>
 
 #include <Graphics/Core/RenderSettings.hpp>
 #include <Graphics/Core/PostProcessingSettings.hpp>
@@ -419,6 +420,96 @@ namespace Editor {
 						ReadComponentIfPresent<C>(e, entVal);
 					});
 				}
+			}
+
+			void DeserializeModel(const std::string& metaPath) {
+				using rapidjson::Document;
+
+				std::ifstream in(metaPath, std::ios::binary);
+				if (!in) return;
+
+				std::string data((std::istreambuf_iterator<char>(in)), {});
+				Document doc; doc.Parse(data.c_str());
+				if (doc.HasParseError() || !doc.IsObject()) return;
+
+				if (!doc.HasMember("submeshes") || !doc["submeshes"].IsArray()) return;
+				auto& sms = doc["submeshes"];
+				if (!doc.HasMember("generatedPrefab") || !doc["generatedPrefab"].IsObject()) return;
+				auto& gp = doc["generatedPrefab"];
+				if (!gp.HasMember("Entities") || !gp["Entities"].IsArray()) return;
+				auto& ents = gp["Entities"];
+
+				std::unordered_map<uint64_t, uint64_t> idxToReal;
+				idxToReal.reserve(ents.Size());
+
+				auto readTemplateLuid = [](const rapidjson::Value& entVal) -> uint64_t {
+					if (entVal.HasMember("Hierarchy") && entVal["Hierarchy"].IsObject()) {
+						auto& h = entVal["Hierarchy"];
+						if (h.HasMember("luid") && h["luid"].IsUint64())
+							return h["luid"].GetUint64();
+					}
+					return 0;
+				};
+
+				for (auto& entVal : ents.GetArray()) {
+					if (!entVal.IsObject()) continue;
+					uint64_t tpl = readTemplateLuid(entVal);
+					if (tpl == 0) continue; 
+					if (idxToReal.contains(tpl)) continue;
+					idxToReal[tpl] = NE::Core::LUIDGenerator::Generate("em");
+				}
+
+				for (auto& entVal : ents.GetArray()) {
+					if (!entVal.IsObject()) continue;
+
+					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
+
+					if (entVal.HasMember("Layer")) {
+						uint8_t layer = 0;
+						FromJSON(entVal["Layer"], layer);
+						NE::ECS::Command::SetLayer(e, layer);
+					}
+
+					ForEachComponentType([&]<typename C>() {
+						if constexpr (std::is_same_v<C, NE::ECS::Component::Hierarchy>) {
+							return;
+						} else {
+							ReadComponentIfPresent<C>(e, entVal);
+						}
+					});
+
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(e)) {
+						auto& renderer = NE::ECS::Query::GetComponent<NE::ECS::Component::Renderer>(e);
+						NE::Math::Vec3 pivotOffset = {};
+						FromJSON(sms[renderer.subMeshIndex]["pivotOffset"], pivotOffset);
+
+						auto& transform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(e);
+						transform.localPosition = pivotOffset;
+					}
+
+					uint64_t tplLuid = readTemplateLuid(entVal);
+					uint64_t realLuid = (tplLuid != 0 && idxToReal.contains(tplLuid)) ? idxToReal[tplLuid] : 0;
+
+					if (entVal.HasMember("Hierarchy") && entVal["Hierarchy"].IsObject()) {
+						const auto& hj = entVal["Hierarchy"];
+
+						uint64_t tplParent = 0;
+						if (hj.HasMember("parentLuid") && hj["parentLuid"].IsUint64())
+							tplParent = hj["parentLuid"].GetUint64();
+
+						uint64_t realParent = 0;
+						if (tplParent != 0 && idxToReal.contains(tplParent))
+							realParent = idxToReal[tplParent];
+
+						NE::ECS::Component::Hierarchy h{};
+						h.luid = realLuid;
+						h.parentLuid = realParent;
+
+						NE::ECS::Command::AddComponent(e, h);
+					}
+				}
+
+				EditorScene::BuildRoot();
 			}
 
 			void DeserializeProjectSettings() {

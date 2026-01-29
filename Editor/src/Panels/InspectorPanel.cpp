@@ -791,6 +791,16 @@ namespace Editor {
 				std::string dropped((const char*)p->Data, p->DataSize - 1);
 				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 				NE::Renderer::Command::AssignModel(entity, uuid);
+			} else if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
+				std::string dropped((const char*)p->Data, p->DataSize - 1);
+				auto uuidSubmesh = std::find(dropped.begin(), dropped.end(), ':');
+				if (uuidSubmesh != dropped.end()) {
+					std::string meshPath(dropped.begin(), uuidSubmesh);
+					std::string submeshName(uuidSubmesh + 1, dropped.end());
+					auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(meshPath);
+					NE::Renderer::Command::AssignModel(entity, uuid, std::stoi(submeshName));
+				}
+
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -806,7 +816,7 @@ namespace Editor {
 				for (const auto& [modelName, uuid] : modelList) {
 					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
 						if (ImGui::Selectable(modelName.c_str())) {
-							NE::Renderer::Command::AssignModel(entity, uuid);
+							NE::Renderer::Command::AssignModel(entity, uuid, 0);
 							ImGui::CloseCurrentPopup();
 						}
 						});
@@ -862,6 +872,7 @@ namespace Editor {
 
 		if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
 		}
+		//ImGui::InputInt("Submesh Index", &tempR.subMeshIndex);
 
 		if (copyComp) {
 
@@ -2060,6 +2071,41 @@ namespace Editor {
 										if (ImGui::Button("X##clear")) {
 											scriptInstance->SetArrayElement(fname, i, noEntityStr);
 											elemChanged = true;
+										}
+									}
+									else if (elementType == "enum") {
+										// Enum dropdown in array
+										auto enumOptions = scriptInstance->GetEnumOptions(fname);
+										if (!enumOptions.empty()) {
+											int currentValue = 0;
+											if (!elemValue.empty()) {
+												try {
+													currentValue = std::stoi(elemValue);
+												} catch (...) {
+													currentValue = 0;
+												}
+											}
+
+											// Clamp to valid range
+											if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
+												currentValue = 0;
+											}
+
+											if (ImGui::BeginCombo("##elem", enumOptions[currentValue].c_str())) {
+												for (int j = 0; j < static_cast<int>(enumOptions.size()); ++j) {
+													bool isSelected = (currentValue == j);
+													if (ImGui::Selectable(enumOptions[j].c_str(), isSelected)) {
+														scriptInstance->SetArrayElement(fname, i, std::to_string(j));
+														elemChanged = true;
+													}
+													if (isSelected) {
+														ImGui::SetItemDefaultFocus();
+													}
+												}
+												ImGui::EndCombo();
+											}
+										} else {
+											ImGui::Text("[%zu]: (enum - no options)", i);
 										}
 									}
 									else {

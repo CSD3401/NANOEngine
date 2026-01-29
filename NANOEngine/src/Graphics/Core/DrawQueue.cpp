@@ -31,6 +31,7 @@ namespace NE::Graphics {
 		static const int COST_SHADER = 100;
 		static const int COST_BLEND = 12;
 		static const int COST_DEPTH_TEST = 10;
+		static const int COST_DEPTH_WRITE = 8;
 		static const int COST_CULL_MODE = 2;
 		static const int COST_POLYGON_MODE = 1;
 
@@ -49,6 +50,8 @@ namespace NE::Graphics {
 				cost += COST_BLEND;
 			if (a.EnableDepthTest != b.EnableDepthTest)
 				cost += COST_DEPTH_TEST;
+			if (a.DepthWrite != b.DepthWrite)
+				cost += COST_DEPTH_WRITE;
 			if (a.CullMode != b.CullMode)
 				cost += COST_CULL_MODE;
 			if (a.PolygonMode != b.PolygonMode)
