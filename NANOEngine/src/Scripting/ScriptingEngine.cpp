@@ -935,6 +935,12 @@ namespace NE::Scripting {
                 // Ensure ScriptNames size matches instances size
                 size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
                 for (size_t i = 0; i < searchCount; ++i) {
+                    std::string::size_type n;
+                    n = nsc.ScriptNames[i].find(scriptName);
+                    if (n != std::string::npos) {
+						return it->second[i];
+					}
+
                     if (nsc.ScriptNames[i] == scriptName) {
                         return it->second[i];
                     }
