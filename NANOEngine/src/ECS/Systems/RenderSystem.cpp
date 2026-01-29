@@ -89,7 +89,9 @@ namespace NE::ECS::Systems {
     }
 
     void RenderSystem::Update(double /*deltaTime*/) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
+#endif
 
         const Frustum frustum = BuildFrustum();
         const auto& entities = GetEntities();
