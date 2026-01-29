@@ -128,8 +128,9 @@ namespace Editor {
         uint32_t m_previewEntity = NE::ECS::NO_ENTITY;
         std::vector<BaselineEntry> m_previewBaseline;
 
-        void BeginPreview(bool jumpToFirstKey);
+        void BeginPreview();
         void EndPreview();
+        void SetTimeAndApply(float t);
         void ApplyPreviewPose();
 
         void MenuEntityMeta(uint32_t e);

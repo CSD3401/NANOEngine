@@ -47,6 +47,12 @@ namespace Editor::Assets {
         NE::Resource::NanoAnimClipHeader hdr{};
         hdr.payloadBytes = (uint64_t)payload.size();
 
+        std::filesystem::path filePath(outPath);
+        std::filesystem::path directory = filePath.parent_path();
+        if (!directory.empty() && !std::filesystem::exists(directory)) {
+            std::filesystem::create_directories(directory);
+        }
+
         std::ofstream ofs(outPath, std::ios::binary);
         if (!ofs.is_open()) return false;
 

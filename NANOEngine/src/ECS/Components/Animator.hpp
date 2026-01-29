@@ -29,18 +29,22 @@ namespace NE::ECS::Component {
 		std::shared_ptr<Animation::AnimationClip> clip; // for now
 		bool applyRootMotion = false;
 		bool animatePhysics = false;
-		bool isPlaying = false; // runtime mayne ?
+		bool playOnStart = false;
         UpdateMode updateMode = UpdateMode::Normal;
 		CullingMode cullingMode = CullingMode::AlwaysAnimate;
 
+		bool isPlaying = false;
         float time = 0.0f;
         float speed = 1.0f;
         float prevTime = 0.0f;
 
         NE_REFLECT_BEGIN(Animator)
             NE_REFLECT_FIELD_HIDDEN(animClipUUID),
-            NE_REFLECT_FIELD_NAMED(applyRootMotion, "Apply Root Motion"),
-            NE_REFLECT_FIELD_NAMED(animatePhysics, "Animate Physics"),
+            //NE_REFLECT_FIELD_NAMED(applyRootMotion, "Apply Root Motion"),
+            NE_REFLECT_FIELD_HIDDEN(applyRootMotion),
+            //NE_REFLECT_FIELD_NAMED(animatePhysics, "Animate Physics"),
+            NE_REFLECT_FIELD_HIDDEN(animatePhysics),
+            NE_REFLECT_FIELD_NAMED(playOnStart, "Play On Start"),
             NE_REFLECT_FIELD_HIDDEN(updateMode),
             NE_REFLECT_FIELD_HIDDEN(cullingMode),
             NE_REFLECT_FIELD_HIDDEN(luid)

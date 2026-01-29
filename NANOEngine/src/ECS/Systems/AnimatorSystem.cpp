@@ -157,6 +157,10 @@ namespace NE::ECS::Systems {
         if (!anim.animClipUUID.empty() && !anim.clip) {
             anim.clip = Resource::ResourceManager::GetInstance().
                 LoadResource<Animation::AnimationClip>(anim.animClipUUID);
+
+            if (anim.clip) {
+				anim.isPlaying = anim.playOnStart;
+            }
 		}
 
         if (anim.luid == 0)

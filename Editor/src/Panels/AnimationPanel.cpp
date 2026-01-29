@@ -520,8 +520,8 @@ namespace Editor {
         const auto& tracks = m_loadedClip->GetTracks();
         float best = -1.0f;
 
-        std::vector<float> times;
         for (const auto& tr : tracks) {
+            std::vector<float> times;
             CollectUniqueKeyTimes(tr, times);
             for (float kt : times) {
                 if (kt < m_state.time && kt > best) best = kt;
@@ -536,8 +536,8 @@ namespace Editor {
         const auto& tracks = m_loadedClip->GetTracks();
         float best = std::numeric_limits<float>::infinity();
 
-        std::vector<float> times;
         for (const auto& tr : tracks) {
+            std::vector<float> times;
             CollectUniqueKeyTimes(tr, times);
             for (float kt : times) {
                 if (kt > m_state.time && kt < best) best = kt;
@@ -615,7 +615,7 @@ namespace Editor {
         return {};
     }
 
-    void AnimationPanel::BeginPreview(bool jumpToFirstKey) {
+    void AnimationPanel::BeginPreview() {
         if (!m_loadedClip) return;
         if (m_selectedEntity == NE::ECS::NO_ENTITY) return;
 
@@ -628,8 +628,11 @@ namespace Editor {
         m_previewEntity = m_selectedEntity;
         m_previewBaseline.clear();
 
-        std::unordered_set<BaselineKey, BaselineKeyHash> dedup;
+        auto& animator = NE::ECS::Command::GetEntityAnimator(m_previewEntity);
+        animator.isPlaying = false;
 
+        // capture baseline (your existing code)
+        std::unordered_set<BaselineKey, BaselineKeyHash> dedup;
         for (const auto& tr : m_loadedClip->GetTracks()) {
             if (tr.componentTypeId == NE::ECS::Query::GetTransformComponentType())
                 CaptureBaselineFromComponent<NE::ECS::Component::Transform>(m_previewEntity, tr, "Transform", m_previewBaseline, dedup);
@@ -639,12 +642,7 @@ namespace Editor {
                 CaptureBaselineFromComponent<NE::ECS::Component::Light>(m_previewEntity, tr, "Light", m_previewBaseline, dedup);
         }
 
-        //if (jumpToFirstKey) {
-        //    const float first = ComputeMinKeyTime(*m_loadedClip);
-        //    SetTime(first);
-        //}
         SetTime(0.0f);
-
         ApplyPreviewPose();
     }
 
@@ -652,6 +650,7 @@ namespace Editor {
         if (!m_previewActive) return;
         if (m_previewEntity == NE::ECS::NO_ENTITY) return;
 
+        // restore baseline (your existing code)
         for (const auto& be : m_previewBaseline) {
             if (be.componentTypeId == NE::ECS::Query::GetTransformComponentType())
                 RestoreBaselineToComponent<NE::ECS::Component::Transform>(m_previewEntity, be, "Transform");
@@ -661,14 +660,24 @@ namespace Editor {
                 RestoreBaselineToComponent<NE::ECS::Component::Light>(m_previewEntity, be, "Light");
         }
 
+        auto& animator = NE::ECS::Command::GetEntityAnimator(m_previewEntity);
+        animator.isPlaying = false;
+
         m_previewBaseline.clear();
         m_previewEntity = NE::ECS::NO_ENTITY;
         m_previewActive = false;
 
         m_state.playing = false;
-        auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
-        animator.isPlaying = m_state.playing;
     }
+
+    void AnimationPanel::SetTimeAndApply(float t) {
+        SetTime(t);
+        if (m_state.preview) {
+            if (!m_previewActive) BeginPreview();
+            ApplyPreviewPose();
+        }
+    }
+
 
     void AnimationPanel::ApplyPreviewPose() {
         if (!m_previewActive || !m_loadedClip) return;
@@ -681,20 +690,15 @@ namespace Editor {
     void AnimationPanel::DrawLeftPanel(bool hasClip) {
         ImGui::BeginDisabled(!hasClip);
 
-        // Transport row
         bool prev = m_state.preview;
         if (ImGui::Checkbox("Preview", &m_state.preview)) {
-            //if (m_state.preview && !prev) BeginPreview(true);
-            //else if (!m_state.preview && prev) EndPreview();
-
             if (m_state.preview && !prev) {
-                BeginPreview(true);          // capture baseline + jump to first key (optional)
-                // If you want: SetTime(0.0f);
+                BeginPreview();
             } else if (!m_state.preview && prev) {
-                m_state.playing = false;     // stop playback when exiting preview
+                m_state.playing = false;
                 auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
                 animator.isPlaying = false;
-                EndPreview();                // restore baseline
+                EndPreview();
             }
         }
 
@@ -721,28 +725,29 @@ namespace Editor {
 
         const float L = hasClip ? m_loadedClip->GetLengthSeconds() : 0.0f;
 
-        if (smallBtn("|<")) SetTime(0.0f);
+        if (smallBtn("|<")) SetTimeAndApply(0.0f);
         ImGui::SameLine();
-        if (smallBtn("<K")) StepToPrevKey();
+        if (smallBtn("<K")) { StepToPrevKey(); if (m_state.preview) ApplyPreviewPose(); }
         ImGui::SameLine();
-        if (smallBtn(m_state.playing ? "||" : ">")) { 
-            auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
 
-            // If user presses play while not previewing -> auto enter preview
+        if (smallBtn(m_state.playing ? "||" : ">")) {
             if (!m_state.preview) {
                 m_state.preview = true;
-                BeginPreview(true);          // capture baseline + optionally jump to first key
-                // If you want play from beginning always:
-                // SetTime(0.0f);
+                BeginPreview();
+            } else if (!m_previewActive) {
+                BeginPreview();
             }
 
             m_state.playing = !m_state.playing;
-            animator.isPlaying = m_state.playing;
+
+            auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
+            animator.isPlaying = false;
         }
+
         ImGui::SameLine();
-        if (smallBtn("K>")) StepToNextKey();
+        if (smallBtn("K>")) { StepToNextKey(); if (m_state.preview) ApplyPreviewPose(); }
         ImGui::SameLine();
-        if (smallBtn(">|")) SetTime(L);
+        if (smallBtn(">|")) SetTimeAndApply(L);
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -820,15 +825,16 @@ namespace Editor {
 
         if (m_state.playing) {
             SetTime(m_state.time + io.DeltaTime * m_state.playbackSpeed);
+
+            if (m_state.preview) {
+                if (!m_previewActive) BeginPreview();
+                ApplyPreviewPose();
+            }
+
             if (!m_loadedClip->IsLooping() && m_state.time >= m_loadedClip->GetLengthSeconds()) {
                 m_state.playing = false;
-                auto& animator = NE::ECS::Command::GetEntityAnimator(m_selectedEntity);
-                animator.isPlaying = false;
             }
         }
-        //else if (!hasClip) {
-        //    m_state.playing = false;
-        //}
 
         if (m_state.record && m_state.selectedTrack >= 0) {
             if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
@@ -941,7 +947,7 @@ namespace Editor {
                     if (picked.trackIndex >= 0) {
                         if (!m_state.preview) {
                             m_state.preview = true;
-                            BeginPreview(false);
+                            BeginPreview();
                         }
 
                         m_state.selectedKey = picked;
