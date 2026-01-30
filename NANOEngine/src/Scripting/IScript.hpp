@@ -21,5 +21,4 @@
 // The actual implementation is in:
 //   - include/ScriptSDK/ScriptAPI.h (public interface)
 //   - include/ScriptSDK/ScriptTypes.h (public types)
-//   - include/ScriptSDK/ScriptMacros.h (convenience macros)
 //   - src/Scripting/ScriptAPI.cpp (implementation/adapter)

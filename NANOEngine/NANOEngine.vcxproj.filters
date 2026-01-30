@@ -208,7 +208,6 @@
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
-    <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
     <ClInclude Include="src\Scripting\ScriptContextFactory.hpp" />
     <ClInclude Include="src\Scripting\ScriptContext.hpp" />

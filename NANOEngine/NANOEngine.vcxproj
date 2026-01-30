@@ -53,7 +53,6 @@
     <ClInclude Include="include\ScriptSDK\Reflection.h" />
     <ClInclude Include="include\ScriptSDK\Renderer.h" />
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
-    <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
