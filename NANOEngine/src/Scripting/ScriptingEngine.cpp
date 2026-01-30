@@ -893,12 +893,7 @@ namespace NE::Scripting {
             return nullptr;
         }
 
-        // if there's only one instance, return it
-        if (it->second.size() == 1) {
-            return it->second[0];
-        }
-
-        // Multi-script, Search for the script by name
+        // Search for the script by name
         auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
         size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
         for (size_t i = 0; i < searchCount; ++i) {
