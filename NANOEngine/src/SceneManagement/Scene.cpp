@@ -68,7 +68,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
-		m_ecsCoordinator.m_animatorSystem->Update(dt);
+		//m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 		Engine_UpdateCoroutines(static_cast<float>(dt));
 	}
@@ -138,6 +138,14 @@ namespace NE::SceneManagement {
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator() {
 		return m_ecsCoordinator;
+	}
+
+	void Scene::CameraEnter() {
+		m_ecsCoordinator.m_cameraSystem->Init();
+	}
+
+	void Scene::CameraExit() {
+		m_ecsCoordinator.m_cameraSystem->Exit();
 	}
 
 }

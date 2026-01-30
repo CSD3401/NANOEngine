@@ -22,6 +22,8 @@
 #include <algorithm>
 #include "../EditorState.hpp"
 #include "../Serialization/Serializer.hpp"
+#include <Events/EventBus.hpp>
+#include "../EditorEvents.hpp"
 
 #define NOMINMAX
 #include <Windows.h>
@@ -30,6 +32,29 @@
 
 namespace Editor {
 	namespace {
+		static constexpr const char* kPosName = "Position";
+		static constexpr const char* kRotName = "Rotation";
+		static constexpr const char* kSclName = "Scale";
+
+
+		uint32_t FNV1a32(std::string_view s) {
+			uint32_t h = 2166136261u;
+			for (unsigned char c : s) { h ^= c; h *= 16777619u; }
+			return h;
+		}
+
+		uint32_t MakeFieldId(const char* componentName, std::string_view fieldName) {
+			std::string full;
+			full.reserve(std::strlen(componentName) + 1 + fieldName.size());
+			full.append(componentName);
+			full.push_back('.');
+			full.append(fieldName.data(), fieldName.size());
+			return FNV1a32(full);
+		}
+		const uint32_t posFieldId = MakeFieldId("Transform", kPosName);
+		const uint32_t rotFieldId = MakeFieldId("Transform", kRotName);
+		const uint32_t sclFieldId = MakeFieldId("Transform", kSclName);
+
 		// helper function for ui
 		// calculate world position by walking up parent hierarchy
 		ImVec2 CalculateUIWorldPosition(uint32_t entity) {
@@ -713,6 +738,25 @@ namespace Editor {
 
 							if (changed) {
 								Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(tgt.cmd));
+
+								if (s_gizmoMask & Editor::SetTransformCommand::Pos) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), posFieldId }
+									);
+								}
+								if (s_gizmoMask & Editor::SetTransformCommand::Rot) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), rotFieldId }
+									);
+								}
+								if (s_gizmoMask & Editor::SetTransformCommand::Scl) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), sclFieldId }
+									);
+								}
 							}
 						}
 

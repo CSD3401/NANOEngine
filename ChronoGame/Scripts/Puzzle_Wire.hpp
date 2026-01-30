@@ -41,7 +41,7 @@ public:
     void Initialize(Entity entity) override {
         // Called to initialize the script with its entity
         // Grab all the children from the entity
-        numWires = GetChildCount(wireHolderObject.GetEntity());
+        numWires = static_cast<int>(GetChildCount(wireHolderObject.GetEntity()));
         LOG_DEBUG("CHILDREN" + std::to_string(numWires));
 
     }

@@ -14,7 +14,7 @@ namespace Editor::Assets {
 
 	// Helper: number of asset types (assumes Prefab is last)
 	inline constexpr size_t AssetTypeCount =
-		static_cast<size_t>(AssetType::Prefab) + 1;
+		static_cast<size_t>(AssetType::AnimatorController) + 1;
 
 	class AssetManager {
 	public:

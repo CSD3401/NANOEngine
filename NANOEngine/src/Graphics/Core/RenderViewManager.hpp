@@ -36,7 +36,6 @@ namespace NE::Graphics {
 		
 		// Creates a framebuffer and returns its handle
 		RenderViewHandle Create(uint32_t width, uint32_t height, bool enablePicking = true);
-
 		RenderViewHandle CreateHDR(uint32_t width, uint32_t height, bool enablePicking = true);
 		RenderViewHandle CreateLDR(uint32_t width, uint32_t height, bool enablePicking = true);
 

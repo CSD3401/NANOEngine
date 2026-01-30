@@ -52,7 +52,7 @@ namespace NE::ECS::Systems {
 						camera.renderViewHandles[i],
 						camera.projectionMtx,
 						camera.viewMtx,
-						transform.localPosition,
+						transform.worldMatrix.GetTranslation(),
 						camera.nearPlane,
 						camera.farPlane,
 						camera.isMain,
@@ -118,7 +118,7 @@ namespace NE::ECS::Systems {
 						camera.renderViewHandles[i],
 						camera.projectionMtx,
 						camera.viewMtx,
-						transform.localPosition,
+						transform.worldMatrix.GetTranslation(),
 						camera.nearPlane,
 						camera.farPlane,
 						camera.isMain,
@@ -134,6 +134,7 @@ namespace NE::ECS::Systems {
 	}
 
 	void CameraSystem::Exit() {
+		m_mainCameraEntity.reset();
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
@@ -141,6 +142,7 @@ namespace NE::ECS::Systems {
 				for (auto& handle : camera.renderViewHandles) {
 					Graphics::GraphicsManager::DestroyRenderView(handle);
 				}
+				camera.renderViewHandles.clear();
 			}
 		}
 	}

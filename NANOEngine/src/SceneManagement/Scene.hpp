@@ -19,6 +19,9 @@ namespace NE::SceneManagement {
 		void ScriptPause();
 		void ScriptStop();
 
+		void CameraEnter();
+		void CameraExit();
+
 		NANOENGINE_API ECS::ECSCoordinator& GetECSCoordinator();
 	private:
 		ECS::ECSCoordinator m_ecsCoordinator;

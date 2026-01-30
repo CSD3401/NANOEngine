@@ -70,6 +70,9 @@ namespace NE::SceneManagement {
 		auto& runtimeComponentMgr = m_runtime->GetECSCoordinator().GetComponentManager();
 		Scripting::ScriptingEngine::GetInstance().TransferScriptFields(editorComponentMgr, runtimeComponentMgr);
 
+		// Important to call this to delete editor's renderviews
+		m_editor->CameraExit();
+
 		// Initialize runtime scene (creates instances with transferred field values)
 		m_runtime->InitRuntime();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
@@ -99,6 +102,9 @@ namespace NE::SceneManagement {
 			auto& entityMgr = coordinator.GetEntityManager();
 			auto& luidRegistry = coordinator.GetLUIDRegistry();
 			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr, luidRegistry);
+
+			// Important to recreate the editor's renderviews
+			m_editor->CameraEnter();
 		}
 	}
 

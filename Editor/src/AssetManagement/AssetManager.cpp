@@ -14,6 +14,7 @@
 #include "Assets/ShaderAsset.hpp"
 #include "Assets/SceneAsset.hpp"
 #include "Assets/PrefabAsset.hpp"
+#include "Assets/AnimationClipAsset.hpp"
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/prettywriter.h>
@@ -31,39 +32,43 @@ namespace Editor::Assets {
 
         std::string AssetTypeToString(Editor::Assets::AssetType type) {
             switch (type) {
-            case Editor::Assets::AssetType::Texture:    return "Texture";
-            case Editor::Assets::AssetType::Model:      return "Model";
-            case Editor::Assets::AssetType::Shader:     return "Shader";
-            case Editor::Assets::AssetType::Material:   return "Material";
-            case Editor::Assets::AssetType::Audio:      return "Audio";
-            case Editor::Assets::AssetType::Scene:      return "Scene";
-            case Editor::Assets::AssetType::Prefab:     return "Prefab";
-            default:                                    return "Unknown";
+            case Editor::Assets::AssetType::Texture:                return "Texture";
+            case Editor::Assets::AssetType::Model:                  return "Model";
+            case Editor::Assets::AssetType::Shader:                 return "Shader";
+            case Editor::Assets::AssetType::Material:               return "Material";
+            case Editor::Assets::AssetType::Audio:                  return "Audio";
+            case Editor::Assets::AssetType::Scene:                  return "Scene";
+            case Editor::Assets::AssetType::Prefab:                 return "Prefab";
+            case Editor::Assets::AssetType::AnimationClip:          return "AnimationClip";
+            case Editor::Assets::AssetType::AnimatorController:     return "AnimationController";
+            default:                                                return "Unknown";
             }
         }
 
         std::unique_ptr<Assets::IAsset> CreateImporterForType(Assets::AssetType type, 
             const std::string& uuid, const std::string& filename) {
             switch (type) {
-            case Assets::AssetType::Texture:    return std::make_unique<Assets::TextureAsset>();
-            case Assets::AssetType::Model:      return std::make_unique<Assets::ModelAsset>();
-            case Assets::AssetType::Material:   return std::make_unique<Assets::MaterialAsset>();
-            case Assets::AssetType::Shader:     return std::make_unique<Assets::ShaderAsset>();
-            case Assets::AssetType::Scene:      return std::make_unique<Assets::SceneAsset>();
-            case Assets::AssetType::Prefab:     return std::make_unique<Assets::PrefabAsset>();
-            default:                            return nullptr;
+            case Assets::AssetType::Texture:                return std::make_unique<Assets::TextureAsset>();
+            case Assets::AssetType::Model:                  return std::make_unique<Assets::ModelAsset>();
+            case Assets::AssetType::Material:               return std::make_unique<Assets::MaterialAsset>();
+            case Assets::AssetType::Shader:                 return std::make_unique<Assets::ShaderAsset>();
+            case Assets::AssetType::Scene:                  return std::make_unique<Assets::SceneAsset>();
+            case Assets::AssetType::Prefab:                 return std::make_unique<Assets::PrefabAsset>();
+            case Assets::AssetType::AnimationClip:          return std::make_unique<Assets::AnimationClipAsset>();
+            default:                                        return nullptr;
             }
         }
 
         NE::Resource::ResourceType GetResourceTypeFromAssetType(Assets::AssetType type) {
             switch (type) {
-            case Assets::AssetType::Texture:    return NE::Resource::ResourceType::Texture;
-            case Assets::AssetType::Model:      return NE::Resource::ResourceType::Model;
-            case Assets::AssetType::Material:   return NE::Resource::ResourceType::Material;
-            case Assets::AssetType::Shader:     return NE::Resource::ResourceType::Shader;
-            case Assets::AssetType::Scene:      return NE::Resource::ResourceType::Scene;
-            case Assets::AssetType::Prefab:     return NE::Resource::ResourceType::Prefab;
-            default:                            return NE::Resource::ResourceType::Unknown;
+            case Assets::AssetType::Texture:            return NE::Resource::ResourceType::Texture;
+            case Assets::AssetType::Model:              return NE::Resource::ResourceType::Model;
+            case Assets::AssetType::Material:           return NE::Resource::ResourceType::Material;
+            case Assets::AssetType::Shader:             return NE::Resource::ResourceType::Shader;
+            case Assets::AssetType::Scene:              return NE::Resource::ResourceType::Scene;
+            case Assets::AssetType::Prefab:             return NE::Resource::ResourceType::Prefab;
+            case Assets::AssetType::AnimationClip:      return NE::Resource::ResourceType::AnimationClip;
+            default:                                    return NE::Resource::ResourceType::Unknown;
             }
         }
 
@@ -508,12 +513,16 @@ namespace Editor::Assets {
 
     Assets::AssetType AssetManager::GetAssetTypeFromString(std::string_view extension) {
         std::string e = ToLower(std::string(extension));
-        if (e == "texture")         return Assets::AssetType::Texture;
-        else if (e == "model")      return Assets::AssetType::Model;
-        else if (e == "shader")     return Assets::AssetType::Shader;
-        else if (e == "material")   return Assets::AssetType::Material;
-        else if (e == "audio")      return Assets::AssetType::Audio;
-        else if (e == "scene")      return Assets::AssetType::Scene;
+        if (e == "texture")                 return Assets::AssetType::Texture;
+        else if (e == "model")              return Assets::AssetType::Model;
+        else if (e == "shader")             return Assets::AssetType::Shader;
+        else if (e == "material")           return Assets::AssetType::Material;
+        else if (e == "audio")              return Assets::AssetType::Audio;
+        else if (e == "scene")              return Assets::AssetType::Scene;
+		else if (e == "prefab")             return Assets::AssetType::Prefab;
+        else if (e == "animationclip")      return Assets::AssetType::AnimationClip;
+		else if (e == "animatorcontroller") return Assets::AssetType::AnimatorController;
+        else if (e == "folder")             return Assets::AssetType::Folder;
         return Assets::AssetType::Unknown;
     }
 
@@ -526,6 +535,9 @@ namespace Editor::Assets {
         else if (e == ".wav" || e == ".mp3")                            return Assets::AssetType::Audio;
         else if (e == ".scene")                                         return Assets::AssetType::Scene;
         else if (e == ".nfab")                                          return Assets::AssetType::Prefab;
+        else if (e == ".nanim")                                         return Assets::AssetType::AnimationClip;
+        else if (e == ".ncontroller")                                   return Assets::AssetType::AnimatorController;
+		else if (e == "")                                               return Assets::AssetType::Folder;
 		return Assets::AssetType::Unknown;
 	}
 
