@@ -6,6 +6,7 @@
 #include "../ECS/Core/EntityManager.hpp"
 #include "../ECS/Components/EntityMeta.hpp"
 #include <string>
+#include <utility>  // For std::pair
 
 namespace NE::Scripting {
 
@@ -126,6 +127,36 @@ namespace NE::Scripting {
         return ctx->scriptingEngine->GetScriptInstanceByName(entity, typeName);
     }
 
+    SCRIPT_API std::vector<IScript*> GameObject_GetAllScripts(Entity entity) {
+        std::vector<IScript*> result;
+
+        ScriptContext* ctx = GetStaticContext();
+        if (!ctx || !ctx->scriptingEngine || !ctx->entityManager || entity == INVALID_ENTITY) {
+            return result;
+        }
+
+        // Verify entity is still alive (not destroyed) before accessing script instances
+        const auto& usedEntities = ctx->entityManager->GetUsedEntities();
+        bool entityAlive = false;
+        for (Entity e : usedEntities) {
+            if (e == entity) {
+                entityAlive = true;
+                break;
+            }
+        }
+        if (!entityAlive) {
+            return result;  // Entity was destroyed
+        }
+
+        // Get all script instances for this entity
+        const auto* scripts = ctx->scriptingEngine->GetScriptInstances(entity);
+        if (scripts) {
+            result = *scripts;  // Copy the vector
+        }
+
+        return result;
+    }
+
     SCRIPT_API std::vector<Entity> GameObject_FindAllWithScript(const std::string& typeName) {
         std::vector<Entity> result;
 
@@ -146,6 +177,30 @@ namespace NE::Scripting {
                     if (scriptName == typeName) {
                         result.push_back(entity);
                         break; // Found a match, don't add duplicates
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    SCRIPT_API std::vector<std::pair<Entity, IScript*>> GameObject_GetAllEntitiesWithScripts() {
+        std::vector<std::pair<Entity, IScript*>> result;
+
+        ScriptContext* ctx = GetStaticContext();
+        if (!ctx || !ctx->scriptingEngine || !ctx->entityManager) {
+            return result;
+        }
+
+        // Iterate through all entities and collect their scripts
+        const auto& usedEntities = ctx->entityManager->GetUsedEntities();
+        for (Entity entity : usedEntities) {
+            const auto* scripts = ctx->scriptingEngine->GetScriptInstances(entity);
+            if (scripts) {
+                for (IScript* script : *scripts) {
+                    if (script) {
+                        result.emplace_back(entity, script);
                     }
                 }
             }
