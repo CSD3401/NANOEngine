@@ -152,6 +152,12 @@ namespace Scripting {
         virtual void OnCollisionExit(Entity other) = 0;
 
         /**
+         * Called when this entity is colliding with another entity.
+         * @param other The other entity involved in collision
+		 */
+        virtual void OnCollisionStay(Entity other) = 0;
+
+        /**
          * Called when this entity triggers another entity.
          * @param other The other entity that entered trigger
          */
@@ -162,6 +168,12 @@ namespace Scripting {
          * @param other The other entity that exited trigger
          */
         virtual void OnTriggerExit(Entity other) = 0;
+
+        /**
+         * Called when this entity is triggering another entity.
+         * @param other The other entity involved in trigger
+		 */
+		virtual void OnTriggerStay(Entity other) = 0;
 
         //=====================================================================
         // ENTITY & SCRIPT STATE
