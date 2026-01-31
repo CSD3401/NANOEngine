@@ -24,6 +24,8 @@ namespace NE::Graphics {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
         std::shared_ptr<IGeometryBuffer> buffer;
+        std::vector<uint8_t> colliderBlob;
+        uint8_t colliderType = 0;
 
         AABB   localAABB;
         Sphere localSphere;
@@ -36,8 +38,10 @@ namespace NE::Graphics {
         bool Preload(Resource::BinaryView blob) override;
         void Finalize() override;
 
-        bool GetPhysicsMesh(std::vector<Math::Vec3>& outVerts,
-            std::vector<uint32_t>& outIndices) const;
+        bool GetSubmeshColliderBlob(uint32_t submeshIndex,
+            const uint8_t*& outData,
+            uint32_t& outSize,
+            uint8_t& outType) const;
 
         static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::Model; }
         Resource::ResourceType GetType() const override { return GetStaticType(); }
@@ -45,9 +49,16 @@ namespace NE::Graphics {
     private:
         struct StagedSubmesh {
             const uint8_t* vdata = nullptr;
-            uint32_t       vertexCount = 0;
+            uint32_t vertexCount = 0;
+
             const uint8_t* idata = nullptr;
-            uint32_t       indexCount = 0;
+            uint32_t indexCount = 0;
+
+            // NEW
+            const uint8_t* cdata = nullptr;
+            uint32_t colliderSize = 0;
+            uint8_t  colliderType = 0;
+            uint8_t  vertexFlags = 0;
 
             AABB   localAABB;
             Sphere localSphere;

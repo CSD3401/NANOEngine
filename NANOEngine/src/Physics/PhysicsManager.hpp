@@ -19,6 +19,7 @@ namespace NE::ECS::Component {
     struct Transform;
     struct Rigidbody;
 	struct CharacterController;
+	struct Renderer;
 }
 
 namespace NE::Math {
@@ -62,12 +63,14 @@ namespace NE::Physics {
         void Update(double dt);
         void Shutdown();
 
+
         void OnPlay();
         void OnStop();
 
         void SetComponentManager(ECS::ComponentManager* cm);
 
-        void CreateOrUpdateShape(const uint64_t entityLUID, const ECS::Component::Collider& col);
+        uint64_t ComputeShapeSignature(uint32_t entity, const ECS::Component::Collider& col);
+        void CreateOrUpdateShape(uint32_t entity, uint64_t entityLUID, const ECS::Component::Collider& col);
         void RemoveShape(const uint64_t entityLUID);
 
         // Character Controller
@@ -101,7 +104,15 @@ namespace NE::Physics {
         Math::Vec3 GetAngularVelocity(uint64_t entityLUID) const;
         void SetAngularVelocity(uint64_t entityLUID, const Math::Vec3& angularVelocity);
 
+        bool CookMeshCollider(const std::vector<Math::Vec3>& vertices,
+            const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob);
+
     private:
+        struct StoredShape {
+            JPH::ShapeRefC shape;
+            uint64_t       signature = 0;
+        };
+
         ECS::ComponentManager* m_componentManager = nullptr;
 
         std::unique_ptr<JPH::Factory> m_factory;
@@ -117,8 +128,9 @@ namespace NE::Physics {
 
         std::unique_ptr<JoltDebugRenderer> m_debugRenderer;
 
-        std::unordered_map<uint64_t, JPH::ShapeRefC> m_shapes;
+        std::unordered_map<uint64_t, StoredShape> m_shapes;
         std::unordered_map<uint64_t, JPH::BodyID> m_bodies;
+        //std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> m_meshShapes;
 
         std::unordered_map<uint64_t, CharacterRuntime> m_characters;
 

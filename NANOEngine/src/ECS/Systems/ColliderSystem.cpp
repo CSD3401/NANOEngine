@@ -17,6 +17,7 @@ namespace NE::ECS::Systems {
 	void ColliderSystem::OnEntityAdded(Entity e) {
 		auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 		auto& col = m_componentManager->GetComponent<Component::Collider>(e);
+		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 
 		if (col.luid == 0) {
 			col.luid = Core::LUIDGenerator::Generate("co");
@@ -35,7 +36,7 @@ namespace NE::ECS::Systems {
 
 		m_luidRegistry->Register(col.luid, &col, e);
 
-		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
+		Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(e, meta.luid, col);
 	}
 
 	void ColliderSystem::OnEntityRemoved(Entity e) {
@@ -68,14 +69,9 @@ namespace NE::ECS::Systems {
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 			if (col.isDirty) {
-				Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(meta.luid, col);
+				Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(e, meta.luid, col);
 				col.isDirty = false;
 			}
-
-			//if (col.type != Component::Collider::ColliderType::Mesh)
-			//	Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t, col);
-			//if (col.type != Component::Collider::ColliderType::Mesh)
-			//	Physics::PhysicsManager::GetInstance().DrawShapeGizmo(meta.luid, t);
 		}
 	}
 
