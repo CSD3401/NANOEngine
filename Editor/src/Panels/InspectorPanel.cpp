@@ -797,30 +797,32 @@ namespace Editor {
 
 		// Model field
 		bool openModelPopup = false;
-		//DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
-		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), &openModelPopup);
-		if (openModelPopup) {
-			ImGui::OpenPopup("AssetPicker_Model");
-		}
-
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
-				std::string dropped((const char*)p->Data, p->DataSize - 1);
-				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-				NE::Renderer::Command::AssignModel(entity, uuid);
-			} else if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
-				std::string dropped((const char*)p->Data, p->DataSize - 1);
-				auto uuidSubmesh = std::find(dropped.begin(), dropped.end(), ':');
-				if (uuidSubmesh != dropped.end()) {
-					std::string meshPath(dropped.begin(), uuidSubmesh);
-					std::string submeshName(uuidSubmesh + 1, dropped.end());
+		DrawAssetField(
+			"Model",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID),
+			true,
+			&openModelPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"ASSET_SUBMESH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
+				auto it = std::find(dropped.begin(), dropped.end(), ':');
+				if (it != dropped.end()) {
+					std::string meshPath(dropped.begin(), it);
+					std::string submeshName(it + 1, dropped.end());
 					auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(meshPath);
 					NE::Renderer::Command::AssignModel(entity, uuid, std::stoi(submeshName));
 				}
-
 			}
-			ImGui::EndDragDropTarget();
-		}
+		);
+
+		if (openModelPopup) ImGui::OpenPopup("AssetPicker_Model");
+		
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
 
 		static std::string searchQuery;
 		if (ImGui::BeginPopup("AssetPicker_Model")) {
@@ -845,19 +847,27 @@ namespace Editor {
 		}
 
 		bool openMaterialPopup = false;
-		DrawAssetField("Material", Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID), &openMaterialPopup);
-		if (openMaterialPopup) {
-			ImGui::OpenPopup("AssetPicker_Material");
-		}
-
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
-				std::string dropped((const char*)p->Data, p->DataSize - 1);
+		DrawAssetField(
+			"Material",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID),
+			true,
+			&openMaterialPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"MATERIAL_PATH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
 				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 				NE::Renderer::Command::AssignMaterial(entity, uuid);
 			}
-			ImGui::EndDragDropTarget();
-		}
+		);
+
+		if (openMaterialPopup) ImGui::OpenPopup("AssetPicker_Material");
+
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
 
 		if (ImGui::BeginPopup("AssetPicker_Material")) {
 			ImGui::Text("Select a Material");
