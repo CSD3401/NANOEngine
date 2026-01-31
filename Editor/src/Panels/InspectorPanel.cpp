@@ -818,21 +818,11 @@ namespace Editor {
 		);
 
 		if (openModelPopup) ImGui::OpenPopup("AssetPicker_Model");
-
-		//if (ImGui::BeginDragDropTarget()) {
-		//	if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
-		//		std::string dropped((const char*)p->Data, p->DataSize - 1);
-		//		auto uuidSubmesh = std::find(dropped.begin(), dropped.end(), ':');
-		//		if (uuidSubmesh != dropped.end()) {
-		//			std::string meshPath(dropped.begin(), uuidSubmesh);
-		//			std::string submeshName(uuidSubmesh + 1, dropped.end());
-		//			auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(meshPath);
-		//			NE::Renderer::Command::AssignModel(entity, uuid, std::stoi(submeshName));
-		//		}
-
-		//	}
-		//	ImGui::EndDragDropTarget();
-		//}
+		
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
 
 		static std::string searchQuery;
 		if (ImGui::BeginPopup("AssetPicker_Model")) {
@@ -874,14 +864,10 @@ namespace Editor {
 
 		if (openMaterialPopup) ImGui::OpenPopup("AssetPicker_Material");
 
-		//if (ImGui::BeginDragDropTarget()) {
-		//	if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
-		//		std::string dropped((const char*)p->Data, p->DataSize - 1);
-		//		auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-		//		NE::Renderer::Command::AssignMaterial(entity, uuid);
-		//	}
-		//	ImGui::EndDragDropTarget();
-		//}
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
 
 		if (ImGui::BeginPopup("AssetPicker_Material")) {
 			ImGui::Text("Select a Material");
