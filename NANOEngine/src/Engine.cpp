@@ -383,6 +383,12 @@ namespace NE {
 		Resource::ResourceManager::GetInstance().DestroyGLTexture(id);
 	}
 
+	bool CookMeshCollider(const std::vector<Math::Vec3>& vertices,
+		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob) 
+	{
+		return NE::Physics::PhysicsManager::GetInstance().CookMeshCollider(vertices, indices, outBlob);
+	}
+
 	void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds) {
 		gSceneManager.GetActive()->GetECSCoordinator().m_animatorSystem->ApplyClipAtTime(entity, animClip, timeInSeconds);
 	}
