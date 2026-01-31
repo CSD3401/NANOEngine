@@ -9,6 +9,13 @@
 
 #include "Core/Layers.hpp"
 #include "ForceMode.hpp"
+#include "ContactDefs.hpp"
+#include <unordered_set>
+#include <mutex>
+
+namespace NE::Core {
+    class LUIDRegistry;
+}
 
 namespace NE::ECS {
     class ComponentManager;
@@ -45,6 +52,8 @@ namespace NE::Physics {
     
     class JoltDebugRenderer;
 
+	class ContactListenerImpl;
+
     class PhysicsManager {
         struct CharacterRuntime {
             JPH::Ref<JPH::CharacterVirtual> controller;
@@ -67,7 +76,7 @@ namespace NE::Physics {
         void OnPlay();
         void OnStop();
 
-        void SetComponentManager(ECS::ComponentManager* cm);
+        void SetManagers(ECS::ComponentManager* cm, Core::LUIDRegistry* lg);
 
         uint64_t ComputeShapeSignature(uint32_t entity, const ECS::Component::Collider& col);
         void CreateOrUpdateShape(uint32_t entity, uint64_t entityLUID, const ECS::Component::Collider& col);
@@ -86,6 +95,8 @@ namespace NE::Physics {
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID);
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col, uint8_t layerID);
         void DestroyBody(uint64_t entityLUID);
+
+        void RemoveContactsInvolving(uint64_t luid);
 
         void SyncTransformToBodies(uint64_t entityLUID, ECS::Component::Transform& t) const;
 		void SyncTransformToCharacters(uint64_t entityLUID, ECS::Component::Transform& t) const;
@@ -107,6 +118,13 @@ namespace NE::Physics {
         bool CookMeshCollider(const std::vector<Math::Vec3>& vertices,
             const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob);
 
+		uint64_t BodyToLuid(JPH::BodyID bodyID) const;
+        void PushRawContactEvent(const RawContactEvent& e);
+        void FlushContactEventsAndDispatch();
+
+        void DispatchEnter(const ContactKey& k);
+        void DispatchExit(const ContactKey& k);
+        void DispatchStay(const ContactKey& k);
     private:
         struct StoredShape {
             JPH::ShapeRefC shape;
@@ -114,6 +132,7 @@ namespace NE::Physics {
         };
 
         ECS::ComponentManager* m_componentManager = nullptr;
+        Core::LUIDRegistry* m_luidRegistry = nullptr;
 
         std::unique_ptr<JPH::Factory> m_factory;
         std::unique_ptr<JPH::PhysicsSystem> m_physicsSystem;
@@ -130,7 +149,7 @@ namespace NE::Physics {
 
         std::unordered_map<uint64_t, StoredShape> m_shapes;
         std::unordered_map<uint64_t, JPH::BodyID> m_bodies;
-        //std::unordered_map<uint32_t, JPH::RefConst<JPH::Shape>> m_meshShapes;
+        std::unordered_map<JPH::BodyID, uint64_t> m_bodyToLuid;
 
         std::unordered_map<uint64_t, CharacterRuntime> m_characters;
 
@@ -140,6 +159,15 @@ namespace NE::Physics {
         float m_accumulator = 0.0f;
         float m_maxFrameTime = 0.25f;
         float m_alpha = 0.0f; // interpolation alpha for rendering
+
+        std::mutex m_contactEventMutex;
+        std::vector<RawContactEvent> m_contactEventsWrite;
+        std::vector<RawContactEvent> m_contactEventsRead;
+
+        std::unordered_set<ContactKey, ContactKeyHash> m_prevContacts;
+        std::unordered_set<ContactKey, ContactKeyHash> m_currContacts;
+
+        std::unique_ptr<ContactListenerImpl> m_contactListener;
     };
 
 }

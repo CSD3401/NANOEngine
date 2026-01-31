@@ -147,7 +147,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::CameraSystem>(sig);
 		}
 
-        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get());
+        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Hierarchy>());

@@ -296,6 +296,14 @@ namespace NE::Scripting {
             NE::ECS::EntityManager& entityManager,
             NE::Core::LUIDRegistry& luidRegistry);
 
+        NANOENGINE_API void OnCollisionEnter(NE::ECS::Entity entity, NE::ECS::Entity other);
+        NANOENGINE_API void OnCollisionExit(NE::ECS::Entity entity, NE::ECS::Entity other);
+        NANOENGINE_API void OnCollisionStay(NE::ECS::Entity entity, NE::ECS::Entity other);
+
+        NANOENGINE_API void OnTriggerEnter(NE::ECS::Entity entity, NE::ECS::Entity other);
+        NANOENGINE_API void OnTriggerExit(NE::ECS::Entity entity, NE::ECS::Entity other);
+        NANOENGINE_API void OnTriggerStay(NE::ECS::Entity entity, NE::ECS::Entity other);
+
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;

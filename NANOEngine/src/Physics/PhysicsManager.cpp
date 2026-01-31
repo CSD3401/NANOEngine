@@ -32,6 +32,8 @@
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
 #include "Core/SpdLogger.hpp"
+#include "Core/LUIDRegistry.hpp"
+#include "Scripting/ScriptingEngine.hpp"
 
 #include "Ray.hpp"
 #include "RaycastHit.hpp"
@@ -49,6 +51,7 @@
 #include "StreamOutImpl.hpp"
 #include "Core/LayerRegistry.hpp"
 #include "Core/Profiler.hpp"
+#include "ContactListenerImpl.hpp"
 
 namespace NE::Physics {
 	namespace {
@@ -160,6 +163,9 @@ namespace NE::Physics {
 		JPH::DebugRenderer::sInstance = m_debugRenderer.get();
 		m_debugRenderer->Init();
 
+		m_contactListener = std::make_unique<ContactListenerImpl>(this);
+		m_physicsSystem->SetContactListener(m_contactListener.get());
+
 		const uint32_t maxBodies = 8192;
 		const uint32_t numBodyMutexes = 0;
 		const uint32_t maxBodyPairs = 65536;
@@ -190,6 +196,7 @@ namespace NE::Physics {
 			dt = m_maxFrameTime;
 
 		m_accumulator += dt;
+		bool didStep = false;
 
 		while (m_accumulator >= m_fixedDt) {
 			const JPH::EPhysicsUpdateError err = m_physicsSystem->Update(
@@ -201,13 +208,15 @@ namespace NE::Physics {
 
 			UpdateCharacters(m_fixedDt);
 
-			SPD_INFO("Num Shape Refs: " << m_shapes.size());
-
 			// (Optional) handle err; in practice you can log it
 			(void)err;
 
 			m_accumulator -= m_fixedDt;
+			didStep = true;
 		}
+
+		if (didStep)
+			FlushContactEventsAndDispatch();
 	}
 
 	void PhysicsManager::Shutdown() {
@@ -624,6 +633,7 @@ namespace NE::Physics {
 		bi.SetUserData(id, static_cast<JPH::uint64>(entity));
 
 		m_bodies[luid] = id;
+		m_bodyToLuid[id] = luid;
 	}
 
 	void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
@@ -664,14 +674,32 @@ namespace NE::Physics {
 		bi.SetUserData(id, static_cast<JPH::uint64>(entity));
 
 		m_bodies[luid] = id;
+		m_bodyToLuid[id] = luid;
 	}
 
 	void PhysicsManager::DestroyBody(uint64_t luid) {
-		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+		auto it = m_bodies.find(luid);
+		if (it == m_bodies.end()) return;
 
-		auto& id = m_bodies.at(luid);
+		JPH::BodyID id = it->second;
+
+		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
 		bi.RemoveBody(id);
 		bi.DestroyBody(id);
+
+		m_bodies.erase(it);
+		m_bodyToLuid.erase(id);
+
+		RemoveContactsInvolving(luid);
+	}
+
+	void PhysicsManager::RemoveContactsInvolving(uint64_t luid) {
+		for (auto it = m_prevContacts.begin(); it != m_prevContacts.end(); ) {
+			if (it->a == luid || it->b == luid)
+				it = m_prevContacts.erase(it);
+			else
+				++it;
+		}
 	}
 
 	void PhysicsManager::SyncTransformToBodies(uint64_t luid, ECS::Component::Transform& t) const {
@@ -988,6 +1016,87 @@ namespace NE::Physics {
 		return true;
 	}
 
+	uint64_t PhysicsManager::BodyToLuid(JPH::BodyID bodyID) const {
+		auto it = m_bodyToLuid.find(bodyID);
+		return it == m_bodyToLuid.end() ? 0 : it->second;
+	}
+
+	void PhysicsManager::PushRawContactEvent(const RawContactEvent& e) {
+		std::scoped_lock lock(m_contactEventMutex);
+		m_contactEventsWrite.push_back(e);
+	}
+
+	void PhysicsManager::FlushContactEventsAndDispatch() {
+		{
+			std::scoped_lock lock(m_contactEventMutex);
+			m_contactEventsRead.swap(m_contactEventsWrite);
+			m_contactEventsWrite.clear();
+		}
+
+		m_currContacts.clear();
+		for (const RawContactEvent& e : m_contactEventsRead) {
+			if (e.type == ContactEventType::Added || e.type == ContactEventType::Persisted) {
+				m_currContacts.insert(ContactKey::Make(e.aLuid, e.bLuid, e.isTrigger));
+			}
+		}
+
+		for (const auto& k : m_currContacts) {
+			if (m_prevContacts.find(k) == m_prevContacts.end()) {
+				DispatchEnter(k);
+			} else {
+				DispatchStay(k);
+			}
+		}
+
+		for (const auto& k : m_prevContacts) {
+			if (m_currContacts.find(k) == m_currContacts.end()) {
+				DispatchExit(k);
+			}
+		}
+
+		m_prevContacts.swap(m_currContacts);
+		m_contactEventsRead.clear();
+	}
+
+	void PhysicsManager::DispatchEnter(const ContactKey& k) {
+		const uint32_t aEnt = m_luidRegistry->Find(k.a)->m_entityOwner;
+		const uint32_t bEnt = m_luidRegistry->Find(k.b)->m_entityOwner;
+
+		if (k.isTrigger) {
+			Scripting::ScriptingEngine::GetInstance().OnTriggerEnter(aEnt, bEnt);
+			Scripting::ScriptingEngine::GetInstance().OnTriggerEnter(bEnt, aEnt);
+		} else {
+			Scripting::ScriptingEngine::GetInstance().OnCollisionEnter(aEnt, bEnt);
+			Scripting::ScriptingEngine::GetInstance().OnCollisionEnter(bEnt, aEnt);
+		}
+	}
+
+	void PhysicsManager::DispatchExit(const ContactKey& k) {
+		const uint32_t aEnt = m_luidRegistry->Find(k.a)->m_entityOwner;
+		const uint32_t bEnt = m_luidRegistry->Find(k.b)->m_entityOwner;
+
+		if (k.isTrigger) {
+			Scripting::ScriptingEngine::GetInstance().OnTriggerExit(aEnt, bEnt);
+			Scripting::ScriptingEngine::GetInstance().OnTriggerExit(bEnt, aEnt);
+		} else {
+			Scripting::ScriptingEngine::GetInstance().OnCollisionExit(aEnt, bEnt);
+			Scripting::ScriptingEngine::GetInstance().OnCollisionExit(bEnt, aEnt);
+		}
+	}
+
+	void PhysicsManager::DispatchStay(const ContactKey& k) {
+		const uint32_t aEnt = m_luidRegistry->Find(k.a)->m_entityOwner;
+		const uint32_t bEnt = m_luidRegistry->Find(k.b)->m_entityOwner;
+
+		if (k.isTrigger) {
+			Scripting::ScriptingEngine::GetInstance().OnTriggerStay(aEnt, bEnt);
+			Scripting::ScriptingEngine::GetInstance().OnTriggerStay(bEnt, aEnt);
+		} else {
+			Scripting::ScriptingEngine::GetInstance().OnCollisionStay(aEnt, bEnt);
+			Scripting::ScriptingEngine::GetInstance().OnCollisionStay(bEnt, aEnt);
+		}
+	}
+
 	void PhysicsManager::OnPlay() {
 	}
 
@@ -999,11 +1108,17 @@ namespace NE::Physics {
 			bi.DestroyBody(id);
 		}
 		m_bodies.clear();
-
+		m_bodyToLuid.clear();
 		m_characters.clear();
+
+		m_prevContacts.clear();
+		m_currContacts.clear();
+		m_contactEventsWrite.clear();
+		m_contactEventsRead.clear();
 	}
 
-	void PhysicsManager::SetComponentManager(ECS::ComponentManager* cm) {
+	void PhysicsManager::SetManagers(ECS::ComponentManager* cm, Core::LUIDRegistry* lg) {
 		m_componentManager = cm;
+		m_luidRegistry = lg;
 	}
 }
