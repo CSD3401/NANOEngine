@@ -722,6 +722,7 @@ namespace NE::Physics {
 		euler.x = 0.0f;
 		euler.z = 0.0f;
 		t.localRotationEuler = euler;
+		t.localRotationQuat = ToEngineQuat(ch.GetRotation());
 
 		t.isDirty = true;
 	}
