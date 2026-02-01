@@ -13,6 +13,8 @@
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/RectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIText.hpp"
+#include "../Components/UIButton.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../Components/PrefabLink.hpp"
@@ -32,6 +34,7 @@
 #include "../Systems/HierarchySystem.hpp"
 #include "../Systems/PrefabSystem.hpp"
 #include "../Systems/CharacterControllerSystem.hpp"
+#include "../Systems/UIEventSystem.hpp"
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
@@ -60,6 +63,8 @@ namespace NE::ECS {
         RegisterComponent<Component::RectTransform>();
         RegisterComponent<Component::Canvas>();
         RegisterComponent<Component::UIImage>();
+        RegisterComponent<Component::UIText>();
+        RegisterComponent<Component::UIButton>();
         RegisterComponent<Component::Animator>();
 		RegisterComponent<Component::Camera>();
         RegisterComponent<Component::Hierarchy>();
@@ -127,6 +132,14 @@ namespace NE::ECS {
             Signature sig;
             sig.set(GetComponentType<Component::UIRectTransform>());
             SetSystemSignature<Systems::UITransformSystem>(sig);
+        }
+
+        // UIEventSystem processes input before rendering - handles button states and hit testing
+        m_uiEventSystem = m_systemManager->RegisterSystem<Systems::UIEventSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::UIRectTransform>());
+            SetSystemSignature<Systems::UIEventSystem>(sig);
         }
 
         m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());

@@ -19,6 +19,10 @@ namespace NE::ECS::Component {
         // Callback/event system
         uint32_t onClickEventId = 0; // For your event system
         bool interactable = true;
+
+        // Runtime fields for interaction tracking (not serialized)
+        bool wasClicked = false;       // Set true on PRESSED->NORMAL transition, cleared each frame
+        State previousState = State::NORMAL;  // For state transition detection
     };
 
 } // namespace NE::ECS::Component

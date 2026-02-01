@@ -32,11 +32,13 @@ namespace NE::Graphics {
         static RenderViewManager* s_RenderViewManager;
         static unsigned int s_VAO, s_VBO, s_EBO;
         static unsigned int s_Shader;
+        static unsigned int s_TextShader;  // Text rendering shader
         static unsigned int s_CompositeShader;
         static unsigned int s_CompositeVAO, s_CompositeVBO;
         static uint32_t s_ScreenW, s_ScreenH;
 
         static void InitCompositeShader();
+        static void InitTextShader();
 
         // material helpers
         static void BuildQuadVertices(const UIDrawCommand& cmd, float* verts);

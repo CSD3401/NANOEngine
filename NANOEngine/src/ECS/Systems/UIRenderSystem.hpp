@@ -6,10 +6,13 @@
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIText.hpp"
 #include "../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/UIImageMeshGenerator.hpp"
+#include "../../Graphics/Core/FontAtlas.hpp"
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace NE::ECS::Systems {
 
@@ -162,6 +165,32 @@ namespace NE::ECS::Systems {
         //=================================================================
 
         bool GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj);
+
+        //=================================================================
+        // Text Rendering
+        //=================================================================
+
+        std::vector<Entity> CollectTextChildren(Entity canvasEntity);
+
+        void RenderTextEntity(
+            Entity entity,
+            Entity canvasEntity,
+            const Component::UICanvas& canvas,
+            const Math::Mat4* viewMatrix,
+            const Math::Mat4* projMatrix
+        );
+
+        void SubmitTextDrawCommand(
+            Entity entity,
+            Entity canvasEntity,
+            const Component::UICanvas& canvas,
+            Component::UIText& text,
+            const Component::UIRectTransform& rect,
+            const WorldTransform& worldTransform,
+            std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
+            const Math::Mat4* viewMatrix,
+            const Math::Mat4* projMatrix
+        );
     };
 
 } // namespace NE::ECS::Systems

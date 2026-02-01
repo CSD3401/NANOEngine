@@ -3,9 +3,18 @@
 
 #include <string>
 #include <filesystem>
+#include <vector>
+#include <cstdint>
 #include "../../Math/Vec4.hpp"
 
 namespace NE::ECS::Component {
+
+    struct UITextVertex {
+        float x, y, z;
+        float u, v;
+        float r, g, b, a;
+    };
+
     struct UIText {
         std::string text = "New Text";
         std::filesystem::path fontPath;
@@ -19,6 +28,13 @@ namespace NE::ECS::Component {
         VerticalAlignment verticalAlign = VerticalAlignment::TOP;
 
         bool wordWrap = false;
+
+        // Runtime fields (not serialized)
+        uint64_t fontAtlasHandle = 0;
+        bool isDirty = true;
+        std::vector<UITextVertex> cachedVertices;
+        std::string cachedText;
+        float cachedFontSize = 0.0f;
     };
 } // namespace NE::ECS::Component
 #endif // END UI_TEXT_HPP

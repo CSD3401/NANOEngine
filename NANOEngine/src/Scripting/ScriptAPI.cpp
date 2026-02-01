@@ -21,6 +21,8 @@
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
+#include "../ECS/Components/UIText.hpp"
+#include "../ECS/Components/UIButton.hpp"
 #include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../Physics/ForceMode.hpp"
@@ -3842,6 +3844,115 @@ namespace NE {
 		void SetFogDensity(float density) {
 			auto& settings = Renderer::Command::GetRenderSettings();
 			settings.fogDensity = density;
+		}
+
+		//=========================================================================
+		// UI TEXT FUNCTIONS
+		//=========================================================================
+
+		void SetUIText(Entity entity, const char* text) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
+				return;
+			}
+
+			auto& uiText = ecs.GetComponent<ECS::Component::UIText>(entity);
+			uiText.text = text ? text : "";
+			uiText.isDirty = true;
+		}
+
+		void SetUITextColor(Entity entity, float r, float g, float b, float a) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
+				return;
+			}
+
+			auto& uiText = ecs.GetComponent<ECS::Component::UIText>(entity);
+			uiText.color = NE::Math::Vec4(r, g, b, a);
+			uiText.isDirty = true;
+		}
+
+		const char* GetUIText(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
+				return "";
+			}
+
+			auto& uiText = ecs.GetComponent<ECS::Component::UIText>(entity);
+			return uiText.text.c_str();
+		}
+
+		//=========================================================================
+		// UI BUTTON FUNCTIONS
+		//=========================================================================
+
+		bool IsButtonHovered(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.currentState == ECS::Component::UIButton::State::HOVERED;
+		}
+
+		bool IsButtonPressed(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.currentState == ECS::Component::UIButton::State::PRESSED;
+		}
+
+		bool WasButtonClicked(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.wasClicked;
+		}
+
+		void SetButtonInteractable(Entity entity, bool interactable) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			button.interactable = interactable;
+			if (!interactable) {
+				button.currentState = ECS::Component::UIButton::State::DISABLED;
+			}
+		}
+
+		bool IsButtonInteractable(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECS();
+
+			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
+				return false;
+			}
+
+			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
+			return button.interactable;
 		}
 
 	} // namespace Scripting

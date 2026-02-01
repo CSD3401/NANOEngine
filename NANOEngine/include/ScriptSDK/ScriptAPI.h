@@ -1170,6 +1170,73 @@ namespace Scripting {
     SCRIPT_API float GetFogDensity();
     SCRIPT_API void SetFogDensity(float density);
 
+    //=========================================================================
+    // UI TEXT API
+    //=========================================================================
+
+    /**
+     * @brief Set the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @param text The text string to display
+     */
+    SCRIPT_API void SetUIText(Entity entity, const char* text);
+
+    /**
+     * @brief Set the color of a UIText component
+     * @param entity The entity with UIText component
+     * @param r Red component (0.0 to 1.0)
+     * @param g Green component (0.0 to 1.0)
+     * @param b Blue component (0.0 to 1.0)
+     * @param a Alpha component (0.0 to 1.0)
+     */
+    SCRIPT_API void SetUITextColor(Entity entity, float r, float g, float b, float a);
+
+    /**
+     * @brief Get the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @return The text string, or empty string if no UIText component
+     */
+    SCRIPT_API const char* GetUIText(Entity entity);
+
+    //=========================================================================
+    // UI BUTTON API
+    //=========================================================================
+
+    /**
+     * @brief Check if a button is currently hovered
+     * @param entity The entity with UIButton component
+     * @return true if the button is hovered
+     */
+    SCRIPT_API bool IsButtonHovered(Entity entity);
+
+    /**
+     * @brief Check if a button is currently pressed
+     * @param entity The entity with UIButton component
+     * @return true if the button is pressed
+     */
+    SCRIPT_API bool IsButtonPressed(Entity entity);
+
+    /**
+     * @brief Check if a button was clicked this frame
+     * @param entity The entity with UIButton component
+     * @return true if the button was clicked (released while hovered)
+     */
+    SCRIPT_API bool WasButtonClicked(Entity entity);
+
+    /**
+     * @brief Set whether a button is interactable
+     * @param entity The entity with UIButton component
+     * @param interactable true to enable interaction, false to disable
+     */
+    SCRIPT_API void SetButtonInteractable(Entity entity, bool interactable);
+
+    /**
+     * @brief Check if a button is interactable
+     * @param entity The entity with UIButton component
+     * @return true if the button is interactable
+     */
+    SCRIPT_API bool IsButtonInteractable(Entity entity);
+
 } // namespace Scripting
 } // namespace NE
 
@@ -1509,6 +1576,84 @@ namespace RenderSettings {
      */
     inline void SetFogDensity(float density) {
         NE::Scripting::SetFogDensity(density);
+    }
+}
+
+/// UI system namespace - text and button interaction
+namespace UI {
+    /**
+     * @brief Set the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @param text The text string to display
+     */
+    inline void SetText(NE::Scripting::Entity entity, const char* text) {
+        NE::Scripting::SetUIText(entity, text);
+    }
+
+    /**
+     * @brief Set the color of a UIText component
+     * @param entity The entity with UIText component
+     * @param r Red component (0.0 to 1.0)
+     * @param g Green component (0.0 to 1.0)
+     * @param b Blue component (0.0 to 1.0)
+     * @param a Alpha component (0.0 to 1.0)
+     */
+    inline void SetTextColor(NE::Scripting::Entity entity, float r, float g, float b, float a) {
+        NE::Scripting::SetUITextColor(entity, r, g, b, a);
+    }
+
+    /**
+     * @brief Get the text content of a UIText component
+     * @param entity The entity with UIText component
+     * @return The text string, or empty string if no UIText component
+     */
+    inline const char* GetText(NE::Scripting::Entity entity) {
+        return NE::Scripting::GetUIText(entity);
+    }
+
+    /**
+     * @brief Check if a button is currently hovered
+     * @param entity The entity with UIButton component
+     * @return true if the button is hovered
+     */
+    inline bool IsButtonHovered(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsButtonHovered(entity);
+    }
+
+    /**
+     * @brief Check if a button is currently pressed
+     * @param entity The entity with UIButton component
+     * @return true if the button is pressed
+     */
+    inline bool IsButtonPressed(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsButtonPressed(entity);
+    }
+
+    /**
+     * @brief Check if a button was clicked this frame
+     * @param entity The entity with UIButton component
+     * @return true if the button was clicked (released while hovered)
+     */
+    inline bool WasButtonClicked(NE::Scripting::Entity entity) {
+        return NE::Scripting::WasButtonClicked(entity);
+    }
+
+    /**
+     * @brief Set whether a button is interactable
+     * @param entity The entity with UIButton component
+     * @param interactable true to enable interaction, false to disable
+     */
+    inline void SetButtonInteractable(NE::Scripting::Entity entity, bool interactable) {
+        NE::Scripting::SetButtonInteractable(entity, interactable);
+    }
+
+    /**
+     * @brief Check if a button is interactable
+     * @param entity The entity with UIButton component
+     * @return true if the button is interactable
+     */
+    inline bool IsButtonInteractable(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsButtonInteractable(entity);
     }
 }
 

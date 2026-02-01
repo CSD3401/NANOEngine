@@ -19,6 +19,7 @@ namespace NE::Graphics {
     unsigned int UIRenderer::s_VBO = 0;
     unsigned int UIRenderer::s_EBO = 0;
     unsigned int UIRenderer::s_Shader = 0;
+    unsigned int UIRenderer::s_TextShader = 0;
     unsigned int UIRenderer::s_CompositeShader = 0;
     unsigned int UIRenderer::s_CompositeVAO = 0;
     unsigned int UIRenderer::s_CompositeVBO = 0;
@@ -79,6 +80,20 @@ namespace NE::Graphics {
         } else {
             FragColor = uColor;  // Solid color only
         }
+    })";
+
+    // Text fragment shader - samples single-channel (red) font atlas
+    static const char* UITextFragmentShaderSource = R"(#version 460 core
+    #extension GL_ARB_bindless_texture : require
+    in vec2 vUV;
+    out vec4 FragColor;
+
+    uniform vec4 uColor;
+    layout(bindless_sampler) uniform sampler2D uFontAtlas;
+
+    void main() {
+        float alpha = texture(uFontAtlas, vUV).r;
+        FragColor = vec4(uColor.rgb, uColor.a * alpha);
     })";
 
     void UIRenderer::Init(uint32_t width, uint32_t height, RenderViewManager* renderViewManager) {
@@ -167,8 +182,35 @@ namespace NE::Graphics {
         // unbind
         glBindVertexArray(0);
 
+        // initialize text shader
+        InitTextShader();
+
         // initialize composite shader
         InitCompositeShader();
+    }
+
+    void UIRenderer::InitTextShader() {
+        // compile vertex shader (reuse the same vertex shader as UI)
+        unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vs, 1, &UIVertexShaderSource, nullptr);
+        glCompileShader(vs);
+        CheckCompile(vs, "UI Text VS");
+
+        // compile text fragment shader
+        unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fs, 1, &UITextFragmentShaderSource, nullptr);
+        glCompileShader(fs);
+        CheckCompile(fs, "UI Text FS");
+
+        // link shader program
+        s_TextShader = glCreateProgram();
+        glAttachShader(s_TextShader, vs);
+        glAttachShader(s_TextShader, fs);
+        glLinkProgram(s_TextShader);
+        CheckLink(s_TextShader, "UI Text Program");
+
+        glDeleteShader(vs);
+        glDeleteShader(fs);
     }
 
     void UIRenderer::BuildQuadVertices(const UIDrawCommand& cmd, float* verts) {
@@ -467,9 +509,16 @@ namespace NE::Graphics {
         for (const auto& cmd : overlayCommands)
         {
             bool usingFallbackShader = false;
+            bool usingTextShader = false;
             std::shared_ptr<IShader> shader = nullptr;
 
-            if (cmd.material)
+            // Check if this is a text command
+            if (cmd.isTextCommand)
+            {
+                glUseProgram(s_TextShader);
+                usingTextShader = true;
+            }
+            else if (cmd.material)
             {
                 auto pipeline = cmd.material->GetPipeline();
                 if (pipeline)
@@ -478,21 +527,13 @@ namespace NE::Graphics {
                 }
             }
 
-            // Fallback to built-in shader if no material or shader
-            if (!shader)
+            // Fallback to built-in shader if no material or shader (and not text)
+            if (!shader && !usingTextShader)
             {
                 glUseProgram(s_Shader);
                 usingFallbackShader = true;
-                //// DEBUG: Log fallback shader usage
-                //static bool loggedOnce = false;
-                //if (!loggedOnce) {
-                //    std::cout << "[UIRenderer] Using fallback shader for entity " << cmd.entityId
-                //              << " at (" << cmd.x << "," << cmd.y << ") size " << cmd.width << "x" << cmd.height
-                //              << " color (" << cmd.color.x << "," << cmd.color.y << "," << cmd.color.z << "," << cmd.color.w << ")" << std::endl;
-                //    loggedOnce = true;
-                //}
             }
-            else
+            else if (shader && !usingTextShader)
             {
                 shader->Bind();
                 cmd.material->Bind();
@@ -501,7 +542,7 @@ namespace NE::Graphics {
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
 
-            // handle custom vertices (for filled/sliced/tiled images)
+            // handle custom vertices (for filled/sliced/tiled images and text)
             if (cmd.useCustomVertices && !cmd.vertices.empty())
             {
                 // upload custom vertex data
@@ -519,7 +560,19 @@ namespace NE::Graphics {
             }
 
             // set uniforms
-            if (usingFallbackShader)
+            if (usingTextShader)
+            {
+                // Text shader uniforms
+                glUniform4f(glGetUniformLocation(s_TextShader, "uColor"),
+                    cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+                glUniform2f(glGetUniformLocation(s_TextShader, "uScreenSize"),
+                    (float)s_ScreenW, (float)s_ScreenH);
+
+                if (cmd.bindlessTextureHandle != 0) {
+                    glUniformHandleui64ARB(glGetUniformLocation(s_TextShader, "uFontAtlas"), cmd.bindlessTextureHandle);
+                }
+            }
+            else if (usingFallbackShader)
             {
                 // Use built-in shader uniforms
                 glUniform4f(glGetUniformLocation(s_Shader, "uColor"),
@@ -796,6 +849,11 @@ namespace NE::Graphics {
         if (s_Shader) {
             glDeleteProgram(s_Shader);
             s_Shader = 0;
+        }
+
+        if (s_TextShader) {
+            glDeleteProgram(s_TextShader);
+            s_TextShader = 0;
         }
 
         if (s_CompositeShader)

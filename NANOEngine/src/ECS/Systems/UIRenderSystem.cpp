@@ -1,10 +1,12 @@
 #include "UIRenderSystem.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIText.hpp"
 #include "../../Graphics/Core/UIDrawCommand.hpp"
 #include "../../Graphics/Core/UIRenderer.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
+#include "../../Graphics/Core/UITextMeshGenerator.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <iostream>
 #include <algorithm>
@@ -669,7 +671,173 @@ namespace NE::ECS::Systems {
             }
 
             RenderCanvasChildren(canvasEntity, canvas, pView, pProj);
+
+            // Render text entities
+            std::vector<Entity> textChildren = CollectTextChildren(canvasEntity);
+            for (Entity e : textChildren) {
+                RenderTextEntity(e, canvasEntity, canvas, pView, pProj);
+            }
         }
+    }
+
+    //=========================================================================
+    // Text Rendering
+    //=========================================================================
+
+    std::vector<Entity> UIRenderSystem::CollectTextChildren(Entity canvasEntity) {
+        const auto& entities = GetEntities();
+        std::vector<Entity> textChildren;
+
+        for (Entity e : entities) {
+            if (e == canvasEntity) continue;
+            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
+            if (!m_cm->HasComponent<UIText>(e)) continue;
+            if (m_cm->HasComponent<UICanvas>(e)) continue;
+
+            auto& rect = m_cm->GetComponent<UIRectTransform>(e);
+
+            Entity root = e;
+            Entity current = rect.parent;
+
+            while (current != NO_ENTITY) {
+                root = current;
+                if (!m_cm->HasComponent<UIRectTransform>(current)) break;
+                current = m_cm->GetComponent<UIRectTransform>(current).parent;
+            }
+
+            if (root == canvasEntity || rect.parent == canvasEntity) {
+                textChildren.push_back(e);
+            }
+        }
+
+        return textChildren;
+    }
+
+    void UIRenderSystem::RenderTextEntity(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas,
+        const Math::Mat4* viewMatrix,
+        const Math::Mat4* projMatrix
+    ) {
+        if (!m_cm->HasComponent<UIText>(entity)) return;
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) return;
+
+        auto& text = m_cm->GetComponent<UIText>(entity);
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+
+        // Skip if no text or font
+        if (text.text.empty() || text.fontPath.empty()) return;
+
+        // Get or create font atlas
+        auto fontAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
+            text.fontPath, text.fontSize
+        );
+
+        if (!fontAtlas) {
+            return;
+        }
+
+        // Check if text needs to be regenerated
+        bool needsRegen = text.isDirty ||
+                          text.cachedText != text.text ||
+                          text.cachedFontSize != text.fontSize ||
+                          text.fontAtlasHandle != fontAtlas->GetBindlessHandle();
+
+        if (needsRegen) {
+            WorldTransform worldTransform = CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
+
+            auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
+                text.text,
+                *fontAtlas,
+                worldTransform.x,
+                worldTransform.y,
+                worldTransform.z,
+                worldTransform.width,
+                worldTransform.height,
+                text.color,
+                text.horizontalAlign,
+                text.verticalAlign,
+                text.wordWrap
+            );
+
+            text.cachedVertices.clear();
+            text.cachedVertices.reserve(result.vertices.size());
+            for (const auto& v : result.vertices) {
+                UITextVertex tv;
+                tv.x = v.x;
+                tv.y = v.y;
+                tv.z = v.z;
+                tv.u = v.u;
+                tv.v = v.v;
+                tv.r = v.r;
+                tv.g = v.g;
+                tv.b = v.b;
+                tv.a = v.a;
+                text.cachedVertices.push_back(tv);
+            }
+
+            text.cachedText = text.text;
+            text.cachedFontSize = text.fontSize;
+            text.fontAtlasHandle = fontAtlas->GetBindlessHandle();
+            text.isDirty = false;
+        }
+
+        WorldTransform worldTransform = CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
+        SubmitTextDrawCommand(entity, canvasEntity, canvas, text, rect, worldTransform, fontAtlas, viewMatrix, projMatrix);
+    }
+
+    void UIRenderSystem::SubmitTextDrawCommand(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas,
+        UIText& text,
+        const UIRectTransform& rect,
+        const WorldTransform& worldTransform,
+        std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
+        const Math::Mat4* viewMatrix,
+        const Math::Mat4* projMatrix
+    ) {
+        if (text.cachedVertices.empty()) return;
+
+        NE::Graphics::UIDrawCommand cmd;
+
+        cmd.x = worldTransform.x;
+        cmd.y = worldTransform.y;
+        cmd.z = worldTransform.z;
+        cmd.width = worldTransform.width;
+        cmd.height = worldTransform.height;
+        cmd.color = text.color;
+        cmd.order = canvas.sortingOrder;
+        cmd.entityId = entity;
+        cmd.renderMode = static_cast<int>(canvas.renderMode);
+        cmd.planeDistance = canvas.planeDistance;
+
+        cmd.bindlessTextureHandle = fontAtlas->GetBindlessHandle();
+        cmd.isTextCommand = true;
+
+        // Convert cached vertices to UIVertex
+        cmd.vertices.reserve(text.cachedVertices.size());
+        for (const auto& tv : text.cachedVertices) {
+            NE::Graphics::UIVertex v;
+            v.x = tv.x;
+            v.y = tv.y;
+            v.z = tv.z;
+            v.u = tv.u;
+            v.v = tv.v;
+            v.r = tv.r;
+            v.g = tv.g;
+            v.b = tv.b;
+            v.a = tv.a;
+            cmd.vertices.push_back(v);
+        }
+
+        cmd.useCustomVertices = true;
+
+        if (viewMatrix) cmd.viewMatrix = *viewMatrix;
+        if (projMatrix) cmd.projMatrix = *projMatrix;
+
+        NE::Graphics::UIRenderer::Submit(cmd);
     }
 
 } // namespace NE::ECS::Systems

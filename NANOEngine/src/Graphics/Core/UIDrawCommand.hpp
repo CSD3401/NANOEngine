@@ -36,6 +36,9 @@ namespace NE::Graphics {
         // custom vertex data for complex fills
         std::vector<UIVertex> vertices;
         bool useCustomVertices = false;
+
+        // Text rendering flag
+        bool isTextCommand = false;
     };
 
 } // namespace NE::Graphics
