@@ -89,7 +89,7 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::DrawFrame();
 		//Graphics::GraphicsManager::DrawAllDebugGeometry();
 		Graphics::GraphicsManager::EndFrame();
-		//Graphics::GraphicsManager::DrawUI();
+		Graphics::GraphicsManager::DrawUI();
 	}
 
 	void Scene::ExitEdit() {

@@ -201,6 +201,38 @@ namespace NE {
             friend NANOENGINE_API std::ostream& operator<<(std::ostream& os, const Mat4& mat);
         };
 
+        //=========================================================================
+        // VEC4 - 4D Vector / Color (RGBA)
+        //=========================================================================
+
+        struct Vec4 {
+            float x, y, z, w;
+
+            Vec4() : x(0), y(0), z(0), w(0) {}
+            Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
+            Vec4(const Vec4& rhs) = default;
+            ~Vec4() = default;
+
+            // Convenience accessors for color usage
+            float& r() { return x; }
+            float& g() { return y; }
+            float& b() { return z; }
+            float& a() { return w; }
+            const float& r() const { return x; }
+            const float& g() const { return y; }
+            const float& b() const { return z; }
+            const float& a() const { return w; }
+
+            // Basic operations
+            Vec4 operator+(const Vec4& rhs) const { return Vec4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w); }
+            Vec4 operator-(const Vec4& rhs) const { return Vec4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w); }
+            Vec4 operator*(float s) const { return Vec4(x * s, y * s, z * s, w * s); }
+            Vec4 operator/(float s) const { return Vec4(x / s, y / s, z / s, w / s); }
+        };
+
+        /// Color alias for Vec4
+        using Color = Vec4;
+
     } // namespace Math
     } // namespace NE
 

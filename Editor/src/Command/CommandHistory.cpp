@@ -84,12 +84,12 @@ namespace Editor {
             }
         );
 
-        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateCanvasEntityEvent>(
-            NANOEngine::Events::EventDomain::Editor,
-            [&](const Events::CreateCanvasEntityEvent&) {
-                ExecuteCommand(std::make_unique<CreateCanvasEntityCommand>());
-            }
-        );
+        //NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateCanvasEntityEvent>(
+        //    NANOEngine::Events::EventDomain::Editor,
+        //    [&](const Events::CreateCanvasEntityEvent&) {
+        //        ExecuteCommand(std::make_unique<CreateCanvasEntityCommand>());
+        //    }
+        //);
 
         NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUICanvasEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,

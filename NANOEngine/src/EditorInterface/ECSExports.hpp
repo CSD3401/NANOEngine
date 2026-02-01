@@ -33,6 +33,8 @@ namespace NE::ECS {
 		struct UIRectTransform;
 		struct UIImage;
 		struct UICanvas;
+		struct RectTransform;
+		struct Canvas;
 		struct Hierarchy;
 		struct PrefabLink;
 		struct PrefabInstance;
@@ -56,6 +58,8 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API const Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API const Component::RectTransform& GetRectTransform(uint32_t e);
+		NANOENGINE_API const Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API const Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
@@ -91,6 +95,8 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
+		NANOENGINE_API bool HasRectTransform(uint32_t e);
+		NANOENGINE_API bool HasCanvas(uint32_t e);
 		NANOENGINE_API bool HasPrefabLink(uint32_t e);
 		NANOENGINE_API bool HasPrefabInstance(uint32_t e);
 		NANOENGINE_API bool HasRenderer(uint32_t e);
@@ -263,6 +269,8 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API Component::RectTransform& GetRectTransform(uint32_t e);
+		NANOENGINE_API Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);
@@ -305,6 +313,19 @@ namespace NE::ECS {
 
 		NANOENGINE_API std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid);
 		NANOENGINE_API void AssignAnimClip(uint32_t e, const std::string& uuid);
+
+		// --- UI Image Utilities ---
+		/// Swap the texture on a UIImage component (handles GPU resource loading)
+		NANOENGINE_API bool SetUIImageTexture(uint32_t imageEntity, const char* textureUUID);
+
+		/// Swap texture and material on a UIImage component
+		NANOENGINE_API bool SetUIImageTextureAndMaterial(uint32_t imageEntity, const char* textureUUID, const char* materialUUID);
+
+		/// Set the color tint on a UIImage component
+		NANOENGINE_API void SetUIImageColor(uint32_t imageEntity, float r, float g, float b, float a);
+
+		/// Set the fill amount on a UIImage component (for FILLED image type)
+		NANOENGINE_API void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount);
 	}
 
 }

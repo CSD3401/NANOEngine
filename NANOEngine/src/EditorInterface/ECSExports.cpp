@@ -11,6 +11,8 @@
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
+#include "../ECS/Components/RectTransform.hpp"
+#include "../ECS/Components/Canvas.hpp"
 #include "../ECS/Components/PrefabLink.hpp"
 #include "../ECS/Components/PrefabInstance.hpp"
 #include "../ECS/Components/CharacterController.hpp"
@@ -26,6 +28,8 @@
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "Graphics/OpenGL/GLTexture.hpp"
+#include "Graphics/Core/Material.hpp"
 
 namespace NE {
 	//SceneManagement::Scene& GetScene();
@@ -81,6 +85,14 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
+		const Component::RectTransform& GetRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::RectTransform>(e);
+		}
+
+		const Component::Canvas& GetCanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Canvas>(e);
+		}
+
 		bool HasEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -103,6 +115,14 @@ namespace NE::ECS {
 
 		bool HasUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		bool HasRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::RectTransform>(e);
+		}
+
+		bool HasCanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Canvas>(e);
 		}
 
 		bool HasPrefabLink(uint32_t e) {
@@ -864,6 +884,14 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
+		Component::RectTransform& GetRectTransform(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::RectTransform>(e);
+		}
+
+		Component::Canvas& GetCanvas(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Canvas>(e);
+		}
+
 		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
 		}
@@ -1027,6 +1055,81 @@ namespace NE::ECS {
 			auto& animator = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 			animator.animClipUUID = uuid;
 			animator.clip = Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
+		}
+
+		//=========================================================================
+		// UI IMAGE UTILITIES
+		//=========================================================================
+
+		bool SetUIImageTexture(uint32_t imageEntity, const char* textureUUID) {
+			return SetUIImageTextureAndMaterial(imageEntity, textureUUID, "");
+		}
+
+		bool SetUIImageTextureAndMaterial(uint32_t imageEntity, const char* textureUUID, const char* materialUUID) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			// Safety check - entity must have UIImage component
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return false;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+
+			// Update texture UUID and load the texture
+			if (textureUUID && textureUUID[0] != '\0') {
+				img.textureUUID = textureUUID;
+				auto texture = Resource::ResourceManager::GetInstance()
+					.LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
+
+				if (texture) {
+					img.bindlessHandle = texture->GetBindlessHandle();
+				} else {
+					img.bindlessHandle = 0;  // Texture load failed, fallback to solid color
+					return false;
+				}
+			} else {
+				img.textureUUID.clear();
+				img.bindlessHandle = 0;  // No texture, solid color only
+			}
+
+			// Update material if provided
+			if (materialUUID && materialUUID[0] != '\0') {
+				img.materialUUID = materialUUID;
+				img.material = Resource::ResourceManager::GetInstance()
+					.LoadResource<Graphics::Material>(materialUUID);
+			}
+
+			img.isDirty = true;  // Signal refresh
+			return true;
+		}
+
+		void SetUIImageColor(uint32_t imageEntity, float r, float g, float b, float a) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+			img.color = Math::Vec4(r, g, b, a);
+			img.isDirty = true;
+		}
+
+		void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+
+			// Clamp to valid range
+			if (fillAmount < 0.0f) fillAmount = 0.0f;
+			if (fillAmount > 1.0f) fillAmount = 1.0f;
+
+			img.fillAmount = fillAmount;
+			img.isDirty = true;
 		}
 	}
 }

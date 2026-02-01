@@ -3192,7 +3192,7 @@ namespace NE {
 		}
 
 		// Virtual methods with default implementations for optional override
-		std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
+		std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const { 
 			if (!m_fieldRegistry) {
 				//SPD_WARNING("GetEnumOptions: m_fieldRegistry is null for field '{}'", fieldName);
 				return {};

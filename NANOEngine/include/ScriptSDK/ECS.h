@@ -32,6 +32,10 @@ namespace NE {
             struct Animator;
             struct Camera;
             struct PhysicsBody;
+            // UI Components
+            struct UICanvas;
+            struct UIRectTransform;
+            struct UIImage;
         }
     }
 }

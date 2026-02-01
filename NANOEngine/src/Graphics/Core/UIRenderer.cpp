@@ -6,6 +6,7 @@
 #include "../src/Graphics/Core/GraphicsManager.hpp"
 #include "UIImageMeshGenerator.hpp"
 #include "../OpenGL/GLStateCache.hpp"
+#include "../../Core/Logger.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -68,10 +69,16 @@ namespace NE::Graphics {
     out vec4 FragColor;
 
     uniform vec4 uColor;
+    uniform int uHasTexture;
+    layout(bindless_sampler) uniform sampler2D uTexture;
 
     void main() {
-        // Simple solid color - no texture needed!
-        FragColor = uColor;
+        if (uHasTexture != 0) {
+            vec4 texColor = texture(uTexture, vUV);
+            FragColor = texColor * uColor;  // Texture tinted by color
+        } else {
+            FragColor = uColor;  // Solid color only
+        }
     })";
 
     void UIRenderer::Init(uint32_t width, uint32_t height, RenderViewManager* renderViewManager) {
@@ -412,7 +419,12 @@ namespace NE::Graphics {
     }
 
     void UIRenderer::DrawUIFrame() {
-        if (s_Commands.empty()) return;
+        //// DEBUG: Log command count
+        //static int dbgFrame = 0;
+        //if (dbgFrame++ % 120 == 0) {
+        //    std::cout << "[UIRenderer::DrawUIFrame] Total commands: " << s_Commands.size() << std::endl;
+        //}
+        //if (s_Commands.empty()) return;
 
         // filter to only overlay mode (rendermode 0)
         std::vector<UIDrawCommand> overlayCommands;
@@ -423,6 +435,12 @@ namespace NE::Graphics {
         }
 
         if (overlayCommands.empty()) return;
+
+        //// DEBUG: Log overlay command count
+        //static int frameCount = 0;
+        //if (frameCount++ % 60 == 0) {  // Log every 60 frames
+        //    std::cout << "[UIRenderer] Drawing " << overlayCommands.size() << " overlay commands" << std::endl;
+        //}
 
         // sort overlay commands by order
         std::sort(overlayCommands.begin(), overlayCommands.end(),
@@ -448,16 +466,37 @@ namespace NE::Graphics {
         // render each command based on mode
         for (const auto& cmd : overlayCommands)
         {
-            if (!cmd.material) continue;
+            bool usingFallbackShader = false;
+            std::shared_ptr<IShader> shader = nullptr;
 
-            auto pipeline = cmd.material->GetPipeline();
-            if (!pipeline) continue;
+            if (cmd.material)
+            {
+                auto pipeline = cmd.material->GetPipeline();
+                if (pipeline)
+                {
+                    shader = pipeline->GetSpecification().shader;
+                }
+            }
 
-            auto shader = pipeline->GetSpecification().shader;
-            if (!shader) continue;
-
-            shader->Bind();
-            cmd.material->Bind();
+            // Fallback to built-in shader if no material or shader
+            if (!shader)
+            {
+                glUseProgram(s_Shader);
+                usingFallbackShader = true;
+                //// DEBUG: Log fallback shader usage
+                //static bool loggedOnce = false;
+                //if (!loggedOnce) {
+                //    std::cout << "[UIRenderer] Using fallback shader for entity " << cmd.entityId
+                //              << " at (" << cmd.x << "," << cmd.y << ") size " << cmd.width << "x" << cmd.height
+                //              << " color (" << cmd.color.x << "," << cmd.color.y << "," << cmd.color.z << "," << cmd.color.w << ")" << std::endl;
+                //    loggedOnce = true;
+                //}
+            }
+            else
+            {
+                shader->Bind();
+                cmd.material->Bind();
+            }
 
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
@@ -471,7 +510,7 @@ namespace NE::Graphics {
                     cmd.vertices.data(),
                     GL_DYNAMIC_DRAW);
             }
-            else 
+            else
             {
                 // build standard quad
                 float verts[36];
@@ -480,25 +519,44 @@ namespace NE::Graphics {
             }
 
             // set uniforms
-            if (cmd.bindlessTextureHandle != 0) 
+            if (usingFallbackShader)
             {
-                shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
-                shader->SetUniformInt("u_HasBaseMap", 1);
-            }
-            else 
-            {
-                shader->SetUniformInt("u_HasBaseMap", 0);
-            }
+                // Use built-in shader uniforms
+                glUniform4f(glGetUniformLocation(s_Shader, "uColor"),
+                    cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+                glUniform2f(glGetUniformLocation(s_Shader, "uScreenSize"),
+                    (float)s_ScreenW, (float)s_ScreenH);
 
-            shader->SetUniformVec4("uColor", cmd.color);
-            shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                // Set texture if available
+                if (cmd.bindlessTextureHandle != 0) {
+                    glUniformHandleui64ARB(glGetUniformLocation(s_Shader, "uTexture"), cmd.bindlessTextureHandle);
+                    glUniform1i(glGetUniformLocation(s_Shader, "uHasTexture"), 1);
+                } else {
+                    glUniform1i(glGetUniformLocation(s_Shader, "uHasTexture"), 0);
+                }
+            }
+            else
+            {
+                if (cmd.bindlessTextureHandle != 0)
+                {
+                    shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
+                    shader->SetUniformInt("u_HasBaseMap", 1);
+                }
+                else
+                {
+                    shader->SetUniformInt("u_HasBaseMap", 0);
+                }
+
+                shader->SetUniformVec4("uColor", cmd.color);
+                shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+            }
 
             // draw
             if (cmd.useCustomVertices && !cmd.vertices.empty())
             {
                 glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(cmd.vertices.size()));
             }
-            else 
+            else
             {
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
             }
@@ -677,7 +735,7 @@ namespace NE::Graphics {
 
         // bind UI framebuffer texture
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment()); // FBO’s color attachment is a texture containing your rendered UI
+        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment()); // FBOï¿½s color attachment is a texture containing your rendered UI
         glUniform1i(glGetUniformLocation(s_CompositeShader, "uUITexture"), 0); // bind to texture unit 0 (kiv to change to bindless)
 
         // draw fullscreen quad

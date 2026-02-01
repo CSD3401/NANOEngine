@@ -39,6 +39,10 @@ namespace Editor::Events {
 		uint32_t parentEntity;
 	};
 
+	//struct CreateCanvasEntityEvent {
+	//	uint32_t parentEntity;
+	//};
+
 	struct HierarchyChangeEvent {
 		uint32_t childEntity;
 		uint32_t newParentEntity;
