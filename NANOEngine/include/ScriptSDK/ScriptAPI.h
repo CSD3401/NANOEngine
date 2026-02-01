@@ -152,6 +152,12 @@ namespace Scripting {
         virtual void OnCollisionExit(Entity other) = 0;
 
         /**
+         * Called when this entity is colliding with another entity.
+         * @param other The other entity involved in collision
+		 */
+        virtual void OnCollisionStay(Entity other) = 0;
+
+        /**
          * Called when this entity triggers another entity.
          * @param other The other entity that entered trigger
          */
@@ -162,6 +168,12 @@ namespace Scripting {
          * @param other The other entity that exited trigger
          */
         virtual void OnTriggerExit(Entity other) = 0;
+
+        /**
+         * Called when this entity is triggering another entity.
+         * @param other The other entity involved in trigger
+		 */
+		virtual void OnTriggerStay(Entity other) = 0;
 
         //=====================================================================
         // ENTITY & SCRIPT STATE
@@ -240,40 +252,42 @@ namespace Scripting {
         bool IsPrefabRoot(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
-        // TRANSFORM OPERATIONS (Unity-style)
+        // TRANSFORM OPERATIONS (TF_*)
         // All functions support optional Entity parameter:
         // - If not specified, operates on this script's entity (m_entity)
         // - If specified, operates on the target entity
         //=====================================================================
 
         // Position
-        Vec3 GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        Vec3 GetWorldPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 TF_GetPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalPosition(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void TF_SetPosition(const Vec3& pos, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetPosition(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Rotation (Euler angles in degrees)
-        Vec3 GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 TF_GetRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalRotation(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void TF_SetRotation(const Vec3& rot, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetRotation(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Scale
-        Vec3 GetScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetScale(const Vec3& scale, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetScale(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetScale(float uniformScale, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 TF_GetScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetLocalScale(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void TF_SetScale(const Vec3& scale, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetScale(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_SetScale(float uniformScale, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Relative transforms
-        void Translate(const Vec3& translation, Entity entity = DEFAULT_ENTITY_PARAM);
-        void Translate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Translate(const Vec3& translation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Translate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
-        void Rotate(const Vec3& rotation, Entity entity = DEFAULT_ENTITY_PARAM);
-        void Rotate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Rotate(const Vec3& rotation, Entity entity = DEFAULT_ENTITY_PARAM);
+        void TF_Rotate(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Direction vectors (based on rotation)
-        Vec3 GetForward(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        Vec3 GetRight(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        Vec3 GetUp(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetForward(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetRight(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        Vec3 TF_GetUp(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
         // HIERARCHY OPERATIONS
@@ -310,39 +324,54 @@ namespace Scripting {
         std::vector<Entity> GetChildren(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
-        // RIGIDBODY PHYSICS (Unity-style)
+        // RIGIDBODY PHYSICS (RB_*)
         // All functions support optional Entity parameter
         //=====================================================================
 
-        bool HasRigidbody(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        bool RB_HasRigidbody(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         // Mass
-        float GetMass(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetMass(float mass, Entity entity = DEFAULT_ENTITY_PARAM);
+        float RB_GetMass(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetMass(float mass, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Gravity
-        bool GetUseGravity(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetUseGravity(bool use, Entity entity = DEFAULT_ENTITY_PARAM);
+        bool RB_GetUseGravity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetUseGravity(bool use, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Static/Dynamic
-        bool IsStatic(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetStatic(bool isStatic, Entity entity = DEFAULT_ENTITY_PARAM);
+        bool RB_IsStatic(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetStatic(bool isStatic, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Rotation locking
-        void LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Velocity
-        Vec3 GetVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
-        void SetVelocity(const Vec3& velocity, Entity entity = DEFAULT_ENTITY_PARAM);
-        void SetVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        Vec3 RB_GetVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetVelocity(const Vec3& velocity, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_SetVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        // Angular Velocity (Rotation)
+        Vec3 RB_GetAngularVelocity(Entity entity = DEFAULT_ENTITY_PARAM) const;
+        void RB_SetAngularVelocity(const Vec3& angularVelocity, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_SetAngularVelocity(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Forces
-        void AddForce(const Vec3& force, Entity entity = DEFAULT_ENTITY_PARAM);
-        void AddForce(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddForce(const Vec3& force, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddForce(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
         // Impulses
-        void AddImpulse(const Vec3& impulse, Entity entity = DEFAULT_ENTITY_PARAM);
-        void AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddImpulse(const Vec3& impulse, Entity entity = DEFAULT_ENTITY_PARAM);
+        void RB_AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
+
+        //=====================================================================
+        // CHARACTER CONTROLLER PHYSICS (CC_*)
+        // All functions support optional Entity parameter
+        //=====================================================================
+
+		void CC_Move(const Vec3& displacement, Entity entity = DEFAULT_ENTITY_PARAM);
+		void CC_Rotate(float yawDegrees, Entity entity = DEFAULT_ENTITY_PARAM);
+        bool CC_IsGrounded(Entity entity = DEFAULT_ENTITY_PARAM) const;
+		Vec3 CC_GetGroundNormal(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         //=====================================================================
         // PHYSICS RAYCASTING
@@ -357,6 +386,14 @@ namespace Scripting {
 
         std::vector<RaycastHit> RaycastAll(const Vec3& origin, const Vec3& direction,
                                             float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+
+        RaycastHit SphereCast(const Vec3& origin, float radius, const Vec3& direction,
+                              float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
+
+        RaycastHit SphereCast(float originX, float originY, float originZ,
+                              float radius,
+                              float dirX, float dirY, float dirZ,
+                              float maxDistance, uint32_t layerMask = 0xFFFFFFFF) const;
 
         //=====================================================================
         // AUDIO SOURCE
@@ -495,6 +532,13 @@ namespace Scripting {
         RigidbodyRef GetRigidbodyRef(Entity entity) const;
 
         /**
+         * Get a reference to another entity's renderer.
+         * @param entity Target entity
+         * @return Renderer reference (check IsValid() before use)
+         */
+        RendererRef GetRendererRef(Entity entity) const;
+
+        /**
          * Get a reference to another entity's audio source.
          * @param entity Target entity
          * @return AudioSource reference (check IsValid() before use)
@@ -507,6 +551,14 @@ namespace Scripting {
          * @return Material reference (check IsValid() before use)
          */
         MaterialRef GetMaterialRef(const std::string& materialUUID) const;
+
+        /**
+         * Get the material reference from an entity's renderer component.
+         * Convenience helper that combines GetMaterial() and GetMaterialRef().
+         * @param entity Entity ID to get material from
+         * @return Material reference (check IsValid() before use)
+         */
+        MaterialRef GetEntityMaterial(Entity entity) const;
 
         /**
          * Get a reference to a prefab asset by UUID.
@@ -558,6 +610,10 @@ namespace Scripting {
         void SetVelocity(const RigidbodyRef& ref, const Vec3& velocity);
         void AddForce(const RigidbodyRef& ref, const Vec3& force);
 
+        // Renderer operations on ComponentRef
+        MaterialRef GetMaterialRef(const RendererRef& ref) const;
+        void SetMaterialRef(const RendererRef& ref, const MaterialRef& materialRef);
+
         //=====================================================================
         // FIELD REGISTRATION FOR EDITOR (Protected - use macros in scripts)
         //=====================================================================
@@ -571,9 +627,12 @@ namespace Scripting {
 
         void RegisterTransformRefField(const std::string& name, TransformRef* memberPtr);
         void RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr);
+        void RegisterRendererRefField(const std::string& name, RendererRef* memberPtr);
         void RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr);
         void RegisterMaterialRefField(const std::string& name, MaterialRef* memberPtr);
         void RegisterPrefabRefField(const std::string& name, PrefabRef* memberPtr);
+        void RegisterGameObjectRefField(const std::string& name, GameObjectRef* memberPtr);
+        void RegisterLayerRefField(const std::string& name, LayerRef* memberPtr);
 
         // Vector field registration (native support - no override boilerplate needed!)
         void RegisterIntVectorField(const std::string& name, std::vector<int>* memberPtr);
@@ -583,10 +642,20 @@ namespace Scripting {
         void RegisterEntityVectorField(const std::string& name, std::vector<Entity>* memberPtr);
         void RegisterMaterialRefVectorField(const std::string& name, std::vector<MaterialRef>* memberPtr);
         void RegisterPrefabRefVectorField(const std::string& name, std::vector<PrefabRef>* memberPtr);
+        void RegisterGameObjectRefVectorField(const std::string& name, std::vector<GameObjectRef>* memberPtr);
+        void RegisterTransformRefVectorField(const std::string& name, std::vector<TransformRef>* memberPtr);
+        void RegisterRigidbodyRefVectorField(const std::string& name, std::vector<RigidbodyRef>* memberPtr);
+        void RegisterRendererRefVectorField(const std::string& name, std::vector<RendererRef>* memberPtr);
+        void RegisterAudioSourceRefVectorField(const std::string& name, std::vector<AudioSourceRef>* memberPtr);
+        void RegisterLayerRefVectorField(const std::string& name, std::vector<LayerRef>* memberPtr);
 
         // Enum field registration (with automatic enum options)
         template<typename EnumType>
         void RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions);
+
+        // Enum vector field registration (vector of enums with dropdown support)
+        template<typename EnumType>
+        void RegisterEnumVectorField(const std::string& name, std::vector<EnumType>* memberPtr, const std::vector<std::string>& enumOptions);
 
         // LayerMask field registration (multi-select layer picker in editor)
         void RegisterLayerMaskField(const std::string& name, LayerMask* memberPtr);
@@ -625,6 +694,68 @@ namespace Scripting {
         void MarkFieldAsEntityReference(const std::string& name);
 
         //=====================================================================
+        // GAME OBJECT ACCESS (Unity-style)
+        //=====================================================================
+
+        /**
+         * Get the GameObject wrapper for this script's entity.
+         * Similar to Unity's gameObject property.
+         *
+         * Example:
+         * @code
+         * // Get another script on the same GameObject
+         * auto otherScript = gameObject.GetComponent<OtherScript>();
+         * @endcode
+         */
+        class GameObject gameObject() const;
+
+        /**
+         * Get a script component by type on this entity.
+         * Shortcut for gameObject.GetComponent<T>().
+         * Similar to Unity's GetComponent<T>() on MonoBehaviour.
+         *
+         * Example:
+         * @code
+         * // In PlayerScript, access TestScript on the same entity
+         * auto testScript = GetComponent<TestScript>();
+         * if (testScript) {
+         *     testScript->ExampleFunction();
+         *     testScript->someValue = 42;
+         * }
+         * @endcode
+         *
+         * @tparam T The script type (must inherit from IScript)
+         * @return Pointer to the script instance, or nullptr if not found
+         */
+        template<typename T>
+        inline T* GetComponent() const {
+            return gameObject().GetComponent<T>();
+        }
+
+        /**
+         * Check if this entity has a specific script type.
+         * Shortcut for gameObject.HasComponent<T>().
+         *
+         * @tparam T The script type to check for
+         * @return true if the script exists on this entity
+         */
+        template<typename T>
+        inline bool HasScript() const {
+            return GetComponent<T>() != nullptr;
+        }
+
+        /**
+         * Get a script by name on this entity.
+         * Shortcut for gameObject.GetScript(name).
+         *
+         * @param scriptName The registered name of the script
+         * @return Pointer to the script instance, or nullptr if not found
+         */
+        inline IScript* GetScript(const std::string& scriptName) const {
+            return gameObject().GetScript(scriptName);
+        }
+
+        //=====================================================================
         // INTERNAL ENGINE INTERFACE (Do not call from scripts)
         //=====================================================================
 
@@ -646,9 +777,6 @@ namespace Scripting {
             std::function<std::string()> getValue,
             std::function<bool(const std::string&)> setValue);
 
-        // Helper function for Unity-style hierarchy active state propagation
-        void PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const;
-
         // Helper methods for template functions to access FieldRegistry
         void SetFieldEnumOptions(const std::string& name, const std::vector<std::string>& options);
         void SetFieldEnumCallbacks(const std::string& name,
@@ -658,6 +786,18 @@ namespace Scripting {
         void SetFieldLayerMaskCallbacks(const std::string& name,
             std::function<uint32_t()> getLayerMaskValue,
             std::function<void(uint32_t)> setLayerMaskValue);
+
+        // Helper for enum vector field registration
+        void RegisterEnumVectorFieldInternal(
+            const std::string& name,
+            const std::vector<std::string>& enumOptions,
+            std::function<std::string()> getValue,
+            std::function<bool(const std::string&)> setValue,
+            std::function<size_t()> getSize,
+            std::function<std::string(size_t)> getElement,
+            std::function<bool(size_t, const std::string&)> setElement,
+            std::function<void()> addElement,
+            std::function<void(size_t)> removeElement);
 
      Entity m_entity = INVALID_ENTITY;
         bool m_enabled = true;
@@ -1417,6 +1557,10 @@ namespace NE::Scripting {
      */
     template<typename EnumType>
     inline void IScript::RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions) {
+        // Get the option count once for validation
+        const size_t optionCount = enumOptions.size();
+
+        // Register the field FIRST (creates the entry)
         RegisterFieldInternal(
             name,
             "enum",
@@ -1425,11 +1569,11 @@ namespace NE::Scripting {
             [memberPtr]() -> std::string {
                 return std::to_string(static_cast<int>(*memberPtr));
             },
-            // setValue: Set enum from string index
-            [memberPtr, enumOptions](const std::string& value) -> bool {
+            // setValue: Set enum from string index (capture count, not vector)
+            [memberPtr, optionCount](const std::string& value) -> bool {
                 try {
                     int idx = std::stoi(value);
-                    if (idx >= 0 && idx < static_cast<int>(enumOptions.size())) {
+                    if (idx >= 0 && idx < static_cast<int>(optionCount)) {
                         *memberPtr = static_cast<EnumType>(idx);
                         return true;
                     }
@@ -1440,14 +1584,99 @@ namespace NE::Scripting {
             }
         );
 
-        // Store enum options and accessor functions using helper methods
+        // Store enum options AFTER field is registered (so it can find the entry)
         SetFieldEnumOptions(name, enumOptions);
+
+        // Store accessor functions
         SetFieldEnumCallbacks(name,
             [memberPtr]() -> int {
                 return static_cast<int>(*memberPtr);
             },
             [memberPtr](int value) {
                 *memberPtr = static_cast<EnumType>(value);
+            }
+        );
+    }
+
+    /**
+     * Register a vector of enum field with dropdown support in editor
+     * @param name Field name
+     * @param memberPtr Pointer to vector of enum member variable
+     * @param enumOptions List of enum value names (in order)
+     */
+    template<typename EnumType>
+    inline void IScript::RegisterEnumVectorField(const std::string& name, std::vector<EnumType>* memberPtr, const std::vector<std::string>& enumOptions) {
+        // Get option count once for validation (avoids capturing vector by value)
+        const size_t optionCount = enumOptions.size();
+
+        RegisterEnumVectorFieldInternal(
+            name,
+            enumOptions,
+            // getValue: Serialize entire vector as "size idx0 idx1 idx2 ..."
+            [memberPtr]() -> std::string {
+                std::ostringstream oss;
+                oss << memberPtr->size();
+                for (const auto& val : *memberPtr) {
+                    oss << " " << static_cast<int>(val);
+                }
+                return oss.str();
+            },
+            // setValue: Deserialize entire vector from "size idx0 idx1 idx2 ..."
+            [memberPtr, optionCount](const std::string& value) -> bool {
+                try {
+                    std::istringstream iss(value);
+                    size_t size;
+                    iss >> size;
+
+                    memberPtr->clear();
+                    memberPtr->reserve(size);
+
+                    for (size_t i = 0; i < size; ++i) {
+                        int idx;
+                        iss >> idx;
+                        if (idx >= 0 && idx < static_cast<int>(optionCount)) {
+                            memberPtr->push_back(static_cast<EnumType>(idx));
+                        } else {
+                            memberPtr->push_back(static_cast<EnumType>(0));
+                        }
+                    }
+                    return true;
+                } catch (...) {
+                    return false;
+                }
+            },
+            // getSize
+            [memberPtr]() -> size_t {
+                return memberPtr->size();
+            },
+            // getElement
+            [memberPtr](size_t index) -> std::string {
+                if (index >= memberPtr->size()) return "0";
+                return std::to_string(static_cast<int>((*memberPtr)[index]));
+            },
+            // setElement
+            [memberPtr, optionCount](size_t index, const std::string& value) -> bool {
+                if (index >= memberPtr->size()) return false;
+                try {
+                    int idx = std::stoi(value);
+                    if (idx >= 0 && idx < static_cast<int>(optionCount)) {
+                        (*memberPtr)[index] = static_cast<EnumType>(idx);
+                        return true;
+                    }
+                    return false;
+                } catch (...) {
+                    return false;
+                }
+            },
+            // addElement
+            [memberPtr]() -> void {
+                memberPtr->push_back(static_cast<EnumType>(0));
+            },
+            // removeElement
+            [memberPtr](size_t index) -> void {
+                if (index < memberPtr->size()) {
+                    memberPtr->erase(memberPtr->begin() + index);
+                }
             }
         );
     }

@@ -1,12 +1,15 @@
 {
     "Shader": "neunlit",
-    "DepthTest": true,
     "BlendMode": true,
+	"DepthTest": true,
+	"DepthWrite": false,
     "CullMode": 0,
     "PolygonMode": 6914,
+	"RenderQueueBase": "OVERLAY",
+    "RenderQueueOffset": 0,
     "Properties": {
         "uColor": [1.0, 1.0, 1.0, 1.0],
-        "u_HasBaseMap": 0,
-        "u_BaseMap": ""
+        "u_HasAlbedoMap": 0,
+        "u_AlbedoMap": ""
     }
 }

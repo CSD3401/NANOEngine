@@ -33,6 +33,7 @@ namespace Editor {
 		//void RenderModelImportSettings(const std::string& metaPath);
 
 		void DrawEntityMetaComponent(uint32_t entity);
+		void DrawPrefabInstanceComponent(uint32_t entity);
 		void DrawTransformComponent(uint32_t entity);
 		void DrawRendererComponent(uint32_t entity);
 		void DrawRigidbodyComponent(uint32_t entity);
@@ -45,6 +46,7 @@ namespace Editor {
 		void DrawRectTransformComponent(uint32_t entity);
 		void DrawCanvasComponent(uint32_t entity);
 		void DrawImageComponent(uint32_t entity);
+		void DrawCharacterControllerComponent(uint32_t entity);
 		
 
 		std::unique_ptr<MaterialEditor> m_materialEditor;

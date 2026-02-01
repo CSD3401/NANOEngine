@@ -6,8 +6,8 @@
 namespace Editor {
     std::vector<NE::ECS::Entity> EditorScene::s_rootOrder;
     EditorSelection EditorScene::s_selection;
-    std::string EditorScene::s_currentSceneUUID;
-    std::string EditorScene::s_currentScenePath("Assets/NewScene.scene"); // temp
+    std::string EditorScene::s_currentSceneUUID("Assets/NewScene.scene");
+    std::string EditorScene::s_currentScenePath; // temp
     Layers::LayerDatabase EditorScene::layerDatabase;
 
     std::string EditorScene::selectedAsset;
@@ -15,6 +15,15 @@ namespace Editor {
     std::vector<uint8_t> EditorScene::clipboard;
 
     NE::Graphics::EditorCamera EditorScene::m_editorCamera;
+    float EditorScene::m_cameraSpeed = 1.0f;
+    bool EditorScene::m_cameraUseEasing = false;
+    bool EditorScene::m_cameraUseAcceleration = false;
+    float EditorScene::m_cameraMinSpeed = 0.01f;
+    float EditorScene::m_cameraMaxSpeed = 2.f;
+    float EditorScene::m_cameraYaw = -90.0f;  // looking along -Z
+    float EditorScene::m_cameraPitch = 0.0f;
+
+    bool EditorScene::isDirty = false;
 
     void EditorScene::BuildRoot() {
         s_rootOrder.clear();
@@ -53,7 +62,7 @@ namespace Editor {
 
         newIndex = std::max(0, std::min(newIndex, static_cast<int>(s_rootOrder.size()) - 1));
 
-        int currentIndex = std::distance(s_rootOrder.begin(), it);
+        int currentIndex = static_cast<int>(std::distance(s_rootOrder.begin(), it));
 
         if (currentIndex == newIndex) return;
 
@@ -86,6 +95,32 @@ namespace Editor {
         }
     }
 
+    uint32_t EditorScene::GetParent(NE::ECS::Entity e) {
+        auto& h = NE::ECS::Query::GetEntityHierarchy(e);
+        return h.parent;
+    }
+
+    uint32_t EditorScene::GetIndexInParentOrRoot(NE::ECS::Entity e) {
+        auto& h = NE::ECS::Query::GetEntityHierarchy(e);
+        NE::ECS::Entity parent = (h.parent == NE::ECS::Component::INVALID_PARENT)
+            ? NE::ECS::NO_ENTITY
+            : static_cast<NE::ECS::Entity>(h.parent);
+        if (parent == NE::ECS::NO_ENTITY) {
+            auto it = std::find(s_rootOrder.begin(), s_rootOrder.end(), e);
+            if (it != s_rootOrder.end()) {
+                return static_cast<uint32_t>(std::distance(s_rootOrder.begin(), it));
+            }
+        } else {
+            auto& parentHierarchy = NE::ECS::Query::GetEntityHierarchy(parent);
+            auto& siblings = parentHierarchy.children;
+            auto it = std::find(siblings.begin(), siblings.end(), e);
+            if (it != siblings.end()) {
+                return static_cast<uint32_t>(std::distance(siblings.begin(), it));
+            }
+        }
+		return NE::ECS::NO_ENTITY;
+    }
+
     void EditorScene::CopySelected() {
         if (s_selection.GetLastClicked() == NE::ECS::NO_ENTITY) return;
 
@@ -98,8 +133,15 @@ namespace Editor {
         auto rootEntt = NE::PasteEntity(clipboard);
         RegisterRoot(rootEntt);
         s_selection.SetSingle(rootEntt);
+
+        EditorScene::isDirty = true;
     }
 
     void EditorScene::DuplicateSelected() {
+		auto rootEntt = NE::DuplicateEntity(s_selection.GetLastClicked());
+        RegisterRoot(rootEntt);
+        s_selection.SetSingle(rootEntt);
+
+        EditorScene::isDirty = true;
     }
 }

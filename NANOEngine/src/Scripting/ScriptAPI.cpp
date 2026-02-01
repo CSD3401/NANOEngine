@@ -10,6 +10,7 @@
 #include "../../include/ScriptSDK/ScriptMacros.h"
 #include "ScriptContext.hpp"
 #include "ScriptContextFactory.hpp"
+#include "ScriptingEngine.hpp"
 
  // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
@@ -20,7 +21,11 @@
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
+#include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
+#include "../Physics/ForceMode.hpp"
+#include "../Physics/RaycastHit.hpp"
+#include "../Core/LUIDRegistry.hpp"
 #include <Math/Vec3.hpp>
 #include "../Core/SpdLogger.hpp"
 #include "../Core/Couroutine.hpp"
@@ -97,6 +102,37 @@ namespace NE {
 			}
 
 			return INVALID_ENTITY;
+		}
+
+		//=========================================================================
+		// LUID COMPONENT RESOLUTION HELPER
+		//=========================================================================
+
+		/**
+		 * Resolve a component by LUID using the LUID registry.
+		 * Returns nullptr if LUID is invalid or component not found.
+		 */
+		template<typename T>
+		inline T* ResolveComponentByLuid(uint64_t luid, Core::LUIDRegistry* registry) {
+			if (luid == 0 || !registry) return nullptr;
+
+			auto* record = registry->Find(luid);
+			if (!record) return nullptr;
+
+			return static_cast<T*>(record->m_ptr);
+		}
+
+		/**
+		 * Get the Entity that owns a component identified by LUID.
+		 * Returns INVALID_ENTITY if LUID not found.
+		 */
+		inline Entity GetEntityFromComponentLuid(uint64_t luid, Core::LUIDRegistry* registry) {
+			if (luid == 0 || !registry) return INVALID_ENTITY;
+
+			auto* record = registry->Find(luid);
+			if (!record) return INVALID_ENTITY;
+
+			return static_cast<Entity>(record->m_entityOwner);
 		}
 
 		// Vector normalization helper
@@ -186,20 +222,7 @@ namespace NE {
 		// Transform Operations
 		//=========================================================================
 
-		Vec3 IScript::GetPosition(Entity entity) const {
-			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
-
-			// Use m_entity if entity is DEFAULT_ENTITY_PARAM
-			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
-				return Vec3::Zero();
-
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
-			return ToSDKVec3(transform.localPosition);
-		}
-
-		Vec3 IScript::GetWorldPosition(Entity entity) const {
+		Vec3 IScript::TF_GetPosition(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -213,7 +236,20 @@ namespace NE {
 			return ToSDKVec3(worldPos);
 		}
 
-		void IScript::SetPosition(const Vec3& pos, Entity entity) {
+		Vec3 IScript::TF_GetLocalPosition(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+			// Use m_entity if entity is DEFAULT_ENTITY_PARAM
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+				return Vec3::Zero();
+
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			return ToSDKVec3(transform.localPosition);
+		}
+
+		void IScript::TF_SetPosition(const Vec3& pos, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -225,11 +261,25 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetPosition(float x, float y, float z, Entity entity) {
-			SetPosition(Vec3(x, y, z), entity);
+		void IScript::TF_SetPosition(float x, float y, float z, Entity entity) {
+			TF_SetPosition(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetRotation(Entity entity) const {
+		Vec3 IScript::TF_GetRotation(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+				return Vec3::Zero();
+
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			Math::Vec3 worldRot = m.GetRotation();
+			return ToSDKVec3(worldRot);
+		}
+
+		Vec3 IScript::TF_GetLocalRotation(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -241,7 +291,7 @@ namespace NE {
 			return ToSDKVec3(transform.localRotationEuler);
 		}
 
-		void IScript::SetRotation(const Vec3& rot, Entity entity) {
+		void IScript::TF_SetRotation(const Vec3& rot, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -253,11 +303,25 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetRotation(float x, float y, float z, Entity entity) {
-			SetRotation(Vec3(x, y, z), entity);
+		void IScript::TF_SetRotation(float x, float y, float z, Entity entity) {
+			TF_SetRotation(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetScale(Entity entity) const {
+		Vec3 IScript::TF_GetScale(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::One());
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			if (!m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity))
+				return Vec3::One();
+
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			Math::Vec3 worldScale = m.GetRotation();
+			return ToSDKVec3(worldScale);
+		}
+
+		Vec3 IScript::TF_GetLocalScale(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(Vec3::One());
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -269,7 +333,7 @@ namespace NE {
 			return ToSDKVec3(transform.localScale);
 		}
 
-		void IScript::SetScale(const Vec3& scale, Entity entity) {
+		void IScript::TF_SetScale(const Vec3& scale, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -281,64 +345,67 @@ namespace NE {
 			}
 		}
 
-		void IScript::SetScale(float x, float y, float z, Entity entity) {
-			SetScale(Vec3(x, y, z), entity);
+		void IScript::TF_SetScale(float x, float y, float z, Entity entity) {
+			TF_SetScale(Vec3(x, y, z), entity);
 		}
 
-		void IScript::SetScale(float uniformScale, Entity entity) {
-			SetScale(Vec3(uniformScale, uniformScale, uniformScale), entity);
+		void IScript::TF_SetScale(float uniformScale, Entity entity) {
+			TF_SetScale(Vec3(uniformScale, uniformScale, uniformScale), entity);
 		}
 
-		void IScript::Translate(const Vec3& translation, Entity entity) {
+		void IScript::TF_Translate(const Vec3& translation, Entity entity) {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			SetPosition(GetPosition(targetEntity) + translation, targetEntity);
+			TF_SetPosition(TF_GetPosition(targetEntity) + translation, targetEntity);
 		}
 
-		void IScript::Translate(float x, float y, float z, Entity entity) {
-			Translate(Vec3(x, y, z), entity);
+		void IScript::TF_Translate(float x, float y, float z, Entity entity) {
+			TF_Translate(Vec3(x, y, z), entity);
 		}
 
-		void IScript::Rotate(const Vec3& rotation, Entity entity) {
+		void IScript::TF_Rotate(const Vec3& rotation, Entity entity) {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			SetRotation(GetRotation(targetEntity) + rotation, targetEntity);
+			TF_SetRotation(TF_GetRotation(targetEntity) + rotation, targetEntity);
 		}
 
-		void IScript::Rotate(float x, float y, float z, Entity entity) {
-			Rotate(Vec3(x, y, z), entity);
+		void IScript::TF_Rotate(float x, float y, float z, Entity entity) {
+			TF_Rotate(Vec3(x, y, z), entity);
 		}
 
-		Vec3 IScript::GetForward(Entity entity) const {
+		Vec3 IScript::TF_GetForward(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			//Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
-			float pitch = rotation.x * (3.14159265f / 180.0f);
-			float yaw = rotation.y * (3.14159265f / 180.0f);
+			//float pitch = rotation.x * Math::DEG_TO_RAD;
+			//float yaw = rotation.y * Math::DEG_TO_RAD;
 
-			Vec3 forward;
-			forward.x = std::cos(pitch) * std::cos(yaw);
-			forward.y = std::sin(pitch);
-			forward.z = std::cos(pitch) * std::sin(yaw);
+			//Vec3 forward;
+			//forward.x = std::cos(pitch) * std::cos(yaw);
+			//forward.y = std::sin(pitch);
+			//forward.z = std::cos(pitch) * std::sin(yaw);
 
-			return forward.Normalized();
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			return Vec3(m.Forward());
 		}
 
-		Vec3 IScript::GetRight(Entity entity) const {
+		Vec3 IScript::TF_GetRight(Entity entity) const {
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			Vec3 rotation = GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
+			//Vec3 rotation = TF_GetRotation(targetEntity); // (pitch, yaw, roll) in degrees
 
-			// Convert degrees to radians
-			float yaw = rotation.y * (3.14159265f / 180.0f);
+			//// Convert degrees to radians
+			//float yaw = rotation.y * Math::DEG_TO_RAD;
 
-			// Right vector is perpendicular to forward in XZ plane
-			Vec3 right;
-			right.x = std::cos(yaw);
-			right.y = 0.0f;
-			right.z = std::sin(yaw);
-
-			return Normalize(right);
+			//// Right vector is perpendicular to forward in XZ plane
+			//Vec3 right;
+			//right.x = std::cos(yaw);
+			//right.y = 0.0f;
+			//right.z = std::sin(yaw);
+			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
+			Math::Mat4 m = transform.worldMatrix;
+			return Vec3(m.Right());
 		}
 
-		Vec3 IScript::GetUp(Entity entity) const {
+		Vec3 IScript::TF_GetUp(Entity entity) const {
 			// Up is always world up in this simple implementation
 			// For more complex scenarios, you might want to calculate it from forward and right
 			return Vec3(0.0f, 1.0f, 0.0f);
@@ -404,13 +471,14 @@ namespace NE {
 		// Rigidbody Physics
 		//=========================================================================
 
-		bool IScript::HasRigidbody(Entity entity) const {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-			return Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity);*/
-			return false;
+		bool IScript::RB_HasRigidbody(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(false);
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			return m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(targetEntity);
 		}
 
-		float IScript::GetMass(Entity entity) const {
+		float IScript::RB_GetMass(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(0.0f);
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -421,7 +489,7 @@ namespace NE {
 			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).mass;
 		}
 
-		void IScript::SetMass(float mass, Entity entity) {
+		void IScript::RB_SetMass(float mass, Entity entity) {
 			CHECK_CONTEXT_OR_RETURN();
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -432,7 +500,7 @@ namespace NE {
 			}
 		}
 
-		bool IScript::GetUseGravity(Entity entity) const {
+		bool IScript::RB_GetUseGravity(Entity entity) const {
 			CHECK_CONTEXT_OR_RETURN(false);
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -443,7 +511,7 @@ namespace NE {
 			return m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(targetEntity).useGravity;
 		}
 
-		void IScript::SetUseGravity(bool use, Entity entity) {
+		void IScript::RB_SetUseGravity(bool use, Entity entity) {
 			//Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			//if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -459,7 +527,7 @@ namespace NE {
 			//}
 		}
 
-		bool IScript::IsStatic(Entity entity) const {
+		bool IScript::RB_IsStatic(Entity entity) const {
 			/*if (!m_context || !m_context->componentManager) return false;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -471,7 +539,7 @@ namespace NE {
 			return false;
 		}
 
-		void IScript::SetStatic(bool isStatic, Entity entity) {
+		void IScript::RB_SetStatic(bool isStatic, Entity entity) {
 			/*if (!m_context || !m_context->componentManager) return;
 
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
@@ -482,7 +550,7 @@ namespace NE {
 			}*/
 		}
 
-		void IScript::LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
+		void IScript::RB_LockRotation(bool lockX, bool lockY, bool lockZ, Entity entity) {
 			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
 			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
@@ -491,55 +559,140 @@ namespace NE {
 			Physics::PhysicsManager::LockRotation(bodyID, lockX, lockY, lockZ);*/
 		}
 
-		Vec3 IScript::GetVelocity(Entity entity) const {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		Vec3 IScript::RB_GetVelocity(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) {
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
 				return Vec3::Zero();
 			}
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));*/
-			return {};
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetLinearVelocity(meta.luid));
 		}
 
-		void IScript::SetVelocity(const Vec3& velocity, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		void IScript::RB_SetVelocity(const Vec3& velocity, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));*/
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().SetLinearVelocity(meta.luid, ToEngineVec3(velocity));
 		}
 
-		void IScript::SetVelocity(float x, float y, float z, Entity entity) {
-			SetVelocity(Vec3(x, y, z), entity);
+		void IScript::RB_SetVelocity(float x, float y, float z, Entity entity) {
+			RB_SetVelocity(Vec3(x, y, z), entity);
 		}
 
-		void IScript::AddForce(const Vec3& force, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+		Vec3 IScript::RB_GetAngularVelocity(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3::Zero());
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));*/
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return Vec3::Zero();
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetAngularVelocity(meta.luid));
 		}
 
-		void IScript::AddForce(float x, float y, float z, Entity entity) {
-			AddForce(Vec3(x, y, z), entity);
+		void IScript::RB_SetAngularVelocity(const Vec3& angularVelocity, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().SetAngularVelocity(meta.luid, ToEngineVec3(angularVelocity));
 		}
 
-		void IScript::AddImpulse(const Vec3& impulse, Entity entity) {
-			/*Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(targetEntity)) return;
-
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(targetEntity);
-			Physics::PhysicsManager::AddImpulse(bodyID, ToEngineVec3(impulse));*/
+		void IScript::RB_SetAngularVelocity(float x, float y, float z, Entity entity) {
+			RB_SetAngularVelocity(Vec3(x, y, z), entity);
 		}
 
-		void IScript::AddImpulse(float x, float y, float z, Entity entity) {
-			AddImpulse(Vec3(x, y, z), entity);
+		void IScript::RB_AddForce(const Vec3& force, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(force));
+		}
+
+		void IScript::RB_AddForce(float x, float y, float z, Entity entity) {
+			RB_AddForce(Vec3(x, y, z), entity);
+		}
+
+		void IScript::RB_AddImpulse(const Vec3& impulse, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			if (!m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(targetEntity)) {
+				return;
+			}
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().AddForce(meta.luid, ToEngineVec3(impulse), Physics::ForceMode::Impulse);
+		}
+
+		void IScript::RB_AddImpulse(float x, float y, float z, Entity entity) {
+			RB_AddImpulse(Vec3(x, y, z), entity);
+		}
+
+		void IScript::CC_Move(const Vec3& displacement, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().CharacterMove(meta.luid, ToEngineVec3(displacement));
+		}
+
+		void IScript::CC_Rotate(float yawDegrees, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().CharacterRotateYaw(meta.luid, yawDegrees);
+		}
+
+		bool IScript::CC_IsGrounded(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(false);
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return Physics::PhysicsManager::GetInstance().CharacterIsGrounded(meta.luid);
+		}
+
+		Vec3 IScript::CC_GetGroundNormal(Entity entity) const {
+			CHECK_CONTEXT_OR_RETURN(Vec3{});
+
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			return Vec3(Physics::PhysicsManager::GetInstance().CharacterGetGroundNormal(meta.luid));
 		}
 
 		//=========================================================================
@@ -547,39 +700,40 @@ namespace NE {
 		//=========================================================================
 
 		RaycastHit IScript::Raycast(const Vec3& origin, const Vec3& direction, float maxDistance, uint32_t layerMask) const {
-			RaycastHit result;
+			RaycastHit sdkHit;
+			sdkHit.hasHit = false;
 
-			//if (!m_context || !m_context->componentManager) {
-			//	result.hasHit = false;
-			//	return result;
-			//}
+			if (!m_context || !m_context->componentManager) {
+				return sdkHit;
+			}
 
-			//// Call PhysicsManager raycast with layer mask (static method)
-			//auto hit = Physics::PhysicsManager::Raycast(
-			//	ToEngineVec3(origin),
-			//	ToEngineVec3(direction),
-			//	maxDistance,
-			//	layerMask
-			//);
+			// Call PhysicsManager raycast with engine types
+			Physics::RaycastHit engineHit;
+			bool hasHit = Physics::PhysicsManager::GetInstance().Raycast(
+				ToEngineVec3(origin),
+				ToEngineVec3(direction),
+				engineHit,
+				maxDistance,
+				layerMask
+			);
 
-			//// Convert PhysicsManager::RaycastHit to SDK RaycastHit
-			//result.hasHit = hit.hasHit;
-			//result.point = ToSDKVec3(hit.point);
-			//result.normal = ToSDKVec3(hit.normal);
-			//result.distance = hit.distance;
-			//result.entity = hit.entity;
-			//return result;
-			return {};
+			// Convert to SDK RaycastHit (scripts only see Entity, not LUIDs)
+			sdkHit.hasHit = hasHit;
+			sdkHit.point = ToSDKVec3(engineHit.point);
+			sdkHit.normal = ToSDKVec3(engineHit.normal);
+			sdkHit.distance = engineHit.distance;
+			sdkHit.entity = engineHit.colliderEntityID;
+
+			return sdkHit;
 		}
 
 		RaycastHit IScript::Raycast(float originX, float originY, float originZ,
 			float dirX, float dirY, float dirZ,
 			float maxDistance, uint32_t layerMask) const {
-			/*return Raycast(Vec3(originX, originY, originZ),
+			return Raycast(Vec3(originX, originY, originZ),
 				Vec3(dirX, dirY, dirZ),
 				maxDistance,
-				layerMask);*/
-			return {};
+				layerMask);
 		}
 
 		std::vector<RaycastHit> IScript::RaycastAll(const Vec3& origin, const Vec3& direction,
@@ -612,6 +766,50 @@ namespace NE {
 
 			//return results;
 			return {};
+		}
+
+		//=========================================================================
+		// Physics Sphere Casting
+		//=========================================================================
+
+		RaycastHit IScript::SphereCast(const Vec3& origin, float radius, const Vec3& direction, float maxDistance, uint32_t layerMask) const {
+			RaycastHit sdkHit;
+			sdkHit.hasHit = false;
+
+			if (!m_context || !m_context->componentManager) {
+				return sdkHit;
+			}
+
+			// Call PhysicsManager sphere cast with engine types
+			Physics::RaycastHit engineHit;
+			bool hasHit = Physics::PhysicsManager::GetInstance().SphereCast(
+				ToEngineVec3(origin),
+				radius,
+				ToEngineVec3(direction),
+				engineHit,
+				maxDistance,
+				layerMask
+			);
+
+			// Convert to SDK RaycastHit (scripts only see Entity, not LUIDs)
+			sdkHit.hasHit = hasHit;
+			sdkHit.point = ToSDKVec3(engineHit.point);
+			sdkHit.normal = ToSDKVec3(engineHit.normal);
+			sdkHit.distance = engineHit.distance;
+			sdkHit.entity = engineHit.colliderEntityID;
+
+			return sdkHit;
+		}
+
+		RaycastHit IScript::SphereCast(float originX, float originY, float originZ,
+			float radius,
+			float dirX, float dirY, float dirZ,
+			float maxDistance, uint32_t layerMask) const {
+			return SphereCast(Vec3(originX, originY, originZ),
+				radius,
+				Vec3(dirX, dirY, dirZ),
+				maxDistance,
+				layerMask);
 		}
 
 		//=========================================================================
@@ -820,7 +1018,9 @@ namespace NE {
 			if (!m_context || !m_context->componentManager) return TransformRef();
 
 			if (m_context->componentManager->HasComponent<ECS::Component::Transform>(entity)) {
-				return TransformRef(entity);
+				// Get component and extract LUID
+				auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(entity);
+				return TransformRef(entity, transform.luid);  // Pass both entity and LUID
 			}
 			return TransformRef();
 		}
@@ -829,9 +1029,22 @@ namespace NE {
 			if (!m_context || !m_context->componentManager) return RigidbodyRef();
 
 			if (m_context->componentManager->HasComponent<ECS::Component::Rigidbody>(entity)) {
-				return RigidbodyRef(entity);
+				// Get component and extract LUID
+				auto& rigidbody = m_context->componentManager->GetComponent<ECS::Component::Rigidbody>(entity);
+				return RigidbodyRef(entity, rigidbody.luid);  // Pass both entity and LUID
 			}
 			return RigidbodyRef();
+		}
+
+		RendererRef IScript::GetRendererRef(Entity entity) const {
+			if (!m_context || !m_context->componentManager) return RendererRef();
+
+			if (m_context->componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
+				// Get component and extract LUID
+				auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
+				return RendererRef(entity, renderer.luid);  // Pass both entity and LUID
+			}
+			return RendererRef();
 		}
 
 		AudioSourceRef IScript::GetAudioSourceRef(Entity entity) const {
@@ -882,11 +1095,24 @@ namespace NE {
 		}
 
 		MaterialRef IScript::GetMaterialRef(const std::string& materialUUID) const {
-			if (materialUUID.empty()) return MaterialRef();
+			if (materialUUID.empty() || materialUUID == "empty uuid") return MaterialRef();
 
 			// Get or create an ID for this material UUID
 			uint32_t materialID = GetMaterialRegistry().GetOrCreateID(materialUUID);
 			return MaterialRef(materialID);
+		}
+
+		MaterialRef IScript::GetEntityMaterial(Entity entity) const {
+			// Get the material UUID from the entity's renderer component
+			std::string materialUUID = NE::Renderer::Query::GetMaterial(entity);
+
+			// Check if it's the empty UUID (no material assigned)
+			if (materialUUID.empty() || materialUUID == "empty uuid") {
+				return MaterialRef();
+			}
+
+			// Convert UUID to MaterialRef
+			return GetMaterialRef(materialUUID);
 		}
 
 		//=========================================================================
@@ -1010,18 +1236,44 @@ namespace NE {
 
 		// Component ref operations (for stored references)
 		Vec3 IScript::GetPosition(const TransformRef& ref) const {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
+			if (!ref.IsValid() || !m_context) return Vec3::Zero();
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			return ToSDKVec3(transform.localPosition);
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) return ToSDKVec3(transform->localPosition);
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	return ToSDKVec3(transform.localPosition);
+			//}
+
+			return Vec3::Zero();
 		}
 
 		void IScript::SetPosition(const TransformRef& ref, const Vec3& pos) {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			transform.localPosition = ToEngineVec3(pos);
-			transform.isDirty = true;
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) {
+					transform->localPosition = ToEngineVec3(pos);
+					transform->isDirty = true;
+					return;
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	transform.localPosition = ToEngineVec3(pos);
+			//	transform.isDirty = true;
+			//}
 		}
 
 		void IScript::SetPosition(const TransformRef& ref, float x, float y, float z) {
@@ -1029,63 +1281,215 @@ namespace NE {
 		}
 
 		Vec3 IScript::GetRotation(const TransformRef& ref) const {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::Zero();
+			if (!ref.IsValid() || !m_context) return Vec3::Zero();
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			return ToSDKVec3(transform.localRotationEuler);
+			// Prefer LUID resolution 
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) return ToSDKVec3(transform->localRotationEuler);
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	return ToSDKVec3(transform.localRotationEuler);
+			//}
+
+			return Vec3::Zero();
 		}
 
 		void IScript::SetRotation(const TransformRef& ref, const Vec3& rot) {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			transform.localRotationEuler = ToEngineVec3(rot);
-			transform.isDirty = true;
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) {
+					transform->localRotationEuler = ToEngineVec3(rot);
+					transform->isDirty = true;
+					return;
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	transform.localRotationEuler = ToEngineVec3(rot);
+			//	transform.isDirty = true;
+			//}
 		}
 
 		Vec3 IScript::GetScale(const TransformRef& ref) const {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return Vec3::One();
+			if (!ref.IsValid() || !m_context) return Vec3::One();
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			return ToSDKVec3(transform.localScale);
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) return ToSDKVec3(transform->localScale);
+			}
+
+			//// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	return ToSDKVec3(transform.localScale);
+			//}
+
+			return Vec3::One();
 		}
 
 		void IScript::SetScale(const TransformRef& ref, const Vec3& scale) {
-			if (!ref.IsValid() || !m_context || !m_context->componentManager) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
-			transform.localScale = ToEngineVec3(scale);
-			transform.isDirty = true;
+			// Prefer LUID resolution over Entity lookup
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* transform = ResolveComponentByLuid<ECS::Component::Transform>(
+					ref.GetLuid(), m_context->luidRegistry);
+				if (transform) {
+					transform->localScale = ToEngineVec3(scale);
+					transform->isDirty = true;
+					return;
+				}
+			}
+
+			//// Fallback to Entity-based lookup
+			//if (m_context->componentManager) {
+			//	auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(ref.GetEntity());
+			//	transform.localScale = ToEngineVec3(scale);
+			//	transform.isDirty = true;
+			//}
 		}
 
 		Vec3 IScript::GetVelocity(const RigidbodyRef& ref) const {
-			/*if (!ref.IsValid()) return Vec3::Zero();
+			if (!ref.IsValid() || !m_context) return Vec3::Zero();
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) {
-				return Vec3::Zero();
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			uint64_t entityLUID = 0;
+
+			// Prefer LUID resolution to get entity
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* record = m_context->luidRegistry->Find(ref.GetLuid());
+				if (record) {
+					Entity entity = static_cast<Entity>(record->m_entityOwner);
+					if (m_context->componentManager && m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+						auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+						entityLUID = meta.luid;
+					}
+				}
 			}
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-			return ToSDKVec3(Physics::PhysicsManager::GetLinearVelocity(bodyID));*/
-			return {};
+			// Fallback to Entity-based lookup
+			if (entityLUID == 0 && m_context->componentManager) {
+				Entity entity = ref.GetEntity();
+				if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+					auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+					entityLUID = meta.luid;
+				}
+			}
+
+			if (entityLUID != 0) {
+				return ToSDKVec3(Physics::PhysicsManager::GetInstance().GetLinearVelocity(entityLUID));
+			}
+
+			return Vec3::Zero();
 		}
 
 		void IScript::SetVelocity(const RigidbodyRef& ref, const Vec3& velocity) {
-			/*if (!ref.IsValid()) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			uint64_t entityLUID = 0;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-			Physics::PhysicsManager::SetLinearVelocity(bodyID, ToEngineVec3(velocity));*/
+			// Prefer LUID resolution to get entity
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* record = m_context->luidRegistry->Find(ref.GetLuid());
+				if (record) {
+					Entity entity = static_cast<Entity>(record->m_entityOwner);
+					if (m_context->componentManager && m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+						auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+						entityLUID = meta.luid;
+					}
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			if (entityLUID == 0 && m_context->componentManager) {
+				Entity entity = ref.GetEntity();
+				if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+					auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+					entityLUID = meta.luid;
+				}
+			}
+
+			if (entityLUID != 0) {
+				Physics::PhysicsManager::GetInstance().SetLinearVelocity(entityLUID, ToEngineVec3(velocity));
+			}
 		}
 
 		void IScript::AddForce(const RigidbodyRef& ref, const Vec3& force) {
-			/*if (!ref.IsValid()) return;
+			if (!ref.IsValid() || !m_context) return;
 
-			if (!Physics::PhysicsManager::EntityHasPhysicsBody(ref.GetEntity())) return;
+			// Get entity LUID (needed for PhysicsManager which operates on entity LUIDs)
+			uint64_t entityLUID = 0;
 
-			uint32_t bodyID = Physics::PhysicsManager::GetEntityBodyId(ref.GetEntity());
-			Physics::PhysicsManager::AddForce(bodyID, ToEngineVec3(force));*/
+			// Prefer LUID resolution to get entity
+			if (ref.GetLuid() != 0 && m_context->luidRegistry) {
+				auto* record = m_context->luidRegistry->Find(ref.GetLuid());
+				if (record) {
+					Entity entity = static_cast<Entity>(record->m_entityOwner);
+					if (m_context->componentManager && m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+						auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+						entityLUID = meta.luid;
+					}
+				}
+			}
+
+			// Fallback to Entity-based lookup
+			if (entityLUID == 0 && m_context->componentManager) {
+				Entity entity = ref.GetEntity();
+				if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+					auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+					entityLUID = meta.luid;
+				}
+			}
+
+			if (entityLUID != 0) {
+				Physics::PhysicsManager::GetInstance().AddForce(entityLUID, ToEngineVec3(force));
+			}
+		}
+
+		//=========================================================================
+		// Renderer ComponentRef Operations
+		//=========================================================================
+
+		MaterialRef IScript::GetMaterialRef(const RendererRef& ref) const {
+			if (!ref.IsValid() || !m_context) return MaterialRef();
+
+			Entity entity = ref.GetEntity();
+			return GetEntityMaterial(entity);
+		}
+
+		void IScript::SetMaterialRef(const RendererRef& ref, const MaterialRef& materialRef) {
+			if (!ref.IsValid() || !m_context) return;
+
+			Entity entity = ref.GetEntity();
+
+			// Get material UUID from MaterialRef
+			std::string materialUUID = GetMaterialUUIDFromRef(materialRef);
+			if (materialUUID.empty()) {
+				materialUUID = "neunlitmat"; // defaults to neunlitmat if invalid
+			}
+
+			// Set the material UUID on the entity's renderer component
+			if (m_context->componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
+				//auto& renderer = m_context->componentManager->GetComponent<ECS::Component::Renderer>(entity);
+				//renderer.materialUUID = materialUUID;
+				//renderer.isDirty = true;
+
+				NE::Renderer::Command::AssignMaterial(entity, materialUUID);
+			}
 		}
 
 		//=========================================================================
@@ -1227,10 +1631,31 @@ namespace NE {
 				name,
 				"transformref",
 				memberPtr,
-				[memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
+				// Serialize: Store component LUID
+				[memberPtr]() -> std::string {
+					uint64_t luid = memberPtr->GetLuid();
+					// Fallback to Entity-based if LUID is not set (backwards compatibility)
+					if (luid == 0) {
+						return std::to_string(memberPtr->GetEntity());
+					}
+					return std::to_string(luid);
+				},
+				// Deserialize: Restore from component LUID
 				[this, memberPtr](const std::string& value) -> bool {
 					try {
-						Entity entity = static_cast<Entity>(std::stoul(value));
+						uint64_t luid = std::stoull(value);
+
+						// If we have LUID registry, resolve LUID to Entity
+						if (m_context && m_context->luidRegistry && luid != 0) {
+							Entity entity = GetEntityFromComponentLuid(luid, m_context->luidRegistry);
+							if (entity != INVALID_ENTITY) {
+								*memberPtr = GetTransformRef(entity);  // This will populate both entity and LUID
+								return true;
+							}
+						}
+
+						// Fallback: treat value as Entity ID (backwards compatibility)
+						Entity entity = static_cast<Entity>(luid);
 						*memberPtr = GetTransformRef(entity);
 						return true;
 					} catch (...) {
@@ -1238,7 +1663,8 @@ namespace NE {
 					}
 				}
 			);
-			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+			// NOTE: ComponentRef fields store component LUIDs (64-bit), not entity IDs (32-bit)
+			// They should NOT be marked as entity references to avoid truncation during serialization
 		}
 
 		void IScript::RegisterRigidbodyRefField(const std::string& name, RigidbodyRef* memberPtr) {
@@ -1246,10 +1672,31 @@ namespace NE {
 				name,
 				"rigidbodyref",
 				memberPtr,
-				[memberPtr]() -> std::string { return std::to_string(memberPtr->GetEntity()); },
+				// Serialize: Store component LUID
+				[memberPtr]() -> std::string {
+					uint64_t luid = memberPtr->GetLuid();
+					// Fallback to Entity-based if LUID is not set (backwards compatibility)
+					if (luid == 0) {
+						return std::to_string(memberPtr->GetEntity());
+					}
+					return std::to_string(luid);
+				},
+				// Deserialize: Restore from component LUID
 				[this, memberPtr](const std::string& value) -> bool {
 					try {
-						Entity entity = static_cast<Entity>(std::stoul(value));
+						uint64_t luid = std::stoull(value);
+
+						// If we have LUID registry, resolve LUID to Entity
+						if (m_context && m_context->luidRegistry && luid != 0) {
+							Entity entity = GetEntityFromComponentLuid(luid, m_context->luidRegistry);
+							if (entity != INVALID_ENTITY) {
+								*memberPtr = GetRigidbodyRef(entity);  // This will populate both entity and LUID
+								return true;
+							}
+						}
+
+						// Fallback: treat value as Entity ID (backwards compatibility)
+						Entity entity = static_cast<Entity>(luid);
 						*memberPtr = GetRigidbodyRef(entity);
 						return true;
 					} catch (...) {
@@ -1257,7 +1704,49 @@ namespace NE {
 					}
 				}
 			);
-			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+			// NOTE: ComponentRef fields store component LUIDs (64-bit), not entity IDs (32-bit)
+			// They should NOT be marked as entity references to avoid truncation during serialization
+		}
+
+		void IScript::RegisterRendererRefField(const std::string& name, RendererRef* memberPtr) {
+			RegisterFieldInternal(
+				name,
+				"rendererref",
+				memberPtr,
+				// Serialize: Store component LUID
+				[memberPtr]() -> std::string {
+					uint64_t luid = memberPtr->GetLuid();
+					// Fallback to Entity-based if LUID is not set (backwards compatibility)
+					if (luid == 0) {
+						return std::to_string(memberPtr->GetEntity());
+					}
+					return std::to_string(luid);
+				},
+				// Deserialize: Restore from component LUID
+				[this, memberPtr](const std::string& value) -> bool {
+					try {
+						uint64_t luid = std::stoull(value);
+
+						// If we have LUID registry, resolve LUID to Entity
+						if (m_context && m_context->luidRegistry && luid != 0) {
+							Entity entity = GetEntityFromComponentLuid(luid, m_context->luidRegistry);
+							if (entity != INVALID_ENTITY) {
+								*memberPtr = GetRendererRef(entity);  // This will populate both entity and LUID
+								return true;
+							}
+						}
+
+						// Fallback: treat value as Entity ID (backwards compatibility)
+						Entity entity = static_cast<Entity>(luid);
+						*memberPtr = GetRendererRef(entity);
+						return true;
+					} catch (...) {
+						return false;
+					}
+				}
+			);
+			// NOTE: ComponentRef fields store component LUIDs (64-bit), not entity IDs (32-bit)
+			// They should NOT be marked as entity references to avoid truncation during serialization
 		}
 
 		void IScript::RegisterAudioSourceRefField(const std::string& name, AudioSourceRef* memberPtr) {
@@ -1276,6 +1765,7 @@ namespace NE {
 					}
 				}
 			);
+			// TODO: AudioSourceRef should be updated to use LUID-based references like Transform/Rigidbody/Renderer
 			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
 		}
 
@@ -1294,7 +1784,7 @@ namespace NE {
 				},
 				[this, memberPtr, name](const std::string& value) -> bool {
 					try {
-						SPD_DEBUG("[MaterialRef] Setting field " << name);
+						//SPD_DEBUG("[MaterialRef] Setting field " << name);
 
 						// Empty string means no material
 						if (value.empty()) {
@@ -1310,7 +1800,7 @@ namespace NE {
 						}
 
 						*memberPtr = newRef;
-						SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
+						//SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
 						return true;
 					} catch (const std::exception& e) {
 						SPD_ERROR("[MaterialRef] setValue exception for field '{}': {}", name, e.what());
@@ -1361,6 +1851,98 @@ namespace NE {
 						return false;
 					} catch (...) {
 						SPD_ERROR("[PrefabRef] setValue unknown exception for field " << name);
+						return false;
+					}
+				}
+			);
+		}
+
+		void IScript::RegisterGameObjectRefField(const std::string& name, GameObjectRef* memberPtr) {
+			RegisterFieldInternal(
+				name,
+				"gameobjectref",
+				memberPtr,
+				[this, memberPtr]() -> std::string {
+					// For GameObjectRef, store the EntityMeta LUID (stable across sessions)
+					if (!memberPtr->IsValid()) {
+						return std::to_string(uint64_t(0));
+					}
+					Entity entity = memberPtr->GetEntity();
+					if (entity == INVALID_ENTITY) {
+						return std::to_string(uint64_t(0));
+					}
+
+					// Get LUID from EntityMeta component
+					uint64_t luid = 0;
+					if (m_context && m_context->componentManager) {
+						if (m_context->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+							luid = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(entity).luid;
+						}
+					}
+
+					return std::to_string(luid);
+				},
+				[this, memberPtr, name](const std::string& value) -> bool {
+					try {
+						// Parse LUID from string and resolve to Entity ID
+						uint64_t luid = 0;
+						if (!value.empty()) {
+							try {
+								luid = std::stoull(value);
+							} catch (...) {
+								luid = 0;
+							}
+						}
+
+						Entity entityId = INVALID_ENTITY;
+						if (luid != 0) {
+							// Resolve LUID to Entity ID
+							entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+						}
+
+						memberPtr->SetEntity(entityId);
+
+						// Track as an entity reference for serialization
+						MarkFieldAsEntityReference(name);
+
+						return true;
+					} catch (const std::exception& e) {
+						SPD_ERROR("[GameObjectRef] setValue exception for field " << name << ": " << e.what());
+						return false;
+					}
+				}
+			);
+		}
+
+		void IScript::RegisterLayerRefField(const std::string& name, LayerRef* memberPtr) {
+			RegisterFieldInternal(
+				name,
+				"layerref",
+				memberPtr,
+				[memberPtr]() -> std::string {
+					// Store the layer ID as a string
+					return std::to_string(static_cast<int>(memberPtr->GetID()));
+				},
+				[memberPtr, name](const std::string& value) -> bool {
+					try {
+						// Parse layer ID from string
+						uint8_t layerId = 0;
+						if (!value.empty()) {
+							try {
+								int parsed = std::stoi(value);
+								// Clamp to valid layer range (0-31)
+								if (parsed < 0) parsed = 0;
+								if (parsed > 31) parsed = 31;
+								layerId = static_cast<uint8_t>(parsed);
+							} catch (...) {
+								layerId = 0;
+							}
+						}
+
+						memberPtr->SetID(layerId);
+						return true;
+					} catch (const std::exception& e) {
+						SPD_ERROR("[LayerRef] setValue exception for field " << name << ": " << e.what());
 						return false;
 					}
 				}
@@ -1844,18 +2426,22 @@ namespace NE {
 			entry.typeToken = "vector<entity>";
 			entry.memberPtr = memberPtr;
 
-			// getValue: Serialize entire vector as "size id1 id2 ..."
-			entry.getValue = [memberPtr]() -> std::string {
+			// getValue: Serialize entire vector as "size luid1 luid2 ..." (using EntityMeta LUIDs)
+			entry.getValue = [this, memberPtr]() -> std::string {
 				std::ostringstream oss;
 				oss << memberPtr->size();
 				for (const auto& entity : *memberPtr) {
-					oss << " " << entity;
+					uint64_t luid = 0;
+					if (m_context && m_context->componentManager) {
+						luid = GetLUIDFromEntity(entity, m_context->componentManager);
+					}
+					oss << " " << luid;
 				}
 				return oss.str();
 				};
 
-			// setValue: Deserialize entire vector from "size id1 id2 ..."
-			entry.setValue = [memberPtr](const std::string& value) -> bool {
+			// setValue: Deserialize entire vector from "size luid1 luid2 ..." (resolve LUIDs to Entity IDs with fallback)
+			entry.setValue = [this, memberPtr](const std::string& value) -> bool {
 				try {
 					std::istringstream iss(value);
 					size_t size;
@@ -1865,9 +2451,15 @@ namespace NE {
 					memberPtr->reserve(size);
 
 					for (size_t i = 0; i < size; ++i) {
-						uint32_t entityId;
-						if (!(iss >> entityId)) return false;
-						memberPtr->push_back(static_cast<Entity>(entityId));
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+						// Try to resolve LUID to Entity ID
+						Entity entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+						// Fallback: if LUID resolution failed, treat value as Entity ID (backwards compatibility)
+						if (entityId == INVALID_ENTITY && luid <= static_cast<uint64_t>(UINT32_MAX)) {
+							entityId = static_cast<Entity>(luid);
+						}
+						memberPtr->push_back(entityId);
 					}
 					return true;
 				} catch (...) {
@@ -1880,15 +2472,26 @@ namespace NE {
 				return memberPtr->size();
 				};
 
-			entry.getElement = [memberPtr](size_t index) -> std::string {
+			entry.getElement = [this, memberPtr](size_t index) -> std::string {
 				if (index >= memberPtr->size()) return "";
-				return std::to_string((*memberPtr)[index]);
+				Entity entity = (*memberPtr)[index];
+				uint64_t luid = 0;
+				if (m_context && m_context->componentManager) {
+					luid = GetLUIDFromEntity(entity, m_context->componentManager);
+				}
+				return std::to_string(luid);
 				};
 
-			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+			entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
 				if (index >= memberPtr->size()) return false;
 				try {
-					(*memberPtr)[index] = static_cast<Entity>(std::stoul(value));
+					uint64_t luid = std::stoull(value);
+					// Resolve LUID to Entity ID
+					Entity entityId = INVALID_ENTITY;
+					if (m_context && m_context->componentManager && m_context->entityManager) {
+						entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+					}
+					(*memberPtr)[index] = entityId;
 					return true;
 				} catch (...) {
 					return false;
@@ -1907,6 +2510,526 @@ namespace NE {
 
 			m_fieldRegistry->fields[name] = std::move(entry);
 			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterGameObjectRefVectorField(const std::string& name, std::vector<GameObjectRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<gameobjectref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..." (using EntityMeta LUIDs)
+			entry.getValue = [this, memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = 0;
+					if (m_context && m_context->componentManager) {
+						luid = GetLUIDFromEntity(ref.entity, m_context->componentManager);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector (resolve LUIDs to Entity IDs)
+			entry.setValue = [this, memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+						// Resolve LUID to Entity ID
+						Entity entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+						memberPtr->push_back(GameObjectRef(entityId));
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [this, memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				Entity entity = (*memberPtr)[index].entity;
+				uint64_t luid = 0;
+				if (m_context && m_context->componentManager) {
+					luid = GetLUIDFromEntity(entity, m_context->componentManager);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [this, memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					// Resolve LUID to Entity ID
+					Entity entityId = INVALID_ENTITY;
+					if (m_context && m_context->componentManager && m_context->entityManager) {
+						entityId = GetEntityFromLUID(luid, m_context->componentManager, m_context->entityManager);
+					}
+					(*memberPtr)[index].entity = entityId;
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(GameObjectRef(NE::ECS::NO_ENTITY));
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterTransformRefVectorField(const std::string& name, std::vector<TransformRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<transformref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..." (LUID or entity ID as fallback)
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						TransformRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(TransformRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterRigidbodyRefVectorField(const std::string& name, std::vector<RigidbodyRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<rigidbodyref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						RigidbodyRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(RigidbodyRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterRendererRefVectorField(const std::string& name, std::vector<RendererRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<rendererref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						RendererRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(RendererRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterAudioSourceRefVectorField(const std::string& name, std::vector<AudioSourceRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<audiosourceref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size luid1 luid2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					uint64_t luid = ref.componentLuid;
+					if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+						luid = static_cast<uint64_t>(ref.ownerEntity);
+					}
+					oss << " " << luid;
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						uint64_t luid;
+						if (!(iss >> luid)) return false;
+
+						AudioSourceRef ref;
+						ref.componentLuid = luid;
+						ref.ownerEntity = static_cast<Entity>(luid);
+						memberPtr->push_back(ref);
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				const auto& ref = (*memberPtr)[index];
+				uint64_t luid = ref.componentLuid;
+				if (luid == 0 && ref.ownerEntity != INVALID_ENTITY) {
+					luid = static_cast<uint64_t>(ref.ownerEntity);
+				}
+				return std::to_string(luid);
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					uint64_t luid = std::stoull(value);
+					(*memberPtr)[index].componentLuid = luid;
+					(*memberPtr)[index].ownerEntity = static_cast<Entity>(luid);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(AudioSourceRef());
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
+			MarkFieldAsEntityReference(name);  // Track for LUID conversion during scene serialization
+		}
+
+		void IScript::RegisterLayerRefVectorField(const std::string& name, std::vector<LayerRef>* memberPtr) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<layerref>";
+			entry.memberPtr = memberPtr;
+
+			// getValue: Serialize entire vector as "size id1 id2 ..."
+			entry.getValue = [memberPtr]() -> std::string {
+				std::ostringstream oss;
+				oss << memberPtr->size();
+				for (const auto& ref : *memberPtr) {
+					oss << " " << static_cast<int>(ref.layerID);
+				}
+				return oss.str();
+			};
+
+			// setValue: Deserialize entire vector
+			entry.setValue = [memberPtr](const std::string& value) -> bool {
+				try {
+					std::istringstream iss(value);
+					size_t size;
+					iss >> size;
+
+					memberPtr->clear();
+					memberPtr->reserve(size);
+
+					for (size_t i = 0; i < size; ++i) {
+						int layerId;
+						if (!(iss >> layerId)) return false;
+						memberPtr->push_back(LayerRef(static_cast<uint8_t>(layerId)));
+					}
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			// Array operations
+			entry.getSize = [memberPtr]() -> size_t {
+				return memberPtr->size();
+			};
+
+			entry.getElement = [memberPtr](size_t index) -> std::string {
+				if (index >= memberPtr->size()) return "";
+				return std::to_string(static_cast<int>((*memberPtr)[index].layerID));
+			};
+
+			entry.setElement = [memberPtr](size_t index, const std::string& value) -> bool {
+				if (index >= memberPtr->size()) return false;
+				try {
+					(*memberPtr)[index].layerID = static_cast<uint8_t>(std::stoi(value));
+					return true;
+				} catch (...) {
+					return false;
+				}
+			};
+
+			entry.addElement = [memberPtr]() -> void {
+				memberPtr->push_back(LayerRef(0));
+			};
+
+			entry.removeElement = [memberPtr](size_t index) -> void {
+				if (index < memberPtr->size()) {
+					memberPtr->erase(memberPtr->begin() + index);
+				}
+			};
+
+			m_fieldRegistry->fields[name] = std::move(entry);
 		}
 
 		void IScript::RegisterLayerMaskField(const std::string& name, LayerMask* memberPtr) {
@@ -1952,6 +3075,9 @@ namespace NE {
 			auto it = m_fieldRegistry->fields.find(name);
 			if (it != m_fieldRegistry->fields.end()) {
 				it->second.enumOptions = options;
+				//SPD_INFO("SetFieldEnumOptions: Set {} options for field '{}'", options.size(), name);
+			} else {
+				//SPD_WARNING("SetFieldEnumOptions: Field '{}' not found in registry!", name);
 			}
 		}
 
@@ -1981,6 +3107,35 @@ namespace NE {
 				it->second.getLayerMaskValue = getLayerMaskValue;
 				it->second.setLayerMaskValue = setLayerMaskValue;
 			}
+		}
+
+		void IScript::RegisterEnumVectorFieldInternal(
+			const std::string& name,
+			const std::vector<std::string>& enumOptions,
+			std::function<std::string()> getValue,
+			std::function<bool(const std::string&)> setValue,
+			std::function<size_t()> getSize,
+			std::function<std::string(size_t)> getElement,
+			std::function<bool(size_t, const std::string&)> setElement,
+			std::function<void()> addElement,
+			std::function<void(size_t)> removeElement) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<enum>";
+			entry.memberPtr = nullptr;
+			entry.getValue = std::move(getValue);
+			entry.setValue = std::move(setValue);
+			entry.getSize = std::move(getSize);
+			entry.getElement = std::move(getElement);
+			entry.setElement = std::move(setElement);
+			entry.addElement = std::move(addElement);
+			entry.removeElement = std::move(removeElement);
+			entry.enumOptions = enumOptions;
+
+			m_fieldRegistry->fields[name] = std::move(entry);
 		}
 
 		//=========================================================================
@@ -2038,11 +3193,19 @@ namespace NE {
 
 		// Virtual methods with default implementations for optional override
 		std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
-			if (!m_fieldRegistry) return {};
+			if (!m_fieldRegistry) {
+				//SPD_WARNING("GetEnumOptions: m_fieldRegistry is null for field '{}'", fieldName);
+				return {};
+			}
 
 			auto it = m_fieldRegistry->fields.find(fieldName);
-			if (it != m_fieldRegistry->fields.end() && !it->second.enumOptions.empty()) {
-				return it->second.enumOptions;
+			if (it != m_fieldRegistry->fields.end()) {
+				//SPD_INFO("GetEnumOptions: Field '{}' found, enumOptions.size() = {}", fieldName, it->second.enumOptions.size());
+				if (!it->second.enumOptions.empty()) {
+					return it->second.enumOptions;
+				}
+			} else {
+				//SPD_WARNING("GetEnumOptions: Field '{}' not found in registry", fieldName);
 			}
 			return {};
 		}
@@ -2200,29 +3363,6 @@ namespace NE {
 			}
 		}*/
 
-		bool IScript::IsPrefabInstance(Entity entity) const {
-			if (!m_context->componentManager) return false;
-
-			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
-				return false;
-
-			const auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
-			return !meta.prefabID.empty();
-		}
-
-		bool IScript::IsPrefabRoot(Entity entity) const {
-			if (!m_context->componentManager) return false;
-
-			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
-
-			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e))
-				return false;
-
-			return m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e).isPrefabRoot;
-		}
-
 		// === Entity Active State Functions ===
 
 		bool IScript::IsActive(Entity e) const {
@@ -2235,47 +3375,17 @@ namespace NE {
 		}
 
 		void IScript::SetActive(bool active, Entity entity) {
-			//if (!m_context->componentManager) return;
+			if (!m_context || !m_context->componentManager) return;
 
-			//Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			Entity e = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
 
-			//if (m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-			//	auto& meta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(e);
+			// Ensure entity has EntityMeta component
+			if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+				return;
+			}
 
-			//	// Only update if changed
-			//	if (meta.isActive != active) {
-			//		meta.isActive = active;
-
-			//		// 1. Update rendering visibility
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(e)) {
-			//			auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
-			//			renderer.visible = active && IsActiveInHierarchy();
-			//		}
-
-			//		// 2. Update physics state
-			//		if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(e)) {
-			//			uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(e);
-
-			//			if (active && IsActiveInHierarchy()) {
-			//				// Reactivate physics body only if parent hierarchy is also active
-			//				NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//			} else {
-			//				// Deactivate physics body (stops collision and physics simulation)
-			//				NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//			}
-			//		}
-
-			//		// 3. Update script enabled state
-			//		// When entity becomes inactive in hierarchy, the ScriptSystem will skip Update()
-			//		// No need to manually disable here - the hierarchy check in ScriptSystem handles it
-
-			//		// 4. Recursively propagate to all children (Unity-style)
-			//		if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(e)) {
-			//			auto& hierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(e);
-			//			PropagateActiveStateToChildren(hierarchy.children, active);
-			//		}
-			//	}
-			//}
+			// Use HierarchySystem to set active state (handles hierarchy propagation)
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetActive(e, active);
 		}
 
 		bool IScript::IsActiveInHierarchy() const {
@@ -2323,45 +3433,6 @@ namespace NE {
 			}
 
 			return true; // All parents are active
-		}
-
-		void IScript::PropagateActiveStateToChildren(const std::vector<uint32_t>& children, bool parentActive) const {
-			//if (!m_context || !m_context->componentManager) return;
-
-			//for (Entity childEntity : children) {
-			//	// Get child's own isActive state
-			//	if (!m_context->componentManager->HasComponent<NE::ECS::Component::EntityMeta>(childEntity)) {
-			//		continue;
-			//	}
-
-			//	auto& childMeta = m_context->componentManager->GetComponent<NE::ECS::Component::EntityMeta>(childEntity);
-
-			//	// Determine effective active state: parent must be active AND child must be active
-			//	bool effectiveActive = parentActive && childMeta.isActive;
-
-			//	// Update child's rendering
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Renderer>(childEntity)) {
-			//		auto& renderer = m_context->componentManager->GetComponent<NE::ECS::Component::Renderer>(childEntity);
-			//		renderer.visible = effectiveActive;
-			//	}
-
-			//	// Update child's physics
-			//	if (NE::Physics::PhysicsManager::EntityHasPhysicsBody(childEntity)) {
-			//		uint32_t bodyID = NE::Physics::PhysicsManager::GetEntityBodyId(childEntity);
-
-			//		if (effectiveActive) {
-			//			NE::Physics::PhysicsManager::ActivateBody(bodyID);
-			//		} else {
-			//			NE::Physics::PhysicsManager::DeactivateBody(bodyID);
-			//		}
-			//	}
-
-			//	// Recursively propagate to grandchildren
-			//	if (m_context->componentManager->HasComponent<NE::ECS::Component::Hierarchy>(childEntity)) {
-			//		auto& childHierarchy = m_context->componentManager->GetComponent<NE::ECS::Component::Hierarchy>(childEntity);
-			//		PropagateActiveStateToChildren(childHierarchy.children, effectiveActive);
-			//	}
-			//}
 		}
 
 		//=========================================================================
@@ -2772,5 +3843,6 @@ namespace NE {
 			auto& settings = Renderer::Command::GetRenderSettings();
 			settings.fogDensity = density;
 		}
+
 	} // namespace Scripting
 } // namespace NE

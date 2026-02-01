@@ -5,11 +5,14 @@
 #include <Windows.h>
 #include <sstream>
 #include "Core/SpdLogger.hpp"
+#include "Core/LUIDRegistry.hpp"
 #include "ScriptContextFactory.hpp"
 #include "Engine.hpp"
 #include "SceneManagement/Scene.hpp"
 #include "Events/EventBus.hpp"
 #include "Core/Couroutine.hpp"
+#include "../../include/ScriptSDK/ScriptAPI.h"  // For GameObject_ResetStaticContext
+#include "Core/Profiler.hpp"
 
 namespace {
     // ScriptState moved to ScriptingEngine class definition
@@ -302,6 +305,10 @@ namespace NE::Scripting {
 
         SPD_INFO("Shutting down ScriptingEngine...");
 
+        // Clear static GameObject context to prevent dangling pointers
+        // when stopping/starting play mode
+        GameObject_ResetStaticContext();
+
         // Stop file watching
         m_sourceWatcher.reset();
 
@@ -588,6 +595,7 @@ namespace NE::Scripting {
 
             auto& componentMgr = GetScene().GetECSCoordinator().GetComponentManager();
             auto& entityMgr = GetScene().GetECSCoordinator().GetEntityManager();
+            auto& luidRegistry = GetScene().GetECSCoordinator().GetLUIDRegistry();
 
             if (!componentMgr.HasComponent<ECS::Component::NativeScript>(entity)) {
                 SPD_WARNING("Entity " << (int)entity << " no longer exists, skipping");
@@ -627,7 +635,7 @@ namespace NE::Scripting {
                         continue;
                     }
 
-                    Scripting::LinkScriptToEngine(instance, &componentMgr, &entityMgr);
+                    Scripting::LinkScriptToEngine(instance, &componentMgr, &entityMgr, &luidRegistry, this);
                     instance->_SetEntity(entity);
                     instance->Awake();
                     instance->Initialize(entity);
@@ -730,8 +738,6 @@ namespace NE::Scripting {
                 nsc.SerializedFields[key] = value;
             }
         }
-
-        SPD_DEBUG("Saved " << nsc.SerializedFields.size() << " fields for entity " << (int)entity);
     }
 
     void ScriptingEngine::RestoreSerializedFields(NE::ECS::Component::NativeScript& nsc) {
@@ -751,7 +757,6 @@ namespace NE::Scripting {
         }
 
         const std::vector<IScript*>& instances = it->second;
-        int restoredCount = 0;
 
         // Restore fields to each script instance
         for (size_t i = 0; i < instances.size() && i < nsc.ScriptNames.size(); ++i) {
@@ -759,8 +764,6 @@ namespace NE::Scripting {
             if (!instance) continue;
 
             const std::string& scriptName = nsc.ScriptNames[i];
-
-            // Build the prefix for this script's fields
             std::string prefix = scriptName + ".";
 
             // Restore each serialized field value that matches this script
@@ -770,20 +773,11 @@ namespace NE::Scripting {
 
                 // Check if this field belongs to this script (starts with "scriptname.")
                 if (key.find(prefix) == 0) {
-                    // Extract the field name (remove the prefix)
                     std::string fieldName = key.substr(prefix.length());
-
-                    bool success = instance->SetFieldValueFromString(fieldName, value);
-                    if (!success) {
-                        SPD_WARNING("Failed to restore field '" << key << "' for script '" << scriptName << "'");
-                    } else {
-                        restoredCount++;
-                    }
+                    instance->SetFieldValueFromString(fieldName, value);
                 }
             }
         }
-
-        SPD_DEBUG("Restored " << restoredCount << " fields for entity " << (int)entity);
     }
     
     void ScriptingEngine::OnScriptComponentDestroyed(NE::ECS::Entity entity) {
@@ -808,9 +802,10 @@ namespace NE::Scripting {
 
     // === Instance Management (ECS Refactor) ===
 
-    void ScriptingEngine::SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager) {
+    void ScriptingEngine::SetECSReferences(NE::ECS::ComponentManager* componentManager, NE::ECS::EntityManager* entityManager, NE::Core::LUIDRegistry* luidRegistry) {
         m_componentManager = componentManager;
         m_entityManager = entityManager;
+        m_luidRegistry = luidRegistry;
         SPD_INFO("ScriptEngine: ECS references set");
     }
 
@@ -851,7 +846,7 @@ namespace NE::Scripting {
             }
 
             // Link to engine
-            Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager);
+            Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry, this);
             instance->_SetEntity(entity);
 
             instances.push_back(instance);
@@ -893,23 +888,67 @@ namespace NE::Scripting {
     }
 
     IScript* ScriptingEngine::GetScriptInstanceByName(NE::ECS::Entity entity, const std::string& scriptName) const {
+        // Validate entity ID
+        if (entity == INVALID_ENTITY) {
+            return nullptr;
+        }
+
+        // Validate component manager
+        if (!m_componentManager) {
+            return nullptr;
+        }
+
+        // Check if entity exists before accessing the map
+        if (m_entityManager) {
+            const auto& usedEntities = m_entityManager->GetUsedEntities();
+            bool entityExists = false;
+            for (Entity e : usedEntities) {
+                if (e == entity) {
+                    entityExists = true;
+                    break;
+                }
+            }
+            if (!entityExists) {
+                return nullptr;  // Entity was destroyed
+            }
+        }
+
+        // Now safely access the map
         auto it = m_scriptInstances.find(entity);
         if (it == m_scriptInstances.end()) {
             return nullptr;
         }
 
-        // For single-script compatibility, if there's only one instance and the name matches (or is empty), return it
+        // Validate instances vector
+        if (it->second.empty()) {
+            return nullptr;
+        }
+
+        // For single-script compatibility, if there's only one instance, return it
         if (it->second.size() == 1) {
             return it->second[0];
         }
 
-        // Search for the script by name - requires matching with component's ScriptNames
-        if (m_componentManager && m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
-            auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
-            for (size_t i = 0; i < nsc.ScriptNames.size() && i < it->second.size(); ++i) {
-                if (nsc.ScriptNames[i] == scriptName) {
-                    return it->second[i];
+        // Multi-script case: Search for the script by name
+        if (m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+            try {
+                auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
+                // Ensure ScriptNames size matches instances size
+                size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
+                for (size_t i = 0; i < searchCount; ++i) {
+                    std::string::size_type n;
+                    n = nsc.ScriptNames[i].find(scriptName);
+                    if (n != std::string::npos) {
+						return it->second[i];
+					}
+
+                    if (nsc.ScriptNames[i] == scriptName) {
+                        return it->second[i];
+                    }
                 }
+            } catch (...) {
+                // Component access failed - component may be invalid
+                return nullptr;
             }
         }
 
@@ -990,7 +1029,7 @@ namespace NE::Scripting {
                 if (factory) {
                     IScript* instance = factory();
                     if (instance) {
-                        Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager);
+                        Scripting::LinkScriptToEngine(instance, m_componentManager, m_entityManager, m_luidRegistry, this);
                         instance->_SetEntity(entity);
                         instance->Awake();
                         instance->Initialize(entity);
@@ -1026,6 +1065,10 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::UpdateScriptInstances(double deltaTime) {
+#ifndef PRODUCTION_BUILD
+        NE_PROFILE_FUNCTION();
+#endif
+
         for (const auto& pair : m_scriptInstances) {
             const std::vector<IScript*>& instances = pair.second;
             for (IScript* instance : instances) {
@@ -1169,40 +1212,34 @@ namespace NE::Scripting {
         NE::ECS::ComponentManager& targetComponentManager) {
 
         // Build map of LUID -> SerializedFields from source scene
-        std::unordered_map<uint64_t, std::unordered_map<std::string, std::string>> fieldsByLUID;
-        std::unordered_map<uint64_t, std::unordered_set<std::string>> refFieldsByLUID;
+        // We use LUID as the key because it uniquely identifies each entity across editor/runtime
+        std::unordered_map<uint64_t, std::unordered_map<std::string, std::string>> fieldsByLuid;
+        std::unordered_map<uint64_t, std::unordered_set<std::string>> refFieldsByLuid;
 
         auto& sourceEntities = sourceComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
-        SPD_INFO("TransferScriptFields: Source has " << sourceEntities.size() << " entities");
 
         for (NE::ECS::Entity entity : sourceEntities) {
             auto& nsc = sourceComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
 
-            SPD_INFO("  Source LUID " << nsc.luid << " (entity " << (int)entity << "): " << nsc.SerializedFields.size() << " fields");
-
-            // Store fields by LUID for matching
-            fieldsByLUID[nsc.luid] = nsc.SerializedFields;
-            refFieldsByLUID[nsc.luid] = nsc.EntityReferenceFields;
+            // Store fields by LUID - this uniquely identifies each entity
+            fieldsByLuid[nsc.luid] = nsc.SerializedFields;
+            refFieldsByLuid[nsc.luid] = nsc.EntityReferenceFields;
         }
 
-        // Apply to target scene by matching LUIDs
+        // Apply to target scene by matching LUID
         auto& targetEntities = targetComponentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
-        SPD_INFO("TransferScriptFields: Target has " << targetEntities.size() << " entities");
 
         for (NE::ECS::Entity entity : targetEntities) {
             auto& targetNsc = targetComponentManager.GetComponent<ECS::Component::NativeScript>(entity);
 
-            // Find matching source component by LUID
-            auto fieldsIt = fieldsByLUID.find(targetNsc.luid);
-            if (fieldsIt != fieldsByLUID.end()) {
-                SPD_INFO("  Target LUID " << targetNsc.luid << " (entity " << (int)entity << "): Transferred " << fieldsIt->second.size() << " fields");
+            // Find matching source by LUID
+            auto fieldsIt = fieldsByLuid.find(targetNsc.luid);
+            if (fieldsIt != fieldsByLuid.end()) {
                 targetNsc.SerializedFields = fieldsIt->second;
-            } else {
-                SPD_WARNING("  Target LUID " << targetNsc.luid << " (entity " << (int)entity << "): No matching source found");
             }
 
-            auto refFieldsIt = refFieldsByLUID.find(targetNsc.luid);
-            if (refFieldsIt != refFieldsByLUID.end()) {
+            auto refFieldsIt = refFieldsByLuid.find(targetNsc.luid);
+            if (refFieldsIt != refFieldsByLuid.end()) {
                 targetNsc.EntityReferenceFields = refFieldsIt->second;
             }
         }
@@ -1210,11 +1247,14 @@ namespace NE::Scripting {
 
     void ScriptingEngine::RecreateScriptInstances(
         NE::ECS::ComponentManager& componentManager,
-        NE::ECS::EntityManager& entityManager) {
+        NE::ECS::EntityManager& entityManager,
+        NE::Core::LUIDRegistry& luidRegistry) {
 
         // Temporarily set ECS references (in case they're pointing to old scene)
         m_componentManager = &componentManager;
         m_entityManager = &entityManager;
+        // CRITICAL: Also update LUID registry to prevent accessing destroyed runtime registry
+        m_luidRegistry = &luidRegistry;
 
         auto& entities = componentManager.GetEntitiesWithComponent<ECS::Component::NativeScript>();
 
@@ -1227,6 +1267,72 @@ namespace NE::Scripting {
             // Create instances (will initialize and restore serialized fields)
             if (CreateScriptInstances(entity, nsc)) {
                 InitializeScriptInstances(entity);
+            }
+        }
+    }
+
+    void ScriptingEngine::OnCollisionEnter(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionEnter(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnCollisionExit(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionExit(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnCollisionStay(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionStay(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerEnter(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerEnter(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerExit(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerExit(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerStay(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerStay(other);
+                }
             }
         }
     }

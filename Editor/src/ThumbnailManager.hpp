@@ -4,33 +4,37 @@
 #include <unordered_map>
 #include <filesystem>
 
-typedef unsigned int GLuint;
-// testing stuff not final
-namespace Editor {
+namespace Editor::Assets {
+    struct ThumbCacheEntry {
+        unsigned int tex = 0;
+        std::list<std::string>::iterator lruIt;
+    };
+
     class ThumbnailManager {
     public:
+        static ThumbnailManager& GetInstance();
+
+        unsigned int GetThumbnail(const std::filesystem::path& filePath);
+        unsigned int GetThumbnailByUUID(const std::string& uuid);
+
+		void GenerateThumbnail(const std::filesystem::path& sourceImagePath, const std::string& uuid);
+        unsigned int LoadRawIcon(const std::string& path);
+    private:
         ThumbnailManager();
         ~ThumbnailManager();
 
-        // Call this ONCE during Editor startup
-        void Init();
+		unsigned int LoadCookedThumbnail(const std::string& uuid);
 
-        // Call this ONCE during Editor shutdown
-        void Shutdown();
+        unsigned int m_folderIcon = 0;
+        unsigned int m_sceneIcon = 0;
+        unsigned int m_fileIcon = 0;
+		unsigned int m_materialIcon = 0;
+		unsigned int m_prefabIcon = 0;
+		unsigned int m_meshIcon = 0;
+		unsigned int m_subMeshIcon = 0;
 
-        // Get the OpenGL texture ID for a given file
-        GLuint GetThumbnail(const std::filesystem::path& filePath);
-
-        GLuint m_DirectoryIcon = 0;
-        GLuint m_FileIcon = 0;
-    private:
-        GLuint LoadTextureFromFile(const std::string& path);
-        GLuint GetDefaultDirectoryIcon();
-        GLuint GetDefaultFileIcon();
-
-    private:
-
-        // Cache specific file thumbnails (like actual .png images as thumbnails)
-        std::unordered_map<std::string, GLuint> m_LoadedThumbnails;
+        size_t m_maxThumbs = 512;
+        std::unordered_map<std::string, ThumbCacheEntry> m_cache;
+        std::list<std::string> m_lru; // front=MRU, back=LRU
     };
 }

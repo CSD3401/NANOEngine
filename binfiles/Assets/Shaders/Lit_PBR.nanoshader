@@ -51,12 +51,19 @@ layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 OutID;
 
 // ===== Scene / Lighting =====
-uniform vec3 u_CameraPos;
+uniform vec3 	  u_CameraPos;
 
 // Base (albedo)
 uniform vec3      u_BaseColor;
 uniform sampler2D u_AlbedoMap;
 uniform int       u_HasAlbedoMap;
+
+// Opacity
+uniform float     u_Opacity; // scalar multiplier (default 1.0)
+uniform sampler2D u_OpacityMap;
+uniform int       u_HasOpacityMap;
+uniform int   	  u_AlphaClip; // 0 = off (opaque/blend), 1 = clip/discard
+uniform float     u_AlphaCutoff;
 
 // Normal (BC5 packed X,Y)
 uniform sampler2D u_NormalMap;
@@ -76,23 +83,23 @@ uniform sampler2D u_AmbientOcclusionMap;
 uniform int       u_HasAOMap;
 
 // UV Transform
-uniform vec3 u_Tiling;  // uses .xy
-uniform vec3 u_Offset;  // uses .xy
+uniform vec3 	  u_Tiling; // uses .xy
+uniform vec3 	  u_Offset; // uses .xy
 
 // Emissive
 uniform vec3      u_Emissive;
 
 // ===== Fog (scene-wide) =====
-uniform int   i_FogEnabled;   // 0/1
-uniform vec3  i_FogColor;     // linear color!
-uniform int   i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
-uniform float i_FogDensity;   // Exp/Exp2
-uniform float i_FogStart;     // Linear
-uniform float i_FogEnd;       // Linear
+uniform int   	  i_FogEnabled;   // 0/1
+uniform vec3  	  i_FogColor;     // linear color!
+uniform int   	  i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
+uniform float 	  i_FogDensity;   // Exp/Exp2
+uniform float 	  i_FogStart;     // Linear
+uniform float 	  i_FogEnd;       // Linear
 
 // Scene ambient
-uniform vec3 i_GlobalAmbientColor;
-uniform float i_GlobalAmbientIntensity;
+uniform vec3 	  i_GlobalAmbientColor;
+uniform float 	  i_GlobalAmbientIntensity;
 
 // ---- Clustered lighting buffers ----
 // Must match GPULightCPU in GLClusteredLighting
@@ -431,10 +438,22 @@ void main() {
     vec3 N = normalize(v_Normal);
 
     // Albedo
-    vec3 albedo = u_BaseColor;
-    if (u_HasAlbedoMap != 0){
-        albedo *= texture(u_AlbedoMap, uv).rgb;
-    }
+	vec3 albedo = u_BaseColor;
+	if (u_HasAlbedoMap != 0){
+		albedo *= texture(u_AlbedoMap, uv).rgb;
+	}
+	
+	// Opacity
+	float opacity = clamp(u_Opacity, 0.0, 1.0);
+	if (u_HasOpacityMap != 0) {
+		opacity *= clamp(texture(u_OpacityMap, uv).r, 0.0, 1.0);
+	}
+	
+	// Alpha clip
+	if (u_AlphaClip != 0) {
+		if (opacity < u_AlphaCutoff) 
+			discard;
+	}
 
     // Normal map (BC5 XY)
     if (u_HasNormalMap != 0){
@@ -500,6 +519,6 @@ void main() {
         color_linear = mix(i_FogColor, color_linear, ff);
     }
 
-    FragColor = vec4(color_linear, 1.0);
+    FragColor = vec4(color_linear, opacity);
     OutID = vec4(v_ID, 1.0);
 }

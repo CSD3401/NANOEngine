@@ -138,6 +138,11 @@ using String = ScriptFieldType::String;
 #define SCRIPT_PREFAB_REF(refName) \
     RegisterPrefabRefField(#refName, &this->refName)
 
+// SCRIPT_GAMEOBJECT_REF macro - registers GameObject references for editor exposure
+// Usage: SCRIPT_GAMEOBJECT_REF(targetEntity)
+#define SCRIPT_GAMEOBJECT_REF(refName) \
+    RegisterGameObjectRefField(#refName, &this->refName)
+
 // SCRIPT_FIELD_VECTOR macro - registers vector fields for editor exposure
 // Usage: SCRIPT_FIELD_VECTOR(myIntList, Int)
 #define SCRIPT_FIELD_VECTOR(fieldName, elementType) \
@@ -157,6 +162,11 @@ using String = ScriptFieldType::String;
 // Usage: SCRIPT_FIELD_LAYERMASK(collisionMask)
 #define SCRIPT_FIELD_LAYERMASK(fieldName) \
     RegisterLayerMaskField(#fieldName, &this->fieldName)
+
+// SCRIPT_FIELD_LAYERREF macro - registers LayerRef fields with layer dropdown
+// Usage: SCRIPT_FIELD_LAYERREF(targetLayer)
+#define SCRIPT_FIELD_LAYERREF(fieldName) \
+    RegisterLayerRefField(#fieldName, &this->fieldName)
 
 // ============ CONVENIENCE NAMESPACES (GLOBAL SCOPE) ============
 // Similar pattern to Input, Events, Coroutines namespaces in ScriptAPI.h
@@ -290,6 +300,8 @@ using Entity = NE::Scripting::Entity;
 using IScript = NE::Scripting::IScript;
 using RaycastHit = NE::Scripting::RaycastHit;
 using LayerMask = NE::Scripting::LayerMask;
+using LayerRef = NE::Scripting::LayerRef;
+using GameObject = NE::Scripting::GameObject;
 
 // Component reference types
 using TransformRef = NE::Scripting::TransformRef;
@@ -297,6 +309,7 @@ using RigidbodyRef = NE::Scripting::RigidbodyRef;
 using AudioSourceRef = NE::Scripting::AudioSourceRef;
 using MaterialRef = NE::Scripting::MaterialRef;
 using PrefabRef = NE::Scripting::PrefabRef;
+using GameObjectRef = NE::Scripting::GameObjectRef;
 
 // Coroutine handle type
 using CoroutineHandle = NE::Scripting::CoroutineHandle;
@@ -312,10 +325,12 @@ namespace ChronoGame {
     using Entity = NE::Scripting::Entity;
     using IScript = NE::Scripting::IScript;
     using RaycastHit = NE::Scripting::RaycastHit;
+    using GameObject = NE::Scripting::GameObject;
 
     // Component reference types
     using TransformRef = NE::Scripting::TransformRef;
     using RigidbodyRef = NE::Scripting::RigidbodyRef;
     using AudioSourceRef = NE::Scripting::AudioSourceRef;
     using PrefabRef = NE::Scripting::PrefabRef;
+    using GameObjectRef = NE::Scripting::GameObjectRef;
 }

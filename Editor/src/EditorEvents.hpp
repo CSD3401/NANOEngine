@@ -1,22 +1,57 @@
 #pragma once
-//#include <string>
+
+#include <string>
 #include <vector>
 
 namespace Editor::Events {
 
-	struct CreateEmptyEntityEvent {};
+	struct CreateEmptyEntityEvent {
+		uint32_t parentEntity;
+	};
+	struct CreateCubeEntityEvent {
+		uint32_t parentEntity;
+	};
+	struct CreateSphereEntityEvent {
+		uint32_t parentEntity;
+	};
+	struct CreateCapsuleEntityEvent {
+		uint32_t parentEntity;
+	};
+	struct CreateCylinderEntityEvent {
+		uint32_t parentEntity;
+	};
+	struct CreatePlaneEntityEvent {
+		uint32_t parentEntity;
+	};
+	struct CreateQuadEntityEvent {
+		uint32_t parentEntity;
+	};
 
-	struct CreateCubeEntityEvent {};
-	struct CreateSphereEntityEvent {};
-	struct CreateCapsuleEntityEvent {};
-	struct CreateCylinderEntityEvent {};
-	struct CreatePlaneEntityEvent {};
+	struct CreateDirectionalLightEvent {
+		uint32_t parentEntity;
+	};
 
-	struct CreateCanvasEntityEvent {};
+	struct CreatePointLightEvent {
+		uint32_t parentEntity;
+	};
+
+	struct CreateSpotLightEvent {
+		uint32_t parentEntity;
+	};
+
+	struct HierarchyChangeEvent {
+		uint32_t childEntity;
+		uint32_t newParentEntity;
+		int insertIndex;
+	};
 
 	struct DeleteEntityEvent {
 		std::vector<uint32_t> entitiesToBeDeleted;
+		uint32_t oldParentEntity;
 	};
+
+	struct HideCursorEvent {};
+	struct ShowCursorEvent {};
 
 
 	struct CreateUICanvasEntityEvent {};
@@ -25,5 +60,16 @@ namespace Editor::Events {
 	};
 	struct SelectEntityEvent {
 		uint32_t selectedEntity;
+	};
+
+	struct GotoAssetPathEvent {
+		std::string assetPath;
+	};
+
+	struct SceneChangedEvent {};
+
+	struct AutoKeyRecordEvent {
+		uint32_t componentTypeId; 
+		uint32_t fieldId;
 	};
 }

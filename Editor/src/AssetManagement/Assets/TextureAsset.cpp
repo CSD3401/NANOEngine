@@ -16,6 +16,25 @@
 
 namespace Editor::Assets {
 	namespace {
+		void GuessImportSettingsFromNameConvention(TextureImportSettings& importSettings, std::string filename) {
+			for (auto& c : filename) c = (char)std::tolower((unsigned char)c);
+			if (filename.find("_n.") != std::string::npos) {
+				importSettings.type = TexType::NormalMap;
+				importSettings.sRGB = false;
+			}
+			else if (filename.find("_r.") != std::string::npos || 
+				filename.find("_m.") != std::string::npos || 
+				filename.find("_ao.") != std::string::npos || 
+				filename.find("_o.") != std::string::npos || 
+				filename.find("_h.") != std::string::npos) 
+			{
+				importSettings.sRGB = false;
+			}
+			else {
+				importSettings.sRGB = true;
+			}
+		}
+
 		bool CMP_API Progress(float fProgress, CMP_DWORD_PTR, CMP_DWORD_PTR) {
 			std::printf("\r[BC7] %3.0f%%", fProgress);
 			return false;
@@ -67,8 +86,8 @@ namespace Editor::Assets {
 
 			CMP_CompressOptions opts{};
 			opts.dwSize = sizeof(opts);
-			opts.fquality = quality;   // 0 to 1
-			opts.dwnumThreads = threads;   // 0 = auto
+			//opts.fquality = quality;   // 0 to 1
+			//opts.dwnumThreads = threads;   // 0 = auto
 
 			CMP_ERROR err = CMP_ConvertTexture(&src, &dst, &opts, &Progress);
 			if (err == CMP_OK) {
@@ -104,8 +123,8 @@ namespace Editor::Assets {
 
 			CMP_CompressOptions opts{};
 			opts.dwSize = sizeof(opts);
-			opts.fquality = quality;
-			opts.dwnumThreads = threads;
+			//opts.fquality = quality;
+			//opts.dwnumThreads = threads;
 
 			CMP_ERROR err = CMP_ConvertTexture(&src, &dst, &opts, &Progress);
 			if (err == CMP_OK) {
@@ -170,7 +189,7 @@ namespace Editor::Assets {
 		std::vector<uint8_t> compressed;
 		TexFormat fmt = TexFormat::BC7_UNORM;
 
-		const float    quality = 0.6f;  // maybe expose via settings later
+		const float    quality = 0.05f;  // maybe expose via settings later
 		const uint32_t threads = 0;
 
 		if (isNormalMap) {
@@ -253,44 +272,6 @@ namespace Editor::Assets {
 		using rapidjson::OStreamWrapper;
 		using rapidjson::PrettyWriter;
 
-		//fs::path metaPath = fs::path(sourcePath).concat(".meta");
-		//if (!fs::exists(metaPath)) {
-		//	SPD_WARNING("TextureAsset::SaveImportSettings - meta does not exist: "
-		//		<< metaPath.string());
-		//	return false;
-		//}
-
-		//std::ifstream ifs(metaPath);
-		//if (!ifs)
-		//	return false;
-
-		//IStreamWrapper isw(ifs);
-		//Document doc;
-		//doc.ParseStream(isw);
-		//if (doc.HasParseError() || !doc.IsObject())
-		//	return false;
-
-		//auto& alloc = doc.GetAllocator();
-
-		//if (!importSettings) importSettings.emplace();
-		//auto texImportJson = Serialization::ToJSON(*importSettings, alloc);
-
-		//if (doc.HasMember("textureImport") && doc["textureImport"].IsObject()) {
-		//	doc["textureImport"].CopyFrom(texImportJson, alloc);
-		//} else {
-		//	doc.AddMember("textureImport", texImportJson, alloc);
-		//}
-
-		//std::ofstream ofs(metaPath, std::ios::trunc);
-		//if (!ofs)
-		//	return false;
-
-		//OStreamWrapper osw(ofs);
-		//PrettyWriter<OStreamWrapper> writer(osw);
-		//writer.SetIndent(' ', 4);
-		//doc.Accept(writer);
-
-		//return true;
 		std::string metaPath = sourcePath + ".meta";
 
 		rapidjson::Document doc;
@@ -309,7 +290,13 @@ namespace Editor::Assets {
 
 		auto& alloc = doc.GetAllocator();
 
-		if (!importSettings) importSettings.emplace();
+		if (!importSettings) {
+			importSettings.emplace();
+
+			GuessImportSettingsFromNameConvention(*importSettings,
+				std::filesystem::path(sourcePath).filename().string());
+		}
+
 		auto jSettings = Serialization::ToJSON(*importSettings, alloc);
 
 		if (doc.HasMember("textureImport"))

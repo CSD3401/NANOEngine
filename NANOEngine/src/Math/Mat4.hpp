@@ -10,6 +10,8 @@ namespace NE::Math {
 	struct Mat3;
 
 	constexpr const float PI = 3.14159265358979323846f;
+	constexpr const float DEG_TO_RAD = PI / 180.0f;
+	constexpr const float RAD_TO_DEG = 180.0f / PI;
 
 	// Matrix elements stored in memory using column-major order.
 	struct NANOENGINE_API Mat4 {
@@ -335,7 +337,7 @@ namespace NE::Math {
 			Return a symmetric perspective projection matrix based on vertical FOV,
 			aspect ratio, near and far plane.
 		\param[in] float vfov
-			Vertical FOV in degrees.
+			Vertical FOV in radians.
 		\param[in] float aspect
 			Aspect ratio of viewfinder.
 		\param[in] float near, float far
@@ -397,7 +399,9 @@ namespace NE::Math {
 			*this * rhs.
 		*************************************************************************/
 		Vec4 operator*(const Vec4& rhs);
+		Vec4 operator*(const Vec4& rhs) const;
 		Vec3 operator*(const Vec3& rhs);
+		Vec3 operator*(const Vec3& rhs) const;
 
 		/*!***********************************************************************
 		\brief
@@ -465,6 +469,10 @@ namespace NE::Math {
 		Vec3 GetScale() const;
 
 		Vec3 GetRotation() const;
+
+		Vec3 Right() const;
+		Vec3 Up()    const;
+		Vec3 Forward() const;
 
 		const float* Data() const { return a; }
 		float* Data() { return a; }

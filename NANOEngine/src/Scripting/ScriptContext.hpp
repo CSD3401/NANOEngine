@@ -13,6 +13,15 @@
 #include "../ECS/Core/EntityManager.hpp"
 #include "../Physics/PhysicsManager.hpp"
 
+namespace NE::Core {
+    class LUIDRegistry;
+}
+
+// Forward declaration
+namespace NE::Scripting {
+    class ScriptingEngine;
+}
+
 namespace NE {
 namespace Scripting {
 
@@ -28,12 +37,14 @@ namespace Scripting {
     public:
         ECS::ComponentManager* componentManager = nullptr;
         ECS::EntityManager* entityManager = nullptr;
+        Core::LUIDRegistry* luidRegistry = nullptr;  // LUID registry for component lookups
+        ScriptingEngine* scriptingEngine = nullptr;  // Script engine for script-to-script communication
         // Note: PhysicsManager is static, accessed directly via static methods
 
         ScriptContext() = default;
 
-        explicit ScriptContext(ECS::ComponentManager* cm, ECS::EntityManager* em = nullptr)
-            : componentManager(cm), entityManager(em) {
+        explicit ScriptContext(ECS::ComponentManager* cm, ECS::EntityManager* em = nullptr, Core::LUIDRegistry* lr = nullptr, ScriptingEngine* se = nullptr)
+            : componentManager(cm), entityManager(em), luidRegistry(lr), scriptingEngine(se) {
             // PhysicsManager is accessed statically, no instance needed
         }
 

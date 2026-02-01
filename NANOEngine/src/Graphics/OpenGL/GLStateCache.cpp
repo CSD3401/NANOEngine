@@ -18,19 +18,22 @@ namespace NE::Graphics::OpenGL {
 		m_Valid = false;
 	}
 
+	void GLStateCache::Reset() 
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_BLEND);
+		m_Valid = false;
+	}
+
 	void GLStateCache::Bind(const PipelineSpecification& spec)
 	{
 		if (!spec.shader) return;
 
 		if (!m_Valid) {
 			// Apply all states
-			// Depth test
-			if (spec.EnableDepthTest) {
-				glEnable(GL_DEPTH_TEST);
-			}
-			else {
-				glDisable(GL_DEPTH_TEST);
-			}
 			// Blending
 			if (spec.EnableBlending) {
 				glEnable(GL_BLEND);
@@ -39,8 +42,28 @@ namespace NE::Graphics::OpenGL {
 			else {
 				glDisable(GL_BLEND);
 			}
+			// Depth test
+			if (spec.EnableDepthTest) {
+				glEnable(GL_DEPTH_TEST);
+			}
+			else {
+				glDisable(GL_DEPTH_TEST);
+			}
+			// Depth write
+			if (spec.DepthWrite) {
+				glDepthMask(GL_TRUE);
+			}
+			else {
+				glDepthMask(GL_FALSE);
+			}
 			// Culling
-			glCullFace(spec.CullMode);
+			if (spec.CullMode != GL_NONE) {
+				glEnable(GL_CULL_FACE);
+				glCullFace(spec.CullMode);
+			}
+			else {
+				glDisable(GL_CULL_FACE);
+			}
 			// Polygon mode
 			glPolygonMode(GL_FRONT_AND_BACK, spec.PolygonMode);
 			// Shader
@@ -52,16 +75,6 @@ namespace NE::Graphics::OpenGL {
 		}
 		else {
 			// Apply only changed states
-			// Depth test
-			if (m_CurrentState.EnableDepthTest != spec.EnableDepthTest) {
-				if (spec.EnableDepthTest) {
-					glEnable(GL_DEPTH_TEST);
-				}
-				else {
-					glDisable(GL_DEPTH_TEST);
-				}
-				m_CurrentState.EnableDepthTest = spec.EnableDepthTest;
-			}
 			// Blending
 			if (m_CurrentState.EnableBlending != spec.EnableBlending) {
 				if (spec.EnableBlending) {
@@ -73,9 +86,35 @@ namespace NE::Graphics::OpenGL {
 				}
 				m_CurrentState.EnableBlending = spec.EnableBlending;
 			}
+			// Depth test
+			if (m_CurrentState.EnableDepthTest != spec.EnableDepthTest) {
+				if (spec.EnableDepthTest) {
+					glEnable(GL_DEPTH_TEST);
+				}
+				else {
+					glDisable(GL_DEPTH_TEST);
+				}
+				m_CurrentState.EnableDepthTest = spec.EnableDepthTest;
+			}
+			// Depth write
+			if (m_CurrentState.DepthWrite != spec.DepthWrite) {
+				if (spec.DepthWrite) {
+					glDepthMask(GL_TRUE);
+				}
+				else {
+					glDepthMask(GL_FALSE);
+				}
+				m_CurrentState.DepthWrite = spec.DepthWrite;
+			}
 			// Culling
 			if (m_CurrentState.CullMode != spec.CullMode) {
-				glCullFace(spec.CullMode);
+				if (spec.CullMode != GL_NONE) {
+					glEnable(GL_CULL_FACE);
+					glCullFace(spec.CullMode);
+				}
+				else {
+					glDisable(GL_CULL_FACE);
+				}
 				m_CurrentState.CullMode = spec.CullMode;
 			}
 			// Polygon mode

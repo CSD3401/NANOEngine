@@ -23,8 +23,17 @@ namespace Editor {
         static Layers::LayerDatabase layerDatabase;
 
         static NE::Graphics::EditorCamera m_editorCamera;
+        static float m_cameraSpeed;
+        static bool m_cameraUseEasing;
+        static bool m_cameraUseAcceleration;
+        static float m_cameraMinSpeed;
+        static float m_cameraMaxSpeed;
+        static float m_cameraYaw;  // looking along -Z
+        static float m_cameraPitch;
 
         static std::vector<uint8_t> clipboard;
+
+        static bool isDirty;
 
         static void BuildRoot();
         static void RegisterRoot(NE::ECS::Entity e);
@@ -33,6 +42,9 @@ namespace Editor {
 
         static void SetParent(NE::ECS::Entity child, NE::ECS::Entity newParent, int insertIndex, bool keepWorld = true);
         static void OnParentChanged(NE::ECS::Entity e, NE::ECS::Entity oldParent, NE::ECS::Entity newParent);
+
+		static uint32_t GetParent(NE::ECS::Entity e);
+		static uint32_t GetIndexInParentOrRoot(NE::ECS::Entity e);
 
         static void CopySelected();
         static void PasteSelected();

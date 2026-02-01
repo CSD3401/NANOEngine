@@ -5,12 +5,10 @@
 #include <string>
 
 namespace Editor {
-	class GamePanel : public IPanel {
+	class GamePanel final : public IPanel {
 	public:
 		GamePanel() = default;
 
-		virtual void OnImGuiRender() override;
-
-	private:
+		void OnImGuiRender() override;
 	};
 }

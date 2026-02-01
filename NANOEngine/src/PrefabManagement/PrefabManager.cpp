@@ -1,96 +1,116 @@
 #include "PrefabManager.hpp"
 #include <unordered_set>
 #include <fstream>
-#include "SceneManagement/Scene.hpp"
+#include "SceneManagement/SceneManager.hpp"
 #include "ECS/Core/ECSCoordinator.hpp"
-#include "ECS/Components/EntityMeta.hpp"
-#include "ECS/Components/Transform.hpp"
-//#include "Serialisation/JsonSceneSerializer.hpp"
+//#include "ECS/Components/EntityMeta.hpp"
+//#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Hierarchy.hpp"
+#include "Serialisation/Serializer.hpp"
+#include "ResourceManagement/ResourcePaths.hpp"
 
 namespace NE::Prefab {
 
-	void PrefabManager::Init(SceneManagement::Scene* scene) {
-        s_scene = scene;
-        s_instances.clear();
-        s_entityToInstance.clear();
+    namespace {
+        void DestroyChildrenOfInstance(SceneManagement::Scene* scene, uint32_t entity, bool isRoot = false) {
+            auto& ecs = scene->GetECSCoordinator();
+
+			auto& hierarchy = ecs.GetComponent<NE::ECS::Component::Hierarchy>(entity);
+            for (auto child : hierarchy.children) {
+                DestroyChildrenOfInstance(scene, child);
+			}
+            if (!isRoot) {
+				ecs.DestroyEntity(entity);
+            } else {
+				hierarchy.children.clear();
+            }
+		}
+    }
+
+	void PrefabManager::Init(SceneManagement::SceneManager* scene) {
+        s_sceneManager = scene;
+        //s_instances.clear();
+        //s_entityToInstance.clear();
+        s_prefabToInstances.clear();
         s_nextInstanceId = 1;
 	}
 
-	PrefabManager::InstanceInfo PrefabManager::Instantiate(const UUID& prefabAsset, std::vector<uint32_t>& newEntities) {
-        InstanceInfo info{};
+	//PrefabManager::InstanceInfo PrefabManager::Instantiate(const UUID& prefabAsset, std::vector<uint32_t>& newEntities) {
+ //       InstanceInfo info{};
 
-        if (!s_scene)
-            return info;
+ //       if (!s_scene)
+ //           return info;
 
-        auto& ecs = s_scene->GetECSCoordinator();
+ //       auto& ecs = s_scene->GetECSCoordinator();
 
-        uint64_t id = s_nextInstanceId++;
+ //       uint64_t id = s_nextInstanceId++;
 
-        if (newEntities.empty())
-            return info; // invalid
+ //       if (newEntities.empty())
+ //           return info; // invalid
 
-        info.instanceId = id;
-        info.prefabAsset = prefabAsset;
-        info.entities = newEntities;
+ //       info.instanceId = id;
+ //       info.prefabAsset = prefabAsset;
+ //       info.entities = newEntities;
 
-        std::unordered_set<uint32_t> batch(newEntities.begin(), newEntities.end());
-        uint32_t root = NE::ECS::NO_ENTITY;
-        //for (uint32_t e : newEntities) {
-        //    uint32_t p = s_scene->GetECSCoordinator().GetComponent<ECS::Component::Transform>(e).parent;
-        //    if (p == NE::ECS::NO_ENTITY || !batch.count(p)) {
-        //        root = e;
-        //        break;
-        //    }
-        //}
-        info.rootEntity = root;
+ //       std::unordered_set<uint32_t> batch(newEntities.begin(), newEntities.end());
+ //       uint32_t root = NE::ECS::NO_ENTITY;
+ //       //for (uint32_t e : newEntities) {
+ //       //    uint32_t p = s_scene->GetECSCoordinator().GetComponent<ECS::Component::Transform>(e).parent;
+ //       //    if (p == NE::ECS::NO_ENTITY || !batch.count(p)) {
+ //       //        root = e;
+ //       //        break;
+ //       //    }
+ //       //}
+ //       info.rootEntity = root;
 
-        for (uint32_t e : newEntities) {
-            auto& meta = ecs.GetComponent<ECS::Component::EntityMeta>(e);
-            meta.prefabID = prefabAsset;
-            meta.prefabInstanceID = id;
-            meta.isPrefabRoot = (e == root);
+ //       //for (uint32_t e : newEntities) {
+ //       //    auto& meta = ecs.GetComponent<ECS::Component::EntityMeta>(e);
+ //       //    meta.prefabID = prefabAsset;
+ //       //    meta.prefabInstanceID = id;
+ //       //    meta.isPrefabRoot = (e == root);
 
-            s_entityToInstance[e] = id;
-        }
+ //       //    s_entityToInstance[e] = id;
+ //       //}
 
-        s_instances[id] = info;
-        return info;
-	}
+ //       s_instances[id] = info;
+ //       return info;
+	//}
 
-	void PrefabManager::DestroyInstance(uint64_t instanceId) {
-        if (!s_scene)
+    void PrefabManager::Instantiate(const UUID& prefabAsset, uint32_t rootEntity) {
+        if (s_sceneManager->IsEditingPrefab() || s_sceneManager->IsPlaying())
             return;
 
-        auto it = s_instances.find(instanceId);
-        if (it == s_instances.end())
-            return;
-
-        auto& ecs = s_scene->GetECSCoordinator();
-
-        for (uint32_t e : it->second.entities) {
-            s_entityToInstance.erase(e);
-
-            if (ecs.HasComponent<NE::ECS::Component::EntityMeta>(e)) {
-                auto& meta = ecs.GetComponent<NE::ECS::Component::EntityMeta>(e);
-                meta.prefabInstanceID = 0;
-                meta.isPrefabRoot = false;
-                meta.prefabID.clear();
-            }
-
-            ecs.DestroyEntity(e);
-        }
-
-        s_instances.erase(it);
-	}
-
-    const PrefabManager::InstanceInfo* PrefabManager::GetInstance(uint64_t instanceId) {
-        auto it = s_instances.find(instanceId);
-        return (it == s_instances.end()) ? nullptr : &it->second;
+		s_prefabToInstances[prefabAsset].push_back(rootEntity);
     }
 
-    void PrefabManager::ReloadAllInstancesOfPrefab(const UUID& prefabAsset, const std::string& prefabPath) {
-        //if (!s_scene) return;
-        //auto& ecs = s_scene->GetECSCoordinator();
+	void PrefabManager::DestroyInstance(const UUID& prefabAsset, uint32_t instanceId) {
+        if (s_sceneManager->IsEditingPrefab() || s_sceneManager->IsPlaying())
+            return;
+
+		auto& prefabInstances = s_prefabToInstances[prefabAsset];
+
+		prefabInstances.erase(std::remove(prefabInstances.begin(), prefabInstances.end(), instanceId), prefabInstances.end());
+	}
+
+    //const PrefabManager::InstanceInfo* PrefabManager::GetInstance(uint64_t instanceId) {
+    //    auto it = s_instances.find(instanceId);
+    //    return (it == s_instances.end()) ? nullptr : &it->second;
+    //}
+
+    void PrefabManager::ReloadAllInstancesOfPrefab(const UUID& prefabAsset) {
+        auto editorScene = s_sceneManager->GetEditorScene();
+
+        if (!editorScene) return;
+        auto& ecs = editorScene->GetECSCoordinator();
+
+		auto& prefabInstances = s_prefabToInstances[prefabAsset];
+		std::string prefabPath = Resource::ComputeArtifactPathFromUUID(prefabAsset, NE::Resource::ResourceType::Prefab);
+
+        for (auto instance : prefabInstances) {
+			DestroyChildrenOfInstance(editorScene, instance, true);
+		    Deserialization::DeserializePrefab(ecs, prefabPath, instance);
+        }
+
 
         //std::ifstream in(prefabPath, std::ios::binary);
         //if (!in) return;
@@ -138,79 +158,79 @@ namespace NE::Prefab {
     }
 
     void PrefabManager::RebuildFromScene() {
-        if (!s_scene)
-            return;
+        //if (!s_scene)
+        //    return;
 
-        s_instances.clear();
-        s_entityToInstance.clear();
-        s_nextInstanceId = 1;
+        //s_instances.clear();
+        //s_entityToInstance.clear();
+        //s_nextInstanceId = 1;
 
-        auto& ecs = s_scene->GetECSCoordinator();
-        const auto& allEntities = ecs.GetUsedEntities();
+        //auto& ecs = s_scene->GetECSCoordinator();
+        //const auto& allEntities = ecs.GetUsedEntities();
 
-        using NE::ECS::Component::EntityMeta;
-        using NE::ECS::Component::Transform;
+        //using NE::ECS::Component::EntityMeta;
+        //using NE::ECS::Component::Transform;
 
-        std::unordered_set<uint32_t> visited;
-        visited.reserve(allEntities.size());
+        //std::unordered_set<uint32_t> visited;
+        //visited.reserve(allEntities.size());
 
-        for (uint32_t e : allEntities) {
-            auto& metaRoot = ecs.GetComponent<EntityMeta>(e);
-            if (metaRoot.prefabID.empty() || !metaRoot.isPrefabRoot)
-                continue;
+        //for (uint32_t e : allEntities) {
+        //    auto& metaRoot = ecs.GetComponent<EntityMeta>(e);
+        //    if (metaRoot.prefabID.empty() || !metaRoot.isPrefabRoot)
+        //        continue;
 
-            InstanceInfo info{};
-            info.instanceId = s_nextInstanceId++;
-            info.prefabAsset = metaRoot.prefabID;
-            info.rootEntity = e;
+        //    InstanceInfo info{};
+        //    info.instanceId = s_nextInstanceId++;
+        //    info.prefabAsset = metaRoot.prefabID;
+        //    info.rootEntity = e;
 
-            std::vector<uint32_t> stack;
-            stack.push_back(e);
+        //    std::vector<uint32_t> stack;
+        //    stack.push_back(e);
 
-            while (!stack.empty()) {
-                uint32_t cur = stack.back();
-                stack.pop_back();
+        //    while (!stack.empty()) {
+        //        uint32_t cur = stack.back();
+        //        stack.pop_back();
 
-                if (!visited.insert(cur).second)
-                    continue;
+        //        if (!visited.insert(cur).second)
+        //            continue;
 
-                info.entities.push_back(cur);
-                s_entityToInstance[cur] = info.instanceId;
+        //        info.entities.push_back(cur);
+        //        s_entityToInstance[cur] = info.instanceId;
 
-                if (!ecs.HasComponent<EntityMeta>(cur))
-                    continue;
+        //        if (!ecs.HasComponent<EntityMeta>(cur))
+        //            continue;
 
-                auto& meta = ecs.GetComponent<EntityMeta>(cur);
+        //        auto& meta = ecs.GetComponent<EntityMeta>(cur);
 
-                meta.prefabID = metaRoot.prefabID;
-                meta.prefabInstanceID = info.instanceId;
-                meta.isPrefabRoot = (cur == e);
+        //        meta.prefabID = metaRoot.prefabID;
+        //        meta.prefabInstanceID = info.instanceId;
+        //        meta.isPrefabRoot = (cur == e);
 
-                if (!ecs.HasComponent<Transform>(cur))
-                    continue;
+        //        if (!ecs.HasComponent<Transform>(cur))
+        //            continue;
 
-                auto& t = ecs.GetComponent<Transform>(cur);
-                //for (uint32_t child : t.children) {
-                //    if (!ecs.HasComponent<EntityMeta>(child))
-                //        continue;
+        //        auto& t = ecs.GetComponent<Transform>(cur);
+        //        //for (uint32_t child : t.children) {
+        //        //    if (!ecs.HasComponent<EntityMeta>(child))
+        //        //        continue;
 
-                //    auto& childMeta = ecs.GetComponent<EntityMeta>(child);
-                //    if (childMeta.prefabID == metaRoot.prefabID)
-                //        stack.push_back(child);
-                //}
-            }
+        //        //    auto& childMeta = ecs.GetComponent<EntityMeta>(child);
+        //        //    if (childMeta.prefabID == metaRoot.prefabID)
+        //        //        stack.push_back(child);
+        //        //}
+        //    }
 
-            s_instances[info.instanceId] = std::move(info);
-        }
+        //    s_instances[info.instanceId] = std::move(info);
+        //}
     }
 
-    uint64_t PrefabManager::GetInstanceId(uint32_t entity) {
-        auto it = s_entityToInstance.find(entity);
-        return (it == s_entityToInstance.end()) ? 0 : it->second;
-    }
+    //uint64_t PrefabManager::GetInstanceId(uint32_t entity) {
+    //    auto it = s_entityToInstance.find(entity);
+    //    return (it == s_entityToInstance.end()) ? 0 : it->second;
+    //}
 
-    uint32_t PrefabManager::GetRootOfInstance(uint64_t instanceId) {
-        auto it = s_instances.find(instanceId);
-        return (it == s_instances.end()) ? NE::ECS::NO_ENTITY : it->second.rootEntity;
-    }
+    //uint32_t PrefabManager::GetRootOfInstance(uint64_t instanceId) {
+    //    auto it = s_instances.find(instanceId);
+    //    return (it == s_instances.end()) ? NE::ECS::NO_ENTITY : it->second.rootEntity;
+    //}
 }

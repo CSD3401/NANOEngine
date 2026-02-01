@@ -9,10 +9,11 @@
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
-#include "../ECS/Components/RectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
-#include "../ECS/Components/Canvas.hpp"
+#include "../ECS/Components/PrefabLink.hpp"
+#include "../ECS/Components/PrefabInstance.hpp"
+#include "../ECS/Components/CharacterController.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -24,6 +25,7 @@
 
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 namespace NE {
 	//SceneManagement::Scene& GetScene();
@@ -31,7 +33,6 @@ namespace NE {
 
 namespace NE::ECS {
 	namespace Query {
-
 		uint64_t GetEntitySignature(uint32_t e) {
 			return GetScene().GetECSCoordinator().GetSignature(e).to_ullong();
 		}
@@ -72,14 +73,6 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectTransform>(e);
 		}
 
-		const Component::RectTransform& GetRectTransform(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::RectTransform>(e);
-		}
-
-		const Component::Canvas& GetCanvas(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Canvas>(e);
-		}
-
 		const Component::UIImage& GetUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
 		}
@@ -108,16 +101,16 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
-		bool HasRectTransform(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::RectTransform>(e);
-		}
-
-		bool HasCanvas(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Canvas>(e);
-		}
-
 		bool HasUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		bool HasPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		bool HasPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::PrefabInstance>(e);
 		}
 
 		bool HasRenderer(uint32_t e) {
@@ -152,12 +145,28 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Camera>(e);
 		}
 
+		bool HasCharacterController(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::CharacterController>(e);
+		}
+
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
 
 		const Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
+		}
+
+		const Component::PrefabLink& GetPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		const Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
+		}
+
+		const Component::CharacterController& GetCharacterController(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
 
 		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
@@ -208,20 +217,20 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UICanvas>();
 		}
 
-		ComponentType GetRectTransformComponentType() {
-			return GetScene().GetECSCoordinator().GetComponentType<Component::RectTransform>();
-		}
-
-		ComponentType GetCanvasComponentType() {
-			return GetScene().GetECSCoordinator().GetComponentType<Component::Canvas>();
-		}
-
 		ComponentType GetEntityAnimatorComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::Animator>();
 		}
 
 		ComponentType GetEntityCameraComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::Camera>();
+		}
+
+		ComponentType GetPrefabInstanceComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::PrefabInstance>();
+		}
+
+		ComponentType GetCharacterControllerComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::CharacterController>();
 		}
 
 		uint32_t GetParent(uint32_t child) {
@@ -243,13 +252,48 @@ namespace NE::ECS {
 		const Core::LayerMask GetLayerBit(Entity e) {
 			return GetScene().GetECSCoordinator().GetEntityManager().GetLayerBit(e);
 		}
+
+		Entity ResolveComponentLuidToEntity(uint64_t luid) {
+			if (luid == 0) return 0; //Invalid entity
+
+			auto& luidRegistry = GetScene().GetECSCoordinator().GetLUIDRegistry();
+			const Core::LuidRecord* record = luidRegistry.Find(luid);
+			if (!record) return 0; //Invalid Entity
+
+			return static_cast<Entity>(record->m_entityOwner);
+		}
+
+		Entity ResolveEntityMetaLuidToEntity(uint64_t luid) {
+			if (luid == 0) return 0;
+
+			auto& ecs = GetScene().GetECSCoordinator();
+			auto& entityManager = ecs.GetEntityManager();
+			auto& componentManager = ecs.GetComponentManager();
+
+			// Iterate through all active entities to find matching EntityMeta LUID
+			const auto& usedEntities = entityManager.GetUsedEntities();
+			for (Entity entity : usedEntities) {
+				if (componentManager.HasComponent<ECS::Component::EntityMeta>(entity)) {
+					const auto& meta = componentManager.GetComponent<ECS::Component::EntityMeta>(entity);
+					if (meta.luid == luid) {
+						return entity;
+					}
+				}
+			}
+
+			return 0;
+		}
 	}
 
 	namespace Command {
-		uint32_t CreateEntity() {
+		uint32_t CreateEntityNoComponents() {
+			return GetScene().GetECSCoordinator().CreateEntity();
+		}
+
+		uint32_t CreateEmptyEntity(uint32_t parentEntt) {
 			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
 			GetScene().GetECSCoordinator().AddComponent(
-				newEntity, 
+				newEntity,
 				Component::EntityMeta{ .luid = Core::LUIDGenerator::Generate("em") }
 			);
 
@@ -263,20 +307,307 @@ namespace NE::ECS {
 				Component::Hierarchy{}
 			);
 
-			//if (gSceneManager.GetCurrentPrefabPath().empty()) {
-			//	GetScene().GetECSCoordinator().AddComponent(
-			//		newEntity,
-			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
-			//} else {
-			//	auto& rootT = GetScene().GetECSCoordinator().GetComponent<Component::Transform>(0);
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
 
-			//	GetScene().GetECSCoordinator().AddComponent(
-			//		newEntity,
-			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr"), .parent = 0, .parentLuid = rootT.luid });
+			return newEntity;
+		}
 
-			//	rootT.children.push_back(newEntity);
-			//}
+		uint32_t CreateCubeEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Cube"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
 
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/cube"},
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::BoxColliderData{},
+					.type = Component::Collider::ColliderType::Box,
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateSphereEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Sphere"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/sphere"},
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::SphereColliderData{},
+					.type = Component::Collider::ColliderType::Sphere,
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateCylinderEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Cylinder"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/cylinder"},
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::CylinderColliderData{},
+					.type = Component::Collider::ColliderType::Cylinder,
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateCapsuleEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Capsule"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/capsule"},
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::CapsuleColliderData{},
+					.type = Component::Collider::ColliderType::Capsule,
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreatePlaneEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Plane"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/plane"},
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateQuadEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Quad"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Renderer{
+					.modelUUID{"builtin:model/quad"},
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateDirectionalLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Directional Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.type = Component::Light::Type::Directional,
+					.data = Component::Light::DirectionalLightData{}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreatePointLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Point Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.type = Component::Light::Type::Point,
+					.data = Component::Light::PointLightData{}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
+			return newEntity;
+		}
+
+		uint32_t CreateSpotLightEntity(uint32_t parentEntt) {
+			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::EntityMeta{ .name{"Spot Light"}, .luid = Core::LUIDGenerator::Generate("em") }
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Transform{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Hierarchy{}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Light{
+					.type = Component::Light::Type::Spot,
+					.data = Component::Light::SpotLightData{}
+				}
+			);
+
+			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
 			return newEntity;
 		}
 
@@ -341,37 +672,24 @@ namespace NE::ECS {
 			return newEntity;
 		}
 
-		uint32_t CreateCanvasEntity() {
-			uint32_t newEntity = GetScene().GetECSCoordinator().CreateEntity();
-			GetScene().GetECSCoordinator().AddComponent(
-				newEntity,
-				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("em") }
-			);
+		// internal
+		void DestroyRecursive(uint32_t e) {
+			auto& hierarchy = GetScene().GetECSCoordinator().GetComponent<Component::Hierarchy>(e);
 
-			GetScene().GetECSCoordinator().AddComponent(
-				newEntity,
-				Component::Hierarchy{}
-			);
-
-			GetScene().GetECSCoordinator().AddComponent(
-				newEntity,
-				Component::RectTransform{ 
-					.luid = Core::LUIDGenerator::Generate("rt"),
-				}
-			);
-
-			GetScene().GetECSCoordinator().AddComponent(
-				newEntity,
-				Component::Canvas{
-					.luid = Core::LUIDGenerator::Generate("cv"),
-				}
-			);
-
-			return newEntity;
+			for (auto child : hierarchy.children) {
+				DestroyRecursive(child);
+			}
+			GetScene().GetECSCoordinator().DestroyEntity(e);
 		}
 
 		void DestroyEntity(uint32_t e) {
-			GetScene().GetECSCoordinator().DestroyEntity(e);
+			auto& hierarchy = GetScene().GetECSCoordinator().GetComponent<Component::Hierarchy>(e);
+			if (hierarchy.parent != Component::INVALID_PARENT) {
+				// change this to purely deleting from parent vector
+				GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(e, Component::INVALID_PARENT);
+			}
+
+			DestroyRecursive(e);
 		}
 
 		void SetParent(Entity _child, Entity _newParent, int _insertIndex, bool _keepWorldPos) {
@@ -408,6 +726,74 @@ namespace NE::ECS {
 
 		void AddCameraComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
+		}
+
+		void AddEntityMetaComponent(uint32_t e, const Component::EntityMeta& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::EntityMeta>(e, c);
+		}
+
+		void AddTransformComponent(uint32_t e, const Component::Transform& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Transform>(e, c);
+		}
+
+		void AddHierarchyComponent(uint32_t e, const Component::Hierarchy& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Hierarchy>(e, c);
+		}
+
+		void AddRendererComponent(uint32_t e, const Component::Renderer& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Renderer>(e, c);
+		}
+
+		void AddLightComponent(uint32_t e, const Component::Light& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Light>(e, c);
+		}
+
+		void AddRigidbodyComponent(uint32_t e, const Component::Rigidbody& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Rigidbody>(e, c);
+		}
+
+		void AddColliderComponent(uint32_t e, const Component::Collider& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Collider>(e, c);
+		}
+
+		void AddAudioSourceComponent(uint32_t e, const Component::AudioSource& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::AudioSource>(e, c);
+		}
+
+		void AddScriptComponent(uint32_t e, const Component::NativeScript& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::NativeScript>(e, c);
+		}
+
+		void AddCameraComponent(uint32_t e, const Component::Camera& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Camera>(e, c);
+		}
+
+		void AddAnimatorComponent(uint32_t e, const Component::Animator& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::Animator>(e, c);
+		}
+
+		void AddUIRectTransformComponent(uint32_t e, const Component::UIRectTransform& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIRectTransform>(e, c);
+		}
+
+		void AddUICanvasComponent(uint32_t e, const Component::UICanvas& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UICanvas>(e, c);
+		}
+
+		void AddUIImageComponent(uint32_t e, const Component::UIImage& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIImage>(e, c);
+		}
+
+		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::PrefabLink>(e, c);
+		}
+
+		void AddPrefabInstanceComponent(uint32_t e, const Component::PrefabInstance& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::PrefabInstance>(e, c);
+		}
+
+		void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::CharacterController>(e, c);
 		}
 
 		void RemoveLightComponent(uint32_t e) {
@@ -477,20 +863,29 @@ namespace NE::ECS {
 		Component::UICanvas& GetUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
-		Component::Camera& GetEntityCamera(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
-		}
 
 		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
 		}
 
-		Component::RectTransform& GetRectTransform(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::RectTransform>(e);
+		Component::Animator& GetEntityAnimator(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
 
-		Component::Canvas& GetCanvas(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Canvas>(e);
+		Component::Camera& GetEntityCamera(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
+		}
+
+		Component::PrefabLink& GetPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
+		}
+
+		Component::CharacterController& GetCharacterController(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
@@ -620,12 +1015,18 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Animator{});
 		}
 
-		Component::Animator& GetEntityAnimator(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
-		}
-
 		void SetLayer(Entity e, Core::LayerID layer) {
 			GetScene().GetECSCoordinator().GetEntityManager().SetLayer(e, layer);
+		}
+
+		std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid) {
+			return Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
+		}
+		
+		void AssignAnimClip(uint32_t e, const std::string& uuid) {
+			auto& animator = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
+			animator.animClipUUID = uuid;
+			animator.clip = Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
 		}
 	}
 }

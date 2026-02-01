@@ -17,6 +17,8 @@ namespace NE::ECS::Systems {
     class AnimatorSystem;
 	class CameraSystem;
     class HierarchySystem;
+    class PrefabSystem;
+	class CharacterControllerSystem;
 }
 
 namespace NE::ECS {
@@ -42,7 +44,8 @@ namespace NE::ECS {
 
         template<typename T>
         void AddComponent(Entity e, const T& comp) {
-            if (m_componentManager->HasComponent<T>(e)) return;
+            if (m_componentManager->HasComponent<T>(e)) 
+                return;
             m_componentManager->AddComponent<T>(e, comp);
 
             auto signature = m_entityManager->GetSignature(e);
@@ -54,13 +57,12 @@ namespace NE::ECS {
 
         template<typename T>
         void RemoveComponent(Entity e) {
-            m_componentManager->RemoveComponent<T>(e);
-
             auto signature = m_entityManager->GetSignature(e);
             signature.set(GetComponentType<T>(), false);
             m_entityManager->SetSignature(e, signature);
 
             m_systemManager->EntitySignatureChanged(e, signature);
+            m_componentManager->RemoveComponent<T>(e);
         }
 
         template<typename T>
@@ -96,6 +98,11 @@ namespace NE::ECS {
         ComponentManager& GetComponentManager() {
             return *m_componentManager;
         }
+
+        Core::LUIDRegistry& GetLUIDRegistry() {
+            return *m_luidRegistry;
+        }
+
         std::vector<Entity>& GetUsedEntities() { return m_entityManager->GetUsedEntities(); }
 
         Signature GetSignature(Entity entity);
@@ -112,6 +119,8 @@ namespace NE::ECS {
         std::shared_ptr<Systems::AnimatorSystem> m_animatorSystem;
         std::shared_ptr<Systems::CameraSystem> m_cameraSystem;
         std::shared_ptr<Systems::HierarchySystem> m_hierarchySystem;
+        std::shared_ptr<Systems::PrefabSystem> m_prefabSystem;
+		std::shared_ptr<Systems::CharacterControllerSystem> m_characterControllerSystem;
 
     private:
 

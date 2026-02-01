@@ -24,6 +24,36 @@ using NE::Graphics::Frustum;
 using NE::Graphics::GraphicsManager;
 
 namespace NE::ECS::Systems {
+    namespace {
+        inline bool SphereInFrustum(const NE::Graphics::Frustum& f,
+            const NE::Math::Vec3& c,
+            float r)
+        {
+            for (int i = 0; i < 6; ++i) {
+                const auto& p = f.planes[i];
+                float dist = p.n.x * c.x + p.n.y * c.y + p.n.z * c.z + p.d;
+                //float dist = p.n.Dot(c) + p.d;
+                if (dist < -r) return false;
+            }
+            return true;
+        }
+
+        inline float MaxScaleAxis(const NE::Math::Mat4& M) {
+            NE::Math::Vec3 x = { M.GetElement(0, 0), M.GetElement(1, 0), M.GetElement(2, 0) };
+            NE::Math::Vec3 y = { M.GetElement(0, 1), M.GetElement(1, 1), M.GetElement(2, 1) };
+            NE::Math::Vec3 z = { M.GetElement(0, 2), M.GetElement(1, 2), M.GetElement(2, 2) };
+
+            float sx = x.Length();
+            float sy = y.Length();
+            float sz = z.Length();
+            return std::max(sx, std::max(sy, sz));
+        }
+
+        inline NE::Math::Vec3 TransformPoint(const NE::Math::Mat4& M, const NE::Math::Vec3& p) {
+            NE::Math::Vec4 v = M * NE::Math::Vec4(p.x, p.y, p.z, 1.0f);
+            return { v.x, v.y, v.z };
+        }
+    }
 
     RenderSystem::RenderSystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
         : m_componentManager(cm), m_luidRegistry(lr)
@@ -33,9 +63,13 @@ namespace NE::ECS::Systems {
     void RenderSystem::OnEntityAdded(Entity entity) {
         auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
 
-        if (!renderer.materialUUID.empty())
+        if (!renderer.materialUUID.empty()) {
             renderer.material = Resource::ResourceManager::GetInstance().
-            LoadResource<Graphics::Material>(renderer.materialUUID);
+                LoadResource<Graphics::Material>(renderer.materialUUID);
+        } else {
+            renderer.material = Resource::ResourceManager::GetInstance().
+                LoadResource<Graphics::Material>("nelitmat");
+        }
         if (!renderer.modelUUID.empty())
             renderer.model = Resource::ResourceManager::GetInstance().
             LoadResource<Graphics::Model>(renderer.modelUUID);
@@ -52,39 +86,16 @@ namespace NE::ECS::Systems {
     }
 
     void RenderSystem::Init() {
-        //const auto& entities = GetEntities();
-        //for (Entity entity : entities) {
-        //    auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-
-        //    renderer.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(renderer.materialUUID);
-        //    renderer.model = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Model>(renderer.modelUUID);
-        //}
-
-		//basicShader = std::make_shared<Graphics::OpenGL::GLShader>("Library/Shaders/Basic.glsl");
-		//Graphics::PipelineSpecification pipelineSpec;
-		//pipelineSpec.shader = basicShader;
-		//pipelineSpec.CullMode = GL_BACK;
-		//pipelineSpec.PolygonMode = GL_FILL;
-		//pipelineSpec.EnableDepthTest = true;
-		//pipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pipelineSpec, "Basic");
-		//material = std::make_shared<Graphics::Material>(pipeline);
-
-        //pickingShader = NE::Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLShader>("nepicking");
-        //Graphics::PipelineSpecification pickSpec;
-        //pickSpec.shader = pickingShader;
-        //pickSpec.CullMode = GL_BACK;
-        //pickSpec.PolygonMode = GL_FILL;
-        //pickSpec.EnableDepthTest = true;
-        //pickingPipeline = std::make_shared<Graphics::OpenGL::GLPipeline>(pickSpec, "Picking");
-        //pickingMaterial = std::make_shared<Graphics::Material>(pickingPipeline);
     }
 
-    void RenderSystem::Update(double deltaTime) {
+    void RenderSystem::Update(double /*deltaTime*/) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
+#endif
 
-        FrustumCulling();
-
+        const Frustum frustum = BuildFrustum();
         const auto& entities = GetEntities();
+
         for (Entity entity : entities) {
             // Skip inactive entities
             if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
@@ -95,40 +106,69 @@ namespace NE::ECS::Systems {
             }
 
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
-            if (!renderer.visible || !renderer.model) continue;
+            if (!renderer.model) continue;
+
             auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
-			for (auto& sub : renderer.model->meshes) {
-				Graphics::DrawCommand cmd;
-				cmd.mesh = sub.buffer;
-				cmd.material = renderer.material;
-				cmd.transform = transform.worldMatrix;
+
+            if (renderer.subMeshIndex < 0) {
+                continue;
+       //         const auto& ms = renderer.model->localSphere;
+       //         float baseR = ms.radius;
+
+       //         bool visible = true;
+       //         if (baseR > 0.0f) {
+       //             Vec3 centerWS = TransformPoint(transform.worldMatrix, ms.center);
+       //             float rWS = baseR * MaxScaleAxis(transform.worldMatrix);
+       //             visible = SphereInFrustum(frustum, centerWS, rWS);
+       //         }
+
+       //         if (!visible) continue;
+
+			    //for (auto& sub : renderer.model->meshes) {
+				   // Graphics::DrawCommand cmd;
+				   // cmd.mesh = sub.buffer;
+				   // cmd.material = renderer.material;
+				   // cmd.transform = transform.worldMatrix;
+
+       //             float r = (float)(entity & 0xFF) / 255.0f;
+       //             float g = (float)((entity >> 8) & 0xFF) / 255.0f;
+       //             float b = (float)((entity >> 16) & 0xFF) / 255.0f;
+				   // cmd.idRGB = Vec3{ r, g, b };
+
+       //             cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
+       //             cmd.receivesShadow = renderer.receiveShadows;
+
+				   // Graphics::GraphicsManager::Submit(cmd);
+			    //}
+            } else {
+                const auto& ms = renderer.model->meshes[renderer.subMeshIndex].localSphere;
+                float baseR = ms.radius;
+
+                bool visible = true;
+                if (baseR > 0.0f) {
+                    Vec3 centerWS = TransformPoint(transform.worldMatrix, ms.center);
+                    float rWS = baseR * MaxScaleAxis(transform.worldMatrix);
+                    visible = SphereInFrustum(frustum, centerWS, rWS);
+                }
+
+                if (!visible) continue;
+
+                Graphics::DrawCommand cmd;
+                cmd.mesh = renderer.model->meshes[renderer.subMeshIndex].buffer;
+                cmd.material = renderer.material;
+                cmd.transform = transform.worldMatrix;
 
                 float r = (float)(entity & 0xFF) / 255.0f;
                 float g = (float)((entity >> 8) & 0xFF) / 255.0f;
                 float b = (float)((entity >> 16) & 0xFF) / 255.0f;
-				cmd.idRGB = Vec3{ r, g, b };
+                cmd.idRGB = Vec3{ r, g, b };
 
                 cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
                 cmd.receivesShadow = renderer.receiveShadows;
 
-                //cmd.material->SetUniformVec3("u_Material.ambient", { 0.1f, 0.1f, 0.1f });
-                //cmd.material->SetUniformVec3("u_Material.diffuse", { 1.0f, 0.5f, 0.31f });
-                //cmd.material->SetUniformVec3("u_Material.specular", { 0.5f, 0.5f, 0.5f });
-                //cmd.material->SetUniformFloat("u_Material.shininess", 32.0f);
-                //if (renderer.model && renderer.model->HasSkeleton()) {
-                //    // advance time (dt variable is available in Update)
-                //    renderer.model->UpdateAnimation(deltaTime);
-
-                //    // upload bones to the material (Material::Bind will push them to the shader)
-                //    const auto& bones = renderer.model->GetBoneMatrices();
-                //    if (!bones.empty()) {
-                //        renderer.material->SetUniformMat4Array("u_Bones", bones);
-                //    }
-                //}
-
-				Graphics::GraphicsManager::Submit(cmd);
-			}
+                Graphics::GraphicsManager::Submit(cmd);
+            }
         }
     }
 
@@ -136,8 +176,7 @@ namespace NE::ECS::Systems {
     {
     }
 
-    Frustum RenderSystem::BuildFrustum() 
-    {
+    Frustum RenderSystem::BuildFrustum() {
         auto* cam = GraphicsManager::GetEditorCamera();
 
         if (!cam)
@@ -150,90 +189,6 @@ namespace NE::ECS::Systems {
 
         Mat4 nonConstPCopy = P;
         return Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
-    }
-
-    bool RenderSystem::TestSphereFrustum(const Frustum& F, const Mat4& M, const Vec3& centerLS, float radiusLS) 
-    {
-        // transform center from local space to world space
-        Vec3 centerWS{
-            M.a[0] * centerLS.x + M.a[4] * centerLS.y + M.a[8] * centerLS.z + M.a[12],
-            M.a[1] * centerLS.x + M.a[5] * centerLS.y + M.a[9] * centerLS.z + M.a[13],
-            M.a[2] * centerLS.x + M.a[6] * centerLS.y + M.a[10] * centerLS.z + M.a[14]
-        };
-
-        // get the scaling factors
-        Vec3 scale = M.GetScale();
-
-        // compute the radius in world space using the largest scaling factor
-        float radiusWS = radiusLS * std::max({ scale.x, scale.y, scale.z });
-
-        // test intersection of bounding sphere with frustum
-        return F.IntersectsSphere(centerWS, radiusWS);
-    }
-
-
-    //bool RenderSystem::TestAABBFrustum(const Frustum& F, const Mat4& M, const NE::Math::Vec3& minLS, const NE::Math::Vec3& maxLS) {
-    //    // 8 local corners of the AABB
-    //    const Vec3 cornersLS[8]{
-    //        {minLS.x, minLS.y, minLS.z},
-    //        {maxLS.x, minLS.y, minLS.z},
-    //        {minLS.x, maxLS.y, minLS.z},
-    //        {maxLS.x, maxLS.y, minLS.z},
-    //        {minLS.x, minLS.y, maxLS.z},
-    //        {maxLS.x, minLS.y, maxLS.z},
-    //        {minLS.x, maxLS.y, maxLS.z},
-    //        {maxLS.x, maxLS.y, maxLS.z},
-    //    };
-
-    //    // helps to transform a point in local space to world space
-    //    auto pointLSToWS = [](const Mat4& matrix, const Vec3& p) -> Vec3 {
-    //        return Vec3{
-    //            matrix.a[0] * p.x + matrix.a[4] * p.y + matrix.a[8] * p.z + matrix.a[12],
-    //            matrix.a[1] * p.x + matrix.a[5] * p.y + matrix.a[9] * p.z + matrix.a[13],
-    //            matrix.a[2] * p.x + matrix.a[6] * p.y + matrix.a[10] * p.z + matrix.a[14]
-    //        };
-    //        };
-
-    //    // seed with first corner
-    //    Vec3 minWS = pointLSToWS(M, cornersLS[0]);
-    //    Vec3 maxWS = minWS;
-
-    //    // continue with the remaining corners
-    //    for (int i = 1; i < 8; ++i)
-    //    {
-    //        Vec3 cornerWS = pointLSToWS(M, cornersLS[i]);
-    //        minWS = Vec3{ std::min(minWS.x, cornerWS.x), std::min(minWS.y, cornerWS.y), std::min(minWS.z, cornerWS.z) };
-    //        maxWS = Vec3{ std::max(maxWS.x, cornerWS.x), std::max(maxWS.y, cornerWS.y), std::max(maxWS.z, cornerWS.z) };
-    //    }
-
-    //    // test intersection of AABB with frustum
-    //    return F.IntersectsAABB(minWS, maxWS);
-    //}
-
-    void RenderSystem::FrustumCulling() {
-        //// build frustum from the active camera
-        //const Frustum frustum = BuildFrustum();
-
-        //const auto& entities = GetEntities();
-        //for (Entity e : entities)
-        //{
-        //    const auto& transform = m_componentManager->GetComponent<NE::ECS::Component::Transform>(e);
-        //    auto& renderer = m_componentManager->GetComponent<NE::ECS::Component::Renderer>(e);
-
-        //    const Mat4& modelMatrix = transform.modelMatrix;
-
-        //    if (renderer.model && renderer.model->hasSphereBoundsLS)
-        //    {
-        //        const Vec3 centerLS = renderer.model->sphereCenterLS;
-        //        const float radiusLS = renderer.model->sphereRadiusLS;
-
-        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, centerLS, radiusLS);
-        //    }
-        //    else
-        //    {
-        //        renderer.visible = TestSphereFrustum(frustum, modelMatrix, Vec3(0.0f), 0.5f); // default
-        //    }
-        //}
     }
 
 }

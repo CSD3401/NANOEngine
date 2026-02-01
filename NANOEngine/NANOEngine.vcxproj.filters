@@ -44,10 +44,10 @@
     <ClCompile Include="src\Graphics\OpenGL\GLCommandBuffer.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\glad.c" />
     <ClCompile Include="src\Graphics\OpenGL\GLContext.cpp" />
-    <ClCompile Include="src\Graphics\OpenGL\GLUtilities.cpp" />
     <ClCompile Include="src\Graphics\Core\Window.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
     <ClCompile Include="src\Math\Mat4.cpp" />
+    <ClCompile Include="src\Math\Quat.cpp" />
     <ClCompile Include="src\Math\Vec2.cpp" />
     <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\Math\Vec4.cpp" />
@@ -81,7 +81,15 @@
     <ClCompile Include="src\Physics\BroadPhaseLayerInterfaceImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectVsBroadPhaseLayerFilterImpl.cpp" />
     <ClCompile Include="src\Physics\ObjectLayerFilterImpl.cpp" />
-    <ClCompile Include="src\ECS\Systems\RectTransformSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
+    <ClCompile Include="src\Scripting\GameObject.cpp" />
+    <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
+    <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
+    <ClCompile Include="src\Animation\AnimationClip.cpp" />
+    <ClCompile Include="src\Animation\AnimatorController.cpp" />
+    <ClCompile Include="src\Physics\StreamOutImpl.cpp" />
+    <ClCompile Include="src\Physics\StreamInImpl.cpp" />
+    <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -165,7 +173,6 @@
     <ClInclude Include="src\Graphics\Interfaces\IPipeline.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLContext.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IRenderContext.hpp" />
-    <ClInclude Include="src\Graphics\OpenGL\GLUtilities.hpp" />
     <ClInclude Include="src\Graphics\Vulkan\VkContext.hpp" />
     <ClInclude Include="src\Graphics\Core\Window.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IGeometryBuffer.hpp" />
@@ -173,6 +180,7 @@
     <ClInclude Include="src\Graphics\Interfaces\IVertexBuffer.hpp" />
     <ClInclude Include="src\Math\Mat3.hpp" />
     <ClInclude Include="src\Math\Mat4.hpp" />
+    <ClInclude Include="src\Math\Quat.hpp" />
     <ClInclude Include="src\Math\Math.hpp" />
     <ClInclude Include="src\Math\Vec2.hpp" />
     <ClInclude Include="src\Math\Vec3.hpp" />
@@ -239,12 +247,22 @@
     <ClInclude Include="src\Physics\RaycastHit.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
-    <ClInclude Include="src\ECS\Components\RectTransform.hpp" />
-    <ClInclude Include="src\ECS\Components\Canvas.hpp" />
-    <ClInclude Include="src\ECS\Systems\RectTransformSystem.hpp" />
-    <ClInclude Include="src\ECS\Components\Button.hpp" />
-    <ClInclude Include="src\ECS\Components\Image.hpp" />
-    <ClInclude Include="src\ECS\Components\Text.hpp" />
+    <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
+    <ClInclude Include="src\ECS\Components\PrefabInstance.hpp" />
+    <ClInclude Include="src\ECS\Systems\PrefabSystem.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoThumbHeader.hpp" />
+    <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
+    <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
+    <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
+    <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
+    <ClInclude Include="src\Animation\AnimationClip.hpp" />
+    <ClInclude Include="src\Animation\AnimatorController.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoAnimClipHeader.hpp" />
+    <ClInclude Include="src\Physics\StreamOutImpl.hpp" />
+    <ClInclude Include="src\Physics\StreamInImpl.hpp" />
+    <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
+    <ClInclude Include="src\Physics\ContactPair.hpp" />
+    <ClInclude Include="src\Physics\ContactDefs.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
@@ -266,9 +284,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\OpenGL\GLPipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Graphics\OpenGL\GLUtilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Math\Vec3.cpp">

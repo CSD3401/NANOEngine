@@ -13,6 +13,7 @@ namespace NE::Graphics::OpenGL {
 	class GLShader final : public IShader, public Resource::IResource {
 	public:
 		GLShader();
+		GLShader(uint32_t programID);
 		~GLShader();
 
 		void Bind() const override;

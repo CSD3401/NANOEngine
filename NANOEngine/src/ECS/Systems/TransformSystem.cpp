@@ -9,6 +9,7 @@
 #include "Core/Profiler.hpp"
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
+#include "Math/Quat.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -20,10 +21,9 @@ namespace NE::ECS::Systems {
 
 		Math::Mat4 translation = Math::Mat4::BuildTranslation(t.localPosition);
 
-		Math::Mat4 rotation =
-			Math::Mat4::BuildXRotation(t.localRotationEuler.x) *
-			Math::Mat4::BuildYRotation(t.localRotationEuler.y) *
-			Math::Mat4::BuildZRotation(t.localRotationEuler.z);
+		// Convert Euler angles to quaternion, then to rotation matrix
+		t.localRotationQuat = Math::Quat::FromEulerDegrees(t.localRotationEuler);
+		Math::Mat4 rotation = t.localRotationQuat.ToMat4();
 
 		Math::Mat4 scale =
 			Math::Mat4::BuildScaling(t.localScale.x,
@@ -45,24 +45,13 @@ namespace NE::ECS::Systems {
 	}
 
 	void TransformSystem::Init() {
-		//const auto& entities = GetEntities();
-
-		//BuildLocalMatrices();
-
-		//Math::Mat4 I;
-		//I.SetToIdentity();
-
-		//for (Entity e : entities) {
-		//	auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
-		//	if (h.parent == Component::INVALID_PARENT) {
-		//		UpdateWorldRecursive(e, I, false);
-		//	}
-		//}
 		Update(0.0);
 	}
 
 	void TransformSystem::Update(double) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
+#endif
 
 		const auto& entities = GetEntities();
 
@@ -92,10 +81,9 @@ namespace NE::ECS::Systems {
 
 			Math::Mat4 translation = Math::Mat4::BuildTranslation(transform.localPosition);
 
-			Math::Mat4 rotation =
-				Math::Mat4::BuildXRotation(transform.localRotationEuler.x) *
-				Math::Mat4::BuildYRotation(transform.localRotationEuler.y) *
-				Math::Mat4::BuildZRotation(transform.localRotationEuler.z);
+			// Convert Euler angles to quaternion, then to rotation matrix
+			//transform.localRotationQuat = Math::Quat::FromEulerDegrees(transform.localRotationEuler);
+			Math::Mat4 rotation = transform.localRotationQuat.ToMat4();
 
 			Math::Mat4 scale =
 				Math::Mat4::BuildScaling(transform.localScale.x,

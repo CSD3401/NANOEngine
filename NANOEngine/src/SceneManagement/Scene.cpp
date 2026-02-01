@@ -13,6 +13,7 @@
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
 #include "ECS/Systems/UITransformSystem.hpp"
+#include "ECS/Systems/CharacterControllerSystem.hpp"
 #include "../Animation/TransformClipIO.hpp"
 #include "Core/Couroutine.hpp"
 #include "Physics/PhysicsManager.hpp"
@@ -35,9 +36,10 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::InitRuntime() {
-		m_ecsCoordinator.m_rigidbodySystem->Init();
 		m_ecsCoordinator.m_hierarchySystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
+		m_ecsCoordinator.m_rigidbodySystem->Init();
+		m_ecsCoordinator.m_characterControllerSystem->Init();
 		m_ecsCoordinator.m_lightSystem->Init();
 		m_ecsCoordinator.m_cameraSystem->Init();
 		m_ecsCoordinator.m_colliderSystem->Init();
@@ -51,6 +53,7 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::UpdateEdit(double dt) {
+		m_ecsCoordinator.m_hierarchySystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
@@ -59,7 +62,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
-		m_ecsCoordinator.m_animatorSystem->Update(dt);
+		//m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
 		Engine_UpdateCoroutines(static_cast<float>(dt));
 	}
@@ -67,6 +70,7 @@ namespace NE::SceneManagement {
 	void Scene::UpdateRuntime(double dt) {
 		Physics::PhysicsManager::GetInstance().Update(dt);
 		m_ecsCoordinator.m_rigidbodySystem->Update(dt);
+		m_ecsCoordinator.m_characterControllerSystem->Update(dt);
 		m_ecsCoordinator.m_transformSystem->Update(dt);
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
@@ -83,7 +87,7 @@ namespace NE::SceneManagement {
 	void Scene::Render() {
 		Graphics::GraphicsManager::BeginFrame();
 		Graphics::GraphicsManager::DrawFrame();
-		Graphics::GraphicsManager::DrawAllDebugGeometry();
+		//Graphics::GraphicsManager::DrawAllDebugGeometry();
 		Graphics::GraphicsManager::EndFrame();
 		//Graphics::GraphicsManager::DrawUI();
 	}
@@ -128,6 +132,14 @@ namespace NE::SceneManagement {
 
 	ECS::ECSCoordinator& Scene::GetECSCoordinator() {
 		return m_ecsCoordinator;
+	}
+
+	void Scene::CameraEnter() {
+		m_ecsCoordinator.m_cameraSystem->Init();
+	}
+
+	void Scene::CameraExit() {
+		m_ecsCoordinator.m_cameraSystem->Exit();
 	}
 
 }

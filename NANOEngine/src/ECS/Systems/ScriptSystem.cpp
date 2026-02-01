@@ -7,25 +7,36 @@
 #include "../Components/Transform.hpp"
 #include "Core/SpdLogger.hpp"
 #include "Core/Couroutine.hpp"
+#include "Core/LUIDGenerator.hpp"
+#include "Core/LUIDRegistry.hpp"
 #include "Events/EventBus.hpp"
 #include "../../Scripting/ScriptingEngine.hpp"
 #include <algorithm>
+#include <Core/Profiler.hpp>
 
 namespace NE::ECS::Systems {
-	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em)
-		: m_componentManager(cm), m_entityManager(em) {
+	ScriptSystem::ScriptSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
+		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) {
 
 		// Set ECS references in ScriptEngine so it can manage instances
-		Scripting::ScriptingEngine::GetInstance().SetECSReferences(cm, em);
+		Scripting::ScriptingEngine::GetInstance().SetECSReferences(cm, em, lr);
 	}
 
 	void ScriptSystem::OnEntityAdded(Entity entity) {
+		auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+
+		// Generate LUID if not set (same as other components like Transform, Renderer, etc.)
+		if (nsc.luid == 0) {
+			nsc.luid = Core::LUIDGenerator::Generate("ns");
+		}
+
+		// Register with LUID registry
+		m_luidRegistry->Register(nsc.luid, &nsc, entity);
+
 		// Only manage component data, delegate instance creation to ScriptEngine
 		if (!Scripting::ScriptingEngine::GetInstance().ShouldCreateInstancesOnEntityAdded()) {
 			return;
 		}
-
-		auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
 
 		// Check if script names are valid
 		if (nsc.ScriptNames.empty()) {
@@ -45,9 +56,10 @@ namespace NE::ECS::Systems {
 	}
 
 	void ScriptSystem::OnEntityRemoved(Entity entity) {
-		// Delegate instance cleanup to ScriptEngine
-		if (!m_componentManager->HasComponent<Component::NativeScript>(entity)) {
-			return;
+		// Unregister from LUID registry
+		if (m_componentManager->HasComponent<Component::NativeScript>(entity)) {
+			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+			m_luidRegistry->Unregister(nsc.luid);
 		}
 
 		// Destroy script instances via ScriptEngine
@@ -62,6 +74,12 @@ namespace NE::ECS::Systems {
 
 		for (Entity entity : entities) {
 			auto& nsc = m_componentManager->GetComponent<Component::NativeScript>(entity);
+
+			// Generate LUID if not set (for entities loaded from scene files)
+			if (nsc.luid == 0) {
+				nsc.luid = Core::LUIDGenerator::Generate("ns");
+				m_luidRegistry->Register(nsc.luid, &nsc, entity);
+			}
 
 			// Skip if script names are empty
 			if (nsc.ScriptNames.empty()) {
@@ -142,6 +160,10 @@ namespace NE::ECS::Systems {
 	}
 
 	void ScriptSystem::Update(double deltaTime) {
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		// --- Check for compile request ---
 		if (Scripting::ScriptingEngine::GetInstance().m_compileQueued.load()) {
 			Scripting::ScriptingEngine::GetInstance().m_compileQueued.store(false);

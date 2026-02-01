@@ -15,6 +15,9 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Hierarchy.hpp"
+#include "../Components/PrefabLink.hpp"
+#include "../Components/PrefabInstance.hpp"
+#include "../Components/CharacterController.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -27,6 +30,8 @@
 #include "../Systems/UITransformSystem.hpp"
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/HierarchySystem.hpp"
+#include "../Systems/PrefabSystem.hpp"
+#include "../Systems/CharacterControllerSystem.hpp"
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
@@ -59,6 +64,9 @@ namespace NE::ECS {
 		RegisterComponent<Component::Camera>();
         RegisterComponent<Component::Hierarchy>();
         RegisterComponent<Component::NativeScript>();
+        RegisterComponent<Component::PrefabLink>();
+        RegisterComponent<Component::PrefabInstance>();
+        RegisterComponent<Component::CharacterController>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
@@ -91,7 +99,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::RigidbodySystem>(sig);
         }
 
-        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get(), m_entityManager.get());
+        m_colliderSystem = m_systemManager->RegisterSystem<Systems::ColliderSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Transform>());
@@ -107,7 +115,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::AudioSystem>(sig);
         }
         
-		m_scriptSystem = m_systemManager->RegisterSystem<Systems::ScriptSystem>(m_componentManager.get());
+		m_scriptSystem = m_systemManager->RegisterSystem<Systems::ScriptSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
 		{
 			Signature sig;
 			sig.set(GetComponentType<Component::NativeScript>());
@@ -128,11 +136,10 @@ namespace NE::ECS {
             SetSystemSignature<Systems::UIRenderSystem>(sig);
         }
 
-        m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
+        m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
             Signature sig;
-            sig.set(GetComponentType<Component::Transform>());  // Animator works on Transform
-            sig.set(GetComponentType<Component::Animator>());   // and requires Animator
+            sig.set(GetComponentType<Component::Animator>());
             SetSystemSignature<Systems::AnimatorSystem>(sig);
         }
         
@@ -144,11 +151,27 @@ namespace NE::ECS {
             SetSystemSignature<Systems::CameraSystem>(sig);
 		}
 
-        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get());
+        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Hierarchy>());
             SetSystemSignature<Systems::HierarchySystem>(sig);
+        }
+
+        m_prefabSystem = m_systemManager->RegisterSystem<Systems::PrefabSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::PrefabInstance>());
+            SetSystemSignature<Systems::PrefabSystem>(sig);
+        }
+
+        m_characterControllerSystem = m_systemManager->RegisterSystem<Systems::CharacterControllerSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Transform>());
+            sig.set(GetComponentType<Component::Collider>());
+            sig.set(GetComponentType<Component::CharacterController>());
+            SetSystemSignature<Systems::CharacterControllerSystem>(sig);
         }
     }
 

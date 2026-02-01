@@ -1,22 +1,58 @@
 #include "SceneManager.hpp"
 
 #include "Scripting/ScriptingEngine.hpp"
+#include "Core/SpdLogger.hpp"
 #include "ECS/Components/NativeScript.hpp"
 #include "ECS/Core/Entity.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Serialisation/Serializer.hpp"
+#include "Physics/PhysicsManager.hpp"
 
 namespace NE::SceneManagement {
 
-	void SceneManager::LoadScene(const std::string& path) {
+	bool SceneManager::LoadScene(const std::string& path) {
 		m_loadedPath = path;
 		m_editor = std::make_unique<Scene>();
+		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
-		NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path);
+		Physics::PhysicsManager::GetInstance().
+			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
+			m_editor.reset();
+			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
+			return false;
+		}
 		m_editor->InitEdit();
 		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
-		Prefab::PrefabManager::Init(m_editor.get());
-		//Prefab::PrefabManager::RebuildFromScene();
+		m_isPlaying = false;
+		m_runtime.reset();
+		return true;
+	}
+
+	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
+		if (m_editor) {
+			m_editor->ExitEdit();
+			m_editor.reset();
+		}
+
+		if (m_runtime) {
+			m_runtime->ExitRuntime();
+			m_runtime.reset();
+			m_isPlaying = false;
+		}
+
+		m_loadedPath = scenePath;
+		m_editor = std::make_unique<Scene>();
+		Prefab::PrefabManager::Init(this);
+		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+			&m_editor->GetECSCoordinator().GetLUIDRegistry());
+	}
+
+	void SceneManager::StartSceneFallback() {
+		m_editor->InitEdit();
+		Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 		m_isPlaying = false;
 		m_runtime.reset();
 	}
@@ -34,11 +70,16 @@ namespace NE::SceneManagement {
 		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+			&m_editor->GetECSCoordinator().GetLUIDRegistry());
 		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
 
 		// Transfer editor field values to runtime scene (before Init)
 		auto& runtimeComponentMgr = m_runtime->GetECSCoordinator().GetComponentManager();
 		Scripting::ScriptingEngine::GetInstance().TransferScriptFields(editorComponentMgr, runtimeComponentMgr);
+
+		// Important to call this to delete editor's renderviews
+		m_editor->CameraExit();
 
 		// Initialize runtime scene (creates instances with transferred field values)
 		m_runtime->InitRuntime();
@@ -64,9 +105,16 @@ namespace NE::SceneManagement {
 		// Recreate editor scene script instances for inspection
 		// (disabled, no Update calls, but allow field editing in inspector)
 		if (m_editor) {
-			auto& componentMgr = m_editor->GetECSCoordinator().GetComponentManager();
-			auto& entityMgr = m_editor->GetECSCoordinator().GetEntityManager();
-			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr);
+			auto& coordinator = m_editor->GetECSCoordinator();
+			auto& componentMgr = coordinator.GetComponentManager();
+			auto& entityMgr = coordinator.GetEntityManager();
+			auto& luidRegistry = coordinator.GetLUIDRegistry();
+			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr, luidRegistry);
+			Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
+
+			// Important to recreate the editor's renderviews
+			m_editor->CameraEnter();
 		}
 	}
 
@@ -100,7 +148,7 @@ namespace NE::SceneManagement {
 		}
 	}
 
-	void SceneManager::LoadPrefabScene(const std::string& path) {
+	bool SceneManager::LoadPrefabScene(const std::string& path) {
 		if (m_prefabScene) {
 			m_prefabScene->ExitEdit();
 			m_prefabScene.reset();
@@ -108,11 +156,17 @@ namespace NE::SceneManagement {
 
 		m_prefabScene = std::make_unique<Scene>();
 
-		//NE::Serialization::JsonSceneSerializer::Deserialize(*m_prefabScene, path);
+		m_isEditingPrefab = true;
+		if (NE::Deserialization::DeserializePrefab(m_prefabScene->GetECSCoordinator(), path) == UINT32_MAX) {
+			m_prefabScene->ExitEdit();
+			m_prefabScene.reset();
+			SPD_WARNING("Failed to load prefab, try reimporting");
+			return false;
+		}
 		m_prefabScene->InitEdit();
 
 		m_prefabPath = path;
-		m_isEditingPrefab = true;
+		return true;
 	}
 
 	void SceneManager::ClosePrefabScene() {

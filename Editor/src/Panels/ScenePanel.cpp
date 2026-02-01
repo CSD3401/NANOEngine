@@ -4,7 +4,6 @@
 #include <unordered_set>
 #include <ECS/Core/Entity.hpp>
 #include "../AssetManagement/AssetManager.hpp"
-#include <ECS/Components/EntityMeta.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
 #include "../EditorScene.hpp"
@@ -20,40 +19,113 @@
 #include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
-#include "../Util/DrawSelectedCollider.hpp"
 #include <algorithm>
 #include "../EditorState.hpp"
+#include "../Serialization/Serializer.hpp"
+#include <Events/EventBus.hpp>
+#include "../EditorEvents.hpp"
 
-namespace {
-	// helper function for ui
-	// calculate world position by walking up parent hierarchy
-	ImVec2 CalculateUIWorldPosition(uint32_t entity) {
-		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
+#define NOMINMAX
+#include <Windows.h>
 
-		float worldX = rect.x;
-		float worldY = rect.y;
 
-		// Walk up parent chain
-		uint32_t currentParent = rect.parent;
-		while (currentParent != std::numeric_limits<uint32_t>::max()) {
-			if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
-				break;
-			}
-
-			auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
-			worldX += parentRect.x;
-			worldY += parentRect.y;
-
-			currentParent = parentRect.parent;
-		}
-
-		return ImVec2(worldX, worldY);
-	}
-}
 
 namespace Editor {
+	namespace {
+		static constexpr const char* kPosName = "Position";
+		static constexpr const char* kRotName = "Rotation";
+		static constexpr const char* kSclName = "Scale";
+
+
+		uint32_t FNV1a32(std::string_view s) {
+			uint32_t h = 2166136261u;
+			for (unsigned char c : s) { h ^= c; h *= 16777619u; }
+			return h;
+		}
+
+		uint32_t MakeFieldId(const char* componentName, std::string_view fieldName) {
+			std::string full;
+			full.reserve(std::strlen(componentName) + 1 + fieldName.size());
+			full.append(componentName);
+			full.push_back('.');
+			full.append(fieldName.data(), fieldName.size());
+			return FNV1a32(full);
+		}
+		const uint32_t posFieldId = MakeFieldId("Transform", kPosName);
+		const uint32_t rotFieldId = MakeFieldId("Transform", kRotName);
+		const uint32_t sclFieldId = MakeFieldId("Transform", kSclName);
+
+		// helper function for ui
+		// calculate world position by walking up parent hierarchy
+		ImVec2 CalculateUIWorldPosition(uint32_t entity) {
+			auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
+
+			float worldX = rect.x;
+			float worldY = rect.y;
+
+			// Walk up parent chain
+			uint32_t currentParent = rect.parent;
+			while (currentParent != std::numeric_limits<uint32_t>::max()) {
+				if (!NE::ECS::Query::HasUIRectTransform(currentParent)) {
+					break;
+				}
+
+				auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
+				worldX += parentRect.x;
+				worldY += parentRect.y;
+
+				currentParent = parentRect.parent;
+			}
+
+			return ImVec2(worldX, worldY);
+		}
+
+		bool WrapCursorInCurrentMonitor(bool useWorkArea, int marginPx, bool& outWarped) {
+			outWarped = false;
+
+			POINT p;
+			if (!GetCursorPos(&p))
+				return false;
+
+			HMONITOR mon = MonitorFromPoint(p, MONITOR_DEFAULTTONEAREST);
+
+			MONITORINFO mi{};
+			mi.cbSize = sizeof(mi);
+			if (!GetMonitorInfo(mon, &mi))
+				return false;
+
+			RECT r = useWorkArea ? mi.rcWork : mi.rcMonitor;
+
+			const int left = r.left;
+			const int top = r.top;
+			const int right = r.right;
+			const int bottom = r.bottom;
+
+			bool changed = false;
+
+			if (p.x <= left + marginPx) { p.x = right - marginPx - 1; changed = true; } else if (p.x >= right - marginPx) { p.x = left + marginPx + 1;  changed = true; }
+
+			if (p.y <= top + marginPx) { p.y = bottom - marginPx - 1; changed = true; } else if (p.y >= bottom - marginPx) { p.y = top + marginPx + 1;    changed = true; }
+
+			if (changed) {
+				SetCursorPos(p.x, p.y);
+				outWarped = true;
+			}
+
+			return true;
+		}
+
+		ImVec2 GetCursorScreenPosImVec2() {
+			POINT p;
+			GetCursorPos(&p);
+			return ImVec2((float)p.x, (float)p.y);
+		}
+	}
+
 	static std::unique_ptr<Editor::SetTransformCommand> s_gizmoCmd;
 	static bool s_gizmoActive = false;
+
+	static bool rebuildScene = false;
 
 	struct GizmoMultiTarget {
 		uint32_t entity;
@@ -66,16 +138,16 @@ namespace Editor {
 	static NE::Math::Mat4 s_gizmoPivotStartWorld;
 
 	static bool s_usingUIGizmo = false;
-	static bool s_showSelectedCollider = false;
+
 	// TEMP TO BE MOVED TO SHARED MATH LIB
 	float Radians(float deg) {
 		return deg * 3.14159265358979323846f / 180.0f;
 	}
 
 	ScenePanel::ScenePanel() {
-		NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
-		NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
-		NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
+		//NE::Math::Vec3 position = { 0.0f, 0.0f, 10.0f };
+		//NE::Math::Vec3 target = { 0.0f, 0.0f, 0.0f };
+		//NE::Math::Vec3 up = { 0.0f, 1.0f, 0.0f };
 
 		m_fov = 60;
 		m_aspectRatio = 1920.f / 1080.f;
@@ -83,8 +155,8 @@ namespace Editor {
 		m_farPlane = 1000.0f;
 
 		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
-		EditorScene::m_editorCamera.SetPosition(position);
-		EditorScene::m_editorCamera.LookAt(target, up);
+		//EditorScene::m_editorCamera.SetPosition(position);
+		//EditorScene::m_editorCamera.LookAt(target, up);
 
 		// Give address of the editor camera to the scene camera tweener
 		sceneCameraTweener.SetSceneCamera(&EditorScene::m_editorCamera);
@@ -95,6 +167,10 @@ namespace Editor {
 	void ScenePanel::OnImGuiRender()
 	{
 		using namespace NE::Math;
+		if (rebuildScene) {
+			EditorScene::BuildRoot();
+			rebuildScene = false;
+		}
 
 		ImGui::Begin("Scene", nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
@@ -103,31 +179,16 @@ namespace Editor {
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
 
+		float newAspect = (panelSize.y > 0.0f) ? (panelSize.x / panelSize.y) : (16.0f / 9.0f);
+
+		if (fabsf(newAspect - m_aspectRatio) > 1e-4f) {
+			m_aspectRatio = newAspect;
+			EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
+		}
+
 		float deltaTime = ImGui::GetIO().DeltaTime;
 
 		if (ImGui::BeginMenuBar()) {
-			//if (ImGui::BeginMenu("Toggle Grid")) {
-			//	ImGui::Text("[Under Development]");
-
-			//	ImGui::EndMenu();
-			//}
-
-			//if (ImGui::BeginMenu("Camera Settings")) {
-			//	bool changed = false;
-			//	ImGui::Text("Scene Camera");
-			//	changed |= Editor::DrawFloatSliderWithValue("Field of View", m_fov, 4.f, 120.f, 0.01f);
-			//	ImGui::Text("Clipping Planes");
-			//	ImGui::SameLine();
-			//	changed |= Editor::DrawFloatControl("Near", m_nearPlane);
-			//	changed |= Editor::DrawFloatControl("Far", m_farPlane);
-
-			//	if (changed) {
-			//		EditorScene::m_editorCamera.SetPerspective(m_fov, m_aspectRatio, m_nearPlane, m_farPlane);
-			//	}
-
-			//	ImGui::EndMenu();
-			//}
-
 			ImGuiStyle& style = ImGui::GetStyle();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, style.ItemSpacing.y));
@@ -146,13 +207,8 @@ namespace Editor {
 			ImVec2 camMin = ImGui::GetItemRectMin();
 			ImVec2 camMax = ImGui::GetItemRectMax();
 
-			bool openView = ImGui::Button("Collider Draw");
-			ImVec2 viewMin = ImGui::GetItemRectMin();
-			ImVec2 viewMax = ImGui::GetItemRectMax();
-
 			if (openGrid)   ImGui::OpenPopup("ToggleGridPopup");
 			if (openCamera) ImGui::OpenPopup("CameraSettingsPopup");
-			if (openView) ImGui::OpenPopup("ViewPopup");
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
@@ -188,21 +244,16 @@ namespace Editor {
 				}
 
 				ImGui::Text("Navigation");
-				Editor::DrawCheckbox("Camera Easing", m_cameraUseEasing);
-				Editor::DrawCheckbox("Camera Acceleration", m_cameraUseAcceleration);
+				Editor::DrawCheckbox("Camera Easing", EditorScene::m_cameraUseEasing);
+				Editor::DrawCheckbox("Camera Acceleration", EditorScene::m_cameraUseAcceleration);
 				Editor::DrawFloatSliderWithField(
-					"Camera Speed", m_cameraSpeed, m_cameraMinSpeed, m_cameraMaxSpeed, 0.01f, true
+					"Camera Speed", EditorScene::m_cameraSpeed, EditorScene::m_cameraMinSpeed, EditorScene::m_cameraMaxSpeed, 0.01f, true
 				);
 				ImGui::Indent(50.f);
-				Editor::DrawFloatField("Min", m_cameraMinSpeed, 0.01f, true);
-				Editor::DrawFloatField("Max", m_cameraMaxSpeed, 0.01f, true);
+				Editor::DrawFloatField("Min", EditorScene::m_cameraMinSpeed, 0.01f, true);
+				Editor::DrawFloatField("Max", EditorScene::m_cameraMaxSpeed, 0.01f, true);
 				ImGui::Unindent(50.f);
 
-				ImGui::EndPopup();
-			}
-			ImGui::SetNextWindowPos(ImVec2(viewMin.x, viewMax.y), ImGuiCond_Appearing);
-			if (ImGui::BeginPopup("ViewPopup")) {
-				ImGui::Checkbox("Show Collider (Selected)", &s_showSelectedCollider);
 				ImGui::EndPopup();
 			}
 			ImGui::PopStyleVar(3);
@@ -225,25 +276,30 @@ namespace Editor {
 			ImVec2 p1 = m_dragEndScreen;
 
 			// Normalize corners
-			ImVec2 min(
+			ImVec2 dragMin(
 				std::min(p0.x, p1.x),
 				std::min(p0.y, p1.y)
 			);
-			ImVec2 max(
+			ImVec2 dragMax(
 				std::max(p0.x, p1.x),
 				std::max(p0.y, p1.y)
 			);
 
-			dl->AddRect(min, max,
+			dl->AddRect(dragMin, dragMax,
 				IM_COL32(0, 150, 255, 200)); // outline
-			dl->AddRectFilled(min, max,
+			dl->AddRectFilled(dragMin, dragMax,
 				IM_COL32(0, 150, 255, 40));  // translucent fill
 		}
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* prefabPayload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH")) {
-				//std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
-				//std::string uuid = AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string dropped((const char*)prefabPayload->Data, prefabPayload->DataSize - 1);
+				std::string uuid = Assets::AssetManager::GetInstance().GetRecordBySource(dropped)->id;
+
+				auto newRootEntt = NE::LoadPrefab(uuid);
+				EditorScene::s_rootOrder.push_back(newRootEntt);
+				EditorScene::s_selection.SetSingle(newRootEntt);
+
 				//Vec3 camForwardPos = EditorScene::m_editorCamera.GetPosition() + EditorScene::m_editorCamera.GetForward() * 6.0f;
 				//std::vector<uint32_t> newEntities = NE::DeserializePrefab(dropped, uuid, camForwardPos);
 
@@ -297,6 +353,12 @@ namespace Editor {
 
 				//// Clear asset selection since we just selected an entity
 				//Editor::EditorScene::selectedAsset.clear();
+			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
+				//std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				std::string metaPath = dropped + ".meta";
+				Deserialization::JSON::DeserializeModel(metaPath);
+				rebuildScene = true;
 			} else if (const ImGuiPayload* materialPayload = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
 				std::string dropped((const char*)materialPayload->Data, materialPayload->DataSize - 1);
 				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
@@ -319,81 +381,31 @@ namespace Editor {
 							NE::Renderer::Command::AssignMaterial(id, uuid);
 					}
 				}
-			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
+			} else if (const ImGuiPayload* modalPayload = ImGui::AcceptDragDropPayload("ASSET_SUBMESH")) {
 				std::string dropped((const char*)modalPayload->Data, modalPayload->DataSize - 1);
 				std::string uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 
-				if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-					ImVec2 mousePos = ImGui::GetMousePos();
-					if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
-						mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
-						float localX = mousePos.x - panelPos.x;
-						float localY = mousePos.y - panelPos.y;
-						float spMouseX = localX / panelSize.x;
-						float spMouseY = localY / panelSize.y;
+				//if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+				//	ImVec2 mousePos = ImGui::GetMousePos();
+				//	if (mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
+				//		mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y) {
+				//		float localX = mousePos.x - panelPos.x;
+				//		float localY = mousePos.y - panelPos.y;
+				//		float spMouseX = localX / panelSize.x;
+				//		float spMouseY = localY / panelSize.y;
 
-						uint32_t x = static_cast<int>(spMouseX * 1920.f);
-						uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
+				//		uint32_t x = static_cast<int>(spMouseX * 1920.f);
+				//		uint32_t y = static_cast<int>(1080 - 1 - (spMouseY * 1080));
 
-						uint32_t id = NE::GetPickedEntity(x, y);
+				//		uint32_t id = NE::GetPickedEntity(x, y);
 
-						if (id != NE::ECS::NO_ENTITY)
-							NE::Renderer::Command::AssignModel(id, uuid);
-					}
-				}
+				//		if (id != NE::ECS::NO_ENTITY)
+				//			NE::Renderer::Command::AssignModel(id, uuid);
+				//	}
+				//}
 			}
 			ImGui::EndDragDropTarget();
 		}
-		// --- Floating Play Controls ---
-		{
-			// Centered at the top of the viewport
-			ImVec2 overlaySize(200, 40);
-			ImVec2 overlayPos(panelPos.x + panelSize.x * 0.5f - overlaySize.x * 0.5f,
-				panelPos.y + 10.0f);
-
-			ImGui::SetNextWindowPos(overlayPos);
-			ImGui::SetNextWindowSize(overlaySize);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.5f)); // translucent
-
-			if (ImGui::Begin("PlayControls", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-				ImGuiWindowFlags_NoScrollWithMouse)) {
-				static bool playing = false;
-				static bool paused = false;
-
-				if (ImGui::Button("Play")) {
-					playing = true;
-					paused = false;
-					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
-					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
-					NE::StartRuntime();
-					EditorScene::BuildRoot();
-					g_EditorState = EditorState::Play;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Pause")) {
-					if (playing) paused = !paused;
-
-					g_EditorState = EditorState::Paused;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Stop")) {
-					playing = false;
-					paused = false;
-
-					NE::StopRuntime();
-					g_EditorState = EditorState::Edit;
-					EditorScene::BuildRoot();
-				}
-			}
-			ImGui::End();
-			ImGui::PopStyleColor();
-			ImGui::PopStyleVar(2);
-		}
-
 		
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -404,7 +416,7 @@ namespace Editor {
 				mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y;
 
-			if (insideScene) {
+			if (insideScene && !ImGui::IsAnyItemHovered()) {
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 					m_dragSelecting = true;
 					m_dragStartScreen = mousePos;
@@ -458,10 +470,12 @@ namespace Editor {
 		if (ImGui::IsWindowFocused()) {
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				if (!m_rightMouseHeld) {
-					m_lastMousePos = io.MousePos;
 					m_rightMouseHeld = true;
 					m_currentMoveSpeed = 0.0f;
 					m_lastMoveDir = Vec3(0.0f);
+
+					m_lastMousePos = GetCursorScreenPosImVec2();
+					m_wrapIgnoreNextDelta = true;
 				}
 
 				Vec3 move(0.0f);
@@ -476,22 +490,21 @@ namespace Editor {
 				bool boost = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
 
 				if (hasInput) {
-					if (m_cameraUseAcceleration) {
+					if (EditorScene::m_cameraUseAcceleration) {
 						if (m_currentMoveSpeed <= 0.0f) {
-							m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraMinSpeed;
+							m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraMinSpeed;
 						}
 
 						m_currentMoveSpeed += m_cameraAcceleration * deltaTime;
 
-						if (!boost && m_currentMoveSpeed > m_cameraMaxSpeed) {
-							m_currentMoveSpeed = m_cameraMaxSpeed;
+						if (!boost && m_currentMoveSpeed > EditorScene::m_cameraMaxSpeed) {
+							m_currentMoveSpeed = EditorScene::m_cameraMaxSpeed;
 						}
 					} else {
-						m_currentMoveSpeed = boost ? m_cameraMaxSpeed : m_cameraSpeed;
+						m_currentMoveSpeed = boost ? EditorScene::m_cameraMaxSpeed : EditorScene::m_cameraSpeed;
 					}
 				} else {
-					// No input but RMB still held
-					if (m_cameraUseEasing) {
+					if (EditorScene::m_cameraUseEasing) {
 						m_currentMoveSpeed -= m_cameraDeceleration * deltaTime;
 						if (m_currentMoveSpeed < 0.0f)
 							m_currentMoveSpeed = 0.0f;
@@ -520,14 +533,46 @@ namespace Editor {
 					);
 				}
 
-				ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
-				m_lastMousePos = io.MousePos;
 
-				m_cameraYaw += delta.x * m_mouseSensitivity;
-				m_cameraPitch -= delta.y * m_mouseSensitivity;
 
-				if (m_cameraPitch > 89.0f) m_cameraPitch = 89.0f;
-				if (m_cameraPitch < -89.0f) m_cameraPitch = -89.0f;
+				//ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
+				//m_lastMousePos = io.MousePos;
+
+				//if (m_wrapIgnoreNextDelta) {
+				//	delta = ImVec2(0, 0);
+				//	m_wrapIgnoreNextDelta = false;
+				//}
+
+				ImVec2 cur = GetCursorScreenPosImVec2();
+
+				// 2) Compute delta from OS cursor pos
+				ImVec2 delta = { cur.x - m_lastMousePos.x, cur.y - m_lastMousePos.y };
+
+				// 3) Warp (monitor wrap)
+				bool warped = false;
+				WrapCursorInCurrentMonitor(/*useWorkArea=*/true, /*marginPx=*/2, warped);
+
+				if (warped) {
+					// After warping, refresh OS cursor pos and reset tracking
+					ImVec2 afterWarp = GetCursorScreenPosImVec2();
+					m_lastMousePos = afterWarp;
+					m_wrapIgnoreNextDelta = true;
+					delta = ImVec2(0, 0);
+				} else {
+					// Normal path: advance last mouse
+					m_lastMousePos = cur;
+				}
+
+				if (m_wrapIgnoreNextDelta) {
+					delta = ImVec2(0, 0);
+					m_wrapIgnoreNextDelta = false;
+				}
+
+				EditorScene::m_cameraYaw += delta.x * m_mouseSensitivity;
+				EditorScene::m_cameraPitch -= delta.y * m_mouseSensitivity;
+				
+				if (EditorScene::m_cameraPitch > 89.0f) EditorScene::m_cameraPitch = 89.0f;
+				if (EditorScene::m_cameraPitch < -89.0f) EditorScene::m_cameraPitch = -89.0f;
 			} else {
 				m_rightMouseHeld = false;
 				m_currentMoveSpeed = 0.0f;
@@ -693,6 +738,25 @@ namespace Editor {
 
 							if (changed) {
 								Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(tgt.cmd));
+
+								if (s_gizmoMask & Editor::SetTransformCommand::Pos) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), posFieldId }
+									);
+								}
+								if (s_gizmoMask & Editor::SetTransformCommand::Rot) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), rotFieldId }
+									);
+								}
+								if (s_gizmoMask & Editor::SetTransformCommand::Scl) {
+									NANOEngine::Events::EventBus::Get().Dispatch(
+										NANOEngine::Events::EventDomain::Editor,
+										Events::AutoKeyRecordEvent{ NE::ECS::Query::GetTransformComponentType(), sclFieldId }
+									);
+								}
 							}
 						}
 
@@ -843,9 +907,9 @@ namespace Editor {
 
 		// Calculate camera's look direction regardless of input
 		Vec3 dir;
-		dir.x = cosf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
-		dir.y = sinf(Radians(m_cameraPitch));
-		dir.z = sinf(Radians(m_cameraYaw)) * cosf(Radians(m_cameraPitch));
+		dir.x = cosf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
+		dir.y = sinf(Radians(EditorScene::m_cameraPitch));
+		dir.z = sinf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
 		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
 		NE::UpdateEditorCameraData();

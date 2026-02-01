@@ -21,18 +21,36 @@
 #include "Panels/GamePanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
-#define STB_IMAGE_IMPLEMENTATION
+#include "Panels/AnimationPanel.hpp"
 #include <stb_image/stb_image.h>
 #include <Input/InputManager.hpp>
 #include "EditorScene.hpp"
 #include "AssetManagement/AssetManager.hpp"
+#include "Serialization/Serializer.hpp"
+#include <Events/EventBus.hpp>
 
 namespace Editor {
 	bool Application::isRunning = true;
 	Timer Application::timer;
 	EditorLayer editorLayer;
+	static bool s_showUnsavedChangesPopup = false;
 
 	void Application::Init() {
+
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::ShowCursorEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::ShowCursorEvent&) {
+				this->ShowCursor();
+			}
+		);
+
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::HideCursorEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::HideCursorEvent&) {
+				this->HideCursor();
+			}
+		);
+
 		timer.Start();
 
 		// Enable logging BEFORE engine initialization
@@ -42,11 +60,13 @@ namespace Editor {
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
 
-		GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+		window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+
+		editorLayer.Init();
 
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
-			glfwSetWindowIcon(window, 1, &icon);
+		glfwSetWindowIcon(window, 1, &icon);
 
 		GLuint texID;
 		glGenTextures(1, &texID);
@@ -68,22 +88,22 @@ namespace Editor {
 		glfwSetKeyCallback(window, [](GLFWwindow* w, int key, int sc, int action, int mods) {
 			ImGui_ImplGlfw_KeyCallback(w, key, sc, action, mods);
 			//if (!ImGui::GetIO().WantCaptureKeyboard)
-				NE::InputManager::OnKey(key, sc, action, mods);
+			NE::InputManager::OnKey(key, sc, action, mods);
 			});
 		glfwSetMouseButtonCallback(window, [](GLFWwindow* w, int button, int action, int mods) {
 			ImGui_ImplGlfw_MouseButtonCallback(w, button, action, mods);
 			//if (!ImGui::GetIO().WantCaptureMouse)
-				NE::InputManager::OnMouseButton(button, action, mods);
+			NE::InputManager::OnMouseButton(button, action, mods);
 			});
 		glfwSetCursorPosCallback(window, [](GLFWwindow* w, double x, double y) {
 			ImGui_ImplGlfw_CursorPosCallback(w, x, y);
 			//if (!ImGui::GetIO().WantCaptureMouse)
-				NE::InputManager::OnCursorPos(x, y);
+			NE::InputManager::OnCursorPos(x, y);
 			});
 		glfwSetScrollCallback(window, [](GLFWwindow* w, double xoff, double yoff) {
 			ImGui_ImplGlfw_ScrollCallback(w, xoff, yoff);
 			//if (!ImGui::GetIO().WantCaptureMouse)
-				NE::InputManager::OnScroll(xoff, yoff);
+			NE::InputManager::OnScroll(xoff, yoff);
 			});
 		glfwSetCharCallback(window, [](GLFWwindow* w, unsigned int c) {
 			ImGui_ImplGlfw_CharCallback(w, c);
@@ -91,18 +111,37 @@ namespace Editor {
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
 
+		glfwSetWindowCloseCallback(window, [](GLFWwindow* w) {
+			if (EditorScene::isDirty) {
+				glfwSetWindowShouldClose(w, GLFW_FALSE);
+				s_showUnsavedChangesPopup = true;
+			}
+			});
+
 		editorLayer.AddPanel<AssetBrowserPanel>("Assets/");
 		editorLayer.AddPanel<ScriptsPanel>("../../../ChronoGame/Scripts/");
-		EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
-		NE::LoadScene(EditorScene::s_currentSceneUUID);
+		Deserialization::JSON::DeserializeUserSettings();
+		if (EditorScene::s_currentScenePath.empty() || EditorScene::s_currentSceneUUID.empty()) {
+			EditorScene::s_currentScenePath = "Assets/NewScene.scene";
+			EditorScene::s_currentSceneUUID = Assets::AssetManager::GetInstance().GetRecordBySource(EditorScene::s_currentScenePath)->id;
+		}
+		if (!NE::LoadScene(EditorScene::s_currentSceneUUID)) {
+			SPD_ERROR("Failed to load scene binary, attempting fallback deserialization.");
+			NE::CreateSceneFallback(EditorScene::s_currentSceneUUID);
+			Deserialization::JSON::DeserializeScene(EditorScene::s_currentScenePath);
+			NE::StartSceneFallback();
+		}
+		EditorScene::isDirty = false;
 		std::shared_ptr<ScenePanel> sp = editorLayer.AddPanel<ScenePanel>();
 		editorLayer.AddPanel<GamePanel>();
 		editorLayer.AddPanel<HierarchyPanel>();
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
+		editorLayer.AddPanel<AnimationPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
+		Deserialization::JSON::DeserializeProjectSettings();
 	}
 
 	void Application::Run()
@@ -123,6 +162,38 @@ namespace Editor {
 
 			editorLayer.OnImGuiRender();
 
+			// Handle unsaved changes popup
+			if (s_showUnsavedChangesPopup) {
+				ImGui::OpenPopup("Unsaved Changes");
+				s_showUnsavedChangesPopup = false;
+			}
+
+			if (ImGui::BeginPopupModal("Unsaved Changes", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::Text("You have unsaved changes. Do you want to save first?");
+				ImGui::Separator();
+
+				if (ImGui::Button("Save and Close", ImVec2(120, 0))) {
+					// Save the scene
+					auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+					sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+					EditorScene::isDirty = false;
+					ImGui::CloseCurrentPopup();
+					glfwSetWindowShouldClose(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), GLFW_TRUE);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Close Without Saving", ImVec2(160, 0))) {
+					EditorScene::isDirty = false;
+					ImGui::CloseCurrentPopup();
+					glfwSetWindowShouldClose(static_cast<GLFWwindow*>(NE::GetNativeWindowHandle()), GLFW_TRUE);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -139,11 +210,20 @@ namespace Editor {
 		}
 	}
 
-	void Application::Exit()
-	{
+	void Application::Exit() {
 		ShutdownImGui();
+
+		Serialization::JSON::SerializeProjectSettings();
+		Serialization::JSON::SerializeUserSettings();
 
 		NE::Shutdown();
 	}
-}
 
+	void Application::ShowCursor() {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+
+	void Application::HideCursor() {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	}
+}

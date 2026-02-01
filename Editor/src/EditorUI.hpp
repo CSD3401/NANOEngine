@@ -41,6 +41,7 @@ namespace Editor {
     // String (with buffer size)
     bool DrawStringControl(const std::string& label, std::string& value, size_t bufferSize = 256);
 
+	[[deprecated("Use DrawAssetField with different signature")]]
     bool DrawAssetField(const char* label, const std::string& assetPath, const char* buttonLabel = "+", float width = 0, bool* openPopup = nullptr);
 
     bool DrawTextureField(
@@ -67,6 +68,20 @@ namespace Editor {
         const char* const* items,
         int itemsCount,
         float rightWidth = 180.0f);
+
+    using AssetDropFn = std::function<void(const ImGuiPayload* payload)>;
+    void DrawAssetField(
+        const char* label,
+        const std::string& assetPath,
+        bool rightAligned = false,
+        bool* openPopup = nullptr,
+        ImVec2 size = ImVec2(0, 0),
+        float plusWidth = 28.0f,
+        const char* dndPayloadType = nullptr,
+        AssetDropFn onDrop = nullptr
+    );
+
+    void DrawAssetField(const char* label, const std::string& assetPath, bool* openPopup = nullptr, bool rightAligned = true, ImVec2 size = { 380.f, 0.f }, float plusWidth = 38.f);
 
     // New Styling
     bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned);

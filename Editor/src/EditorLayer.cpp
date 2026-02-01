@@ -8,9 +8,6 @@
 #include <glfw/glfw3.h>
 #include "Command/CommandHistory.hpp"
 #include "Panels/InspectorPanel.hpp"
-//#include "Panels/AnimationPanel.hpp"
-//#include "Panels/AnimationRuntimePanel.hpp"
-//#include "Panels/AnimationGraphPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LightingPanel.hpp"
 #include <Core/SpdLogger.hpp>
@@ -18,8 +15,20 @@
 #include "AssetManagement/AssetManager.hpp"
 #include "AssetManagement/Assets/SceneAsset.hpp"
 #include "EditorState.hpp"
+#include "ThumbnailManager.hpp"
+#include <Events/EventBus.hpp>
+#include "EditorEvents.hpp"
 
 namespace Editor {
+	void EditorLayer::Init() {
+		playIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
+			LoadRawIcon("Library/Icons/icon_play.png")));
+		pauseIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
+			LoadRawIcon("Library/Icons/icon_pause.png")));
+		stopIcon = reinterpret_cast<ImTextureID>(reinterpret_cast<void*>((uintptr_t)Assets::ThumbnailManager::GetInstance().
+			LoadRawIcon("Library/Icons/icon_stop.png")));
+	}
+
 	void EditorLayer::OnImGuiRender() {
 		static bool dockspaceOpen = true;
 		static bool opt_fullscreen_persistent = true;
@@ -52,6 +61,7 @@ namespace Editor {
 			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
 				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
 				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+				EditorScene::isDirty = false;
 			} else if (ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
 				CommandHistory::GetInstance().Undo();
 			} else if (ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
@@ -62,7 +72,7 @@ namespace Editor {
 				!ImGui::IsAnyItemFocused()) {
 				bool canEditHierarchy = EditorScene::selectedPrefab.empty();
 				if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_D, false)) {
-					//EditorScene::DuplicateSelected();
+					EditorScene::DuplicateSelected();
 				} else if (ImGui::IsKeyPressed(ImGuiKey_C, false)) {
 					EditorScene::CopySelected();
 				} else if (canEditHierarchy && ImGui::IsKeyPressed(ImGuiKey_V, false)) {
@@ -71,42 +81,16 @@ namespace Editor {
 			}
 		}
 
+		if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+			NANOEngine::Events::EventBus::Get().Dispatch(
+				NANOEngine::Events::EventDomain::Editor,
+				Events::ShowCursorEvent{}
+			);
+		}
+
 		for (auto& panel : m_panels) {
 			panel->OnImGuiRender();
 		}
-
-		//// === STATUS BAR (Integrated at bottom of main window) ===
-		//ImGui::Separator();
-
-		//ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-
-		//if (ImGui::BeginChild("##StatusBar", ImVec2(0, 25.0f), false, ImGuiWindowFlags_NoScrollbar)) {
-		//	ImGui::SetCursorPosY(4.0f); // Center text vertically
-
-		//	// Scene path on the left
-		//	ImGui::Text("  %s", EditorScene::s_currentScenePath.c_str());
-
-		//	// Dirty indicator on the right
-		//	ImGui::SameLine();
-		//	float rightOffset = ImGui::GetWindowWidth() - 120.0f;
-		//	if (rightOffset > ImGui::GetCursorPosX()) {
-		//		ImGui::SetCursorPosX(rightOffset);
-		//	}
-
-		//	//bool isSceneDirty = NE::IsSceneDirty();
-		//	//if (isSceneDirty) {
-		//	//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.6f, 0.0f, 1.0f)); // Orange
-		//	//	ImGui::Text("* UNSAVED");
-		//	//	ImGui::PopStyleColor();
-		//	//} else {
-		//	//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.8f, 0.3f, 1.0f)); // Green
-		//	//	ImGui::Text("Saved");
-		//	//	ImGui::PopStyleColor();
-		//	//}
-		//}
-		//ImGui::EndChild();
-
-		//ImGui::PopStyleColor();
 
 		ImGui::End();
 	}
@@ -177,18 +161,18 @@ namespace Editor {
 			if (ImGui::MenuItem("Open Scene")) {}
 			ImGui::Separator();
 
-			// FIXED: Single Save menu item with proper dirty check
-			//bool isSceneDirty = NE::IsSceneDirty();
-			//if (isSceneDirty) {
-			//	if (ImGui::MenuItem("Save", "Ctrl+S")) {
-			//		SPD_INFO("[DirtyFlag] Save menu clicked - Saving scene");
-			//		Serialization::JSON::SerializeScene(EditorScene::s_currentScenePath);
-			//	}
-			//} else {
-			//	ImGui::BeginDisabled();
-			//	ImGui::MenuItem("Save", "Ctrl+S");
-			//	ImGui::EndDisabled();
-			//}
+			// Save menu item - only enabled when scene is dirty
+			if (!EditorScene::isDirty) {
+				ImGui::BeginDisabled();
+			}
+			if (ImGui::MenuItem("Save", "Ctrl+S")) {
+				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
+				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+				EditorScene::isDirty = false;
+			}
+			if (!EditorScene::isDirty) {
+				ImGui::EndDisabled();
+			}
 
 			//if (ImGui::MenuItem("Save As...")) {
 			//	NE::SaveCurrentScene(EditorScene::currentScenePath);
@@ -283,6 +267,66 @@ namespace Editor {
 			ImGui::EndPopup();
 		}
 
+		{
+			const float buttonSize = 14.f;
+			const float innerGap = ImGui::GetStyle().ItemInnerSpacing.x;
+
+			const float groupW = buttonSize * 3.0f + innerGap * 2.0f;
+
+			float x = (menuBarSize.x * 0.5f) - (groupW * 0.5f);
+
+			ImGui::SetCursorPos(ImVec2(x, 0));
+
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 1, 1, 0.10f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1, 1, 1, 0.20f));
+
+			static bool playing = false;
+			static bool paused = false;
+
+			if (ImGui::ImageButton("##Play", playIcon, ImVec2(buttonSize, buttonSize))) {
+				playing = true;
+				paused = false;
+
+				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(
+					Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get()
+					);
+				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
+				EditorScene::isDirty = false;
+
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::HideCursorEvent{}
+				);
+
+				NE::StartRuntime();
+				EditorScene::BuildRoot();
+				g_EditorState = EditorState::Play;
+				ImGui::SetWindowFocus("Game");
+			}
+
+			ImGui::SameLine(0.0f, innerGap);
+
+			if (ImGui::ImageButton("##Pause", pauseIcon, ImVec2(buttonSize, buttonSize))) {
+				if (playing) paused = !paused;
+				g_EditorState = paused ? EditorState::Paused : EditorState::Play;
+			}
+
+			ImGui::SameLine(0.0f, innerGap);
+
+			if (ImGui::ImageButton("##Stop", stopIcon, ImVec2(buttonSize, buttonSize))) {
+				playing = false;
+				paused = false;
+
+				NE::StopRuntime();
+				g_EditorState = EditorState::Edit;
+				EditorScene::BuildRoot();
+				ImGui::SetWindowFocus("Scene");
+			}
+
+			ImGui::PopStyleColor(3);
+		}
+
 		// --- History button (top-right), before window controls ---
 		float buttonSize = 20.0f;
 		float spacing = 0.0f;
@@ -299,7 +343,13 @@ namespace Editor {
 
 		const float maxSceneNameWidth = 240.0f;
 
-		ImVec2 sceneTextSize = ImGui::CalcTextSize(sceneName, nullptr, false);
+		// Add asterisk if scene is dirty
+		std::string displayName = sceneName;
+		if (EditorScene::isDirty) {
+			displayName += " *";
+		}
+
+		ImVec2 sceneTextSize = ImGui::CalcTextSize(displayName.c_str(), nullptr, false);
 		float sceneW = (sceneTextSize.x > maxSceneNameWidth) ? maxSceneNameWidth : sceneTextSize.x;
 
 		ImVec2 scenePos = ImVec2(historyPos.x - gap - sceneW,
@@ -311,7 +361,13 @@ namespace Editor {
 		ImVec2 sceneDrawEnd = ImVec2(sceneDrawStart.x + sceneW, sceneDrawStart.y + ImGui::GetTextLineHeight());
 
 		ImGui::PushClipRect(sceneDrawStart, sceneDrawEnd, true);
-		ImGui::TextUnformatted(sceneName);
+		if (EditorScene::isDirty) {
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f)); // Yellow/orange for dirty
+			ImGui::TextUnformatted(displayName.c_str());
+			ImGui::PopStyleColor();
+		} else {
+			ImGui::TextUnformatted(displayName.c_str());
+		}
 		ImGui::PopClipRect();
 
 		ImGui::SetCursorPos(historyPos);

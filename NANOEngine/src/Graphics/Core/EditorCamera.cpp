@@ -13,12 +13,14 @@ namespace NE::Graphics {
     }
 
     void EditorCamera::SetPerspective(float fov, float aspectRatio, float nearPlane, float farPlane,
-        bool, bool) 
+        bool, bool)
     {
         m_nearPlane = nearPlane;
         m_farPlane = farPlane;
 
-        float f = 1.0f / std::tan((fov * (NE::Math::PI / 180.0f)) * 0.5f);
+        // Convert FOV from degrees to radians
+        float fovRadians = fov * NE::Math::DEG_TO_RAD;
+        float f = 1.0f / std::tan(fovRadians * 0.5f);
 
         m_projectionMatrix.SetToZero();
 

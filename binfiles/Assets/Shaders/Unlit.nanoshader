@@ -26,13 +26,6 @@ void main() {
 #version 460 core
 #extension GL_ARB_bindless_texture : require
 
-uniform sampler2D u_BaseMap;
-uniform int u_HasBaseMap;
-uniform vec3 u_BaseColor = vec3(1.0);
-
-uniform vec3 u_Tiling = vec3(1.0, 1.0, 0.0);
-uniform vec3 u_Offset = vec3(0.0, 0.0, 0.0);
-
 in vec2 v_TexCoord;
 in vec3 v_ID;
 in vec3 v_FragPos;
@@ -40,13 +33,29 @@ in vec3 v_FragPos;
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out vec4 OutID;
 
-uniform vec3   u_CameraPos;
-uniform int    i_FogEnabled;   // 0/1
-uniform vec3   i_FogColor;     // linear color!
-uniform int    i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
-uniform float  i_FogDensity;   // Exp/Exp2
-uniform float  i_FogStart;     // Linear
-uniform float  i_FogEnd;       // Linear
+// Base (albedo)
+uniform vec3 	  u_BaseColor;
+uniform sampler2D u_AlbedoMap;
+uniform int 	  u_HasAlbedoMap;
+
+// Opacity
+uniform float     u_Opacity;       // scalar multiplier (default 1.0)
+uniform sampler2D u_OpacityMap;
+uniform int       u_HasOpacityMap;
+uniform int   	  u_AlphaClip;     // 0 = off (opaque/blend), 1 = clip/discard
+uniform float     u_AlphaCutoff;
+
+// UV Transform
+uniform vec3 	  u_Tiling = vec3(1.0, 1.0, 0.0);
+uniform vec3 	  u_Offset = vec3(0.0, 0.0, 0.0);
+
+uniform vec3   	  u_CameraPos;
+uniform int    	  i_FogEnabled;   // 0/1
+uniform vec3   	  i_FogColor;     // linear color!
+uniform int    	  i_FogMode;      // 0=Linear, 1=Exp, 2=Exp2
+uniform float  	  i_FogDensity;   // Exp/Exp2
+uniform float  	  i_FogStart;     // Linear
+uniform float  	  i_FogEnd;       // Linear
 
 float FogFactor(float d){
     if (i_FogMode==0){ // Linear
@@ -61,21 +70,36 @@ float FogFactor(float d){
 }
 
 void main() {
-	vec3 base = u_BaseColor;
+	// UV transform
 	vec2 uv = v_TexCoord * u_Tiling.xy + u_Offset.xy;
-
-	if (u_HasBaseMap != 0) {
-		base *= texture(u_BaseMap, uv).rgb;
-	}
 	
-	vec3 color = base;
+	// Albedo
+    vec3 albedo = u_BaseColor;
+    if (u_HasAlbedoMap != 0) {
+        albedo *= texture(u_AlbedoMap, uv).rgb;
+    }
+
+    // Opacity
+    float opacity = clamp(u_Opacity, 0.0, 1.0);
+    if (u_HasOpacityMap != 0) {
+        opacity *= clamp(texture(u_OpacityMap, uv).r, 0.0, 1.0);
+    }
+
+    // Alpha clip
+    if (u_AlphaClip != 0) {
+        if (opacity < u_AlphaCutoff)
+            discard;
+    }
+	
+	// Fog
+    vec3 color = albedo;
     if (i_FogEnabled == 1) {
         float d  = distance(u_CameraPos, v_FragPos);
         float ff = FogFactor(d);
         color    = mix(i_FogColor, color, ff);
     }
 
-	
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(color, opacity);
+    OutID     = vec4(v_ID, 1.0);
 	OutID = vec4(v_ID, 1.0);
 }

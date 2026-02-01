@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../Core/System.hpp"
 #include "../Core/ComponentManager.hpp"
 #include "../Components/AudioSource.hpp"

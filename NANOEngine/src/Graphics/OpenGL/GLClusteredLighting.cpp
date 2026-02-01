@@ -16,6 +16,18 @@ namespace {
 
 namespace NE::Graphics::OpenGL {
 
+    static uint32_t NextPow2(uint32_t v) {
+        if (v == 0) return 1;
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+
     GLClusteredLighting::GLClusteredLighting(int cX, int cY, int cZ, int maxLights, int avgClustersPerLight)
 		: clustersX(cX), clustersY(cY), clustersZ(cZ),
           maxLights(maxLights), maxClusterLightIndices(maxLights * avgClustersPerLight)
@@ -124,8 +136,10 @@ namespace NE::Graphics::OpenGL {
         const int numClusters = clustersX * clustersY * clustersZ;
 		// Early out if no lights
 		// Note: we still call UploadLights so the fragment shaders know the light count
-        if (m_numLightsThisView <= 0 || numClusters <= 0)
+        if (m_numLightsThisView <= 0 || numClusters <= 0) {
             return;
+        }
+            
 
         // ---------- PASS 1: COUNT ----------
         // Bind SSBOs
@@ -153,24 +167,40 @@ namespace NE::Graphics::OpenGL {
             sizeof(ClusterGPU) * numClusters,
             clusters.data());
 
+        // Compute required total indices (sum of counts)
+        uint32_t required = 0;
+        uint32_t largestCount = 0;
+        for (int i = 0; i < numClusters; ++i) {
+            largestCount = std::max(largestCount, clusters[i].count);
+            required += clusters[i].count;
+        }
+
+		// If we exceeded the allocated size for cluster light indices, reallocate and re-run
+        if (EnsureBufferCapacity(required)) {
+
+            // Re-run PASS 1: COUNT (because we just reallocated SSBO binding=2)
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_lightSSBO);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_clusterSSBO);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_clusterLightIndicesSSBO);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_clusterParamsUBO);
+
+            m_countShader->Bind();
+            glDispatchCompute(groupsX, 1, 1);
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+            // Read counts again
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_clusterSSBO);
+            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,
+                0,
+                sizeof(ClusterGPU) * numClusters,
+                clusters.data());
+        }
+
+        // Prefix sum offsets
         uint32_t runningOffset = 0;
         for (int i = 0; i < numClusters; ++i) {
             clusters[i].offset = runningOffset;
-
-            // Clamp so we don't exceed global index pool
-            uint32_t count = clusters[i].count;
-            if (runningOffset + count > static_cast<uint32_t>(maxClusterLightIndices)) {
-                uint32_t remaining = (runningOffset < static_cast<uint32_t>(maxClusterLightIndices))
-                    ? (static_cast<uint32_t>(maxClusterLightIndices) - runningOffset)
-                    : 0u;
-                clusters[i].count = remaining;
-                runningOffset += remaining;
-                // Optional: warn once
-                // SPD_WARNING("ClusteredLighting: global index buffer capacity exceeded; clamping cluster " << i);
-            }
-            else {
-                runningOffset += count;
-            }
+            runningOffset += clusters[i].count;
         }
 
         // Upload offsets (and possibly clamped counts) back to GPU
@@ -209,36 +239,89 @@ namespace NE::Graphics::OpenGL {
 
         // ---- Lights SSBO ----
         std::vector<GPULightCPU> gpuLights;
-        gpuLights.resize(m_numLightsThisView);
+        gpuLights.reserve(m_numLightsThisView);
 
-        for (int i = 0; i < m_numLightsThisView; ++i) {
-            const auto* src = lights[i];
-            auto& dst = gpuLights[i];
+        auto pushLight = [&](const ECS::Component::Light* src,
+            float intensity,
+            float radius,
+            float innerCos,
+            float outerCos)
+            {
+                GPULightCPU dst{};
 
-            // position.xyz + type
-            dst.position[0] = src->position.x;
-            dst.position[1] = src->position.y;
-            dst.position[2] = src->position.z;
-            dst.position[3] = static_cast<float>(src->type);
+                dst.position[0] = src->position.x;
+                dst.position[1] = src->position.y;
+                dst.position[2] = src->position.z;
+                dst.position[3] = (float)src->type;
 
-            // color.rgb + intensity
-            dst.color[0] = src->color.x;
-            dst.color[1] = src->color.y;
-            dst.color[2] = src->color.z;
-            dst.color[3] = src->intensity;
+                dst.color[0] = src->color.x;
+                dst.color[1] = src->color.y;
+                dst.color[2] = src->color.z;
+                dst.color[3] = intensity;
 
-            // params:  inner / outer / radius / padding
-            dst.params[0] = std::cos(Radians(src->innerCutoff));
-            dst.params[1] = std::cos(Radians(src->outerCutoff));
-            dst.params[2] = src->radius;
-            dst.params[3] = static_cast<float>(src->shadowIndex);
+                dst.params[0] = innerCos;
+                dst.params[1] = outerCos;
+                dst.params[2] = radius; // range/radius
+                dst.params[3] = (float)src->shadowIndex;
 
-            // direction.xyz + padding
-            dst.direction[0] = src->direction.x;
-            dst.direction[1] = src->direction.y;
-            dst.direction[2] = src->direction.z;
-            dst.direction[3] = static_cast<float>(src->shadowType);
+                auto dir = src->direction.Normalized();
+                dst.direction[0] = dir.x;
+                dst.direction[1] = dir.y;
+                dst.direction[2] = dir.z;
+                dst.direction[3] = (float)src->shadowType;
+
+                gpuLights.push_back(dst);
+        };
+
+		for (int i = 0; i < m_numLightsThisView; ++i) {
+			const auto* src = lights[i];
+            // Extract per-type values from variant
+            bool keep = true;
+
+            float intensity = 0.0f;
+            float radius = 0.0f;
+            float innerCos = 0.0f;
+            float outerCos = 0.0f;
+
+            std::visit([&](const auto& d) {
+                using T = std::decay_t<decltype(d)>;
+
+                // intensity exists on all your payload structs
+                intensity = d.intensity;
+
+                if constexpr (std::is_same_v<T, ECS::Component::Light::SpotLightData>) {
+                    // Degrees -> radians -> cos
+                    innerCos = std::cos(Radians(d.innerConeAngleDeg));
+                    outerCos = std::cos(Radians(d.outerConeAngleDeg));
+                    radius = d.range;
+                } else if constexpr (std::is_same_v<T, ECS::Component::Light::PointLightData>) {
+                    radius = d.range;
+                } else if constexpr (std::is_same_v<T, ECS::Component::Light::AreaLightData>) {
+                    radius = d.range;
+                    // width/height not used in your current packed struct; see note below
+                } else if constexpr (std::is_same_v<T, ECS::Component::Light::DirectionalLightData>) {
+                    // no range; keep params[2] = 0
+                    radius = 0.0f;
+                }
+            }, src->data);
+
+            // --- discard rules ---
+            if (intensity <= 0.0f) keep = false;
+
+            // only apply radius rule to non-directional
+            if (keep && src->type != ECS::Component::Light::Type::Directional) {
+                if (radius <= 0.0f) keep = false;
+            }
+
+            if (!keep) continue;
+
+            pushLight(src, intensity, radius, innerCos, outerCos);
+
+            if (static_cast<int>(gpuLights.size()) >= maxLights)
+                break;
         }
+
+        m_numLightsThisView = static_cast<int>(gpuLights.size());
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_lightSSBO);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER,
@@ -268,18 +351,27 @@ namespace NE::Graphics::OpenGL {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-	// Note: this function is not currently used, as the dispatch is done directly in BuildForView.
-	void GLClusteredLighting::DispatchCompute() 
-	{
-        if (m_numLightsThisView <= 0) return;
+    bool GLClusteredLighting::EnsureBufferCapacity(uint32_t required) 
+    {
+        if (required <= (uint32_t)maxClusterLightIndices)
+            return false;
 
-        const int numClusters = clustersX * clustersY * clustersZ;
-        if (numClusters <= 0) return;
+        // grow with headroom to reduce frequent reallocs
+        uint32_t newCap = NextPow2((uint32_t)std::ceil(required * 1.25f));
 
-        // Assume compute shader is written with layout(local_size_x = 64)
-        constexpr GLuint localSizeX = 64;
-        GLuint groupsX = (static_cast<GLuint>(numClusters) + (localSizeX - 1)) / localSizeX;
+        SPD_WARNING("ClusteredLighting: growing index pool from "
+            << maxClusterLightIndices << " -> " << newCap
+            << " (required=" << required << ")");
 
-        glDispatchCompute(groupsX, 1, 1);
+        maxClusterLightIndices = (int)newCap;
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_clusterLightIndicesSSBO);
+        glBufferData(GL_SHADER_STORAGE_BUFFER,
+            sizeof(uint32_t) * (size_t)maxClusterLightIndices,
+            nullptr,
+            GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        return true;
 	}
 }

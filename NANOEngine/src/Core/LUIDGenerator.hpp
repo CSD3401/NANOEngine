@@ -5,9 +5,11 @@
 #include <chrono>
 #include <atomic>
 
+#include "NANOEngineAPI.hpp"
+
 namespace NE::Core {
 
-	class LUIDGenerator {
+	class NANOENGINE_API LUIDGenerator {
 	public:
 		static uint64_t Generate(std::string_view);
 

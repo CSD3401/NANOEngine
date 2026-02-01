@@ -1,6 +1,7 @@
 #pragma once
 #include "IPanel.hpp"
 
+#include <string>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -15,6 +16,8 @@ namespace Editor {
 		void OnImGuiRender() override;
 
 	private:
+		void SceneChanged();
+
 		void DrawEntityNode(NE::ECS::Entity e, std::vector<NE::ECS::Entity>& preorder, NE::ECS::Entity parent, int indexInParent);
 		void HandleDragSource(NE::ECS::Entity e,
 			const std::vector<NE::ECS::Entity>& preorder);
@@ -46,5 +49,9 @@ namespace Editor {
 		bool            m_clickHadCtrl = false;
 		bool            m_clickHadShift = false;
 		bool            m_clickThisFrame = false;
+
+		bool m_filtering = false;
+		std::unordered_set<uint32_t> m_visible;
+		std::string m_searchLower;
 	};
 }

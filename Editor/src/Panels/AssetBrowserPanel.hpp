@@ -2,9 +2,8 @@
 
 #include "IPanel.hpp"
 #include <filesystem>
-#include <vector>
+#include <unordered_map>
 #include <string>
-#include "../ThumbnailManager.hpp"
 
 namespace Editor {
 	class AssetBrowserPanel : public IPanel {
@@ -27,6 +26,8 @@ namespace Editor {
 		void DeleteAssetWithMeta(const std::filesystem::path& assetPath);
 		void MoveAssetWithMeta(const std::filesystem::path& source, const std::filesystem::path& destination);
 
+		void GotoAssetFolder(const std::string& assetPath);
+
 		std::filesystem::path m_rootDirectory;
 		std::filesystem::path m_currentDirectory;
 
@@ -46,6 +47,8 @@ namespace Editor {
 		std::filesystem::path m_draggedAssetPath;
 		bool m_isDraggingAsset = false;
 
-		ThumbnailManager m_thumbnailManager;
+		std::filesystem::path m_openMeshPath;
+		bool m_openSubmeshPopup = false;
+		//std::unordered_map<std::string, bool> m_meshExpanded; // for per directory
 	};
 }

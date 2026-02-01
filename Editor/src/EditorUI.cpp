@@ -4,7 +4,9 @@
 #include <Math/Vec3.hpp>
 #include "AssetManagement/AssetManager.hpp"
 #include <imgui/widgets/imsearch/imsearch.h>
-
+#include <Events/EventBus.hpp>
+#include "EditorEvents.hpp"
+#include "ThumbnailManager.hpp"
 
 namespace Editor {
 
@@ -350,6 +352,266 @@ namespace Editor {
         return changed;
     }
 
+    void DrawAssetField(
+        const char* label,
+        const std::string& assetPath,
+        bool rightAligned,
+        bool* openPopup,
+        ImVec2 size,
+        float plusWidth,
+        const char* dndPayloadType,
+        AssetDropFn onDrop
+    ) {
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (window->SkipItems) return;
+
+        ImGuiContext& g = *ImGui::GetCurrentContext();
+        const ImGuiStyle& style = g.Style;
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        const float fieldStartX = ImGui::GetCursorPosX();
+        const float avail = ImGui::GetContentRegionAvail().x;
+
+        const float frame_h = ImGui::GetFrameHeight();
+        if (size.y <= 0.0f) size.y = frame_h;
+
+        const float kMinDrawWidth = style.FramePadding.x * 2.0f + 6.0f;
+        if (avail <= kMinDrawWidth || size.y <= 0.0f)
+            return;
+
+        // Default: fill remaining width
+        if (size.x <= 0.0f) size.x = avail;
+        size.x = ImClamp(size.x, kMinDrawWidth, avail);
+
+        if (rightAligned) {
+            float startX = fieldStartX + (avail - size.x);
+            ImGui::SetCursorPosX(startX);
+        }
+
+        const ImVec2 pos = window->DC.CursorPos;
+        const ImRect bb(pos, pos + size);
+
+        ImGui::ItemSize(bb, style.FramePadding.y);
+
+        ImGuiID id = window->GetID((std::string("##") + label).c_str());
+        if (!ImGui::ItemAdd(bb, id)) return;
+
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const float radius = size.y * 0.5f;
+
+        const ImU32 pillCol = IM_COL32(45, 45, 45, 255);
+        const ImU32 plusCol = IM_COL32(65, 65, 65, 255);
+        const ImU32 plusHover = IM_COL32(90, 90, 90, 255);
+        const ImU32 plusLine = IM_COL32(255, 255, 255, 255);
+
+        dl->AddRectFilled(bb.Min, bb.Max, pillCol, radius);
+
+        const float kMinLeftWidth = 12.0f;
+        const float kMinPlusWidth = ImMax(size.y, 18.0f);
+
+        const float maxPlus = ImMax(0.0f, size.x - kMinLeftWidth);
+        plusWidth = ImClamp(plusWidth, kMinPlusWidth, maxPlus);
+
+        if (plusWidth <= 0.0f || maxPlus <= 0.0f) {
+            ImRect pbb(bb.Min, bb.Max);
+            if (pbb.GetWidth() <= 0.0f || pbb.GetHeight() <= 0.0f) return;
+
+            ImVec2 cursor_backup = ImGui::GetCursorScreenPos();
+            ImGui::SetCursorScreenPos(pbb.Min);
+            ImGui::PushID(label);
+
+            bool pressed = ImGui::InvisibleButton("##plus_min", pbb.GetSize());
+            bool hovered = ImGui::IsItemHovered();
+
+            ImGui::PopID();
+            ImGui::SetCursorScreenPos(cursor_backup);
+
+            dl->AddRectFilled(pbb.Min, pbb.Max, hovered ? plusHover : plusCol, radius);
+
+            ImVec2 center = pbb.GetCenter();
+            float s = pbb.GetHeight() * 0.25f;
+            dl->AddLine(center + ImVec2(-s, 0), center + ImVec2(s, 0), plusLine, 2.0f);
+            dl->AddLine(center + ImVec2(0, -s), center + ImVec2(0, s), plusLine, 2.0f);
+
+            if (pressed && openPopup) *openPopup = true;
+            return;
+        }
+
+        ImRect plusBB(ImVec2(bb.Max.x - plusWidth, bb.Min.y), bb.Max);
+        ImRect leftBB = bb; leftBB.Max.x = plusBB.Min.x;
+
+        const bool canLeft = leftBB.GetWidth() > 0.0f && leftBB.GetHeight() > 0.0f;
+        const bool canPlus = plusBB.GetWidth() > 0.0f && plusBB.GetHeight() > 0.0f;
+
+        ImVec2 cursor_backup = ImGui::GetCursorScreenPos();
+
+        bool left_double_clicked = false;
+        if (canLeft) {
+            ImGui::SetCursorScreenPos(leftBB.Min);
+            ImGui::PushID(label);
+
+            ImGui::InvisibleButton("##left", leftBB.GetSize(), ImGuiButtonFlags_AllowOverlap);
+            const bool left_hovered = ImGui::IsItemHovered();
+            left_double_clicked = left_hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+
+            if (dndPayloadType && ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload(dndPayloadType)) {
+                    if (onDrop) onDrop(p);
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            ImGui::PopID();
+            ImGui::SetCursorScreenPos(cursor_backup);
+        }
+
+        bool pressed = false;
+        bool hovered = false;
+        if (canPlus) {
+            ImGui::SetCursorScreenPos(plusBB.Min);
+            ImGui::PushID(label);
+
+            pressed = ImGui::InvisibleButton("##plus", plusBB.GetSize(), ImGuiButtonFlags_AllowOverlap);
+            hovered = ImGui::IsItemHovered();
+
+            ImGui::PopID();
+            ImGui::SetCursorScreenPos(cursor_backup);
+        }
+
+        dl->AddRectFilled(plusBB.Min, plusBB.Max, hovered ? plusHover : plusCol,
+            radius, ImDrawFlags_RoundCornersRight);
+
+        if (canLeft) {
+            ImRect textBB = leftBB;
+            textBB.Min.x += style.FramePadding.x;
+            textBB.Max.x -= style.FramePadding.x;
+
+            ImGui::RenderTextClipped(
+                textBB.Min, textBB.Max,
+                assetPath.c_str(), nullptr,
+                nullptr, ImVec2(0.0f, 0.5f),
+                &textBB
+            );
+        }
+
+        ImVec2 center = plusBB.GetCenter();
+        float s = size.y * 0.25f;
+        dl->AddLine(center + ImVec2(-s, 0), center + ImVec2(s, 0), plusLine, 2.0f);
+        dl->AddLine(center + ImVec2(0, -s), center + ImVec2(0, s), plusLine, 2.0f);
+
+        if (pressed && openPopup) {
+            *openPopup = true;
+        } else if (!assetPath.empty() && left_double_clicked) {
+            NANOEngine::Events::EventBus::Get().Dispatch(
+                NANOEngine::Events::EventDomain::Editor,
+                Events::GotoAssetPathEvent{ assetPath }
+            );
+        }
+    }
+
+    void DrawAssetField(const char* label, const std::string& assetPath, bool* openPopup, bool rightAligned, ImVec2 size, float plusWidth) {
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (window->SkipItems) return;
+
+        ImGuiContext& g = *ImGui::GetCurrentContext();
+        const ImGuiStyle& style = g.Style;
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(label);
+        ImGui::SameLine();
+
+        if (rightAligned) {
+            float fullWidth = ImGui::GetContentRegionAvail().x;
+            float startX = ImGui::GetCursorPosX() + (fullWidth - size.x);
+            ImGui::SetCursorPosX(startX);
+        }
+
+        const float frame_h = ImGui::GetFrameHeight();
+        if (size.y <= 0.0f) size.y = frame_h;
+
+        if (size.x <= 0.0f) size.x = ImGui::CalcItemWidth();
+
+        const ImVec2 pos = window->DC.CursorPos;
+        const ImRect bb(pos, pos + size);
+
+        ImGui::ItemSize(bb, style.FramePadding.y);
+
+        ImGuiID id = window->GetID((std::string("##") + label).c_str());
+        if (!ImGui::ItemAdd(bb, id)) return;
+
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const float radius = size.y * 0.5f;
+
+        // Colors (swap to your theme system later)
+        const ImU32 pillCol = IM_COL32(45, 45, 45, 255);
+        const ImU32 plusCol = IM_COL32(65, 65, 65, 255);
+        const ImU32 plusHover = IM_COL32(90, 90, 90, 255);
+        //const ImU32 textCol = ImGui::GetColorU32(ImGuiCol_Text);
+
+        dl->AddRectFilled(bb.Min, bb.Max, pillCol, radius);
+
+        plusWidth = ImMin(plusWidth, size.x);
+        ImRect plusBB(ImVec2(bb.Max.x - plusWidth, bb.Min.y), bb.Max);
+        ImRect leftBB = bb;
+        leftBB.Max.x = plusBB.Min.x;
+
+        ImVec2 cursor_backup = ImGui::GetCursorScreenPos();
+
+        ImGui::SetCursorScreenPos(leftBB.Min);
+        ImGui::PushID(label);
+        ImGui::InvisibleButton("##left", leftBB.GetSize());
+        bool left_hovered = ImGui::IsItemHovered();
+        ImGui::PopID();
+        ImGui::SetCursorScreenPos(cursor_backup);
+
+        bool left_double_clicked = left_hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+
+        ImGui::SetCursorScreenPos(plusBB.Min);
+        ImGui::PushID(label);
+        bool pressed = ImGui::InvisibleButton("##plus", plusBB.GetSize());
+        bool hovered = ImGui::IsItemHovered();
+        //bool held = ImGui::IsItemActive();
+        ImGui::PopID();
+
+        ImGui::SetCursorScreenPos(cursor_backup);
+
+        dl->AddRectFilled(plusBB.Min, plusBB.Max,
+            hovered ? plusHover : plusCol,
+            radius, ImDrawFlags_RoundCornersRight);
+
+        ImRect textBB = bb;
+        textBB.Max.x = plusBB.Min.x;
+
+        textBB.Min.x += style.FramePadding.x;
+        textBB.Max.x -= style.FramePadding.x;
+
+        ImGui::RenderTextClipped(
+            textBB.Min, textBB.Max,
+            assetPath.c_str(), nullptr,
+            nullptr,
+            ImVec2(0.0f, 0.5f),
+            &textBB
+        );
+
+        const ImVec2 center = plusBB.GetCenter();
+        const float s = size.y * 0.25f;
+        const ImU32 plusLine = IM_COL32(255, 255, 255, 255);
+
+        dl->AddLine(center + ImVec2(-s, 0), center + ImVec2(s, 0), plusLine, 2.0f);
+        dl->AddLine(center + ImVec2(0, -s), center + ImVec2(0, s), plusLine, 2.0f);
+
+        if (pressed && openPopup) 
+            *openPopup = true;
+        else if (!assetPath.empty() && left_double_clicked)
+            NANOEngine::Events::EventBus::Get().Dispatch(
+                NANOEngine::Events::EventDomain::Editor,
+                Events::GotoAssetPathEvent{ assetPath }
+            );
+    }
+
     // New Styling
     bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned) {
         bool changed = false;
@@ -508,13 +770,13 @@ namespace Editor {
         ImGui::PushID(label);
         ImGui::TextUnformatted(label);
 
-        // preview of tex
-        ImTextureID img{};
         if (slotTex) {
-            if (auto* gltex = dynamic_cast<NE::Graphics::OpenGL::GLTexture*>(slotTex.get()))
-                img = (ImTextureID)(uintptr_t)gltex->GLName();
+            //if (auto* gltex = dynamic_cast<NE::Graphics::OpenGL::GLTexture*>(slotTex.get()))
+            //    img = (ImTextureID)(uintptr_t)gltex->GLName();
 
-            ImGui::Image(img, ImVec2(previewSize, previewSize));
+            unsigned int img = Assets::ThumbnailManager::GetInstance().GetThumbnailByUUID(slotTex->uuid);
+
+            ImGui::Image((ImTextureID)(intptr_t)img, ImVec2(previewSize, previewSize));
             ImGui::SameLine();
             if (ImGui::Button("x")) {
                 assignById("");
