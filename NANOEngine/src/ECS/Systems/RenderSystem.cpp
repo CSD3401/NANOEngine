@@ -25,19 +25,6 @@ using NE::Graphics::GraphicsManager;
 
 namespace NE::ECS::Systems {
     namespace {
-        inline bool SphereInFrustum(const NE::Graphics::Frustum& f,
-            const NE::Math::Vec3& c,
-            float r)
-        {
-            for (int i = 0; i < 6; ++i) {
-                const auto& p = f.planes[i];
-                float dist = p.n.x * c.x + p.n.y * c.y + p.n.z * c.z + p.d;
-                //float dist = p.n.Dot(c) + p.d;
-                if (dist < -r) return false;
-            }
-            return true;
-        }
-
         inline float MaxScaleAxis(const NE::Math::Mat4& M) {
             NE::Math::Vec3 x = { M.GetElement(0, 0), M.GetElement(1, 0), M.GetElement(2, 0) };
             NE::Math::Vec3 y = { M.GetElement(0, 1), M.GetElement(1, 1), M.GetElement(2, 1) };
@@ -93,8 +80,7 @@ namespace NE::ECS::Systems {
 		NE_PROFILE_FUNCTION();
 #endif
 
-        const Frustum frustum = BuildFrustum();
-        const auto& entities = GetEntities();
+        const auto& entities = m_entities.GetDenseContainer();
 
         for (Entity entity : entities) {
             // Skip inactive entities
@@ -110,85 +96,30 @@ namespace NE::ECS::Systems {
 
             auto& transform = m_componentManager->GetComponent<Component::Transform>(entity);
 
+            const auto& ms = renderer.model->meshes[renderer.subMeshIndex].localSphere;
+            float baseR = ms.radius;
 
-            if (renderer.subMeshIndex < 0) {
-                continue;
-       //         const auto& ms = renderer.model->localSphere;
-       //         float baseR = ms.radius;
+            Graphics::DrawCommand cmd;
+            cmd.mesh = renderer.model->meshes[renderer.subMeshIndex].buffer;
+            cmd.material = renderer.material;
+            cmd.transform = transform.worldMatrix;
 
-       //         bool visible = true;
-       //         if (baseR > 0.0f) {
-       //             Vec3 centerWS = TransformPoint(transform.worldMatrix, ms.center);
-       //             float rWS = baseR * MaxScaleAxis(transform.worldMatrix);
-       //             visible = SphereInFrustum(frustum, centerWS, rWS);
-       //         }
+            float r = (float)(entity & 0xFF) / 255.0f;
+            float g = (float)((entity >> 8) & 0xFF) / 255.0f;
+            float b = (float)((entity >> 16) & 0xFF) / 255.0f;
+            cmd.idRGB = Vec3{ r, g, b };
 
-       //         if (!visible) continue;
+            cmd.boundsCenterWS = TransformPoint(transform.worldMatrix, ms.center);
+            cmd.boundsRadiusWs = baseR * MaxScaleAxis(transform.worldMatrix);
 
-			    //for (auto& sub : renderer.model->meshes) {
-				   // Graphics::DrawCommand cmd;
-				   // cmd.mesh = sub.buffer;
-				   // cmd.material = renderer.material;
-				   // cmd.transform = transform.worldMatrix;
+            cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
+            cmd.receivesShadow = renderer.receiveShadows;
 
-       //             float r = (float)(entity & 0xFF) / 255.0f;
-       //             float g = (float)((entity >> 8) & 0xFF) / 255.0f;
-       //             float b = (float)((entity >> 16) & 0xFF) / 255.0f;
-				   // cmd.idRGB = Vec3{ r, g, b };
-
-       //             cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
-       //             cmd.receivesShadow = renderer.receiveShadows;
-
-				   // Graphics::GraphicsManager::Submit(cmd);
-			    //}
-            } else {
-                const auto& ms = renderer.model->meshes[renderer.subMeshIndex].localSphere;
-                float baseR = ms.radius;
-
-                bool visible = true;
-                if (baseR > 0.0f) {
-                    Vec3 centerWS = TransformPoint(transform.worldMatrix, ms.center);
-                    float rWS = baseR * MaxScaleAxis(transform.worldMatrix);
-                    visible = SphereInFrustum(frustum, centerWS, rWS);
-                }
-
-                if (!visible) continue;
-
-                Graphics::DrawCommand cmd;
-                cmd.mesh = renderer.model->meshes[renderer.subMeshIndex].buffer;
-                cmd.material = renderer.material;
-                cmd.transform = transform.worldMatrix;
-
-                float r = (float)(entity & 0xFF) / 255.0f;
-                float g = (float)((entity >> 8) & 0xFF) / 255.0f;
-                float b = (float)((entity >> 16) & 0xFF) / 255.0f;
-                cmd.idRGB = Vec3{ r, g, b };
-
-                cmd.castsShadow = (renderer.shadowCastMode != Component::Renderer::ShadowCastMode::Off);
-                cmd.receivesShadow = renderer.receiveShadows;
-
-                Graphics::GraphicsManager::Submit(cmd);
-            }
+            Graphics::GraphicsManager::Submit(cmd);
         }
     }
 
     void RenderSystem::Exit()
     {
     }
-
-    Frustum RenderSystem::BuildFrustum() {
-        auto* cam = GraphicsManager::GetEditorCamera();
-
-        if (!cam)
-        {
-            return Frustum::ExtractPlanesFromVP(Mat4{}); // default
-        }
-
-        const Mat4& V = cam->GetViewMatrix();
-        const Mat4& P = cam->GetProjectionMatrix();
-
-        Mat4 nonConstPCopy = P;
-        return Frustum::ExtractPlanesFromVP(nonConstPCopy * V);
-    }
-
 }

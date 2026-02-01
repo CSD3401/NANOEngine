@@ -5,10 +5,14 @@
 #include "../Interfaces/IGeometryBuffer.hpp"
 
 namespace NE::Graphics {
+	struct RenderView;
 
     class Skybox {
     public:
         Skybox();
+
+        void Draw(const RenderView& view) const;
+
         void Submit() const;
 
     private:

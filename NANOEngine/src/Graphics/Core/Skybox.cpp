@@ -11,6 +11,7 @@
 #include "Vertex.hpp"
 #include "DrawCommand.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "RenderViewManager.hpp"
 
 namespace NE::Graphics {
 
@@ -46,11 +47,42 @@ namespace NE::Graphics {
         PipelineSpecification spec;
         spec.shader = shader;
         spec.CullMode = GL_BACK;
-        spec.EnableDepthTest = false;
+        spec.EnableDepthTest = true;
         spec.PolygonMode = GL_FILL;
         auto pipeline = std::make_shared<GLPipeline>(spec, "Skybox");
         m_Material = std::make_shared<Material>(pipeline);
 		m_Material->SetQueueBase(RenderQueue::BACKGROUND);
+    }
+
+    void Skybox::Draw(const RenderView& view) const {
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        auto pipeline = m_Material->GetPipeline();
+        auto shader = pipeline->GetSpecification().shader;
+
+        m_Material->Bind();
+        m_Mesh->Bind();
+
+        Math::Mat4 viewMat = view.view;
+		viewMat.SetTranslation(Math::Vec3(0.0f, 0.0f, 0.0f));
+
+        shader->SetUniformMat4("u_View", viewMat);
+        shader->SetUniformMat4("u_Projection", view.projection);
+        Math::Mat4 modelMat;
+        modelMat.SetToIdentity();
+        shader->SetUniformMat4("u_Model", modelMat);
+
+        m_Mesh->Draw();
+        m_Mesh->Unbind();
+
+        // Restore defaults expected by the rest of your renderer
+        glDepthFunc(GL_LESS);
+        glDepthMask(GL_TRUE);
     }
 
     void Skybox::Submit() const {
