@@ -12,8 +12,6 @@ namespace Editor {
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
 
-		std::cout << NE::GetGameColorAttachment() << std::endl;
-
 		ImGui::Image(
 			(ImTextureID)(uintptr_t)NE::GetGameColorAttachment(),
 			panelSize, 

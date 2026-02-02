@@ -64,7 +64,6 @@ namespace NE::Graphics {
         static void Init();
 
         static void BeginFrame();
-        static void SubmitSkybox();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
         static void EndFrame();

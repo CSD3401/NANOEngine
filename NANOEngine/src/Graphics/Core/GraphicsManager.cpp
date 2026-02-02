@@ -325,10 +325,6 @@ namespace NE::Graphics {
         drawCount = 0;
     }
 
-    void GraphicsManager::SubmitSkybox()  {
-        if (s_skybox) s_skybox->Submit();
-    }
-
     void GraphicsManager::DrawFrame() {
         NE_PROFILE_FUNCTION();
 
@@ -472,7 +468,6 @@ namespace NE::Graphics {
 
                 if (view.isMain && view.order == 0)
                     ++drawCount;
-
                 };
 
             const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
