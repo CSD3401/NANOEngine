@@ -90,8 +90,10 @@ public:
     // Required collision callbacks (pure virtual in IScript)
     void OnCollisionEnter(Entity other) override { (void)other; }
     void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
     void OnTriggerEnter(Entity other) override { (void)other; }
     void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
     void HandlePatrol(double deltaTime) {

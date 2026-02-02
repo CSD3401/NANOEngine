@@ -416,7 +416,7 @@ namespace NE::Physics {
 
 	void PhysicsManager::CreateCharacterController(uint32_t entity, uint64_t entityLUID,
 		const ECS::Component::Transform& t, const ECS::Component::CharacterController& cc,
-		const ECS::Component::Collider& col, uint8_t layerID)
+		uint8_t layerID)
 	{
 		JPH::RefConst<JPH::Shape> shape;
 

@@ -1,19 +1,20 @@
 #pragma once
 #include "EngineAPI.hpp"
+#include "Interactable_Grabbable.hpp"
 
 /**
  * Template - Auto-generated script template
  * Implement your game logic in the lifecycle methods below.
  */
-class Example_Template : public IScript {
+class Interactable_Battery : public Interactable_Grabbable {
 public:
-    Example_Template() {
+    Interactable_Battery() {
         // Register any editable fields here
         // Example: SCRIPT_FIELD(speed, float);
         // Example: SCRIPT_FIELD_VECTOR(blingstring, String);;
     }
 
-    ~Example_Template() override = default;
+    ~Interactable_Battery() override = default;
 
     // === Lifecycle Methods ===
 
@@ -52,33 +53,28 @@ public:
     }
 
     const char* GetTypeName() const override {
-        return "Example_Template";
+        return "Interactable_Battery";
+    }
+
+    void Interact() override {
+        Interactable_Grabbable::Interact();
     }
 
     // === Collision Callbacks ===
 
-    void OnCollisionEnter(Entity other) override {
-        // Called when this entity starts colliding with another
-    }
+    void OnCollisionEnter(Entity other) override { (void)other; }
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
+    void OnTriggerEnter(Entity other) override { (void)other; }
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
-    void OnCollisionExit(Entity other) override {
-        // Called when this entity stops colliding with another
-    }
-
-    void OnCollisionStay(Entity other) override { 
-
-    }
-
-    void OnTriggerEnter(Entity other) override {
-        // Called when this entity enters a trigger
-    }
-
-    void OnTriggerExit(Entity other) override {
-        // Called when this entity exits a trigger
-    }
-
-    void OnTriggerStay(Entity other) override { 
-
+    void Align(Vec3 pos, Vec3 scale, Vec3 rot)
+    {
+        TransformRef t = this->GetTransformRef(GetEntity());
+        SetPosition(t, pos);
+        SetScale(t, scale);
+        SetRotation(t, rot);
     }
 
 private:
