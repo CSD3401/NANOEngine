@@ -30,23 +30,41 @@ public:
     }
 
     // === Lifecycle Methods ===
-    void Awake() override
-    {
+    void Awake() override {}
+    void Initialize(Entity entity) override {
+        Puzzle_::Initialize(entity);
+    }
+    void Start() override {
+		// Grab object references
         if (twoStateRotaterObject.IsValid())
         {
             twoStateRotater = GameObject(twoStateRotaterObject).GetComponent<Misc_TwoStateRotater>();
-            if (!twoStateRotater)
-            {
-				LOG_DEBUG("Puzzle_Lever: twoStateRotater component not found on referenced object!");
-            }
         }
+        else
+        {
+            LOG_WARNING("Puzzle_Lever: twoStateRotaterObject reference is invalid!");
+        }
+
         if (twoWaySwitchObject.IsValid())
         {
             twoWaySwitch = GameObject(twoWaySwitchObject).GetComponent<Interactable_TwoWaySwitch>();
+            
+        }
+        else
+        {
+            LOG_WARNING("Puzzle_Lever: twoWaySwitchObject reference is invalid!");
+        }
+
+		// If we get both components successfully, initialise the two-way switch
+        if (twoWaySwitch && twoStateRotater)
+        {
+            twoWaySwitch->Initialise(this, !twoStateRotater->GetStartingState());
+        }
+        else
+        {
+            LOG_WARNING("Puzzle_Lever: Missing components!");
         }
     }
-    void Initialize(Entity entity) override {}
-    void Start() override {}
     void Update(double deltaTime) override {}
     void OnDestroy() override {}
 
@@ -57,10 +75,12 @@ public:
     const char* GetTypeName() const override { return "Puzzle_Lever"; }
 
     // === Collision Callbacks ===
-    void OnCollisionEnter(Entity other) override {}
-    void OnCollisionExit(Entity other) override {}
-    void OnTriggerEnter(Entity other) override {}
-    void OnTriggerExit(Entity other) override {}
+    void OnCollisionEnter(Entity other) override { (void)other; }
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
+    void OnTriggerEnter(Entity other) override { (void)other; }
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
 	GameObjectRef twoStateRotaterObject;

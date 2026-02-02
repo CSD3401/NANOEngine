@@ -3,6 +3,7 @@
 #include "Puzzle_.hpp"
 #include <map>
 #include <vector>
+#include "Misc_WireChild.hpp"
 
 /**
  * Template - Auto-generated script template
@@ -22,6 +23,8 @@ public:
         // Example: SCRIPT_FIELD(speed, float);
         // Example: SCRIPT_FIELD_VECTOR(blingstring, String);;
         SCRIPT_GAMEOBJECT_REF(wireHolderObject);
+        SCRIPT_GAMEOBJECT_REF(correctHolderObject);
+        SCRIPT_GAMEOBJECT_REF(connectedHolderObject);
         SCRIPT_FIELD_VECTOR(wireColours, Int);
         SCRIPT_FIELD_VECTOR(correctColours, Int);
         SCRIPT_FIELD(wirePuzzleIndex, Int);
@@ -41,8 +44,6 @@ public:
     void Initialize(Entity entity) override {
         // Called to initialize the script with its entity
         // Grab all the children from the entity
-        numWires = static_cast<int>(GetChildCount(wireHolderObject.GetEntity()));
-        LOG_DEBUG("CHILDREN" + std::to_string(numWires));
 
     }
 
@@ -93,42 +94,45 @@ public:
 
     // === Collision Callbacks ===
 
-    void OnCollisionEnter(Entity other) override {
-        // Called when this entity starts colliding with another
-    }
-
-    void OnCollisionExit(Entity other) override {
-        // Called when this entity stops colliding with another
-    }
-
-    void OnTriggerEnter(Entity other) override {
-        // Called when this entity enters a trigger
-    }
-
-    void OnTriggerExit(Entity other) override {
-        // Called when this entity exits a trigger
-    }
-
-    enum WIRE_COLOUR
-    {
-        BLUE = 0,
-        RED,
-        GREEN,
-        YELLOW,
-        ORANGE,
-        PURPLE,
-        PINK,
-        WHITE // Finished
-    };
+    void OnCollisionEnter(Entity other) override { (void)other; }
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
+    void OnTriggerEnter(Entity other) override { (void)other; }
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
     void InitWireColours()
     {
+        numWires = static_cast<int>(GetChildCount(wireHolderObject.GetEntity()));
+        LOG_DEBUG("NUM CHILDREN: " + std::to_string(numWires));
         // Message is UpdateWireColour + WirePuzzleIndex + WireChildIndex
-        std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex);
-        for (int i = 0; i < wireColours.size(); ++i)
+        wireChildren = GetChildren(wireHolderObject.GetEntity());
+        correctChildren = GetChildren(correctHolderObject.GetEntity());
+        connectedWires = GetChildren(connectedHolderObject.GetEntity());
+        //std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex);
+        for (int i = 0; i < numWires; ++i)
         {
-            Events::Send((message + std::to_string(i)).c_str(), &wireColours[i]);
+            //Events::Send((message + std::to_string(i)).c_str(), &wireColours[i]);
+            GameObject child(wireChildren[i]);
+            if (child)
+            {
+                child.GetComponent<Misc_WireChild>()->UpdateWireColour(wireColours[i]);
+            }
+            GameObject child2(correctChildren[i]);
+            if (child2)
+            {
+                child2.GetComponent<Misc_WireChild>()->UpdateWireColour(correctColours[i]); 
+            }
+            GameObject child3(connectedWires[i]);
+            if (child3)
+            {
+                child3.GetComponent<Misc_WireChild>()->UpdateWireColour(correctColours[i]);
+                SetActive(false, connectedWires[i]);
+            }
         }
+
+
+
     }
 
     void RecieveIndexData(void* indexData)
@@ -145,20 +149,32 @@ public:
         std::swap(wireColours[leftIndex], wireColours[rightIndex]);
 
         // update the wire gameobjects to their new colour
-        std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex);
-        LOG_DEBUG(message.c_str());
-        Events::Send((message + std::to_string(leftIndex)).c_str(), &wireColours[leftIndex]);
-        Events::Send((message + std::to_string(rightIndex)).c_str(), &wireColours[rightIndex]);
+        //std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex);
         //LOG_DEBUG(message.c_str());
+        //Events::Send((message + std::to_string(leftIndex)).c_str(), &wireColours[leftIndex]);
+        //Events::Send((message + std::to_string(rightIndex)).c_str(), &wireColours[rightIndex]);
+        //LOG_DEBUG(message.c_str());
+
+        GameObject child1(wireChildren[leftIndex]);
+        child1.GetComponent<Misc_WireChild>()->UpdateWireColour(wireColours[leftIndex]);
+        GameObject child2(wireChildren[rightIndex]);
+        child2.GetComponent<Misc_WireChild>()->UpdateWireColour(wireColours[rightIndex]);
 
         // Check if the puzzle is solved
         if (CheckWireColours())
         {
             // Send message that puzzle is solved
             //Solve();
+
+            // Current Fix until solve is able to be used
             LOG_DEBUG("PUZZLE SOLVED!");
-            message = "PuzzleSolved1";
-            Events::Send(message.c_str(), &changeTimer);
+            std::string message = "PuzzleSolved1";
+            Events::Send(message.c_str());
+
+            for (int i = 0; i < numWires; ++i)
+            {
+                SetActive(true, connectedWires[i]);
+            }
         }
     }
 
@@ -178,6 +194,8 @@ private:
     // Add your private member variables here
     // Example: float speed = 5.0f;
     GameObjectRef wireHolderObject;
+    GameObjectRef correctHolderObject;
+    GameObjectRef connectedHolderObject;
     int numWires = 3;
     std::vector<int> wireColours;
     std::vector<int> correctColours;
@@ -186,4 +204,9 @@ private:
     int indexToSwap = 0;
     MaterialRef finishedWireColour;
     float changeTimer = 0.5f;
+
+    // Testing
+    std::vector<Entity> wireChildren;
+    std::vector<Entity> correctChildren;
+    std::vector<Entity> connectedWires;
 };

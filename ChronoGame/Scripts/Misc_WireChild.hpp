@@ -1,6 +1,5 @@
 #pragma once
 #include "EngineAPI.hpp"
-#include "Puzzle_Wire.hpp"
 #include <map>
 #include <vector>
 
@@ -25,6 +24,7 @@ public:
         SCRIPT_COMPONENT_REF(purple, MaterialRef);
         SCRIPT_COMPONENT_REF(pink, MaterialRef);
         SCRIPT_COMPONENT_REF(white, MaterialRef);
+        SCRIPT_FIELD(correctWire, Bool);
     }
 
     ~Misc_WireChild() override = default;
@@ -81,16 +81,14 @@ public:
 
     void OnEnable() override {
         // Called when the script is enabled
-        std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex) + std::to_string(wireChildIndex);
-        LOG_DEBUG(message.c_str());
+        //std::string message = "UpdateWireColour" + std::to_string(wirePuzzleIndex) + std::to_string(wireChildIndex);
+        //LOG_DEBUG(message.c_str());
         // listen to event for updating wire colours
         //Events::Listen(message.c_str(), UpdateWireColour);
-        Events::Listen(message.c_str(), [this](void* data) {
-            this->UpdateWireColour(data);
-            });
+
         std::string message2 = "PuzzleSolved1";
         Events::Listen(message2.c_str(), [this](void* data) {
-            this->PuzzleSolved(data);
+            this->PuzzleSolved();
             });
     }
 
@@ -108,65 +106,61 @@ public:
 
     // === Collision Callbacks ===
 
-    void OnCollisionEnter(Entity other) override {
-        // Called when this entity starts colliding with another
-    }
+    void OnCollisionEnter(Entity other) override { (void)other; }
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
+    void OnTriggerEnter(Entity other) override { (void)other; }
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
-    void OnCollisionExit(Entity other) override {
-        // Called when this entity stops colliding with another
-    }
-
-    void OnTriggerEnter(Entity other) override {
-        // Called when this entity enters a trigger
-    }
-
-    void OnTriggerExit(Entity other) override {
-        // Called when this entity exits a trigger
-    }
-
-    void UpdateWireColour(void* colourData)
+    bool GetIsCorrectWire()
     {
-        Puzzle_Wire::WIRE_COLOUR c = (Puzzle_Wire::WIRE_COLOUR)*reinterpret_cast<int*>(colourData);
+        return correctWire;
+    }
+
+    void UpdateWireColour(int colourIndex)
+    {
+        WIRE_COLOUR c = (WIRE_COLOUR)(colourIndex);
         switch (c)
         {
-        case Puzzle_Wire::BLUE:
+        case WIRE_COLOUR::BLUE:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), blue);
             break;
         }
-        case Puzzle_Wire::GREEN:
+        case WIRE_COLOUR::GREEN:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), green);
             break;
         }
-        case Puzzle_Wire::ORANGE:
+        case WIRE_COLOUR::ORANGE:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), orange);
 
             break;
         }
-        case Puzzle_Wire::PINK:
+        case WIRE_COLOUR::PINK:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), pink);
             break;
         }
-        case Puzzle_Wire::PURPLE:
+        case WIRE_COLOUR::PURPLE:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), purple);
             break;
         }
-        case Puzzle_Wire::RED:
+        case WIRE_COLOUR::RED:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), red);
 
             break;
         }
-        case Puzzle_Wire::YELLOW:
+        case WIRE_COLOUR::YELLOW:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), yellow);
             break;
         }
-        case Puzzle_Wire::WHITE:
+        case WIRE_COLOUR::WHITE:
         {
             SetMaterialRef(GetRendererRef(GetEntity()), white);
             break;
@@ -176,13 +170,25 @@ public:
         }
     }
 
-    void PuzzleSolved(void* data)
+    void PuzzleSolved()
     {
         // play sound effect
         // start countdown
-        puzzleSolved = true;
-        changeTimer = *reinterpret_cast<float*>(data);
+        //puzzleSolved = true;
+        //changeTimer = *reinterpret_cast<float*>(data);
     }
+
+    enum WIRE_COLOUR
+    {
+        BLUE = 0,
+        RED,
+        GREEN,
+        YELLOW,
+        ORANGE,
+        PURPLE,
+        PINK,
+        WHITE // Finished
+    };
 
 private:
     // Add your private member variables here
@@ -203,5 +209,7 @@ private:
 
     bool puzzleSolved = false;
     float changeTimer = 0.5f;
+
+    bool correctWire = false;
 
 };
