@@ -1,5 +1,6 @@
 #include "ColliderSystem.hpp"
 #include "../Components/Rigidbody.hpp"
+#include "../Components/CharacterController.hpp"
 #include "../Components/Transform.hpp"
 #include "../Components/Collider.hpp"
 #include "../Components/Renderer.hpp"
