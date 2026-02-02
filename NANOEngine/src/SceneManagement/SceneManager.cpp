@@ -70,8 +70,8 @@ namespace NE::SceneManagement {
 		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
-		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
-			&m_editor->GetECSCoordinator().GetLUIDRegistry());
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_runtime->GetECSCoordinator().GetComponentManager(),
+			&m_runtime->GetECSCoordinator().GetLUIDRegistry());
 		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
 
 		// Transfer editor field values to runtime scene (before Init)
