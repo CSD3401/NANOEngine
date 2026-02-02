@@ -202,6 +202,8 @@
     <ClInclude Include="src\ECS\Components\UICanvas.hpp" />
     <ClInclude Include="src\ECS\Components\UIText.hpp" />
     <ClInclude Include="src\ECS\Components\UIButton.hpp" />
+    <ClInclude Include="src\ECS\Components\UISlider.hpp" />
+    <ClInclude Include="src\ECS\Components\UIToggle.hpp" />
     <ClInclude Include="src\ECS\Components\Camera.hpp" />
     <ClInclude Include="src\ECS\Systems\CameraSystem.hpp" />
     <ClInclude Include="src\ECS\Components\Animator.hpp" />

@@ -13,6 +13,8 @@
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/UIText.hpp"
 #include "../ECS/Components/UIButton.hpp"
+#include "../ECS/Components/UISlider.hpp"
+#include "../ECS/Components/UIToggle.hpp"
 #include "../ECS/Components/RectTransform.hpp"
 #include "../ECS/Components/Canvas.hpp"
 #include "../ECS/Components/PrefabLink.hpp"
@@ -95,6 +97,14 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
 		}
 
+		const Component::UISlider& GetUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		const Component::UIToggle& GetUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
+		}
+
 		const Component::RectTransform& GetRectTransform(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::RectTransform>(e);
 		}
@@ -133,6 +143,14 @@ namespace NE::ECS {
 
 		bool HasUIButton(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		bool HasUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		bool HasUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIToggle>(e);
 		}
 
 		bool HasRectTransform(uint32_t e) {
@@ -261,6 +279,14 @@ namespace NE::ECS {
 
 		ComponentType GetUIButtonComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UIButton>();
+		}
+
+		ComponentType GetUISliderComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UISlider>();
+		}
+
+		ComponentType GetUIToggleComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIToggle>();
 		}
 
 		ComponentType GetEntityAnimatorComponentType() {
@@ -838,6 +864,14 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::UIButton>(e, c);
 		}
 
+		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, c);
+		}
+
+		void AddUIToggleComponent(uint32_t e, const Component::UIToggle& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIToggle>(e, c);
+		}
+
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::PrefabLink>(e, c);
 		}
@@ -924,6 +958,14 @@ namespace NE::ECS {
 
 		Component::UIButton& GetUIButton(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		Component::UISlider& GetUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		Component::UIToggle& GetUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
 		}
 
 		Component::RectTransform& GetRectTransform(uint32_t e) {

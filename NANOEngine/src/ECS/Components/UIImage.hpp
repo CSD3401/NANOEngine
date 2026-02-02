@@ -72,6 +72,9 @@ namespace NE::ECS::Component {
         // pixels per unit multiplier (for tiled image type)
         float pixelsPerUnitMultiplier = 1.0f;
 
+        // raycast target - if false, clicks pass through this element
+        bool raycastTarget = true;
+
         // === RUNTIME-ONLY FIELDS (not serialized) ===
         uint64_t bindlessHandle = 0;
         std::shared_ptr<NE::Graphics::Material> material;
@@ -94,7 +97,8 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(borderRight),
             NE_REFLECT_FIELD(borderTop),
             NE_REFLECT_FIELD(borderBottom),
-            NE_REFLECT_FIELD(pixelsPerUnitMultiplier)
+            NE_REFLECT_FIELD(pixelsPerUnitMultiplier),
+            NE_REFLECT_FIELD(raycastTarget)
         NE_REFLECT_END()
 
             int renderMode = 0;

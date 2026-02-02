@@ -114,6 +114,9 @@ namespace NE::Renderer {
 					img.bindlessHandle = texture->GetBindlessHandle();
 				}
 			}
+
+			// Mark as dirty so renderer picks up the change
+			img.isDirty = true;
         }
 	}
 }

@@ -30,12 +30,21 @@ namespace NE::ECS::Systems {
     void UIEventSystem::Exit() {}
 
     void UIEventSystem::Update(double) {
-        // Clear wasClicked flags at the start of each frame
+        // Clear wasClicked and valueChanged flags at the start of each frame
         const auto& entities = GetEntities();
         for (Entity e : entities) {
             if (m_cm->HasComponent<UIButton>(e)) {
                 auto& button = m_cm->GetComponent<UIButton>(e);
                 button.wasClicked = false;
+            }
+            if (m_cm->HasComponent<UISlider>(e)) {
+                auto& slider = m_cm->GetComponent<UISlider>(e);
+                slider.valueChanged = false;
+            }
+            if (m_cm->HasComponent<UIToggle>(e)) {
+                auto& toggle = m_cm->GetComponent<UIToggle>(e);
+                toggle.valueChanged = false;
+                toggle.wasClicked = false;
             }
         }
 
@@ -77,6 +86,27 @@ namespace NE::ECS::Systems {
                         button.wasClicked = true;
                     }
                 }
+                // Handle toggle click
+                if (m_cm->HasComponent<UIToggle>(m_pressedEntity)) {
+                    auto& toggle = m_cm->GetComponent<UIToggle>(m_pressedEntity);
+                    if (toggle.interactable) {
+                        toggle.wasClicked = true;
+                        toggle.Toggle();
+                    }
+                }
+                // Also check if this is a toggle background
+                // Find parent toggle
+                if (m_cm->HasComponent<UIRectTransform>(m_pressedEntity)) {
+                    auto& rect = m_cm->GetComponent<UIRectTransform>(m_pressedEntity);
+                    Entity parent = rect.parent;
+                    if (parent != NO_ENTITY && m_cm->HasComponent<UIToggle>(parent)) {
+                        auto& toggle = m_cm->GetComponent<UIToggle>(parent);
+                        if (toggle.background == m_pressedEntity && toggle.interactable) {
+                            toggle.wasClicked = true;
+                            toggle.Toggle();
+                        }
+                    }
+                }
             }
             m_pressedEntity = NO_ENTITY;
         }
@@ -85,6 +115,12 @@ namespace NE::ECS::Systems {
 
         // Update button states
         UpdateButtonStates();
+
+        // Update slider states (drag handling)
+        UpdateSliderStates(static_cast<float>(mouseX), static_cast<float>(mouseY), mouseDown, mousePressed, mouseReleased);
+
+        // Update toggle states
+        UpdateToggleStates();
     }
 
     std::vector<UIEventSystem::UIElementInfo> UIEventSystem::CollectInteractableElements() {
@@ -105,15 +141,34 @@ namespace NE::ECS::Systems {
             }
         }
 
-        // For each canvas, find button entities
+        // For each canvas, find interactable entities (buttons, sliders, toggles)
         for (const auto& [canvasEntity, canvasPtr] : canvases) {
             for (Entity e : allEntities) {
                 if (e == canvasEntity) continue;
-                if (!m_cm->HasComponent<UIButton>(e)) continue;
                 if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
 
-                auto& button = m_cm->GetComponent<UIButton>(e);
-                if (!button.interactable) continue;
+                // Check if entity is interactable (button, slider, or toggle background)
+                bool isInteractable = false;
+
+                if (m_cm->HasComponent<UIButton>(e)) {
+                    auto& button = m_cm->GetComponent<UIButton>(e);
+                    if (button.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UISlider>(e)) {
+                    auto& slider = m_cm->GetComponent<UISlider>(e);
+                    if (slider.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UIToggle>(e)) {
+                    auto& toggle = m_cm->GetComponent<UIToggle>(e);
+                    if (toggle.interactable) isInteractable = true;
+                }
+                // Check if this is a toggle background (has image with raycastTarget)
+                if (m_cm->HasComponent<UIImage>(e)) {
+                    auto& image = m_cm->GetComponent<UIImage>(e);
+                    if (image.raycastTarget) isInteractable = true;
+                }
+
+                if (!isInteractable) continue;
 
                 auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
@@ -210,6 +265,160 @@ namespace NE::ECS::Systems {
             case UIButton::State::DISABLED:
                 image.color = button.disabledColor;
                 break;
+        }
+    }
+
+    void UIEventSystem::UpdateSliderStates(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased) {
+        const auto& entities = GetEntities();
+
+        // Handle mouse press on slider
+        if (mousePressed && m_pressedEntity != NO_ENTITY) {
+            if (m_cm->HasComponent<UISlider>(m_pressedEntity)) {
+                auto& slider = m_cm->GetComponent<UISlider>(m_pressedEntity);
+                if (slider.interactable) {
+                    m_draggingSlider = m_pressedEntity;
+                    slider.isDragging = true;
+                }
+            }
+        }
+
+        // Handle mouse release
+        if (mouseReleased && m_draggingSlider != NO_ENTITY) {
+            if (m_cm->HasComponent<UISlider>(m_draggingSlider)) {
+                auto& slider = m_cm->GetComponent<UISlider>(m_draggingSlider);
+                slider.isDragging = false;
+            }
+            m_draggingSlider = NO_ENTITY;
+        }
+
+        // Handle slider drag
+        if (mouseDown && m_draggingSlider != NO_ENTITY) {
+            if (m_cm->HasComponent<UISlider>(m_draggingSlider) &&
+                m_cm->HasComponent<UIRectTransform>(m_draggingSlider)) {
+
+                auto& slider = m_cm->GetComponent<UISlider>(m_draggingSlider);
+                auto& rect = m_cm->GetComponent<UIRectTransform>(m_draggingSlider);
+
+                // Find canvas for this slider
+                Entity canvasEntity = NO_ENTITY;
+                Entity current = rect.parent;
+                while (current != NO_ENTITY) {
+                    if (m_cm->HasComponent<UICanvas>(current)) {
+                        canvasEntity = current;
+                        break;
+                    }
+                    if (!m_cm->HasComponent<UIRectTransform>(current)) break;
+                    current = m_cm->GetComponent<UIRectTransform>(current).parent;
+                }
+
+                if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
+                    auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
+                    float worldX, worldY, worldWidth, worldHeight;
+                    CalculateWorldRect(m_draggingSlider, canvasEntity, canvas, worldX, worldY, worldWidth, worldHeight);
+
+                    // Calculate normalized value based on mouse position
+                    float normalized = 0.0f;
+                    if (slider.IsHorizontal()) {
+                        if (worldWidth > 0.0f) {
+                            normalized = (mouseX - worldX) / worldWidth;
+                        }
+                    } else {
+                        if (worldHeight > 0.0f) {
+                            normalized = (mouseY - worldY) / worldHeight;
+                        }
+                    }
+
+                    // Reverse if needed
+                    if (slider.IsReversed()) {
+                        normalized = 1.0f - normalized;
+                    }
+
+                    // Clamp and set value
+                    float oldValue = slider.value;
+                    slider.SetNormalizedValue(normalized);
+
+                    // Check if value changed
+                    if (slider.value != oldValue) {
+                        slider.valueChanged = true;
+                    }
+
+                    // Update fill rect width/height based on value
+                    if (slider.fillRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
+                        auto& fillRect = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
+                        float fillNormalized = slider.GetNormalizedValue();
+
+                        if (slider.IsHorizontal()) {
+                            fillRect.width = rect.width * fillNormalized;
+                        } else {
+                            fillRect.height = rect.height * fillNormalized;
+                        }
+                    }
+
+                    // Update handle position
+                    if (slider.handleRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
+                        auto& handleRect = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
+                        float handleNormalized = slider.GetNormalizedValue();
+
+                        if (slider.IsHorizontal()) {
+                            float trackWidth = rect.width - handleRect.width;
+                            handleRect.x = trackWidth * handleNormalized - trackWidth / 2.0f;
+                        } else {
+                            float trackHeight = rect.height - handleRect.height;
+                            handleRect.y = trackHeight * handleNormalized - trackHeight / 2.0f;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void UIEventSystem::UpdateToggleStates() {
+        const auto& entities = GetEntities();
+
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UIToggle>(e)) continue;
+
+            auto& toggle = m_cm->GetComponent<UIToggle>(e);
+
+            // Check if toggle (or its background) was clicked
+            bool clicked = false;
+
+            // Check if the toggle entity itself was clicked
+            if (m_pressedEntity == e && m_hoveredEntity == e) {
+                // Release check handled in Update()
+            }
+
+            // Check if the toggle's background was clicked
+            if (toggle.background != UINT32_MAX) {
+                if (m_cm->HasComponent<UIButton>(toggle.background)) {
+                    auto& bgButton = m_cm->GetComponent<UIButton>(toggle.background);
+                    if (bgButton.wasClicked) {
+                        clicked = true;
+                    }
+                }
+            }
+
+            // Handle the click
+            if (clicked && toggle.interactable) {
+                toggle.Toggle();
+                UpdateCheckmarkVisibility(e);
+            }
+
+            // Always ensure checkmark visibility is correct
+            UpdateCheckmarkVisibility(e);
+        }
+    }
+
+    void UIEventSystem::UpdateCheckmarkVisibility(Entity toggleEntity) {
+        if (!m_cm->HasComponent<UIToggle>(toggleEntity)) return;
+
+        auto& toggle = m_cm->GetComponent<UIToggle>(toggleEntity);
+
+        // Show/hide checkmark based on isOn state
+        if (toggle.graphic != UINT32_MAX && m_cm->HasComponent<UIImage>(toggle.graphic)) {
+            auto& checkmark = m_cm->GetComponent<UIImage>(toggle.graphic);
+            // Use alpha to show/hide
+            checkmark.color.w = toggle.isOn ? 1.0f : 0.0f;
         }
     }
 

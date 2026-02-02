@@ -9,6 +9,8 @@
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/UIText.hpp>
 #include <ECS/Components/UIButton.hpp>
+#include <ECS/Components/UISlider.hpp>
+#include <ECS/Components/UIToggle.hpp>
 
 #include "EditorInterface/ECSExports.hpp"
 #include <EditorInterface/RendererExports.hpp>
@@ -349,6 +351,306 @@ namespace Editor {
 	}
 
 	void CreateUIPanelCommand::Undo() {
+		NE::ECS::Command::DestroyEntity(m_entity);
+		if (m_createdCanvas && m_canvasEntity != NE::ECS::NO_ENTITY) {
+			EditorScene::UnregisterRoot(m_canvasEntity);
+			NE::ECS::Command::DestroyEntity(m_canvasEntity);
+		}
+	}
+
+	// ==================== CreateUISliderCommand ====================
+	CreateUISliderCommand::CreateUISliderCommand(uint32_t parentEntity)
+		: m_parentEntity(parentEntity) {}
+
+	void CreateUISliderCommand::Execute() {
+		// Find or create canvas
+		uint32_t canvasEntity = NE::ECS::NO_ENTITY;
+
+		if (m_parentEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(m_parentEntity)) {
+			canvasEntity = m_parentEntity;
+			while (canvasEntity != NE::ECS::NO_ENTITY) {
+				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
+				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
+				canvasEntity = rect.parent;
+			}
+		}
+
+		if (canvasEntity == NE::ECS::NO_ENTITY || !NE::ECS::Query::HasUICanvas(canvasEntity)) {
+			m_canvasEntity = FindOrCreateCanvas();
+			m_createdCanvas = (m_canvasEntity != NE::ECS::NO_ENTITY);
+			canvasEntity = m_canvasEntity;
+		}
+
+		uint32_t parentForSlider = (m_parentEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(m_parentEntity))
+			? m_parentEntity : canvasEntity;
+
+		// Create the slider root entity
+		m_entity = NE::ECS::Command::CreateEntityNoComponents();
+
+		NE::ECS::Command::AddEntityMetaComponent(m_entity,
+			NE::ECS::Component::EntityMeta{ .name = "Slider", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_entity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for slider root
+		NE::ECS::Component::UIRectTransform sliderRect{};
+		sliderRect.luid = NE::Core::LUIDGenerator::Generate("rt");
+		sliderRect.width = 160.0f;
+		sliderRect.height = 20.0f;
+		sliderRect.x = 0.0f;
+		sliderRect.y = 0.0f;
+		sliderRect.parent = parentForSlider;
+		if (parentForSlider != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForSlider)) {
+			sliderRect.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForSlider).luid;
+		}
+		NE::ECS::Command::AddUIRectTransformComponent(m_entity, sliderRect);
+
+		// Setup UIImage for background
+		NE::ECS::Component::UIImage bgImg{};
+		bgImg.color = NE::Math::Vec4(0.3f, 0.3f, 0.3f, 1.0f);
+		bgImg.raycastTarget = true;
+		NE::ECS::Command::AddUIImageComponent(m_entity, bgImg);
+
+		// Set hierarchy parent for slider root
+		NE::ECS::Command::SetParent(m_entity, parentForSlider, -1, false);
+
+		// Create Fill Area entity
+		m_fillEntity = NE::ECS::Command::CreateEntityNoComponents();
+
+		NE::ECS::Command::AddEntityMetaComponent(m_fillEntity,
+			NE::ECS::Component::EntityMeta{ .name = "Fill", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_fillEntity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for fill
+		NE::ECS::Component::UIRectTransform fillRect{};
+		fillRect.luid = NE::Core::LUIDGenerator::Generate("rt");
+		fillRect.anchorMinX = 0.0f; fillRect.anchorMinY = 0.0f;
+		fillRect.anchorMaxX = 0.0f; fillRect.anchorMaxY = 1.0f;  // Fill from left
+		fillRect.offsetMinX = 2.0f; fillRect.offsetMinY = 2.0f;
+		fillRect.offsetMaxX = 0.0f; fillRect.offsetMaxY = -2.0f;
+		fillRect.width = 0.0f;  // Will be controlled by slider value
+		fillRect.height = 16.0f;
+		fillRect.parent = m_entity;
+		fillRect.parentLuid = sliderRect.luid;
+		NE::ECS::Command::AddUIRectTransformComponent(m_fillEntity, fillRect);
+
+		// Setup UIImage for fill
+		NE::ECS::Component::UIImage fillImg{};
+		fillImg.color = NE::Math::Vec4(0.2f, 0.6f, 1.0f, 1.0f);  // Blue fill
+		fillImg.raycastTarget = false;
+		NE::ECS::Command::AddUIImageComponent(m_fillEntity, fillImg);
+
+		NE::ECS::Command::SetParent(m_fillEntity, m_entity, -1, false);
+
+		// Create Handle entity
+		m_handleEntity = NE::ECS::Command::CreateEntityNoComponents();
+
+		NE::ECS::Command::AddEntityMetaComponent(m_handleEntity,
+			NE::ECS::Component::EntityMeta{ .name = "Handle", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_handleEntity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for handle
+		NE::ECS::Component::UIRectTransform handleRect{};
+		handleRect.luid = NE::Core::LUIDGenerator::Generate("rt");
+		handleRect.width = 20.0f;
+		handleRect.height = 20.0f;
+		handleRect.x = 0.0f;  // Will be controlled by slider value
+		handleRect.y = 0.0f;
+		handleRect.parent = m_entity;
+		handleRect.parentLuid = sliderRect.luid;
+		NE::ECS::Command::AddUIRectTransformComponent(m_handleEntity, handleRect);
+
+		// Setup UIImage for handle
+		NE::ECS::Component::UIImage handleImg{};
+		handleImg.color = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);  // White handle
+		handleImg.raycastTarget = true;
+		NE::ECS::Command::AddUIImageComponent(m_handleEntity, handleImg);
+
+		NE::ECS::Command::SetParent(m_handleEntity, m_entity, -1, false);
+
+		// Setup UISlider component on root
+		NE::ECS::Component::UISlider slider{};
+		slider.luid = NE::Core::LUIDGenerator::Generate("sl");
+		slider.value = 0.0f;
+		slider.minValue = 0.0f;
+		slider.maxValue = 1.0f;
+		slider.fillRect = m_fillEntity;
+		slider.handleRect = m_handleEntity;
+		slider.backgroundRect = m_entity;
+		NE::ECS::Command::AddUISliderComponent(m_entity, slider);
+
+		EditorScene::s_selection.SetSingle(m_entity);
+	}
+
+	void CreateUISliderCommand::Undo() {
+		NE::ECS::Command::DestroyEntity(m_handleEntity);
+		NE::ECS::Command::DestroyEntity(m_fillEntity);
+		NE::ECS::Command::DestroyEntity(m_entity);
+		if (m_createdCanvas && m_canvasEntity != NE::ECS::NO_ENTITY) {
+			EditorScene::UnregisterRoot(m_canvasEntity);
+			NE::ECS::Command::DestroyEntity(m_canvasEntity);
+		}
+	}
+
+	// ==================== CreateUIToggleCommand ====================
+	CreateUIToggleCommand::CreateUIToggleCommand(uint32_t parentEntity)
+		: m_parentEntity(parentEntity) {}
+
+	void CreateUIToggleCommand::Execute() {
+		// Find or create canvas
+		uint32_t canvasEntity = NE::ECS::NO_ENTITY;
+
+		if (m_parentEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(m_parentEntity)) {
+			canvasEntity = m_parentEntity;
+			while (canvasEntity != NE::ECS::NO_ENTITY) {
+				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
+				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
+				canvasEntity = rect.parent;
+			}
+		}
+
+		if (canvasEntity == NE::ECS::NO_ENTITY || !NE::ECS::Query::HasUICanvas(canvasEntity)) {
+			m_canvasEntity = FindOrCreateCanvas();
+			m_createdCanvas = (m_canvasEntity != NE::ECS::NO_ENTITY);
+			canvasEntity = m_canvasEntity;
+		}
+
+		uint32_t parentForToggle = (m_parentEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(m_parentEntity))
+			? m_parentEntity : canvasEntity;
+
+		// Create the toggle root entity
+		m_entity = NE::ECS::Command::CreateEntityNoComponents();
+
+		NE::ECS::Command::AddEntityMetaComponent(m_entity,
+			NE::ECS::Component::EntityMeta{ .name = "Toggle", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_entity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for toggle root
+		NE::ECS::Component::UIRectTransform toggleRect{};
+		toggleRect.luid = NE::Core::LUIDGenerator::Generate("rt");
+		toggleRect.width = 160.0f;
+		toggleRect.height = 20.0f;
+		toggleRect.x = 0.0f;
+		toggleRect.y = 0.0f;
+		toggleRect.parent = parentForToggle;
+		if (parentForToggle != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForToggle)) {
+			toggleRect.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForToggle).luid;
+		}
+		NE::ECS::Command::AddUIRectTransformComponent(m_entity, toggleRect);
+
+		// Set hierarchy parent for toggle root
+		NE::ECS::Command::SetParent(m_entity, parentForToggle, -1, false);
+
+		// Create Background entity (the checkbox box)
+		m_backgroundEntity = NE::ECS::Command::CreateEntityNoComponents();
+
+		NE::ECS::Command::AddEntityMetaComponent(m_backgroundEntity,
+			NE::ECS::Component::EntityMeta{ .name = "Background", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_backgroundEntity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for background
+		NE::ECS::Component::UIRectTransform bgRect{};
+		bgRect.luid = NE::Core::LUIDGenerator::Generate("rt");
+		bgRect.width = 20.0f;
+		bgRect.height = 20.0f;
+		bgRect.x = 0.0f;
+		bgRect.y = 0.0f;
+		bgRect.anchorMinX = 0.0f; bgRect.anchorMinY = 0.5f;
+		bgRect.anchorMaxX = 0.0f; bgRect.anchorMaxY = 0.5f;
+		bgRect.pivotX = 0.0f; bgRect.pivotY = 0.5f;
+		bgRect.parent = m_entity;
+		bgRect.parentLuid = toggleRect.luid;
+		NE::ECS::Command::AddUIRectTransformComponent(m_backgroundEntity, bgRect);
+
+		// Setup UIImage for background
+		NE::ECS::Component::UIImage bgImg{};
+		bgImg.color = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		bgImg.raycastTarget = true;
+		NE::ECS::Command::AddUIImageComponent(m_backgroundEntity, bgImg);
+
+		NE::ECS::Command::SetParent(m_backgroundEntity, m_entity, -1, false);
+
+		// Create Checkmark entity
+		m_checkmarkEntity = NE::ECS::Command::CreateEntityNoComponents();
+
+		NE::ECS::Command::AddEntityMetaComponent(m_checkmarkEntity,
+			NE::ECS::Component::EntityMeta{ .name = "Checkmark", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_checkmarkEntity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for checkmark (centered in background)
+		NE::ECS::Component::UIRectTransform checkRect{};
+		checkRect.luid = NE::Core::LUIDGenerator::Generate("rt");
+		checkRect.width = 14.0f;
+		checkRect.height = 14.0f;
+		checkRect.x = 0.0f;
+		checkRect.y = 0.0f;
+		checkRect.anchorMinX = 0.5f; checkRect.anchorMinY = 0.5f;
+		checkRect.anchorMaxX = 0.5f; checkRect.anchorMaxY = 0.5f;
+		checkRect.parent = m_backgroundEntity;
+		checkRect.parentLuid = bgRect.luid;
+		NE::ECS::Command::AddUIRectTransformComponent(m_checkmarkEntity, checkRect);
+
+		// Setup UIImage for checkmark
+		NE::ECS::Component::UIImage checkImg{};
+		checkImg.color = NE::Math::Vec4(0.2f, 0.2f, 0.2f, 1.0f);  // Dark checkmark
+		checkImg.raycastTarget = false;
+		NE::ECS::Command::AddUIImageComponent(m_checkmarkEntity, checkImg);
+
+		NE::ECS::Command::SetParent(m_checkmarkEntity, m_backgroundEntity, -1, false);
+
+		// Create Label entity
+		m_labelEntity = NE::ECS::Command::CreateEntityNoComponents();
+
+		NE::ECS::Command::AddEntityMetaComponent(m_labelEntity,
+			NE::ECS::Component::EntityMeta{ .name = "Label", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_labelEntity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform for label
+		NE::ECS::Component::UIRectTransform labelRect{};
+		labelRect.luid = NE::Core::LUIDGenerator::Generate("rt");
+		labelRect.width = 130.0f;
+		labelRect.height = 20.0f;
+		labelRect.x = 25.0f;  // Offset to the right of the checkbox
+		labelRect.y = 0.0f;
+		labelRect.anchorMinX = 0.0f; labelRect.anchorMinY = 0.5f;
+		labelRect.anchorMaxX = 0.0f; labelRect.anchorMaxY = 0.5f;
+		labelRect.pivotX = 0.0f; labelRect.pivotY = 0.5f;
+		labelRect.parent = m_entity;
+		labelRect.parentLuid = toggleRect.luid;
+		NE::ECS::Command::AddUIRectTransformComponent(m_labelEntity, labelRect);
+
+		// Setup UIText for label
+		NE::ECS::Component::UIText text{};
+		text.text = "Toggle";
+		text.fontSize = 14.0f;
+		text.color = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		text.horizontalAlign = NE::ECS::Component::UIText::Alignment::LEFT;
+		text.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+		NE::ECS::Command::AddUITextComponent(m_labelEntity, text);
+
+		NE::ECS::Command::SetParent(m_labelEntity, m_entity, -1, false);
+
+		// Setup UIToggle component on root
+		NE::ECS::Component::UIToggle toggle{};
+		toggle.luid = NE::Core::LUIDGenerator::Generate("tg");
+		toggle.isOn = true;
+		toggle.graphic = m_checkmarkEntity;
+		toggle.background = m_backgroundEntity;
+		NE::ECS::Command::AddUIToggleComponent(m_entity, toggle);
+
+		EditorScene::s_selection.SetSingle(m_entity);
+	}
+
+	void CreateUIToggleCommand::Undo() {
+		NE::ECS::Command::DestroyEntity(m_labelEntity);
+		NE::ECS::Command::DestroyEntity(m_checkmarkEntity);
+		NE::ECS::Command::DestroyEntity(m_backgroundEntity);
 		NE::ECS::Command::DestroyEntity(m_entity);
 		if (m_createdCanvas && m_canvasEntity != NE::ECS::NO_ENTITY) {
 			EditorScene::UnregisterRoot(m_canvasEntity);

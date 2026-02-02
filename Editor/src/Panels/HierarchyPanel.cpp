@@ -769,8 +769,18 @@ namespace Editor {
 				);
 			}
 			ImGui::Separator();
-			ImGui::MenuItem("Slider", "", false, false);      // Phase 2
-			ImGui::MenuItem("Toggle", "", false, false);      // Phase 2
+			if (ImGui::MenuItem("Slider")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUISliderEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Toggle")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIToggleEvent{ parentEntityId }
+				);
+			}
 			ImGui::MenuItem("Input Field", "", false, false); // Phase 3
 			ImGui::MenuItem("Scroll View", "", false, false); // Phase 3
 			ImGui::EndMenu();

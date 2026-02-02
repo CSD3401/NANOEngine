@@ -15,6 +15,8 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
 #include "../Components/UIButton.hpp"
+#include "../Components/UISlider.hpp"
+#include "../Components/UIToggle.hpp"
 #include "../Components/Camera.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../Components/PrefabLink.hpp"
@@ -65,6 +67,8 @@ namespace NE::ECS {
         RegisterComponent<Component::UIImage>();
         RegisterComponent<Component::UIText>();
         RegisterComponent<Component::UIButton>();
+        RegisterComponent<Component::UISlider>();
+        RegisterComponent<Component::UIToggle>();
         RegisterComponent<Component::Animator>();
 		RegisterComponent<Component::Camera>();
         RegisterComponent<Component::Hierarchy>();

@@ -121,9 +121,14 @@ namespace NE::ECS::Systems {
     }
 
     void UITransformSystem::Update(double) {
+        // Resolve any pending parent relationships (needed after scene load)
+        if (!m_pendingParents.empty()) {
+            ResolvePendingParents();
+        }
+
         // Future: calculate world-space transforms for UI elements
         // Similar to how TransformSystem builds world matrices
-        // shift matrix calculations from uigizmo handling here 
+        // shift matrix calculations from uigizmo handling here
         // and also matrix calculations done in scene panel
         // TODO
     }

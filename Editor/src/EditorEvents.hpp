@@ -45,6 +45,8 @@ namespace Editor::Events {
 	struct CreateUIImageEvent { uint32_t parentEntity; };
 	struct CreateUIButtonEvent { uint32_t parentEntity; };
 	struct CreateUIPanelEvent { uint32_t parentEntity; };
+	struct CreateUISliderEvent { uint32_t parentEntity; };
+	struct CreateUIToggleEvent { uint32_t parentEntity; };
 
 	struct HierarchyChangeEvent {
 		uint32_t childEntity;

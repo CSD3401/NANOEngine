@@ -91,6 +91,8 @@
     <ClInclude Include="src\ECS\Components\UIImage.hpp" />
     <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
     <ClInclude Include="src\ECS\Components\UIText.hpp" />
+    <ClInclude Include="src\ECS\Components\UISlider.hpp" />
+    <ClInclude Include="src\ECS\Components\UIToggle.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />

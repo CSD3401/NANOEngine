@@ -205,6 +205,38 @@ namespace Editor {
         bool m_createdCanvas = false;
     };
 
+    class CreateUISliderCommand final : public ICommand {
+    public:
+        CreateUISliderCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Slider"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;           // Slider root
+        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY; // Background image
+        uint32_t m_fillEntity = NE::ECS::NO_ENTITY;       // Fill image
+        uint32_t m_handleEntity = NE::ECS::NO_ENTITY;     // Handle image
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIToggleCommand final : public ICommand {
+    public:
+        CreateUIToggleCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Toggle"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;           // Toggle root
+        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY; // Background image
+        uint32_t m_checkmarkEntity = NE::ECS::NO_ENTITY;  // Checkmark image
+        uint32_t m_labelEntity = NE::ECS::NO_ENTITY;      // Label text
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
     class DeleteEntityCommand final : public ICommand {
     public:
         DeleteEntityCommand(std::vector<uint32_t> deletedEntity, uint32_t oldParent);

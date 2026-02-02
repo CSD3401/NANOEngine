@@ -120,6 +120,20 @@ namespace Editor {
             }
         );
 
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUISliderEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateUISliderEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUISliderCommand>(e.parentEntity));
+            }
+        );
+
+        NANOEngine::Events::EventBus::Get().Subscribe<Events::CreateUIToggleEvent>(
+            NANOEngine::Events::EventDomain::Editor,
+            [&](const Events::CreateUIToggleEvent& e) {
+                ExecuteCommand(std::make_unique<CreateUIToggleCommand>(e.parentEntity));
+            }
+        );
+
         NANOEngine::Events::EventBus::Get().Subscribe<Events::DeleteEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const Events::DeleteEntityEvent& e) {

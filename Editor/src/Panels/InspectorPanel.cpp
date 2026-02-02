@@ -19,6 +19,8 @@
 #include <ECS/Components/UIImage.hpp>
 #include <ECS/Components/UIText.hpp>
 #include <ECS/Components/UIButton.hpp>
+#include <ECS/Components/UISlider.hpp>
+#include <ECS/Components/UIToggle.hpp>
 #include <Core/LUIDGenerator.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
@@ -435,6 +437,8 @@ namespace Editor {
 			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",				&InspectorPanel::DrawImageComponent					},
 			{ NE::ECS::Query::GetUITextComponentType(),				"Text",					&InspectorPanel::DrawTextComponent					},
 			{ NE::ECS::Query::GetUIButtonComponentType(),			"Button",				&InspectorPanel::DrawButtonComponent				},
+			{ NE::ECS::Query::GetUISliderComponentType(),			"Slider",				&InspectorPanel::DrawSliderComponent				},
+			{ NE::ECS::Query::GetUIToggleComponentType(),			"Toggle",				&InspectorPanel::DrawToggleComponent				},
 			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
 		};
 	}
@@ -539,6 +543,32 @@ namespace Editor {
 					}
 					NE::ECS::Component::UIButton button{};
 					NE::ECS::Command::AddUIButtonComponent(entity, button);
+				}
+				if (ImGui::MenuItem("UI Slider")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
+					NE::ECS::Component::UISlider slider{};
+					slider.luid = NE::Core::LUIDGenerator::Generate("sl");
+					NE::ECS::Command::AddUISliderComponent(entity, slider);
+				}
+				if (ImGui::MenuItem("UI Toggle")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIToggle toggle{};
+					toggle.luid = NE::Core::LUIDGenerator::Generate("tg");
+					NE::ECS::Command::AddUIToggleComponent(entity, toggle);
 				}
 
 				ImGui::EndPopup();
@@ -3535,6 +3565,200 @@ namespace Editor {
 
 		if (deleteComp) {
 			// TODO: implement remove UIButton component
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawSliderComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUISlider(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Slider",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 120.0f;
+		ImGui::Indent();
+
+		// Interactable
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+
+		// Value
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Value");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::SliderFloat("##Value", &comp.value, comp.minValue, comp.maxValue)) {
+				if (comp.wholeNumbers) {
+					comp.value = static_cast<float>(static_cast<int>(comp.value + 0.5f));
+				}
+				comp.ClampValue();
+			}
+		}
+
+		// Min Value
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Min Value");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::DragFloat("##MinValue", &comp.minValue, 0.1f)) {
+				if (comp.minValue > comp.maxValue) comp.minValue = comp.maxValue;
+				comp.ClampValue();
+			}
+		}
+
+		// Max Value
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Max Value");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::DragFloat("##MaxValue", &comp.maxValue, 0.1f)) {
+				if (comp.maxValue < comp.minValue) comp.maxValue = comp.minValue;
+				comp.ClampValue();
+			}
+		}
+
+		// Whole Numbers
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Whole Numbers");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::Checkbox("##WholeNumbers", &comp.wholeNumbers)) {
+				if (comp.wholeNumbers) {
+					comp.value = static_cast<float>(static_cast<int>(comp.value + 0.5f));
+				}
+			}
+		}
+
+		// Direction
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Direction");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+
+			static const char* DirectionNames[] = { "Left To Right", "Right To Left", "Bottom To Top", "Top To Bottom" };
+			int currentDirection = static_cast<int>(comp.direction);
+			if (ImGui::Combo("##Direction", &currentDirection, DirectionNames, IM_ARRAYSIZE(DirectionNames))) {
+				comp.direction = static_cast<NE::ECS::Component::UISlider::Direction>(currentDirection);
+			}
+		}
+
+		// Fill Rect (entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Fill Rect");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.fillRect);
+		}
+
+		// Handle Rect (entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Handle Rect");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.handleRect);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove UISlider component
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawToggleComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIToggle(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Toggle",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 120.0f;
+		ImGui::Indent();
+
+		// Interactable
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+
+		// Is On
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Is On");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Checkbox("##IsOn", &comp.isOn);
+		}
+
+		// Toggle Group
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Toggle Group");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int group = static_cast<int>(comp.toggleGroup);
+			if (ImGui::InputInt("##ToggleGroup", &group)) {
+				comp.toggleGroup = static_cast<uint32_t>(group < 0 ? 0 : group);
+			}
+		}
+
+		// Graphic (checkmark entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Graphic");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.graphic);
+		}
+
+		// Background (entity reference - read only for now)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Background");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::TextDisabled("Entity %u", comp.background);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove UIToggle component
 		}
 
 		ImGui::Unindent();

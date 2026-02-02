@@ -6,6 +6,8 @@
 #include "../Components/UICanvas.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIButton.hpp"
+#include "../Components/UISlider.hpp"
+#include "../Components/UIToggle.hpp"
 #include "../Components/UIImage.hpp"
 #include <vector>
 
@@ -29,6 +31,7 @@ namespace NE::ECS::Systems {
 
         Entity m_hoveredEntity = NO_ENTITY;
         Entity m_pressedEntity = NO_ENTITY;
+        Entity m_draggingSlider = NO_ENTITY;
 
         struct UIElementInfo {
             Entity entity;
@@ -45,6 +48,9 @@ namespace NE::ECS::Systems {
         bool PointInRect(float px, float py, const UIElementInfo& element);
 
         void UpdateButtonStates();
+        void UpdateSliderStates(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased);
+        void UpdateToggleStates();
+        void UpdateCheckmarkVisibility(Entity toggleEntity);
 
         void ApplyButtonColorToImage(Entity buttonEntity);
 
