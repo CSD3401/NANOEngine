@@ -40,7 +40,7 @@ namespace NE::Graphics {
 
         auto vb = std::make_shared<GLVertexBuffer>(vertices, static_cast<uint32_t>(sizeof(vertices)), sizeof(Vertex));
         auto ib = std::make_shared<GLIndexBuffer>(indices, sizeof(indices) / sizeof(uint32_t));
-        m_Mesh = std::make_shared<GLGeometryBuffer>(vb, ib);
+        m_mesh = std::make_shared<GLGeometryBuffer>(vb, ib);
 
         auto shader = Resource::ResourceManager::GetInstance().
             LoadResource<GLShader>("neskybox");
@@ -48,10 +48,31 @@ namespace NE::Graphics {
         spec.shader = shader;
         spec.CullMode = GL_BACK;
         spec.EnableDepthTest = true;
+        spec.DepthWrite = false;
         spec.PolygonMode = GL_FILL;
         auto pipeline = std::make_shared<GLPipeline>(spec, "Skybox");
-        m_Material = std::make_shared<Material>(pipeline);
-		m_Material->SetQueueBase(RenderQueue::BACKGROUND);
+        m_material = std::make_shared<Material>(pipeline);
+		m_material->SetQueueBase(RenderQueue::BACKGROUND);
+    }
+
+    void Skybox::Draw(const RenderView& view) const {
+        glDepthFunc(GL_LEQUAL);
+		glDepthMask(GL_FALSE);
+
+        auto pipeline = m_material->GetPipeline();
+        auto shader = pipeline->GetSpecification().shader;
+
+        m_material->Bind();
+        m_mesh->Bind();
+
+        shader->SetUniformMat4("u_View", view.view);
+        shader->SetUniformMat4("u_Projection", view.projection);
+
+        m_mesh->Draw();
+        m_mesh->Unbind();
+
+		glDepthMask(GL_TRUE);
+        glDepthFunc(GL_LESS);
     }
 
     void Skybox::Draw(const RenderView& view) const {
@@ -87,10 +108,14 @@ namespace NE::Graphics {
 
     void Skybox::Submit() const {
         DrawCommand cmd;
-        cmd.mesh = m_Mesh;
-        cmd.material = m_Material;
+        cmd.mesh = m_mesh;
+        cmd.material = m_material;
         cmd.transform = Math::Mat4::BuildScaling(50.f, 50.f, 50.f);
         GraphicsManager::Submit(cmd);
+    }
+
+    std::shared_ptr<IPipeline> Skybox::GetSkyboxPipeline() const {
+		return m_material->GetPipeline();
     }
 
 }

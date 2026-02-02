@@ -10,14 +10,13 @@ namespace NE::Graphics {
     class Skybox {
     public:
         Skybox();
-
         void Draw(const RenderView& view) const;
-
         void Submit() const;
 
+        std::shared_ptr<IPipeline> GetSkyboxPipeline() const;
     private:
-        std::shared_ptr<IGeometryBuffer> m_Mesh;
-        std::shared_ptr<Material> m_Material;
+        std::shared_ptr<IGeometryBuffer> m_mesh;
+        std::shared_ptr<Material> m_material;
     };
 
 }

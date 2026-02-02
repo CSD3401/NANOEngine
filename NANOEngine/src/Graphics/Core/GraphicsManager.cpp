@@ -329,11 +329,8 @@ namespace NE::Graphics {
         if (s_skybox) s_skybox->Submit();
     }
 
-    void GraphicsManager::DrawFrame()
-    {
+    void GraphicsManager::DrawFrame() {
         NE_PROFILE_FUNCTION();
-
-        int renderedViews = 0;
 
         RenderView* driving = nullptr;
 
@@ -364,10 +361,7 @@ namespace NE::Graphics {
 
         for (const auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
-            if (view.isMain && view.order == 0) { 
-                s_GameViewHandle = handle; 
-                SPD_INFO("GameViewHandle set to: " << handle);
-            }
+            if (view.isMain && view.order == 0) s_GameViewHandle = handle;
 
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
@@ -475,12 +469,15 @@ namespace NE::Graphics {
                 currentMesh->Unbind();
 
                 instanceData.clear();
-                ++drawCount;
+
+                if (view.isMain && view.order == 0)
+                    ++drawCount;
 
                 };
 
             const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
             const auto& commands = s_DrawQueue->GetCommands();
+
             for (const auto& command : commands) {
                 if (!SphereInFrustum(frustum, command.boundsCenterWS, command.boundsRadiusWs)) {
                     continue;
@@ -489,7 +486,6 @@ namespace NE::Graphics {
                 auto mesh = command.mesh;
                 auto material = command.material;
                 bool receives = command.receivesShadow;
-                
 
                 // Check compatibility with current batch
                 bool compatible =
@@ -516,19 +512,19 @@ namespace NE::Graphics {
                 instanceData.push_back(instance);
             }
 
-            // Flush any remaining batch
             if (!instanceData.empty()) {
                 flushBatch();
+            }
+
+            if (s_skybox) {
+                s_StateCache->Bind(s_skybox->GetSkyboxPipeline());
+                s_skybox->Draw(view);
             }
 
             if (handle == 1) // Assuming editor camera handle will always be 1
                 DrawAllDebugGeometry();
 
-            ++renderedViews;
             s_RenderViewManager->Unbind();
-        }
-        if (renderedViews > 0) {
-            drawCount /= renderedViews;
         }
 
 		// Note: Reset should be called right before any post-processing
@@ -980,25 +976,21 @@ namespace NE::Graphics {
 #pragma endregion
     }
 
-    void GraphicsManager::Submit(const DrawCommand& command) 
-    {
+    void GraphicsManager::Submit(const DrawCommand& command) {
 		s_DrawQueue->Submit(command);
     }
 
-    void GraphicsManager::EndFrame() 
-    {
+    void GraphicsManager::EndFrame() {
 		s_RenderViewManager->Unbind();
         //s_CommandBuffer->EndRenderPass();
         //s_CommandBuffer->End();
     }
 
-    void GraphicsManager::Clear() 
-    {
+    void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
 	}
 
-    void GraphicsManager::Shutdown() 
-    {
+    void GraphicsManager::Shutdown() {
 		s_RenderViewManager->Shutdown();
         s_skybox.reset();
         s_CommandBuffer.reset();
@@ -1031,18 +1023,15 @@ namespace NE::Graphics {
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
     }
 
-    void GraphicsManager::SetEditorCamera(EditorCamera* cam) 
-    {
+    void GraphicsManager::SetEditorCamera(EditorCamera* cam) {
         s_EditorCamera = cam;
     }
 
-    EditorCamera* GraphicsManager::GetEditorCamera() 
-    {
+    EditorCamera* GraphicsManager::GetEditorCamera() {
         return s_EditorCamera;
     }
 
-    void GraphicsManager::UpdateEditorCameraData()
-    {
+    void GraphicsManager::UpdateEditorCameraData() {
         s_RenderViewManager->SetCameraData(
             s_SceneViewHandle, 
 			s_EditorCamera->GetProjectionMatrix(),

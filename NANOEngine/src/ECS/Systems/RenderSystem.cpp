@@ -1,21 +1,21 @@
 #include "RenderSystem.hpp"
-#include "../Components/Renderer.hpp"
-#include "../Components/Transform.hpp"
-#include "../Components/Collider.hpp"
-#include "../Components/Light.hpp"
-#include "../Components/EntityMeta.hpp"
-#include "../../Graphics/Core/GraphicsManager.hpp"
-#include "../../Graphics/Core/Vertex.hpp"
-#include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
-#include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
-#include "../../Graphics/OpenGL/GLShader.hpp"
-#include "../../Graphics/OpenGL/GLPipeline.hpp"
-#include "../../Graphics/Core/Material.hpp"
-#include "../../Graphics/Core/DrawCommand.hpp"
-#include "../../Core/Profiler.hpp"
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/Transform.hpp"
+//#include "../Components/Collider.hpp"
+//#include "../Components/Light.hpp"
+#include "ECS/Components/EntityMeta.hpp"
+#include "Graphics/Core/GraphicsManager.hpp"
+//#include "../../Graphics/Core/Vertex.hpp"
+//#include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
+//#include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
+//#include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
+//#include "../../Graphics/OpenGL/GLShader.hpp"
+//#include "../../Graphics/OpenGL/GLPipeline.hpp"
+#include "Graphics/Core/Material.hpp"
+#include "Graphics/Core/DrawCommand.hpp"
+#include "Core/Profiler.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
-#include <glad/glad.h>
+//#include <glad/glad.h>
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
 
@@ -79,16 +79,12 @@ namespace NE::ECS::Systems {
 #ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
 #endif
-
         const auto& entities = m_entities.GetDenseContainer();
 
         for (Entity entity : entities) {
-            // Skip inactive entities
-            if (m_componentManager->HasComponent<Component::EntityMeta>(entity)) {
-                const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
-                if (!meta.isActive) {
-                    continue;
-                }
+            const auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
+            if (!meta.isActive) {
+                continue;
             }
 
             auto& renderer = m_componentManager->GetComponent<Component::Renderer>(entity);
