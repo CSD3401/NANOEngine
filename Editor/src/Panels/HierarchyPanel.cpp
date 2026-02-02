@@ -737,6 +737,45 @@ namespace Editor {
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu("UI")) {
+			if (ImGui::MenuItem("Canvas")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUICanvasEvent{}
+				);
+			}
+			if (ImGui::MenuItem("Text")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUITextEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Image")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIImageEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Button")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIButtonEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Panel")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIPanelEvent{ parentEntityId }
+				);
+			}
+			ImGui::Separator();
+			ImGui::MenuItem("Slider", "", false, false);      // Phase 2
+			ImGui::MenuItem("Toggle", "", false, false);      // Phase 2
+			ImGui::MenuItem("Input Field", "", false, false); // Phase 3
+			ImGui::MenuItem("Scroll View", "", false, false); // Phase 3
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::MenuItem("Camera", "", false, false)) {
 
 		}

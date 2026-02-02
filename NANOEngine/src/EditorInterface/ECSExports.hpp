@@ -33,6 +33,8 @@ namespace NE::ECS {
 		struct UIRectTransform;
 		struct UIImage;
 		struct UICanvas;
+		struct UIText;
+		struct UIButton;
 		struct RectTransform;
 		struct Canvas;
 		struct Hierarchy;
@@ -58,6 +60,8 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API const Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API const Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API const Component::UIText& GetUIText(uint32_t e);
+		NANOENGINE_API const Component::UIButton& GetUIButton(uint32_t e);
 		NANOENGINE_API const Component::RectTransform& GetRectTransform(uint32_t e);
 		NANOENGINE_API const Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API const Component::Hierarchy& GetEntityHierarchy(uint32_t e);
@@ -95,6 +99,8 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIRectTransform(uint32_t e);
 		NANOENGINE_API bool HasUICanvas(uint32_t e);
 		NANOENGINE_API bool HasUIImage(uint32_t e);
+		NANOENGINE_API bool HasUIText(uint32_t e);
+		NANOENGINE_API bool HasUIButton(uint32_t e);
 		NANOENGINE_API bool HasRectTransform(uint32_t e);
 		NANOENGINE_API bool HasCanvas(uint32_t e);
 		NANOENGINE_API bool HasPrefabLink(uint32_t e);
@@ -146,6 +152,8 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetUIRectTransformComponentType();
 		NANOENGINE_API ComponentType GetUIImageComponentType();
 		NANOENGINE_API ComponentType GetUICanvasComponentType();
+		NANOENGINE_API ComponentType GetUITextComponentType();
+		NANOENGINE_API ComponentType GetUIButtonComponentType();
 		NANOENGINE_API ComponentType GetEntityAnimatorComponentType();
 		NANOENGINE_API ComponentType GetEntityCameraComponentType();
 		NANOENGINE_API ComponentType GetPrefabInstanceComponentType();
@@ -211,6 +219,8 @@ namespace NE::ECS {
 		NANOENGINE_API void AddUIRectTransformComponent(uint32_t e, const Component::UIRectTransform& c);
 		NANOENGINE_API void AddUICanvasComponent(uint32_t e, const Component::UICanvas& c);
 		NANOENGINE_API void AddUIImageComponent(uint32_t e, const Component::UIImage& c);
+		NANOENGINE_API void AddUITextComponent(uint32_t e, const Component::UIText& c);
+		NANOENGINE_API void AddUIButtonComponent(uint32_t e, const Component::UIButton& c);
 		NANOENGINE_API void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c);
 		NANOENGINE_API void AddPrefabInstanceComponent(uint32_t e, const Component::PrefabInstance& c);
 		NANOENGINE_API void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c);
@@ -269,6 +279,8 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIRectTransform& GetUIRectTransform(uint32_t e);
 		NANOENGINE_API Component::UIImage& GetUIImage(uint32_t e);
 		NANOENGINE_API Component::UICanvas& GetUICanvas(uint32_t e);
+		NANOENGINE_API Component::UIText& GetUIText(uint32_t e);
+		NANOENGINE_API Component::UIButton& GetUIButton(uint32_t e);
 		NANOENGINE_API Component::RectTransform& GetRectTransform(uint32_t e);
 		NANOENGINE_API Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API Component::Hierarchy& GetEntityHierarchy(uint32_t e);

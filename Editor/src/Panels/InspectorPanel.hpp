@@ -46,6 +46,8 @@ namespace Editor {
 		void DrawRectTransformComponent(uint32_t entity);
 		void DrawCanvasComponent(uint32_t entity);
 		void DrawImageComponent(uint32_t entity);
+		void DrawTextComponent(uint32_t entity);
+		void DrawButtonComponent(uint32_t entity);
 		void DrawCharacterControllerComponent(uint32_t entity);
 		
 

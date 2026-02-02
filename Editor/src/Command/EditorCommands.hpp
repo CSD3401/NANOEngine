@@ -139,35 +139,70 @@ namespace Editor {
         uint32_t m_parentEntity;
     };
 
-    class CreateCanvasEntityCommand final : public ICommand {
+    // Helper function to find or create a canvas
+    uint32_t FindOrCreateCanvas();
+
+    class CreateUICanvasCommand final : public ICommand {
     public:
-        CreateCanvasEntityCommand();
+        CreateUICanvasCommand();
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Create UI Canvas"; }
     private:
-        uint32_t m_entity;
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
     };
 
-    class CreateUICanvasEntityCommand final : public ICommand {
+    class CreateUITextCommand final : public ICommand {
     public:
-        CreateUICanvasEntityCommand();
+        CreateUITextCommand(uint32_t parentEntity);
         void Execute() override;
         void Undo() override;
-        const char* GetName() const override { return "Create UI Canvas"; }
+        const char* GetName() const override { return "Create UI Text"; }
     private:
-        uint32_t m_entity;
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
     };
 
-    class CreateUIImageEntityCommand final : public ICommand {
+    class CreateUIImageCommand final : public ICommand {
     public:
-        CreateUIImageEntityCommand(uint32_t parentCanvas);
+        CreateUIImageCommand(uint32_t parentEntity);
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Create UI Image"; }
     private:
-        uint32_t m_entity;
-        uint32_t m_parentCanvas;
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIButtonCommand final : public ICommand {
+    public:
+        CreateUIButtonCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Button"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_textEntity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIPanelCommand final : public ICommand {
+    public:
+        CreateUIPanelCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Panel"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
     };
 
     class DeleteEntityCommand final : public ICommand {

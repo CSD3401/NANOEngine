@@ -3853,7 +3853,7 @@ namespace NE {
 
 		void SetUIText(Entity entity, const char* text) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
 				return;
@@ -3866,7 +3866,7 @@ namespace NE {
 
 		void SetUITextColor(Entity entity, float r, float g, float b, float a) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
 				return;
@@ -3879,7 +3879,7 @@ namespace NE {
 
 		const char* GetUIText(Entity entity) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIText>(entity)) {
 				return "";
@@ -3895,7 +3895,7 @@ namespace NE {
 
 		bool IsButtonHovered(Entity entity) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
 				return false;
@@ -3907,7 +3907,7 @@ namespace NE {
 
 		bool IsButtonPressed(Entity entity) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
 				return false;
@@ -3919,7 +3919,7 @@ namespace NE {
 
 		bool WasButtonClicked(Entity entity) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
 				return false;
@@ -3931,7 +3931,7 @@ namespace NE {
 
 		void SetButtonInteractable(Entity entity, bool interactable) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
 				return;
@@ -3946,7 +3946,7 @@ namespace NE {
 
 		bool IsButtonInteractable(Entity entity) {
 			auto& scene = NE::GetScene();
-			auto& ecs = scene.GetECS();
+			auto& ecs = scene.GetECSCoordinator();
 
 			if (!ecs.HasComponent<ECS::Component::UIButton>(entity)) {
 				return false;

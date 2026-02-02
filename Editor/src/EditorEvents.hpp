@@ -39,9 +39,12 @@ namespace Editor::Events {
 		uint32_t parentEntity;
 	};
 
-	//struct CreateCanvasEntityEvent {
-	//	uint32_t parentEntity;
-	//};
+	// UI Creation Events (Unity-like workflow)
+	struct CreateUICanvasEvent {};
+	struct CreateUITextEvent { uint32_t parentEntity; };
+	struct CreateUIImageEvent { uint32_t parentEntity; };
+	struct CreateUIButtonEvent { uint32_t parentEntity; };
+	struct CreateUIPanelEvent { uint32_t parentEntity; };
 
 	struct HierarchyChangeEvent {
 		uint32_t childEntity;
@@ -58,10 +61,6 @@ namespace Editor::Events {
 	struct ShowCursorEvent {};
 
 
-	struct CreateUICanvasEntityEvent {};
-	struct CreateUIImageEntityEvent {
-		uint32_t parentCanvas;  // Which canvas to parent to
-	};
 	struct SelectEntityEvent {
 		uint32_t selectedEntity;
 	};
