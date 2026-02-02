@@ -801,6 +801,7 @@ namespace NE::Graphics {
         glUseProgram(0);
 
         // restore old state
+        glDepthMask(GL_TRUE);
         if (depthTestWasEnabled) glEnable(GL_DEPTH_TEST);
         if (!blendWasEnabled)
         {
