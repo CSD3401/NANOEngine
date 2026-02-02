@@ -13,9 +13,7 @@
 
 namespace NE::ECS::Systems {
 	CharacterControllerSystem::CharacterControllerSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
-		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr)
-	{
-	}
+		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) { }
 
 	void CharacterControllerSystem::OnEntityAdded(Entity e) {
 		auto& cc = m_componentManager->GetComponent<Component::CharacterController>(e);

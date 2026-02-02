@@ -11,9 +11,7 @@
 namespace NE::ECS::Systems {
 
 	RigidbodySystem::RigidbodySystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
-		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr)
-	{
-	}
+		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) { }
 
 	void RigidbodySystem::OnEntityAdded(Entity e) {
 		auto& rb = m_componentManager->GetComponent<Component::Rigidbody>(e);
