@@ -67,7 +67,47 @@
 #endif
 
 //=============================================================================
-// LEGACY COMPATIBILITY MACROS
+// ENUM FIELD REGISTRATION MACRO
+//=============================================================================
+
+/**
+ * Register an enum field with dropdown support in the editor.
+ * @param fieldName The member variable name (must be an enum type)
+ * @param ... The enum option names as string literals
+ *
+ * Usage:
+ * @code
+ * enum class EnemyState { Idle, Patrol, Chase, Attack };
+ * EnemyState currentState = EnemyState::Idle;
+ *
+ * // In Initialize():
+ * SCRIPT_ENUM_FIELD(currentState, "Idle", "Patrol", "Chase", "Attack");
+ * @endcode
+ */
+#ifndef SCRIPT_ENUM_FIELD
+#define SCRIPT_ENUM_FIELD(fieldName, ...) \
+    RegisterEnumField(#fieldName, &this->fieldName, {__VA_ARGS__})
+#endif
+
+/**
+ * Register a vector of enum fields with dropdown support in the editor.
+ * @param fieldName The member variable name (must be std::vector<EnumType>)
+ * @param ... The enum option names as string literals
+ *
+ * Usage:
+ * @code
+ * enum class EnemyState { Idle, Patrol, Chase };
+ * std::vector<EnemyState> stateQueue;
+ *
+ * // In Initialize():
+ * SCRIPT_ENUM_VECTOR_FIELD(stateQueue, "Idle", "Patrol", "Chase");
+ * @endcode
+ */
+#ifndef SCRIPT_ENUM_VECTOR_FIELD
+#define SCRIPT_ENUM_VECTOR_FIELD(fieldName, ...) \
+    RegisterEnumVectorField(#fieldName, &this->fieldName, {__VA_ARGS__})
+#endif
+
 //=============================================================================
 // LEGACY COMPATIBILITY MACROS
 //=============================================================================

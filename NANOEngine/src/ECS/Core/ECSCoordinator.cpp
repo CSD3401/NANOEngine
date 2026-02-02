@@ -132,11 +132,10 @@ namespace NE::ECS {
             SetSystemSignature<Systems::UIRenderSystem>(sig);
         }
 
-        m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get()); // <-- ADD
+        m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
             Signature sig;
-            sig.set(GetComponentType<Component::Transform>());  // Animator works on Transform
-            sig.set(GetComponentType<Component::Animator>());   // and requires Animator
+            sig.set(GetComponentType<Component::Animator>());
             SetSystemSignature<Systems::AnimatorSystem>(sig);
         }
         
@@ -148,7 +147,7 @@ namespace NE::ECS {
             SetSystemSignature<Systems::CameraSystem>(sig);
 		}
 
-        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get());
+        m_hierarchySystem = m_systemManager->RegisterSystem<Systems::HierarchySystem>(m_componentManager.get(), m_luidRegistry.get());
         {
             Signature sig;
             sig.set(GetComponentType<Component::Hierarchy>());

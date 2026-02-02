@@ -112,6 +112,7 @@ namespace NE::Graphics {
 
     void Material::Bind() const {
         auto* shader = m_Pipeline->GetSpecification().shader.get();
+
         for (const auto& [uName, val] : m_FloatUniforms)
             shader->SetUniformFloat(uName, val);
         for (const auto& [uName, val] : m_Vec3Uniforms)

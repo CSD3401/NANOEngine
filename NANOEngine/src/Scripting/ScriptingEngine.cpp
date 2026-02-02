@@ -12,6 +12,7 @@
 #include "Events/EventBus.hpp"
 #include "Core/Couroutine.hpp"
 #include "../../include/ScriptSDK/ScriptAPI.h"  // For GameObject_ResetStaticContext
+#include "Core/Profiler.hpp"
 
 namespace {
     // ScriptState moved to ScriptingEngine class definition
@@ -935,6 +936,12 @@ namespace NE::Scripting {
                 // Ensure ScriptNames size matches instances size
                 size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
                 for (size_t i = 0; i < searchCount; ++i) {
+                    std::string::size_type n;
+                    n = nsc.ScriptNames[i].find(scriptName);
+                    if (n != std::string::npos) {
+						return it->second[i];
+					}
+
                     if (nsc.ScriptNames[i] == scriptName) {
                         return it->second[i];
                     }
@@ -1058,6 +1065,10 @@ namespace NE::Scripting {
     }
 
     void ScriptingEngine::UpdateScriptInstances(double deltaTime) {
+#ifndef PRODUCTION_BUILD
+        NE_PROFILE_FUNCTION();
+#endif
+
         for (const auto& pair : m_scriptInstances) {
             const std::vector<IScript*>& instances = pair.second;
             for (IScript* instance : instances) {
@@ -1256,6 +1267,72 @@ namespace NE::Scripting {
             // Create instances (will initialize and restore serialized fields)
             if (CreateScriptInstances(entity, nsc)) {
                 InitializeScriptInstances(entity);
+            }
+        }
+    }
+
+    void ScriptingEngine::OnCollisionEnter(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionEnter(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnCollisionExit(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionExit(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnCollisionStay(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnCollisionStay(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerEnter(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerEnter(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerExit(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerExit(other);
+                }
+            }
+        }
+    }
+
+    void ScriptingEngine::OnTriggerStay(ECS::Entity entity, ECS::Entity other) {
+        auto it = m_scriptInstances.find(entity);
+        if (it != m_scriptInstances.end()) {
+            for (IScript* script : it->second) {
+                if (script && script->IsEnabled()) {
+                    script->OnTriggerStay(other);
+                }
             }
         }
     }

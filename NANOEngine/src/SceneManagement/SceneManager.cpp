@@ -6,6 +6,7 @@
 #include "ECS/Core/Entity.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Serialisation/Serializer.hpp"
+#include "Physics/PhysicsManager.hpp"
 
 namespace NE::SceneManagement {
 
@@ -14,6 +15,9 @@ namespace NE::SceneManagement {
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().
+			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
 		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
 			m_editor.reset();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
@@ -27,10 +31,23 @@ namespace NE::SceneManagement {
 	}
 
 	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
+		if (m_editor) {
+			m_editor->ExitEdit();
+			m_editor.reset();
+		}
+
+		if (m_runtime) {
+			m_runtime->ExitRuntime();
+			m_runtime.reset();
+			m_isPlaying = false;
+		}
+
 		m_loadedPath = scenePath;
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+			&m_editor->GetECSCoordinator().GetLUIDRegistry());
 	}
 
 	void SceneManager::StartSceneFallback() {
@@ -53,11 +70,16 @@ namespace NE::SceneManagement {
 		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+			&m_editor->GetECSCoordinator().GetLUIDRegistry());
 		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
 
 		// Transfer editor field values to runtime scene (before Init)
 		auto& runtimeComponentMgr = m_runtime->GetECSCoordinator().GetComponentManager();
 		Scripting::ScriptingEngine::GetInstance().TransferScriptFields(editorComponentMgr, runtimeComponentMgr);
+
+		// Important to call this to delete editor's renderviews
+		m_editor->CameraExit();
 
 		// Initialize runtime scene (creates instances with transferred field values)
 		m_runtime->InitRuntime();
@@ -88,6 +110,11 @@ namespace NE::SceneManagement {
 			auto& entityMgr = coordinator.GetEntityManager();
 			auto& luidRegistry = coordinator.GetLUIDRegistry();
 			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr, luidRegistry);
+			Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
+
+			// Important to recreate the editor's renderviews
+			m_editor->CameraEnter();
 		}
 	}
 

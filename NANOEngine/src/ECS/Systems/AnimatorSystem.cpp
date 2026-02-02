@@ -1,267 +1,218 @@
 #include "AnimatorSystem.hpp"
-#include "../../Animation/AnimatorControllerIO.hpp"
-#include "../../Animation/TransformClipIO.hpp"
-#include <filesystem>
-#include <cmath> // for std::fmod
-using namespace NE::Animation;
+
+#include <algorithm>
+
+#include "ECS/Core/EntityManager.hpp"
+#include "ECS/Core/ComponentManager.hpp"
+#include "Core/LUIDRegistry.hpp"
+#include "Core/LUIDGenerator.hpp"
+#include "Math/Quat.hpp"
+
+#include "ECS/Components/EntityMeta.hpp"
+#include "ECS/Components/Animator.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/Light.hpp"
+
+#include "ResourceManagement/ResourceManager.hpp"
+#include "Animation/AnimationClip.hpp"
 
 namespace NE::ECS::Systems {
-    static NE::Math::Vec3 Lerp(const NE::Math::Vec3& a, const NE::Math::Vec3& b, float t) {
-        return a + (b - a) * t;
-    }
-    static void ApplyBlended(
-        NE::ECS::Component::Transform& tr,
-        const NE::Animation::TransformClip* A, float tA,
-        const NE::Animation::TransformClip* B, float tB,
-        float alpha, bool loop)
-    {
-        using NE::Animation::TransformClip;
-        if (!A && !B) return;
-        auto sample = [&](const NE::Animation::TransformClip* C, const std::vector<NE::Animation::KeyframeVec3>& ch, const NE::Math::Vec3& fallback) {
-            if (!C || ch.empty()) return fallback;
-            return TransformClip::Sample(ch, C == A ? tA : tB, loop);
-            };
-        NE::Math::Vec3 pA = sample(A, A ? A->pos : std::vector<NE::Animation::KeyframeVec3>{}, tr.localPosition);
-        NE::Math::Vec3 rA = sample(A, A ? A->rot : std::vector<NE::Animation::KeyframeVec3>{}, tr.localRotationEuler);
-        NE::Math::Vec3 sA = sample(A, A ? A->scl : std::vector<NE::Animation::KeyframeVec3>{}, tr.localScale);
+    namespace {
+        float AdvanceTime(float t, float dt, const Animation::AnimationClip& clip) {
+            float L = clip.GetLengthSeconds();
+            if (L <= 0.0f) return std::max(0.0f, t + dt);
 
-        NE::Math::Vec3 pB = sample(B, B ? B->pos : std::vector<NE::Animation::KeyframeVec3>{}, pA);
-        NE::Math::Vec3 rB = sample(B, B ? B->rot : std::vector<NE::Animation::KeyframeVec3>{}, rA);
-        NE::Math::Vec3 sB = sample(B, B ? B->scl : std::vector<NE::Animation::KeyframeVec3>{}, sA);
+            t += dt;
 
-        tr.localPosition = Lerp(pA, pB, alpha);
-        tr.localRotationEuler = Lerp(rA, rB, alpha); // Euler lerp (simple). Replace with quat slerp if you add quats later.
-        tr.localScale = Lerp(sA, sB, alpha);
-    }
+            if (clip.IsLooping()) {
+                t = std::fmod(t, L);
+                if (t < 0.0f) t += L;
+                return t;
+            }
+            return std::clamp(t, 0.0f, L);
+        }
 
-    // inside namespace NE::ECS::Systems
-    //std::shared_ptr<NE::Animation::AnimatorController>
-    //    AnimatorSystem::LoadOrGetController(const std::string& path) {
-    //    // Already cached?
-    //    auto it = m_controllers.find(path);
-    //    if (it != m_controllers.end())
-    //        return it->second;
+        float EvalCurveLinear(const NE::Animation::AnimCurveF& c, float t) {
+            const auto& keys = c.keys;
+            if (keys.empty()) return 0.0f;
+            if (keys.size() == 1) return keys[0].value;
 
-    //    // Load from disk if the path points to a real file
-    //    if (!path.empty() && std::filesystem::is_regular_file(path)) {
-    //        auto ctrl = std::make_shared<NE::Animation::AnimatorController>();
-    //        if (NE::Animation::LoadAnimatorController(*ctrl, path)) {
-    //            m_controllers[path] = ctrl;
-    //            return ctrl;
-    //        }
-    //    }
-    //    return nullptr;
-    //}
+            if (t <= keys.front().time) return keys.front().value;
+            if (t >= keys.back().time)  return keys.back().value;
 
-    //std::shared_ptr<NE::Animation::TransformClip>
-    //    AnimatorSystem::LoadOrGetClip(const std::string& id) {
-    //    // Already cached?
-    //    auto it = m_clips.find(id);
-    //    if (it != m_clips.end())
-    //        return it->second;
+            for (size_t i = 0; i + 1 < keys.size(); ++i) {
+                const auto& a = keys[i];
+                const auto& b = keys[i + 1];
+                if (t >= a.time && t <= b.time) {
+                    const float dt = (b.time - a.time);
+                    if (dt <= 1e-6f) return a.value;
+                    const float u = (t - a.time) / dt;
+                    return a.value + (b.value - a.value) * u;
+                }
+            }
+            return keys.back().value;
+        }
 
-    //    // Treat the id as a file path (your controller uses file paths for clipId)
-    //    if (!id.empty() && std::filesystem::is_regular_file(id)) {
-    //        auto clip = std::make_shared<NE::Animation::TransformClip>();
-    //        if (NE::Animation::LoadTransformClip(*clip, id)) {
-    //            m_clips[id] = clip;
-    //            return clip;
-    //        }
-    //    }
-    //    return nullptr;
-    //}
+        template <typename FieldT>
+        bool SampleTrackToValue(const NE::Animation::AnimTrack& tr, float t, FieldT& out) {
+            using VT = NE::Animation::AnimValueType;
 
+            if constexpr (std::is_same_v<FieldT, bool>) {
+                if (tr.type != VT::Bool) return false;
+                out = (EvalCurveLinear(tr.x, t) >= 0.5f);
+                return true;
+            } else if constexpr (std::is_same_v<FieldT, float>) {
+                if (tr.type != VT::Float) return false;
+                out = EvalCurveLinear(tr.x, t);
+                return true;
+            } else if constexpr (std::is_same_v<FieldT, NE::Math::Vec2>) {
+                if (tr.type != VT::Vec2) return false;
+                out.x = EvalCurveLinear(tr.x, t);
+                out.y = EvalCurveLinear(tr.y, t);
+                return true;
+            } else if constexpr (std::is_same_v<FieldT, NE::Math::Vec3>) {
+                if (tr.type != VT::Vec3) return false;
+                out.x = EvalCurveLinear(tr.x, t);
+                out.y = EvalCurveLinear(tr.y, t);
+                out.z = EvalCurveLinear(tr.z, t);
+                return true;
+            } else if constexpr (std::is_same_v<FieldT, NE::Math::Vec4>) {
+                if (tr.type != VT::Vec4) return false;
+                out.x = EvalCurveLinear(tr.x, t);
+                out.y = EvalCurveLinear(tr.y, t);
+                out.z = EvalCurveLinear(tr.z, t);
+                out.w = EvalCurveLinear(tr.w, t);
+                return true;
+            } else {
+                return false;
+            }
+        }
 
-    void AnimatorSystem::Update(double deltaTime)
-    {
-        //using namespace NE::Animation;
+        uint32_t FNV1a32(std::string_view s) {
+            uint32_t h = 2166136261u;
+            for (unsigned char c : s) { h ^= c; h *= 16777619u; }
+            return h;
+        }
 
-        //for (auto e : GetEntities()) {
-        //    auto* animator = &m_componentManager->GetComponent<Component::Animator>(e);
-        //    auto* transform = &m_componentManager->GetComponent<Component::Transform>(e);
-        //    if (!animator || !transform) continue;
+        static uint32_t MakeFieldId(const char* componentName, std::string_view fieldName) {
+            std::string full;
+            full.reserve(std::strlen(componentName) + 1 + fieldName.size());
+            full.append(componentName);
+            full.push_back('.');
+            full.append(fieldName.data(), fieldName.size());
+            return FNV1a32(full);
+        }
 
-        //    if (animator->playOnStart && !animator->playing) animator->playing = true;
-        //    if (!animator->playing) continue;
+        void MarkDirtyIfPresent(auto& comp) {
+            if constexpr (requires { comp.isDirty; }) comp.isDirty = true;
+        }
 
-        //    // -------- Controller path --------
-        //    if (!animator->controllerPath.empty()) {
-        //        EnsureControllerLoaded(animator->controllerPath);
-        //        auto ctrlPtr = LoadOrGetController(animator->controllerPath);
-        //        if (!ctrlPtr) continue;
-        //        const AnimatorController& ctrl = *ctrlPtr;
+        template <typename CompT>
+        bool ApplyTrackToComponent(uint32_t e,
+			NE::ECS::ComponentManager* m_componentManager,
+            const NE::Animation::AnimTrack& tr,
+            float t,
+            const char* componentName)
+        {
+            if (!m_componentManager->HasComponent<CompT>(e))
+                return false;
 
+            auto& comp = m_componentManager->GetComponent<CompT>(e);
 
-        //        AnimatorInstance& inst = m_instances[e]; // default-constructed if new
-        //        if (inst.timeInState == 0.0f && inst.currentState == 0 && !ctrl.states.empty()) {
-        //            inst.currentState = std::min(ctrl.defaultState, (uint32_t)ctrl.states.size() - 1);
-        //        }
-        //        if (ctrl.states.empty()) continue;
+            bool applied = false;
 
-        //        const State& S = ctrl.states[inst.currentState];
-        //        auto clipA = LoadOrGetClip(S.clipId);
-        //        if (!clipA) { continue; }
+            NE::Core::ForEachField(comp, [&](auto&& desc, auto&& fieldRef) {
+                if (applied) return;
 
-        //        // Apply pending triggers BEFORE evaluating transitions so they can fire this frame.
-        //        for (const auto& trigName : animator->setTriggers) { inst.triggers[trigName] = true; }
-        //        animator->setTriggers.clear();
+                const uint32_t fid = MakeFieldId(componentName, desc.name);
+                if (fid != tr.fieldId) return;
 
-        //        // Advance time in current state
-        //        float dt = static_cast<float>(deltaTime) * S.speed * animator->speed;
-        //        inst.timeInState += dt;
+                using FieldT = std::remove_cvref_t<decltype(fieldRef)>;
 
-        //        const float clipLen = std::max(clipA->length, 0.0001f);
+                FieldT sampled{};
+                if (!SampleTrackToValue<FieldT>(tr, t, sampled))
+                    return;
 
-        //        // Condition evaluator
-        //        auto meets = [&](const Condition& c)->bool {
-        //            auto itp = std::find_if(ctrl.parameters.begin(), ctrl.parameters.end(),
-        //                [&](const Parameter& p) { return p.name == c.param; });
-        //            if (itp == ctrl.parameters.end()) return false;
-        //            const Parameter& P = *itp;
+                fieldRef = sampled;
+                applied = true;
+                }
+            );
 
-        //            auto getB = [&]() { auto it = animator->bools.find(P.name);   return it != animator->bools.end() ? it->second : P.b; };
-        //            auto getF = [&]() { auto it = animator->floats.find(P.name);  return it != animator->floats.end() ? it->second : P.f; };
-        //            auto getI = [&]() { auto it = animator->ints.find(P.name);    return it != animator->ints.end() ? it->second : P.i; };
-        //            auto getT = [&]() { auto it = inst.triggers.find(P.name);     return it != inst.triggers.end() ? it->second : false; };
+            if constexpr (requires { comp.localRotationQuat; }) 
+                comp.localRotationQuat = NE::Math::Quat::FromEulerDegrees(comp.localRotationEuler);
 
-        //            switch (P.type) {
-        //            case ParamType::Bool:
-        //                if (c.op == CondOp::If)    return getB();
-        //                if (c.op == CondOp::IfNot) return !getB();
-        //                return false;
-        //            case ParamType::Trigger:
-        //                if (c.op == CondOp::If)    return getT();
-        //                if (c.op == CondOp::IfNot) return !getT();
-        //                return false;
-        //            case ParamType::Float:
-        //                if (c.op == CondOp::Greater) return getF() > c.f;
-        //                if (c.op == CondOp::Less)    return getF() < c.f;
-        //                if (c.op == CondOp::Equals)  return std::fabs(getF() - c.f) < 1e-6f;
-        //                if (c.op == CondOp::NotEquals)return std::fabs(getF() - c.f) >= 1e-6f;
-        //                return false;
-        //            case ParamType::Int:
-        //                if (c.op == CondOp::Equals)     return getI() == c.i;
-        //                if (c.op == CondOp::NotEquals)  return getI() != c.i;
-        //                if (c.op == CondOp::Greater)    return getI() > c.i;
-        //                if (c.op == CondOp::Less)       return getI() < c.i;
-        //                return false;
-        //            }
-        //            return false;
-        //            };
+            MarkDirtyIfPresent(comp);
 
-        //        // Check transitions (first match wins)
-        //        for (const auto& T : S.transitions) {
-        //            if (T.hasExitTime) {
-        //                float localT = animator->loop ? std::fmod(inst.timeInState, clipLen) : inst.timeInState;
-        //                if (localT < 0.0f) localT += clipLen;
-        //                float normalized = localT / clipLen;
-        //                if (normalized < T.exitTimeNormalized) continue;
-        //            }
-        //            bool ok = true;
-        //            for (const auto& C : T.conditions) { if (!(ok &= meets(C))) break; }
-        //            if (!ok) continue;
-
-        //            if (!T.canTransitionToSelf && T.toState == inst.currentState) continue;
-        //            if (T.toState >= ctrl.states.size()) continue;
-
-        //            // Begin crossfade
-        //            inst.inTransition = (T.duration > 0.0f);
-        //            inst.nextState = T.toState;
-        //            inst.transitionElapsed = 0.0f;
-        //            inst.transitionDuration = std::max(0.0001f, T.duration);
-        //            break; // first valid transition wins
-        //        }
-
-        //        // Pose application
-        //        if (inst.inTransition) {
-        //            const State& N = ctrl.states[inst.nextState];
-        //            auto clipB = LoadOrGetClip(N.clipId);
-
-        //            float tA = inst.timeInState;
-        //            float tB = (inst.transitionElapsed == 0.0f) ? 0.0f : inst.timeInState * (N.speed / S.speed);
-
-        //            inst.transitionElapsed += static_cast<float>(deltaTime);
-        //            float alpha = std::min(1.0f, inst.transitionElapsed / inst.transitionDuration);
-
-        //            ApplyBlended(*transform, clipA.get(), tA, clipB.get(), tB, alpha, animator->loop);
-
-        //            if (alpha >= 1.0f) {
-        //                inst.inTransition = false;
-        //                inst.currentState = inst.nextState;
-        //                inst.timeInState = tB;
-        //                // consume triggers after a successful transition
-        //                for (auto& kv : inst.triggers) kv.second = false;
-        //            }
-        //        }
-        //        else {
-        //            // Single clip sample (current state)
-        //            clipA->ApplyTo(*transform, inst.timeInState, animator->loop);
-        //        }
-
-        //        continue; // controller path handled this entity
-        //    }
-
-        //    // -------- Single-clip fallback path --------
-        //    animator->time += static_cast<float>(deltaTime) * animator->speed;
-        //    if (!animator->activeClip.empty()) {
-        //        auto clipPtr = GetClip(animator->activeClip);
-        //        if (clipPtr) {
-        //            const float end = clipPtr->length;
-        //            float t = animator->time;
-        //            if (animator->loop) {
-        //                if (end > 0.0f) t = static_cast<float>(std::fmod(t, end));
-        //                if (t < 0.0f) t += end;
-        //            }
-        //            else if (t > end) {
-        //                t = end;
-        //                animator->playing = false;
-        //            }
-        //            clipPtr->ApplyTo(*transform, t, animator->loop);
-        //        }
-        //    }
-        //}
+            return applied;
+        }
     }
 
-    //void AnimatorSystem::EnsureControllerLoaded(const std::string& path) {
-        //namespace fs = std::filesystem;
-        //if (path.empty()) return;
+    AnimatorSystem::AnimatorSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr) 
+        : m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) {}
 
-        //fs::file_time_type mtime{};
-        //bool haveFile = false;
-        //if (fs::exists(path) && fs::is_regular_file(path)) {
-        //    mtime = fs::last_write_time(path);
-        //    haveFile = true;
-        //}
+    void AnimatorSystem::OnEntityAdded(Entity e) {
+        auto& anim = m_componentManager->GetComponent<Component::Animator>(e);
 
-        //auto needReload =
-        //    (m_controllers.find(path) == m_controllers.end()) ||
-        //    (m_ctrlMTime.find(path) == m_ctrlMTime.end()) ||
-        //    (haveFile && m_ctrlMTime[path] != mtime);
+        if (!anim.animClipUUID.empty() && !anim.clip) {
+            anim.clip = Resource::ResourceManager::GetInstance().
+                LoadResource<Animation::AnimationClip>(anim.animClipUUID);
 
-        //if (!needReload) return;
+            if (anim.clip) {
+				anim.isPlaying = anim.playOnStart;
+            }
+		}
 
-        //auto ctrl = std::make_shared<AnimatorController>();
-        //if (haveFile && LoadAnimatorController(*ctrl, path)) {
-        //    m_controllers[path] = ctrl;
-        //    m_ctrlMTime[path] = mtime;
+        if (anim.luid == 0)
+            anim.luid = Core::LUIDGenerator::Generate("ac");
 
-        //    // Safety: if states shrank, clamp/repair instances
-        //    for (auto& kv : m_instances) {
-        //        auto& inst = kv.second;
-        //        if (ctrl->states.empty()) { inst.currentState = 0; continue; }
-        //        if (inst.currentState >= ctrl->states.size())
-        //            inst.currentState = std::min<uint32_t>(ctrl->defaultState, (uint32_t)ctrl->states.size() - 1);
-        //        if (inst.nextState >= ctrl->states.size())
-        //            inst.inTransition = false;
-        //    }
-        //    // (optional) log: spdlog::info("Animator: reloaded {}", path);
-        //}
-        //else {
-        //    // Failed to load: keep previous valid controller if any, just update mtime slot
-        //    m_ctrlMTime[path] = mtime;
-        //    // (optional) log error
-        //}
-    //}
+        m_luidRegistry->Register(anim.luid, &anim, e);
+    }
+
+    void AnimatorSystem::OnEntityRemoved(Entity e) {
+        auto& anim = m_componentManager->GetComponent<Component::Animator>(e);
+        m_luidRegistry->Unregister(anim.luid);
+    }
+
+    void AnimatorSystem::Init() {
+    }
+
+    void AnimatorSystem::Update(double deltaTime) {
+        const auto& entities = m_entities.GetDenseContainer();
 
 
-} // namespace
+        for (Entity entity : entities) {
+            auto& anim = m_componentManager->GetComponent<Component::Animator>(entity);
+
+            if (!anim.isPlaying)
+                continue;
+
+            if (!anim.clip) continue;
+
+            float dt = static_cast<float>(deltaTime);
+
+            anim.prevTime = anim.time;
+            anim.time = AdvanceTime(anim.time, dt * anim.speed, *anim.clip);
+
+            ApplyClipAtTime(entity, *anim.clip, anim.time);
+        }
+    }
+
+    void AnimatorSystem::Exit() {
+
+    }
+
+    void AnimatorSystem::ApplyClipAtTime(uint32_t e, const Animation::AnimationClip& clip, float t) {
+        for (const auto& tr : clip.GetTracks()) {
+            if (tr.componentTypeId == m_componentManager->GetComponentType<Component::EntityMeta>()) {
+                ApplyTrackToComponent<NE::ECS::Component::EntityMeta>(e, m_componentManager, tr, t, "EntityMeta");
+            } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Transform>()) {
+                ApplyTrackToComponent<NE::ECS::Component::Transform>(e, m_componentManager, tr, t, "Transform");
+            } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Renderer>()) {
+                ApplyTrackToComponent<NE::ECS::Component::Renderer>(e, m_componentManager, tr, t, "Renderer");
+            } else if (tr.componentTypeId == m_componentManager->GetComponentType<Component::Light>()) {
+                ApplyTrackToComponent<NE::ECS::Component::Light>(e, m_componentManager, tr, t, "Light");
+            }
+        }
+    }
+}

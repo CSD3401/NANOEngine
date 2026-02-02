@@ -85,6 +85,11 @@
     <ClCompile Include="src\Scripting\GameObject.cpp" />
     <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
     <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
+    <ClCompile Include="src\Animation\AnimationClip.cpp" />
+    <ClCompile Include="src\Animation\AnimatorController.cpp" />
+    <ClCompile Include="src\Physics\StreamOutImpl.cpp" />
+    <ClCompile Include="src\Physics\StreamInImpl.cpp" />
+    <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -250,6 +255,14 @@
     <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
     <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
     <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
+    <ClInclude Include="src\Animation\AnimationClip.hpp" />
+    <ClInclude Include="src\Animation\AnimatorController.hpp" />
+    <ClInclude Include="src\ResourceManagement\BinaryHeaders\NanoAnimClipHeader.hpp" />
+    <ClInclude Include="src\Physics\StreamOutImpl.hpp" />
+    <ClInclude Include="src\Physics\StreamInImpl.hpp" />
+    <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
+    <ClInclude Include="src\Physics\ContactPair.hpp" />
+    <ClInclude Include="src\Physics\ContactDefs.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

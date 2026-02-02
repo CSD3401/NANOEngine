@@ -44,7 +44,9 @@ namespace NE::ECS::Systems {
 	}
 
 	void TransformSystem::Update(double) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
+#endif
 
 		const auto& entities = GetEntities();
 

@@ -1,11 +1,12 @@
 #include "HierarchySystem.hpp"
 
 #include "Core/LUIDGenerator.hpp"
+#include "Core/LUIDRegistry.hpp"
 #include "Math/Mat4.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../Components/Transform.hpp"
 #include "../Components/EntityMeta.hpp"
-#include "Math/Mat4.hpp"
+#include <Core/Profiler.hpp>
 
 namespace NE::ECS::Systems {
 
@@ -34,7 +35,8 @@ namespace NE::ECS::Systems {
         }
     }
 
-	HierarchySystem::HierarchySystem(ComponentManager* cm) : m_componentManager(cm) {}
+	HierarchySystem::HierarchySystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
+        : m_componentManager(cm), m_luidRegistry(lr) {}
 
 	void HierarchySystem::OnEntityAdded(Entity e) {
 		auto& h = m_componentManager->GetComponent<Component::Hierarchy>(e);
@@ -45,19 +47,26 @@ namespace NE::ECS::Systems {
         } else {
             h.luid = Core::LUIDGenerator::Generate("hr");
         }
+		m_luidRegistry->Register(h.luid, &h, e);
 
         if (meta.luid != 0) {
             m_luidToEntity[meta.luid] = e;
         } else {
             meta.luid = Core::LUIDGenerator::Generate("em");
         }
+		m_luidRegistry->Register(meta.luid, &meta, e);
 
 		if (h.parentLuid != 0) {
 			m_pendingParents.push_back({ e, h.parentLuid });
 		}
 	}
 
-	void HierarchySystem::OnEntityRemoved(Entity /*e*/) {
+	void HierarchySystem::OnEntityRemoved(Entity e) {
+        auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(e);
+        auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
+
+        m_luidRegistry->Unregister(hier.luid);
+        m_luidRegistry->Unregister(meta.luid);
 	}
 
 	void HierarchySystem::Init() {
@@ -65,6 +74,10 @@ namespace NE::ECS::Systems {
 	}
 
 	void HierarchySystem::Update(double) {
+#ifndef PRODUCTION_BUILD
+        NE_PROFILE_FUNCTION();
+#endif
+
 		if (m_pendingParents.size() > 0)
             ResolvePendingParentsForAll(false);
 	}
@@ -81,14 +94,12 @@ namespace NE::ECS::Systems {
             childWorldBefore = childT.worldMatrix;
         }
 
-        // Remove from old parent�s children list
         if (childH.parent != Component::INVALID_PARENT) {
             auto& oldParentH = m_componentManager->GetComponent<Component::Hierarchy>(childH.parent);
             auto& vec = oldParentH.children;
             vec.erase(std::remove(vec.begin(), vec.end(), child), vec.end());
         }
 
-        // Set new parent
         childH.parent = (newParent == Component::INVALID_PARENT)
             ? Component::INVALID_PARENT
             : newParent;
@@ -97,13 +108,11 @@ namespace NE::ECS::Systems {
             auto& parentH = m_componentManager->GetComponent<Component::Hierarchy>(newParent);
             parentH.children.push_back(child);
 
-            // parentLuid from parent�s Hierarchy
             childH.parentLuid = parentH.luid;
         } else {
             childH.parentLuid = 0;
         }
 
-        // Adjust local if keepWorld
         if (keepWorld) {
             NE::Math::Mat4 localM;
             if (newParent != Component::INVALID_PARENT) {
@@ -210,7 +219,6 @@ namespace NE::ECS::Systems {
     //{
     //    SetParent(child, newParent, /*insertIndex*/ std::numeric_limits<int>::max(), keepWorld);
     //}
-
 
 	void HierarchySystem::ResolvePendingParentsForAll(bool keepWorldForNewParents) {
         std::vector<PendingParent> stillPending;

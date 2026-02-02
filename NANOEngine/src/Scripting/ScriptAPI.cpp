@@ -1785,7 +1785,7 @@ namespace NE {
 				},
 				[this, memberPtr, name](const std::string& value) -> bool {
 					try {
-						SPD_DEBUG("[MaterialRef] Setting field " << name);
+						//SPD_DEBUG("[MaterialRef] Setting field " << name);
 
 						// Empty string means no material
 						if (value.empty()) {
@@ -1801,7 +1801,7 @@ namespace NE {
 						}
 
 						*memberPtr = newRef;
-						SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
+						//SPD_DEBUG("[MaterialRef] Successfully assigned material to field '{}'", name);
 						return true;
 					} catch (const std::exception& e) {
 						SPD_ERROR("[MaterialRef] setValue exception for field '{}': {}", name, e.what());
@@ -3076,6 +3076,9 @@ namespace NE {
 			auto it = m_fieldRegistry->fields.find(name);
 			if (it != m_fieldRegistry->fields.end()) {
 				it->second.enumOptions = options;
+				//SPD_INFO("SetFieldEnumOptions: Set {} options for field '{}'", options.size(), name);
+			} else {
+				//SPD_WARNING("SetFieldEnumOptions: Field '{}' not found in registry!", name);
 			}
 		}
 
@@ -3105,6 +3108,35 @@ namespace NE {
 				it->second.getLayerMaskValue = getLayerMaskValue;
 				it->second.setLayerMaskValue = setLayerMaskValue;
 			}
+		}
+
+		void IScript::RegisterEnumVectorFieldInternal(
+			const std::string& name,
+			const std::vector<std::string>& enumOptions,
+			std::function<std::string()> getValue,
+			std::function<bool(const std::string&)> setValue,
+			std::function<size_t()> getSize,
+			std::function<std::string(size_t)> getElement,
+			std::function<bool(size_t, const std::string&)> setElement,
+			std::function<void()> addElement,
+			std::function<void(size_t)> removeElement) {
+			if (!m_fieldRegistry) {
+				m_fieldRegistry = new FieldRegistry();
+			}
+
+			FieldRegistry::FieldEntry entry;
+			entry.typeToken = "vector<enum>";
+			entry.memberPtr = nullptr;
+			entry.getValue = std::move(getValue);
+			entry.setValue = std::move(setValue);
+			entry.getSize = std::move(getSize);
+			entry.getElement = std::move(getElement);
+			entry.setElement = std::move(setElement);
+			entry.addElement = std::move(addElement);
+			entry.removeElement = std::move(removeElement);
+			entry.enumOptions = enumOptions;
+
+			m_fieldRegistry->fields[name] = std::move(entry);
 		}
 
 		//=========================================================================
@@ -3162,11 +3194,19 @@ namespace NE {
 
 		// Virtual methods with default implementations for optional override
 		std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
-			if (!m_fieldRegistry) return {};
+			if (!m_fieldRegistry) {
+				//SPD_WARNING("GetEnumOptions: m_fieldRegistry is null for field '{}'", fieldName);
+				return {};
+			}
 
 			auto it = m_fieldRegistry->fields.find(fieldName);
-			if (it != m_fieldRegistry->fields.end() && !it->second.enumOptions.empty()) {
-				return it->second.enumOptions;
+			if (it != m_fieldRegistry->fields.end()) {
+				//SPD_INFO("GetEnumOptions: Field '{}' found, enumOptions.size() = {}", fieldName, it->second.enumOptions.size());
+				if (!it->second.enumOptions.empty()) {
+					return it->second.enumOptions;
+				}
+			} else {
+				//SPD_WARNING("GetEnumOptions: Field '{}' not found in registry", fieldName);
 			}
 			return {};
 		}

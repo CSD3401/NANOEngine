@@ -16,7 +16,8 @@ namespace NE::Graphics {
 		DestroyAll();
 	}
 
-	RenderViewHandle RenderViewManager::Create(uint32_t width, uint32_t height, bool enablePicking) {
+	RenderViewHandle RenderViewManager::Create(uint32_t width, uint32_t height, bool enablePicking)
+	{
 		RenderViewHandle handle = m_NextHandle++;
 
 		// Create OpenGL framebuffer
@@ -31,7 +32,8 @@ namespace NE::Graphics {
 		return handle;
 	}
 
-	RenderViewHandle RenderViewManager::CreateHDR(uint32_t width, uint32_t height, bool enablePicking) {
+	RenderViewHandle RenderViewManager::CreateHDR(uint32_t width, uint32_t height, bool enablePicking)
+	{
 		RenderViewHandle handle = m_NextHandle++;
 
 		// Create OpenGL framebuffer
@@ -47,7 +49,8 @@ namespace NE::Graphics {
 		return handle;
 	}
 
-	RenderViewHandle RenderViewManager::CreateLDR(uint32_t width, uint32_t height, bool enablePicking) {
+	RenderViewHandle RenderViewManager::CreateLDR(uint32_t width, uint32_t height, bool enablePicking)
+	{
 		RenderViewHandle handle = m_NextHandle++;
 
 		// Create OpenGL framebuffer

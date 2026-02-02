@@ -162,6 +162,7 @@
     <ClInclude Include="Scripts\BulletShooterScript.hpp" />
     <ClInclude Include="Scripts\CameraController.hpp" />
     <ClInclude Include="Scripts\EngineAPI.hpp" />
+    <ClInclude Include="Scripts\Example_EnumField.hpp" />
     <ClInclude Include="Scripts\Example_Template.hpp" />
     <ClInclude Include="Scripts\FollowerScript.hpp" />
     <ClInclude Include="Scripts\GameObjectExamples.hpp" />

@@ -6,18 +6,28 @@
 #include <ScriptSDK/ScriptAPI.h>
 
 // Include headers for all scripts you want to register
-#include "Scripts/Interactable_.hpp"
+#include "Scripts/Highlightable_Material.hpp"
 #include "Scripts/Player_Controller.hpp"
-#include "Scripts/Manager_.hpp"
+#include "Scripts/Player_Raycast.hpp"
+#include "Scripts/Watch_Controller.hpp"
 #include "Scripts/Puzzle_Wire.hpp"
-#include "Scripts/WireChild.hpp"
+#include "Scripts/Puzzle_Mirror.hpp"
+#include "Scripts/Puzzle_Lever.hpp"
 #include "Scripts/Interactable_WireButton.hpp"
-#include "Scripts/Grabbable.hpp"
-#include "Scripts/Grabber.hpp"
-#include "Scripts/Miscellaneous_ICOSwitcher.hpp"
-#include "Scripts/Puzzle_TwoStateRotater.hpp"
-#include "Scripts/Puzzle_OneWaySwitch.hpp"
-#include "Scripts/Puzzle_Sinkhole.hpp"
+#include "Scripts/Interactable_Grabbable.hpp"
+#include "Scripts/Interactable_OneWaySwitch.hpp"
+#include "Scripts/Interactable_TwoWaySwitch.hpp"
+#include "Scripts/Misc_Manager.hpp"
+#include "Scripts/Misc_WireChild.hpp"
+#include "Scripts/Misc_Grabber.hpp"
+#include "Scripts/Misc_ICOSwitcher.hpp"
+#include "Scripts/Misc_TwoStateRotater.hpp"
+#include "Scripts/Misc_Sinkhole.hpp"
+#include "Scripts/Misc_MaterialSwitcher.hpp"
+#include "Scripts/Misc_PLayerRespawn.hpp"
+#include "Scripts/Misc_PlayerRespawnTest.hpp"
+#include "Scripts/Interactable_NoteCollector.hpp"
+#include "Scripts/NoteCollector_Controller.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -30,42 +40,8 @@ extern "C" {
             return;
         }
 
-        // Register all your game-specific scripts here
         registrar->RegisterScript("Interactable_", []() -> NE::Scripting::IScript* {
             return new Interactable_();
-            });
-        registrar->RegisterScript("Player_Controller", []() -> NE::Scripting::IScript* {
-            return new Player_Controller();
-            });
-        registrar->RegisterScript("Manager_", []() -> NE::Scripting::IScript* {
-            return new Manager_();
-            });
-        registrar->RegisterScript("Puzzle_Wire", []() -> NE::Scripting::IScript* {
-            return new Puzzle_Wire();
-            });
-        registrar->RegisterScript("WireChild", []() -> NE::Scripting::IScript* {
-            return new WireChild();
-            });
-        registrar->RegisterScript("Interactable_WireButton", []() -> NE::Scripting::IScript* {
-            return new Interactable_WireButton();
-            });
-        registrar->RegisterScript("Grabbable", []() -> NE::Scripting::IScript* {
-            return new Grabbable();
-            });
-        registrar->RegisterScript("Grabber", []() -> NE::Scripting::IScript* {
-            return new Grabber();
-            });
-        registrar->RegisterScript("Miscellaneous_ICOSwitcher", []() -> NE::Scripting::IScript* {
-            return new Miscellaneous_ICOSwitcher();
-            });
-        registrar->RegisterScript("Puzzle_TwoStateRotater", []() -> NE::Scripting::IScript* {
-            return new Puzzle_TwoStateRotater();
-            });
-        registrar->RegisterScript("Puzzle_OneWaySwitch", []() -> NE::Scripting::IScript* {
-            return new Puzzle_OneWaySwitch();
-            });
-        registrar->RegisterScript("Puzzle_Sinkhole", []() -> NE::Scripting::IScript* {
-            return new Puzzle_Sinkhole();
             });
     }
 }
