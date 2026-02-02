@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <utility>  // For std::pair in polymorphic lookups
 
 // Forward declaration of engine Math::Vec3 for implicit conversion
 namespace NE { namespace Math { struct Vec3; } }
@@ -296,7 +297,9 @@ namespace Scripting {
     // Internal helper functions (implemented in GameObject.cpp where ScriptContext is defined)
     // These allow templates to work without needing full ScriptContext definition in the SDK header
     SCRIPT_API IScript* GameObject_GetScriptByType(Entity entity, const std::string& typeName);
+    SCRIPT_API std::vector<IScript*> GameObject_GetAllScripts(Entity entity);  // For polymorphic GetComponent
     SCRIPT_API std::vector<Entity> GameObject_FindAllWithScript(const std::string& typeName);
+    SCRIPT_API std::vector<std::pair<Entity, IScript*>> GameObject_GetAllEntitiesWithScripts();  // For polymorphic FindObjectsOfType
     SCRIPT_API void GameObject_SetStaticContext(class ScriptContext* context);  // Called when scripts are linked
     SCRIPT_API void GameObject_ResetStaticContext();  // Called by ScriptingEngine during shutdown
 
@@ -566,6 +569,8 @@ namespace NE::Scripting {
 
     /**
      * Get a script component by type on this GameObject.
+     * Uses dynamic_cast to support polymorphic lookups - if you have a Door script
+     * that inherits from Interactable, GetComponent<Interactable>() will find it.
      * @tparam T The script type (must inherit from IScript)
      * @return Pointer to the script instance, or nullptr if not found
      */
@@ -578,17 +583,21 @@ namespace NE::Scripting {
         // Ensure context is valid (needed when GameObject was created from GameObjectRef)
         const_cast<GameObject*>(this)->EnsureContext();
 
-        // Get the script type name
-        std::string typeName = GetScriptTypeName<T>();
+        // Get all scripts on this entity and use dynamic_cast to find matching type
+        // This supports inheritance - GetComponent<BaseClass>() finds derived classes
+        std::vector<IScript*> scripts = GameObject_GetAllScripts(m_entity);
+        for (IScript* script : scripts) {
+            if (T* result = dynamic_cast<T*>(script)) {
+                return result;
+            }
+        }
 
-        // Use helper function (implemented in GameObject.cpp where ScriptContext is defined)
-        IScript* script = GameObject_GetScriptByType(m_entity, typeName);
-
-        return static_cast<T*>(script);
+        return nullptr;
     }
 
     /**
      * Check if this GameObject has a specific script type.
+     * Uses polymorphic lookup (checks inheritance).
      * @tparam T The script type to check for
      * @return true if the script exists on this GameObject
      */
@@ -599,6 +608,8 @@ namespace NE::Scripting {
 
     /**
      * Find all GameObjects with a specific script type.
+     * Uses dynamic_cast to support polymorphic lookups - if you search for Interactable,
+     * it will find all entities with scripts that inherit from Interactable.
      * @tparam T The script type to search for
      * @return Vector of all GameObjects with the specified script
      *
@@ -609,15 +620,21 @@ namespace NE::Scripting {
     inline std::vector<GameObject> GameObject::FindObjectsOfType() {
         std::vector<GameObject> result;
 
-        // Get the script type name we're looking for
-        std::string targetTypeName = GetScriptTypeName<T>();
+        // Get all entities with scripts and use dynamic_cast to find matching types
+        std::vector<std::pair<Entity, IScript*>> allScripts = GameObject_GetAllEntitiesWithScripts();
 
-        // Use helper function (implemented in GameObject.cpp where ScriptContext is defined)
-        std::vector<Entity> entities = GameObject_FindAllWithScript(targetTypeName);
+        Entity lastAddedEntity = INVALID_ENTITY;
+        for (const auto& [entity, script] : allScripts) {
+            // Skip if we already added this entity (an entity might have multiple scripts)
+            if (entity == lastAddedEntity) {
+                continue;
+            }
 
-        // Convert entities to GameObjects (context will be initialized via EnsureContext when needed)
-        for (Entity entity : entities) {
-            result.push_back(GameObject(entity));
+            // Use dynamic_cast to check if this script is or inherits from T
+            if (dynamic_cast<T*>(script)) {
+                result.push_back(GameObject(entity));
+                lastAddedEntity = entity;
+            }
         }
 
         return result;

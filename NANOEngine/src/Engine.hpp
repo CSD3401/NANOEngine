@@ -80,5 +80,8 @@ namespace NE {
 	NANOENGINE_API unsigned int LoadCookedThumbnailGL(const std::string& uuid);
 	NANOENGINE_API void DestroyGLTexture(unsigned int id);
 
+	NANOENGINE_API bool CookMeshCollider(const std::vector<Math::Vec3>& vertices,
+		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob);
+
 	NANOENGINE_API void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds);
 }

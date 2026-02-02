@@ -60,6 +60,18 @@ namespace Editor {
         int itemsCount,
         float rightWidth = 180.0f);
 
+    using AssetDropFn = std::function<void(const ImGuiPayload* payload)>;
+    void DrawAssetField(
+        const char* label,
+        const std::string& assetPath,
+        bool rightAligned = false,
+        bool* openPopup = nullptr,
+        ImVec2 size = ImVec2(0, 0),
+        float plusWidth = 28.0f,
+        const char* dndPayloadType = nullptr,
+        AssetDropFn onDrop = nullptr
+    );
+
     void DrawAssetField(const char* label, const std::string& assetPath, bool* openPopup = nullptr, bool rightAligned = true, ImVec2 size = { 380.f, 0.f }, float plusWidth = 38.f);
 
     // New Styling

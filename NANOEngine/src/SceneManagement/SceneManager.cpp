@@ -6,6 +6,7 @@
 #include "ECS/Core/Entity.hpp"
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Serialisation/Serializer.hpp"
+#include "Physics/PhysicsManager.hpp"
 
 namespace NE::SceneManagement {
 
@@ -14,6 +15,9 @@ namespace NE::SceneManagement {
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().
+			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
 		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
 			m_editor.reset();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
@@ -42,6 +46,8 @@ namespace NE::SceneManagement {
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+			&m_editor->GetECSCoordinator().GetLUIDRegistry());
 	}
 
 	void SceneManager::StartSceneFallback() {
@@ -64,6 +70,8 @@ namespace NE::SceneManagement {
 		// Load runtime scene from file
 		m_runtime = std::make_unique<Scene>();
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
+		Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+			&m_editor->GetECSCoordinator().GetLUIDRegistry());
 		NE::Deserialization::DeserializeScene(m_runtime->GetECSCoordinator(), m_loadedPath);
 
 		// Transfer editor field values to runtime scene (before Init)
@@ -102,6 +110,8 @@ namespace NE::SceneManagement {
 			auto& entityMgr = coordinator.GetEntityManager();
 			auto& luidRegistry = coordinator.GetLUIDRegistry();
 			Scripting::ScriptingEngine::GetInstance().RecreateScriptInstances(componentMgr, entityMgr, luidRegistry);
+			Physics::PhysicsManager::GetInstance().SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(),
+				&m_editor->GetECSCoordinator().GetLUIDRegistry());
 
 			// Important to recreate the editor's renderviews
 			m_editor->CameraEnter();

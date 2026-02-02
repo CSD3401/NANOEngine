@@ -27,6 +27,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Physics\ContactDefs.hpp" />
+    <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
     <ClInclude Include="src\Animation\AnimationClip.hpp" />
     <ClInclude Include="src\Animation\AnimatorController.hpp" />
     <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
@@ -36,6 +38,7 @@
     <ClInclude Include="src\ECS\Components\PrefabLink.hpp" />
     <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
+    <ClInclude Include="src\Physics\ContactPair.hpp" />
     <ClInclude Include="src\Physics\ForceMode.hpp" />
     <ClInclude Include="src\Physics\ObjectLayerFilterImpl.hpp" />
     <ClInclude Include="src\Physics\BroadPhaseLayerInterfaceImpl.hpp" />
@@ -192,8 +195,11 @@
     <ClInclude Include="src\Tween\TweenBase.hpp" />
     <ClInclude Include="src\Tween\TweenManager.hpp" />
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
+    <ClInclude Include="src\Physics\StreamOutImpl.hpp" />
+    <ClInclude Include="src\Physics\StreamInImpl.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
     <ClCompile Include="src\Animation\AnimationClip.cpp" />
     <ClCompile Include="src\Animation\AnimatorController.cpp" />
     <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
@@ -278,6 +284,8 @@
     <ClCompile Include="src\Tween\TweenBase.cpp" />
     <ClCompile Include="src\Tween\TweenManager.cpp" />
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
+    <ClCompile Include="src\Physics\StreamOutImpl.cpp" />
+    <ClCompile Include="src\Physics\StreamInImpl.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

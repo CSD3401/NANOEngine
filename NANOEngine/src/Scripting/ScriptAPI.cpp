@@ -298,6 +298,7 @@ namespace NE {
 			if (m_context->componentManager->HasComponent<ECS::Component::Transform>(targetEntity)) {
 				auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
 				transform.localRotationEuler = ToEngineVec3(rot);
+				transform.localRotationQuat = NE::Math::Quat::FromEulerDegrees(transform.localRotationEuler);
 				transform.isDirty = true;
 			}
 		}
@@ -3074,6 +3075,9 @@ namespace NE {
 			auto it = m_fieldRegistry->fields.find(name);
 			if (it != m_fieldRegistry->fields.end()) {
 				it->second.enumOptions = options;
+				//SPD_INFO("SetFieldEnumOptions: Set {} options for field '{}'", options.size(), name);
+			} else {
+				//SPD_WARNING("SetFieldEnumOptions: Field '{}' not found in registry!", name);
 			}
 		}
 
@@ -3189,11 +3193,19 @@ namespace NE {
 
 		// Virtual methods with default implementations for optional override
 		std::vector<std::string> IScript::GetEnumOptions(const std::string& fieldName) const {
-			if (!m_fieldRegistry) return {};
+			if (!m_fieldRegistry) {
+				//SPD_WARNING("GetEnumOptions: m_fieldRegistry is null for field '{}'", fieldName);
+				return {};
+			}
 
 			auto it = m_fieldRegistry->fields.find(fieldName);
-			if (it != m_fieldRegistry->fields.end() && !it->second.enumOptions.empty()) {
-				return it->second.enumOptions;
+			if (it != m_fieldRegistry->fields.end()) {
+				//SPD_INFO("GetEnumOptions: Field '{}' found, enumOptions.size() = {}", fieldName, it->second.enumOptions.size());
+				if (!it->second.enumOptions.empty()) {
+					return it->second.enumOptions;
+				}
+			} else {
+				//SPD_WARNING("GetEnumOptions: Field '{}' not found in registry", fieldName);
 			}
 			return {};
 		}

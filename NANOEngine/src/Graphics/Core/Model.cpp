@@ -10,6 +10,9 @@ namespace {
         float px, py, pz;
         float nx, ny, nz;
         float u, v;
+
+        float tx, ty, tz;
+        float tSign;
     };
 }
 
@@ -22,7 +25,7 @@ namespace NE::Graphics {
         if (!hdr) return false;
         if (hdr->magic != Resource::NMOD_MAGIC) return false;
 
-        if (hdr->version != Resource::CURRENT_NANOMODEL_FORMAT_VERSION) return false;
+        if (hdr->version < 2 || hdr->version > Resource::CURRENT_NANOMODEL_FORMAT_VERSION) return false;
 
         const size_t subTableOff = sizeof(Resource::NanoMeshHeader);
         const size_t subTableSize = static_cast<size_t>(hdr->submeshCount) * sizeof(Resource::NanoSubmeshDesc);
@@ -52,11 +55,25 @@ namespace NE::Graphics {
             sm.idata = iptr;
             sm.indexCount = d.indexCount;
 
+            if (hdr->version >= 3 && d.colliderDataSize > 0) {
+                const uint8_t* cptr = blob.at(d.colliderDataOffset, d.colliderDataSize);
+                if (!cptr) return false;
+
+                sm.cdata = cptr;
+                sm.colliderSize = d.colliderDataSize;
+                sm.colliderType = d.colliderType;
+                sm.vertexFlags = d.vertexFlags;
+            } else {
+                sm.cdata = nullptr;
+                sm.colliderSize = 0;
+                sm.colliderType = 0;
+                sm.vertexFlags = 0;
+            }
+
             if (hdr->version >= 2) {
                 sm.localAABB.min = { d.aabbMin[0], d.aabbMin[1], d.aabbMin[2] };
                 sm.localAABB.max = { d.aabbMax[0], d.aabbMax[1], d.aabbMax[2] };
 
-                //sm.localSphere.center = { d.sphereCenter[0], d.sphereCenter[1], d.sphereCenter[2] };
                 sm.localSphere.radius = d.sphereRadius;
             }
 
@@ -97,6 +114,11 @@ namespace NE::Graphics {
 
             sub.buffer = std::make_shared<NE::Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
 
+            if (sm.cdata && sm.colliderSize > 0) {
+                sub.colliderBlob.assign(sm.cdata, sm.cdata + sm.colliderSize);
+                sub.colliderType = sm.colliderType;
+            }
+
             sub.localAABB = sm.localAABB;
             sub.localSphere = sm.localSphere;
 
@@ -106,22 +128,13 @@ namespace NE::Graphics {
         m_staged.clear();
     }
 
-    bool Model::GetPhysicsMesh(std::vector<Math::Vec3>& outVerts, std::vector<uint32_t>& outIndices) const {
-        outVerts.clear();
-        outIndices.clear();
-
-        for (const auto& sm : meshes) {
-            uint32_t base = (uint32_t)outVerts.size();
-
-            // Copy positions
-            for (const auto& v : sm.vertices)
-                outVerts.push_back(v.Position);
-
-            // Copy indices (offset by base)
-            for (auto idx : sm.indices)
-                outIndices.push_back(base + idx);
-        }
-
-        return !outVerts.empty() && !outIndices.empty();
+    bool Model::GetSubmeshColliderBlob(uint32_t submeshIndex, const uint8_t*& outData, uint32_t& outSize, uint8_t& outType) const {
+        if (submeshIndex >= meshes.size()) return false;
+        const SubMesh& sm = meshes[submeshIndex];
+        if (sm.colliderBlob.empty()) return false;
+        outData = sm.colliderBlob.data();
+        outSize = (uint32_t)sm.colliderBlob.size();
+        outType = sm.colliderType;
+        return true;
     }
 }

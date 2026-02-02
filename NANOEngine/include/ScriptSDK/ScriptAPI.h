@@ -152,6 +152,12 @@ namespace Scripting {
         virtual void OnCollisionExit(Entity other) = 0;
 
         /**
+         * Called when this entity is colliding with another entity.
+         * @param other The other entity involved in collision
+		 */
+        virtual void OnCollisionStay(Entity other) = 0;
+
+        /**
          * Called when this entity triggers another entity.
          * @param other The other entity that entered trigger
          */
@@ -162,6 +168,12 @@ namespace Scripting {
          * @param other The other entity that exited trigger
          */
         virtual void OnTriggerExit(Entity other) = 0;
+
+        /**
+         * Called when this entity is triggering another entity.
+         * @param other The other entity involved in trigger
+		 */
+		virtual void OnTriggerStay(Entity other) = 0;
 
         //=====================================================================
         // ENTITY & SCRIPT STATE
@@ -1545,12 +1557,10 @@ namespace NE::Scripting {
      */
     template<typename EnumType>
     inline void IScript::RegisterEnumField(const std::string& name, EnumType* memberPtr, const std::vector<std::string>& enumOptions) {
-        // Store enum options FIRST (single copy)
-        SetFieldEnumOptions(name, enumOptions);
-
         // Get the option count once for validation
         const size_t optionCount = enumOptions.size();
 
+        // Register the field FIRST (creates the entry)
         RegisterFieldInternal(
             name,
             "enum",
@@ -1573,6 +1583,9 @@ namespace NE::Scripting {
                 }
             }
         );
+
+        // Store enum options AFTER field is registered (so it can find the entry)
+        SetFieldEnumOptions(name, enumOptions);
 
         // Store accessor functions
         SetFieldEnumCallbacks(name,

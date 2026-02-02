@@ -20,6 +20,7 @@
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/Renderer.hpp>
 #include <Graphics/Core/Material.hpp>
+#include <Engine.hpp>
 
 #include "../AssetManager.hpp"
 #include "../../Serialization/JSONReflection.hpp"
@@ -50,6 +51,9 @@ namespace Editor::Assets {
 			float px, py, pz;
 			float nx, ny, nz;
 			float u, v;
+
+			float tx, ty, tz;
+			float tSign; // +1 / -1
 		};
 
 		struct Bounds {
@@ -853,6 +857,7 @@ namespace Editor::Assets {
 		struct RawBlob {
 			std::vector<uint8_t> vertices;
 			std::vector<uint8_t> indices;
+			std::vector<uint8_t> collider;
 		};
 		std::vector<RawBlob> blobs(scene->mNumMeshes);
 
@@ -887,6 +892,27 @@ namespace Editor::Assets {
 					v.u = v.v = 0.0f;
 				}
 
+				if (mesh->HasTangentsAndBitangents()) {
+					auto NormalizeSafe = [](aiVector3D v) {
+						float len2 = v.x * v.x + v.y * v.y + v.z * v.z;
+						if (len2 > 1e-12f) { float inv = 1.0f / std::sqrt(len2); v.x *= inv; v.y *= inv; v.z *= inv; }
+						return v;
+						};
+
+					aiVector3D T = NormalizeSafe(mesh->mTangents[i]);
+					aiVector3D B = NormalizeSafe(mesh->mBitangents[i]);
+					aiVector3D N = NormalizeSafe(mesh->HasNormals() ? mesh->mNormals[i] : aiVector3D(0, 1, 0));
+
+					// Cross product then dot product
+					float sign = ((N ^ T) * B) < 0.0f ? -1.0f : 1.0f;
+
+					v.tx = T.x; v.ty = T.y; v.tz = T.z;
+					v.tSign = sign;
+				} else {
+					v.tx = v.ty = v.tz = 0.0f;
+					v.tSign = 1.0f;
+				}
+
 				vout[i] = v;
 
 				subB.Expand(v.px, v.py, v.pz);
@@ -915,6 +941,21 @@ namespace Editor::Assets {
 				vout[i].px -= submeshPivots[m].x;
 				vout[i].py -= submeshPivots[m].y;
 				vout[i].pz -= submeshPivots[m].z;
+			}
+
+			if (importSettings->mesh.generateColliders) {
+				std::vector<NE::Math::Vec3> physVerts;
+				physVerts.reserve(mesh->mNumVertices);
+				for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
+					physVerts.push_back({ vout[i].px, vout[i].py, vout[i].pz });
+				}
+
+				rb.collider.clear();
+				bool ok = NE::CookMeshCollider(physVerts, idx, rb.collider);
+				if (!ok) {
+					SPD_WARNING("Collider cook failed for submesh " << m << " (" << sourcePath << "), writing without collider.");
+					rb.collider.clear();
+				}
 			}
 
 			subB.minP = subB.minP - submeshPivots[m];
@@ -948,8 +989,20 @@ namespace Editor::Assets {
 			uint32_t indexOffset = static_cast<uint32_t>(ofs.tellp());
 			ofs.write(reinterpret_cast<const char*>(rb.indices.data()), rb.indices.size());
 
+			uint32_t colliderOffset = 0;
+			uint32_t colliderSize = 0;
+			if (!rb.collider.empty()) {
+				colliderOffset = (uint32_t)ofs.tellp();
+				colliderSize = (uint32_t)rb.collider.size();
+				ofs.write((char*)rb.collider.data(), rb.collider.size());
+			}
+
 			subdescs[m].vertexDataOffset = vertexOffset;
 			subdescs[m].indexDataOffset = indexOffset;
+			subdescs[m].colliderDataOffset = colliderOffset;
+			subdescs[m].colliderDataSize = colliderSize;
+			subdescs[m].colliderType = 1; // triMesh
+			subdescs[m].vertexFlags = 0;
 		}
 
 		ofs.seekp(subTablePos, std::ios::beg);
@@ -1077,7 +1130,7 @@ namespace Editor::Assets {
 
 		rapidjson::OStreamWrapper osw(ofsMeta);
 		rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
-		writer.SetIndent(' ', 4);
+			writer.SetIndent(' ', 4);
 		doc.Accept(writer);
 
 		return true;

@@ -325,6 +325,8 @@ namespace NE::Scripting {
          */
         NANOENGINE_API void OnTriggerExit(NE::ECS::Entity entity, NE::ECS::Entity other);
 
+        NANOENGINE_API void OnTriggerStay(NE::ECS::Entity entity, NE::ECS::Entity other);
+        NANOENGINE_API void OnCollisionStay(NE::ECS::Entity entity, NE::ECS::Entity other);
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;

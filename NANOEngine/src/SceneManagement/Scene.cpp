@@ -36,12 +36,6 @@ namespace NE::SceneManagement {
 	}
 
 	void Scene::InitRuntime() {
-		// Initialize PhysicsManager with ComponentManager for LUID resolution
-		Physics::PhysicsManager::GetInstance().SetComponentManager(&m_ecsCoordinator.GetComponentManager());
-
-		// Register collision callbacks to forward physics events to scripts
-		Physics::PhysicsManager::GetInstance().RegisterCollisionCallbacks();
-
 		m_ecsCoordinator.m_hierarchySystem->Init();
 		m_ecsCoordinator.m_transformSystem->Init();
 		m_ecsCoordinator.m_rigidbodySystem->Init();
