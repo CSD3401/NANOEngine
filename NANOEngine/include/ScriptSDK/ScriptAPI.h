@@ -1237,6 +1237,113 @@ namespace Scripting {
      */
     SCRIPT_API bool IsButtonInteractable(Entity entity);
 
+    //=========================================================================
+    // UI SLIDER API
+    //=========================================================================
+
+    /**
+     * @brief Get the current value of a slider
+     * @param entity The entity with UISlider component
+     * @return Current slider value (between minValue and maxValue)
+     */
+    SCRIPT_API float GetSliderValue(Entity entity);
+
+    /**
+     * @brief Set the value of a slider
+     * @param entity The entity with UISlider component
+     * @param value New value (will be clamped to min/max range)
+     */
+    SCRIPT_API void SetSliderValue(Entity entity, float value);
+
+    /**
+     * @brief Get the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @return Normalized value between 0.0 and 1.0
+     */
+    SCRIPT_API float GetSliderNormalizedValue(Entity entity);
+
+    /**
+     * @brief Set the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @param normalizedValue Value between 0.0 and 1.0
+     */
+    SCRIPT_API void SetSliderNormalizedValue(Entity entity, float normalizedValue);
+
+    /**
+     * @brief Set the min and max values for a slider
+     * @param entity The entity with UISlider component
+     * @param minValue Minimum value
+     * @param maxValue Maximum value
+     */
+    SCRIPT_API void SetSliderMinMax(Entity entity, float minValue, float maxValue);
+
+    /**
+     * @brief Check if slider value changed this frame
+     * @param entity The entity with UISlider component
+     * @return true if the slider value was changed
+     */
+    SCRIPT_API bool SliderValueChanged(Entity entity);
+
+    /**
+     * @brief Check if a slider is interactable
+     * @param entity The entity with UISlider component
+     * @return true if the slider is interactable
+     */
+    SCRIPT_API bool IsSliderInteractable(Entity entity);
+
+    /**
+     * @brief Set whether a slider is interactable
+     * @param entity The entity with UISlider component
+     * @param interactable true to enable interaction, false to disable
+     */
+    SCRIPT_API void SetSliderInteractable(Entity entity, bool interactable);
+
+    //=========================================================================
+    // UI TOGGLE API
+    //=========================================================================
+
+    /**
+     * @brief Check if a toggle is currently on
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is on
+     */
+    SCRIPT_API bool IsToggleOn(Entity entity);
+
+    /**
+     * @brief Set the toggle state
+     * @param entity The entity with UIToggle component
+     * @param isOn true to turn on, false to turn off
+     */
+    SCRIPT_API void SetToggleOn(Entity entity, bool isOn);
+
+    /**
+     * @brief Check if toggle value changed this frame
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle value was changed
+     */
+    SCRIPT_API bool ToggleValueChanged(Entity entity);
+
+    /**
+     * @brief Check if toggle was clicked this frame
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle was clicked
+     */
+    SCRIPT_API bool WasToggleClicked(Entity entity);
+
+    /**
+     * @brief Check if a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is interactable
+     */
+    SCRIPT_API bool IsToggleInteractable(Entity entity);
+
+    /**
+     * @brief Set whether a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @param interactable true to enable interaction, false to disable
+     */
+    SCRIPT_API void SetToggleInteractable(Entity entity, bool interactable);
+
 } // namespace Scripting
 } // namespace NE
 
@@ -1654,6 +1761,137 @@ namespace UI {
      */
     inline bool IsButtonInteractable(NE::Scripting::Entity entity) {
         return NE::Scripting::IsButtonInteractable(entity);
+    }
+
+    // === Slider ===
+
+    /**
+     * @brief Get the current value of a slider
+     * @param entity The entity with UISlider component
+     * @return Current slider value
+     */
+    inline float GetSliderValue(NE::Scripting::Entity entity) {
+        return NE::Scripting::GetSliderValue(entity);
+    }
+
+    /**
+     * @brief Set the value of a slider
+     * @param entity The entity with UISlider component
+     * @param value New value (will be clamped to min/max range)
+     */
+    inline void SetSliderValue(NE::Scripting::Entity entity, float value) {
+        NE::Scripting::SetSliderValue(entity, value);
+    }
+
+    /**
+     * @brief Get the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @return Normalized value
+     */
+    inline float GetSliderNormalizedValue(NE::Scripting::Entity entity) {
+        return NE::Scripting::GetSliderNormalizedValue(entity);
+    }
+
+    /**
+     * @brief Set the normalized value of a slider (0.0 to 1.0)
+     * @param entity The entity with UISlider component
+     * @param normalizedValue Value between 0.0 and 1.0
+     */
+    inline void SetSliderNormalizedValue(NE::Scripting::Entity entity, float normalizedValue) {
+        NE::Scripting::SetSliderNormalizedValue(entity, normalizedValue);
+    }
+
+    /**
+     * @brief Set the min and max values for a slider
+     * @param entity The entity with UISlider component
+     * @param minValue Minimum value
+     * @param maxValue Maximum value
+     */
+    inline void SetSliderMinMax(NE::Scripting::Entity entity, float minValue, float maxValue) {
+        NE::Scripting::SetSliderMinMax(entity, minValue, maxValue);
+    }
+
+    /**
+     * @brief Check if slider value changed this frame
+     * @param entity The entity with UISlider component
+     * @return true if the value was changed
+     */
+    inline bool SliderValueChanged(NE::Scripting::Entity entity) {
+        return NE::Scripting::SliderValueChanged(entity);
+    }
+
+    /**
+     * @brief Check if a slider is interactable
+     * @param entity The entity with UISlider component
+     * @return true if the slider is interactable
+     */
+    inline bool IsSliderInteractable(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsSliderInteractable(entity);
+    }
+
+    /**
+     * @brief Set whether a slider is interactable
+     * @param entity The entity with UISlider component
+     * @param interactable true to enable interaction, false to disable
+     */
+    inline void SetSliderInteractable(NE::Scripting::Entity entity, bool interactable) {
+        NE::Scripting::SetSliderInteractable(entity, interactable);
+    }
+
+    // === Toggle ===
+
+    /**
+     * @brief Check if a toggle is currently on
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is on
+     */
+    inline bool IsToggleOn(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsToggleOn(entity);
+    }
+
+    /**
+     * @brief Set the toggle state
+     * @param entity The entity with UIToggle component
+     * @param isOn true to turn on, false to turn off
+     */
+    inline void SetToggleOn(NE::Scripting::Entity entity, bool isOn) {
+        NE::Scripting::SetToggleOn(entity, isOn);
+    }
+
+    /**
+     * @brief Check if toggle value changed this frame
+     * @param entity The entity with UIToggle component
+     * @return true if the value was changed
+     */
+    inline bool ToggleValueChanged(NE::Scripting::Entity entity) {
+        return NE::Scripting::ToggleValueChanged(entity);
+    }
+
+    /**
+     * @brief Check if toggle was clicked this frame
+     * @param entity The entity with UIToggle component
+     * @return true if clicked
+     */
+    inline bool WasToggleClicked(NE::Scripting::Entity entity) {
+        return NE::Scripting::WasToggleClicked(entity);
+    }
+
+    /**
+     * @brief Check if a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @return true if the toggle is interactable
+     */
+    inline bool IsToggleInteractable(NE::Scripting::Entity entity) {
+        return NE::Scripting::IsToggleInteractable(entity);
+    }
+
+    /**
+     * @brief Set whether a toggle is interactable
+     * @param entity The entity with UIToggle component
+     * @param interactable true to enable interaction, false to disable
+     */
+    inline void SetToggleInteractable(NE::Scripting::Entity entity, bool interactable) {
+        NE::Scripting::SetToggleInteractable(entity, interactable);
     }
 }
 

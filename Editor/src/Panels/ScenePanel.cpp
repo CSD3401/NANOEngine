@@ -581,6 +581,8 @@ namespace Editor {
 		}
 
 		// transform gizmos
+		static uint32_t s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+
 		if (!EditorScene::s_selection.Empty()) {
 			static ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_W)) currentOperation = ImGuizmo::TRANSLATE;
@@ -595,7 +597,15 @@ namespace Editor {
 			using Owner = NE::ECS::Component::Transform;
 			const uint32_t last = EditorScene::s_selection.GetLastClicked();
 
-			bool isUI = NE::ECS::Query::HasRectTransform(last);
+			bool isUI = NE::ECS::Query::HasUIRectTransform(last);
+
+			// End the previous 2D gizmo if we switched to a different entity
+			if (s_lastUIGizmoEntity != NE::ECS::NO_ENTITY &&
+				s_lastUIGizmoEntity != last &&
+				UIGizmoHandler::IsGizmoActive()) {
+				UIGizmoHandler::End2DGizmo(s_lastUIGizmoEntity);
+				s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+			}
 
 			if (!isUI) {
 				auto topLevel = EditorScene::s_selection.GetTopLevelSelection(
@@ -765,143 +775,73 @@ namespace Editor {
 					}
 				}
 			} else {
-				auto& rt = NE::ECS::Command::GetRectTransform(last);
+				// UI element selected - use UIGizmoHandler for interactive handles
+				if (NE::ECS::Query::HasUIRectTransform(last)) {
+					// Find the canvas this UI element belongs to
+					uint32_t canvasEntity = NE::ECS::NO_ENTITY;
+					uint32_t current = last;
 
-				//// hotkeys (same as 3D, but for UI use ROTATE_Z)
-				//static ImGuizmo::OPERATION uiOp = ImGuizmo::TRANSLATE;
-				//if (ImGui::IsKeyPressed(ImGuiKey_W)) uiOp = ImGuizmo::TRANSLATE;
-				//if (ImGui::IsKeyPressed(ImGuiKey_E)) uiOp = ImGuizmo::ROTATE_Z;  // 2D rotation
-				//if (ImGui::IsKeyPressed(ImGuiKey_R)) uiOp = ImGuizmo::SCALE;
+					while (current != NE::ECS::NO_ENTITY) {
+						if (NE::ECS::Query::HasUICanvas(current)) {
+							canvasEntity = current;
+							break;
+						}
+						if (NE::ECS::Query::HasUIRectTransform(current)) {
+							auto& rect = NE::ECS::Query::GetUIRectTransform(current);
+							current = rect.parent;
+						} else {
+							break;
+						}
+					}
 
-				//ImGuizmo::SetOrthographic(true);
-				//ImGuizmo::SetDrawlist();
-				//ImGuizmo::SetRect(panelPos.x, panelPos.y, panelSize.x, panelSize.y);
+					// Determine render mode
+					bool isWorldSpace = false;
+					if (canvasEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUICanvas(canvasEntity)) {
+						auto& canvas = NE::ECS::Query::GetUICanvas(canvasEntity);
+						isWorldSpace = (canvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::WORLD_SPACE);
+					}
 
-				//// ---- Build VIEW/PROJ for "panel pixel space"
-				//// Origin top-left, x right, y down:
-				//// left=0 right=panelW, top=0 bottom=panelH
-				//NE::Math::Mat4 view; 
-				//view.SetToIdentity();
+					// Track UI gizmo state for drag selection blocking
+					s_usingUIGizmo = UIGizmoHandler::IsGizmoActive();
 
-				//// If your UI y-axis is DOWN (most UI), use top=0 bottom=panelH with a flipped ortho:
-				//// We can do that by setting b=panelH, t=0.
-				//NE::Math::Mat4 proj;
-				//proj.BuildOrtho(0.0f, panelSize.x,
-				//	panelSize.y, 0.0f,
-				//	-1.0f, 1.0f
-				//);
+					if (isWorldSpace) {
+						// World-space UI uses 3D gizmo with ImGuizmo
+						UIGizmoHandler::SetOperation(currentOperation);
+						UIGizmoHandler::Update3DGizmo(
+							last,
+							EditorScene::m_editorCamera.GetViewMatrix(),
+							EditorScene::m_editorCamera.GetProjectionMatrix(),
+							panelPos,
+							panelSize
+						);
+					} else {
+						// Screen-space UI uses custom 2D handles
+						// Framebuffer dimensions (matching the picking resolution)
+						constexpr float fbWidth = 1920.0f;
+						constexpr float fbHeight = 1080.0f;
 
-				//// ---- Compose model matrix from RectTransform fields
-				//// NOTE: only using position/rotation/scale here (ignoring anchors/offsets/pivot).
-				//NE::Math::Mat4 model;
-				//model.SetToIdentity();
-				//model = NE::Math::Mat4::TRS(
-				//	rt.position,
-				//	rt.rotation,  // assumed radians euler
-				//	rt.scale
-				//);
+						// Begin the 2D gizmo if not already active
+						if (!UIGizmoHandler::IsGizmoActive()) {
+							UIGizmoHandler::Begin2DGizmo(last);
+						}
 
-				//float modelM[16];
-				//memcpy(modelM, model.Data(), sizeof(float) * 16);
+						// Track the current UI entity for cleanup
+						s_lastUIGizmoEntity = last;
 
-				//// ---- Single-target command tracking
-				//static bool s_uiGizmoActive = false;
-				//static uint8_t s_uiMask = 0;
-				//static NE::ECS::Component::RectTransform s_uiBefore{};
-				//static std::unique_ptr<Editor::SetRectTransformCommand> s_uiCmd;
+						// Update the 2D gizmo (draws handles and handles input)
+						UIGizmoHandler::Update2DGizmo(last, panelPos, panelSize, fbWidth, fbHeight);
+					}
 
-				//auto opToMaskUI = [](ImGuizmo::OPERATION op) -> uint8_t {
-				//	using Cmd = Editor::SetRectTransformCommand;
-				//	switch (op) {
-				//	case ImGuizmo::TRANSLATE: return Cmd::Pos;
-				//	case ImGuizmo::ROTATE:
-				//	case ImGuizmo::ROTATE_Z:  return Cmd::Rot;
-				//	case ImGuizmo::SCALE:     return Cmd::Scl;
-				//	default:                  return Cmd::Pos;
-				//	}
-				//	};
-
-				//const bool editedThisFrame = ImGuizmo::Manipulate(
-				//	view.Data(),
-				//	proj.Data(),
-				//	uiOp,
-				//	ImGuizmo::LOCAL,
-				//	modelM
-				//);
-
-				//const bool isUsing = ImGuizmo::IsUsing();
-
-				//// Start drag: capture "before" + create command
-				//if (!s_uiGizmoActive && isUsing) {
-				//	s_uiGizmoActive = true;
-				//	s_uiMask = opToMaskUI(uiOp);
-
-				//	s_uiBefore = rt;
-				//	s_uiCmd = std::make_unique<Editor::SetRectTransformCommand>(
-				//		last,
-				//		"Gizmo: UI RectTransform",
-				//		s_uiBefore,
-				//		s_uiBefore,
-				//		&NE::ECS::Command::GetRectTransform,
-				//		s_uiMask
-				//	);
-				//}
-
-				//// While dragging: update "after"
-				//if (s_uiGizmoActive && isUsing && editedThisFrame && s_uiCmd) {
-				//	float tr[3], rotDeg[3], sc[3];
-				//	ImGuizmo::DecomposeMatrixToComponents(modelM, tr, rotDeg, sc);
-
-				//	auto after = rt;
-
-				//	if (s_uiMask & Editor::SetRectTransformCommand::Pos) {
-				//		after.position.x = tr[0];
-				//		after.position.y = tr[1];
-				//		after.position.z = tr[2];
-				//	}
-
-				//	if (s_uiMask & Editor::SetRectTransformCommand::Rot) {
-				//		// For ROTATE_Z, ImGuizmo typically reports Z in rotDeg[2]
-				//		after.rotation = {
-				//			0.0f,
-				//			0.0f,
-				//			Radians(rotDeg[2])
-				//		};
-				//	}
-
-				//	if (s_uiMask & Editor::SetRectTransformCommand::Scl) {
-				//		after.scale = { sc[0], sc[1], sc[2] };
-				//	}
-
-				//	s_uiCmd->SetAfter(after);
-				//	rt.isDirty = true; // optional: if your UI system needs it
-				//}
-
-				//// End drag: push command if changed
-				//if (s_uiGizmoActive && !isUsing) {
-				//	auto eq3 = [](auto a, auto b) {
-				//		return std::fabs(a.x - b.x) <= 1e-6f &&
-				//			std::fabs(a.y - b.y) <= 1e-6f &&
-				//			std::fabs(a.z - b.z) <= 1e-6f;
-				//		};
-
-				//	bool changed = false;
-				//	if (s_uiCmd) {
-				//		const auto& B = s_uiCmd->Before();
-				//		const auto& A = s_uiCmd->After();
-
-				//		if (s_uiMask & Editor::SetRectTransformCommand::Pos) changed |= !eq3(B.position, A.position);
-				//		if (s_uiMask & Editor::SetRectTransformCommand::Rot) changed |= !eq3(B.rotation, A.rotation);
-				//		if (s_uiMask & Editor::SetRectTransformCommand::Scl) changed |= !eq3(B.scale, A.scale);
-
-				//		if (changed)
-				//			Editor::CommandHistory::GetInstance().ExecuteCommand(std::move(s_uiCmd));
-				//		else
-				//			s_uiCmd.reset();
-				//	}
-
-				//	s_uiGizmoActive = false;
-				//}
+					// Update flag after gizmo operations
+					s_usingUIGizmo = UIGizmoHandler::IsGizmoActive();
+				}
+			}
+		} else {
+			// Selection is empty - clean up any active UI gizmo
+			if (s_lastUIGizmoEntity != NE::ECS::NO_ENTITY && UIGizmoHandler::IsGizmoActive()) {
+				UIGizmoHandler::End2DGizmo(s_lastUIGizmoEntity);
+				s_lastUIGizmoEntity = NE::ECS::NO_ENTITY;
+				s_usingUIGizmo = false;
 			}
 		}
 

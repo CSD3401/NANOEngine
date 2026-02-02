@@ -23,6 +23,8 @@
 #include "../ECS/Components/Hierarchy.hpp"
 #include "../ECS/Components/UIText.hpp"
 #include "../ECS/Components/UIButton.hpp"
+#include "../ECS/Components/UISlider.hpp"
+#include "../ECS/Components/UIToggle.hpp"
 #include "../ECS/Systems/HierarchySystem.hpp"
 #include "../Physics/PhysicsManager.hpp"
 #include "../Physics/ForceMode.hpp"
@@ -320,7 +322,7 @@ namespace NE {
 
 			auto& transform = m_context->componentManager->GetComponent<ECS::Component::Transform>(targetEntity);
 			Math::Mat4 m = transform.worldMatrix;
-			Math::Vec3 worldScale = m.GetRotation();
+			Math::Vec3 worldScale = m.GetScale();
 			return ToSDKVec3(worldScale);
 		}
 
@@ -3954,6 +3956,188 @@ namespace NE {
 
 			auto& button = ecs.GetComponent<ECS::Component::UIButton>(entity);
 			return button.interactable;
+		}
+
+		//=========================================================================
+		// UI SLIDER FUNCTIONS
+		//=========================================================================
+
+		float GetSliderValue(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return 0.0f;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.value;
+		}
+
+		void SetSliderValue(Entity entity, float value) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.value = value;
+			slider.ClampValue();
+			slider.valueChanged = true;
+		}
+
+		float GetSliderNormalizedValue(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return 0.0f;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.GetNormalizedValue();
+		}
+
+		void SetSliderNormalizedValue(Entity entity, float normalizedValue) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.SetNormalizedValue(normalizedValue);
+			slider.valueChanged = true;
+		}
+
+		void SetSliderMinMax(Entity entity, float minValue, float maxValue) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.minValue = minValue;
+			slider.maxValue = maxValue;
+			// Re-clamp current value to new range
+			slider.ClampValue();
+		}
+
+		bool SliderValueChanged(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return false;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.valueChanged;
+		}
+
+		bool IsSliderInteractable(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return false;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			return slider.interactable;
+		}
+
+		void SetSliderInteractable(Entity entity, bool interactable) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UISlider>(entity)) {
+				return;
+			}
+
+			auto& slider = ecs.GetComponent<ECS::Component::UISlider>(entity);
+			slider.interactable = interactable;
+		}
+
+		//=========================================================================
+		// UI TOGGLE FUNCTIONS
+		//=========================================================================
+
+		bool IsToggleOn(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.isOn;
+		}
+
+		void SetToggleOn(Entity entity, bool isOn) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			toggle.SetIsOn(isOn);
+		}
+
+		bool ToggleValueChanged(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.valueChanged;
+		}
+
+		bool WasToggleClicked(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.wasClicked;
+		}
+
+		bool IsToggleInteractable(Entity entity) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return false;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			return toggle.interactable;
+		}
+
+		void SetToggleInteractable(Entity entity, bool interactable) {
+			auto& scene = NE::GetScene();
+			auto& ecs = scene.GetECSCoordinator();
+
+			if (!ecs.HasComponent<ECS::Component::UIToggle>(entity)) {
+				return;
+			}
+
+			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
+			toggle.interactable = interactable;
 		}
 
 	} // namespace Scripting
