@@ -21,7 +21,7 @@ namespace NE::ECS::Component {
         };
 
         // LUID for serialization
-        uint64_t luid;
+        uint64_t luid = 0;
 
         RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY;
         ScaleMode scaleMode = ScaleMode::SCALE_WITH_SCREEN_SIZE;

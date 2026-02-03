@@ -19,6 +19,10 @@
 #include "ECS/Components/UIRectTransform.hpp"
 #include "ECS/Components/UICanvas.hpp"
 #include "ECS/Components/UIImage.hpp"
+#include "ECS/Components/UIText.hpp"
+#include "ECS/Components/UIButton.hpp"
+#include "ECS/Components/UISlider.hpp"
+#include "ECS/Components/UIToggle.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/PrefabLink.hpp"
 #include "ECS/Components/PrefabInstance.hpp"
@@ -42,6 +46,10 @@ namespace NE {
 			ECS::Component::UIRectTransform,
 			ECS::Component::UICanvas,
 			ECS::Component::UIImage,
+			ECS::Component::UIText,
+			ECS::Component::UIButton,
+			ECS::Component::UISlider,
+			ECS::Component::UIToggle,
 			ECS::Component::CharacterController,
 			ECS::Component::Animator
 		>;

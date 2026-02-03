@@ -65,7 +65,45 @@ namespace NE::ECS::Systems {
     }
 
     void UITransformSystem::Init() {
-        ResolvePendingParents();
+        // Rebuild the luid map and re-resolve all parent relationships from scratch.
+        // This is necessary because entity IDs are runtime values that change between sessions,
+        // while parentLuid is the serialized source of truth for parent relationships.
+        m_luidToEntity.clear();
+        m_pendingParents.clear();
+
+        const auto& entities = GetEntities();
+
+        // First pass: build LUID -> Entity map
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<Component::UIRectTransform>(e)) continue;
+            auto& rect = m_cm->GetComponent<Component::UIRectTransform>(e);
+
+            if (rect.luid != 0) {
+                m_luidToEntity[rect.luid] = e;
+            }
+        }
+
+        // Second pass: resolve all parent relationships based on parentLuid
+        // Always re-resolve - never trust the cached parent value since entity IDs change between sessions
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<Component::UIRectTransform>(e)) continue;
+            auto& rect = m_cm->GetComponent<Component::UIRectTransform>(e);
+
+            if (rect.parentLuid != 0) {
+                // Look up parent entity by luid
+                auto it = m_luidToEntity.find(rect.parentLuid);
+                if (it != m_luidToEntity.end()) {
+                    rect.parent = it->second;
+                } else {
+                    // Parent not found - queue for later resolution (shouldn't happen normally)
+                    rect.parent = NO_ENTITY;
+                    m_pendingParents.push_back(PendingParent{ e, rect.parentLuid });
+                }
+            } else {
+                // No parent luid means this is a root UI element
+                rect.parent = NO_ENTITY;
+            }
+        }
     }
 
     void UITransformSystem::ResolvePendingParents() {

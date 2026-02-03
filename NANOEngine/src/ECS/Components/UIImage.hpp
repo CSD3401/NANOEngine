@@ -43,7 +43,7 @@ namespace NE::ECS::Component {
         };
 
         // === SERIALIZED FIELDS ===
-        uint64_t luid;
+        uint64_t luid = 0;
         std::string textureUUID;
         std::string materialUUID;
         NE::Math::Vec4 color{ 1.f, 1.f, 1.f, 1.f }; // tint

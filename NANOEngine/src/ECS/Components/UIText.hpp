@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdint>
 #include "../../Math/Vec4.hpp"
+#include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 
@@ -16,6 +17,7 @@ namespace NE::ECS::Component {
     };
 
     struct UIText {
+        // === SERIALIZED FIELDS ===
         std::string text = "New Text";
         std::filesystem::path fontPath;
         float fontSize = 16.0f;
@@ -29,12 +31,23 @@ namespace NE::ECS::Component {
 
         bool wordWrap = false;
 
-        // Runtime fields (not serialized)
+        // === RUNTIME FIELDS (not serialized) ===
         uint64_t fontAtlasHandle = 0;
         bool isDirty = true;
         std::vector<UITextVertex> cachedVertices;
         std::string cachedText;
         float cachedFontSize = 0.0f;
+
+        // Reflection - only serialize user-editable fields
+        NE_REFLECT_BEGIN(UIText)
+            NE_REFLECT_FIELD(text),
+            NE_REFLECT_FIELD(fontPath),
+            NE_REFLECT_FIELD(fontSize),
+            NE_REFLECT_FIELD(color),
+            NE_REFLECT_FIELD(horizontalAlign),
+            NE_REFLECT_FIELD(verticalAlign),
+            NE_REFLECT_FIELD(wordWrap)
+        NE_REFLECT_END()
     };
 } // namespace NE::ECS::Component
 #endif // END UI_TEXT_HPP

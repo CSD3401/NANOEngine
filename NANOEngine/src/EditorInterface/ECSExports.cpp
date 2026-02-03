@@ -689,8 +689,12 @@ namespace NE::ECS {
 				newEntity,
 				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("cv") });
 
+			// Add Hierarchy component (required for parent-child relationships with UI children)
+			GetScene().GetECSCoordinator().AddComponent(newEntity, Component::Hierarchy{});
+
 			// set up canvas component
 			Component::UICanvas canvas;
+			canvas.luid = Core::LUIDGenerator::Generate("cv");
 			GetScene().GetECSCoordinator().AddComponent(newEntity, canvas);
 
 			// setup RectTransform for canvas (fullscreen by default)

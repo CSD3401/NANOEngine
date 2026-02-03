@@ -81,8 +81,8 @@ namespace Editor {
 			// Walk up to find the canvas root
 			while (canvasEntity != NE::ECS::NO_ENTITY) {
 				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
-				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
-				canvasEntity = rect.parent;
+				auto& parentRect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
+				canvasEntity = parentRect.parent;
 			}
 		}
 
@@ -106,17 +106,17 @@ namespace Editor {
 		NE::ECS::Command::AddHierarchyComponent(m_entity, NE::ECS::Component::Hierarchy{});
 
 		// Setup UIRectTransform
-		NE::ECS::Component::UIRectTransform rect{};
-		rect.luid = NE::Core::LUIDGenerator::Generate("rt");
-		rect.width = 160.0f;
-		rect.height = 30.0f;
-		rect.x = 0.0f;
-		rect.y = 0.0f;
-		rect.parent = parentForText;
+		NE::ECS::Component::UIRectTransform rectTransform{};
+		rectTransform.luid = NE::Core::LUIDGenerator::Generate("rt");
+		rectTransform.width = 160.0f;
+		rectTransform.height = 30.0f;
+		rectTransform.x = 0.0f;
+		rectTransform.y = 0.0f;
+		rectTransform.parent = parentForText;
 		if (parentForText != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForText)) {
-			rect.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForText).luid;
+			rectTransform.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForText).luid;
 		}
-		NE::ECS::Command::AddUIRectTransformComponent(m_entity, rect);
+		NE::ECS::Command::AddUIRectTransformComponent(m_entity, rectTransform);
 
 		// Setup UIText
 		NE::ECS::Component::UIText text{};
@@ -127,7 +127,7 @@ namespace Editor {
 		text.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
 		NE::ECS::Command::AddUITextComponent(m_entity, text);
 
-		// Set hierarchy parent
+		// Set hierarchy parent (syncs Hierarchy component)
 		NE::ECS::Command::SetParent(m_entity, parentForText, -1, false);
 
 		EditorScene::s_selection.SetSingle(m_entity);
