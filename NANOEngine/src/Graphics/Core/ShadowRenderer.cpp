@@ -498,33 +498,10 @@ namespace NE::Graphics {
 			radius = std::max(radius, dist);
 		}
 
-		// Build a preliminary light view to compute texel size
-		// Use a fixed distance that won't affect the ortho projection
+		// Build light view matrix with stable orientation
 		const float pullBack = 500.0f;
 		Vec3 eye = center - dir * pullBack;
 		Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
-
-		// Compute texel size based on the radius
-		float texelSize = (2.0f * radius) / float(m_shadowRes);
-
-		// Snap the light-space XY of the center to the texel grid
-		Vec3 centerLS = TransformPoint(lightView, center, 1.0f);
-		float snappedX = std::floor(centerLS.x / texelSize) * texelSize;
-		float snappedY = std::floor(centerLS.y / texelSize) * texelSize;
-
-		// Calculate the world-space offset needed
-		Vec3 snapOffsetLS = { snappedX - centerLS.x, snappedY - centerLS.y, 0.0f };
-
-		// Convert offset to world space (only affects right/up, not depth)
-		// lightView rows are: right, up, -dir (for a look-at matrix)
-		Vec3 snapOffsetWS = right * snapOffsetLS.x + up * snapOffsetLS.y;
-
-		// Apply snapped offset to eye (keeps orientation stable)
-		Vec3 snappedEye = eye + snapOffsetWS;
-		Vec3 snappedTarget = center + snapOffsetWS;
-
-		// Rebuild light view with snapped position (same orientation!)
-		lightView = Mat4::BuildViewMtx(snappedEye, snappedTarget, up);
 
 		// Compute depth range from frustum corners in light space
 		float minZ = +FLT_MAX, maxZ = -FLT_MAX;
@@ -534,7 +511,7 @@ namespace NE::Graphics {
 			maxZ = std::max(maxZ, pLS.z);
 		}
 
-		// Symmetric ortho bounds
+		// Symmetric ortho bounds (using radius for stability)
 		float minX = -radius;
 		float maxX = +radius;
 		float minY = -radius;
@@ -549,7 +526,31 @@ namespace NE::Graphics {
 		if (farP <= nearP) farP = nearP + 1.0f;
 
 		Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
-		return lightProj * lightView;
+		Mat4 lightVP = lightProj * lightView;
+
+		// === Texel Snapping ===
+		// Snap the shadow matrix to texel boundaries to eliminate sub-pixel jitter.
+		// Project world origin to shadow clip space and round to nearest texel.
+		float* vp = lightVP.Data();
+
+		// Transform world origin (0,0,0) through lightVP - just the translation column
+		float originClipX = vp[12];  // = vp * (0,0,0,1) -> x component
+		float originClipY = vp[13];  // = vp * (0,0,0,1) -> y component
+
+		// Convert clip space [-1,1] to texel space [0, shadowRes]
+		float halfRes = float(m_shadowRes) * 0.5f;
+		float texelX = originClipX * halfRes;
+		float texelY = originClipY * halfRes;
+
+		// Round to nearest texel and compute offset back to clip space
+		float offsetX = (std::round(texelX) - texelX) / halfRes;
+		float offsetY = (std::round(texelY) - texelY) / halfRes;
+
+		// Apply offset to the VP matrix translation
+		vp[12] += offsetX;
+		vp[13] += offsetY;
+
+		return lightVP;
 	}
 
 	//NE::Math::Mat4 ShadowRenderer::BuildDirectionalCascadeVP(
