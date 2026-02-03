@@ -167,10 +167,33 @@ namespace Editor {
 		uint32_t parentForImage = (m_parentEntity != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(m_parentEntity))
 			? m_parentEntity : canvasEntity;
 
-		// Create the image entity
-		m_entity = NE::ECS::Command::CreateUIImageEntity(parentForImage);
+		// Create the image entity 
+		m_entity = NE::ECS::Command::CreateEntityNoComponents();
 
-		// Set hierarchy parent
+		NE::ECS::Command::AddEntityMetaComponent(m_entity,
+			NE::ECS::Component::EntityMeta{ .name = "Image", .luid = NE::Core::LUIDGenerator::Generate("em") });
+
+		NE::ECS::Command::AddHierarchyComponent(m_entity, NE::ECS::Component::Hierarchy{});
+
+		// Setup UIRectTransform
+		NE::ECS::Component::UIRectTransform rectTransform{};
+		rectTransform.luid = NE::Core::LUIDGenerator::Generate("rt");
+		rectTransform.width = 100.0f;
+		rectTransform.height = 100.0f;
+		rectTransform.x = 0.0f;
+		rectTransform.y = 0.0f;
+		rectTransform.parent = parentForImage;
+		if (parentForImage != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForImage)) {
+			rectTransform.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForImage).luid;
+		}
+		NE::ECS::Command::AddUIRectTransformComponent(m_entity, rectTransform);
+
+		// Setup UIImage
+		NE::ECS::Component::UIImage img{};
+		img.color = NE::Math::Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		NE::ECS::Command::AddUIImageComponent(m_entity, img);
+
+		// Set hierarchy parent (syncs Hierarchy component)
 		NE::ECS::Command::SetParent(m_entity, parentForImage, -1, false);
 
 		EditorScene::s_selection.SetSingle(m_entity);

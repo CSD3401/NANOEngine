@@ -1747,7 +1747,8 @@ namespace NE::Graphics {
         UIRenderer::EndFrame();
         UIRenderer::Draw3DUIFrame(s_FinalOutputViewHandle);
         
-        UIRenderer::Composite(s_FinalOutputViewHandle);
+        UIRenderer::Draw3DUIFrame(s_FinalGameOutputHandle);
+        UIRenderer::Composite(s_FinalGameOutputHandle);
         UIRenderer::ClearCommands();
     }
 }
