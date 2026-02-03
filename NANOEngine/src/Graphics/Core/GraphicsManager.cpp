@@ -107,22 +107,6 @@ namespace NE::Graphics {
     static GLuint s_SSAOTex = 0;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_SSAOShader;
 
-    namespace {
-        bool SphereInFrustum(const NE::Graphics::Frustum& f,
-            const NE::Math::Vec3& c,
-            float r)
-        {
-            if (r <= 0) return true;
-
-            for (int i = 0; i < 6; ++i) {
-                const auto& p = f.planes[i];
-                float dist = p.n.x * c.x + p.n.y * c.y + p.n.z * c.z + p.d;
-                //float dist = p.n.Dot(c) + p.d;
-                if (dist < -r) return false;
-            }
-            return true;
-        }
-    }
     // Here for now i will shift it all to rendergraph next time
     void InitFullscreenQuadAndBrightpass()
     {
@@ -475,12 +459,9 @@ namespace NE::Graphics {
                 };
 
             const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
-            //const auto& commands = s_DrawQueue->GetCommands();
-
             for (const auto& command : commands) {
-                if (!SphereInFrustum(frustum, command.boundsCenterWS, command.boundsRadiusWs)) {
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
                     continue;
-                }
 
                 auto mesh = command.mesh;
                 auto material = command.material;
@@ -1078,10 +1059,10 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::GetSceneColorAttachment() 
     {
         //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
-        if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
-        if (InputManager::IsKeyDown('9')) return s_SSAOTex;
-        if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_GameViewHandle)->GetColorAttachment();
-        if (InputManager::IsKeyDown('P')) return s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle)->GetColorAttachment();
+        //if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
+        //if (InputManager::IsKeyDown('9')) return s_SSAOTex;
+        //if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_GameViewHandle)->GetColorAttachment();
+        //if (InputManager::IsKeyDown('P')) return s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle)->GetColorAttachment();
 
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {

@@ -329,11 +329,11 @@ float ComputeShadowForLight(in Light L, vec3 worldPos, vec3 N) {
         lightDir = normalize(L.position - worldPos);
     }
 
-    if (L.shadowType == SHADOW_HARD) {
-        return SampleShadowHardIndexed(L.shadowIndex, worldPos, N, lightDir);
-    } else { // SOFT
-        return SampleShadowSoftIndexed(L.shadowIndex, worldPos, N, lightDir);
-    }
+	if (L.shadowType == SHADOW_HARD) {
+		return SampleShadowHardIndexed(shadowSlot, worldPos, N, lightDir);
+	} else {
+		return SampleShadowSoftIndexed(shadowSlot, worldPos, N, lightDir);
+	}
 }
 
 float DistributionGGX(float NdotH, float rough){
@@ -399,7 +399,6 @@ float DistanceAttenuation(float d, float range) {
     float att = 1.0 - x;
     return att * att; // smooth
 }
-
 
 vec3 EvalDirectional(in Light L, vec3 N, vec3 V, vec3 albedo, float metallic, float rough){
     vec3 Ld = normalize(-L.direction);

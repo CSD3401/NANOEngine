@@ -40,18 +40,16 @@ namespace NE::Graphics {
     }
 
     bool Frustum::IntersectsSphere(const Vec3& center, float radius) const {
-        for (int i = 0; i < Count; ++i)
-        {
+        if (radius <= 0) return true;
+
+        for (int i = 0; i < Count; ++i) {
             const Plane& p = planes[i];
             const float dist = p.n.Dot(center) + p.d;
 
-            if (dist < -radius)
-            {
-                return false; // completely outside this plane
-            }
+            if (dist < -radius) return false;
         }
 
-        return true; // inside or intersecting
+        return true;
     }
 
     bool Frustum::IntersectsAABB(const Vec3& minWS, const Vec3& maxWS) const {
