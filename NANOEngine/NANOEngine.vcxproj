@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
     <ClInclude Include="src\Physics\ContactDefs.hpp" />
     <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
     <ClInclude Include="src\Animation\AnimationClip.hpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="src\Physics\StreamInImpl.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
     <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
     <ClCompile Include="src\Animation\AnimationClip.cpp" />
     <ClCompile Include="src\Animation\AnimatorController.cpp" />

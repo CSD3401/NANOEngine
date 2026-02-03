@@ -34,6 +34,7 @@
 #include "../Tween/TweenManager.hpp"  // Include TweenManager for tween API
 #include "SceneManagement/SceneManager.hpp"
 #include "../EditorInterface/RendererExports.hpp"  // For RenderSettings access
+#include "../EditorInterface/AudioExports.hpp"  
 #include "../Graphics/Core/RenderSettings.hpp"  // For RenderSettings struct
 
 #include <sstream>
@@ -816,6 +817,17 @@ namespace NE {
 		//=========================================================================
 		// Audio Source
 		//=========================================================================
+
+		void IScript::PlayAudio(const std::string& eventName) {
+			NE::Audio::PlayAudio(eventName);
+		}
+
+		void IScript::StopAudio(const std::string& eventName) {
+			NE::Audio::StopAudio(eventName);
+		}
+		void IScript::StopAllAudio() {
+			NE::Audio::StopAllAudio();
+		}
 
 		bool IScript::HasAudioSource(Entity entity) const {
 			if (!m_context || !m_context->componentManager) return false;

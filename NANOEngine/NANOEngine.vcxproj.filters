@@ -90,6 +90,7 @@
     <ClCompile Include="src\Physics\StreamOutImpl.cpp" />
     <ClCompile Include="src\Physics\StreamInImpl.cpp" />
     <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
+    <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -263,6 +264,7 @@
     <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
     <ClInclude Include="src\Physics\ContactPair.hpp" />
     <ClInclude Include="src\Physics\ContactDefs.hpp" />
+    <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
