@@ -327,37 +327,12 @@ namespace NE::Graphics {
     void GraphicsManager::DrawFrame() {
         NE_PROFILE_FUNCTION();
 
-        RenderView* driving = nullptr;
-
-        // Prefer main game view if you have one active
-        for (auto& [handle, v] : s_RenderViewManager->GetAllRenderViews()) {
-            if (!v.isActive) continue;
-            if (v.isMain && v.order == 0) { driving = &v; break; }
-        }
-
-        // Fallback: scene/editor view handle (if you know it)
-        if (!driving) {
-            auto it = s_RenderViewManager->GetAllRenderViews().find(s_SceneViewHandle);
-            if (it != s_RenderViewManager->GetAllRenderViews().end())
-                driving = &it->second;
-        }
-
-        // If still null, just take first active view
-        if (!driving) {
-            for (auto& [handle, v] : s_RenderViewManager->GetAllRenderViews()) {
-                if (v.isActive) { driving = &v; break; }
-            }
-        }
-
-        if (driving && s_shadowRenderer) {
-        }
-
         for (const auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
             if (view.isMain && view.order == 0) s_GameViewHandle = handle;
 
             const auto& commands = s_DrawQueue->GetCommands();
-            s_shadowRenderer->Update(*driving, m_lights, commands);
+            s_shadowRenderer->Update(view, m_lights, commands);
 
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
