@@ -4,7 +4,7 @@
 #include <cfloat>
 #include <cmath>
 
-#include <glad/glad.h> // or whatever you use for GL
+#include <glad/glad.h>
 
 #include "ResourceManagement/ResourceManager.hpp"
 #include "RenderViewManager.hpp"
@@ -224,28 +224,33 @@ namespace NE::Graphics {
 	void ShadowRenderer::EnsureResources2D(ECS::Component::Light& light) {
 		if (light.type == ECS::Component::Light::Directional) {
 			for (int c = 0; c < ECS::Component::Light::DIR_CASCADES; ++c) {
-				// --- Texture: create once, allocate, set params ---
-				if (light.dirShadowTex[c] == 0) {
+				if (light.dirShadowTex[c] == 0)
 					glGenTextures(1, &light.dirShadowTex[c]);
-				} else continue;
+
+				if (light.dirShadowFBO[c] == 0)
+					glGenFramebuffers(1, &light.dirShadowFBO[c]);
+
+				bool needsAlloc = (light.dirShadowRes[c] != m_shadowRes);
 
 				glBindTexture(GL_TEXTURE_2D, light.dirShadowTex[c]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
-					m_shadowRes, m_shadowRes, 0,
-					GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				if (needsAlloc) {
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+						m_shadowRes, m_shadowRes, 0,
+						GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-				float border[4] = { 1,1,1,1 };
-				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+					light.dirShadowRes[c] = m_shadowRes;
 
-				// --- FBO: create once, but ALWAYS attach ---
-				if (light.dirShadowFBO[c] == 0) {
-					glGenFramebuffers(1, &light.dirShadowFBO[c]);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+					glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+					const float border[4] = { 1.f, 1.f, 1.f, 1.f };
+					glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
 				}
+
+				glBindTexture(GL_TEXTURE_2D, 0);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, light.dirShadowFBO[c]);
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
@@ -256,14 +261,12 @@ namespace NE::Graphics {
 
 #ifdef NE_DEBUG
 				GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-				if (status != GL_FRAMEBUFFER_COMPLETE) {
+				if (status != GL_FRAMEBUFFER_COMPLETE)
 					SPD_ERROR("Dir Shadow FBO incomplete! c=" << c << " status=" << status);
-				}
 #endif
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glBindTexture(GL_TEXTURE_2D, 0);
 			return;
 		}
 
@@ -552,127 +555,4 @@ namespace NE::Graphics {
 
 		return lightVP;
 	}
-
-	//NE::Math::Mat4 ShadowRenderer::BuildDirectionalCascadeVP(
-	//	const RenderView& view,
-	//	const ECS::Component::Light& light,
-	//	int cascadeIdx
-	//) {
-	//	using NE::Math::Vec3;
-	//	using NE::Math::Mat4;
-
-	//	const int C = ECS::Component::Light::DIR_CASCADES;
-
-	//	const float n = std::max(0.01f, view.nearPlane);
-	//	const float f = std::max(n + 0.01f, view.farPlane);
-
-	//	const float cascadeNear = (cascadeIdx == 0) ? n : light.dirCascadeSplitsVS[cascadeIdx - 1];
-	//	const float cascadeFar = light.dirCascadeSplitsVS[cascadeIdx];
-
-	//	Mat4 invProj = view.projection.Inverse();
-	//	Mat4 invView = view.view.Inverse();
-
-	//	auto dirsVS = GetViewSpaceCornerDirs(invProj);
-
-	//	Vec3 frustumWS[8];
-	//	for (int i = 0; i < 4; ++i) {
-	//		Vec3 d = dirsVS[i];
-
-	//		float tNear = cascadeNear / std::max(1e-6f, -d.z);
-	//		float tFar = cascadeFar / std::max(1e-6f, -d.z);
-
-	//		Vec3 nearVS = d * tNear;
-	//		Vec3 farVS = d * tFar;
-
-	//		frustumWS[i + 0] = TransformPoint(invView, nearVS, 1.0f);
-	//		frustumWS[i + 4] = TransformPoint(invView, farVS, 1.0f);
-	//	}
-
-	//	Vec3 center{ 0,0,0 };
-	//	for (auto& p : frustumWS) center += p;
-	//	center *= (1.0f / 8.0f);
-
-	//	Vec3 dir = light.direction.Normalized();
-	//	Vec3 right, up;
-	//	BuildStableBasisFromDir(dir, right, up);
-
-	//	//float halfSize = std::max(halfW, halfH);
-	//	//halfSize = std::ceil(halfSize * 16.0f) / 16.0f;
-
-	//	//Vec3 eye = center - dir * (halfSize + 200.0f);
-	//	//Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
-
-	//	//Vec3 centerLS = TransformPoint(lightView, center, 1.0f);
-	//	//float texelSize = (2.0f * halfSize) / float(m_shadowRes);
-	//	//centerLS.x = std::floor(centerLS.x / texelSize) * texelSize;
-	//	//centerLS.y = std::floor(centerLS.y / texelSize) * texelSize;
-
-	//	//float minX = centerLS.x - halfSize;
-	//	//float maxX = centerLS.x + halfSize;
-	//	//float minY = centerLS.y - halfSize;
-	//	//float maxY = centerLS.y + halfSize;
-
-	//	//float minZ = +FLT_MAX, maxZ = -FLT_MAX;
-	//	//for (auto& pWS : frustumWS) {
-	//	//	Vec3 pLS = TransformPoint(lightView, pWS, 1.0f);
-	//	//	minZ = std::min(minZ, pLS.z);
-	//	//	maxZ = std::max(maxZ, pLS.z);
-	//	//}
-
-	//	//const float padZ = 150.0f;
-	//	//float nearP = -maxZ - padZ;
-	//	//float farP = -minZ + padZ;
-
-	//	//if (nearP < 0.1f) nearP = 0.1f;
-	//	//if (farP <= nearP) farP = nearP + 1.0f;
-
-	//	//Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
-	//	//return lightProj * lightView;
-	//	// projection entries
-	//	const float m00 = view.projection.a[0];
-	//	const float m11 = view.projection.a[5];
-
-	//	float tanHalfFovy = 1.0f / m11;
-	//	float aspect = m11 / m00;
-
-	//	// stable halfSize from cascadeFar
-	//	float halfH = cascadeFar * tanHalfFovy;
-	//	float halfW = halfH * aspect;
-	//	float halfSize = std::max(halfW, halfH);
-	//	halfSize = std::ceil(halfSize * 16.0f) / 16.0f;
-
-	//	// build light view properly (eye + target)
-	//	Vec3 eye = center - dir * (halfSize + 200.0f);
-	//	Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
-
-	//	// snap in light space
-	//	Vec3 centerLS = TransformPoint(lightView, center, 1.0f);
-	//	float texelSize = (2.0f * halfSize) / float(m_shadowRes);
-	//	centerLS.x = std::floor(centerLS.x / texelSize) * texelSize;
-	//	centerLS.y = std::floor(centerLS.y / texelSize) * texelSize;
-
-	//	float minX = centerLS.x - halfSize;
-	//	float maxX = centerLS.x + halfSize;
-	//	float minY = centerLS.y - halfSize;
-	//	float maxY = centerLS.y + halfSize;
-
-	//	// depth range from frustum corners in light space
-	//	float minZ = +FLT_MAX, maxZ = -FLT_MAX;
-	//	for (auto& pWS : frustumWS) {
-	//		Vec3 pLS = TransformPoint(lightView, pWS, 1.0f);
-	//		minZ = std::min(minZ, pLS.z);
-	//		maxZ = std::max(maxZ, pLS.z);
-	//	}
-
-	//	const float padZ = 150.0f;
-	//	float nearP = -maxZ - padZ;
-	//	float farP = -minZ + padZ;
-
-	//	nearP = std::max(nearP, 0.1f);
-	//	if (farP <= nearP) farP = nearP + 1.0f;
-
-	//	Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
-	//	return lightProj * lightView;
-
-	//}
 }

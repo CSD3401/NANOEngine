@@ -96,10 +96,8 @@ namespace NE::ECS::Component {
         LightTypeData data;
         ShadowType shadowType = ShadowType::None;
         ShadowUpdateMode shadowUpdateMode = ShadowUpdateMode::NoneUpdate;
-        // Dirty flag for editor changes
         bool isDirty = false;
 
-        // --- Runtime shadow data (not serialized) ---
         uint32_t shadowMapTex = 0;
         uint32_t shadowMapFBO = 0;
         Math::Mat4 lightViewProj{};
@@ -111,6 +109,7 @@ namespace NE::ECS::Component {
         std::array<Math::Mat4, DIR_CASCADES> dirLightVP{};
         std::array<float, DIR_CASCADES> dirCascadeSplitsVS{}; // view-space split depths (positive, in world units)
         uint8_t shadowCascadeCount = 0;
+        int dirShadowRes[DIR_CASCADES] = { 0,0,0,0 };
 
         NE_REFLECT_BEGIN(Light)
             NE_REFLECT_FIELD_HIDDEN(type),
