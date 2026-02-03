@@ -16,13 +16,13 @@
 namespace NE::Graphics {
 	void PostProcessPipeline::Init(RenderViewManager* rvm, uint32_t initialW, uint32_t initialH)
 	{
-		m_RVM = rvm;
+		m_rvm = rvm;
 		m_Width = initialW;
 		m_Height = initialH;
 
-		m_Pool = std::make_unique<TexturePool>();
-		m_Graph = std::make_unique<RenderGraph>();
-		m_Graph->SetTexturePool(m_Pool.get());
+		m_pool = std::make_unique<TexturePool>();
+		m_graph = std::make_unique<RenderGraph>();
+		m_graph->SetTexturePool(m_pool.get());
 
 		InitFullscreenQuad();
 		LoadShaders();
@@ -33,9 +33,9 @@ namespace NE::Graphics {
 	void PostProcessPipeline::Shutdown()
 	{
 		DestroyResources(true);
-		m_Graph.reset();
-		m_Pool.reset();
-		m_RVM = nullptr;
+		m_graph.reset();
+		m_pool.reset();
+		m_rvm = nullptr;
 	}
 
 	void PostProcessPipeline::Resize(uint32_t w, uint32_t h)
@@ -56,18 +56,18 @@ namespace NE::Graphics {
 		const Math::Mat4& invProj,
 		bool isSceneView)
 	{
-		if (!m_RVM || !m_Graph) return;
+		if (!m_rvm || !m_graph) return;
 
-		m_Context.invProj = invProj;
-		m_Context.isSceneView = isSceneView;
+		m_context.invProj = invProj;
+		m_context.isSceneView = isSceneView;
 
 		SetupGraph(sourceView, destView, invProj, isSceneView);
-		m_Graph->Execute();
+		m_graph->Execute();
 	}
 
 	void PostProcessPipeline::SetSettings(PostProcessingSettings* settings)
 	{
-		m_Settings = settings;
+		m_settings = settings;
 	}
 
 	void PostProcessPipeline::InitFullscreenQuad()
@@ -100,15 +100,15 @@ namespace NE::Graphics {
 	{
 		if (w == 0 || h == 0) return;
 
-		if (m_BrightPassFBO == 0) {
-			glGenFramebuffers(1, &m_BrightPassFBO);
+		if (m_brightPassFBO == 0) {
+			glGenFramebuffers(1, &m_brightPassFBO);
 		}
-		glBindFramebuffer(GL_FRAMEBUFFER, m_BrightPassFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_brightPassFBO);
 
-		if (m_BrightPassTex == 0) {
-			glGenTextures(1, &m_BrightPassTex);
+		if (m_brightPassTex == 0) {
+			glGenTextures(1, &m_brightPassTex);
 		}
-		glBindTexture(GL_TEXTURE_2D, m_BrightPassTex);
+		glBindTexture(GL_TEXTURE_2D, m_brightPassTex);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
 			static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0,
 			GL_RGBA, GL_FLOAT, nullptr);
@@ -118,7 +118,7 @@ namespace NE::Graphics {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-			GL_TEXTURE_2D, m_BrightPassTex, 0);
+			GL_TEXTURE_2D, m_brightPassTex, 0);
 
 		GLenum att = GL_COLOR_ATTACHMENT0;
 		glDrawBuffers(1, &att);
@@ -128,18 +128,18 @@ namespace NE::Graphics {
 		int levelH = static_cast<int>(h);
 
 		for (int i = 0; i < BLOOM_LEVELS; ++i) {
-			m_BloomWidth[i] = levelW;
-			m_BloomHeight[i] = levelH;
+			m_bloomWidth[i] = levelW;
+			m_bloomHeight[i] = levelH;
 
-			if (m_BloomFBO[i] == 0) {
-				glGenFramebuffers(1, &m_BloomFBO[i]);
+			if (m_bloomFBO[i] == 0) {
+				glGenFramebuffers(1, &m_bloomFBO[i]);
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, m_BloomFBO[i]);
+			glBindFramebuffer(GL_FRAMEBUFFER, m_bloomFBO[i]);
 
-			if (m_BloomTex[i] == 0) {
-				glGenTextures(1, &m_BloomTex[i]);
+			if (m_bloomTex[i] == 0) {
+				glGenTextures(1, &m_bloomTex[i]);
 			}
-			glBindTexture(GL_TEXTURE_2D, m_BloomTex[i]);
+			glBindTexture(GL_TEXTURE_2D, m_bloomTex[i]);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
 				levelW, levelH, 0,
 				GL_RGBA, GL_FLOAT, nullptr);
@@ -148,18 +148,18 @@ namespace NE::Graphics {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-				GL_TEXTURE_2D, m_BloomTex[i], 0);
+				GL_TEXTURE_2D, m_bloomTex[i], 0);
 			glDrawBuffers(1, &att);
 
-			if (m_BloomTempFBO[i] == 0) {
-				glGenFramebuffers(1, &m_BloomTempFBO[i]);
+			if (m_bloomTempFBO[i] == 0) {
+				glGenFramebuffers(1, &m_bloomTempFBO[i]);
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, m_BloomTempFBO[i]);
+			glBindFramebuffer(GL_FRAMEBUFFER, m_bloomTempFBO[i]);
 
-			if (m_BloomTempTex[i] == 0) {
-				glGenTextures(1, &m_BloomTempTex[i]);
+			if (m_bloomTempTex[i] == 0) {
+				glGenTextures(1, &m_bloomTempTex[i]);
 			}
-			glBindTexture(GL_TEXTURE_2D, m_BloomTempTex[i]);
+			glBindTexture(GL_TEXTURE_2D, m_bloomTempTex[i]);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
 				levelW, levelH, 0,
 				GL_RGBA, GL_FLOAT, nullptr);
@@ -168,7 +168,7 @@ namespace NE::Graphics {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-				GL_TEXTURE_2D, m_BloomTempTex[i], 0);
+				GL_TEXTURE_2D, m_bloomTempTex[i], 0);
 
 			glDrawBuffers(1, &att);
 
@@ -214,24 +214,24 @@ namespace NE::Graphics {
 
 	void PostProcessPipeline::LoadShaders()
 	{
-		if (!m_BrightPassShader) {
-			m_BrightPassShader = Resource::ResourceManager::GetInstance()
+		if (!m_brightPassShader) {
+			m_brightPassShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nebrightpass");
 		}
-		if (!m_DownSampleShader) {
-			m_DownSampleShader = Resource::ResourceManager::GetInstance()
+		if (!m_downSampleShader) {
+			m_downSampleShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nebloomdownsample");
 		}
-		if (!m_BlurShader) {
-			m_BlurShader = Resource::ResourceManager::GetInstance()
+		if (!m_blurShader) {
+			m_blurShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nebloomblur");
 		}
-		if (!m_UpSampleShader) {
-			m_UpSampleShader = Resource::ResourceManager::GetInstance()
+		if (!m_upSampleShader) {
+			m_upSampleShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nebloomupsample");
 		}
-		if (!m_CompositeShader) {
-			m_CompositeShader = Resource::ResourceManager::GetInstance()
+		if (!m_compositeShader) {
+			m_compositeShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nebloomcomposite");
 		}
 		if (!m_SSAOShader) {
@@ -245,33 +245,33 @@ namespace NE::Graphics {
 		const Math::Mat4& invProj,
 		bool isSceneView)
 	{
-		if (!m_RVM || !m_Graph) return;
+		if (!m_rvm || !m_graph) return;
 
-		m_Graph->Clear();
+		m_graph->Clear();
 
-		auto sourceFB = m_RVM->GetFramebuffer(sourceView);
-		auto destFB = m_RVM->GetFramebuffer(destView);
+		auto sourceFB = m_rvm->GetFramebuffer(sourceView);
+		auto destFB = m_rvm->GetFramebuffer(destView);
 		if (!sourceFB || !destFB) return;
 
-		m_Context.sourceFB = sourceFB;
-		m_Context.destFB = destFB;
-		m_Context.invProj = invProj;
-		m_Context.isSceneView = isSceneView;
+		m_context.sourceFB = sourceFB;
+		m_context.destFB = destFB;
+		m_context.invProj = invProj;
+		m_context.isSceneView = isSceneView;
 
-		auto sceneColor = m_Graph->ImportTexture(sourceFB->GetColorAttachment(), "SceneHDR");
-		auto sceneDepth = m_Graph->ImportTexture(sourceFB->GetDepthAttachment(), "SceneDepth");
-		auto ssaoTex = m_Graph->ImportTexture(m_SSAOTex, "SSAO");
-		auto brightTex = m_Graph->ImportTexture(m_BrightPassTex, "BrightPass");
-		auto bloomTex = m_Graph->ImportTexture(m_BloomTex[0], "BloomResult");
-		auto finalTex = m_Graph->ImportTexture(destFB->GetColorAttachment(), "FinalOutput");
+		auto sceneColor = m_graph->ImportTexture(sourceFB->GetColorAttachment(), "SceneHDR");
+		auto sceneDepth = m_graph->ImportTexture(sourceFB->GetDepthAttachment(), "SceneDepth");
+		auto ssaoTex = m_graph->ImportTexture(m_SSAOTex, "SSAO");
+		auto brightTex = m_graph->ImportTexture(m_brightPassTex, "BrightPass");
+		auto bloomTex = m_graph->ImportTexture(m_bloomTex[0], "BloomResult");
+		auto finalTex = m_graph->ImportTexture(destFB->GetColorAttachment(), "FinalOutput");
 
-		m_Graph->AddPass("SSAO")
+		m_graph->AddPass("SSAO")
 			.Read(sceneDepth)
 			.Write(ssaoTex)
 			.Execute([this](const RenderGraphContext& ctx) {
-				if (!m_Settings || !m_Settings->ssaoSettings.enabled || !m_SSAOShader) return;
+				if (!m_settings || !m_settings->ssaoSettings.enabled || !m_SSAOShader) return;
 
-				auto& pctx = m_Context;
+				auto& pctx = m_context;
 				uint32_t w = pctx.sourceFB->GetWidth();
 				uint32_t h = pctx.sourceFB->GetHeight();
 
@@ -285,10 +285,10 @@ namespace NE::Graphics {
 
 				m_SSAOShader->Bind();
 				m_SSAOShader->SetUniformInt("u_Depth", 0);
-				m_SSAOShader->SetUniformFloat("u_Radius", m_Settings->ssaoSettings.radius);
-				m_SSAOShader->SetUniformFloat("u_Bias", m_Settings->ssaoSettings.bias);
-				m_SSAOShader->SetUniformFloat("u_Intensity", m_Settings->ssaoSettings.intensity);
-				m_SSAOShader->SetUniformFloat("u_Power", m_Settings->ssaoSettings.power);
+				m_SSAOShader->SetUniformFloat("u_Radius", m_settings->ssaoSettings.radius);
+				m_SSAOShader->SetUniformFloat("u_Bias", m_settings->ssaoSettings.bias);
+				m_SSAOShader->SetUniformFloat("u_Intensity", m_settings->ssaoSettings.intensity);
+				m_SSAOShader->SetUniformFloat("u_Power", m_settings->ssaoSettings.power);
 				m_SSAOShader->SetUniformMat4("u_InvProj", pctx.invProj);
 
 				glActiveTexture(GL_TEXTURE0);
@@ -302,26 +302,26 @@ namespace NE::Graphics {
 				if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
 			});
 
-		m_Graph->AddPass("Bloom: Bright Extract")
+		m_graph->AddPass("Bloom: Bright Extract")
 			.Read(sceneColor)
 			.Write(brightTex)
 			.Execute([this](const RenderGraphContext& ctx) {
-				if (!m_Settings || !m_BrightPassShader) return;
+				if (!m_settings || !m_brightPassShader) return;
 
-				auto& pctx = m_Context;
+				auto& pctx = m_context;
 				uint32_t w = pctx.sourceFB->GetWidth();
 				uint32_t h = pctx.sourceFB->GetHeight();
 
-				glBindFramebuffer(GL_FRAMEBUFFER, m_BrightPassFBO);
+				glBindFramebuffer(GL_FRAMEBUFFER, m_brightPassFBO);
 				glViewport(0, 0, w, h);
 				glClearColor(0, 0, 0, 1);
 				glClear(GL_COLOR_BUFFER_BIT);
 
-				m_BrightPassShader->Bind();
-				m_BrightPassShader->SetUniformInt("u_SceneTex", 0);
-				m_BrightPassShader->SetUniformFloat("u_Threshold", m_Settings->bloomSettings.brightThreshold);
-				m_BrightPassShader->SetUniformFloat("u_Scale", m_Settings->bloomSettings.brightScale);
-				m_BrightPassShader->SetUniformFloat("u_SoftKnee", m_Settings->bloomSettings.softKnee);
+				m_brightPassShader->Bind();
+				m_brightPassShader->SetUniformInt("u_SceneTex", 0);
+				m_brightPassShader->SetUniformFloat("u_Threshold", m_settings->bloomSettings.brightThreshold);
+				m_brightPassShader->SetUniformFloat("u_Scale", m_settings->bloomSettings.brightScale);
+				m_brightPassShader->SetUniformFloat("u_SoftKnee", m_settings->bloomSettings.softKnee);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetColorAttachment());
@@ -333,29 +333,29 @@ namespace NE::Graphics {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			});
 
-		m_Graph->AddPass("Bloom: Downsample")
+		m_graph->AddPass("Bloom: Downsample")
 			.Read(brightTex)
 			.Write(bloomTex)
 			.Execute([this](const RenderGraphContext& ctx) {
-				if (!m_DownSampleShader) return;
+				if (!m_downSampleShader) return;
 
-				auto& pctx = m_Context;
-				GLuint srcTex = m_BrightPassTex;
+				auto& pctx = m_context;
+				GLuint srcTex = m_brightPassTex;
 				int srcW = pctx.sourceFB->GetWidth();
 				int srcH = pctx.sourceFB->GetHeight();
 
 				for (int level = 0; level < BLOOM_LEVELS; ++level) {
-					int dstW = m_BloomWidth[level];
-					int dstH = m_BloomHeight[level];
+					int dstW = m_bloomWidth[level];
+					int dstH = m_bloomHeight[level];
 
-					glBindFramebuffer(GL_FRAMEBUFFER, m_BloomFBO[level]);
+					glBindFramebuffer(GL_FRAMEBUFFER, m_bloomFBO[level]);
 					glViewport(0, 0, dstW, dstH);
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
 
-					m_DownSampleShader->Bind();
-					m_DownSampleShader->SetUniformInt("u_Source", 0);
-					m_DownSampleShader->SetUniformVec2("u_TexelSize", { 1.0f / srcW, 1.0f / srcH });
+					m_downSampleShader->Bind();
+					m_downSampleShader->SetUniformInt("u_Source", 0);
+					m_downSampleShader->SetUniformVec2("u_TexelSize", { 1.0f / srcW, 1.0f / srcH });
 
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, srcTex);
@@ -363,48 +363,48 @@ namespace NE::Graphics {
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-					srcTex = m_BloomTex[level];
+					srcTex = m_bloomTex[level];
 					srcW = dstW;
 					srcH = dstH;
 				}
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			});
 
-		m_Graph->AddPass("Bloom: Blur")
+		m_graph->AddPass("Bloom: Blur")
 			.Read(bloomTex)
 			.Write(bloomTex)
 			.Execute([this](const RenderGraphContext& ctx) {
-				if (!m_BlurShader) return;
+				if (!m_blurShader) return;
 
 				for (int level = 0; level < BLOOM_LEVELS; ++level) {
-					int w = m_BloomWidth[level];
-					int h = m_BloomHeight[level];
+					int w = m_bloomWidth[level];
+					int h = m_bloomHeight[level];
 
-					glBindFramebuffer(GL_FRAMEBUFFER, m_BloomTempFBO[level]);
+					glBindFramebuffer(GL_FRAMEBUFFER, m_bloomTempFBO[level]);
 					glViewport(0, 0, w, h);
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
 
-					m_BlurShader->Bind();
-					m_BlurShader->SetUniformInt("u_Source", 0);
-					m_BlurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
-					m_BlurShader->SetUniformVec2("u_Direction", { 1.0f, 0.0f });
+					m_blurShader->Bind();
+					m_blurShader->SetUniformInt("u_Source", 0);
+					m_blurShader->SetUniformVec2("u_TexelSize", { 1.0f / w, 1.0f / h });
+					m_blurShader->SetUniformVec2("u_Direction", { 1.0f, 0.0f });
 
 					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, m_BloomTex[level]);
+					glBindTexture(GL_TEXTURE_2D, m_bloomTex[level]);
 
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-					glBindFramebuffer(GL_FRAMEBUFFER, m_BloomFBO[level]);
+					glBindFramebuffer(GL_FRAMEBUFFER, m_bloomFBO[level]);
 					glViewport(0, 0, w, h);
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
 
-					m_BlurShader->SetUniformVec2("u_Direction", { 0.0f, 1.0f });
+					m_blurShader->SetUniformVec2("u_Direction", { 0.0f, 1.0f });
 
 					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, m_BloomTempTex[level]);
+					glBindTexture(GL_TEXTURE_2D, m_bloomTempTex[level]);
 
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -412,31 +412,31 @@ namespace NE::Graphics {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			});
 
-		m_Graph->AddPass("Bloom: Upsample")
+		m_graph->AddPass("Bloom: Upsample")
 			.Read(bloomTex)
 			.Write(bloomTex)
 			.Execute([this](const RenderGraphContext& ctx) {
-				if (!m_Settings || !m_UpSampleShader) return;
+				if (!m_settings || !m_upSampleShader) return;
 
 				for (int level = BLOOM_LEVELS - 1; level > 0; --level) {
 					int hi = level - 1;
-					int w = m_BloomWidth[hi];
-					int h = m_BloomHeight[hi];
+					int w = m_bloomWidth[hi];
+					int h = m_bloomHeight[hi];
 
-					glBindFramebuffer(GL_FRAMEBUFFER, m_BloomFBO[hi]);
+					glBindFramebuffer(GL_FRAMEBUFFER, m_bloomFBO[hi]);
 					glViewport(0, 0, w, h);
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
 
-					m_UpSampleShader->Bind();
-					m_UpSampleShader->SetUniformInt("u_LowRes", 0);
-					m_UpSampleShader->SetUniformInt("u_HighRes", 1);
-					m_UpSampleShader->SetUniformFloat("u_Intensity", m_Settings->bloomSettings.bloomRadius);
+					m_upSampleShader->Bind();
+					m_upSampleShader->SetUniformInt("u_LowRes", 0);
+					m_upSampleShader->SetUniformInt("u_HighRes", 1);
+					m_upSampleShader->SetUniformFloat("u_Intensity", m_settings->bloomSettings.bloomRadius);
 
 					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, m_BloomTex[level]);
+					glBindTexture(GL_TEXTURE_2D, m_bloomTex[level]);
 					glActiveTexture(GL_TEXTURE1);
-					glBindTexture(GL_TEXTURE_2D, m_BloomTex[hi]);
+					glBindTexture(GL_TEXTURE_2D, m_bloomTex[hi]);
 
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -444,15 +444,15 @@ namespace NE::Graphics {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			});
 
-		m_Graph->AddPass("Composite")
+		m_graph->AddPass("Composite")
 			.Read(sceneColor)
 			.Read(ssaoTex)
 			.Read(bloomTex)
 			.Write(finalTex)
 			.Execute([this](const RenderGraphContext& ctx) {
-				if (!m_Settings || !m_CompositeShader) return;
+				if (!m_settings || !m_compositeShader) return;
 
-				auto& pctx = m_Context;
+				auto& pctx = m_context;
 				uint32_t w = pctx.sourceFB->GetWidth();
 				uint32_t h = pctx.sourceFB->GetHeight();
 
@@ -464,22 +464,22 @@ namespace NE::Graphics {
 				glDisable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);
 
-				m_CompositeShader->Bind();
-				m_CompositeShader->SetUniformInt("u_SceneHDR", 0);
-				m_CompositeShader->SetUniformInt("u_Bloom", 1);
-				m_CompositeShader->SetUniformInt("u_ToneMapType", static_cast<int>(m_Settings->bloomSettings.toneMapType));
-				m_CompositeShader->SetUniformFloat("u_BloomStrength", m_Settings->bloomSettings.bloomIntensity);
-				m_CompositeShader->SetUniformFloat("u_Exposure", m_Settings->bloomSettings.exposure);
+				m_compositeShader->Bind();
+				m_compositeShader->SetUniformInt("u_SceneHDR", 0);
+				m_compositeShader->SetUniformInt("u_Bloom", 1);
+				m_compositeShader->SetUniformInt("u_ToneMapType", static_cast<int>(m_settings->bloomSettings.toneMapType));
+				m_compositeShader->SetUniformFloat("u_BloomStrength", m_settings->bloomSettings.bloomIntensity);
+				m_compositeShader->SetUniformFloat("u_Exposure", m_settings->bloomSettings.exposure);
 
-				m_CompositeShader->SetUniformInt("u_SSAO", 2);
-				m_CompositeShader->SetUniformInt("u_UseSSAO", m_Settings->ssaoSettings.enabled ? 1 : 0);
-				m_CompositeShader->SetUniformFloat("u_AOIntensity", m_Settings->ssaoSettings.intensity);
+				m_compositeShader->SetUniformInt("u_SSAO", 2);
+				m_compositeShader->SetUniformInt("u_UseSSAO", m_settings->ssaoSettings.enabled ? 1 : 0);
+				m_compositeShader->SetUniformFloat("u_AOIntensity", m_settings->ssaoSettings.intensity);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetColorAttachment());
 
 				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, m_BloomTex[0]);
+				glBindTexture(GL_TEXTURE_2D, m_bloomTex[0]);
 
 				glActiveTexture(GL_TEXTURE2);
 				glBindTexture(GL_TEXTURE_2D, m_SSAOTex);
@@ -494,7 +494,7 @@ namespace NE::Graphics {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			});
 
-		m_Graph->Compile();
+		m_graph->Compile();
 	}
 
 	void PostProcessPipeline::DestroyResources(bool destroyQuad)
@@ -510,31 +510,31 @@ namespace NE::Graphics {
 			}
 		}
 
-		if (m_BrightPassTex) {
-			glDeleteTextures(1, &m_BrightPassTex);
-			m_BrightPassTex = 0;
+		if (m_brightPassTex) {
+			glDeleteTextures(1, &m_brightPassTex);
+			m_brightPassTex = 0;
 		}
-		if (m_BrightPassFBO) {
-			glDeleteFramebuffers(1, &m_BrightPassFBO);
-			m_BrightPassFBO = 0;
+		if (m_brightPassFBO) {
+			glDeleteFramebuffers(1, &m_brightPassFBO);
+			m_brightPassFBO = 0;
 		}
 
 		for (int i = 0; i < BLOOM_LEVELS; ++i) {
-			if (m_BloomTex[i]) {
-				glDeleteTextures(1, &m_BloomTex[i]);
-				m_BloomTex[i] = 0;
+			if (m_bloomTex[i]) {
+				glDeleteTextures(1, &m_bloomTex[i]);
+				m_bloomTex[i] = 0;
 			}
-			if (m_BloomFBO[i]) {
-				glDeleteFramebuffers(1, &m_BloomFBO[i]);
-				m_BloomFBO[i] = 0;
+			if (m_bloomFBO[i]) {
+				glDeleteFramebuffers(1, &m_bloomFBO[i]);
+				m_bloomFBO[i] = 0;
 			}
-			if (m_BloomTempTex[i]) {
-				glDeleteTextures(1, &m_BloomTempTex[i]);
-				m_BloomTempTex[i] = 0;
+			if (m_bloomTempTex[i]) {
+				glDeleteTextures(1, &m_bloomTempTex[i]);
+				m_bloomTempTex[i] = 0;
 			}
-			if (m_BloomTempFBO[i]) {
-				glDeleteFramebuffers(1, &m_BloomTempFBO[i]);
-				m_BloomTempFBO[i] = 0;
+			if (m_bloomTempFBO[i]) {
+				glDeleteFramebuffers(1, &m_bloomTempFBO[i]);
+				m_bloomTempFBO[i] = 0;
 			}
 		}
 

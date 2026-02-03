@@ -37,8 +37,8 @@ namespace NE::Graphics {
 
 		void SetSettings(PostProcessingSettings* settings);
 
-		RenderGraph* GetRenderGraph() const { return m_Graph.get(); }
-		TexturePool* GetTexturePool() const { return m_Pool.get(); }
+		RenderGraph* GetRenderGraph() const { return m_graph.get(); }
+		TexturePool* GetTexturePool() const { return m_pool.get(); }
 
 	private:
 		void InitFullscreenQuad();
@@ -61,11 +61,11 @@ namespace NE::Graphics {
 
 		static constexpr int BLOOM_LEVELS = 5;
 
-		RenderViewManager* m_RVM = nullptr;
-		PostProcessingSettings* m_Settings = nullptr;
+		RenderViewManager* m_rvm = nullptr;
+		PostProcessingSettings* m_settings = nullptr;
 
-		std::unique_ptr<RenderGraph> m_Graph;
-		std::unique_ptr<TexturePool> m_Pool;
+		std::unique_ptr<RenderGraph> m_graph;
+		std::unique_ptr<TexturePool> m_pool;
 
 		uint32_t m_Width = 0;
 		uint32_t m_Height = 0;
@@ -73,27 +73,27 @@ namespace NE::Graphics {
 		unsigned int m_QuadVAO = 0;
 		unsigned int m_QuadVBO = 0;
 
-		std::shared_ptr<OpenGL::GLShader> m_BrightPassShader;
-		unsigned int m_BrightPassTex = 0;
-		unsigned int m_BrightPassFBO = 0;
+		std::shared_ptr<OpenGL::GLShader> m_brightPassShader;
+		unsigned int m_brightPassTex = 0;
+		unsigned int m_brightPassFBO = 0;
 
-		std::array<unsigned int, BLOOM_LEVELS> m_BloomFBO{};
-		std::array<unsigned int, BLOOM_LEVELS> m_BloomTex{};
-		std::array<int, BLOOM_LEVELS> m_BloomWidth{};
-		std::array<int, BLOOM_LEVELS> m_BloomHeight{};
+		std::array<unsigned int, BLOOM_LEVELS> m_bloomFBO{};
+		std::array<unsigned int, BLOOM_LEVELS> m_bloomTex{};
+		std::array<int, BLOOM_LEVELS> m_bloomWidth{};
+		std::array<int, BLOOM_LEVELS> m_bloomHeight{};
 
-		std::array<unsigned int, BLOOM_LEVELS> m_BloomTempFBO{};
-		std::array<unsigned int, BLOOM_LEVELS> m_BloomTempTex{};
+		std::array<unsigned int, BLOOM_LEVELS> m_bloomTempFBO{};
+		std::array<unsigned int, BLOOM_LEVELS> m_bloomTempTex{};
 
-		std::shared_ptr<OpenGL::GLShader> m_DownSampleShader;
-		std::shared_ptr<OpenGL::GLShader> m_BlurShader;
-		std::shared_ptr<OpenGL::GLShader> m_UpSampleShader;
-		std::shared_ptr<OpenGL::GLShader> m_CompositeShader;
+		std::shared_ptr<OpenGL::GLShader> m_downSampleShader;
+		std::shared_ptr<OpenGL::GLShader> m_blurShader;
+		std::shared_ptr<OpenGL::GLShader> m_upSampleShader;
+		std::shared_ptr<OpenGL::GLShader> m_compositeShader;
 
 		unsigned int m_SSAOFBO = 0;
 		unsigned int m_SSAOTex = 0;
 		std::shared_ptr<OpenGL::GLShader> m_SSAOShader;
 
-		PostProcessContext m_Context;
+		PostProcessContext m_context;
 	};
 }
