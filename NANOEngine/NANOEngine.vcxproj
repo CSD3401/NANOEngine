@@ -27,7 +27,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Graphics\Core\RenderGraph\TextureFormats.hpp" />
     <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
+    <ClInclude Include="src\Graphics\Core\PostProcessPipeline.hpp" />
     <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
     <ClInclude Include="src\Graphics\Debug\DebugDrawSystem.hpp" />
     <ClInclude Include="src\Physics\ContactDefs.hpp" />
@@ -200,10 +202,12 @@
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
     <ClInclude Include="src\Physics\StreamOutImpl.hpp" />
     <ClInclude Include="src\Physics\StreamInImpl.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderGraph\TexturePool.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\Debug\DebugDrawSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
+    <ClCompile Include="src\Graphics\Core\PostProcessPipeline.cpp" />
     <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
     <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
     <ClCompile Include="src\Animation\AnimationClip.cpp" />
@@ -292,6 +296,7 @@
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
     <ClCompile Include="src\Physics\StreamOutImpl.cpp" />
     <ClCompile Include="src\Physics\StreamInImpl.cpp" />
+    <ClCompile Include="src\Graphics\Core\RenderGraph\TexturePool.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

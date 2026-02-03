@@ -7,6 +7,8 @@
 #include <functional>
 #include <unordered_map>
 #include "../../NANOEngineAPI.hpp"
+#include "RenderGraph/TextureFormats.hpp"
+
 
 namespace NE::Graphics {
 
@@ -14,6 +16,7 @@ namespace NE::Graphics {
     class RenderGraph;
     class RenderGraphBuilder;
     struct PooledTexture;
+	class TexturePool;
 
     //==========================================================================
     // RenderGraphResource - Handle-based resource reference
@@ -26,27 +29,6 @@ namespace NE::Graphics {
         bool IsValid() const { return id != InvalidId; }
         bool operator==(const RenderGraphResource& other) const { return id == other.id; }
         bool operator!=(const RenderGraphResource& other) const { return id != other.id; }
-    };
-
-    //==========================================================================
-    // TextureFormat - Supported texture formats for transient resources
-    //==========================================================================
-    enum class TextureFormat {
-        R8,
-        RG8,
-        RGB8,
-        RGBA8,
-        R16F,
-        RG16F,
-        RGB16F,
-        RGBA16F,
-        R32F,
-        RG32F,
-        RGB32F,
-        RGBA32F,
-        Depth24,
-        Depth32F,
-        Depth24Stencil8
     };
 
     //==========================================================================
@@ -119,65 +101,6 @@ namespace NE::Graphics {
         int firstPassIndex = -1;   // First pass (in execution order) that uses this resource
         int lastPassIndex = -1;    // Last pass (in execution order) that uses this resource
         bool isImported = false;   // Imported resources are "always alive"
-    };
-
-    //==========================================================================
-    // PooledTexture - Cached texture for reuse
-    //==========================================================================
-    struct PooledTexture {
-        uint32_t textureId = 0;
-        uint32_t fboId = 0;
-        uint32_t width = 0;
-        uint32_t height = 0;
-        TextureFormat format = TextureFormat::RGBA8;
-        bool inUse = false;
-    };
-
-    //==========================================================================
-    // TexturePoolStats - Statistics for debugging
-    //==========================================================================
-    struct TexturePoolStats {
-        size_t poolSize = 0;        // Total textures in pool
-        size_t inUseCount = 0;      // Textures currently allocated
-        size_t hits = 0;            // Times a pooled texture was reused
-        size_t misses = 0;          // Times a new texture had to be created
-        size_t totalAllocated = 0;  // Lifetime allocation count
-    };
-
-    //==========================================================================
-    // TexturePool - Manages reusable texture cache
-    //==========================================================================
-    class NANOENGINE_API TexturePool {
-    public:
-        TexturePool() = default;
-        ~TexturePool();
-
-        // Non-copyable
-        TexturePool(const TexturePool&) = delete;
-        TexturePool& operator=(const TexturePool&) = delete;
-
-        // Acquire a texture matching the description
-        // Returns existing pooled texture if available, creates new otherwise
-        PooledTexture* Acquire(uint32_t width, uint32_t height, TextureFormat format);
-
-        // Release a texture back to the pool for reuse
-        void Release(PooledTexture* texture);
-
-        // Release all textures (marks all as available)
-        void ReleaseAll();
-
-        // Clear the pool (deletes all GPU resources)
-        void Clear();
-
-        // Get statistics
-        const TexturePoolStats& GetStats() const { return m_Stats; }
-
-        // Get all pooled textures (for debugging)
-        const std::vector<std::unique_ptr<PooledTexture>>& GetTextures() const { return m_Textures; }
-
-    private:
-        std::vector<std::unique_ptr<PooledTexture>> m_Textures;
-        TexturePoolStats m_Stats;
     };
 
     //==========================================================================

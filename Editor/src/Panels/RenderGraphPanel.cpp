@@ -4,6 +4,7 @@
 #include <Graphics/Core/RenderGraph.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <Graphics/Interfaces/IFrameBuffer.hpp>
+#include <Graphics/Core/RenderGraph/TexturePool.hpp>
 
 namespace Editor {
 

@@ -27,6 +27,7 @@ namespace NE {
         class RenderViewManager;
         class RenderGraph;
         class TexturePool;
+        class PostProcessPipeline;
         struct DrawCommand;
         struct RenderView;
         struct RenderSettings;
@@ -125,7 +126,6 @@ namespace NE::Graphics {
         // Render Graph
         static RenderGraph* GetRenderGraph();
         static TexturePool* GetTexturePool();
-        static void SetupPostProcessGraph(RenderViewHandle sourceView, RenderViewHandle destView, bool isSceneView);
 
     private:
         static uint32_t s_ScreenWidth;
@@ -153,9 +153,8 @@ namespace NE::Graphics {
 		// Clustered Lighting System for forward+ rendering
         static std::shared_ptr<IClusteredLighting> s_clusteredLighting;
 
-        // Render Graph
-        static std::unique_ptr<RenderGraph> s_RenderGraph;
-        static std::unique_ptr<TexturePool> s_TexturePool;
+        // Post-processing
+        static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
 

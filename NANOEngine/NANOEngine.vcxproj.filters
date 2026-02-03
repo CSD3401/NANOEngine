@@ -93,6 +93,8 @@
     <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
     <ClCompile Include="src\Graphics\Debug\DebugDrawSystem.cpp" />
+    <ClCompile Include="src\Graphics\Core\PostProcessPipeline.cpp" />
+    <ClCompile Include="src\Graphics\Core\RenderGraph\TexturePool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -268,6 +270,9 @@
     <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
     <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
     <ClInclude Include="src\Graphics\Debug\DebugDrawSystem.hpp" />
+    <ClInclude Include="src\Graphics\Core\PostProcessPipeline.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderGraph\TexturePool.hpp" />
+    <ClInclude Include="src\Graphics\Core\RenderGraph\TextureFormats.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">
