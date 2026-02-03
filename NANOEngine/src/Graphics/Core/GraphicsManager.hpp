@@ -30,6 +30,8 @@ namespace NE {
         struct RenderSettings;
 
         using RenderViewHandle = std::uint32_t;
+
+        class ShadowRenderer;
 	}
     namespace ECS {
         namespace Component {
@@ -62,7 +64,6 @@ namespace NE::Graphics {
         static void Init();
 
         static void BeginFrame();
-        static void SubmitSkybox();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
         static void EndFrame();
@@ -133,10 +134,9 @@ namespace NE::Graphics {
         // Experimental here for now
         static PostProcessingSettings postProcessingSettings;
 
-        static void UpdateShadowMaps();
-
-        static void UpdateShadowMapsForView(const RenderView& view);
-        static void RenderShadowMapForLight(ECS::Component::Light& light, const std::vector<DrawCommand>& commands);
+        //static void UpdateShadowMaps();
+        //static void UpdateShadowMapsForView(const RenderView& view);
+        //static void RenderShadowMapForLight(ECS::Component::Light& light, const std::vector<DrawCommand>& commands);
     private:
         static uint32_t s_ScreenWidth;
         static uint32_t s_ScreenHeight;
@@ -162,10 +162,12 @@ namespace NE::Graphics {
 
 		// Framebuffer Manager
 		static std::unique_ptr<RenderViewManager> s_RenderViewManager;
-		static RenderViewHandle s_ActiveViewHandle;
+		//static RenderViewHandle s_ActiveViewHandle;
 
 		// Clustered Lighting System for forward+ rendering
         static std::shared_ptr<IClusteredLighting> s_clusteredLighting;
+
+        static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
 
         // Debug
         static std::vector<float> s_DebugVertexBuffer; // pre-allocated buffer to avoid reallocations

@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
     <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
     <ClInclude Include="src\Physics\ContactDefs.hpp" />
     <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
@@ -199,6 +200,7 @@
     <ClInclude Include="src\Physics\StreamInImpl.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
     <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
     <ClCompile Include="src\Animation\AnimationClip.cpp" />
@@ -423,7 +425,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ENGINE_BUILD_DLL;NOMINMAX;NANOENGINE_EXPORTS;_DEBUG;_CONSOLE;JPH_FLOATING_POINT_EXCEPTIONS_ENABLED;JPH_DEBUG_RENDERER;JPH_PROFILE_ENABLED;JPH_OBJECT_STREAM;JPH_USE_AVX2;JPH_USE_AVX;JPH_USE_SSE4_1;JPH_USE_SSE4_2;JPH_USE_LZCNT;JPH_USE_TZCNT;JPH_USE_F16C;JPH_USE_FMADD;GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD;NE_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>false</TreatWarningAsError>
