@@ -43,6 +43,7 @@
 #include "ECS/Components/Transform.hpp"
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Core/ComponentManager.hpp"
+#include "ECS/Components/NativeScript.hpp"
 #include "ObjectLayerPairFilterImpl.hpp"
 #include "BroadPhaseLayerInterfaceImpl.hpp"
 #include "ObjectVsBroadPhaseLayerFilterImpl.hpp"
@@ -87,11 +88,11 @@ namespace NE::Physics {
 			return NE::Math::Vec3(JPH::RadiansToDegrees(angles.GetX()), JPH::RadiansToDegrees(angles.GetY()), JPH::RadiansToDegrees(angles.GetZ()));
 		}
 
-		static float Wrap360(float deg) {
-			deg = std::fmod(deg, 360.0f);
-			if (deg < 0.0f) deg += 360.0f;
-			return deg;
-		}
+		//static float Wrap360(float deg) {
+		//	deg = std::fmod(deg, 360.0f);
+		//	if (deg < 0.0f) deg += 360.0f;
+		//	return deg;
+		//}
 
 		float ExtractYawDegrees(const JPH::Quat& q) {
 			// Choose your engine's forward. Common is +Z forward.
@@ -195,7 +196,7 @@ namespace NE::Physics {
 		if (dt > m_maxFrameTime)
 			dt = m_maxFrameTime;
 
-		m_accumulator += dt;
+		m_accumulator += static_cast<float>(dt);
 		bool didStep = false;
 
 		while (m_accumulator >= m_fixedDt) {
@@ -352,7 +353,7 @@ namespace NE::Physics {
 			base = CreateShape(s);
 		} break;
 		case Collider::ColliderType::Mesh: {
-			auto& data = std::get<Collider::MeshColliderData>(col.data);
+			//auto& data = std::get<Collider::MeshColliderData>(col.data);
 			if (!m_componentManager->HasComponent<ECS::Component::Renderer>(entity)) {
 				SPD_WARNING("CreateOrUpdateShape: Entity " << entity << " has Mesh collider but no Renderer component.");
 				RemoveShape(entityLUID);
@@ -431,7 +432,7 @@ namespace NE::Physics {
 		}
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
-		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
+		const JPH::RVec3 jPos(pos.x, pos.y, pos.z);
 
 		const float yawRad = JPH::DegreesToRadians(t.localRotationEuler.y);
 		const JPH::Quat jRot = JPH::Quat::sRotation(JPH::Vec3::sAxisY(), yawRad);
@@ -492,29 +493,37 @@ namespace NE::Physics {
 				JPH::ShapeFilter(),
 				*m_tempAllocator
 			);
-
 			rt.velocity = ch.GetLinearVelocity();
 
-			ECS::Entity e = static_cast<ECS::Entity>(rt.entity);
-			if (m_componentManager->HasComponent<ECS::Component::Transform>(e)) {
-				auto& tr = m_componentManager->GetComponent<ECS::Component::Transform>(e);
+			const auto& contacts = ch.GetActiveContacts();
+			for (const JPH::CharacterVirtual::Contact& c : contacts) {
+				if (!c.mHadCollision)
+					continue;
+				
+				if (!c.mBodyB.IsInvalid()) {
+					uint64_t otherLuid = BodyToLuid(c.mBodyB);
+					if (otherLuid == 0) continue;
 
-				const JPH::RVec3 p = ch.GetPosition();
-				tr.localPosition = ToEngineVec3(p);
+					RawContactEvent e;
+					e.aLuid = rt.luid;
+					e.bLuid = otherLuid;
+					e.isTrigger = c.mIsSensorB;
+					e.type = ContactEventType::Persisted;
 
-				//            float yaw = Wrap360(ExtractYawDegrees(ch.GetRotation()));
-							////SPD_WARNING("Yaw: " << yaw);
-				//            tr.localRotationEuler = { 0.0f, yaw, 0.0f };
-							//SPD_WARNING(tr.localRotationEuler);
-
-				Math::Quat q = ToEngineQuat(ch.GetRotation());
-				tr.localRotationQuat = q;
-
-				//Math::Vec3 e = QuatToEulerDegrees(q);                // any consistent order
-				//tr.localRotationEuler = StabilizeEulerForUI(e, tr.localRotationEuler);
-
-				tr.isDirty = true;
+					PushRawContactEvent(e);
+				}
 			}
+
+			ECS::Entity e = static_cast<ECS::Entity>(rt.entity);
+			auto& tr = m_componentManager->GetComponent<ECS::Component::Transform>(e);
+
+			const JPH::RVec3 p = ch.GetPosition();
+			tr.localPosition = ToEngineVec3(p);
+
+			Math::Quat q = ToEngineQuat(ch.GetRotation());
+			tr.localRotationQuat = q;
+
+			tr.isDirty = true;
 		}
 	}
 
@@ -582,13 +591,7 @@ namespace NE::Physics {
 		const JPH::ShapeRefC& shape = itShape->second.shape;
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
-		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
-		//const JPH::Quat jRot = JPH::Quat::sEulerAngles({
-		//	JPH::DegreesToRadians(t.localRotationEuler.x),
-		//	JPH::DegreesToRadians(t.localRotationEuler.y),
-		//	JPH::DegreesToRadians(t.localRotationEuler.z) }
-		//	);
-
+		const JPH::RVec3 jPos(pos.x, pos.y, pos.z);
 		const JPH::Quat jRot = ToJPHQuat(t.localRotationQuat);
 
 		const JPH::EMotionType motion = ToMotionType(rb);
@@ -645,7 +648,7 @@ namespace NE::Physics {
 		const JPH::ShapeRefC& shape = itShape->second.shape;
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
-		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
+		const JPH::RVec3 jPos(pos.x, pos.y, pos.z);
 		const JPH::Quat jRot = JPH::Quat::sEulerAngles({
 			JPH::DegreesToRadians(t.localRotationEuler.x),
 			JPH::DegreesToRadians(t.localRotationEuler.y),
@@ -731,7 +734,7 @@ namespace NE::Physics {
 		auto it = m_shapes.find(entityLUID);
 		if (it == m_shapes.end()) return;
 
-		auto& shapeSettings = it->second;
+		//auto& shapeSettings = it->second;
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
 		//const JPH::Quat rot = ToJPHQuat(t.loc)
@@ -744,7 +747,7 @@ namespace NE::Physics {
 
 		JPH::RMat44 world = JPH::RMat44::sRotationTranslation(
 			rot,
-			JPH::RVec3((double)pos.x, (double)pos.y, (double)pos.z)
+			JPH::RVec3(pos.x, pos.y, pos.z)
 		);
 
 		world = world * JPH::RMat44::sTranslation(JPH::Vec3(col.center.x, col.center.y, col.center.z));
