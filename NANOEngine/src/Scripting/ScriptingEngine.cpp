@@ -68,21 +68,14 @@ namespace NE::Scripting {
 
     void ScriptingEngine::RegisterScript(const std::string& name, std::function<IScript* ()> factory) {
         std::lock_guard<std::mutex> lock(m_mutex);
-        try {
-            ValidateScriptName(name);
+        ValidateScriptName(name);
 
-            if (m_scriptFactories.find(name) != m_scriptFactories.end()) {
-                SPD_WARNING("Script '" << name << "' is already registered.");
-            }
-
-            m_scriptFactories[name] = factory;
-            SPD_INFO("Registered script: " << name);
-
+        if (m_scriptFactories.find(name) != m_scriptFactories.end()) {
+            SPD_WARNING("Script '" << name << "' is already registered.");
         }
-        catch (const std::exception& e) {
-            SetLastError("Failed to register script '" + name + "': " + e.what());
-            throw;
-        }
+
+        m_scriptFactories[name] = factory;
+        SPD_INFO("Registered script: " << name);
     }
 
     bool ScriptingEngine::IsScriptRegistered(const std::string& name) const {
@@ -109,14 +102,12 @@ namespace NE::Scripting {
             factory = it->second; // copy
         } // unlock before calling into DLL
 
-        try {
-            IScript* rawScript = factory();
-            return std::unique_ptr<IScript>(rawScript);
-        }
-        catch (const std::exception& e) {
-            const_cast<ScriptingEngine*>(this)->SetLastError("Error creating script '" + name + "': " + e.what());
+        IScript* rawScript = factory();
+        if (!rawScript) {
+            const_cast<ScriptingEngine*>(this)->SetLastError("Factory returned nullptr for script '" + name + "'");
             return nullptr;
         }
+        return std::unique_ptr<IScript>(rawScript);
     }
 
     std::vector<std::string> ScriptingEngine::GetRegisteredScriptNames() const {
@@ -135,55 +126,49 @@ namespace NE::Scripting {
     // === DLL Loading Management ===
 
     bool ScriptingEngine::LoadScriptDLL(const std::string& dllPath) {
+        if (!ValidateDLLPath(dllPath)) {
+            SetLastError("Invalid DLL path: " + dllPath);
+            return false;
+        }
+
+        if (IsScriptDLLLoaded()) {
+            SetLastError("Script DLL already loaded: " + m_loadedDLL.filepath);
+            return false;
+        }
+
+        // Load the DLL
+        HMODULE dllHandle = LoadLibraryA(dllPath.c_str());
+        if (!dllHandle) {
+            SetLastError("Failed to load DLL: " + dllPath + " - " + GetSystemError());
+            return false;
+        }
+
+        // Get the registration function
+        RegisterScriptsFunction registerFunc =
+            (RegisterScriptsFunction)GetProcAddress(dllHandle, "RegisterEngineScripts");
+        if (!registerFunc) {
+            SetLastError("Failed to find 'RegisterEngineScripts' function in: " + dllPath + " - " + GetSystemError());
+            FreeLibrary(dllHandle);
+            return false;
+        }
+
+        // Store the loaded DLL information
+        m_loadedDLL.handle = dllHandle;
+        m_loadedDLL.filepath = dllPath;
+        m_loadedDLL.registerFunction = registerFunc;
+
+        // Call the registration function (may throw from user code)
         try {
-            if (!ValidateDLLPath(dllPath)) {
-                SetLastError("Invalid DLL path: " + dllPath);
-                return false;
-            }
-
-            if (IsScriptDLLLoaded()) {
-                SetLastError("Script DLL already loaded: " + m_loadedDLL.filepath);
-                return false;
-            }
-
-            // Load the DLL
-            HMODULE dllHandle = LoadLibraryA(dllPath.c_str());
-            if (!dllHandle) {
-                SetLastError("Failed to load DLL: " + dllPath + " - " + GetSystemError());
-                return false;
-            }
-
-            // Get the registration function
-            RegisterScriptsFunction registerFunc =
-                (RegisterScriptsFunction)GetProcAddress(dllHandle, "RegisterEngineScripts");
-            if (!registerFunc) {
-                SetLastError("Failed to find 'RegisterEngineScripts' function in: " + dllPath + " - " + GetSystemError());
-                FreeLibrary(dllHandle);
-                return false;
-            }
-
-            // Store the loaded DLL information
-            m_loadedDLL.handle = dllHandle;
-            m_loadedDLL.filepath = dllPath;
-            m_loadedDLL.registerFunction = registerFunc;
-
-            // Call the registration function
-            try {
-                registerFunc(this);
-                SPD_INFO("Successfully loaded and registered scripts from: " << dllPath);
-                return true;
-            }
-            catch (const std::exception& e) {
-                SetLastError("Exception during script registration: " + std::string(e.what()));
-                FreeLibrary(dllHandle);
-                m_loadedDLL.handle = nullptr;
-                m_loadedDLL.filepath.clear();
-                m_loadedDLL.registerFunction = nullptr;
-                return false;
-            }
+            registerFunc(this);
+            SPD_INFO("Successfully loaded and registered scripts from: " << dllPath);
+            return true;
         }
         catch (const std::exception& e) {
-            SetLastError("Exception loading DLL '" + dllPath + "': " + e.what());
+            SetLastError("Exception during script registration: " + std::string(e.what()));
+            FreeLibrary(dllHandle);
+            m_loadedDLL.handle = nullptr;
+            m_loadedDLL.filepath.clear();
+            m_loadedDLL.registerFunction = nullptr;
             return false;
         }
     }
@@ -382,26 +367,25 @@ namespace NE::Scripting {
             return false;
         }
 
-        try {
-            std::filesystem::path dllPath(path);
+        std::error_code ec;
+        std::filesystem::path dllPath(path);
 
-            if (!std::filesystem::exists(dllPath)) {
-                return false;
-            }
-
-            if (!std::filesystem::is_regular_file(dllPath)) {
-                return false;
-            }
-
-            if (dllPath.extension() != ".dll") {
-                return false;
-            }
-
-            return true;
-        }
-        catch (const std::filesystem::filesystem_error&) {
+        // Check if path exists
+        if (!std::filesystem::exists(dllPath, ec) || ec) {
             return false;
         }
+
+        // Check if it's a regular file
+        if (!std::filesystem::is_regular_file(dllPath, ec) || ec) {
+            return false;
+        }
+
+        // Check extension
+        if (dllPath.extension() != ".dll") {
+            return false;
+        }
+
+        return true;
     }
 
     std::string ScriptingEngine::CreateHotReloadCopyPath(int version) const {
@@ -898,57 +882,29 @@ namespace NE::Scripting {
             return nullptr;
         }
 
-        // Check if entity exists before accessing the map
-        if (m_entityManager) {
-            const auto& usedEntities = m_entityManager->GetUsedEntities();
-            bool entityExists = false;
-            for (Entity e : usedEntities) {
-                if (e == entity) {
-                    entityExists = true;
-                    break;
-                }
-            }
-            if (!entityExists) {
-                return nullptr;  // Entity was destroyed
-            }
+        // Check if entity has NativeScript component
+        if (!m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+            return nullptr;
         }
 
-        // Now safely access the map
+        // Access map
         auto it = m_scriptInstances.find(entity);
-        if (it == m_scriptInstances.end()) {
+        if (it == m_scriptInstances.end() || it->second.empty()) {
             return nullptr;
         }
 
-        // Validate instances vector
-        if (it->second.empty()) {
-            return nullptr;
-        }
+        // Search for the script by name
+        auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
+        size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
+        for (size_t i = 0; i < searchCount; ++i) {
+            std::string::size_type n;
+            n = nsc.ScriptNames[i].find(scriptName);
+            if (n != std::string::npos) {
+                return it->second[i];
+            }
 
-        // For single-script compatibility, if there's only one instance, return it
-        if (it->second.size() == 1) {
-            return it->second[0];
-        }
-
-        // Multi-script case: Search for the script by name
-        if (m_componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
-            try {
-                auto& nsc = m_componentManager->GetComponent<ECS::Component::NativeScript>(entity);
-                // Ensure ScriptNames size matches instances size
-                size_t searchCount = std::min(nsc.ScriptNames.size(), it->second.size());
-                for (size_t i = 0; i < searchCount; ++i) {
-                    std::string::size_type n;
-                    n = nsc.ScriptNames[i].find(scriptName);
-                    if (n != std::string::npos) {
-						return it->second[i];
-					}
-
-                    if (nsc.ScriptNames[i] == scriptName) {
-                        return it->second[i];
-                    }
-                }
-            } catch (...) {
-                // Component access failed - component may be invalid
-                return nullptr;
+            if (nsc.ScriptNames[i] == scriptName) {
+                return it->second[i];
             }
         }
 
@@ -1271,6 +1227,9 @@ namespace NE::Scripting {
         }
     }
 
+    //=========================================================================
+    // COLLISION CALLBACKS
+    //=========================================================================
     void ScriptingEngine::OnCollisionEnter(ECS::Entity entity, ECS::Entity other) {
         auto it = m_scriptInstances.find(entity);
         if (it != m_scriptInstances.end()) {

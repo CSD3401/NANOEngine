@@ -7,7 +7,6 @@
  */
 
 #include "../../include/ScriptSDK/ScriptAPI.h"
-#include "../../include/ScriptSDK/ScriptMacros.h"
 #include "ScriptContext.hpp"
 #include "ScriptContextFactory.hpp"
 #include "ScriptingEngine.hpp"
