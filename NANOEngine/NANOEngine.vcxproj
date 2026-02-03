@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
     <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
+    <ClInclude Include="src\Graphics\Debug\DebugDrawSystem.hpp" />
     <ClInclude Include="src\Physics\ContactDefs.hpp" />
     <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
     <ClInclude Include="src\Animation\AnimationClip.hpp" />
@@ -201,6 +202,7 @@
     <ClInclude Include="src\Physics\StreamInImpl.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Graphics\Debug\DebugDrawSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
     <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
