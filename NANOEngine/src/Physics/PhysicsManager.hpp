@@ -46,7 +46,6 @@ namespace NE::Physics {
     class ObjectLayerPairFilterImpl;
     class BroadPhaseLayerInterfaceImpl;
     class ObjectVsBroadPhaseLayerFilterImpl;
-    class PhysicsContactListener;
 
     struct Ray;
     struct RaycastHit;
@@ -149,7 +148,6 @@ namespace NE::Physics {
         std::unique_ptr<ObjectVsBroadPhaseLayerFilterImpl> m_objectVsBpFilter;
 
         std::unique_ptr<JoltDebugRenderer> m_debugRenderer;
-        std::unique_ptr<PhysicsContactListener> m_contactListener;
 
         std::unordered_map<uint64_t, StoredShape> m_shapes;
         std::unordered_map<uint64_t, JPH::BodyID> m_bodies;
