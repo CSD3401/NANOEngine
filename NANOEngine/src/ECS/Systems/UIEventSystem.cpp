@@ -1,8 +1,12 @@
 #include "UIEventSystem.hpp"
 #include "../../Input/InputManager.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
+#include "../../Graphics/Core/EditorCamera.hpp"
+#include "../Components/Transform.hpp"
+#include "../../Math/Vec4.hpp"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -11,6 +15,8 @@ namespace NE::ECS::Systems {
 
     static constexpr float DEFAULT_ANCHOR_X = 0.5f;
     static constexpr float DEFAULT_ANCHOR_Y = 0.5f;
+    static constexpr float PI = 3.14159265358979f;
+    static constexpr float DEFAULT_WORLD_SPACE_SCALE = 0.1f;
 
     UIEventSystem::UIEventSystem(ComponentManager* cm) : m_cm(cm) {}
 
@@ -54,7 +60,7 @@ namespace NE::ECS::Systems {
         bool mousePressed = NE::InputManager::WasMousePressed(0);
         bool mouseReleased = NE::InputManager::WasMouseReleased(0);
 
-        // Collect all interactable UI elements
+        // Collect all interactable UI elements (screen-space)
         std::vector<UIElementInfo> elements = CollectInteractableElements();
 
         // Sort by Z-order (higher Z = on top = checked first for hits)
@@ -63,13 +69,18 @@ namespace NE::ECS::Systems {
                 return a.zOrder > b.zOrder;
             });
 
-        // Find topmost element under mouse
+        // Find topmost screen-space element under mouse
         Entity hoveredEntity = NO_ENTITY;
         for (const auto& elem : elements) {
             if (PointInRect(static_cast<float>(mouseX), static_cast<float>(mouseY), elem)) {
                 hoveredEntity = elem.entity;
                 break;
             }
+        }
+
+        // If no screen-space hit, check world-space elements
+        if (hoveredEntity == NO_ENTITY) {
+            hoveredEntity = FindWorldSpaceHit(static_cast<float>(mouseX), static_cast<float>(mouseY));
         }
 
         // Handle press/release state
@@ -515,6 +526,302 @@ namespace NE::ECS::Systems {
         outY = accPosY;
         outWidth = rect.width * accScaleX;
         outHeight = rect.height * accScaleY;
+    }
+
+    //=========================================================================
+    // World-Space Hit Testing
+    //=========================================================================
+
+    bool UIEventSystem::GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj) {
+        auto* cam = NE::Graphics::GraphicsManager::GetEditorCamera();
+        if (!cam) return false;
+
+        outView = cam->GetViewMatrix();
+        outProj = cam->GetProjectionMatrix();
+        return true;
+    }
+
+    Math::Vec3 UIEventSystem::ScreenToWorldRay(float screenX, float screenY, const Math::Mat4& invViewProj) {
+        float screenWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth());
+        float screenHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight());
+
+        // Convert screen coords to NDC (-1 to 1)
+        float ndcX = (2.0f * screenX / screenWidth) - 1.0f;
+        float ndcY = 1.0f - (2.0f * screenY / screenHeight);  // Flip Y
+
+        // Create near and far points in NDC
+        Math::Vec4 nearPoint(ndcX, ndcY, -1.0f, 1.0f);
+        Math::Vec4 farPoint(ndcX, ndcY, 1.0f, 1.0f);
+
+        // Transform to world space
+        Math::Vec4 nearWorld = invViewProj * nearPoint;
+        Math::Vec4 farWorld = invViewProj * farPoint;
+
+        // Perspective divide
+        if (std::abs(nearWorld.w) > 0.0001f) {
+            nearWorld.x /= nearWorld.w;
+            nearWorld.y /= nearWorld.w;
+            nearWorld.z /= nearWorld.w;
+        }
+        if (std::abs(farWorld.w) > 0.0001f) {
+            farWorld.x /= farWorld.w;
+            farWorld.y /= farWorld.w;
+            farWorld.z /= farWorld.w;
+        }
+
+        // Ray direction
+        Math::Vec3 rayDir(
+            farWorld.x - nearWorld.x,
+            farWorld.y - nearWorld.y,
+            farWorld.z - nearWorld.z
+        );
+
+        return rayDir.Normalized();
+    }
+
+    bool UIEventSystem::RayPlaneIntersect(
+        const Math::Vec3& rayOrigin,
+        const Math::Vec3& rayDir,
+        const Math::Vec3& planePoint,
+        const Math::Vec3& planeNormal,
+        float& outT,
+        Math::Vec3& outHitPoint
+    ) {
+        float denom = planeNormal.Dot(rayDir);
+
+        // Check if ray is parallel to plane
+        if (std::abs(denom) < 0.0001f) {
+            return false;
+        }
+
+        Math::Vec3 diff = planePoint - rayOrigin;
+        outT = diff.Dot(planeNormal) / denom;
+
+        // Check if intersection is behind the ray origin
+        if (outT < 0.0f) {
+            return false;
+        }
+
+        outHitPoint = rayOrigin + rayDir * outT;
+        return true;
+    }
+
+    Math::Mat4 UIEventSystem::BuildWorldSpaceModelMatrix(
+        Entity entity,
+        Entity canvasEntity,
+        const Component::UIRectTransform& rect
+    ) {
+        // Build parent chain including canvas
+        std::vector<Entity> chain;
+        Entity current = entity;
+
+        while (current != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(current)) {
+            chain.push_back(current);
+            current = m_cm->GetComponent<UIRectTransform>(current).parent;
+        }
+
+        std::reverse(chain.begin(), chain.end());
+
+        // Accumulate transforms
+        float accScaleX = 1.0f;
+        float accScaleY = 1.0f;
+        float accScaleZ = 1.0f;
+        float accPosX = 0.0f;
+        float accPosY = 0.0f;
+        float accPosZ = 0.0f;
+        float accRotX = 0.0f;
+        float accRotY = 0.0f;
+        float accRotZ = 0.0f;
+
+        for (Entity ent : chain) {
+            auto& r = m_cm->GetComponent<UIRectTransform>(ent);
+
+            accScaleX *= r.scaleX;
+            accScaleY *= r.scaleY;
+            accScaleZ *= r.scaleZ;
+            accRotX += r.rotationX;
+            accRotY += r.rotationY;
+            accRotZ += r.rotationZ;
+            accPosX += r.x;
+            accPosY += r.y;
+            accPosZ += r.z;
+        }
+
+        // Compute pivot offset
+        Math::Vec2 pivot = rect.GetPivot();
+        float pivotOffsetX = -rect.width * pivot.x * accScaleX;
+        float pivotOffsetY = -rect.height * pivot.y * accScaleY;
+
+        // Build matrices
+        Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
+            rect.width * accScaleX,
+            rect.height * accScaleY,
+            accScaleZ
+        );
+
+        Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(pivotOffsetX, pivotOffsetY, 0.0f);
+
+        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accRotX * PI / 180.0f);
+        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accRotY * PI / 180.0f);
+        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accRotZ * PI / 180.0f);
+        Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
+
+        Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(accPosX, accPosY, accPosZ);
+
+        return translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
+    }
+
+    bool UIEventSystem::IsPointInWorldSpaceElement(
+        const Math::Vec3& hitPoint,
+        const UIElementInfo& element
+    ) {
+        // Get the inverse model matrix to transform hit point to local space
+        Math::Mat4 invModel = element.modelMatrix.Inverse();
+        Math::Vec4 localPoint4 = invModel * Math::Vec4(hitPoint.x, hitPoint.y, hitPoint.z, 1.0f);
+
+        // Local coordinates (in unit quad space: 0-1)
+        float localX = localPoint4.x;
+        float localY = localPoint4.y;
+
+        // Check if within bounds (unit quad: 0 to 1)
+        return localX >= 0.0f && localX <= 1.0f && localY >= 0.0f && localY <= 1.0f;
+    }
+
+    std::vector<UIEventSystem::UIElementInfo> UIEventSystem::CollectWorldSpaceElements() {
+        std::vector<UIElementInfo> elements;
+        const auto& allEntities = GetEntities();
+
+        // Find world-space canvases
+        std::vector<std::pair<Entity, UICanvas*>> worldCanvases;
+        for (Entity e : allEntities) {
+            if (m_cm->HasComponent<UICanvas>(e)) {
+                auto& canvas = m_cm->GetComponent<UICanvas>(e);
+                if (canvas.isActive && canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                    worldCanvases.push_back({ e, &canvas });
+                }
+            }
+        }
+
+        // For each world-space canvas, collect interactable elements
+        for (const auto& [canvasEntity, canvasPtr] : worldCanvases) {
+            for (Entity e : allEntities) {
+                if (e == canvasEntity) continue;
+                if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
+
+                // Check if entity is interactable
+                bool isInteractable = false;
+
+                if (m_cm->HasComponent<UIButton>(e)) {
+                    auto& button = m_cm->GetComponent<UIButton>(e);
+                    if (button.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UISlider>(e)) {
+                    auto& slider = m_cm->GetComponent<UISlider>(e);
+                    if (slider.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UIToggle>(e)) {
+                    auto& toggle = m_cm->GetComponent<UIToggle>(e);
+                    if (toggle.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UIImage>(e)) {
+                    auto& image = m_cm->GetComponent<UIImage>(e);
+                    if (image.raycastTarget) isInteractable = true;
+                }
+
+                if (!isInteractable) continue;
+
+                auto& rect = m_cm->GetComponent<UIRectTransform>(e);
+
+                // Check if this entity belongs to this canvas
+                Entity root = e;
+                Entity current = rect.parent;
+                while (current != NO_ENTITY) {
+                    root = current;
+                    if (!m_cm->HasComponent<UIRectTransform>(current)) break;
+                    current = m_cm->GetComponent<UIRectTransform>(current).parent;
+                }
+
+                if (root != canvasEntity && rect.parent != canvasEntity) {
+                    continue;
+                }
+
+                // Build model matrix for this element
+                Math::Mat4 modelMatrix = BuildWorldSpaceModelMatrix(e, canvasEntity, rect);
+
+                // Extract world position from model matrix (column 3)
+                Math::Vec3 worldPos(
+                    modelMatrix.GetElement(0, 3),
+                    modelMatrix.GetElement(1, 3),
+                    modelMatrix.GetElement(2, 3)
+                );
+
+                // Get plane normal (Z axis of model matrix, typically facing +Z or -Z)
+                Math::Vec3 worldNormal(
+                    modelMatrix.GetElement(0, 2),
+                    modelMatrix.GetElement(1, 2),
+                    modelMatrix.GetElement(2, 2)
+                );
+                worldNormal.Normalize();
+
+                UIElementInfo info;
+                info.entity = e;
+                info.canvasEntity = canvasEntity;
+                info.isWorldSpace = true;
+                info.worldPosition = worldPos;
+                info.worldNormal = worldNormal;
+                info.modelMatrix = modelMatrix;
+                info.zOrder = rect.z + canvasPtr->sortingOrder * 1000.0f;
+
+                elements.push_back(info);
+            }
+        }
+
+        return elements;
+    }
+
+    Entity UIEventSystem::FindWorldSpaceHit(float mouseX, float mouseY) {
+        Math::Mat4 viewMatrix, projMatrix;
+        if (!GetCameraMatrices(viewMatrix, projMatrix)) {
+            return NO_ENTITY;
+        }
+
+        // Get camera position
+        auto* cam = NE::Graphics::GraphicsManager::GetEditorCamera();
+        if (!cam) return NO_ENTITY;
+
+        Math::Vec3 rayOrigin = cam->GetPosition();
+
+        // Compute inverse view-projection matrix
+        Math::Mat4 viewProj = projMatrix * viewMatrix;
+        Math::Mat4 invViewProj = viewProj.Inverse();
+
+        // Get ray direction
+        Math::Vec3 rayDir = ScreenToWorldRay(mouseX, mouseY, invViewProj);
+
+        // Collect world-space elements
+        std::vector<UIElementInfo> worldElements = CollectWorldSpaceElements();
+
+        if (worldElements.empty()) {
+            return NO_ENTITY;
+        }
+
+        // Find closest hit
+        Entity closestEntity = NO_ENTITY;
+        float closestT = std::numeric_limits<float>::max();
+
+        for (const auto& elem : worldElements) {
+            float t;
+            Math::Vec3 hitPoint;
+
+            if (RayPlaneIntersect(rayOrigin, rayDir, elem.worldPosition, elem.worldNormal, t, hitPoint)) {
+                if (t < closestT && IsPointInWorldSpaceElement(hitPoint, elem)) {
+                    closestT = t;
+                    closestEntity = elem.entity;
+                }
+            }
+        }
+
+        return closestEntity;
     }
 
 } // namespace NE::ECS::Systems

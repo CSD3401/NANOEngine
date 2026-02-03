@@ -729,9 +729,21 @@ namespace NE::ECS::Systems {
         // Skip if no text or font
         if (text.text.empty() || text.fontPath.empty()) return;
 
-        // Get or create font atlas
+        // Calculate accumulated scale for font scaling
+        AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
+
+        // Use the average scale for uniform font scaling (take the smaller to ensure text fits)
+        float scaleFactorForFont = std::min(accumulated.scaleX, accumulated.scaleY);
+
+        // Calculate effective font size based on accumulated scale
+        float effectiveFontSize = text.fontSize * scaleFactorForFont;
+
+        // Clamp to reasonable range to avoid tiny or huge font atlases
+        effectiveFontSize = std::max(8.0f, std::min(effectiveFontSize, 256.0f));
+
+        // Get or create font atlas at the effective scaled size
         auto fontAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
-            text.fontPath, text.fontSize
+            text.fontPath, effectiveFontSize
         );
 
         if (!fontAtlas) {
@@ -739,9 +751,10 @@ namespace NE::ECS::Systems {
         }
 
         // Check if text needs to be regenerated
+        // Include effective font size in the check since scale can change
         bool needsRegen = text.isDirty ||
                           text.cachedText != text.text ||
-                          text.cachedFontSize != text.fontSize ||
+                          std::abs(text.cachedFontSize - effectiveFontSize) > 0.1f ||
                           text.fontAtlasHandle != fontAtlas->GetBindlessHandle();
 
         if (needsRegen) {
@@ -778,7 +791,7 @@ namespace NE::ECS::Systems {
             }
 
             text.cachedText = text.text;
-            text.cachedFontSize = text.fontSize;
+            text.cachedFontSize = effectiveFontSize;
             text.fontAtlasHandle = fontAtlas->GetBindlessHandle();
             text.isDirty = false;
         }

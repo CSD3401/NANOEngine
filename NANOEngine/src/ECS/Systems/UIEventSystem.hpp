@@ -9,6 +9,10 @@
 #include "../Components/UISlider.hpp"
 #include "../Components/UIToggle.hpp"
 #include "../Components/UIImage.hpp"
+#include "../../Math/Vec3.hpp"
+#include "../../Math/Vec4.hpp"
+#include "../../Math/Mat4.hpp"
+#include "../../Math/Vec2.hpp"
 #include <vector>
 
 namespace NE::ECS::Systems {
@@ -41,11 +45,36 @@ namespace NE::ECS::Systems {
             float worldHeight;
             float zOrder;
             Entity canvasEntity;
+            bool isWorldSpace = false;
+            // World-space specific data
+            Math::Vec3 worldPosition;
+            Math::Vec3 worldNormal;
+            float worldSpaceWidth = 0.0f;
+            float worldSpaceHeight = 0.0f;
+            Math::Mat4 modelMatrix;
         };
 
         std::vector<UIElementInfo> CollectInteractableElements();
+        std::vector<UIElementInfo> CollectWorldSpaceElements();
 
         bool PointInRect(float px, float py, const UIElementInfo& element);
+
+        // World-space ray casting
+        bool GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj);
+        Math::Vec3 ScreenToWorldRay(float screenX, float screenY, const Math::Mat4& invViewProj);
+        bool RayPlaneIntersect(
+            const Math::Vec3& rayOrigin,
+            const Math::Vec3& rayDir,
+            const Math::Vec3& planePoint,
+            const Math::Vec3& planeNormal,
+            float& outT,
+            Math::Vec3& outHitPoint
+        );
+        bool IsPointInWorldSpaceElement(
+            const Math::Vec3& hitPoint,
+            const UIElementInfo& element
+        );
+        Entity FindWorldSpaceHit(float mouseX, float mouseY);
 
         void UpdateButtonStates();
         void UpdateSliderStates(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased);
@@ -62,6 +91,12 @@ namespace NE::ECS::Systems {
             const Component::UICanvas& canvas,
             float& outX, float& outY,
             float& outWidth, float& outHeight
+        );
+
+        Math::Mat4 BuildWorldSpaceModelMatrix(
+            Entity entity,
+            Entity canvasEntity,
+            const Component::UIRectTransform& rect
         );
     };
 
