@@ -101,26 +101,25 @@ namespace Editor {
 
             bool pipelineChanged = false;
 
-            pipelineChanged |= ImGui::Checkbox("Depth Test", &spec.EnableDepthTest);
             pipelineChanged |= ImGui::Checkbox("Blending", &spec.EnableBlending);
+            pipelineChanged |= ImGui::Checkbox("Depth Test", &spec.EnableDepthTest);
+			pipelineChanged |= ImGui::Checkbox("Depth Write", &spec.DepthWrite);
 
             // Note: CullMode and PolygonMode are currently serialized directly as GL enums, 
             // but should be abstracted later because exposing GL enums directly is not ideal for cross-API compatibility
 
             // ---- Cull Mode ----
-            const char* cullItems[] = { "None", "Back", "Front", "Front & Back" };
+            const char* cullItems[] = { "None", "Back", "Front" };
 
             constexpr int CULL_NONE = 0;
             constexpr int CULL_BACK = 0x0405; // GL_BACK
             constexpr int CULL_FRONT = 0x0404; // GL_FRONT
-            constexpr int CULL_FRONT_AND_BACK = 0x0408; // GL_FRONT_AND_BACK
 
             auto CullEnumToIndex = [](int v) -> int {
                 switch (v) {
                 case CULL_NONE:           return 0;
                 case CULL_BACK:           return 1;
                 case CULL_FRONT:          return 2;
-                case CULL_FRONT_AND_BACK: return 3;
                 default:                  return 1; // default Back
                 }
                 };
@@ -129,7 +128,6 @@ namespace Editor {
                 case 0:  return CULL_NONE;
                 case 1:  return CULL_BACK;
                 case 2:  return CULL_FRONT;
-                case 3:  return CULL_FRONT_AND_BACK;
                 default: return CULL_BACK;
                 }
                 };
@@ -226,8 +224,9 @@ namespace Editor {
         if (mat.m_Pipeline) {
             doc.AddMember("Shader", rapidjson::Value(mat.m_Pipeline->GetSpecification().shaderName.data(), alloc).Move(), alloc);
             auto spec = mat.m_Pipeline->GetSpecification();
-            doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
             doc.AddMember("BlendMode", spec.EnableBlending, alloc);
+            doc.AddMember("DepthTest", spec.EnableDepthTest, alloc);
+			doc.AddMember("DepthWrite", spec.DepthWrite, alloc);
             doc.AddMember("CullMode", spec.CullMode, alloc);
             doc.AddMember("PolygonMode", spec.PolygonMode, alloc);
         }
@@ -293,6 +292,16 @@ namespace Editor {
 
         Assets::AssetManager::GetInstance().ReimportAsset(m_path);
 	}
+
+    void MaterialEditor::SetShader(std::string shaderUUID) {
+        if (m_material) {
+            m_material->SetShader(shaderUUID);
+		}
+    }
+
+    std::shared_ptr<NE::Graphics::Material> MaterialEditor::GetMaterial() {
+        return m_material;
+    }
 
 }
 

@@ -25,6 +25,8 @@
 #include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "Animation/AnimationClip.hpp"
+#include "ECS/Systems/AnimatorSystem.hpp"
 
 namespace {
 
@@ -105,12 +107,11 @@ namespace NE {
 		//s_window->PollEvents();
 
 		//Physics::PhysicsManager::Update(static_cast<float>(dt));
-		Physics::PhysicsManager::GetInstance().DrawBodies();
 		Physics::JoltDebugRenderer::BeginFrame();
 		
 		gSceneManager.Update(dt);
 
-		Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
+		//Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
 
 		Physics::JoltDebugRenderer::EndFrame();
 		gSceneManager.Render();
@@ -188,7 +189,7 @@ namespace NE {
 	}
 
 	void CookPrefab(const ECS::Entity rootNode, const std::string& _artifactPath) {
-		NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
+		//NE::Serialization::SerializePrefab(GetScene().GetECSCoordinator(), rootNode, _artifactPath);
 	}
 
 	uint32_t LoadPrefab(const std::string& _uuid) {
@@ -380,5 +381,15 @@ namespace NE {
 
 	void DestroyGLTexture(unsigned int id) {
 		Resource::ResourceManager::GetInstance().DestroyGLTexture(id);
+	}
+
+	bool CookMeshCollider(const std::vector<Math::Vec3>& vertices,
+		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob) 
+	{
+		return NE::Physics::PhysicsManager::GetInstance().CookMeshCollider(vertices, indices, outBlob);
+	}
+
+	void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds) {
+		gSceneManager.GetActive()->GetECSCoordinator().m_animatorSystem->ApplyClipAtTime(entity, animClip, timeInSeconds);
 	}
 }

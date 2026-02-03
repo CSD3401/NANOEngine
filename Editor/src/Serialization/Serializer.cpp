@@ -21,10 +21,13 @@
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/PrefabLink.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
+#include <ECS/Components/CharacterController.hpp>
+#include <ECS/Components/Animator.hpp>
 
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <ECS/Components/ComponentKey.hpp>
+#include <Core/LUIDGenerator.hpp>
 
 #include <Graphics/Core/RenderSettings.hpp>
 #include <Graphics/Core/PostProcessingSettings.hpp>
@@ -32,9 +35,13 @@
 #include "JSONReflection.hpp"
 #include "../EditorScene.hpp"
 #include <Scripting/ScriptingEngine.hpp>
+#include <Serialisation/BinaryReflection.hpp>
 
 namespace Editor {
 	namespace {
+		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
+		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
+
 		using ComponentTypes = std::tuple<
 			NE::ECS::Component::EntityMeta,
 			NE::ECS::Component::Hierarchy,
@@ -49,7 +56,9 @@ namespace Editor {
 			NE::ECS::Component::Camera,
 			NE::ECS::Component::UIRectTransform,
 			NE::ECS::Component::UICanvas,
-			NE::ECS::Component::UIImage
+			NE::ECS::Component::UIImage,
+			NE::ECS::Component::CharacterController,
+			NE::ECS::Component::Animator
 		>;
 
 		template <class F>
@@ -132,6 +141,7 @@ namespace Editor {
 					rapidjson::Value& ent, rapidjson::Document::AllocatorType& a) {
 					if (!NE::ECS::Query::HasComponent<C>(e)) return;
 					auto& c = NE::ECS::Query::GetComponent<C>(e);
+
 					ent.AddMember(rapidjson::Value(ComponentKey<C>::value, a), ToJSON(c, a), a);
 				}
 
@@ -166,14 +176,14 @@ namespace Editor {
 				// Save all script instance field values to components before serialization
 				auto& coordinator = NE::GetScene().GetECSCoordinator();
 				auto& componentManager = coordinator.GetComponentManager();
-				auto& allEntities = coordinator.GetUsedEntities();
+				//auto& allEntities = coordinator.GetUsedEntities();
 
-				for (NE::ECS::Entity entity : allEntities) {
-					if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
-						auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
-						NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(entity, nsc);
-					}
-				}
+				//for (NE::ECS::Entity entity : allEntities) {
+				//	if (componentManager.HasComponent<NE::ECS::Component::NativeScript>(entity)) {
+				//		auto& nsc = componentManager.GetComponent<NE::ECS::Component::NativeScript>(entity);
+				//		NE::Scripting::ScriptingEngine::GetInstance().SaveSerializedFields(entity, nsc);
+				//	}
+				//}
 
 				Document doc;
 				doc.SetObject();
@@ -205,10 +215,6 @@ namespace Editor {
 				using rapidjson::StringBuffer;
 				using rapidjson::PrettyWriter;
 
-				// Save all script instance field values to components before serialization
-				//auto& coordinator = NE::GetScene().GetECSCoordinator();
-				//auto& componentManager = coordinator.GetComponentManager();
-
 				Document doc;
 				doc.SetObject();
 				auto& a = doc.GetAllocator();
@@ -228,6 +234,64 @@ namespace Editor {
 
 				std::ofstream out(path, std::ios::binary);
 				if (out) out.write(sb.GetString(), static_cast<std::streamsize>(sb.GetSize()));
+			}
+
+			bool CookPrefabToBinary(const std::string& jsonPath, const std::string& binPath) {
+				std::string jsonContent;
+				if (!ReadAllText(jsonPath, jsonContent)) return false;
+
+				rapidjson::Document doc;
+				doc.Parse(jsonContent.c_str());
+				if (doc.HasParseError() || !doc.HasMember("Entities")) return false;
+
+				NE::ByteBuffer outputBuffer;
+
+				NE::Serialization::ToBinary(outputBuffer, static_cast<uint64_t>(NFAB_MAGIC));
+				NE::Serialization::ToBinary(outputBuffer, static_cast<uint64_t>(CURRENT_NANOPREFAB_FORMAT_VERSION));
+
+				const auto& entities = doc["Entities"].GetArray();
+				uint64_t entityCount = static_cast<uint64_t>(entities.Size());
+				NE::Serialization::ToBinary(outputBuffer, entityCount);
+
+				for (const auto& entVal : entities) {
+					uint8_t layer = 0;
+					if (entVal.HasMember("Layer")) {
+						Deserialization::FromJSON(entVal["Layer"], layer);
+					}
+					NE::Serialization::ToBinary(outputBuffer, layer);
+
+					uint64_t mask = 0;
+					uint32_t bitIdx = 0;
+					ForEachComponentType([&]<typename C>() {
+						if (entVal.HasMember(ComponentKey<C>::value)) {
+							mask |= (uint64_t(1) << bitIdx);
+						}
+						bitIdx++;
+					});
+
+					NE::Serialization::ToBinary(outputBuffer, mask);
+
+					ForEachComponentType([&]<typename C>() {
+						const char* key = ComponentKey<C>::value;
+						if (entVal.HasMember(key)) {
+							C tempComp{};
+							Deserialization::FromJSON(entVal[key], tempComp);
+							NE::Serialization::ToBinary(outputBuffer, tempComp);
+						}
+					});
+				}
+
+				std::filesystem::path filePath(binPath);
+				std::filesystem::path directory = filePath.parent_path();
+				if (!directory.empty() && !std::filesystem::exists(directory)) {
+					std::filesystem::create_directories(directory);
+				}
+
+				std::ofstream ofs(binPath, std::ios::binary);
+				if (!ofs.is_open()) return false;
+				ofs.write(reinterpret_cast<const char*>(outputBuffer.data()), outputBuffer.size());
+
+				return true;
 			}
 
 			void SerializeProjectSettings() {
@@ -358,6 +422,96 @@ namespace Editor {
 						ReadComponentIfPresent<C>(e, entVal);
 					});
 				}
+			}
+
+			void DeserializeModel(const std::string& metaPath) {
+				using rapidjson::Document;
+
+				std::ifstream in(metaPath, std::ios::binary);
+				if (!in) return;
+
+				std::string data((std::istreambuf_iterator<char>(in)), {});
+				Document doc; doc.Parse(data.c_str());
+				if (doc.HasParseError() || !doc.IsObject()) return;
+
+				if (!doc.HasMember("submeshes") || !doc["submeshes"].IsArray()) return;
+				auto& sms = doc["submeshes"];
+				if (!doc.HasMember("generatedPrefab") || !doc["generatedPrefab"].IsObject()) return;
+				auto& gp = doc["generatedPrefab"];
+				if (!gp.HasMember("Entities") || !gp["Entities"].IsArray()) return;
+				auto& ents = gp["Entities"];
+
+				std::unordered_map<uint64_t, uint64_t> idxToReal;
+				idxToReal.reserve(ents.Size());
+
+				auto readTemplateLuid = [](const rapidjson::Value& entVal) -> uint64_t {
+					if (entVal.HasMember("Hierarchy") && entVal["Hierarchy"].IsObject()) {
+						auto& h = entVal["Hierarchy"];
+						if (h.HasMember("luid") && h["luid"].IsUint64())
+							return h["luid"].GetUint64();
+					}
+					return 0;
+				};
+
+				for (auto& entVal : ents.GetArray()) {
+					if (!entVal.IsObject()) continue;
+					uint64_t tpl = readTemplateLuid(entVal);
+					if (tpl == 0) continue; 
+					if (idxToReal.contains(tpl)) continue;
+					idxToReal[tpl] = NE::Core::LUIDGenerator::Generate("em");
+				}
+
+				for (auto& entVal : ents.GetArray()) {
+					if (!entVal.IsObject()) continue;
+
+					NE::ECS::Entity e = NE::ECS::Command::CreateEntityNoComponents();
+
+					if (entVal.HasMember("Layer")) {
+						uint8_t layer = 0;
+						FromJSON(entVal["Layer"], layer);
+						NE::ECS::Command::SetLayer(e, layer);
+					}
+
+					ForEachComponentType([&]<typename C>() {
+						if constexpr (std::is_same_v<C, NE::ECS::Component::Hierarchy>) {
+							return;
+						} else {
+							ReadComponentIfPresent<C>(e, entVal);
+						}
+					});
+
+					if (NE::ECS::Query::HasComponent<NE::ECS::Component::Renderer>(e)) {
+						auto& renderer = NE::ECS::Query::GetComponent<NE::ECS::Component::Renderer>(e);
+						NE::Math::Vec3 pivotOffset = {};
+						FromJSON(sms[renderer.subMeshIndex]["pivotOffset"], pivotOffset);
+
+						auto& transform = NE::ECS::Command::GetComponent<NE::ECS::Component::Transform>(e);
+						transform.localPosition = pivotOffset;
+					}
+
+					uint64_t tplLuid = readTemplateLuid(entVal);
+					uint64_t realLuid = (tplLuid != 0 && idxToReal.contains(tplLuid)) ? idxToReal[tplLuid] : 0;
+
+					if (entVal.HasMember("Hierarchy") && entVal["Hierarchy"].IsObject()) {
+						const auto& hj = entVal["Hierarchy"];
+
+						uint64_t tplParent = 0;
+						if (hj.HasMember("parentLuid") && hj["parentLuid"].IsUint64())
+							tplParent = hj["parentLuid"].GetUint64();
+
+						uint64_t realParent = 0;
+						if (tplParent != 0 && idxToReal.contains(tplParent))
+							realParent = idxToReal[tplParent];
+
+						NE::ECS::Component::Hierarchy h{};
+						h.luid = realLuid;
+						h.parentLuid = realParent;
+
+						NE::ECS::Command::AddComponent(e, h);
+					}
+				}
+
+				EditorScene::BuildRoot();
 			}
 
 			void DeserializeProjectSettings() {

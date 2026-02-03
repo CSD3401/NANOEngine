@@ -20,6 +20,7 @@
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/Camera.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
+#include <ECS/Components/CharacterController.hpp>
 #include <Core/Reflection.hpp>
 #include <Math/Vec3.hpp>
 #include "Math/Vec4.hpp"
@@ -48,6 +49,8 @@
 #include "../Command/EditorCommands.hpp"
 #include "../Layers/LayerDatabase.hpp"
 #include "../Layers/LayerModal.hpp"
+#include <Events/EventBus.hpp>
+#include "../EditorEvents.hpp"
 
 bool openLayerSettings = false;
 
@@ -124,6 +127,10 @@ namespace {
 				return NE::ECS::Command::GetEntityRenderer(e);
 			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Light>) {
 				return NE::ECS::Command::GetEntityLight(e);
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::CharacterController>) {
+				return NE::ECS::Command::GetCharacterController(e);
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Animator>) {
+				return NE::ECS::Command::GetEntityAnimator(e);
 			} else {
 				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
 			}
@@ -384,6 +391,21 @@ namespace {
 			}
 		}
 	}
+
+	uint32_t FNV1a32(std::string_view s) {
+		uint32_t h = 2166136261u;
+		for (unsigned char c : s) { h ^= c; h *= 16777619u; }
+		return h;
+	}
+
+	uint32_t MakeFieldId(const char* componentName, std::string_view fieldName) {
+		std::string full;
+		full.reserve(std::strlen(componentName) + 1 + fieldName.size());
+		full.append(componentName);
+		full.push_back('.');
+		full.append(fieldName.data(), fieldName.size());
+		return FNV1a32(full);
+	}
 }
 
 namespace Editor {
@@ -394,20 +416,21 @@ namespace Editor {
 	InspectorPanel::InspectorPanel() {
 
 		m_drawers = {
-			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",		&InspectorPanel::DrawEntityMetaComponent		},
-			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",	&InspectorPanel::DrawPrefabInstanceComponent	},
-			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",		&InspectorPanel::DrawTransformComponent			},
-			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",			&InspectorPanel::DrawRendererComponent			},
-			{ NE::ECS::Query::GetLightComponentType(),				"Light",			&InspectorPanel::DrawLightComponent				},
-			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",			&InspectorPanel::DrawColliderComponent			},
-			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",		&InspectorPanel::DrawRigidbodyComponent			},
-			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",		&InspectorPanel::DrawAudioSourceComponent		},
-			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",			&InspectorPanel::DrawCameraComponent			},
-			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",			&InspectorPanel::DrawAnimatorComponent			},
-			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",	&InspectorPanel::DrawRectTransformComponent		},
-			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",			&InspectorPanel::DrawCanvasComponent			},
-			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",			&InspectorPanel::DrawImageComponent				},
-			{ NE::ECS::Query::GetScriptComponentType(),				"Script",			&InspectorPanel::DrawScriptComponent			}
+			{ NE::ECS::Query::GetEntityMetaComponentType(),			"EntityMeta",			&InspectorPanel::DrawEntityMetaComponent			},
+			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",		&InspectorPanel::DrawPrefabInstanceComponent		},
+			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",			&InspectorPanel::DrawTransformComponent				},
+			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",				&InspectorPanel::DrawRendererComponent				},
+			{ NE::ECS::Query::GetLightComponentType(),				"Light",				&InspectorPanel::DrawLightComponent					},
+			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",				&InspectorPanel::DrawColliderComponent				},
+			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",			&InspectorPanel::DrawRigidbodyComponent				},
+			{ NE::ECS::Query::GetCharacterControllerComponentType(),"CharacterController",	&InspectorPanel::DrawCharacterControllerComponent	},
+			{ NE::ECS::Query::GetAudioSourceComponentType(),		"Audio Source",			&InspectorPanel::DrawAudioSourceComponent			},
+			{ NE::ECS::Query::GetEntityCameraComponentType(),		"Camera",				&InspectorPanel::DrawCameraComponent				},
+			{ NE::ECS::Query::GetEntityAnimatorComponentType(),		"Animator",				&InspectorPanel::DrawAnimatorComponent				},
+			{ NE::ECS::Query::GetUIRectTransformComponentType(),	"Rect Transform",		&InspectorPanel::DrawRectTransformComponent			},
+			{ NE::ECS::Query::GetUICanvasComponentType(),			"Canvas",				&InspectorPanel::DrawCanvasComponent				},
+			{ NE::ECS::Query::GetUIImageComponentType(),			"Image",				&InspectorPanel::DrawImageComponent					},
+			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
 		};
 	}
 
@@ -442,6 +465,9 @@ namespace Editor {
 				if (ImGui::MenuItem("Rigidbody")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
 					NE::ECS::Command::AddRigidbodyComponent(EditorScene::s_selection.GetLastClicked());
+				}
+				if (ImGui::MenuItem("Character Controller")) {
+					NE::ECS::Command::AddCharacterControllerComponent(EditorScene::s_selection.GetLastClicked(), NE::ECS::Component::CharacterController{});
 				}
 				if (ImGui::MenuItem("Collider")) {
 					NE::ECS::Command::AddColliderComponent(EditorScene::s_selection.GetLastClicked());
@@ -679,16 +705,6 @@ namespace Editor {
 	void InspectorPanel::DrawTransformComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Query::GetEntityTransform(entity);
 		ImGui::SeparatorText("Transform");
-		//NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
-		//    [&](auto const& desc, auto const& currentValue) {
-		//        using FieldT = std::decay_t<decltype(currentValue)>;
-
-		//        FieldT edited = currentValue;
-
-		//        if (DrawField(desc, edited)) {
-		//            SubmitSetFieldCommand(entity, desc, currentValue, edited);
-		//        }
-		//    });
 
 		NE::Core::ForEachFieldView<NE::ECS::Component::Transform>(comp,
 			[&](auto const& desc, auto const& currentValue) {
@@ -749,6 +765,14 @@ namespace Editor {
 							Editor::CommandHistory::GetInstance()
 								.ExecuteCommand(std::move(it->second));
 							g_activeCommands.erase(it);
+
+
+							const uint32_t compTypeId = NE::ECS::Query::GetTransformComponentType();
+							const uint32_t fieldId = MakeFieldId("Transform", desc.name);
+							NANOEngine::Events::EventBus::Get().Dispatch(
+								NANOEngine::Events::EventDomain::Editor,
+								Events::AutoKeyRecordEvent{ compTypeId, fieldId }
+							);
 						}
 					}
 				}
@@ -773,20 +797,32 @@ namespace Editor {
 
 		// Model field
 		bool openModelPopup = false;
-		//DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), "+", 0.f, &openPopup);
-		DrawAssetField("Model", Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID), &openModelPopup);
-		if (openModelPopup) {
-			ImGui::OpenPopup("AssetPicker_Model");
-		}
-
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH")) {
-				std::string dropped((const char*)p->Data, p->DataSize - 1);
-				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
-				NE::Renderer::Command::AssignModel(entity, uuid);
+		DrawAssetField(
+			"Model",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.modelUUID),
+			true,
+			&openModelPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"ASSET_SUBMESH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
+				auto it = std::find(dropped.begin(), dropped.end(), ':');
+				if (it != dropped.end()) {
+					std::string meshPath(dropped.begin(), it);
+					std::string submeshName(it + 1, dropped.end());
+					auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(meshPath);
+					NE::Renderer::Command::AssignModel(entity, uuid, std::stoi(submeshName));
+				}
 			}
-			ImGui::EndDragDropTarget();
-		}
+		);
+
+		if (openModelPopup) ImGui::OpenPopup("AssetPicker_Model");
+		
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
 
 		static std::string searchQuery;
 		if (ImGui::BeginPopup("AssetPicker_Model")) {
@@ -799,7 +835,7 @@ namespace Editor {
 				for (const auto& [modelName, uuid] : modelList) {
 					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
 						if (ImGui::Selectable(modelName.c_str())) {
-							NE::Renderer::Command::AssignModel(entity, uuid);
+							NE::Renderer::Command::AssignModel(entity, uuid, 0);
 							ImGui::CloseCurrentPopup();
 						}
 						});
@@ -811,19 +847,27 @@ namespace Editor {
 		}
 
 		bool openMaterialPopup = false;
-		DrawAssetField("Material", Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID), &openMaterialPopup);
-		if (openMaterialPopup) {
-			ImGui::OpenPopup("AssetPicker_Material");
-		}
-
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("MATERIAL_PATH")) {
-				std::string dropped((const char*)p->Data, p->DataSize - 1);
+		DrawAssetField(
+			"Material",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID),
+			true,
+			&openMaterialPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"MATERIAL_PATH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
 				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
 				NE::Renderer::Command::AssignMaterial(entity, uuid);
 			}
-			ImGui::EndDragDropTarget();
-		}
+		);
+
+		if (openMaterialPopup) ImGui::OpenPopup("AssetPicker_Material");
+
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
 
 		if (ImGui::BeginPopup("AssetPicker_Material")) {
 			ImGui::Text("Select a Material");
@@ -855,6 +899,7 @@ namespace Editor {
 
 		if (Editor::DrawCheckbox("Receive Shadows", tempR.receiveShadows)) {
 		}
+		//ImGui::InputInt("Submesh Index", &tempR.subMeshIndex);
 
 		if (copyComp) {
 
@@ -1427,18 +1472,24 @@ namespace Editor {
 									try {
 										uint64_t storedValue = std::stoull(fval);
 
-										// Try to interpret as Entity ID first (for simpler logic)
-										// The deserialization code handles LUID resolution internally
+										// Check if it looks like an Entity ID (small value)
 										if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
 											assignedEntityId = static_cast<uint32_t>(storedValue);
 											if (assignedEntityId != NE::ECS::NO_ENTITY) {
 												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-												displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+												displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
 											}
 										}
 										else {
-											// Large value - likely a LUID, show as assigned
-											displayName = "[Assigned]";
+											// Large value - likely a LUID, resolve it to entity
+											assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+											if (assignedEntityId != NE::ECS::NO_ENTITY) {
+												const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+												displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+											}
+											else {
+												displayName = "[Invalid Reference]";
+											}
 										}
 									}
 									catch (...) {
@@ -1485,7 +1536,7 @@ namespace Editor {
 
 								ImGui::SameLine();
 								if (ImGui::Button("X")) {
-									UpdateFieldValue(fname, "0");
+									UpdateFieldValue(fname, std::to_string(NE::ECS::NO_ENTITY));
 									fieldChanged = true;
 								}
 
@@ -1566,10 +1617,12 @@ namespace Editor {
 							uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
 							std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
 
-							// Try to resolve the stored value (entity ID)
+							// Try to resolve the stored LUID
 							if (!fval.empty() && fval != "0" && fval != noEntityStr) {
 								try {
-									assignedEntityId = static_cast<uint32_t>(std::stoul(fval));
+									uint64_t luid = std::stoull(fval);
+									assignedEntityId = NE::ECS::Query::ResolveEntityMetaLuidToEntity(luid);
+
 									if (assignedEntityId != NE::ECS::NO_ENTITY) {
 										const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
 										displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
@@ -1590,8 +1643,15 @@ namespace Editor {
 								if (payload && payload->DataSize == sizeof(uint32_t)) {
 									uint32_t droppedEntity = *(const uint32_t*)payload->Data;
 
-									// Assign the entity
-									bool success = UpdateFieldValue(fname, std::to_string(droppedEntity));
+									// Get the EntityMeta LUID to store (stable across sessions)
+									uint64_t luid = 0;
+									if (NE::ECS::Query::HasEntityMeta(droppedEntity)) {
+										const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+										luid = meta.luid;
+									}
+
+									// Assign the LUID
+									bool success = UpdateFieldValue(fname, std::to_string(luid));
 									if (success) {
 										fieldChanged = true;
 									}
@@ -1764,15 +1824,24 @@ namespace Editor {
 										if (!elemValue.empty() && elemValue != "0" && elemValue != noEntityStr) {
 											try {
 												uint64_t storedValue = std::stoull(elemValue);
+												// Check if it looks like an Entity ID (small value)
 												if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
 													assignedEntityId = static_cast<uint32_t>(storedValue);
 													if (assignedEntityId != NE::ECS::NO_ENTITY) {
 														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
-														displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
 													}
 												}
 												else {
-													displayName = "[Assigned]";
+													// Large value - likely a LUID, resolve it to entity
+													assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+													}
+													else {
+														displayName = "[Invalid Reference]";
+													}
 												}
 											}
 											catch (...) {
@@ -1824,7 +1893,9 @@ namespace Editor {
 
 										if (!entityIdStr.empty() && entityIdStr != noEntityStr) {
 											try {
-												assignedEntityId = static_cast<uint32_t>(std::stoul(entityIdStr));
+												uint64_t luid = std::stoull(entityIdStr);
+												assignedEntityId = NE::ECS::Query::ResolveEntityMetaLuidToEntity(luid);
+
 												if (assignedEntityId != NE::ECS::NO_ENTITY) {
 													const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
 													displayName = entityMeta.name.empty() ? "Entity" : entityMeta.name;
@@ -1841,7 +1912,13 @@ namespace Editor {
 											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
 											if (payload && payload->DataSize == sizeof(uint32_t)) {
 												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
-												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+												// Get the EntityMeta LUID to store (stable across sessions)
+												uint64_t luid = 0;
+												if (NE::ECS::Query::HasEntityMeta(droppedEntity)) {
+													const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+													luid = meta.luid;
+												}
+												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(luid));
 												if (success) elemChanged = true;
 											}
 											ImGui::EndDragDropTarget();
@@ -1851,6 +1928,211 @@ namespace Editor {
 										if (ImGui::Button("X##clear")) {
 											scriptInstance->SetArrayElement(fname, i, noEntityStr);
 											elemChanged = true;
+										}
+									}
+									else if (elementType == "gameobjectref") {
+										// GameObject reference in array - same as entity but with consistent naming
+										std::string entityIdStr = elemValue;
+										std::string displayName = "None";
+										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+										if (!entityIdStr.empty() && entityIdStr != "0" && entityIdStr != noEntityStr) {
+											try {
+												uint64_t luid = std::stoull(entityIdStr);
+												assignedEntityId = NE::ECS::Query::ResolveEntityMetaLuidToEntity(luid);
+
+												if (assignedEntityId != NE::ECS::NO_ENTITY) {
+													const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+													displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+												}
+											}
+											catch (...) {
+												displayName = "[Error]";
+											}
+										}
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+											if (payload && payload->DataSize == sizeof(uint32_t)) {
+												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+												// Get the EntityMeta LUID to store (stable across sessions)
+												uint64_t luid = 0;
+												if (NE::ECS::Query::HasEntityMeta(droppedEntity)) {
+													const auto& meta = NE::ECS::Query::GetEntityMeta(droppedEntity);
+													luid = meta.luid;
+												}
+												bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(luid));
+												if (success) elemChanged = true;
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, noEntityStr);
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "layerref") {
+										// Layer reference in array - show layer dropdown
+										NE::Core::LayerID currentLayerId = 0;
+										if (!elemValue.empty()) {
+											try {
+												currentLayerId = static_cast<NE::Core::LayerID>(std::stoi(elemValue));
+											} catch (...) {
+												currentLayerId = 0;
+											}
+										}
+
+										// Get layer name for preview
+										std::string_view layerName = EditorScene::layerDatabase.GetName(currentLayerId);
+										std::string preview = layerName.empty() ? "<Unassigned>" : std::string(layerName);
+
+										ImGui::PushItemWidth(120.0f);
+										if (Editor::BeginPillCombo("##layercombo", preview.c_str())) {
+											EditorScene::layerDatabase.ForEachUsed([&](NE::Core::LayerID id, std::string_view name) {
+												const bool selected = (id == currentLayerId);
+
+												std::string label = std::to_string(static_cast<int>(id));
+												label += ": ";
+												label += name;
+
+												if (ImGui::Selectable(label.c_str(), selected)) {
+													scriptInstance->SetArrayElement(fname, i, std::to_string(static_cast<int>(id)));
+													elemChanged = true;
+												}
+												if (selected) ImGui::SetItemDefaultFocus();
+											});
+
+											Editor::EndPillCombo();
+										}
+										ImGui::PopItemWidth();
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, "0");
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "prefabref") {
+										// Prefab reference in array
+										std::string prefabPath = elemValue;
+										std::string displayName = prefabPath.empty() ? "None" : prefabPath;
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PREFAB_ASSET_PATH");
+											if (payload && payload->DataSize > 0) {
+												std::string droppedPath((const char*)payload->Data, payload->DataSize - 1);
+												bool success = scriptInstance->SetArrayElement(fname, i, droppedPath);
+												if (success) elemChanged = true;
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, "");
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "audiosourceref") {
+										// AudioSource reference in array
+										std::string displayName = "None";
+										uint32_t assignedEntityId = NE::ECS::NO_ENTITY;
+										std::string noEntityStr = std::to_string(NE::ECS::NO_ENTITY);
+
+										// Try to resolve the stored value (could be Entity ID or component LUID)
+										if (!elemValue.empty() && elemValue != "0" && elemValue != noEntityStr) {
+											try {
+												uint64_t storedValue = std::stoull(elemValue);
+												// Check if it looks like an Entity ID (small value)
+												if (storedValue < static_cast<uint64_t>(NE::ECS::NO_ENTITY)) {
+													assignedEntityId = static_cast<uint32_t>(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+													}
+												}
+												else {
+													// Large value - likely a LUID, resolve it to entity
+													assignedEntityId = NE::ECS::Query::ResolveComponentLuidToEntity(storedValue);
+													if (assignedEntityId != NE::ECS::NO_ENTITY) {
+														const auto& entityMeta = NE::ECS::Query::GetEntityMeta(assignedEntityId);
+														displayName = entityMeta.name.empty() ? ("Entity " + std::to_string(assignedEntityId)) : entityMeta.name;
+													}
+													else {
+														displayName = "[Invalid Reference]";
+													}
+												}
+											}
+											catch (...) {
+												displayName = "[Error]";
+											}
+										}
+
+										ImGui::Button(displayName.c_str(), ImVec2(150, 0));
+
+										if (ImGui::BeginDragDropTarget()) {
+											const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG");
+											if (payload && payload->DataSize == sizeof(uint32_t)) {
+												uint32_t droppedEntity = *(const uint32_t*)payload->Data;
+
+												// Validate that the entity has AudioSource component
+												if (NE::ECS::Query::HasComponent<NE::ECS::Component::AudioSource>(droppedEntity)) {
+													bool success = scriptInstance->SetArrayElement(fname, i, std::to_string(droppedEntity));
+													if (success) elemChanged = true;
+												}
+												else {
+													SPD_WARNING("Entity does not have required AudioSource component");
+												}
+											}
+											ImGui::EndDragDropTarget();
+										}
+
+										ImGui::SameLine();
+										if (ImGui::Button("X##clear")) {
+											scriptInstance->SetArrayElement(fname, i, noEntityStr);
+											elemChanged = true;
+										}
+									}
+									else if (elementType == "enum") {
+										// Enum dropdown in array
+										auto enumOptions = scriptInstance->GetEnumOptions(fname);
+										if (!enumOptions.empty()) {
+											int currentValue = 0;
+											if (!elemValue.empty()) {
+												try {
+													currentValue = std::stoi(elemValue);
+												} catch (...) {
+													currentValue = 0;
+												}
+											}
+
+											// Clamp to valid range
+											if (currentValue < 0 || currentValue >= static_cast<int>(enumOptions.size())) {
+												currentValue = 0;
+											}
+
+											if (ImGui::BeginCombo("##elem", enumOptions[currentValue].c_str())) {
+												for (int j = 0; j < static_cast<int>(enumOptions.size()); ++j) {
+													bool isSelected = (currentValue == j);
+													if (ImGui::Selectable(enumOptions[j].c_str(), isSelected)) {
+														scriptInstance->SetArrayElement(fname, i, std::to_string(j));
+														elemChanged = true;
+													}
+													if (isSelected) {
+														ImGui::SetItemDefaultFocus();
+													}
+												}
+												ImGui::EndCombo();
+											}
+										} else {
+											ImGui::Text("[%zu]: (enum - no options)", i);
 										}
 									}
 									else {
@@ -2084,72 +2366,80 @@ namespace Editor {
 	}
 
 	void InspectorPanel::DrawAnimatorComponent(uint32_t entity) {
-		auto& comp = NE::ECS::Command::GetEntityAnimator(entity);
-		ImGui::SeparatorText("Animator");
+
+		auto& comp = NE::ECS::Query::GetEntityAnimator(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Animator",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+		
+		bool openAnimClipPopup = false;
+		DrawAssetField("Animation Clip", Assets::AssetManager::GetInstance().RetrieveFilename(comp.animClipUUID), &openAnimClipPopup);
+		if (openAnimClipPopup) {
+			ImGui::OpenPopup("AssetPicker_Anim");
+		}
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("ASSET_ANIM_PATH")) {
+				std::string dropped((const char*)p->Data, p->DataSize - 1);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				NE::ECS::Command::AssignAnimClip(entity, uuid);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		static std::string searchQuery;
+		if (ImGui::BeginPopup("AssetPicker_Anim")) {
+			ImGui::Text("Select a Animation Clip");
+			ImGui::Separator();
+			auto& modelList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::AnimationClip);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [modelName, uuid] : modelList) {
+					ImSearch::SearchableItem(modelName.c_str(), [&, modelName](const char*) {
+						if (ImGui::Selectable(modelName.c_str())) {
+							NE::ECS::Command::AssignAnimClip(entity, uuid);
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
+		}
 
 		NE::Core::ForEachFieldView<NE::ECS::Component::Animator>(comp,
 			[&](auto const& desc, auto const& currentValue) {
-				using Owner = NE::ECS::Component::Animator;
 				using FieldT = std::decay_t<decltype(currentValue)>;
 
 				FieldT edited = currentValue;
 
-				ImGui::PushID(desc.name.data());
-				const bool changed = DrawField(desc, edited);
-				const bool activated = ImGui::IsItemActivated();
-				const bool active = ImGui::IsItemActive();
-				const bool deactivated = ImGui::IsItemDeactivatedAfterEdit();
-				ImGui::PopID();
-
-				FieldKey key{
-					entity,
-					&typeid(Owner),
-					MemberPointerHasher<Owner, FieldT>{}(desc.member)
-				};
-
-				if (activated) {
-					using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
-					auto cmd = std::make_unique<Cmd>(
-						entity,
-						std::string("Set Animator ") + desc.name.data(),
-						desc.member,
-						currentValue,
-						currentValue,
-						&NE::ECS::Command::GetEntityAnimator
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::Animator, FieldT>(
+						entity, desc, currentValue, edited
 					);
-					g_activeCommands[key] = std::move(cmd);
-				}
-
-				if (active && changed) {
-					auto it = g_activeCommands.find(key);
-					if (it != g_activeCommands.end()) {
-						using Cmd = Editor::SetFieldCommand<Owner, FieldT>;
-						Cmd tmp(
-							entity,
-							std::string{},
-							desc.member,
-							currentValue,
-							edited,
-							&NE::ECS::Command::GetEntityAnimator
-						);
-						it->second->CoalesceFrom(tmp);
-					}
-				}
-
-				if (deactivated) {
-					auto it = g_activeCommands.find(key);
-					if (it != g_activeCommands.end()) {
-						auto* asSet = dynamic_cast<Editor::SetFieldCommand<Owner, FieldT>*>(it->second.get());
-						if (asSet && Equal(asSet->Before(), asSet->After())) {
-							g_activeCommands.erase(it);
-						} else {
-							Editor::CommandHistory::GetInstance()
-								.ExecuteCommand(std::move(it->second));
-							g_activeCommands.erase(it);
-						}
-					}
 				}
 			});
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveRendererComponent(entity);
+		}
+
+		ImGui::TreePop();
 	}
 
 	void InspectorPanel::DrawRectTransformComponent(uint32_t entity) {
@@ -2916,5 +3206,45 @@ namespace Editor {
 				ImGui::Unindent();
 			}
 		}
+	}
+
+	void InspectorPanel::DrawCharacterControllerComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Query::GetCharacterController(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"CharacterController",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		NE::Core::ForEachFieldView<NE::ECS::Component::CharacterController>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::CharacterController, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			}
+		);
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			//NE::ECS::Command::RemoveRigidbodyComponent(entity);
+		}
+
+		ImGui::TreePop();
 	}
 }

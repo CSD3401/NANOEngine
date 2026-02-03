@@ -8,8 +8,7 @@
 #include "Math/Quat.hpp"
 
 namespace NE::ECS::Systems {
-
-	TransformSystem::TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr) : m_componentManager(cm), m_luidRegistry(lr) { }
+	TransformSystem::TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr) : m_componentManager(cm), m_luidRegistry(lr) {}
 
 	void TransformSystem::OnEntityAdded(Entity e) {
 		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
@@ -17,7 +16,8 @@ namespace NE::ECS::Systems {
 		Math::Mat4 translation = Math::Mat4::BuildTranslation(t.localPosition);
 
 		// Convert Euler angles to quaternion, then to rotation matrix
-		Math::Mat4 rotation = Math::Quat::FromEulerDegrees(t.localRotationEuler).ToMat4();
+		t.localRotationQuat = Math::Quat::FromEulerDegrees(t.localRotationEuler);
+		Math::Mat4 rotation = t.localRotationQuat.ToMat4();
 
 		Math::Mat4 scale =
 			Math::Mat4::BuildScaling(t.localScale.x,
@@ -43,7 +43,9 @@ namespace NE::ECS::Systems {
 	}
 
 	void TransformSystem::Update(double) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
+#endif
 
 		const auto& entities = GetEntities();
 
@@ -60,7 +62,7 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void TransformSystem::Exit() { }
+	void TransformSystem::Exit() {}
 
 	void TransformSystem::BuildLocalMatrices() {
 		const auto& entities = GetEntities();
@@ -73,8 +75,7 @@ namespace NE::ECS::Systems {
 
 			Math::Mat4 translation = Math::Mat4::BuildTranslation(transform.localPosition);
 
-			// Convert Euler angles to quaternion, then to rotation matrix
-			Math::Mat4 rotation = Math::Quat::FromEulerDegrees(transform.localRotationEuler).ToMat4();
+			Math::Mat4 rotation = transform.localRotationQuat.ToMat4();
 
 			Math::Mat4 scale =
 				Math::Mat4::BuildScaling(transform.localScale.x,
@@ -104,5 +105,4 @@ namespace NE::ECS::Systems {
 			UpdateWorldRecursive(child, t.worldMatrix, worldDirty);
 		}
 	}
-
 }

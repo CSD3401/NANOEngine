@@ -1,39 +1,32 @@
+#pragma once
 // GameEntry.cpp
 
 // Include the SDK from Engine DLL
 #include "pch.h"
 #include <ScriptSDK/ScriptAPI.h>
 
-
 // Include headers for all scripts you want to register
-#include "Scripts/PlayerScript.hpp"
-#include "Scripts/TestScript.hpp"
-#include "Scripts/PhysicsPlayerController.hpp"
-#include "Scripts/TextureSwitch.hpp"
-#include "Scripts/LightSwitch.hpp"
-#include "Scripts/PlayerCamera.hpp"
-#include "Scripts/Gears.hpp"
-#include "Scripts/k1bswitch.hpp"
-#include "Scripts/k2bswitch.hpp"
-#include "Scripts/Pickable.hpp"
-#include "Scripts/PlayerController.hpp"
-// Component Reference Example Scripts
-#include "Scripts/FollowerScript.hpp"
-#include "Scripts/TweenExampleScript.hpp"
-#include "Scripts/ParentControllerScript.hpp"
-#include "Scripts/MaterialSequencer.hpp"
-#include "Scripts/PrefabSpawnerScript.hpp"
-#include "Scripts/BulletShooterScript.hpp"
-#include "Scripts/CameraController.hpp"
-#include "Scripts/RenderSettingsDemo.hpp"
-
-// GameObject Reference Test Scripts
-#include "Scripts/GameObjectExamples.hpp"
-
-// LayerRef Test Script
-#include "Scripts/LayerRefTestScript.hpp"
-
-
+#include "Scripts/Highlightable_Material.hpp"
+#include "Scripts/Player_Controller.hpp"
+#include "Scripts/Player_Raycast.hpp"
+#include "Scripts/Watch_Controller.hpp"
+#include "Scripts/Puzzle_Wire.hpp"
+#include "Scripts/Puzzle_Mirror.hpp"
+#include "Scripts/Puzzle_Lever.hpp"
+#include "Scripts/Interactable_WireButton.hpp"
+#include "Scripts/Interactable_Grabbable.hpp"
+#include "Scripts/Interactable_OneWaySwitch.hpp"
+#include "Scripts/Interactable_TwoWaySwitch.hpp"
+#include "Scripts/Misc_Manager.hpp"
+#include "Scripts/Misc_WireChild.hpp"
+#include "Scripts/Misc_Grabber.hpp"
+#include "Scripts/Misc_ICOSwitcher.hpp"
+#include "Scripts/Misc_TwoStateRotater.hpp"
+#include "Scripts/Misc_Sinkhole.hpp"
+#include "Scripts/Listener_MoveObject.hpp"
+#include "Scripts/Listener_StretchObject.hpp"
+#include "Scripts/Interactable_SequencerPad.hpp"
+#include "Scripts/Puzzle_MultiLightSequencer.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -46,96 +39,76 @@ extern "C" {
             return;
         }
 
-
         // Register all your game-specific scripts here
-        registrar->RegisterScript("PlayerScript", []() -> NE::Scripting::IScript* {
-            return new PlayerScript();
+        registrar->RegisterScript("Highlightable_Material", []() -> NE::Scripting::IScript* {
+            return new Highlightable_Material();
             });
-
-        registrar->RegisterScript("TestScript", []() -> NE::Scripting::IScript* {
-            return new TestScript();
+        registrar->RegisterScript("Interactable_", []() -> NE::Scripting::IScript* {
+            return new Interactable_();
             });
-
-        // Register the new physics-based player controller
-        registrar->RegisterScript("PhysicsPlayerController", []() -> NE::Scripting::IScript* {
-            return new PhysicsPlayerController();
+        registrar->RegisterScript("Player_Controller", []() -> NE::Scripting::IScript* {
+            return new Player_Controller();
             });
-
-        registrar->RegisterScript("TextureSwitch", []() -> NE::Scripting::IScript* {
-            return new TextureSwitch();
+        registrar->RegisterScript("Player_Raycast", []() -> NE::Scripting::IScript* {
+            return new Player_Raycast();
             });
-
-        registrar->RegisterScript("LightSwitch", []() -> NE::Scripting::IScript* {
-            return new LightSwitch();
+        registrar->RegisterScript("Watch_Controller", []() -> NE::Scripting::IScript* {
+            return new Watch_Controller();
             });
-
-        registrar->RegisterScript("PlayerCamera", []() -> NE::Scripting::IScript* {
-            return new PlayerCamera();
+        registrar->RegisterScript("Misc_Manager", []() -> NE::Scripting::IScript* {
+            return new Misc_Manager();
             });
-
-        registrar->RegisterScript("Gears", []() -> NE::Scripting::IScript* {
-            return new Gears();
+        registrar->RegisterScript("Puzzle_Wire", []() -> NE::Scripting::IScript* {
+            return new Puzzle_Wire();
             });
-
-        registrar->RegisterScript("k1bswitch", []() -> NE::Scripting::IScript* {
-            return new k1bswitch();
+        registrar->RegisterScript("Puzzle_Lever", []() -> NE::Scripting::IScript* {
+            return new Puzzle_Lever();
             });
-
-        registrar->RegisterScript("k2bswitch", []() -> NE::Scripting::IScript* {
-            return new k2bswitch();
+        registrar->RegisterScript("Misc_Manager", []() -> NE::Scripting::IScript* {
+            return new Misc_Manager();
             });
-
-        // Component Reference Example Scripts
-        registrar->RegisterScript("FollowerScript", []() -> NE::Scripting::IScript* {
-            return new FollowerScript();
+        registrar->RegisterScript("Puzzle_Mirror", []() -> NE::Scripting::IScript* {
+            return new MirrorPuzzle();
             });
-
-        registrar->RegisterScript("PlayerController", []() -> NE::Scripting::IScript* {
-            return new PlayerController();
+        registrar->RegisterScript("Misc_WireChild", []() -> NE::Scripting::IScript* {
+            return new Misc_WireChild();
             });
-
-        registrar->RegisterScript("TweenExampleScript", []() -> NE::Scripting::IScript* {
-            return new TweenExampleScript();
+        registrar->RegisterScript("Interactable_WireButton", []() -> NE::Scripting::IScript* {
+            return new Interactable_WireButton();
             });
-
-        registrar->RegisterScript("ParentControllerScript", []() -> NE::Scripting::IScript* {
-            return new ParentControllerScript();
+        registrar->RegisterScript("Interactable_Grabbable", []() -> NE::Scripting::IScript* {
+            return new Interactable_Grabbable();
             });
-
-        registrar->RegisterScript("MaterialSequencer", []() -> NE::Scripting::IScript* {
-            return new MaterialSequencer();
+        registrar->RegisterScript("Misc_Grabber", []() -> NE::Scripting::IScript* {
+            return new Misc_Grabber();
             });
-
-        registrar->RegisterScript("RenderSettingsDemo",
-            []() -> NE::Scripting::IScript* { return new RenderSettingsDemo(); });
-
-
-        registrar->RegisterScript("PrefabSpawnerScript", []() -> NE::Scripting::IScript* {
-            return new PrefabSpawnerScript();
+        registrar->RegisterScript("Misc_ICOSwitcher", []() -> NE::Scripting::IScript* {
+            return new Misc_ICOSwitcher();
             });
-
-        registrar->RegisterScript("BulletShooterScript", []() -> NE::Scripting::IScript* {
-            return new BulletShooterScript();
+        registrar->RegisterScript("Misc_TwoStateRotater", []() -> NE::Scripting::IScript* {
+            return new Misc_TwoStateRotater();
             });
-
-        registrar->RegisterScript("CameraController", []() -> NE::Scripting::IScript* {
-            return new CameraController();
+        registrar->RegisterScript("Interactable_OneWaySwitch", []() -> NE::Scripting::IScript* {
+            return new Interactable_OneWaySwitch();
             });
-
-        registrar->RegisterScript("Pickable", []() -> NE::Scripting::IScript* {
-            return new Pickable();
+        registrar->RegisterScript("Interactable_TwoWaySwitch", []() -> NE::Scripting::IScript* {
+            return new Interactable_TwoWaySwitch();
             });
-
-        // GameObject Comprehensive Examples
-        registrar->RegisterScript("GameObjectExamples", []() -> NE::Scripting::IScript* {
-            return new GameObjectExamples();
+        registrar->RegisterScript("Misc_Sinkhole", []() -> NE::Scripting::IScript* {
+            return new Misc_Sinkhole();
             });
-
-        // LayerRef Test Script
-        registrar->RegisterScript("LayerRefTestScript", []() -> NE::Scripting::IScript* {
-            return new LayerRefTestScript();
+        registrar->RegisterScript("Listener_MoveObject", []() -> NE::Scripting::IScript* {
+            return new Listener_MoveObject();
+            });
+        registrar->RegisterScript("Listener_StretchObject", []() -> NE::Scripting::IScript* {
+            return new Listener_StretchObject();
+            });
+        registrar->RegisterScript("Interactable_SequencerPad", []() -> NE::Scripting::IScript* {
+            return new Interactable_SequencerPad();
+            });
+        registrar->RegisterScript("Puzzle_MultiLightSequencer", []() -> NE::Scripting::IScript* {
+            return new Puzzle_MultiLightSequencer();
             });
 
         }
-
 }

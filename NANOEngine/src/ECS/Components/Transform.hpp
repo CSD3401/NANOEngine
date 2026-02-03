@@ -2,6 +2,7 @@
 
 #include "Math/Vec3.hpp"
 #include "Math/Mat4.hpp"
+#include "Math/Quat.hpp"
 #include "Core/Reflection.hpp"
 #include <vector>
 
@@ -9,6 +10,7 @@ namespace NE::ECS::Component {
 	struct Transform {
 		Math::Mat4 localMatrix{};
 		Math::Mat4 worldMatrix{};
+		Math::Quat localRotationQuat{};
 		Math::Vec3 localPosition{ 0.f, 0.f, 0.f };
 		Math::Vec3 localScale{ 1.f, 1.f, 1.f };
 		Math::Vec3 localRotationEuler{ 0.f, 0.f,0.f };

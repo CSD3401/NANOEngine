@@ -8,8 +8,6 @@
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
-#include "InstanceData.hpp"
-#include "Primitives.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 
 #include "../../Math/Mat4.hpp"
@@ -29,19 +27,14 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include "../Core/Primitives.hpp"
-#include "GizmosRenderer.hpp"
 #include "UIRenderer.hpp"
-#include "../OpenGL/GLStateCache.hpp"
 #include "glfw/glfw3.h"
-#include "Graphics/OpenGL/GLFrameBuffer.hpp"
-#include "../../SceneManagement/Scene.hpp"
 #include "Core/SpdLogger.hpp"
 #include "InstanceData.hpp"
 #include "../OpenGL/GLGeometryBuffer.hpp"
 #include "../OpenGL/GLFrameBuffer.hpp"
 #include "../OpenGL/GLClusteredLighting.hpp"
 
-#include "Core/SpdLogger.hpp"
 #include "GizmosRenderer.hpp"
 #include "../../Core/Logger.hpp"
 #include "../../Core/Profiler.hpp"
@@ -52,141 +45,11 @@
 #include <GL/gl.h> // Add this include for OpenGL functions like glBegin, glEnd, etc.
 
 #include "Input/InputManager.hpp"
+#include "ShadowRenderer.hpp"
+#include "Frustum.hpp"
 
 
 namespace NE::Graphics {
-    namespace {
-        float Radians(float deg) {
-            return deg * 3.14159265358979323846f / 180.0f;
-        }
-
-        static inline Math::Vec3 TransformPoint(const Math::Mat4& m, const Math::Vec3& p, float w = 1.0f)
-        {
-            // Replace this with your own Mat4 * Vec4 if you already have it.
-            // Assuming Mat4::Data() is column-major float[16] like GL.
-            const float* a = m.Data();
-
-            float x = a[0] * p.x + a[4] * p.y + a[8] * p.z + a[12] * w;
-            float y = a[1] * p.x + a[5] * p.y + a[9] * p.z + a[13] * w;
-            float z = a[2] * p.x + a[6] * p.y + a[10] * p.z + a[14] * w;
-            float ww = a[3] * p.x + a[7] * p.y + a[11] * p.z + a[15] * w;
-
-            if (std::abs(ww) > 1e-6f) {
-                float invW = 1.0f / ww;
-                x *= invW; y *= invW; z *= invW;
-            }
-            return { x, y, z };
-        }
-
-        static inline Math::Vec3 TransformVector(const Math::Mat4& m, const Math::Vec3& v)
-        {
-            // w=0 for direction vectors
-            return TransformPoint(m, v, 0.0f);
-        }
-
-        static inline void BuildStableBasisFromDir(const Math::Vec3& dirN, Math::Vec3& outRight, Math::Vec3& outUp)
-        {
-            // Avoid hard flipping based on thresholds if you can
-            Math::Vec3 worldUp = { 0.f, 1.f, 0.f };
-
-            float d = std::abs(dirN.Dot(worldUp));
-            if (d > 0.99f) worldUp = { 0.f, 0.f, 1.f };
-
-            outRight = worldUp.Cross(dirN).Normalized();
-            outUp = dirN.Cross(outRight).Normalized();
-        }
-
-        Math::Mat4 BuildDirectionalLightVP_FitToView(const RenderView& view, Math::Vec3 lightDirWorld, int shadowRes)
-        {
-            using Math::Vec3;
-            using Math::Mat4;
-
-            Vec3 dir = lightDirWorld.Normalized();
-
-            // 1) Get 8 frustum corners in WORLD space
-            Mat4 viewProj = view.projection * view.view;
-            Mat4 invViewProj = viewProj.Inverse();
-
-            const Vec3 ndcCorners[8] = {
-                { -1, -1, -1 }, {  1, -1, -1 }, {  1,  1, -1 }, { -1,  1, -1 },
-                { -1, -1,  1 }, {  1, -1,  1 }, {  1,  1,  1 }, { -1,  1,  1 }
-            };
-
-            Vec3 frustumWS[8];
-            for (int i = 0; i < 8; ++i)
-                frustumWS[i] = TransformPoint(invViewProj, ndcCorners[i], 1.0f);
-
-            // 2) Compute frustum center
-            Vec3 center = { 0, 0, 0 };
-            for (auto& p : frustumWS) center += p;
-            center *= (1.0f / 8.0f);
-
-            // 3) Build light view matrix
-            Vec3 right, up;
-            BuildStableBasisFromDir(dir, right, up);
-
-            // Calculate frustum radius for stable pullback
-            float radius = 0.0f;
-            for (auto& p : frustumWS) {
-                float dist = (p - center).Length();
-                radius = std::max(radius, dist);
-            }
-
-            Vec3 eye = center - dir * (radius + 50.0f);  // Dynamic pullback based on frustum size
-            Mat4 lightView = Mat4::BuildViewMtx(eye, center, up);
-
-            // 4) Transform corners to light space and compute bounds
-            float minX = +FLT_MAX, minY = +FLT_MAX, minZ = +FLT_MAX;
-            float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
-
-            for (auto& pWS : frustumWS) {
-                Vec3 pLS = TransformPoint(lightView, pWS, 1.0f);
-                minX = std::min(minX, pLS.x); maxX = std::max(maxX, pLS.x);
-                minY = std::min(minY, pLS.y); maxY = std::max(maxY, pLS.y);
-                minZ = std::min(minZ, pLS.z); maxZ = std::max(maxZ, pLS.z);
-            }
-
-            // 5) TEXEL SNAPPING - snap both extent AND center
-            float extentX = maxX - minX;
-            float extentY = maxY - minY;
-
-            // Round extent up to be a multiple of (2 * texel size) for stability
-            float unitsPerTexelX = extentX / float(shadowRes);
-            float unitsPerTexelY = extentY / float(shadowRes);
-
-            // Snap extents to texel boundaries
-            extentX = std::ceil(extentX / unitsPerTexelX) * unitsPerTexelX;
-            extentY = std::ceil(extentY / unitsPerTexelY) * unitsPerTexelY;
-
-            // Recalculate units per texel with snapped extents
-            unitsPerTexelX = extentX / float(shadowRes);
-            unitsPerTexelY = extentY / float(shadowRes);
-
-            // Snap center to texel grid
-            float cx = 0.5f * (minX + maxX);
-            float cy = 0.5f * (minY + maxY);
-            cx = std::floor(cx / unitsPerTexelX) * unitsPerTexelX;
-            cy = std::floor(cy / unitsPerTexelY) * unitsPerTexelY;
-
-            minX = cx - 0.5f * extentX;
-            maxX = cx + 0.5f * extentX;
-            minY = cy - 0.5f * extentY;
-            maxY = cy + 0.5f * extentY;
-
-            // 6) Near/Far - extend behind for shadow casters outside view frustum
-            const float padZ = 100.0f;  // Increased to catch shadow casters behind camera
-            float nearP = -maxZ - padZ;
-            float farP = -minZ + padZ;
-
-            // Ensure valid range
-            if (nearP < 0.1f) nearP = 0.1f;
-            if (farP <= nearP) farP = nearP + 1.0f;
-
-            Mat4 lightProj = Mat4::BuildOrtho(minX, maxX, minY, maxY, nearP, farP);
-            return lightProj * lightView;
-        }
-    }
-
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
     uint32_t GraphicsManager::s_ScreenHeight = 1080;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
@@ -199,7 +62,6 @@ namespace NE::Graphics {
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
-    RenderViewHandle GraphicsManager::s_ActiveViewHandle;
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
     RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
@@ -207,6 +69,8 @@ namespace NE::Graphics {
 	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
     std::unique_ptr<RenderGraph> GraphicsManager::s_RenderGraph;
     std::unique_ptr<TexturePool> GraphicsManager::s_TexturePool;
+
+	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
 
     std::vector<DebugLine> GraphicsManager::s_DebugLines;
     std::vector<DebugTriangle> GraphicsManager::s_DebugTriangles;
@@ -240,202 +104,11 @@ namespace NE::Graphics {
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_BlurShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_UpSampleShader;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_CompositeShader;
-    // Shadow
-    static std::shared_ptr<OpenGL::GLShader> s_ShadowShader;
-    const int SHADOW_RES = 2048;
 
     // SSAO
     static GLuint s_SSAOFBO = 0;
     static GLuint s_SSAOTex = 0;
     static std::shared_ptr<NE::Graphics::OpenGL::GLShader> s_SSAOShader;
-
-    void GraphicsManager::UpdateShadowMaps()
-    {
-        // No lights or no draw commands? Nothing to do.
-        const auto& commands = s_DrawQueue->GetCommands();
-        if (m_lights.empty() || commands.empty())
-            return;
-
-        if (!s_ShadowShader) {
-            s_ShadowShader = Resource::ResourceManager::GetInstance()
-                .LoadResource<OpenGL::GLShader>("neshadowdepth");
-        }
-
-        for (auto* light : m_lights) {
-            if (!light) continue;
-
-            if (light->shadowType == ECS::Component::Light::ShadowType::None)
-                continue;
-
-            switch (light->shadowUpdateMode) {
-            case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
-                continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::StaticBake:
-                if (light->shadowBaked)
-                    continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::Realtime:
-                RenderShadowMapForLight(*light, commands);
-                break;
-            }
-        }
-    }
-
-    void GraphicsManager::UpdateShadowMapsForView(const RenderView& view) {
-        const auto& commands = s_DrawQueue->GetCommands();
-        if (m_lights.empty() || commands.empty())
-            return;
-
-        if (!s_ShadowShader) {
-            s_ShadowShader = Resource::ResourceManager::GetInstance()
-                .LoadResource<OpenGL::GLShader>("neshadowdepth");
-        }
-
-        for (auto* light : m_lights) {
-            if (!light) continue;
-
-            if (light->shadowType == ECS::Component::Light::ShadowType::None)
-                continue;
-
-            switch (light->shadowUpdateMode) {
-            case ECS::Component::Light::ShadowUpdateMode::NoneUpdate:
-                continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::StaticBake:
-                if (light->shadowBaked)
-                    continue;
-
-            case ECS::Component::Light::ShadowUpdateMode::Realtime:
-                RenderShadowMapForLight(*light, commands);
-                break;
-            }
-        }
-    }
-
-    void GraphicsManager::RenderShadowMapForLight(ECS::Component::Light& light,
-        const std::vector<DrawCommand>& commands)
-    {
-        if (light.type == ECS::Component::Light::Type::Directional || light.type == ECS::Component::Light::Type::Spot) {
-            if (light.shadowMapTex == 0) {
-                glGenTextures(1, &light.shadowMapTex);
-                glBindTexture(GL_TEXTURE_2D, light.shadowMapTex);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
-                    SHADOW_RES, SHADOW_RES, 0,
-                    GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-                float border[4] = { 1,1,1,1 };
-                glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
-
-                glGenFramebuffers(1, &light.shadowMapFBO);
-                glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                    GL_TEXTURE_2D, light.shadowMapTex, 0);
-                glDrawBuffer(GL_NONE);
-                glReadBuffer(GL_NONE);
-            }
-
-            Math::Mat4 lightView;
-            Math::Mat4 lightProj;
-
-            Math::Vec3 dir = light.direction.Normalized();
-            Math::Vec3 up = (std::abs(dir.y) > 0.99f) ? Math::Vec3{ 0.f, 0.f, 1.f } : Math::Vec3{ 0.f, 1.f, 0.f };
-
-            if (light.type == ECS::Component::Light::Type::Directional) {
-                lightView = Math::Mat4::BuildViewMtx(
-                    light.position,
-                    light.position + dir,
-                    up
-                );
-                float size = 20.f;
-
-                lightProj = Math::Mat4::BuildOrtho(-size, size, -size, size, 0.1f, 100.f);
-                //light.lightViewProj = BuildDirectionalLightVP_FitToView(view, dir, SHADOW_RES);
-            } else if (light.type == ECS::Component::Light::Type::Spot) {
-                lightView = Math::Mat4::BuildViewMtx(
-                    light.position,
-                    light.position + dir,
-                    up
-                );
-
-                const auto* spot = std::get_if<ECS::Component::Light::SpotLightData>(&light.data);
-
-                float outerDeg = spot->outerConeAngleDeg;
-
-                outerDeg = std::clamp(outerDeg, 0.5f, 89.0f);
-
-                float fov = Radians(outerDeg) * 2.0f;
-                float nearP = 0.1f;
-
-                float farP = std::max(spot->range, nearP + 0.01f);
-
-                lightProj = Math::Mat4::BuildSymPerspective(fov, 1.0f, nearP, farP);
-                light.lightViewProj = lightProj * lightView;
-            }
-
-
-            glBindFramebuffer(GL_FRAMEBUFFER, light.shadowMapFBO);
-            glViewport(0, 0, SHADOW_RES, SHADOW_RES);
-            glClear(GL_DEPTH_BUFFER_BIT);
-
-            s_ShadowShader->Bind();
-            s_ShadowShader->SetUniformMat4("u_LightVP", light.lightViewProj);
-
-            for (const auto& cmd : commands) {
-                if (!cmd.castsShadow) continue;
-
-                s_ShadowShader->SetUniformMat4("u_Model", cmd.transform);
-                cmd.mesh->Bind();
-                cmd.mesh->Draw();
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        } else if (light.type == ECS::Component::Light::Type::Point) {
-            //if (light.shadowMapTex == 0) {
-            //    glGenTextures(1, &light.shadowMapTex);
-            //    glBindTexture(GL_TEXTURE_CUBE_MAP, light.shadowMapTex);
-            //    for (int face = 0; face < 6; ++face) {
-            //        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
-            //            GL_DEPTH_COMPONENT24, SHADOW_RES, SHADOW_RES, 0,
-            //            GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-            //    }
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            //    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-            //    glGenFramebuffers(1, &light.shadowMapFBO);
-            //}
-
-            //float nearP = 0.1f;
-            //float farP = light.radius > 0.f ? light.radius : 50.f;
-            //float aspect = 1.0f;
-            //float fov = Radians(90.0f);
-
-            //Math::Mat4 shadowProj = Math::Mat4::BuildSymPerspective(fov, aspect, nearP, farP);
-
-            //Vec3 pos = light.position;
-
-            //Math::Mat4 views[6] = {
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 1, 0, 0}, Vec3{0,-1,0}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{-1, 0, 0}, Vec3{0,-1,0}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 1, 0}, Vec3{0, 0,1}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0,-1, 0}, Vec3{0, 0,-1}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 0, 1}, Vec3{0,-1,0}),
-            //    Math::Mat4::BuildViewMtx(pos, pos + Vec3{ 0, 0,-1}, Vec3{0,-1,0})
-            //};
-
-        }
-
-        if (light.shadowUpdateMode == ECS::Component::Light::ShadowUpdateMode::StaticBake)
-            light.shadowBaked = true;
-    }
 
     // Here for now i will shift it all to rendergraph next time
     void InitFullscreenQuadAndBrightpass()
@@ -502,6 +175,9 @@ namespace NE::Graphics {
         s_StateCache = std::make_unique<OpenGL::GLStateCache>();
         s_DrawQueue = std::make_unique<DrawQueue>();
 		s_RenderViewManager = std::make_unique<RenderViewManager>();
+
+        s_shadowRenderer = std::make_unique<ShadowRenderer>();
+        s_shadowRenderer->Init();
 
         s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
         s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
@@ -913,8 +589,7 @@ namespace NE::Graphics {
         s_RenderGraph->Compile();
     }
 
-    void GraphicsManager::BeginFrame() 
-    {
+    void GraphicsManager::BeginFrame() {
 		s_StateCache->InvalidateAll();
         
         //s_CommandBuffer->BeginRenderPass();
@@ -922,23 +597,15 @@ namespace NE::Graphics {
         drawCount = 0;
     }
 
-    void GraphicsManager::SubmitSkybox() 
-    {
-        if (s_skybox) s_skybox->Submit();
-    }
-
-    void GraphicsManager::DrawFrame()
-    {
+    void GraphicsManager::DrawFrame() {
         NE_PROFILE_FUNCTION();
 
-        int renderedViews = 0;
-
-        UpdateShadowMaps();
-
-        for (auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
+        for (const auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
             if (view.isMain && view.order == 0) s_GameViewHandle = handle;
 
+            const auto& commands = s_DrawQueue->GetCommands();
+            s_shadowRenderer->Update(view, m_lights, commands);
 
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
@@ -956,25 +623,40 @@ namespace NE::Graphics {
             std::vector<GLuint>     shadowTextures;
             shadowVPs.reserve(MAX_SHADOWS);
             shadowTextures.reserve(MAX_SHADOWS);
+            ECS::Component::Light* dirForSplits = nullptr;
 
             int shadowCount = 0;
             for (auto* l : m_lights) {
                 if (!l) continue;
-
                 l->shadowIndex = -1;
 
-                if (l->shadowType == ECS::Component::Light::ShadowType::None)
-                    continue;
-                if (l->shadowMapTex == 0)
-                    continue;
+                if (l->shadowType == NE::ECS::Component::Light::None) continue;
 
-                if (shadowCount >= MAX_SHADOWS)
-                    continue;
+                // Directional CSM
+                if (l->type == NE::ECS::Component::Light::Directional && 
+                    l->shadowCascadeCount == NE::ECS::Component::Light::DIR_CASCADES) 
+                {
+                    if (shadowCount + NE::ECS::Component::Light::DIR_CASCADES > MAX_SHADOWS) continue;
 
-                l->shadowIndex = shadowCount;
-                shadowVPs.push_back(l->lightViewProj);
-                shadowTextures.push_back(l->shadowMapTex);
-                ++shadowCount;
+                    if (!dirForSplits) dirForSplits = l;
+
+                    l->shadowIndex = shadowCount;
+                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
+                        shadowVPs.push_back(l->dirLightVP[c]);
+                        shadowTextures.push_back(l->dirShadowTex[c]);
+                        ++shadowCount;
+                    }
+                    continue;
+                }
+
+                // Single-map (Spot)
+                if (l->shadowMapTex != 0 && l->shadowCascadeCount == 1) {
+                    if (shadowCount >= MAX_SHADOWS) continue;
+                    l->shadowIndex = shadowCount;
+                    shadowVPs.push_back(l->lightViewProj);
+                    shadowTextures.push_back(l->shadowMapTex);
+                    ++shadowCount;
+                }
             }
 
             s_clusteredLighting->BuildForView(view, m_lights);
@@ -1017,18 +699,32 @@ namespace NE::Graphics {
                 shader->SetUniformFloat("i_FogStart", renderSettings.fogStart);
                 shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
 
-                shader->SetUniformInt("u_ReceiveShadows", currentReceiveShadows ? 1 : 0);
 
-                // Shadow arrays
                 int numShadows = static_cast<int>(shadowVPs.size());
                 if (numShadows > 16) numShadows = 16;
 
-                // Only set if the shader actually has these uniforms (PBR)
-                shader->SetUniformInt("u_NumShadowMaps", numShadows);
+                shader->SetUniformInt("i_NumShadowMaps", numShadows);
+                shader->SetUniformInt("i_ReceiveShadows", currentReceiveShadows ? 1 : 0);
+
+                int dirCascadeCount = 0;
+                float dirSplits[NE::ECS::Component::Light::DIR_CASCADES] = {};
+
+                if (dirForSplits) {
+                    dirCascadeCount = dirForSplits->shadowCascadeCount;
+                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
+                        dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];
+                }
+
+                shader->SetUniformInt("i_DirCascadeCount", ECS::Component::Light::DIR_CASCADES);
+
+                for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
+                    std::string splitName = "i_DirCascadeSplitsVS[" + std::to_string(c) + "]";
+                    shader->SetUniformFloat(splitName.c_str(), dirSplits[c]);
+                }
 
                 for (int i = 0; i < numShadows; ++i) {
-                    std::string vpName = "u_ShadowVP[" + std::to_string(i) + "]";
-                    std::string texName = "u_ShadowMaps[" + std::to_string(i) + "]";
+                    std::string vpName = "i_ShadowVP[" + std::to_string(i) + "]";
+                    std::string texName = "i_ShadowMaps[" + std::to_string(i) + "]";
 
                     shader->SetUniformMat4(vpName.c_str(), shadowVPs[i]);
 
@@ -1046,16 +742,19 @@ namespace NE::Graphics {
                 currentMesh->Unbind();
 
                 instanceData.clear();
-                ++drawCount;
 
+                if (view.isMain && view.order == 0)
+                    ++drawCount;
                 };
 
-            const auto& commands = s_DrawQueue->GetCommands();
+            const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
             for (const auto& command : commands) {
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
+                    continue;
+
                 auto mesh = command.mesh;
                 auto material = command.material;
                 bool receives = command.receivesShadow;
-                
 
                 // Check compatibility with current batch
                 bool compatible =
@@ -1082,20 +781,23 @@ namespace NE::Graphics {
                 instanceData.push_back(instance);
             }
 
-            // Flush any remaining batch
             if (!instanceData.empty()) {
                 flushBatch();
+            }
+
+            if (s_skybox) {
+                s_StateCache->Bind(s_skybox->GetSkyboxPipeline());
+                s_skybox->Draw(view);
             }
 
             if (handle == 1) // Assuming editor camera handle will always be 1
                 DrawAllDebugGeometry();
 
-            ++renderedViews;
             s_RenderViewManager->Unbind();
         }
-        if (renderedViews > 0) {
-            drawCount /= renderedViews;
-        }
+
+		// Note: Reset should be called right before any post-processing
+        s_StateCache->Reset();
 
         // Post-processing via Render Graph
         // Scene View
@@ -1110,20 +812,17 @@ namespace NE::Graphics {
         }
     }
 
-    void GraphicsManager::Submit(const DrawCommand& command) 
-    {
+    void GraphicsManager::Submit(const DrawCommand& command) {
 		s_DrawQueue->Submit(command);
     }
 
-    void GraphicsManager::EndFrame() 
-    {
+    void GraphicsManager::EndFrame() {
 		s_RenderViewManager->Unbind();
         //s_CommandBuffer->EndRenderPass();
         //s_CommandBuffer->End();
     }
 
-    void GraphicsManager::Clear() 
-    {
+    void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
 	}
 
@@ -1171,18 +870,15 @@ namespace NE::Graphics {
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
     }
 
-    void GraphicsManager::SetEditorCamera(EditorCamera* cam) 
-    {
+    void GraphicsManager::SetEditorCamera(EditorCamera* cam) {
         s_EditorCamera = cam;
     }
 
-    EditorCamera* GraphicsManager::GetEditorCamera() 
-    {
+    EditorCamera* GraphicsManager::GetEditorCamera() {
         return s_EditorCamera;
     }
 
-    void GraphicsManager::UpdateEditorCameraData()
-    {
+    void GraphicsManager::UpdateEditorCameraData() {
         s_RenderViewManager->SetCameraData(
             s_SceneViewHandle, 
 			s_EditorCamera->GetProjectionMatrix(),
@@ -1230,9 +926,10 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::GetSceneColorAttachment() 
     {
         //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
-        if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
-        if (InputManager::IsKeyDown('9')) return s_SSAOTex;
-        if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
+        //if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
+        //if (InputManager::IsKeyDown('9')) return s_SSAOTex;
+        //if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_GameViewHandle)->GetColorAttachment();
+        //if (InputManager::IsKeyDown('P')) return s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle)->GetColorAttachment();
 
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
@@ -1249,8 +946,7 @@ namespace NE::Graphics {
 		//return 0;
 	}
 
-    uint32_t GraphicsManager::GetGameColorAttachment()
-    {
+    uint32_t GraphicsManager::GetGameColorAttachment() {
 		auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
         if (framebuffer) {
             return framebuffer->GetColorAttachment();
@@ -1258,8 +954,7 @@ namespace NE::Graphics {
 		return 0;
     }
 
-    uint32_t GraphicsManager::GetFinalOutputColorAttachment()
-    {
+    uint32_t GraphicsManager::GetFinalOutputColorAttachment() {
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
             return framebuffer->GetColorAttachment();

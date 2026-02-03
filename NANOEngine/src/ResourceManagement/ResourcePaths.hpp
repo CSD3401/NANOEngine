@@ -18,15 +18,17 @@ namespace NE::Resource {
 		path += uuid;
 
 		switch (type) {
-		case ResourceType::Texture:		path += ".ntexbin"; break;
-		case ResourceType::Model:		path += ".nmodbin"; break;
-		case ResourceType::Shader:		path += ".nshdbin"; break;
-		case ResourceType::Material:	path += ".nmatbin"; break;
-		case ResourceType::Audio:		path += ".naudbin"; break;
-		case ResourceType::Prefab:		path += ".nfabbin"; break;
-		case ResourceType::Scene:		path += ".nscebin"; break;
+		case ResourceType::Texture:				path += ".ntexbin"; break;
+		case ResourceType::Model:				path += ".nmodbin"; break;
+		case ResourceType::Shader:				path += ".nshdbin"; break;
+		case ResourceType::Material:			path += ".nmatbin"; break;
+		case ResourceType::Audio:				path += ".naudbin"; break;
+		case ResourceType::Prefab:				path += ".nfabbin"; break;
+		case ResourceType::Scene:				path += ".nscebin"; break;
+		case ResourceType::AnimationClip:		path += ".nancbin"; break;
+		case ResourceType::AnimatorController:	path += ".nconbin"; break;
 		default:
-			SPD_WARNING("Invalid Artifact Path");
+			//SPD_WARNING("Invalid Artifact Path");
 			break;
 		}
 

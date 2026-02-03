@@ -13,6 +13,7 @@
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/PrefabLink.hpp"
 #include "../ECS/Components/PrefabInstance.hpp"
+#include "../ECS/Components/CharacterController.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -24,6 +25,7 @@
 
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 namespace NE {
 	//SceneManagement::Scene& GetScene();
@@ -143,6 +145,10 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::Camera>(e);
 		}
 
+		bool HasCharacterController(uint32_t e) {
+			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::CharacterController>(e);
+		}
+
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
@@ -157,6 +163,10 @@ namespace NE::ECS {
 
 		const Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
+		}
+
+		const Component::CharacterController& GetCharacterController(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
 
 		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
@@ -219,6 +229,10 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::PrefabInstance>();
 		}
 
+		ComponentType GetCharacterControllerComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::CharacterController>();
+		}
+
 		uint32_t GetParent(uint32_t child) {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
 
@@ -237,6 +251,37 @@ namespace NE::ECS {
 
 		const Core::LayerMask GetLayerBit(Entity e) {
 			return GetScene().GetECSCoordinator().GetEntityManager().GetLayerBit(e);
+		}
+
+		Entity ResolveComponentLuidToEntity(uint64_t luid) {
+			if (luid == 0) return 0; //Invalid entity
+
+			auto& luidRegistry = GetScene().GetECSCoordinator().GetLUIDRegistry();
+			const Core::LuidRecord* record = luidRegistry.Find(luid);
+			if (!record) return 0; //Invalid Entity
+
+			return static_cast<Entity>(record->m_entityOwner);
+		}
+
+		Entity ResolveEntityMetaLuidToEntity(uint64_t luid) {
+			if (luid == 0) return 0;
+
+			auto& ecs = GetScene().GetECSCoordinator();
+			auto& entityManager = ecs.GetEntityManager();
+			auto& componentManager = ecs.GetComponentManager();
+
+			// Iterate through all active entities to find matching EntityMeta LUID
+			const auto& usedEntities = entityManager.GetUsedEntities();
+			for (Entity entity : usedEntities) {
+				if (componentManager.HasComponent<ECS::Component::EntityMeta>(entity)) {
+					const auto& meta = componentManager.GetComponent<ECS::Component::EntityMeta>(entity);
+					if (meta.luid == luid) {
+						return entity;
+					}
+				}
+			}
+
+			return 0;
 		}
 	}
 
@@ -261,20 +306,6 @@ namespace NE::ECS {
 				newEntity,
 				Component::Hierarchy{}
 			);
-
-			//if (gSceneManager.GetCurrentPrefabPath().empty()) {
-			//	GetScene().GetECSCoordinator().AddComponent(
-			//		newEntity,
-			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr") });
-			//} else {
-			//	auto& rootT = GetScene().GetECSCoordinator().GetComponent<Component::Transform>(0);
-
-			//	GetScene().GetECSCoordinator().AddComponent(
-			//		newEntity,
-			//		Component::Transform{ .luid = Core::LUIDGenerator::Generate("tr"), .parent = 0, .parentLuid = rootT.luid });
-
-			//	rootT.children.push_back(newEntity);
-			//}
 
 			GetScene().GetECSCoordinator().m_hierarchySystem->SetParent(newEntity, parentEntt);
 
@@ -302,7 +333,16 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/cube"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::BoxColliderData{},
+					.type = Component::Collider::ColliderType::Box,
 				}
 			);
 
@@ -331,7 +371,16 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/sphere"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::SphereColliderData{},
+					.type = Component::Collider::ColliderType::Sphere,
 				}
 			);
 
@@ -360,7 +409,16 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/cylinder"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::CylinderColliderData{},
+					.type = Component::Collider::ColliderType::Cylinder,
 				}
 			);
 
@@ -389,7 +447,16 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/capsule"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
+				}
+			);
+
+			GetScene().GetECSCoordinator().AddComponent(
+				newEntity,
+				Component::Collider{
+					.data = Component::Collider::CapsuleColliderData{},
+					.type = Component::Collider::ColliderType::Capsule,
 				}
 			);
 
@@ -418,7 +485,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/plane"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 
@@ -447,7 +515,8 @@ namespace NE::ECS {
 				newEntity,
 				Component::Renderer{
 					.modelUUID{"builtin:model/quad"},
-					.materialUUID{"neunlitmat"}
+					.materialUUID{"neunlitmat"},
+					.subMeshIndex = 0
 				}
 			);
 
@@ -723,6 +792,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::PrefabInstance>(e, c);
 		}
 
+		void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::CharacterController>(e, c);
+		}
+
 		void RemoveLightComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Light>(e);
 		}
@@ -790,12 +863,29 @@ namespace NE::ECS {
 		Component::UICanvas& GetUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
+
+		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		}
+
+		Component::Animator& GetEntityAnimator(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
+		}
+
 		Component::Camera& GetEntityCamera(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Camera>(e);
 		}
 
-		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
+		Component::PrefabLink& GetPrefabLink(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabLink>(e);
+		}
+
+		Component::PrefabInstance& GetPrefabInstance(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::PrefabInstance>(e);
+		}
+
+		Component::CharacterController& GetCharacterController(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
@@ -925,12 +1015,18 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Animator{});
 		}
 
-		Component::Animator& GetEntityAnimator(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
-		}
-
 		void SetLayer(Entity e, Core::LayerID layer) {
 			GetScene().GetECSCoordinator().GetEntityManager().SetLayer(e, layer);
+		}
+
+		std::shared_ptr<NE::Animation::AnimationClip> GetAnimationClip(const std::string& uuid) {
+			return Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
+		}
+		
+		void AssignAnimClip(uint32_t e, const std::string& uuid) {
+			auto& animator = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
+			animator.animClipUUID = uuid;
+			animator.clip = Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
 		}
 	}
 }

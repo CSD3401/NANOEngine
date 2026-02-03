@@ -16,6 +16,8 @@ namespace Editor {
 		void OnImGuiRender() override;
 
 	private:
+		void SceneChanged();
+
 		void DrawEntityNode(NE::ECS::Entity e, std::vector<NE::ECS::Entity>& preorder, NE::ECS::Entity parent, int indexInParent);
 		void HandleDragSource(NE::ECS::Entity e,
 			const std::vector<NE::ECS::Entity>& preorder);

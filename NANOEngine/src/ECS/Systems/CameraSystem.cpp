@@ -4,6 +4,7 @@
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
+#include <Core/Profiler.hpp>
 
 namespace NE::ECS::Systems {
 
@@ -51,7 +52,7 @@ namespace NE::ECS::Systems {
 						camera.renderViewHandles[i],
 						camera.projectionMtx,
 						camera.viewMtx,
-						transform.localPosition,
+						transform.worldMatrix.GetTranslation(),
 						camera.nearPlane,
 						camera.farPlane,
 						camera.isMain,
@@ -68,6 +69,10 @@ namespace NE::ECS::Systems {
 
 	void CameraSystem::Update(double)
 	{
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
@@ -113,7 +118,7 @@ namespace NE::ECS::Systems {
 						camera.renderViewHandles[i],
 						camera.projectionMtx,
 						camera.viewMtx,
-						transform.localPosition,
+						transform.worldMatrix.GetTranslation(),
 						camera.nearPlane,
 						camera.farPlane,
 						camera.isMain,
@@ -129,6 +134,7 @@ namespace NE::ECS::Systems {
 	}
 
 	void CameraSystem::Exit() {
+		m_mainCameraEntity.reset();
 		const auto& entities = GetEntities();
 		for (Entity entity : entities) {
 			auto& camera = m_componentManager->GetComponent<Component::Camera>(entity);
@@ -136,6 +142,7 @@ namespace NE::ECS::Systems {
 				for (auto& handle : camera.renderViewHandles) {
 					Graphics::GraphicsManager::DestroyRenderView(handle);
 				}
+				camera.renderViewHandles.clear();
 			}
 		}
 	}
@@ -162,25 +169,7 @@ namespace NE::ECS::Systems {
 		//cam.projectionMtx = Mat4::BuildOrtho(left, right, bottom, top, nearPlane, farPlane);
 	}
 
-	void CameraSystem::BuildView(Camera& cam, Transform& transform)
-	{
-		const Vec3 eye = transform.worldMatrix.GetTranslation();
-		const Vec3 fwd = ForwardFromEuler(transform.localRotationEuler);
-		const Vec3 target = eye + fwd;
-		const Vec3 up = Vec3{ 0.0f, 1.0f, 0.0f };
-
-		cam.viewMtx = Mat4::BuildViewMtx(eye, target, up);
-	}
-
-	inline Vec3 CameraSystem::ForwardFromEuler(const Vec3& euler)
-	{
-		float pitch = euler.x * Math::DEG_TO_RAD;
-		float yaw = euler.y * Math::DEG_TO_RAD;
-
-		Vec3 forward;
-		forward.x = std::cos(yaw) * std::cos(pitch);
-		forward.y = std::sin(pitch);
-		forward.z = std::sin(yaw) * std::cos(pitch);
-		return forward.Normalize();
+	void CameraSystem::BuildView(Camera& cam, Transform& transform) {
+		cam.viewMtx = transform.worldMatrix.Inverse();
 	}
 }

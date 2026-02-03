@@ -88,10 +88,18 @@ namespace NE::Graphics {
     }
 
     void Material::SetTexture(const std::string& uName, const std::string& uuid) {
+        if (uuid == "") {
+            m_Textures[uName] = nullptr;
+            return;
+        }
+
         m_Textures[uName] = Resource::ResourceManager::GetInstance().
             LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
-        if (uuid != "")
-            m_Textures[uName]->MakeResident();
+        m_Textures[uName]->MakeResident();
+        //m_Textures[uName] = Resource::ResourceManager::GetInstance().
+        //    LoadResource<NE::Graphics::OpenGL::GLTexture>(uuid);
+        //if (uuid != "")
+        //    m_Textures[uName]->MakeResident();
     }
 
     void Material::SetQueueBase(RenderQueue queue) {
@@ -104,6 +112,7 @@ namespace NE::Graphics {
 
     void Material::Bind() const {
         auto* shader = m_Pipeline->GetSpecification().shader.get();
+
         for (const auto& [uName, val] : m_FloatUniforms)
             shader->SetUniformFloat(uName, val);
         for (const auto& [uName, val] : m_Vec3Uniforms)

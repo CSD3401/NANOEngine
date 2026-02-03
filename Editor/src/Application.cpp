@@ -21,11 +21,13 @@
 #include "Panels/GamePanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LoggerPanel.hpp"
+#include "Panels/AnimationPanel.hpp"
 #include <stb_image/stb_image.h>
 #include <Input/InputManager.hpp>
 #include "EditorScene.hpp"
 #include "AssetManagement/AssetManager.hpp"
 #include "Serialization/Serializer.hpp"
+#include <Events/EventBus.hpp>
 
 namespace Editor {
 	bool Application::isRunning = true;
@@ -34,6 +36,21 @@ namespace Editor {
 	static bool s_showUnsavedChangesPopup = false;
 
 	void Application::Init() {
+
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::ShowCursorEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::ShowCursorEvent&) {
+				this->ShowCursor();
+			}
+		);
+
+		NANOEngine::Events::EventBus::Get().Subscribe<Events::HideCursorEvent>(
+			NANOEngine::Events::EventDomain::Editor,
+			[&](const Events::HideCursorEvent&) {
+				this->HideCursor();
+			}
+		);
+
 		timer.Start();
 
 		// Enable logging BEFORE engine initialization
@@ -43,7 +60,9 @@ namespace Editor {
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
 
-		GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+		window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+
+		editorLayer.Init();
 
 		GLFWimage icon;
 		icon.pixels = stbi_load("icon.png", &icon.width, &icon.height, 0, 4);
@@ -119,6 +138,7 @@ namespace Editor {
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
+		editorLayer.AddPanel<AnimationPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
 		Deserialization::JSON::DeserializeProjectSettings();
@@ -197,5 +217,13 @@ namespace Editor {
 		Serialization::JSON::SerializeUserSettings();
 
 		NE::Shutdown();
+	}
+
+	void Application::ShowCursor() {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+
+	void Application::HideCursor() {
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 }

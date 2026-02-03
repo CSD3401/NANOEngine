@@ -11,14 +11,14 @@ namespace NE::ECS::Systems {
     LightSystem::LightSystem(NE::ECS::ComponentManager* cm)
         : m_componentManager(cm) {}
 
-    void LightSystem::OnEntityAdded(Entity entity) {
+    void LightSystem::OnEntityAdded(Entity /*entity*/) {
         //auto& t = m_componentManager->GetComponent<Component::Transform>(entity);
         //auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
         //sl.position = t.localPosition;
         //Graphics::GraphicsManager::m_lights.push_back(&sl);
     }
 
-    void LightSystem::OnEntityRemoved(Entity entity) {
+    void LightSystem::OnEntityRemoved(Entity /*entity*/) {
         //auto& sl = m_componentManager->GetComponent<Component::Light>(entity);
 
         //Graphics::GraphicsManager::m_lights.erase(
@@ -35,10 +35,12 @@ namespace NE::ECS::Systems {
     }
 
     void LightSystem::Update(double) {
+#ifndef PRODUCTION_BUILD
         NE_PROFILE_FUNCTION();
+#endif
         Graphics::GraphicsManager::m_lights.clear();
 
-        const auto& entities = GetEntities();
+        const auto& entities = m_entities.GetDenseContainer();
         for (Entity entity : entities) {
             auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
             if (meta.isActive) {

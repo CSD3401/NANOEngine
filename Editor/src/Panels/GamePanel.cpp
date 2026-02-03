@@ -1,11 +1,11 @@
 #include "GamePanel.hpp"
 #include <imgui/imgui.h>
 #include "Engine.hpp"
+#include <iostream>
 
 namespace Editor {
 
-	void GamePanel::OnImGuiRender()
-	{
+	void GamePanel::OnImGuiRender() {
 		ImGui::Begin("Game", nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 

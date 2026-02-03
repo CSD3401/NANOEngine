@@ -1,5 +1,6 @@
 #pragma once
-//#include <string>
+
+#include <string>
 #include <vector>
 
 namespace Editor::Events {
@@ -38,9 +39,19 @@ namespace Editor::Events {
 		uint32_t parentEntity;
 	};
 
+	struct HierarchyChangeEvent {
+		uint32_t childEntity;
+		uint32_t newParentEntity;
+		int insertIndex;
+	};
+
 	struct DeleteEntityEvent {
 		std::vector<uint32_t> entitiesToBeDeleted;
+		uint32_t oldParentEntity;
 	};
+
+	struct HideCursorEvent {};
+	struct ShowCursorEvent {};
 
 
 	struct CreateUICanvasEntityEvent {};
@@ -53,5 +64,12 @@ namespace Editor::Events {
 
 	struct GotoAssetPathEvent {
 		std::string assetPath;
+	};
+
+	struct SceneChangedEvent {};
+
+	struct AutoKeyRecordEvent {
+		uint32_t componentTypeId; 
+		uint32_t fieldId;
 	};
 }

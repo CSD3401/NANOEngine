@@ -2,7 +2,7 @@
 
 #include "IPanel.hpp"
 #include <filesystem>
-#include <vector>
+#include <unordered_map>
 #include <string>
 
 namespace Editor {
@@ -46,5 +46,9 @@ namespace Editor {
 		// Drag and drop state for moving files
 		std::filesystem::path m_draggedAssetPath;
 		bool m_isDraggingAsset = false;
+
+		std::filesystem::path m_openMeshPath;
+		bool m_openSubmeshPopup = false;
+		//std::unordered_map<std::string, bool> m_meshExpanded; // for per directory
 	};
 }
