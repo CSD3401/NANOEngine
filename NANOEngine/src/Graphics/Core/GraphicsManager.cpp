@@ -61,7 +61,6 @@ namespace NE::Graphics {
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
-    //RenderViewHandle GraphicsManager::s_ActiveViewHandle;
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
     RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
@@ -351,13 +350,14 @@ namespace NE::Graphics {
         }
 
         if (driving && s_shadowRenderer) {
-            const auto& commands = s_DrawQueue->GetCommands();
-            s_shadowRenderer->Update(*driving, m_lights, commands);
         }
 
         for (const auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
             if (!view.isActive) continue;
             if (view.isMain && view.order == 0) s_GameViewHandle = handle;
+
+            const auto& commands = s_DrawQueue->GetCommands();
+            s_shadowRenderer->Update(*driving, m_lights, commands);
 
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
@@ -375,25 +375,40 @@ namespace NE::Graphics {
             std::vector<GLuint>     shadowTextures;
             shadowVPs.reserve(MAX_SHADOWS);
             shadowTextures.reserve(MAX_SHADOWS);
+            ECS::Component::Light* dirForSplits = nullptr;
 
             int shadowCount = 0;
             for (auto* l : m_lights) {
                 if (!l) continue;
-
                 l->shadowIndex = -1;
 
-                if (l->shadowType == ECS::Component::Light::ShadowType::None)
-                    continue;
-                if (l->shadowMapTex == 0)
-                    continue;
+                if (l->shadowType == NE::ECS::Component::Light::None) continue;
 
-                if (shadowCount >= MAX_SHADOWS)
-                    continue;
+                // Directional CSM
+                if (l->type == NE::ECS::Component::Light::Directional && 
+                    l->shadowCascadeCount == NE::ECS::Component::Light::DIR_CASCADES) 
+                {
+                    if (shadowCount + NE::ECS::Component::Light::DIR_CASCADES > MAX_SHADOWS) continue;
 
-                l->shadowIndex = shadowCount;
-                shadowVPs.push_back(l->lightViewProj);
-                shadowTextures.push_back(l->shadowMapTex);
-                ++shadowCount;
+                    if (!dirForSplits) dirForSplits = l;
+
+                    l->shadowIndex = shadowCount;
+                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
+                        shadowVPs.push_back(l->dirLightVP[c]);
+                        shadowTextures.push_back(l->dirShadowTex[c]);
+                        ++shadowCount;
+                    }
+                    continue;
+                }
+
+                // Single-map (Spot)
+                if (l->shadowMapTex != 0 && l->shadowCascadeCount == 1) {
+                    if (shadowCount >= MAX_SHADOWS) continue;
+                    l->shadowIndex = shadowCount;
+                    shadowVPs.push_back(l->lightViewProj);
+                    shadowTextures.push_back(l->shadowMapTex);
+                    ++shadowCount;
+                }
             }
 
             s_clusteredLighting->BuildForView(view, m_lights);
@@ -436,18 +451,32 @@ namespace NE::Graphics {
                 shader->SetUniformFloat("i_FogStart", renderSettings.fogStart);
                 shader->SetUniformFloat("i_FogEnd", renderSettings.fogEnd);
 
-                shader->SetUniformInt("h_ReceiveShadows", currentReceiveShadows ? 1 : 0);
 
-                // Shadow arrays
                 int numShadows = static_cast<int>(shadowVPs.size());
                 if (numShadows > 16) numShadows = 16;
 
-                // Only set if the shader actually has these uniforms (PBR)
-                shader->SetUniformInt("h_NumShadowMaps", numShadows);
+                shader->SetUniformInt("i_NumShadowMaps", numShadows);
+                shader->SetUniformInt("i_ReceiveShadows", currentReceiveShadows ? 1 : 0);
+
+                int dirCascadeCount = 0;
+                float dirSplits[NE::ECS::Component::Light::DIR_CASCADES] = {};
+
+                if (dirForSplits) {
+                    dirCascadeCount = dirForSplits->shadowCascadeCount;
+                    for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c)
+                        dirSplits[c] = dirForSplits->dirCascadeSplitsVS[c];
+                }
+
+                shader->SetUniformInt("i_DirCascadeCount", ECS::Component::Light::DIR_CASCADES);
+
+                for (int c = 0; c < NE::ECS::Component::Light::DIR_CASCADES; ++c) {
+                    std::string splitName = "i_DirCascadeSplitsVS[" + std::to_string(c) + "]";
+                    shader->SetUniformFloat(splitName.c_str(), dirSplits[c]);
+                }
 
                 for (int i = 0; i < numShadows; ++i) {
-                    std::string vpName = "h_ShadowVP[" + std::to_string(i) + "]";
-                    std::string texName = "h_ShadowMaps[" + std::to_string(i) + "]";
+                    std::string vpName = "i_ShadowVP[" + std::to_string(i) + "]";
+                    std::string texName = "i_ShadowMaps[" + std::to_string(i) + "]";
 
                     shader->SetUniformMat4(vpName.c_str(), shadowVPs[i]);
 
@@ -471,7 +500,7 @@ namespace NE::Graphics {
                 };
 
             const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
-            const auto& commands = s_DrawQueue->GetCommands();
+            //const auto& commands = s_DrawQueue->GetCommands();
 
             for (const auto& command : commands) {
                 if (!SphereInFrustum(frustum, command.boundsCenterWS, command.boundsRadiusWs)) {
