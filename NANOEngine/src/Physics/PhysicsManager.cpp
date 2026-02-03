@@ -417,7 +417,7 @@ namespace NE::Physics {
 
 	void PhysicsManager::CreateCharacterController(uint32_t entity, uint64_t entityLUID,
 		const ECS::Component::Transform& t, const ECS::Component::CharacterController& cc,
-		const ECS::Component::Collider& col, uint8_t layerID)
+		uint8_t layerID)
 	{
 		JPH::RefConst<JPH::Shape> shape;
 
@@ -493,29 +493,37 @@ namespace NE::Physics {
 				JPH::ShapeFilter(),
 				*m_tempAllocator
 			);
-
 			rt.velocity = ch.GetLinearVelocity();
 
-			ECS::Entity e = static_cast<ECS::Entity>(rt.entity);
-			if (m_componentManager->HasComponent<ECS::Component::Transform>(e)) {
-				auto& tr = m_componentManager->GetComponent<ECS::Component::Transform>(e);
+			const auto& contacts = ch.GetActiveContacts();
+			for (const JPH::CharacterVirtual::Contact& c : contacts) {
+				if (!c.mHadCollision)
+					continue;
+				
+				if (!c.mBodyB.IsInvalid()) {
+					uint64_t otherLuid = BodyToLuid(c.mBodyB);
+					if (otherLuid == 0) continue;
 
-				const JPH::RVec3 p = ch.GetPosition();
-				tr.localPosition = ToEngineVec3(p);
+					RawContactEvent e;
+					e.aLuid = rt.luid;
+					e.bLuid = otherLuid;
+					e.isTrigger = c.mIsSensorB;
+					e.type = ContactEventType::Persisted;
 
-				//            float yaw = Wrap360(ExtractYawDegrees(ch.GetRotation()));
-							////SPD_WARNING("Yaw: " << yaw);
-				//            tr.localRotationEuler = { 0.0f, yaw, 0.0f };
-							//SPD_WARNING(tr.localRotationEuler);
-
-				Math::Quat q = ToEngineQuat(ch.GetRotation());
-				tr.localRotationQuat = q;
-
-				//Math::Vec3 e = QuatToEulerDegrees(q);                // any consistent order
-				//tr.localRotationEuler = StabilizeEulerForUI(e, tr.localRotationEuler);
-
-				tr.isDirty = true;
+					PushRawContactEvent(e);
+				}
 			}
+
+			ECS::Entity e = static_cast<ECS::Entity>(rt.entity);
+			auto& tr = m_componentManager->GetComponent<ECS::Component::Transform>(e);
+
+			const JPH::RVec3 p = ch.GetPosition();
+			tr.localPosition = ToEngineVec3(p);
+
+			Math::Quat q = ToEngineQuat(ch.GetRotation());
+			tr.localRotationQuat = q;
+
+			tr.isDirty = true;
 		}
 	}
 
