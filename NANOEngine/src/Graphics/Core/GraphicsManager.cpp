@@ -35,7 +35,7 @@
 #include "../OpenGL/GLClusteredLighting.hpp"
 
 #include "GizmosRenderer.hpp"
-#include "../Debug/DebugDrawSystem.hpp"
+#include "Graphics/DebugRenderer/DebugDrawSystem.hpp"
 #include "../../Core/Logger.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Light.hpp"
