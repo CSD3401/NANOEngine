@@ -350,6 +350,13 @@ namespace NE::ECS {
 
 		/// Set the fill amount on a UIImage component (for FILLED image type)
 		NANOENGINE_API void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount);
+
+		// --- UI Viewport Bounds (for Editor) ---
+		/// Set viewport bounds to transform mouse coordinates from window space to UI space
+		NANOENGINE_API void SetUIViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight);
+
+		/// Clear viewport bounds (use raw mouse coordinates)
+		NANOENGINE_API void ClearUIViewportBounds();
 	}
 
 }

@@ -30,6 +30,10 @@ namespace NE::ECS::Systems {
         Entity GetHoveredEntity() const { return m_hoveredEntity; }
         Entity GetPressedEntity() const { return m_pressedEntity; }
 
+        // Viewport bounds for Editor (transforms mouse from window coords to UI coords)
+        static void SetViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight);
+        static void ClearViewportBounds();
+
     private:
         ComponentManager* m_cm = nullptr;
 
@@ -98,6 +102,17 @@ namespace NE::ECS::Systems {
             Entity canvasEntity,
             const Component::UIRectTransform& rect
         );
+
+        // Viewport transform (for Editor viewports)
+        static bool s_useViewportTransform;
+        static float s_viewportOffsetX;
+        static float s_viewportOffsetY;
+        static float s_viewportWidth;
+        static float s_viewportHeight;
+        static float s_uiWidth;
+        static float s_uiHeight;
+
+        void TransformMouseToUICoords(double& mouseX, double& mouseY);
     };
 
 } // namespace NE::ECS::Systems

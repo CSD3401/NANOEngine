@@ -371,6 +371,14 @@ namespace NE {
 		return Graphics::GraphicsManager::drawCount;
 	}
 
+	uint32_t GetUIScreenWidth() {
+		return Graphics::GraphicsManager::GetScreenWidth();
+	}
+
+	uint32_t GetUIScreenHeight() {
+		return Graphics::GraphicsManager::GetScreenHeight();
+	}
+
 	void DisplayFinalOutput(int windowWidth, int windowHeight) {
 		Graphics::GraphicsManager::DisplayFinalOutput(windowWidth, windowHeight);
 	}

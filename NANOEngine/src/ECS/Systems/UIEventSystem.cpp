@@ -18,6 +18,15 @@ namespace NE::ECS::Systems {
     static constexpr float PI = 3.14159265358979f;
     static constexpr float DEFAULT_WORLD_SPACE_SCALE = 0.1f;
 
+    // Static viewport transform members
+    bool UIEventSystem::s_useViewportTransform = false;
+    float UIEventSystem::s_viewportOffsetX = 0.0f;
+    float UIEventSystem::s_viewportOffsetY = 0.0f;
+    float UIEventSystem::s_viewportWidth = 1920.0f;
+    float UIEventSystem::s_viewportHeight = 1080.0f;
+    float UIEventSystem::s_uiWidth = 1920.0f;
+    float UIEventSystem::s_uiHeight = 1080.0f;
+
     UIEventSystem::UIEventSystem(ComponentManager* cm) : m_cm(cm) {}
 
     void UIEventSystem::Init() {}
@@ -54,8 +63,10 @@ namespace NE::ECS::Systems {
             }
         }
 
-        // Get mouse position
+        // Get mouse position and transform to UI coords if viewport is set
         auto [mouseX, mouseY] = NE::InputManager::MousePos();
+        TransformMouseToUICoords(mouseX, mouseY);
+
         bool mouseDown = NE::InputManager::IsMouseDown(0);
         bool mousePressed = NE::InputManager::WasMousePressed(0);
         bool mouseReleased = NE::InputManager::WasMouseReleased(0);
@@ -481,6 +492,7 @@ namespace NE::ECS::Systems {
         float accScaleY = scaleFactor;
         float accPosX = 0.0f;
         float accPosY = 0.0f;
+        float accRotationZ = 0.0f;
 
         for (size_t i = 0; i < chain.size(); ++i) {
             Entity ent = chain[i];
@@ -489,6 +501,7 @@ namespace NE::ECS::Systems {
 
             accScaleX *= r.scaleX;
             accScaleY *= r.scaleY;
+            accRotationZ += r.rotationZ;
 
             float parentWidth, parentHeight;
             if (i > 0) {
@@ -510,6 +523,18 @@ namespace NE::ECS::Systems {
 
                 float localX = anchorX + r.x - scaledWidth * r.pivotX;
                 float localY = anchorY + r.y - scaledHeight * r.pivotY;
+
+                // Apply parent rotation if present
+                float parentRotation = accRotationZ - r.rotationZ;
+                if (std::abs(parentRotation) > 0.001f) {
+                    float rad = parentRotation * PI / 180.0f;
+                    float cosR = std::cos(rad);
+                    float sinR = std::sin(rad);
+                    float rotatedX = localX * cosR - localY * sinR;
+                    float rotatedY = localX * sinR + localY * cosR;
+                    localX = rotatedX;
+                    localY = rotatedY;
+                }
 
                 float parentScaleX = accScaleX / r.scaleX;
                 float parentScaleY = accScaleY / r.scaleY;
@@ -822,6 +847,40 @@ namespace NE::ECS::Systems {
         }
 
         return closestEntity;
+    }
+
+    //=========================================================================
+    // Viewport Transform (for Editor viewports)
+    //=========================================================================
+
+    void UIEventSystem::SetViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight) {
+        s_useViewportTransform = true;
+        s_viewportOffsetX = offsetX;
+        s_viewportOffsetY = offsetY;
+        s_viewportWidth = width;
+        s_viewportHeight = height;
+        s_uiWidth = uiWidth;
+        s_uiHeight = uiHeight;
+    }
+
+    void UIEventSystem::ClearViewportBounds() {
+        s_useViewportTransform = false;
+    }
+
+    void UIEventSystem::TransformMouseToUICoords(double& mouseX, double& mouseY) {
+        if (s_useViewportTransform) {
+            // Transform from window coords to viewport-relative coords
+            double localX = mouseX - s_viewportOffsetX;
+            double localY = mouseY - s_viewportOffsetY;
+
+            // Normalize to 0-1
+            double normX = localX / s_viewportWidth;
+            double normY = localY / s_viewportHeight;
+
+            // Scale to UI coords
+            mouseX = normX * s_uiWidth;
+            mouseY = normY * s_uiHeight;
+        }
     }
 
 } // namespace NE::ECS::Systems

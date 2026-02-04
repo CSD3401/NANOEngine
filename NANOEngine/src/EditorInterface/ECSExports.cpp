@@ -23,6 +23,7 @@
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
+#include "../ECS/Systems/UIEventSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
@@ -1218,6 +1219,16 @@ namespace NE::ECS {
 
 			img.fillAmount = fillAmount;
 			img.isDirty = true;
+		}
+	}
+
+	namespace Command {
+		void SetUIViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight) {
+			Systems::UIEventSystem::SetViewportBounds(offsetX, offsetY, width, height, uiWidth, uiHeight);
+		}
+
+		void ClearUIViewportBounds() {
+			Systems::UIEventSystem::ClearViewportBounds();
 		}
 	}
 }

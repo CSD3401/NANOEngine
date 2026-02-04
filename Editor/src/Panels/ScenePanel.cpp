@@ -10,6 +10,7 @@
 #include "Engine.hpp"
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <EditorInterface/ECSExports.hpp>
+#include <Graphics/Core/GraphicsManager.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/UIRectTransform.hpp>
@@ -178,6 +179,22 @@ namespace Editor {
 
 		ImVec2 panelPos = ImGui::GetCursorScreenPos();
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
+
+		// Convert panel position from screen coordinates to GLFW window coordinates
+		// GLFW mouse coordinates are relative to the window (0,0 at top-left)
+		// ImGui screen coordinates may include window position on multi-monitor setups
+		ImGuiViewport* mainViewport = ImGui::GetMainViewport();
+		ImVec2 mainViewportPos = mainViewport->Pos;
+		float panelPosX = panelPos.x - mainViewportPos.x;
+		float panelPosY = panelPos.y - mainViewportPos.y;
+
+		// Set viewport bounds for UI interaction system
+		NE::ECS::Command::SetUIViewportBounds(
+			panelPosX, panelPosY,
+			panelSize.x, panelSize.y,
+			static_cast<float>(NE::GetUIScreenWidth()),
+			static_cast<float>(NE::GetUIScreenHeight())
+		);
 
 		float newAspect = (panelSize.y > 0.0f) ? (panelSize.x / panelSize.y) : (16.0f / 9.0f);
 
