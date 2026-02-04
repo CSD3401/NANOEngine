@@ -212,9 +212,30 @@ namespace NE::Graphics {
         return fallback != m_glyphs.end() ? &fallback->second : nullptr;
     }
 
+    float FontAtlas::QuantizeToFontBucket(float fontSize) {
+        // Font size buckets for memory optimization
+        // Requested sizes snap to nearest bucket, then scale at render time
+        static const float buckets[] = { 16.0f, 32.0f, 64.0f, 128.0f, 256.0f };
+        static const int bucketCount = sizeof(buckets) / sizeof(float);
+
+        // Clamp to valid range
+        if (fontSize <= buckets[0]) return buckets[0];
+        if (fontSize >= buckets[bucketCount - 1]) return buckets[bucketCount - 1];
+
+        // Find closest bucket (prefer rounding up for better quality)
+        for (int i = 0; i < bucketCount; ++i) {
+            if (fontSize <= buckets[i]) {
+                return buckets[i];
+            }
+        }
+
+        return buckets[bucketCount - 1];
+    }
+
     std::string FontAtlas::MakeCacheKey(const std::string& fontUUID, float fontSize) {
+        float bucketSize = QuantizeToFontBucket(fontSize);
         std::ostringstream oss;
-        oss << fontUUID << "@" << static_cast<int>(fontSize * 10);
+        oss << fontUUID << "@" << static_cast<int>(bucketSize * 10);
         return oss.str();
     }
 
@@ -249,9 +270,11 @@ namespace NE::Graphics {
             return nullptr;
         }
 
-        // Create atlas from font data
+        // Create atlas from font data using bucket size (not exact requested size)
+        // This allows us to share atlases across similar sizes (e.g., 15pt, 16pt, 17pt all use 16pt bucket)
+        float bucketSize = FontAtlas::QuantizeToFontBucket(fontSize);
         auto atlas = std::make_shared<FontAtlas>();
-        if (!atlas->Load(fontResource->GetFontData(), fontSize)) {
+        if (!atlas->Load(fontResource->GetFontData(), bucketSize)) {
             return nullptr;
         }
 

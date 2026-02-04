@@ -28,7 +28,8 @@ namespace NE::Graphics {
             const Math::Vec4& color,
             NE::ECS::Component::UIText::Alignment horizontalAlign,
             NE::ECS::Component::UIText::VerticalAlignment verticalAlign,
-            bool wordWrap
+            bool wordWrap,
+            float desiredFontSize = 0.0f  // If 0, use atlas font size; otherwise scale to this size
         );
 
     private:
@@ -56,7 +57,8 @@ namespace NE::Graphics {
             const std::string& line,
             const FontAtlas& fontAtlas,
             float startX, float startY, float z,
-            const Math::Vec4& color
+            const Math::Vec4& color,
+            float scaleFactor = 1.0f
         );
 
         static UIVertex CreateVertex(

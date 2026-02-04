@@ -783,7 +783,8 @@ namespace NE::ECS::Systems {
                 text.color,
                 text.horizontalAlign,
                 text.verticalAlign,
-                text.wordWrap
+                text.wordWrap,
+                effectiveFontSize  // Pass desired size for bucket scaling
             );
 
             text.cachedVertices.clear();

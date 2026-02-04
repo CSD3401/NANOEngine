@@ -12,8 +12,9 @@ namespace NE::Graphics {
         const Math::Vec4& color,
         NE::ECS::Component::UIText::Alignment horizontalAlign,
         NE::ECS::Component::UIText::VerticalAlignment verticalAlign,
-        bool wordWrap
-    ) 
+        bool wordWrap,
+        float desiredFontSize
+    )
     {
         TextMeshResult result;
         result.totalWidth = 0.0f;
@@ -23,33 +24,42 @@ namespace NE::Graphics {
             return result;
         }
 
-        // Calculate lines with word wrapping
-        std::vector<LineInfo> lines = CalculateLines(text, fontAtlas, maxWidth, wordWrap);
+        // Calculate scale factor if desired size differs from atlas size
+        // This allows bucket-based caching where multiple sizes use the same atlas
+        float scaleFactor = 1.0f;
+        if (desiredFontSize > 0.0f && fontAtlas.GetFontSize() > 0.0f) {
+            scaleFactor = desiredFontSize / fontAtlas.GetFontSize();
+        }
+
+        // Calculate lines with word wrapping (using scaled max width)
+        std::vector<LineInfo> lines = CalculateLines(text, fontAtlas, maxWidth / scaleFactor, wordWrap);
 
         if (lines.empty()) {
             return result;
         }
 
-        float lineHeight = fontAtlas.GetLineHeight();
+        // Apply scale factor to font metrics
+        float lineHeight = fontAtlas.GetLineHeight() * scaleFactor;
+        float ascent = fontAtlas.GetAscent() * scaleFactor;
         float totalTextHeight = lines.size() * lineHeight;
         result.totalHeight = totalTextHeight;
 
-        // Calculate max width for result
+        // Calculate max width for result (line widths are already scaled from CalculateLines)
         for (const auto& line : lines) {
-            result.totalWidth = std::max(result.totalWidth, line.width);
+            result.totalWidth = std::max(result.totalWidth, line.width * scaleFactor);
         }
 
         // Calculate starting Y position based on vertical alignment
         float startY = y;
         switch (verticalAlign) {
             case NE::ECS::Component::UIText::VerticalAlignment::TOP:
-                startY = y + fontAtlas.GetAscent();
+                startY = y + ascent;
                 break;
             case NE::ECS::Component::UIText::VerticalAlignment::MIDDLE:
-                startY = y + (maxHeight - totalTextHeight) * 0.5f + fontAtlas.GetAscent();
+                startY = y + (maxHeight - totalTextHeight) * 0.5f + ascent;
                 break;
             case NE::ECS::Component::UIText::VerticalAlignment::BOTTOM:
-                startY = y + maxHeight - totalTextHeight + fontAtlas.GetAscent();
+                startY = y + maxHeight - totalTextHeight + ascent;
                 break;
         }
 
@@ -70,7 +80,7 @@ namespace NE::Graphics {
                     break;
             }
 
-            GenerateLineVertices(result.vertices, line.text, fontAtlas, startX, currentY, z, color);
+            GenerateLineVertices(result.vertices, line.text, fontAtlas, startX, currentY, z, color, scaleFactor);
             currentY += lineHeight;
         }
 
@@ -196,8 +206,9 @@ namespace NE::Graphics {
         const std::string& line,
         const FontAtlas& fontAtlas,
         float startX, float startY, float z,
-        const Math::Vec4& color
-    ) 
+        const Math::Vec4& color,
+        float scaleFactor
+    )
     {
         float cursorX = startX;
 
@@ -205,16 +216,16 @@ namespace NE::Graphics {
             const GlyphInfo* glyph = fontAtlas.GetGlyph(c);
             if (!glyph || glyph->width <= 0 || glyph->height <= 0) {
                 if (glyph) {
-                    cursorX += glyph->xAdvance;
+                    cursorX += glyph->xAdvance * scaleFactor;
                 }
                 continue;
             }
 
-            // Calculate glyph quad position
-            float x0 = cursorX + glyph->xOffset;
-            float y0 = startY + glyph->yOffset;
-            float x1 = x0 + glyph->width;
-            float y1 = y0 + glyph->height;
+            // Calculate glyph quad position (apply scale factor to all metrics)
+            float x0 = cursorX + glyph->xOffset * scaleFactor;
+            float y0 = startY + glyph->yOffset * scaleFactor;
+            float x1 = x0 + glyph->width * scaleFactor;
+            float y1 = y0 + glyph->height * scaleFactor;
 
             // Create two triangles (6 vertices) for the glyph quad
             // Triangle 1: top-left, bottom-left, bottom-right
@@ -227,7 +238,7 @@ namespace NE::Graphics {
             vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color)); // bottom-right
             vertices.push_back(CreateVertex(x1, y0, z, glyph->u1, glyph->v0, color)); // top-right
 
-            cursorX += glyph->xAdvance;
+            cursorX += glyph->xAdvance * scaleFactor;
         }
     }
 

@@ -47,6 +47,7 @@ namespace NE::Graphics {
         int GetAtlasHeight() const { return m_atlasHeight; }
 
         static std::string MakeCacheKey(const std::string& fontUUID, float fontSize);
+        static float QuantizeToFontBucket(float fontSize);
 
     private:
         std::unordered_map<char, GlyphInfo> m_glyphs;
