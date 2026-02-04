@@ -80,13 +80,14 @@ namespace NE::Scripting {
             return GameObject();
         }
 
-        // iterate through entities that have EntityMeta component
-        const auto& entities = ctx->componentManager->GetEntitiesWithComponent<ECS::Component::EntityMeta>();
-
-        for (Entity entity : entities) {
-            const auto& meta = ctx->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
-            if (meta.name == name) {
-                return GameObject(entity, ctx);
+        // Iterate through all entities to find matching name
+        const auto& usedEntities = ctx->entityManager->GetUsedEntities();
+        for (Entity entity : usedEntities) {
+            if (ctx->componentManager->HasComponent<ECS::Component::EntityMeta>(entity)) {
+                const auto& meta = ctx->componentManager->GetComponent<ECS::Component::EntityMeta>(entity);
+                if (meta.name == name) {
+                    return GameObject(entity, ctx);
+                }
             }
         }
 
@@ -106,13 +107,21 @@ namespace NE::Scripting {
 
     SCRIPT_API IScript* GameObject_GetScriptByType(Entity entity, const std::string& typeName) {
         ScriptContext* ctx = GetStaticContext();
-        if (!ctx || !ctx->scriptingEngine || !ctx->componentManager || entity == INVALID_ENTITY) {
+        if (!ctx || !ctx->scriptingEngine || !ctx->entityManager || entity == INVALID_ENTITY) {
             return nullptr;
         }
 
-        // validates that the entity exists and has scripts
-        if (!ctx->componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
-            return nullptr;
+        // Verify entity is still alive (not destroyed) before accessing script instances
+        const auto& usedEntities = ctx->entityManager->GetUsedEntities();
+        bool entityAlive = false;
+        for (Entity e : usedEntities) {
+            if (e == entity) {
+                entityAlive = true;
+                break;
+            }
+        }
+        if (!entityAlive) {
+            return nullptr;  // Entity was destroyed
         }
 
         return ctx->scriptingEngine->GetScriptInstanceByName(entity, typeName);
@@ -152,23 +161,23 @@ namespace NE::Scripting {
         std::vector<Entity> result;
 
         ScriptContext* ctx = GetStaticContext();
-        if (!ctx || !ctx->componentManager) {
+        if (!ctx || !ctx->componentManager || !ctx->entityManager) {
             return result;
         }
 
-        // iterate through entities that have NativeScript component
-        const auto& entities = ctx->componentManager->GetEntitiesWithComponent<ECS::Component::NativeScript>();
+        // Iterate through all entities to find matching scripts
+        const auto& usedEntities = ctx->entityManager->GetUsedEntities();
+        for (Entity entity : usedEntities) {
+            // Check if entity has NativeScript component
+            if (ctx->componentManager->HasComponent<ECS::Component::NativeScript>(entity)) {
+                const auto& nsc = ctx->componentManager->GetComponent<ECS::Component::NativeScript>(entity);
 
-        result.reserve(entities.size());
-
-        for (Entity entity : entities) {
-            const auto& nsc = ctx->componentManager->GetComponent<ECS::Component::NativeScript>(entity);
-
-            // Check if any of the script names match
-            for (const std::string& scriptName : nsc.ScriptNames) {
-                if (scriptName == typeName) {
-                    result.push_back(entity);
-                    break; // Found a match, don't add duplicates
+                // Check if any of the script names match
+                for (const std::string& scriptName : nsc.ScriptNames) {
+                    if (scriptName == typeName) {
+                        result.push_back(entity);
+                        break; // Found a match, don't add duplicates
+                    }
                 }
             }
         }

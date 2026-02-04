@@ -6,12 +6,11 @@
 #include "../Components/Transform.hpp"
 #include <fmod/fmod.hpp>
 #include <fmod/fmod_studio.hpp>
+//#include "../../AssetManager.hpp"
 #include "../../Audio/AudioBank.hpp"
 #include <map>
-#include <memory>
-#include <unordered_map>
 
-namespace NE::ECS::Systems
+namespace NE::ECS::Systems 
 {
 
 	class AudioSystem final : public System {
@@ -20,7 +19,7 @@ namespace NE::ECS::Systems
 
 		void OnEntityAdded(Entity entity) override;
 		void OnEntityRemoved(Entity entity) override;
-
+		
 		void Init() override;
 		void Update(double deltaTime) override; // override in concrete systems
 		void Exit() override;
@@ -32,7 +31,7 @@ namespace NE::ECS::Systems
 		void CleanupStudioSystem();
 		void LoadBankAssets(const std::string& audioDirectory);
 
-		struct AudioEvent
+		struct AudioEvent 
 		{
 			std::string path;        // "event:/Footsteps/Concrete"
 			std::string displayName; // "Footsteps Concrete"
@@ -45,15 +44,13 @@ namespace NE::ECS::Systems
 			FMOD::Studio::Bank* bank;
 		};
 
+		//const std::vector<std::pair<std::string, std::shared_ptr<NE::Asset::AudioBank>>>& GetLoadedBanks() const;
 		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> GetAllEvents() const;
 
 
 	private:
 
 		ComponentManager* m_componentManager;
-
-		// Store loaded banks (key = bank file path, value = AudioBank shared_ptr)
-		std::unordered_map<std::string, std::shared_ptr<NE::Asset::AudioBank>> m_loadedBanks;
 
 		// Following function are deprecated do not use
 		// Generally non-Raphael should only be using PlaySound()

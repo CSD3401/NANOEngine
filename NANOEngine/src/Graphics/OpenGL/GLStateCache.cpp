@@ -130,7 +130,8 @@ namespace NE::Graphics::OpenGL {
 		}
 	}
 
-	void GLStateCache::Bind(const std::shared_ptr<IPipeline>& pipeline) {
+	void GLStateCache::Bind(const std::shared_ptr<IPipeline>& pipeline)
+	{
 		if (pipeline) {
 			Bind(pipeline->GetSpecification());
 		}

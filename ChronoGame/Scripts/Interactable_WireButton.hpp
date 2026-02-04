@@ -46,17 +46,6 @@ public:
             Events::Send(message.c_str(), &leftWireIndex);
 
         }
-        if (Input::WasKeyReleased(',') && leftWireIndex == 2)
-        {
-            std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
-            LOG_DEBUG("BUTTON PRESSED:" + message);
-            Events::Send(message.c_str(), &leftWireIndex);
-
-        }
-        if (Input::WasKeyReleased('B'))
-        {
-            Events::Send("MOVE");
-        }
 
     }
     void OnDestroy() override {}
@@ -73,12 +62,10 @@ public:
     }
 
     // === Collision Callbacks ===
-    void OnCollisionEnter(Entity other) override { (void)other; }
-    void OnCollisionExit(Entity other) override { (void)other; }
-    void OnCollisionStay(Entity other) override { (void)other; }
-    void OnTriggerEnter(Entity other) override { (void)other; }
-    void OnTriggerExit(Entity other) override { (void)other; }
-    void OnTriggerStay(Entity other) override { (void)other; }
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     int leftWireIndex = 0;

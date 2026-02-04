@@ -17,7 +17,9 @@
 
 #pragma once
 
+// Include the new clean SDK
 #include "../../include/ScriptSDK/ScriptAPI.h"
+#include "../../include/ScriptSDK/ScriptMacros.h"
 
 // Import the old NE::Math::Vec3 type (engine internal)
 #include "../Math/Vec3.hpp"

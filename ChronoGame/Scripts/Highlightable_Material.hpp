@@ -17,7 +17,8 @@ public:
     // === Custom Methods ===
     void SetHighlight(bool state) override
     {
-        if (state) {
+        LOG_DEBUG("SetHighlight " << state);
+        /*if (state) {
 			NE::Renderer::Command::AssignMaterial(
                 GetEntity(),
                 highlightMaterial);
@@ -26,7 +27,7 @@ public:
             NE::Renderer::Command::AssignMaterial(
                 GetEntity(),
                 defaultMaterial);
-        }
+        }*/
     }
 
     // === Lifecycle Methods ===
@@ -47,7 +48,7 @@ public:
         }
 
         // Store default material from this entity
-		defaultMaterial = GetMaterialRef(GetRendererRef(GetEntity()));
+        // ...
     }
     void Update(double deltaTime) override {}
     void OnDestroy() override {}
@@ -59,12 +60,10 @@ public:
     const char* GetTypeName() const override { return "Highlightable_Material"; }
 
     // === Collision Callbacks ===
-    void OnCollisionEnter(Entity other) override { (void)other; }
-    void OnCollisionExit(Entity other) override { (void)other; }
-    void OnCollisionStay(Entity other) override { (void)other; }
-    void OnTriggerEnter(Entity other) override { (void)other; }
-    void OnTriggerExit(Entity other) override { (void)other; }
-    void OnTriggerStay(Entity other) override { (void)other; }
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
     MaterialRef defaultMaterial{};

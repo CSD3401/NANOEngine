@@ -22,7 +22,7 @@ namespace NE::Asset
 	{
 	public:
 
-		struct EventInfo
+		struct EventInfo 
 		{
 			std::string path;        // "event:/Footsteps/Concrete"
 			std::string audioName; // "Footsteps Concrete"
@@ -32,14 +32,11 @@ namespace NE::Asset
 		AudioBank();
 		virtual ~AudioBank();
 
-		// IResource interface implementation
+		// return true if loaded succesfully
+		//virtual bool LoadFromFile(const std::string& filename) override;
 		bool Preload(Resource::BinaryView blob) override;
 		void Finalize() override;
-		Resource::ResourceType GetType() const override { return Resource::ResourceType::Audio; }
-
-		// Static type for ResourceManager template
-		static constexpr Resource::ResourceType GetStaticType() { return Resource::ResourceType::Audio; }
-
+		
 		FMOD::Studio::Bank* GetFMODBank() const { return m_bank; }
 
 		bool IsLoaded() const { return m_bank != nullptr; }

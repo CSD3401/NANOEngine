@@ -69,9 +69,6 @@
     <ClCompile Include="src\Panels\ProfilerPanel.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
-    <ClCompile Include="src\Panels\RenderGraphPanel.cpp">
-      <Filter>Source Files\src</Filter>
-    </ClCompile>
     <ClCompile Include="src\Panels\SceneCameraTweener.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
@@ -249,9 +246,6 @@
       <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Panels\ProfilerPanel.hpp">
-      <Filter>Header Files\src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Panels\RenderGraphPanel.hpp">
       <Filter>Header Files\src</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">

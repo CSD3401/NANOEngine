@@ -61,6 +61,7 @@
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />
+    <ClCompile Include="src\Physics\PhysicsContactListener.cpp" />
     <ClCompile Include="src\Core\LUIDGenerator.cpp" />
     <ClCompile Include="src\Core\LUIDRegistry.cpp" />
     <ClCompile Include="src\Scripting\ScriptTypes.cpp" />
@@ -83,18 +84,12 @@
     <ClCompile Include="src\ECS\Systems\PrefabSystem.cpp" />
     <ClCompile Include="src\Scripting\GameObject.cpp" />
     <ClCompile Include="src\Graphics\Core\Shaders.cpp" />
-    <ClCompile Include="src\Graphics\Core\RenderGraph.cpp" />
     <ClCompile Include="src\ECS\Systems\CharacterControllerSystem.cpp" />
     <ClCompile Include="src\Animation\AnimationClip.cpp" />
     <ClCompile Include="src\Animation\AnimatorController.cpp" />
     <ClCompile Include="src\Physics\StreamOutImpl.cpp" />
     <ClCompile Include="src\Physics\StreamInImpl.cpp" />
     <ClCompile Include="src\Physics\ContactListenerImpl.cpp" />
-    <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
-    <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
-    <ClCompile Include="src\Graphics\Debug\DebugDrawSystem.cpp" />
-    <ClCompile Include="src\Graphics\Core\PostProcessPipeline.cpp" />
-    <ClCompile Include="src\Graphics\Core\RenderGraph\TexturePool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -214,9 +209,11 @@
     <ClInclude Include="src\ECS\Components\Animator.hpp" />
     <ClInclude Include="src\ECS\Systems\AnimatorSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\EditorCamera.hpp" />
+    <ClInclude Include="src\Physics\PhysicsContactListener.hpp" />
     <ClInclude Include="src\Core\LUIDGenerator.hpp" />
     <ClInclude Include="src\Core\LUIDRegistry.hpp" />
     <ClInclude Include="include\ScriptSDK\ScriptAPI.h" />
+    <ClInclude Include="include\ScriptSDK\ScriptMacros.h" />
     <ClInclude Include="include\ScriptSDK\ScriptTypes.h" />
     <ClInclude Include="src\Scripting\ScriptContextFactory.hpp" />
     <ClInclude Include="src\Scripting\ScriptContext.hpp" />
@@ -259,7 +256,6 @@
     <ClInclude Include="src\Graphics\OpenGL\GladImportExport.hpp" />
     <ClInclude Include="src\ECS\Components\CharacterController.hpp" />
     <ClInclude Include="src\Graphics\Core\Shaders.hpp" />
-    <ClInclude Include="src\Graphics\Core\RenderGraph.hpp" />
     <ClInclude Include="src\ECS\Systems\CharacterControllerSystem.hpp" />
     <ClInclude Include="src\Animation\AnimationClip.hpp" />
     <ClInclude Include="src\Animation\AnimatorController.hpp" />
@@ -269,12 +265,6 @@
     <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
     <ClInclude Include="src\Physics\ContactPair.hpp" />
     <ClInclude Include="src\Physics\ContactDefs.hpp" />
-    <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
-    <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
-    <ClInclude Include="src\Graphics\Debug\DebugDrawSystem.hpp" />
-    <ClInclude Include="src\Graphics\Core\PostProcessPipeline.hpp" />
-    <ClInclude Include="src\Graphics\Core\RenderGraph\TexturePool.hpp" />
-    <ClInclude Include="src\Graphics\Core\RenderGraph\TextureFormats.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

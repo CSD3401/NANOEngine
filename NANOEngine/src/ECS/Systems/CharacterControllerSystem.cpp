@@ -13,7 +13,9 @@
 
 namespace NE::ECS::Systems {
 	CharacterControllerSystem::CharacterControllerSystem(ComponentManager* cm, EntityManager* em, Core::LUIDRegistry* lr)
-		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr) { }
+		: m_componentManager(cm), m_entityManager(em), m_luidRegistry(lr)
+	{
+	}
 
 	void CharacterControllerSystem::OnEntityAdded(Entity e) {
 		auto& cc = m_componentManager->GetComponent<Component::CharacterController>(e);
@@ -36,12 +38,12 @@ namespace NE::ECS::Systems {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& rb = m_componentManager->GetComponent<Component::CharacterController>(e);
-			//auto& col = m_componentManager->GetComponent<Component::Collider>(e);
+			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
 			Physics::PhysicsManager::GetInstance().CreateCharacterController(
 				e, meta.luid, 
 				t, rb,
-				static_cast<uint8_t>(m_entityManager->GetLayer(e))
+				col, static_cast<uint8_t>(m_entityManager->GetLayer(e))
 			);
 		}
 	}

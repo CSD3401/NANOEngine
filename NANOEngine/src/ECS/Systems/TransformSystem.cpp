@@ -12,7 +12,9 @@
 #include "Math/Quat.hpp"
 
 namespace NE::ECS::Systems {
-	TransformSystem::TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr) : m_componentManager(cm), m_luidRegistry(lr) {}
+
+	TransformSystem::TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
+		: m_componentManager(cm), m_luidRegistry(lr) { }
 
 	void TransformSystem::OnEntityAdded(Entity e) {
 		auto& t = m_componentManager->GetComponent<Component::Transform>(e);
@@ -66,7 +68,7 @@ namespace NE::ECS::Systems {
 		}
 	}
 
-	void TransformSystem::Exit() {}
+	void TransformSystem::Exit() { }
 
 	void TransformSystem::BuildLocalMatrices() {
 		const auto& entities = GetEntities();
@@ -79,6 +81,8 @@ namespace NE::ECS::Systems {
 
 			Math::Mat4 translation = Math::Mat4::BuildTranslation(transform.localPosition);
 
+			// Convert Euler angles to quaternion, then to rotation matrix
+			//transform.localRotationQuat = Math::Quat::FromEulerDegrees(transform.localRotationEuler);
 			Math::Mat4 rotation = transform.localRotationQuat.ToMat4();
 
 			Math::Mat4 scale =
@@ -109,4 +113,5 @@ namespace NE::ECS::Systems {
 			UpdateWorldRecursive(child, t.worldMatrix, worldDirty);
 		}
 	}
+
 }

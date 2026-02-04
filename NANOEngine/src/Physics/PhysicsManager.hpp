@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <memory>
 #include <array>
@@ -49,7 +49,7 @@ namespace NE::Physics {
 
     struct Ray;
     struct RaycastHit;
-
+    
     class JoltDebugRenderer;
 
 	class ContactListenerImpl;
@@ -83,9 +83,7 @@ namespace NE::Physics {
         void RemoveShape(const uint64_t entityLUID);
 
         // Character Controller
-        void CreateCharacterController(uint32_t entity, uint64_t entityLUID, 
-            const ECS::Component::Transform& t, const ECS::Component::CharacterController& cc, 
-            uint8_t layerID);
+        void CreateCharacterController(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::CharacterController& cc, const ECS::Component::Collider& col, uint8_t layerID);
         void UpdateCharacters(float dt);
 
 		bool CharacterIsGrounded(uint64_t entityLUID) const;

@@ -9,7 +9,6 @@
 #include <Core/SpdLogger.hpp>
 #include "../../include/ScriptSDK/ScriptTypes.h"
 #include <Graphics/Core/GraphicsManager.hpp>
-#include <Graphics/Core/RenderGraph.hpp>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -41,14 +40,6 @@ namespace NE::Renderer {
 
 		const Graphics::PostProcessingSettings& GetPostProcessingSettings() {
 			return Graphics::GraphicsManager::postProcessingSettings;
-		}
-
-		Graphics::RenderGraph* GetRenderGraph() {
-			return Graphics::GraphicsManager::GetRenderGraph();
-		}
-
-		Graphics::TexturePool* GetTexturePool() {
-			return Graphics::GraphicsManager::GetTexturePool();
 		}
 
 		NANOENGINE_API std::string GetMaterialUUID(const NE::Scripting::MaterialRef& materialRef)

@@ -7,29 +7,21 @@
 * unsolving, and receiving inputs.
 */
 
-enum class PuzzleKey {
-    _1,
-    _2,
-    _3,
-    _4,
-    _5,
-    _6
-
-};
-
 class Puzzle_ : public IScript {
 public:
-    Puzzle_() {}
+    Puzzle_() {
+		SCRIPT_FIELD(puzzleKey, Int);
+    }
     ~Puzzle_() override = default;
 
     // === Custom Methods ===
     void Solve()
     {
-		Events::Send("PuzzleSolved", &puzzleKey);
+		Events::Send("PuzzleSolved", (void*)puzzleKey);
     }
     void Unsolve()
     {
-		Events::Send("PuzzleUnsolved", &puzzleKey);
+		Events::Send("PuzzleUnsolved", (void*)puzzleKey);
     }
     virtual void ReceiveInput(bool input)
     {
@@ -46,9 +38,7 @@ public:
 
     // === Lifecycle Methods ===
     void Awake() override {}
-    void Initialize(Entity entity) override {
-        SCRIPT_ENUM_FIELD(puzzleKey, "_1", "_2", "_3", "_4", "_5", "_6");
-    }
+    void Initialize(Entity entity) override {}
     void Start() override {}
     void Update(double deltaTime) override {}
     void OnDestroy() override {}
@@ -60,13 +50,11 @@ public:
     const char* GetTypeName() const override { return "Puzzle_"; }
 
     // === Collision Callbacks ===
-    void OnCollisionEnter(Entity other) override { (void)other; }
-    void OnCollisionExit(Entity other) override { (void)other; }
-    void OnCollisionStay(Entity other) override { (void)other; }
-    void OnTriggerEnter(Entity other) override { (void)other; }
-    void OnTriggerExit(Entity other) override { (void)other; }
-    void OnTriggerStay(Entity other) override { (void)other; }
+    void OnCollisionEnter(Entity other) override {}
+    void OnCollisionExit(Entity other) override {}
+    void OnTriggerEnter(Entity other) override {}
+    void OnTriggerExit(Entity other) override {}
 
 private:
-	PuzzleKey puzzleKey;
+	int puzzleKey;
 };

@@ -296,37 +296,14 @@ namespace NE::Scripting {
             NE::ECS::EntityManager& entityManager,
             NE::Core::LUIDRegistry& luidRegistry);
 
-        // === Collision Callbacks ===
-        /**
-         * Called when a collision starts between two entities.
-         * @param entity The entity that started colliding
-         * @param other The other entity involved in the collision
-         */
         NANOENGINE_API void OnCollisionEnter(NE::ECS::Entity entity, NE::ECS::Entity other);
-
-        /**
-         * Called when a collision ends between two entities.
-         * @param entity The entity that stopped colliding
-         * @param other The other entity that was collided with
-         */
         NANOENGINE_API void OnCollisionExit(NE::ECS::Entity entity, NE::ECS::Entity other);
-
-        /**
-         * Called when a trigger starts between two entities.
-         * @param entity The entity that triggered
-         * @param other The other entity that entered the trigger
-         */
-        NANOENGINE_API void OnTriggerEnter(NE::ECS::Entity entity, NE::ECS::Entity other);
-
-        /**
-         * Called when a trigger ends between two entities.
-         * @param entity The entity that stopped triggering
-         * @param other The other entity that exited the trigger
-         */
-        NANOENGINE_API void OnTriggerExit(NE::ECS::Entity entity, NE::ECS::Entity other);
-
-        NANOENGINE_API void OnTriggerStay(NE::ECS::Entity entity, NE::ECS::Entity other);
         NANOENGINE_API void OnCollisionStay(NE::ECS::Entity entity, NE::ECS::Entity other);
+
+        NANOENGINE_API void OnTriggerEnter(NE::ECS::Entity entity, NE::ECS::Entity other);
+        NANOENGINE_API void OnTriggerExit(NE::ECS::Entity entity, NE::ECS::Entity other);
+        NANOENGINE_API void OnTriggerStay(NE::ECS::Entity entity, NE::ECS::Entity other);
+
     private:
         ScriptingEngine();
         ~ScriptingEngine() = default;
