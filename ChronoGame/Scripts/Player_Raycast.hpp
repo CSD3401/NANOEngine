@@ -13,13 +13,13 @@
 
 class Player_Raycast : public IScript {
 public:
-    Player_Raycast() : 
-        interval{ 0.1f },  
-		distance{ 5.0f },
-        targetLayer{ 0 },  
-		timer{ 0.0f },
-		storedHighlightable{ nullptr },
-		storedInteractable{ nullptr }
+    Player_Raycast() :
+        interval{ 0.1f },
+        distance{ 5.0f },
+        targetLayer{ 0 },
+        timer{ 0.0f },
+        storedHighlightable{ nullptr },
+        storedInteractable{ nullptr }
     {
         SCRIPT_FIELD(interval, Float);
         SCRIPT_FIELD(distance, Float);
@@ -34,6 +34,11 @@ public:
         {
             storedHighlightable->SetHighlight(false);
             storedHighlightable = nullptr;
+        }
+
+        if (storedInteractable)
+        {
+            storedInteractable = nullptr;
         }
     }
 
@@ -52,57 +57,63 @@ public:
             Vec3 origin = TF_GetPosition();
             Vec3 direction = TF_GetForward();
             RaycastHit raycastHit = Raycast(
-                origin, 
-                direction, 
-                distance, 
+                origin,
+                direction,
+                distance,
                 targetLayer.ToMask());
 
             // Once we hit something, check for interactable and store it
             if (raycastHit.hasHit)
             {
                 GameObject go = GameObject(raycastHit.entity);
-                Highlightable_* h = go.GetComponent<Highlightable_>();
 
-                LOG_DEBUG("Hit something!");
-
-				// Only proceed if Highlightable component exists and we are hitting another Highlightable
-                if (h && h != storedHighlightable)
+                if (!go.IsValid())
                 {
-                    LOG_DEBUG("Hit a highlightable!");
-                    if (storedHighlightable)
-                    {
-                        storedHighlightable->SetHighlight(false);
-                    }
+                    return;
+                }
+                Highlightable_* h = go.GetComponent<Highlightable_>();
+                Interactable_* i = go.GetComponent<Interactable_>();
 
-                    // Then we can set Highlight and store
-                    h->SetHighlight(true);
-                    storedHighlightable = h;
+                // Only proceed if Highlightable component exists
+                if (h)
+                {
+                    // Un-highlight previous highlightable if different
+                    if (h != storedHighlightable)
+                    {
+                        if (storedHighlightable)
+                        {
+                            storedHighlightable->SetHighlight(false);
+                        }
 
-					Interactable_* i = go.GetComponent<Interactable_>();
-                    if (i)
-                    {
-                        storedInteractable = i;
-                    }
-                    else
-                    {
-						storedInteractable = nullptr;
+                        // Then we can set Highlight and store
+                        h->SetHighlight(true);
+                        storedHighlightable = h;
                     }
                 }
                 else
                 {
                     NoInteract();
                 }
+
+                // Store if interactable exists
+                if (i)
+                {
+                    storedInteractable = i;
+                }
+                else
+                {
+                    storedInteractable = nullptr;
+                }
             }
-            else
+            else // Raycast hit nothing
             {
                 NoInteract();
-
-				LOG_DEBUG("Hit nothing!");
             }
         }
 
-        if (storedInteractable && Input::WasKeyPressed(GLFW_MOUSE_BUTTON_LEFT))
+        if (storedInteractable && Input::WasMousePressed(GLFW_MOUSE_BUTTON_LEFT))
         {
+            LOG_DEBUG("Interacting with interactable");
             storedInteractable->Interact();
         }
     }
@@ -115,19 +126,21 @@ public:
     const char* GetTypeName() const override { return "Player_Raycast"; }
 
     // === Collision Callbacks ===
-    void OnCollisionEnter(Entity other) override {}
-    void OnCollisionExit(Entity other) override {}
-    void OnTriggerEnter(Entity other) override {}
-    void OnTriggerExit(Entity other) override {}
+    void OnCollisionEnter(Entity other) override { (void)other; }
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
+    void OnTriggerEnter(Entity other) override { (void)other; }
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
-	// === Inspector Fields ===
+    // === Inspector Fields ===
     float interval;
     float distance;
     LayerRef targetLayer;
 
-	// === Private Fields ===
+    // === Private Fields ===
     float timer;
-	Highlightable_* storedHighlightable;
-	Interactable_* storedInteractable;
+    Highlightable_* storedHighlightable;
+    Interactable_* storedInteractable;
 };

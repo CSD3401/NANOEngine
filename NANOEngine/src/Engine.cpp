@@ -111,7 +111,7 @@ namespace NE {
 		
 		gSceneManager.Update(dt);
 
-		Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
+		//Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
 
 		Physics::JoltDebugRenderer::EndFrame();
 		gSceneManager.Render();

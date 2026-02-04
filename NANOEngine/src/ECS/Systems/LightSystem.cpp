@@ -35,10 +35,12 @@ namespace NE::ECS::Systems {
     }
 
     void LightSystem::Update(double) {
+#ifndef PRODUCTION_BUILD
         NE_PROFILE_FUNCTION();
+#endif
         Graphics::GraphicsManager::m_lights.clear();
 
-        const auto& entities = GetEntities();
+        const auto& entities = m_entities.GetDenseContainer();
         for (Entity entity : entities) {
             auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(entity);
             if (meta.isActive) {

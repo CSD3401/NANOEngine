@@ -188,10 +188,12 @@ public:
     }
 
     // Required collision/trigger callbacks (not used but must be implemented)
-    void OnCollisionEnter(Entity other) override {}
-    void OnCollisionExit(Entity other) override {}
-    void OnTriggerEnter(Entity other) override {}
-    void OnTriggerExit(Entity other) override {}
+    void OnCollisionEnter(Entity other) override { (void)other; }
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
+    void OnTriggerEnter(Entity other) override { (void)other; }
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
 private:
     // ========== Helper Functions ==========

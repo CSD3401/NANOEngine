@@ -10,6 +10,7 @@
 #include "Panels/InspectorPanel.hpp"
 #include "Panels/ProfilerPanel.hpp"
 #include "Panels/LightingPanel.hpp"
+#include "Panels/RenderGraphPanel.hpp"
 #include <Core/SpdLogger.hpp>
 #include "Serialization/Serializer.hpp"
 #include "AssetManagement/AssetManager.hpp"
@@ -222,6 +223,9 @@ namespace Editor {
 			if (ImGui::BeginMenu("Rendering")) {
 				if (ImGui::MenuItem("Lighting", nullptr, false)) {
 					AddPanel<LightingPanel>();
+				}
+				if (ImGui::MenuItem("Render Graph", nullptr, false)) {
+					AddPanel<RenderGraphPanel>();
 				}
 				ImGui::EndMenu();
 			}

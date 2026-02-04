@@ -68,6 +68,7 @@ namespace NE::Graphics {
 
 		// Returns all render views, for graphics manager access
 		const std::unordered_map<RenderViewHandle, RenderView>& GetAllRenderViews() const { return m_Views; }
+		std::unordered_map<RenderViewHandle, RenderView>& GetAllRenderViews() { return m_Views; }
 
 	private:
 		RenderViewHandle m_NextHandle = 1;

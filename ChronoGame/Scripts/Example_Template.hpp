@@ -65,12 +65,20 @@ public:
         // Called when this entity stops colliding with another
     }
 
+    void OnCollisionStay(Entity other) override { 
+
+    }
+
     void OnTriggerEnter(Entity other) override {
         // Called when this entity enters a trigger
     }
 
     void OnTriggerExit(Entity other) override {
         // Called when this entity exits a trigger
+    }
+
+    void OnTriggerStay(Entity other) override { 
+
     }
 
 private:

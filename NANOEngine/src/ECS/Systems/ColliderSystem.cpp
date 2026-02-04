@@ -1,5 +1,6 @@
 #include "ColliderSystem.hpp"
 #include "../Components/Rigidbody.hpp"
+#include "../Components/CharacterController.hpp"
 #include "../Components/Transform.hpp"
 #include "../Components/Collider.hpp"
 #include "../Components/Renderer.hpp"
@@ -56,7 +57,10 @@ namespace NE::ECS::Systems {
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
 
-			if (!m_componentManager->HasComponent<Component::Rigidbody>(e))
+			bool hasColliderOnly = !(m_componentManager->HasComponent<Component::Rigidbody>(e) || 
+				m_componentManager->HasComponent<Component::CharacterController>(e));
+
+			if (hasColliderOnly)
 				Physics::PhysicsManager::GetInstance().CreateBody(e, meta.luid, t, col, static_cast<uint8_t>(m_entityManager->GetLayer(e)));
 		}
 	}

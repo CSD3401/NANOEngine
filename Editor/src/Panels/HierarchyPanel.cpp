@@ -273,7 +273,7 @@ namespace Editor {
 			if (hierHovered && !m_draggedEntities.empty()) {
 				if (EditorScene::selectedPrefab.empty()) {
 					for (auto child : m_draggedEntities) {
-						if (NE::ECS::Query::HasPrefabLink(child)) {
+						if (!NE::ECS::Query::HasPrefabInstance(child) && NE::ECS::Query::HasPrefabLink(child)) {
 							m_dragRep = NE::ECS::NO_ENTITY;
 							m_draggedEntities.clear();
 							m_previewAsChild = false;

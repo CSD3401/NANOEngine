@@ -400,6 +400,10 @@ namespace Scripting {
         // All functions support optional Entity parameter
         //=====================================================================
 
+        void PlayAudio(const std::string& eventName); // directly using FMOD
+        void StopAudio(const std::string& eventName); // directly using FMOD
+        void StopAllAudio(); // directly using FMOD
+
         bool HasAudioSource(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         // Playback control
