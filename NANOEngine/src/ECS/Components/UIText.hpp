@@ -5,7 +5,9 @@
 #include <filesystem>
 #include <vector>
 #include <cstdint>
-#include "../../Math/Vec4.hpp"
+#include "Math/Vec2.hpp"
+#include "Math/Vec3.hpp"
+#include "Math/Vec4.hpp"
 #include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
@@ -37,6 +39,10 @@ namespace NE::ECS::Component {
         std::vector<UITextVertex> cachedVertices;
         std::string cachedText;
         float cachedFontSize = 0.0f;
+        NE::Math::Vec3 cachedPos{ 0.0f, 0.0f, 0.0f };
+        NE::Math::Vec2 cachedSize{ 0.0f, 0.0f };
+        float cachedRotZ = 0.0f;
+        bool hasCachedTransform = false;
 
         // Reflection - only serialize user-editable fields
         NE_REFLECT_BEGIN(UIText)

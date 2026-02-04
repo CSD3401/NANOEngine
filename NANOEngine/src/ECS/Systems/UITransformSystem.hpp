@@ -8,8 +8,7 @@
 
 namespace NE::ECS::Systems {
 
-    class UITransformSystem : public System 
-    {
+    class UITransformSystem : public System {
     public:
         UITransformSystem(ComponentManager* cm);
 
@@ -20,8 +19,24 @@ namespace NE::ECS::Systems {
         void Update(double dt) override;
         void Exit() override;
 
+        // parent management
+        void SetParent(Entity child, Entity newParent);
+
+        // get entity from luid
+        Entity GetEntityFromLUID(uint64_t luid) const;
+
     private:
+        struct PendingParent {
+            Entity child;
+            uint64_t parentLuid;
+        };
+
         ComponentManager* m_cm;
+        std::unordered_map<uint64_t, Entity> m_luidToEntity;
+        std::vector<PendingParent> m_pendingParents;
+
+        void ResolvePendingParents();
+        void UpdateWorldTransforms(); // kiv
     };
 
 } // namespace NE::ECS::Systems

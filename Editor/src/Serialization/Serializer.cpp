@@ -18,6 +18,10 @@
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
 #include <ECS/Components/UIImage.hpp>
+#include <ECS/Components/UIText.hpp>
+#include <ECS/Components/UIButton.hpp>
+#include <ECS/Components/UISlider.hpp>
+#include <ECS/Components/UIToggle.hpp>
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/PrefabLink.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
@@ -57,6 +61,9 @@ namespace Editor {
 			NE::ECS::Component::UIRectTransform,
 			NE::ECS::Component::UICanvas,
 			NE::ECS::Component::UIImage,
+			NE::ECS::Component::UIText,
+			NE::ECS::Component::UIButton,
+			NE::ECS::Component::UISlider,
 			NE::ECS::Component::CharacterController,
 			NE::ECS::Component::Animator
 		>;
