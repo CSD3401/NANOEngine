@@ -84,8 +84,12 @@ namespace NE::ECS {
 		template<> inline const Component::Collider& GetComponent<Component::Collider>(uint32_t e) { return GetEntityCollider(e); }
 		template<> inline const Component::NativeScript& GetComponent<Component::NativeScript>(uint32_t e) { return GetEntityScript(e); }
 		template<> inline const Component::UIRectTransform& GetComponent<Component::UIRectTransform>(uint32_t e) { return GetUIRectTransform(e); }
-		template<> inline const Component::UIImage& GetComponent<Component::UIImage>(uint32_t e) { return GetUIImage(e); }
 		template<> inline const Component::UICanvas& GetComponent<Component::UICanvas>(uint32_t e) { return GetUICanvas(e); }
+		template<> inline const Component::UIImage& GetComponent<Component::UIImage>(uint32_t e) { return GetUIImage(e); }
+		template<> inline const Component::UIText& GetComponent<Component::UIText>(uint32_t e) { return GetUIText(e); }
+		template<> inline const Component::UIButton& GetComponent<Component::UIButton>(uint32_t e) { return GetUIButton(e); }
+		template<> inline const Component::UISlider& GetComponent<Component::UISlider>(uint32_t e) { return GetUISlider(e); }
+		template<> inline const Component::UIToggle& GetComponent<Component::UIToggle>(uint32_t e) { return GetUIToggle(e); }
 		template<> inline const Component::Hierarchy& GetComponent<Component::Hierarchy>(uint32_t e) { return GetEntityHierarchy(e); }
 		template<> inline const Component::Camera& GetComponent<Component::Camera>(uint32_t e) { return GetEntityCamera(e); }
 		template<> inline const Component::Animator& GetComponent<Component::Animator>(uint32_t e) { return GetEntityAnimator(e); }
@@ -124,6 +128,9 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::UIRectTransform>(uint32_t e) { return HasUIRectTransform(e); }
 		template<> inline bool HasComponent<Component::UICanvas>(uint32_t e) { return HasUICanvas(e); }
 		template<> inline bool HasComponent<Component::UIImage>(uint32_t e) { return HasUIImage(e); }
+		template<> inline bool HasComponent<Component::UIText>(uint32_t e) { return HasUIText(e); }
+		template<> inline bool HasComponent<Component::UIButton>(uint32_t e) { return HasUIButton(e); }
+		template<> inline bool HasComponent<Component::UISlider>(uint32_t e) { return HasUISlider(e); }
 		template<> inline bool HasComponent<Component::Renderer>(uint32_t e) { return HasRenderer(e); }
 		template<> inline bool HasComponent<Component::Light>(uint32_t e) { return HasLight(e); }
 		template<> inline bool HasComponent<Component::Rigidbody>(uint32_t e) { return HasRigidbody(e); }
@@ -245,6 +252,9 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::UIRectTransform>(uint32_t e, const Component::UIRectTransform& component) { AddUIRectTransformComponent(e, component); }
 		template<> inline void AddComponent<Component::UICanvas>(uint32_t e, const Component::UICanvas& component) { AddUICanvasComponent(e, component); }
 		template<> inline void AddComponent<Component::UIImage>(uint32_t e, const Component::UIImage& component) { AddUIImageComponent(e, component); }
+		template<> inline void AddComponent<Component::UIText>(uint32_t e, const Component::UIText& component) { AddUITextComponent(e, component); }
+		template<> inline void AddComponent<Component::UIButton>(uint32_t e, const Component::UIButton& component) { AddUIButtonComponent(e, component); }
+		template<> inline void AddComponent<Component::UISlider>(uint32_t e, const Component::UISlider& component) { AddUISliderComponent(e, component); }
 		template<> inline void AddComponent<Component::PrefabLink>(uint32_t e, const Component::PrefabLink& component) { AddPrefabLinkComponent(e, component); }
 		template<> inline void AddComponent<Component::PrefabInstance>(uint32_t e, const Component::PrefabInstance& component) { AddPrefabInstanceComponent(e, component); }
 		template<> inline void AddComponent<Component::CharacterController>(uint32_t e, const Component::CharacterController& component) { AddCharacterControllerComponent(e, component); }
