@@ -32,7 +32,6 @@
     <ClInclude Include="src\Graphics\Core\PostProcessPipeline.hpp" />
     <ClInclude Include="src\EditorInterface\AudioExports.hpp" />
     <ClInclude Include="src\Graphics\DebugRenderer\DebugDrawSystem.hpp" />
-    <ClInclude Include="src\Graphics\Debug\DebugDrawSystem.hpp" />
     <ClInclude Include="src\Physics\ContactDefs.hpp" />
     <ClInclude Include="src\Physics\ContactListenerImpl.hpp" />
     <ClInclude Include="src\Animation\AnimationClip.hpp" />
@@ -207,7 +206,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Graphics\DebugRenderer\DebugDrawSystem.cpp" />
-    <ClCompile Include="src\Graphics\Debug\DebugDrawSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
     <ClCompile Include="src\Graphics\Core\PostProcessPipeline.cpp" />
     <ClCompile Include="src\EditorInterface\AudioExports.cpp" />
