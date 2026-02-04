@@ -58,7 +58,6 @@ namespace NE::ECS::Systems {
         void OnEntityRemoved(Entity e) override;
 
     private:
-        ComponentManager* m_cm;
 
         //=================================================================
         // Canvas Setup
@@ -81,8 +80,6 @@ namespace NE::ECS::Systems {
             Entity canvasEntity,
             Component::UICanvas::RenderMode renderMode
         );
-
-        bool ShouldIncludeCanvasTransform(Component::UICanvas::RenderMode renderMode);
 
         //=================================================================
         // World Transform Calculation
@@ -191,6 +188,9 @@ namespace NE::ECS::Systems {
             const Math::Mat4* viewMatrix,
             const Math::Mat4* projMatrix
         );
+
+    private:
+        ComponentManager* m_cm;
     };
 
 } // namespace NE::ECS::Systems
