@@ -9,9 +9,7 @@
 #include "../Components/AudioSource.hpp"
 #include "../Components/NativeScript.hpp"
 #include "../Components/UICanvas.hpp"
-#include "../Components/Canvas.hpp"
 #include "../Components/UIRectTransform.hpp"
-#include "../Components/RectTransform.hpp"
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
 #include "../Components/UIButton.hpp"
@@ -62,8 +60,6 @@ namespace NE::ECS {
         RegisterComponent<Component::AudioSource>();
         RegisterComponent<Component::UIRectTransform>();
         RegisterComponent<Component::UICanvas>();
-        RegisterComponent<Component::RectTransform>();
-        RegisterComponent<Component::Canvas>();
         RegisterComponent<Component::UIImage>();
         RegisterComponent<Component::UIText>();
         RegisterComponent<Component::UIButton>();

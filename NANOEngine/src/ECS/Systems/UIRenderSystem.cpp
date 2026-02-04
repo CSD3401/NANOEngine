@@ -35,9 +35,38 @@ namespace NE::ECS::Systems {
     // Lifecycle
     //=========================================================================
 
-    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm) {}
+    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm) 
+    {
+    }
 
-    void UIRenderSystem::Init() {
+    void UIRenderSystem::OnEntityAdded(Entity e) 
+    {
+        if (!m_cm->HasComponent<UIImage>(e)) return;
+
+        auto& img = m_cm->GetComponent<UIImage>(e);
+
+        if (!img.textureUUID.empty()) {
+            auto texture = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
+            if (texture) {
+                img.bindlessHandle = texture->GetBindlessHandle();
+            }
+        }
+
+        if (!img.materialUUID.empty()) {
+            img.material = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::Material>(img.materialUUID);
+        }
+
+        img.isDirty = true;
+    }
+
+    void UIRenderSystem::OnEntityRemoved(Entity e) 
+    {
+    }
+
+    void UIRenderSystem::Init() 
+    {
         const auto& entities = GetEntities();
 
         for (Entity e : entities) {
@@ -60,36 +89,70 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void UIRenderSystem::OnEntityAdded(Entity e) {
-        if (!m_cm->HasComponent<UIImage>(e)) return;
+    void UIRenderSystem::Update(double) 
+    {
+        const auto& entities = GetEntities();
 
-        auto& img = m_cm->GetComponent<UIImage>(e);
+        std::vector<std::pair<int, Entity>> canvases;
 
-        if (!img.textureUUID.empty()) {
-            auto texture = NE::Resource::ResourceManager::GetInstance()
-                .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
-            if (texture) {
-                img.bindlessHandle = texture->GetBindlessHandle();
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UICanvas>(e)) continue;
+
+            auto& canvas = m_cm->GetComponent<UICanvas>(e);
+            if (canvas.isActive) {
+                canvases.push_back({ canvas.sortingOrder, e });
             }
         }
 
-        if (!img.materialUUID.empty()) {
-            img.material = NE::Resource::ResourceManager::GetInstance()
-                .LoadResource<NE::Graphics::Material>(img.materialUUID);
-        }
+        std::sort(canvases.begin(), canvases.end(),
+            [](const auto& a, const auto& b) { return a.first < b.first; });
 
-        img.isDirty = true;
+        for (const auto& [order, canvasEntity] : canvases) {
+            auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
+
+            // Calculate scale factor based on scale mode
+            canvas.scaleFactor = CalculateScaleFactor(canvas);
+
+            // Setup canvas defaults based on render mode
+            SetupCanvasDefaults(canvasEntity, canvas);
+
+            // Get camera matrices if needed
+            Math::Mat4 viewMatrix, projMatrix;
+            Math::Mat4* pView = nullptr;
+            Math::Mat4* pProj = nullptr;
+
+            if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA ||
+                canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                if (GetCameraMatrices(viewMatrix, projMatrix)) {
+                    pView = &viewMatrix;
+                    pProj = &projMatrix;
+                }
+                else {
+                    std::cerr << "[UIRenderSystem] Warning: Canvas requires camera but none found!" << std::endl;
+                }
+            }
+
+            RenderCanvasChildren(canvasEntity, canvas, pView, pProj);
+
+            // Render text entities
+            std::vector<Entity> textChildren = CollectTextChildren(canvasEntity);
+            for (Entity e : textChildren) {
+                RenderTextEntity(e, canvasEntity, canvas, pView, pProj);
+            }
+        }
     }
 
-    void UIRenderSystem::OnEntityRemoved(Entity e) {}
+    void UIRenderSystem::Exit() 
+    {
 
-    void UIRenderSystem::Exit() {}
+    }
 
     //=========================================================================
     // Canvas Setup Helpers
     //=========================================================================
 
-    void UIRenderSystem::SetupCanvasDefaults(Entity canvasEntity, UICanvas& canvas) {
+    void UIRenderSystem::SetupCanvasDefaults(Entity canvasEntity, UICanvas& canvas) 
+    {
         if (!m_cm->HasComponent<UIRectTransform>(canvasEntity)) {
             return;
         }
@@ -170,15 +233,13 @@ namespace NE::ECS::Systems {
     // Transform Hierarchy Functions
     //=========================================================================
 
-    bool UIRenderSystem::ShouldIncludeCanvasTransform(UICanvas::RenderMode renderMode) {
+    bool UIRenderSystem::ShouldIncludeCanvasTransform(UICanvas::RenderMode renderMode) 
+    {
         return renderMode == UICanvas::RenderMode::WORLD_SPACE;
     }
 
-    std::vector<Entity> UIRenderSystem::BuildParentChain(
-        Entity entity,
-        Entity canvasEntity,
-        UICanvas::RenderMode renderMode
-    ) {
+    std::vector<Entity> UIRenderSystem::BuildParentChain(Entity entity, Entity canvasEntity, UICanvas::RenderMode renderMode) 
+    {
         std::vector<Entity> chain;
         Entity current = entity;
 
@@ -517,7 +578,8 @@ namespace NE::ECS::Systems {
         std::vector<NE::Graphics::UIVertex>& vertices,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) {
+    ) 
+    {
         NE::Graphics::UIDrawCommand cmd;
 
         cmd.x = worldTransform.x;
@@ -555,10 +617,12 @@ namespace NE::ECS::Systems {
         const UICanvas& canvas,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) {
+    ) 
+    {
         std::vector<Entity> canvasChildren = CollectCanvasChildren(canvasEntity);
 
-        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && canvasChildren.size() > 1) {
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && canvasChildren.size() > 1) 
+        {
             SortEntitiesByZOrder(canvasChildren);
         }
 
@@ -625,62 +689,6 @@ namespace NE::ECS::Systems {
     }
 
     //=========================================================================
-    // Main Update Loop
-    //=========================================================================
-
-    void UIRenderSystem::Update(double) {
-        const auto& entities = GetEntities();
-
-        std::vector<std::pair<int, Entity>> canvases;
-
-        for (Entity e : entities) {
-            if (!m_cm->HasComponent<UICanvas>(e)) continue;
-
-            auto& canvas = m_cm->GetComponent<UICanvas>(e);
-            if (canvas.isActive) {
-                canvases.push_back({ canvas.sortingOrder, e });
-            }
-        }
-
-        std::sort(canvases.begin(), canvases.end(),
-            [](const auto& a, const auto& b) { return a.first < b.first; });
-
-        for (const auto& [order, canvasEntity] : canvases) {
-            auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
-
-            // Calculate scale factor based on scale mode
-            canvas.scaleFactor = CalculateScaleFactor(canvas);
-
-            // Setup canvas defaults based on render mode
-            SetupCanvasDefaults(canvasEntity, canvas);
-
-            // Get camera matrices if needed
-            Math::Mat4 viewMatrix, projMatrix;
-            Math::Mat4* pView = nullptr;
-            Math::Mat4* pProj = nullptr;
-
-            if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA ||
-                canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                if (GetCameraMatrices(viewMatrix, projMatrix)) {
-                    pView = &viewMatrix;
-                    pProj = &projMatrix;
-                }
-                else {
-                    std::cerr << "[UIRenderSystem] Warning: Canvas requires camera but none found!" << std::endl;
-                }
-            }
-
-            RenderCanvasChildren(canvasEntity, canvas, pView, pProj);
-
-            // Render text entities
-            std::vector<Entity> textChildren = CollectTextChildren(canvasEntity);
-            for (Entity e : textChildren) {
-                RenderTextEntity(e, canvasEntity, canvas, pView, pProj);
-            }
-        }
-    }
-
-    //=========================================================================
     // Text Rendering
     //=========================================================================
 
@@ -719,9 +727,9 @@ namespace NE::ECS::Systems {
         const UICanvas& canvas,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) {
-        if (!m_cm->HasComponent<UIText>(entity)) return;
-        if (!m_cm->HasComponent<UIRectTransform>(entity)) return;
+    ) 
+    {
+        if (!m_cm->HasComponent<UIText>(entity) || !m_cm->HasComponent<UIRectTransform>(entity)) return;
 
         auto& text = m_cm->GetComponent<UIText>(entity);
         auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
@@ -810,7 +818,8 @@ namespace NE::ECS::Systems {
         std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) {
+    ) 
+    {
         if (text.cachedVertices.empty()) return;
 
         NE::Graphics::UIDrawCommand cmd;

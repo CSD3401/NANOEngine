@@ -58,7 +58,7 @@ namespace NE::ECS::Systems {
         void OnEntityRemoved(Entity e) override;
 
     private:
-        ComponentManager* m_cm = nullptr;
+        ComponentManager* m_cm;
 
         //=================================================================
         // Canvas Setup

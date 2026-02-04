@@ -141,10 +141,9 @@ namespace NE::Graphics {
 
             // Store glyph info
             GlyphInfo info;
-            info.u0 = static_cast<float>(packX) / m_atlasWidth;
-            info.v0 = static_cast<float>(packY) / m_atlasHeight;
-            info.u1 = static_cast<float>(packX + glyphWidth) / m_atlasWidth;
-            info.v1 = static_cast<float>(packY + glyphHeight) / m_atlasHeight;
+            info.px = packX;
+            info.py = packY;
+
             info.width = static_cast<float>(glyphWidth);
             info.height = static_cast<float>(glyphHeight);
             info.xOffset = static_cast<float>(x0);
@@ -158,6 +157,18 @@ namespace NE::Graphics {
             maxRowHeight = std::max(maxRowHeight, glyphHeight);
         }
 
+        for (auto& [ch, g] : m_glyphs) {
+            const float x0p = static_cast<float>(g.px);
+            const float y0p = static_cast<float>(g.py);
+            const float x1p = x0p + g.width;
+            const float y1p = y0p + g.height;
+
+            g.u0 = x0p / static_cast<float>(m_atlasWidth);
+            g.v0 = y0p / static_cast<float>(m_atlasHeight);
+            g.u1 = x1p / static_cast<float>(m_atlasWidth);
+            g.v1 = y1p / static_cast<float>(m_atlasHeight);
+        }
+
         // Create OpenGL texture
         glGenTextures(1, &m_textureID);
         glBindTexture(GL_TEXTURE_2D, m_textureID);
@@ -169,6 +180,7 @@ namespace NE::Graphics {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // Upload texture data (single channel - red)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
@@ -229,7 +241,8 @@ namespace NE::Graphics {
     std::shared_ptr<FontAtlas> FontAtlasCache::GetOrCreate(
         const std::filesystem::path& fontPath,
         float fontSize
-    ) {
+    ) 
+    {
         std::string key = FontAtlas::MakeCacheKey(fontPath, fontSize);
 
         auto it = m_cache.find(key);
