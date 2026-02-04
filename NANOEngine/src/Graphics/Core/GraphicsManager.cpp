@@ -438,7 +438,7 @@ namespace NE::Graphics {
     uint32_t GraphicsManager::GetSceneColorAttachment() 
     {
         //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
-        //if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetDepthAttachment();
+        //if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
         //if (InputManager::IsKeyDown('9')) return s_SSAOTex;
         //if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_GameViewHandle)->GetColorAttachment();
         //if (InputManager::IsKeyDown('P')) return s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle)->GetColorAttachment();

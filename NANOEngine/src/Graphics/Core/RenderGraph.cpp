@@ -341,25 +341,30 @@ namespace NE::Graphics {
         std::vector<std::vector<size_t>>& adjacency,
         std::vector<size_t>& inDegree) const
     {
-        // Build a map: resource -> pass that writes it
-        std::unordered_map<uint32_t, size_t> resourceWriters;
+        // Track the last writer as we walk passes in insertion order.
+        // This preserves ordering for multiple writes to the same resource.
+        std::unordered_map<uint32_t, size_t> lastWriter;
 
         for (size_t i = 0; i < m_Passes.size(); ++i) {
-            for (const auto& write : m_Passes[i].writes) {
-                resourceWriters[write.id] = i;
-            }
-        }
+            const auto& pass = m_Passes[i];
 
-        // For each pass that reads a resource, add edge from writer to reader
-        for (size_t i = 0; i < m_Passes.size(); ++i) {
-            for (const auto& read : m_Passes[i].reads) {
-                auto it = resourceWriters.find(read.id);
-                if (it != resourceWriters.end() && it->second != i) {
-                    // Pass it->second writes this resource, pass i reads it
-                    // So it->second must execute before i
+            // Reads depend on the most recent writer.
+            for (const auto& read : pass.reads) {
+                auto it = lastWriter.find(read.id);
+                if (it != lastWriter.end() && it->second != i) {
                     adjacency[it->second].push_back(i);
                     ++inDegree[i];
                 }
+            }
+
+            // Writes must be ordered after the previous writer (write-after-write).
+            for (const auto& write : pass.writes) {
+                auto it = lastWriter.find(write.id);
+                if (it != lastWriter.end() && it->second != i) {
+                    adjacency[it->second].push_back(i);
+                    ++inDegree[i];
+                }
+                lastWriter[write.id] = i;
             }
         }
     }
