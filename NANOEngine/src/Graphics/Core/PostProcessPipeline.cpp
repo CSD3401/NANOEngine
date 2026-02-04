@@ -14,8 +14,7 @@
 #include <GL/gl.h>
 
 namespace NE::Graphics {
-	void PostProcessPipeline::Init(RenderViewManager* rvm, uint32_t initialW, uint32_t initialH)
-	{
+	void PostProcessPipeline::Init(RenderViewManager* rvm, uint32_t initialW, uint32_t initialH) {
 		m_rvm = rvm;
 		m_Width = initialW;
 		m_Height = initialH;
@@ -30,16 +29,14 @@ namespace NE::Graphics {
 		InitSSAOResources(m_Width, m_Height);
 	}
 
-	void PostProcessPipeline::Shutdown()
-	{
+	void PostProcessPipeline::Shutdown() {
 		DestroyResources(true);
 		m_graph.reset();
 		m_pool.reset();
 		m_rvm = nullptr;
 	}
 
-	void PostProcessPipeline::Resize(uint32_t w, uint32_t h)
-	{
+	void PostProcessPipeline::Resize(uint32_t w, uint32_t h) {
 		if (w == 0 || h == 0) return;
 		if (w == m_Width && h == m_Height) return;
 
@@ -54,8 +51,8 @@ namespace NE::Graphics {
 	void PostProcessPipeline::Execute(RenderViewHandle sourceView,
 		RenderViewHandle destView,
 		const Math::Mat4& invProj,
-		bool isSceneView)
-	{
+		bool isSceneView
+	) {
 		if (!m_rvm || !m_graph) return;
 
 		m_context.invProj = invProj;
@@ -65,13 +62,11 @@ namespace NE::Graphics {
 		m_graph->Execute();
 	}
 
-	void PostProcessPipeline::SetSettings(PostProcessingSettings* settings)
-	{
+	void PostProcessPipeline::SetSettings(PostProcessingSettings* settings) {
 		m_settings = settings;
 	}
 
-	void PostProcessPipeline::InitFullscreenQuad()
-	{
+	void PostProcessPipeline::InitFullscreenQuad() {
 		if (m_QuadVAO != 0) return;
 
 		float quadVerts[] = {
@@ -96,8 +91,7 @@ namespace NE::Graphics {
 		glBindVertexArray(0);
 	}
 
-	void PostProcessPipeline::InitBloomResources(uint32_t w, uint32_t h)
-	{
+	void PostProcessPipeline::InitBloomResources(uint32_t w, uint32_t h) {
 		if (w == 0 || h == 0) return;
 
 		if (m_brightPassFBO == 0) {
@@ -212,8 +206,7 @@ namespace NE::Graphics {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void PostProcessPipeline::LoadShaders()
-	{
+	void PostProcessPipeline::LoadShaders() {
 		if (!m_brightPassShader) {
 			m_brightPassShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nebrightpass");
@@ -423,7 +416,8 @@ namespace NE::Graphics {
 					int w = m_bloomWidth[hi];
 					int h = m_bloomHeight[hi];
 
-					glBindFramebuffer(GL_FRAMEBUFFER, m_bloomFBO[hi]);
+					// Avoid read/write hazards by ping-ponging to a temp target.
+					glBindFramebuffer(GL_FRAMEBUFFER, m_bloomTempFBO[hi]);
 					glViewport(0, 0, w, h);
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
@@ -440,6 +434,9 @@ namespace NE::Graphics {
 
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+					std::swap(m_bloomTex[hi], m_bloomTempTex[hi]);
+					std::swap(m_bloomFBO[hi], m_bloomTempFBO[hi]);
 				}
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			});
