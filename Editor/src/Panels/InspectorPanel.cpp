@@ -80,7 +80,7 @@ namespace {
 			return ImGui::DragFloat(desc.name.data(), &value, 0.1f);
 		} else if constexpr (std::is_same_v<T, NE::Math::Vec3>) {
 			ImGui::BeginGroup();
-			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f, 75.0f);
+			bool changed = Editor::DrawVec3Control(desc.name.data(), value, 0.0f);
 			ImGui::EndGroup();
 			return changed;
 		} else if constexpr (std::is_same_v<T, std::string>) {
