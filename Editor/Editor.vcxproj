@@ -248,6 +248,7 @@
     <ClCompile Include="src\Panels\AnimatorPanel.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\AnimationClipAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\AnimationControllerAsset.cpp" />
+    <ClCompile Include="src\AssetManagement\Assets\FontAsset.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\PrefabAsset.cpp" />
     <ClCompile Include="src\Layers\LayerDatabase.cpp" />
     <ClCompile Include="src\AssetManagement\Assets\SceneAsset.cpp" />
@@ -306,6 +307,7 @@
     <ClInclude Include="src\Panels\AnimatorPanel.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\AnimationClipAsset.hpp" />
     <ClInclude Include="src\AssetManagement\Assets\AnimationControllerAsset.hpp" />
+    <ClInclude Include="src\AssetManagement\Assets\FontAsset.hpp" />
     <ClInclude Include="src\Layers\LayerDatabase.hpp" />
     <ClInclude Include="src\AssetManagement\AssetRecord.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\ModelSettingsEditor.hpp" />

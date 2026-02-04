@@ -3433,14 +3433,17 @@ namespace Editor {
 			}
 		}
 
-		// Font Path (drag-drop area for .ttf files)
+		// Font (drag-drop area for .ttf/.otf files)
 		{
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Font");
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 
-			std::string fontLabel = comp.fontPath.empty() ? "(default)" : comp.fontPath.filename().string();
+			std::string fontLabel = comp.fontUUID.empty()
+				? "(none)"
+				: Assets::AssetManager::GetInstance().RetrieveFilename(comp.fontUUID);
+
 			char bufFont[256];
 			strncpy_s(bufFont, fontLabel.c_str(), sizeof(bufFont));
 			ImGui::InputText("##Font", bufFont, sizeof(bufFont), ImGuiInputTextFlags_ReadOnly);
@@ -3448,8 +3451,16 @@ namespace Editor {
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH")) {
 					std::string dropped((const char*)p->Data, p->DataSize - 1);
-					comp.fontPath = dropped;
-					comp.isDirty = true;
+					auto fontUUID = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+
+					// Validate that the asset is actually a Font type
+					if (!fontUUID.empty()) {
+						auto* record = Assets::AssetManager::GetInstance().GetRecord(fontUUID);
+						if (record && record->type == Assets::AssetType::Font) {
+							comp.fontUUID = fontUUID;
+							comp.isDirty = true;
+						}
+					}
 				}
 				ImGui::EndDragDropTarget();
 			}

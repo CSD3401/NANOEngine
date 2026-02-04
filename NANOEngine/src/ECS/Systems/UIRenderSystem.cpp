@@ -727,7 +727,7 @@ namespace NE::ECS::Systems {
         auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
 
         // Skip if no text or font
-        if (text.text.empty() || text.fontPath.empty()) return;
+        if (text.text.empty() || text.fontUUID.empty()) return;
 
         // Calculate accumulated scale for font scaling
         AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
@@ -742,8 +742,12 @@ namespace NE::ECS::Systems {
         effectiveFontSize = std::max(8.0f, std::min(effectiveFontSize, 256.0f));
 
         // Get or create font atlas at the effective scaled size
+        if (text.fontUUID.empty()) {
+            return;
+        }
+
         auto fontAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
-            text.fontPath, effectiveFontSize
+            text.fontUUID, effectiveFontSize
         );
 
         if (!fontAtlas) {

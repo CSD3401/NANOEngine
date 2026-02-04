@@ -19,7 +19,7 @@ namespace NE::ECS::Component {
     struct UIText {
         // === SERIALIZED FIELDS ===
         std::string text = "New Text";
-        std::filesystem::path fontPath;
+        std::string fontUUID;
         float fontSize = 16.0f;
         NE::Math::Vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -41,7 +41,7 @@ namespace NE::ECS::Component {
         // Reflection - only serialize user-editable fields
         NE_REFLECT_BEGIN(UIText)
             NE_REFLECT_FIELD(text),
-            NE_REFLECT_FIELD(fontPath),
+            NE_REFLECT_FIELD(fontUUID),
             NE_REFLECT_FIELD(fontSize),
             NE_REFLECT_FIELD(color),
             NE_REFLECT_FIELD(horizontalAlign),

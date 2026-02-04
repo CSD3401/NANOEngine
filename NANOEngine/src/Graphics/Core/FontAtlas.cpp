@@ -1,4 +1,6 @@
 #include "FontAtlas.hpp"
+#include "Font.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
 #include <fstream>
 #include <iostream>
@@ -49,27 +51,11 @@ namespace NE::Graphics {
         return *this;
     }
 
-    bool FontAtlas::Load(const std::filesystem::path& fontPath, float fontSize) {
-        // Read font file
-        std::ifstream file(fontPath, std::ios::binary | std::ios::ate);
-        if (!file.is_open()) {
-            std::cerr << "[FontAtlas] Failed to open font file: " << fontPath << std::endl;
-            return false;
-        }
-
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-
-        std::vector<unsigned char> fontBuffer(static_cast<size_t>(size));
-        if (!file.read(reinterpret_cast<char*>(fontBuffer.data()), size)) {
-            std::cerr << "[FontAtlas] Failed to read font file: " << fontPath << std::endl;
-            return false;
-        }
-
-        // Initialize stb_truetype
+    bool FontAtlas::Load(const std::vector<uint8_t>& fontData, float fontSize) {
+        // Initialize stb_truetype with provided font data
         stbtt_fontinfo fontInfo;
-        if (!stbtt_InitFont(&fontInfo, fontBuffer.data(), 0)) {
-            std::cerr << "[FontAtlas] Failed to initialize font: " << fontPath << std::endl;
+        if (!stbtt_InitFont(&fontInfo, fontData.data(), 0)) {
+            std::cerr << "[FontAtlas] Failed to initialize font" << std::endl;
             return false;
         }
 
@@ -214,9 +200,9 @@ namespace NE::Graphics {
         return fallback != m_glyphs.end() ? &fallback->second : nullptr;
     }
 
-    std::string FontAtlas::MakeCacheKey(const std::filesystem::path& fontPath, float fontSize) {
+    std::string FontAtlas::MakeCacheKey(const std::string& fontUUID, float fontSize) {
         std::ostringstream oss;
-        oss << fontPath.string() << "@" << static_cast<int>(fontSize * 10);
+        oss << fontUUID << "@" << static_cast<int>(fontSize * 10);
         return oss.str();
     }
 
@@ -227,18 +213,33 @@ namespace NE::Graphics {
     }
 
     std::shared_ptr<FontAtlas> FontAtlasCache::GetOrCreate(
-        const std::filesystem::path& fontPath,
+        const std::string& fontUUID,
         float fontSize
     ) {
-        std::string key = FontAtlas::MakeCacheKey(fontPath, fontSize);
+        // Check if UUID is empty
+        if (fontUUID.empty()) {
+            std::cerr << "[FontAtlasCache] Empty font UUID provided" << std::endl;
+            return nullptr;
+        }
 
+        // Check cache first
+        std::string key = FontAtlas::MakeCacheKey(fontUUID, fontSize);
         auto it = m_cache.find(key);
         if (it != m_cache.end()) {
             return it->second;
         }
 
+        // Load Font resource via ResourceManager
+        auto& rm = NE::Resource::ResourceManager::GetInstance();
+        auto fontResource = rm.LoadResource<Font>(fontUUID);
+        if (!fontResource) {
+            std::cerr << "[FontAtlasCache] Failed to load Font resource: " << fontUUID << std::endl;
+            return nullptr;
+        }
+
+        // Create atlas from font data
         auto atlas = std::make_shared<FontAtlas>();
-        if (!atlas->Load(fontPath, fontSize)) {
+        if (!atlas->Load(fontResource->GetFontData(), fontSize)) {
             return nullptr;
         }
 

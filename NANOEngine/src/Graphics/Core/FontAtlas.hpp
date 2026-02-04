@@ -31,7 +31,7 @@ namespace NE::Graphics {
         FontAtlas(FontAtlas&& other) noexcept;
         FontAtlas& operator=(FontAtlas&& other) noexcept;
 
-        bool Load(const std::filesystem::path& fontPath, float fontSize);
+        bool Load(const std::vector<uint8_t>& fontData, float fontSize);
         void Unload();
 
         const GlyphInfo* GetGlyph(char c) const;
@@ -44,7 +44,7 @@ namespace NE::Graphics {
         int GetAtlasWidth() const { return m_atlasWidth; }
         int GetAtlasHeight() const { return m_atlasHeight; }
 
-        static std::string MakeCacheKey(const std::filesystem::path& fontPath, float fontSize);
+        static std::string MakeCacheKey(const std::string& fontUUID, float fontSize);
 
     private:
         std::unordered_map<char, GlyphInfo> m_glyphs;
@@ -66,7 +66,7 @@ namespace NE::Graphics {
     public:
         static FontAtlasCache& GetInstance();
 
-        std::shared_ptr<FontAtlas> GetOrCreate(const std::filesystem::path& fontPath, float fontSize);
+        std::shared_ptr<FontAtlas> GetOrCreate(const std::string& fontUUID, float fontSize);
         void Clear();
 
     private:
