@@ -42,6 +42,7 @@
 
 #include "Core/SpdLogger.hpp"
 #include "GizmosRenderer.hpp"
+#include "Graphics/DebugRenderer/DebugDrawSystem.hpp"
 #include "../../Core/Logger.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Light.hpp"
