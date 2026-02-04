@@ -15,8 +15,6 @@ namespace NE {
 		namespace OpenGL {
 			class GLShader;
 		}
-		//class RenderGraph;
-		//class TexturePool;
 		class IFrameBuffer;
 		class RenderViewManager;
 		struct PostProcessingSettings;
