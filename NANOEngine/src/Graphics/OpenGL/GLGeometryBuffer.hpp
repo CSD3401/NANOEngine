@@ -13,8 +13,10 @@ namespace NE::Graphics::OpenGL {
 
     class GLGeometryBuffer final : public IGeometryBuffer {
     public:
-        GLGeometryBuffer(std::shared_ptr<IVertexBuffer> vertexBuffer,
-            std::shared_ptr<IIndexBuffer> indexBuffer);
+        GLGeometryBuffer(
+            std::shared_ptr<IVertexBuffer> vertexBuffer,
+            std::shared_ptr<IIndexBuffer> indexBuffer
+        );
         ~GLGeometryBuffer();
 
         void Bind() const override;

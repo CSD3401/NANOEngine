@@ -11,8 +11,10 @@
 namespace NE::Graphics {
 
     struct GlyphInfo {
-        float u0, v0;           // Top-left UV
-        float u1, v1;           // Bottom-right UV
+        int px, py;        // top-left in pixels
+        float u0, v0;      // top-left
+        float u1, v1;      // bottom-right
+
         float width, height;    // Glyph size in pixels
         float xOffset, yOffset; // Offset from cursor position
         float xAdvance;         // How far to advance cursor after this glyph

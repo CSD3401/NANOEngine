@@ -37,8 +37,6 @@ namespace NE::ECS {
 		struct UIButton;
 		struct UISlider;
 		struct UIToggle;
-		struct RectTransform;
-		struct Canvas;
 		struct Hierarchy;
 		struct PrefabLink;
 		struct PrefabInstance;
@@ -66,8 +64,6 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::UIButton& GetUIButton(uint32_t e);
 		NANOENGINE_API const Component::UISlider& GetUISlider(uint32_t e);
 		NANOENGINE_API const Component::UIToggle& GetUIToggle(uint32_t e);
-		NANOENGINE_API const Component::RectTransform& GetRectTransform(uint32_t e);
-		NANOENGINE_API const Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API const Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API const Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API const Component::Camera& GetEntityCamera(uint32_t e);
@@ -107,8 +103,6 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasUIButton(uint32_t e);
 		NANOENGINE_API bool HasUISlider(uint32_t e);
 		NANOENGINE_API bool HasUIToggle(uint32_t e);
-		NANOENGINE_API bool HasRectTransform(uint32_t e);
-		NANOENGINE_API bool HasCanvas(uint32_t e);
 		NANOENGINE_API bool HasPrefabLink(uint32_t e);
 		NANOENGINE_API bool HasPrefabInstance(uint32_t e);
 		NANOENGINE_API bool HasRenderer(uint32_t e);
@@ -293,8 +287,6 @@ namespace NE::ECS {
 		NANOENGINE_API Component::UIButton& GetUIButton(uint32_t e);
 		NANOENGINE_API Component::UISlider& GetUISlider(uint32_t e);
 		NANOENGINE_API Component::UIToggle& GetUIToggle(uint32_t e);
-		NANOENGINE_API Component::RectTransform& GetRectTransform(uint32_t e);
-		NANOENGINE_API Component::Canvas& GetCanvas(uint32_t e);
 		NANOENGINE_API Component::Hierarchy& GetEntityHierarchy(uint32_t e);
 		NANOENGINE_API Component::Animator& GetEntityAnimator(uint32_t e);
 		NANOENGINE_API Component::Camera& GetEntityCamera(uint32_t e);

@@ -8,13 +8,13 @@ namespace NE::Graphics {
         const std::string& text,
         const FontAtlas& fontAtlas,
         float x, float y, float z,
-        float maxWidth,
-        float maxHeight,
+        float maxWidth, float maxHeight,
         const Math::Vec4& color,
         NE::ECS::Component::UIText::Alignment horizontalAlign,
         NE::ECS::Component::UIText::VerticalAlignment verticalAlign,
         bool wordWrap
-    ) {
+    ) 
+    {
         TextMeshResult result;
         result.totalWidth = 0.0f;
         result.totalHeight = 0.0f;
@@ -82,7 +82,8 @@ namespace NE::Graphics {
         const FontAtlas& fontAtlas,
         float maxWidth,
         bool wordWrap
-    ) {
+    ) 
+    {
         std::vector<LineInfo> lines;
 
         if (text.empty()) {
@@ -178,7 +179,8 @@ namespace NE::Graphics {
     float UITextMeshGenerator::CalculateLineWidth(
         const std::string& line,
         const FontAtlas& fontAtlas
-    ) {
+    ) 
+    {
         float width = 0.0f;
         for (char c : line) {
             const GlyphInfo* glyph = fontAtlas.GetGlyph(c);
@@ -195,7 +197,8 @@ namespace NE::Graphics {
         const FontAtlas& fontAtlas,
         float startX, float startY, float z,
         const Math::Vec4& color
-    ) {
+    ) 
+    {
         float cursorX = startX;
 
         for (char c : line) {
@@ -232,7 +235,8 @@ namespace NE::Graphics {
         float x, float y, float z,
         float u, float v,
         const Math::Vec4& color
-    ) {
+    ) 
+    {
         UIVertex vertex;
         vertex.x = x;
         vertex.y = y;

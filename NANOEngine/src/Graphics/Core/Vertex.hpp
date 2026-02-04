@@ -7,7 +7,6 @@ namespace NE::Graphics {
 
     constexpr int MAX_BONE_INFLUENCE = 4;
 
-
     struct Vertex {
         Vec3 Position;
         Vec3 Normal;
