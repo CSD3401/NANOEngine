@@ -12,6 +12,7 @@
 #include "ECS/Systems/CameraSystem.hpp"
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
+#include "ECS/Systems/UIEventSystem.hpp"
 #include "ECS/Systems/UITransformSystem.hpp"
 #include "ECS/Systems/CharacterControllerSystem.hpp"
 #include "../Animation/TransformClipIO.hpp"
@@ -30,6 +31,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_uiTransformSystem->Init();
+		m_ecsCoordinator.m_uiEventSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
 
 		m_ecsCoordinator.m_animatorSystem->Init();
@@ -47,6 +49,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_uiTransformSystem->Init();
+		m_ecsCoordinator.m_uiEventSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
 
 		m_ecsCoordinator.m_animatorSystem->Init();
@@ -61,6 +64,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Update(dt);
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
+		m_ecsCoordinator.m_uiEventSystem->Update(dt);
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		//m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
@@ -78,6 +82,7 @@ namespace NE::SceneManagement {
 
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
+		m_ecsCoordinator.m_uiEventSystem->Update(dt);
 		m_ecsCoordinator.m_uiRenderSystem->Update(dt);
 		m_ecsCoordinator.m_animatorSystem->Update(dt);
 		m_ecsCoordinator.m_scriptSystem->Update(dt);
@@ -89,7 +94,7 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::DrawFrame();
 		//Graphics::GraphicsManager::DrawAllDebugGeometry();
 		Graphics::GraphicsManager::EndFrame();
-		//Graphics::GraphicsManager::DrawUI();
+		Graphics::GraphicsManager::DrawUI();
 	}
 
 	void Scene::ExitEdit() {
@@ -100,6 +105,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
 		m_ecsCoordinator.m_scriptSystem->Exit();
+		m_ecsCoordinator.m_uiEventSystem->Exit();
 		m_ecsCoordinator.m_uiRenderSystem->Exit();
 		m_ecsCoordinator.m_animatorSystem->Exit();
 	}
@@ -113,6 +119,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_renderSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
 		m_ecsCoordinator.m_scriptSystem->Exit();
+		m_ecsCoordinator.m_uiEventSystem->Exit();
 		m_ecsCoordinator.m_uiRenderSystem->Exit();
 		m_ecsCoordinator.m_animatorSystem->Exit();
 		Physics::PhysicsManager::GetInstance().OnStop();

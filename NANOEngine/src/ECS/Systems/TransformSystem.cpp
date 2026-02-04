@@ -1,4 +1,8 @@
 #include "TransformSystem.hpp"
+
+//#include <vector>
+//#include <unordered_map>
+
 #include "../Components/Transform.hpp"
 #include "../Components/EntityMeta.hpp"
 #include "../Components/Hierarchy.hpp"
@@ -8,7 +12,9 @@
 #include "Math/Quat.hpp"
 
 namespace NE::ECS::Systems {
-	TransformSystem::TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr) : m_componentManager(cm), m_luidRegistry(lr) {}
+
+	TransformSystem::TransformSystem(ComponentManager* cm, Core::LUIDRegistry* lr) 
+		: m_componentManager(cm), m_luidRegistry(lr) { }
 
 	void TransformSystem::OnEntityAdded(Entity e) {
 		auto& t = m_componentManager->GetComponent<Component::Transform>(e);

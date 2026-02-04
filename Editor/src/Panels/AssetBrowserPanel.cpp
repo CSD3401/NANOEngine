@@ -201,6 +201,7 @@ namespace Editor {
 				if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+				if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 				if (payload) {
 					const char* pathStr = static_cast<const char*>(payload->Data);
@@ -270,6 +271,7 @@ namespace Editor {
 					if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+					if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 					if (payload) {
 						const char* pathStr = static_cast<const char*>(payload->Data);
@@ -365,6 +367,9 @@ namespace Editor {
 					} else if (entryPath.extension() == ".nfab") {
 						ImGui::SetDragDropPayload("PREFAB_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
 						hasSpecialPayload = true;
+					} else if (entryPath.extension() == ".ttf" || entryPath.extension() == ".otf") {
+						ImGui::SetDragDropPayload("FONT_ASSET_PATH", dragPathStr.c_str(), dragPathStr.size() + 1);
+						hasSpecialPayload = true;
 					}
 				}
 
@@ -421,6 +426,7 @@ namespace Editor {
 					if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 					if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+					if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 					if (payload) {
 						const char* pathStr = static_cast<const char*>(payload->Data);
@@ -604,6 +610,7 @@ namespace Editor {
 				if (!payload) payload = ImGui::AcceptDragDropPayload("ASSET_MESH_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("MATERIAL_PATH");
 				if (!payload) payload = ImGui::AcceptDragDropPayload("TEXTURE_ASSET_PATH");
+				if (!payload) payload = ImGui::AcceptDragDropPayload("FONT_ASSET_PATH");
 
 				if (payload) {
 					const char* pathStr = static_cast<const char*>(payload->Data);

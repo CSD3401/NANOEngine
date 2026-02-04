@@ -66,6 +66,10 @@
     <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
     <ClInclude Include="src\Graphics\Core\UIImageMeshGenerator.hpp" />
+    <ClInclude Include="src\Graphics\Core\UITextMeshGenerator.hpp" />
+    <ClInclude Include="src\Graphics\Core\FontAtlas.hpp" />
+    <ClInclude Include="src\Graphics\Core\Font.hpp" />
+    <ClInclude Include="src\ECS\Systems\UIEventSystem.hpp" />
     <ClInclude Include="src\Math\UILayoutCalculator.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
@@ -93,6 +97,8 @@
     <ClInclude Include="src\ECS\Components\UIImage.hpp" />
     <ClInclude Include="src\ECS\Components\UIRectTransform.hpp" />
     <ClInclude Include="src\ECS\Components\UIText.hpp" />
+    <ClInclude Include="src\ECS\Components\UISlider.hpp" />
+    <ClInclude Include="src\ECS\Components\UIToggle.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
@@ -226,12 +232,16 @@
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
     <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
+    <ClCompile Include="src\Graphics\Core\UITextMeshGenerator.cpp" />
+    <ClCompile Include="src\Graphics\Core\FontAtlas.cpp" />
+    <ClCompile Include="src\Graphics\Core\Font.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
     <ClCompile Include="src\ResourceManagement\ResourceManager.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\Core\Couroutine.cpp" />
     <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\UIEventSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />

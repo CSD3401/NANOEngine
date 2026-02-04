@@ -28,6 +28,9 @@
 #include <ScriptSDK/ECS.h>
 #include <ScriptSDK/Renderer.h>
 
+// UI System API (Canvas, RectTransform, Image)
+#include <ScriptSDK/UI.h>
+
 // SDK HEADERS LOADED:
 // - Math.h → Math::Vec3, Math::Mat4 (with Scripting::Vec3 conversions)
 // - Components.h → Transform, Light, Collider component types
@@ -59,6 +62,12 @@ namespace NE {
                     return HasAnimator(entity);
                 } else if constexpr (std::is_same_v<T, Component::Camera>) {
                     return HasCamera(entity);
+                } else if constexpr (std::is_same_v<T, Component::UICanvas>) {
+                    return HasUICanvas(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIRectTransform>) {
+                    return HasUIRectTransform(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIImage>) {
+                    return HasUIImage(entity);
                 }
                 return false;
             }
@@ -91,6 +100,12 @@ namespace NE {
                     return GetEntityAnimator(entity);
                 } else if constexpr (std::is_same_v<T, Component::Camera>) {
                     return GetEntityCamera(entity);
+                } else if constexpr (std::is_same_v<T, Component::UICanvas>) {
+                    return GetUICanvas(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIRectTransform>) {
+                    return GetUIRectTransform(entity);
+                } else if constexpr (std::is_same_v<T, Component::UIImage>) {
+                    return GetUIImage(entity);
                 }
             }
         }
@@ -232,6 +247,11 @@ namespace Query {
     inline bool HasAnimator(uint32_t e) { return NE::ECS::Query::HasAnimator(e); }
     inline bool HasCamera(uint32_t e) { return NE::ECS::Query::HasCamera(e); }
 
+    // UI component checks
+    inline bool HasUICanvas(uint32_t e) { return NE::ECS::Query::HasUICanvas(e); }
+    inline bool HasUIRectTransform(uint32_t e) { return NE::ECS::Query::HasUIRectTransform(e); }
+    inline bool HasUIImage(uint32_t e) { return NE::ECS::Query::HasUIImage(e); }
+
     // Read-only component getters
     inline const NE::ECS::Component::EntityMeta& GetEntityMeta(uint32_t e) {
         return NE::ECS::Query::GetEntityMeta(e);
@@ -259,6 +279,17 @@ namespace Query {
     }
     inline const NE::ECS::Component::Camera& GetEntityCamera(uint32_t e) {
         return NE::ECS::Query::GetEntityCamera(e);
+    }
+
+    // UI component getters (read-only)
+    inline const NE::ECS::Component::UICanvas& GetUICanvas(uint32_t e) {
+        return NE::ECS::Query::GetUICanvas(e);
+    }
+    inline const NE::ECS::Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+        return NE::ECS::Query::GetUIRectTransform(e);
+    }
+    inline const NE::ECS::Component::UIImage& GetUIImage(uint32_t e) {
+        return NE::ECS::Query::GetUIImage(e);
     }
 }
 
@@ -331,6 +362,47 @@ namespace Command {
     inline bool IsScriptRegistered(const std::string& scriptName) {
         return NE::ECS::Command::IsScriptRegistered(scriptName);
     }
+
+    // ============ UI SYSTEM ============
+
+    // UI entity creation
+    inline uint32_t CreateUICanvas() { return NE::ECS::Command::CreateUICanvasEntity(); }
+    inline uint32_t CreateUIImage(uint32_t parentCanvas) { return NE::ECS::Command::CreateUIImageEntity(parentCanvas); }
+
+    // UI component getters (mutable)
+    inline NE::ECS::Component::UICanvas& GetUICanvas(uint32_t e) {
+        return NE::ECS::Command::GetUICanvas(e);
+    }
+    inline NE::ECS::Component::UIRectTransform& GetUIRectTransform(uint32_t e) {
+        return NE::ECS::Command::GetUIRectTransform(e);
+    }
+    inline NE::ECS::Component::UIImage& GetUIImage(uint32_t e) {
+        return NE::ECS::Command::GetUIImage(e);
+    }
+
+    // UI Image utilities - texture swapping
+    /// Swap the texture on a UIImage (handles GPU resource loading)
+    inline bool SetUIImageTexture(uint32_t imageEntity, const std::string& textureUUID) {
+        return NE::ECS::Command::SetUIImageTexture(imageEntity, textureUUID.c_str());
+    }
+    inline bool SetUIImageTexture(uint32_t imageEntity, const char* textureUUID) {
+        return NE::ECS::Command::SetUIImageTexture(imageEntity, textureUUID);
+    }
+
+    /// Swap texture and material on a UIImage
+    inline bool SetUIImageTextureAndMaterial(uint32_t imageEntity, const std::string& textureUUID, const std::string& materialUUID) {
+        return NE::ECS::Command::SetUIImageTextureAndMaterial(imageEntity, textureUUID.c_str(), materialUUID.c_str());
+    }
+
+    /// Set the color tint on a UIImage (RGBA, 0-1 range)
+    inline void SetUIImageColor(uint32_t imageEntity, float r, float g, float b, float a) {
+        NE::ECS::Command::SetUIImageColor(imageEntity, r, g, b, a);
+    }
+
+    /// Set the fill amount on a UIImage (for FILLED image type, 0.0-1.0)
+    inline void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount) {
+        NE::ECS::Command::SetUIImageFillAmount(imageEntity, fillAmount);
+    }
 }
 
 // ============ GLOBAL TYPE ALIASES FOR CONVENIENCE ============
@@ -338,6 +410,8 @@ namespace Command {
 
 // Core scripting types
 using Vec3 = NE::Scripting::Vec3;
+using Vec4 = NE::Math::Vec4;
+using Color = NE::Math::Color;
 using Entity = NE::Scripting::Entity;
 using IScript = NE::Scripting::IScript;
 using RaycastHit = NE::Scripting::RaycastHit;

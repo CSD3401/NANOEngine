@@ -139,25 +139,102 @@ namespace Editor {
         uint32_t m_parentEntity;
     };
 
-    class CreateUICanvasEntityCommand final : public ICommand {
+    // Helper function to find or create a canvas
+    uint32_t FindOrCreateCanvas();
+
+    class CreateUICanvasCommand final : public ICommand {
     public:
-        CreateUICanvasEntityCommand();
+        CreateUICanvasCommand();
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Create UI Canvas"; }
     private:
-        uint32_t m_entity;
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
     };
 
-    class CreateUIImageEntityCommand final : public ICommand {
+    class CreateUITextCommand final : public ICommand {
     public:
-        CreateUIImageEntityCommand(uint32_t parentCanvas);
+        CreateUITextCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Text"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIImageCommand final : public ICommand {
+    public:
+        CreateUIImageCommand(uint32_t parentEntity);
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Create UI Image"; }
     private:
-        uint32_t m_entity;
-        uint32_t m_parentCanvas;
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIButtonCommand final : public ICommand {
+    public:
+        CreateUIButtonCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Button"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_textEntity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIPanelCommand final : public ICommand {
+    public:
+        CreateUIPanelCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Panel"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUISliderCommand final : public ICommand {
+    public:
+        CreateUISliderCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Slider"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;           // Slider root
+        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY; // Background image
+        uint32_t m_fillEntity = NE::ECS::NO_ENTITY;       // Fill image
+        uint32_t m_handleEntity = NE::ECS::NO_ENTITY;     // Handle image
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
+    };
+
+    class CreateUIToggleCommand final : public ICommand {
+    public:
+        CreateUIToggleCommand(uint32_t parentEntity);
+        void Execute() override;
+        void Undo() override;
+        const char* GetName() const override { return "Create UI Toggle"; }
+    private:
+        uint32_t m_entity = NE::ECS::NO_ENTITY;           // Toggle root
+        uint32_t m_backgroundEntity = NE::ECS::NO_ENTITY; // Background image
+        uint32_t m_checkmarkEntity = NE::ECS::NO_ENTITY;  // Checkmark image
+        uint32_t m_labelEntity = NE::ECS::NO_ENTITY;      // Label text
+        uint32_t m_parentEntity;
+        uint32_t m_canvasEntity = NE::ECS::NO_ENTITY;
+        bool m_createdCanvas = false;
     };
 
     class DeleteEntityCommand final : public ICommand {

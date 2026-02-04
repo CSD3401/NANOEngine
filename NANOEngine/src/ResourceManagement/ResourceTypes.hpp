@@ -13,7 +13,8 @@ namespace NE::Resource {
 		Prefab,
 		Scene,
 		AnimationClip,
-		AnimatorController
+		AnimatorController,
+		Font
 	};
 
 }

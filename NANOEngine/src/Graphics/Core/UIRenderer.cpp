@@ -6,6 +6,7 @@
 #include "../src/Graphics/Core/GraphicsManager.hpp"
 #include "UIImageMeshGenerator.hpp"
 #include "../OpenGL/GLStateCache.hpp"
+#include "../../Core/Logger.hpp"
 #include <iostream>
 #include <algorithm>
 
@@ -18,6 +19,7 @@ namespace NE::Graphics {
     unsigned int UIRenderer::s_VBO = 0;
     unsigned int UIRenderer::s_EBO = 0;
     unsigned int UIRenderer::s_Shader = 0;
+    unsigned int UIRenderer::s_TextShader = 0;
     unsigned int UIRenderer::s_CompositeShader = 0;
     unsigned int UIRenderer::s_CompositeVAO = 0;
     unsigned int UIRenderer::s_CompositeVBO = 0;
@@ -68,10 +70,30 @@ namespace NE::Graphics {
     out vec4 FragColor;
 
     uniform vec4 uColor;
+    uniform int uHasTexture;
+    layout(bindless_sampler) uniform sampler2D uTexture;
 
     void main() {
-        // Simple solid color - no texture needed!
-        FragColor = uColor;
+        if (uHasTexture != 0) {
+            vec4 texColor = texture(uTexture, vUV);
+            FragColor = texColor * uColor;  // Texture tinted by color
+        } else {
+            FragColor = uColor;  // Solid color only
+        }
+    })";
+
+    // Text fragment shader - samples single-channel (red) font atlas
+    static const char* UITextFragmentShaderSource = R"(#version 460 core
+    #extension GL_ARB_bindless_texture : require
+    in vec2 vUV;
+    out vec4 FragColor;
+
+    uniform vec4 uColor;
+    layout(bindless_sampler) uniform sampler2D uFontAtlas;
+
+    void main() {
+        float alpha = texture(uFontAtlas, vUV).r;
+        FragColor = vec4(uColor.rgb, uColor.a * alpha);
     })";
 
     void UIRenderer::Init(uint32_t width, uint32_t height, RenderViewManager* renderViewManager) {
@@ -160,8 +182,35 @@ namespace NE::Graphics {
         // unbind
         glBindVertexArray(0);
 
+        // initialize text shader
+        InitTextShader();
+
         // initialize composite shader
         InitCompositeShader();
+    }
+
+    void UIRenderer::InitTextShader() {
+        // compile vertex shader (reuse the same vertex shader as UI)
+        unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vs, 1, &UIVertexShaderSource, nullptr);
+        glCompileShader(vs);
+        CheckCompile(vs, "UI Text VS");
+
+        // compile text fragment shader
+        unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fs, 1, &UITextFragmentShaderSource, nullptr);
+        glCompileShader(fs);
+        CheckCompile(fs, "UI Text FS");
+
+        // link shader program
+        s_TextShader = glCreateProgram();
+        glAttachShader(s_TextShader, vs);
+        glAttachShader(s_TextShader, fs);
+        glLinkProgram(s_TextShader);
+        CheckLink(s_TextShader, "UI Text Program");
+
+        glDeleteShader(vs);
+        glDeleteShader(fs);
     }
 
     void UIRenderer::BuildQuadVertices(const UIDrawCommand& cmd, float* verts) {
@@ -412,7 +461,12 @@ namespace NE::Graphics {
     }
 
     void UIRenderer::DrawUIFrame() {
-        if (s_Commands.empty()) return;
+        //// DEBUG: Log command count
+        //static int dbgFrame = 0;
+        //if (dbgFrame++ % 120 == 0) {
+        //    std::cout << "[UIRenderer::DrawUIFrame] Total commands: " << s_Commands.size() << std::endl;
+        //}
+        //if (s_Commands.empty()) return;
 
         // filter to only overlay mode (rendermode 0)
         std::vector<UIDrawCommand> overlayCommands;
@@ -423,6 +477,12 @@ namespace NE::Graphics {
         }
 
         if (overlayCommands.empty()) return;
+
+        //// DEBUG: Log overlay command count
+        //static int frameCount = 0;
+        //if (frameCount++ % 60 == 0) {  // Log every 60 frames
+        //    std::cout << "[UIRenderer] Drawing " << overlayCommands.size() << " overlay commands" << std::endl;
+        //}
 
         // sort overlay commands by order
         std::sort(overlayCommands.begin(), overlayCommands.end(),
@@ -448,21 +508,41 @@ namespace NE::Graphics {
         // render each command based on mode
         for (const auto& cmd : overlayCommands)
         {
-            if (!cmd.material) continue;
+            bool usingFallbackShader = false;
+            bool usingTextShader = false;
+            std::shared_ptr<IShader> shader = nullptr;
 
-            auto pipeline = cmd.material->GetPipeline();
-            if (!pipeline) continue;
+            // Check if this is a text command
+            if (cmd.isTextCommand)
+            {
+                glUseProgram(s_TextShader);
+                usingTextShader = true;
+            }
+            else if (cmd.material)
+            {
+                auto pipeline = cmd.material->GetPipeline();
+                if (pipeline)
+                {
+                    shader = pipeline->GetSpecification().shader;
+                }
+            }
 
-            auto shader = pipeline->GetSpecification().shader;
-            if (!shader) continue;
-
-            shader->Bind();
-            cmd.material->Bind();
+            // Fallback to built-in shader if no material or shader (and not text)
+            if (!shader && !usingTextShader)
+            {
+                glUseProgram(s_Shader);
+                usingFallbackShader = true;
+            }
+            else if (shader && !usingTextShader)
+            {
+                shader->Bind();
+                cmd.material->Bind();
+            }
 
             glBindVertexArray(s_VAO);
             glBindBuffer(GL_ARRAY_BUFFER, s_VBO);
 
-            // handle custom vertices (for filled/sliced/tiled images)
+            // handle custom vertices (for filled/sliced/tiled images and text)
             if (cmd.useCustomVertices && !cmd.vertices.empty())
             {
                 // upload custom vertex data
@@ -471,7 +551,7 @@ namespace NE::Graphics {
                     cmd.vertices.data(),
                     GL_DYNAMIC_DRAW);
             }
-            else 
+            else
             {
                 // build standard quad
                 float verts[36];
@@ -480,25 +560,56 @@ namespace NE::Graphics {
             }
 
             // set uniforms
-            if (cmd.bindlessTextureHandle != 0) 
+            if (usingTextShader)
             {
-                shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
-                shader->SetUniformInt("u_HasBaseMap", 1);
-            }
-            else 
-            {
-                shader->SetUniformInt("u_HasBaseMap", 0);
-            }
+                // Text shader uniforms
+                glUniform4f(glGetUniformLocation(s_TextShader, "uColor"),
+                    cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+                glUniform2f(glGetUniformLocation(s_TextShader, "uScreenSize"),
+                    (float)s_ScreenW, (float)s_ScreenH);
 
-            shader->SetUniformVec4("uColor", cmd.color);
-            shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+                if (cmd.bindlessTextureHandle != 0) {
+                    glUniformHandleui64ARB(glGetUniformLocation(s_TextShader, "uFontAtlas"), cmd.bindlessTextureHandle);
+                }
+            }
+            else if (usingFallbackShader)
+            {
+                // Use built-in shader uniforms
+                glUniform4f(glGetUniformLocation(s_Shader, "uColor"),
+                    cmd.color.x, cmd.color.y, cmd.color.z, cmd.color.w);
+                glUniform2f(glGetUniformLocation(s_Shader, "uScreenSize"),
+                    (float)s_ScreenW, (float)s_ScreenH);
+
+                // Set texture if available
+                if (cmd.bindlessTextureHandle != 0) {
+                    glUniformHandleui64ARB(glGetUniformLocation(s_Shader, "uTexture"), cmd.bindlessTextureHandle);
+                    glUniform1i(glGetUniformLocation(s_Shader, "uHasTexture"), 1);
+                } else {
+                    glUniform1i(glGetUniformLocation(s_Shader, "uHasTexture"), 0);
+                }
+            }
+            else
+            {
+                if (cmd.bindlessTextureHandle != 0)
+                {
+                    shader->SetUniformHandle("u_BaseMap", cmd.bindlessTextureHandle);  // Bindless!
+                    shader->SetUniformInt("u_HasBaseMap", 1);
+                }
+                else
+                {
+                    shader->SetUniformInt("u_HasBaseMap", 0);
+                }
+
+                shader->SetUniformVec4("uColor", cmd.color);
+                shader->SetUniformVec2("uScreenSize", NE::Math::Vec2((float)s_ScreenW, (float)s_ScreenH));
+            }
 
             // draw
             if (cmd.useCustomVertices && !cmd.vertices.empty())
             {
                 glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(cmd.vertices.size()));
             }
-            else 
+            else
             {
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
             }
@@ -677,7 +788,7 @@ namespace NE::Graphics {
 
         // bind UI framebuffer texture
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment()); // FBO’s color attachment is a texture containing your rendered UI
+        glBindTexture(GL_TEXTURE_2D, s_RenderViewManager->GetFramebuffer(s_UIViewHandle)->GetColorAttachment()); // FBOï¿½s color attachment is a texture containing your rendered UI
         glUniform1i(glGetUniformLocation(s_CompositeShader, "uUITexture"), 0); // bind to texture unit 0 (kiv to change to bindless)
 
         // draw fullscreen quad
@@ -690,6 +801,7 @@ namespace NE::Graphics {
         glUseProgram(0);
 
         // restore old state
+        glDepthMask(GL_TRUE);
         if (depthTestWasEnabled) glEnable(GL_DEPTH_TEST);
         if (!blendWasEnabled)
         {
@@ -738,6 +850,11 @@ namespace NE::Graphics {
         if (s_Shader) {
             glDeleteProgram(s_Shader);
             s_Shader = 0;
+        }
+
+        if (s_TextShader) {
+            glDeleteProgram(s_TextShader);
+            s_TextShader = 0;
         }
 
         if (s_CompositeShader)

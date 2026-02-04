@@ -98,7 +98,6 @@ namespace NE::Graphics {
             bool has = false; // parsed ok
         } m_stage;
 
-        
     };
 
 }
