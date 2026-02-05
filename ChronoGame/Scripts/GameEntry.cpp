@@ -73,61 +73,61 @@ extern "C" {
         //});
         registrar->RegisterScript("Interactable_", []() -> NE::Scripting::IScript* {
             return new Interactable_();
-            });
+        });
         registrar->RegisterScript("Interactable_WireButton", []() -> NE::Scripting::IScript* {
             return new Interactable_WireButton();
-            });
+        });
         registrar->RegisterScript("Interactable_Grabbable", []() -> NE::Scripting::IScript* {
             return new Interactable_Grabbable();
-            });
+        });
         registrar->RegisterScript("Interactable_OneWaySwitch", []() -> NE::Scripting::IScript* {
             return new Interactable_OneWaySwitch();
-            });
+        });
         registrar->RegisterScript("Interactable_TwoWaySwitch", []() -> NE::Scripting::IScript* {
             return new Interactable_TwoWaySwitch();
-            });
+        });
         registrar->RegisterScript("Interactable_NoteCollector", []() -> NE::Scripting::IScript* {
             return new Interactable_NoteCollector();
-            });
-        /*   registrar->RegisterScript("Misc_Manager", []() -> NE::Scripting::IScript* {
-               return new Misc_Manager();
-           });
-           registrar->RegisterScript("Misc_WireChild", []() -> NE::Scripting::IScript* {
-               return new Misc_WireChild();
-           });
-           registrar->RegisterScript("Misc_Grabber", []() -> NE::Scripting::IScript* {
-               return new Misc_Grabber();
-           });
-           registrar->RegisterScript("Misc_ICOSwitcher", []() -> NE::Scripting::IScript* {
-               return new Misc_ICOSwitcher();
-           });
-           registrar->RegisterScript("Misc_TwoStateRotater", []() -> NE::Scripting::IScript* {
-               return new Misc_TwoStateRotater();
-           });
-           registrar->RegisterScript("Misc_Sinkhole", []() -> NE::Scripting::IScript* {
-               return new Misc_Sinkhole();
-           });
-           registrar->RegisterScript("Misc_MaterialSwitcher", []() -> NE::Scripting::IScript* {
-               return new Misc_MaterialSwitcher();
-           });
-           registrar->RegisterScript("Misc_PlayerRespawn", []() -> NE::Scripting::IScript* {
-               return new Misc_PlayerRespawn();
-           });
-           registrar->RegisterScript("Misc_PlayerRespawnTest", []() -> NE::Scripting::IScript* {
-               return new Misc_PlayerRespawnTest();
-           });
-           registrar->RegisterScript("NoteCollector_Controller", []() -> NE::Scripting::IScript* {
-               return new NoteCollector_Controller();
-           });*/
+        });
+     /*   registrar->RegisterScript("Misc_Manager", []() -> NE::Scripting::IScript* {
+            return new Misc_Manager();
+        });
+        registrar->RegisterScript("Misc_WireChild", []() -> NE::Scripting::IScript* {
+            return new Misc_WireChild();
+        });
+        registrar->RegisterScript("Misc_Grabber", []() -> NE::Scripting::IScript* {
+            return new Misc_Grabber();
+        });
+        registrar->RegisterScript("Misc_ICOSwitcher", []() -> NE::Scripting::IScript* {
+            return new Misc_ICOSwitcher();
+        });
+        registrar->RegisterScript("Misc_TwoStateRotater", []() -> NE::Scripting::IScript* {
+            return new Misc_TwoStateRotater();
+        });
+        registrar->RegisterScript("Misc_Sinkhole", []() -> NE::Scripting::IScript* {
+            return new Misc_Sinkhole();
+        });
+        registrar->RegisterScript("Misc_MaterialSwitcher", []() -> NE::Scripting::IScript* {
+            return new Misc_MaterialSwitcher();
+        });
+        registrar->RegisterScript("Misc_PlayerRespawn", []() -> NE::Scripting::IScript* {
+            return new Misc_PlayerRespawn();
+        });
+        registrar->RegisterScript("Misc_PlayerRespawnTest", []() -> NE::Scripting::IScript* {
+            return new Misc_PlayerRespawnTest();
+        });
+        registrar->RegisterScript("NoteCollector_Controller", []() -> NE::Scripting::IScript* {
+            return new NoteCollector_Controller();
+        });*/
         registrar->RegisterScript("UI_TestImage", []() -> NE::Scripting::IScript* {
             return new UI_TestImage();
-            });
+        });
         registrar->RegisterScript("UI_SimpleTest", []() -> NE::Scripting::IScript* {
             return new UI_SimpleTest();
-            });
+        });
         registrar->RegisterScript("UI_PastPresent", []() -> NE::Scripting::IScript* {
             return new UI_PastPresent();
-            });
+        });
         // Register all your game-specific scripts here
         registrar->RegisterScript("Highlightable_Material", []() -> NE::Scripting::IScript* {
             return new Highlightable_Material();
@@ -204,6 +204,6 @@ extern "C" {
         registrar->RegisterScript("UI_ButtonHoverSwap", []() -> NE::Scripting::IScript* {
             return new UI_ButtonHoverSwap();
             });
-
-    }
+       
+        }
 }

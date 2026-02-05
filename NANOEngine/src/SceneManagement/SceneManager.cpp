@@ -136,6 +136,35 @@ namespace NE::SceneManagement {
 		} else {
 			if (m_editor) m_editor->UpdateEdit(dt);
 		}
+
+		// Process queued scene switch at end of frame (after all scripts have updated)
+		if (m_hasQueuedSceneSwitch) {
+			m_hasQueuedSceneSwitch = false;
+
+			bool wasPlaying = IsPlaying();
+
+			// Stop runtime if currently playing
+			if (wasPlaying) {
+				StopRuntime();
+			}
+
+			// Exit current scene and load new one
+			ExitScene();
+			LoadScene(m_queuedScenePath);
+
+			// Resume playing if we were in play mode
+			if (wasPlaying) {
+				LoadRuntime();
+			}
+
+			m_queuedScenePath.clear();
+		}
+	}
+
+	void SceneManager::QueueSceneSwitch(const std::string& scenePath) {
+		// Queue the scene switch to happen at the end of the current frame
+		m_queuedScenePath = scenePath;
+		m_hasQueuedSceneSwitch = true;
 	}
 
 	void SceneManager::Render() {

@@ -34,6 +34,9 @@ namespace NE::SceneManagement {
 		Scene* GetEditorScene() { return m_editor.get(); }
 		Scene* GetPrefabScene() { return m_prefabScene.get(); }
 
+		// Queue a scene switch to happen at the end of the frame (safe for scripts to call during Update)
+		void QueueSceneSwitch(const std::string& scenePath);
+
 	private:
 		std::string m_loadedPath;
 
@@ -44,6 +47,10 @@ namespace NE::SceneManagement {
 		bool m_isPlaying = false;
 		bool m_isEditingPrefab = false;
 		std::string m_prefabPath;
+
+		// Scene switch queue (processed at end of frame)
+		std::string m_queuedScenePath;
+		bool m_hasQueuedSceneSwitch = false;
 	};
 
 }
