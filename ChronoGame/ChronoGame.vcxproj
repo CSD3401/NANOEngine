@@ -200,6 +200,9 @@
     <ClInclude Include="Scripts\TestScript.hpp" />
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />
+    <ClInclude Include="Scripts\UIButton_SwitchScene.hpp" />
+    <ClInclude Include="Scripts\UIButton_SwitchSceneThree.hpp" />
+    <ClInclude Include="Scripts\UIButton_SwitchSceneTwo.hpp" />
     <ClInclude Include="Scripts\UI_MasterVolumeButtons.hpp" />
     <ClInclude Include="Scripts\WireChild.hpp" />
   </ItemGroup>
