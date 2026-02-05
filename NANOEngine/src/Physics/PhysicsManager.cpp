@@ -588,6 +588,17 @@ namespace NE::Physics {
 		return { n.GetX(), n.GetY(), n.GetZ() };
 	}
 
+	void PhysicsManager::CharacterSetPosition(uint64_t entityLUID, const Math::Vec3& position) {
+		auto it = m_characters.find(entityLUID);
+		if (it == m_characters.end()) return;
+
+		auto& runtime = it->second;
+		runtime.velocity = JPH::Vec3::sZero();
+		runtime.pendingDelta = JPH::Vec3::sZero();
+		runtime.hasPendingDelta = false;
+		runtime.controller->SetPosition(JPH::RVec3(position.x, position.y, position.z));
+	}
+
 	void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
 		const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID) {
 		auto itShape = m_shapes.find(luid);

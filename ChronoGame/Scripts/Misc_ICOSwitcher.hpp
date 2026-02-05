@@ -30,6 +30,17 @@ public:
         
 		// RF - Start the game in the present state aka presentObj - active  , pastObj - inactive
         //Activate();
+
+        if (!CheckObjectsValid()) return;
+
+        SetActive(true, presentObj.GetEntity());
+        SetActive(false, pastObj.GetEntity());
+
+        // Delay so everyone can register listeners first
+        Coroutines::Handle h = Coroutines::Create();
+        Coroutines::AddWait(h, 0.0f);
+        Coroutines::AddAction(h, []() { Events::Send("TimePastDisabled", nullptr); });
+        Coroutines::Start(h);
     }
     void Update(double deltaTime) override {}
 
@@ -99,24 +110,39 @@ private:
     }
 
     void Activate() {
-        if (CheckObjectsValid()) {
-            LOG_INFO("Miscellaneous_ICOSwitcher: ChronoActivated -> idle off, running on");
-            SetActive(false, presentObj.GetEntity());
-            SetActive(true, pastObj.GetEntity());
-        } else {
+        if (!CheckObjectsValid()) {
             LOG_WARNING("Miscellaneous_ICOSwitcher: Invalid references on activate, destroying");
             Command::DestroyEntity(GetEntity());
+            return;
         }
+
+        LOG_INFO("Miscellaneous_ICOSwitcher: ChronoActivated -> present off, past on");
+        SetActive(false, presentObj.GetEntity());
+        SetActive(true, pastObj.GetEntity());
+
+        // Send on next tick so scripts under pastObj have Awake() called + listeners registered
+        Coroutines::Handle h = Coroutines::Create();
+        Coroutines::AddWait(h, 0.0f);
+        Coroutines::AddAction(h, []() { Events::Send("TimePastEnabled", nullptr); });
+        Coroutines::Start(h);
     }
 
     void Deactivate() {
-        if (CheckObjectsValid()) {
-            LOG_INFO("Miscellaneous_ICOSwitcher: ChronoDeactivated -> idle on, running off");
-            SetActive(true, presentObj.GetEntity());
-            SetActive(false, pastObj.GetEntity());
-        } else {
+        if (!CheckObjectsValid()) {
             LOG_WARNING("Miscellaneous_ICOSwitcher: Invalid references on deactivate, destroying");
             Command::DestroyEntity(GetEntity());
+            return;
         }
+
+        LOG_INFO("Miscellaneous_ICOSwitcher: ChronoDeactivated -> present on, past off");
+        SetActive(true, presentObj.GetEntity());
+        SetActive(false, pastObj.GetEntity());
+
+        // Send on next tick for consistency
+        Coroutines::Handle h = Coroutines::Create();
+        Coroutines::AddWait(h, 0.0f);
+        Coroutines::AddAction(h, []() { Events::Send("TimePastDisabled", nullptr); });
+        Coroutines::Start(h);
     }
+
 };

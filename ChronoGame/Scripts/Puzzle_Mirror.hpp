@@ -41,8 +41,14 @@ public:
         SCRIPT_GAMEOBJECT_REF(mazeServerDoor);
 
         // Navigator entities
-        SCRIPT_COMPONENT_REF(targetTransform, TransformRef);
-        SCRIPT_COMPONENT_REF(mirrorTargetTransform, TransformRef);
+        //SCRIPT_COMPONENT_REF(targetTransform, TransformRef);
+        //SCRIPT_COMPONENT_REF(mirrorTargetTransform, TransformRef);
+
+        // Change mat instead now
+        SCRIPT_FIELD(originalMaterial, MaterialRef);
+        SCRIPT_FIELD(steppedOnMaterial, MaterialRef);
+        SCRIPT_FIELD(destinationMaterial, MaterialRef);
+
 
         // Original grid tiles (3x4 grid = 12 tiles)
         // Row 0
@@ -133,7 +139,29 @@ public:
         mirrorCol = mirrorStartCol;
 
         // Position navigators at start tiles
-        PositionNavigators();
+        //PositionNavigators();
+
+		// New highlight method
+        HighlightTiles();
+
+        // Highlight goal tiles with destination material
+        if (destinationMaterial.IsValid()) {
+            // Highlight original grid goal
+            int goalIndex = endRow * 4 + endCol;
+            if (tileTransforms[goalIndex].IsValid()) {
+                Entity goalTile = tileTransforms[goalIndex].GetEntity();
+                NE::Renderer::Command::AssignMaterial(goalTile, destinationMaterial);
+                LOG_DEBUG("Original goal tile ({}, {}) marked", endRow, endCol);
+            }
+
+            // Highlight mirror grid goal
+            int mirrorGoalIndex = mirrorEndRow * 4 + mirrorEndCol;
+            if (mirrorTileTransforms[mirrorGoalIndex].IsValid()) {
+                Entity mirrorGoalTile = mirrorTileTransforms[mirrorGoalIndex].GetEntity();
+                NE::Renderer::Command::AssignMaterial(mirrorGoalTile, destinationMaterial);
+                LOG_DEBUG("Mirror goal tile ({}, {}) marked", mirrorEndRow, mirrorEndCol);
+            }
+        }
 
         puzzleSolved = false;
         LogCurrentState();
@@ -141,13 +169,14 @@ public:
 
     void Update(double deltaTime) override {
         if (puzzleSolved) return;
-        if (!targetTransform.IsValid() || !mirrorTargetTransform.IsValid()) {
-            LOG_DEBUG("ERROR: Navigator transforms not assigned!");
-            return;
-        }
+
+        //if (!targetTransform.IsValid() || !mirrorTargetTransform.IsValid()) {
+        //    LOG_DEBUG("ERROR: Navigator transforms not assigned!");
+        //    return;
+        //}
 
         // Handle WASD input (commented out for now)
-        /*
+        
         if (Input::WasKeyPressed('W') || Input::WasKeyPressed(VK_UP)) {
             TryMoveUp();
         }
@@ -160,7 +189,7 @@ public:
         if (Input::WasKeyPressed('D') || Input::WasKeyPressed(VK_RIGHT)) {
             TryMoveRight();
         }
-        */
+        
 
         // Check win condition
         if (HasReachedEnd() && HasMirrorReachedEnd()) {
@@ -415,34 +444,73 @@ private:
         }
     }
 
+
+    // dun use atm
     /**
      * Position navigators at their current grid positions
      */
-    void PositionNavigators() {
-        // Position original navigator
-        if (targetTransform.IsValid()) {
-            int startTileIndex = currentRow * 4 + currentCol;
-            if (tileTransforms[startTileIndex].IsValid()) {
-                Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex]);
-                startPos.z += zOffset;
-                SetPosition(targetTransform, startPos);
-                LOG_DEBUG("Original navigator placed at grid ({}, {}), world pos ({}, {}, {})",
-                    currentRow, currentCol, startPos.x, startPos.y, startPos.z);
-            }
+    //void PositionNavigators() {
+    //    // Position original navigator
+    //    if (targetTransform.IsValid()) {
+    //        int startTileIndex = currentRow * 4 + currentCol;
+    //        if (tileTransforms[startTileIndex].IsValid()) {
+    //            Vec3 startPos = GetTileWorldPosition(tileTransforms[startTileIndex]);
+    //            startPos.z += zOffset;
+    //            SetPosition(targetTransform, startPos);
+    //            LOG_DEBUG("Original navigator placed at grid ({}, {}), world pos ({}, {}, {})",
+    //                currentRow, currentCol, startPos.x, startPos.y, startPos.z);
+    //        }
+    //    }
+
+    //    // Position mirror navigator
+    //    if (mirrorTargetTransform.IsValid()) {
+    //        int mirrorTileIndex = mirrorRow * 4 + mirrorCol;
+    //        if (mirrorTileTransforms[mirrorTileIndex].IsValid()) {
+    //            Vec3 mirrorPos = GetTileWorldPosition(mirrorTileTransforms[mirrorTileIndex]);
+    //            mirrorPos.z += zOffset;
+    //            SetPosition(mirrorTargetTransform, mirrorPos);
+    //            LOG_DEBUG("Mirror navigator placed at grid ({}, {}), world pos ({}, {}, {})",
+    //                mirrorRow, mirrorCol, mirrorPos.x, mirrorPos.y, mirrorPos.z);
+    //        }
+    //    }
+    //}
+
+    void HighlightTiles() {
+        // Unhighlight previous tiles (set back to white)
+        if (lastOriginalTile != 0 && originalMaterial.IsValid()) {
+            NE::Renderer::Command::AssignMaterial(lastOriginalTile, originalMaterial);
+        }
+        if (lastMirrorTile != 0 && originalMaterial.IsValid()) {
+            NE::Renderer::Command::AssignMaterial(lastMirrorTile, originalMaterial);
         }
 
-        // Position mirror navigator
-        if (mirrorTargetTransform.IsValid()) {
-            int mirrorTileIndex = mirrorRow * 4 + mirrorCol;
-            if (mirrorTileTransforms[mirrorTileIndex].IsValid()) {
-                Vec3 mirrorPos = GetTileWorldPosition(mirrorTileTransforms[mirrorTileIndex]);
-                mirrorPos.z += zOffset;
-                SetPosition(mirrorTargetTransform, mirrorPos);
-                LOG_DEBUG("Mirror navigator placed at grid ({}, {}), world pos ({}, {}, {})",
-                    mirrorRow, mirrorCol, mirrorPos.x, mirrorPos.y, mirrorPos.z);
+        // Highlight current original tile (set to green)
+        int tileIndex = currentRow * 4 + currentCol;
+        if (tileTransforms[tileIndex].IsValid()) {
+            Entity tileEntity = tileTransforms[tileIndex].GetEntity();
+            lastOriginalTile = tileEntity;
+
+            if (steppedOnMaterial.IsValid()) {
+                NE::Renderer::Command::AssignMaterial(tileEntity, steppedOnMaterial);
             }
+
+            LOG_DEBUG("Original tile ({}, {}) highlighted", currentRow, currentCol);
+        }
+
+        // Highlight current mirror tile (set to green)
+        int mirrorTileIndex = mirrorRow * 4 + mirrorCol;
+        if (mirrorTileTransforms[mirrorTileIndex].IsValid()) {
+            Entity mirrorTileEntity = mirrorTileTransforms[mirrorTileIndex].GetEntity();
+            lastMirrorTile = mirrorTileEntity;
+
+            if (steppedOnMaterial.IsValid()) {
+                NE::Renderer::Command::AssignMaterial(mirrorTileEntity, steppedOnMaterial);
+            }
+
+            LOG_DEBUG("Mirror tile ({}, {}) highlighted", mirrorRow, mirrorCol);
         }
     }
+
 
     // ========== Movement Functions ==========
 
@@ -453,6 +521,7 @@ private:
         bool mirrorMoved = TryMoveMirror(UP, -1, 0);
 
         if (originalMoved || mirrorMoved) {
+            HighlightTiles();
             LogCurrentState();
         }
     }
@@ -464,6 +533,7 @@ private:
         bool mirrorMoved = TryMoveMirror(DOWN, 1, 0);
 
         if (originalMoved || mirrorMoved) {
+            HighlightTiles();
             LogCurrentState();
         }
     }
@@ -476,6 +546,7 @@ private:
         bool mirrorMoved = TryMoveMirror(RIGHT, 0, 1);
 
         if (originalMoved || mirrorMoved) {
+            HighlightTiles();
             LogCurrentState();
         }
     }
@@ -488,6 +559,7 @@ private:
         bool mirrorMoved = TryMoveMirror(LEFT, 0, -1);
 
         if (originalMoved || mirrorMoved) {
+            HighlightTiles();
             LogCurrentState();
         }
     }
@@ -522,7 +594,7 @@ private:
         // Valid move!
         currentRow = newRow;
         currentCol = newCol;
-        MoveOriginalTargetToTile(currentRow * 4 + currentCol);
+        //MoveOriginalTargetToTile(currentRow * 4 + currentCol);
 
         if (debugMode) LOG_DEBUG("Original moved to ({}, {})", currentRow, currentCol);
         return true;
@@ -558,7 +630,7 @@ private:
         // Valid move!
         mirrorRow = newRow;
         mirrorCol = newCol;
-        MoveMirrorTargetToTile(mirrorRow * 4 + mirrorCol);
+        //MoveMirrorTargetToTile(mirrorRow * 4 + mirrorCol);
 
         if (debugMode) LOG_DEBUG("Mirror moved to ({}, {})", mirrorRow, mirrorCol);
         return true;
@@ -587,24 +659,24 @@ private:
     /**
      * Move original navigator to a specific tile
      */
-    void MoveOriginalTargetToTile(int tileIndex) {
-        if (tileTransforms[tileIndex].IsValid() && targetTransform.IsValid()) {
-            Vec3 tilePos = GetTileWorldPosition(tileTransforms[tileIndex]);
-            tilePos.z += zOffset;
-            SetPosition(targetTransform, tilePos);
-        }
-    }
+    //void MoveOriginalTargetToTile(int tileIndex) {
+    //    if (tileTransforms[tileIndex].IsValid() && targetTransform.IsValid()) {
+    //        Vec3 tilePos = GetTileWorldPosition(tileTransforms[tileIndex]);
+    //        tilePos.z += zOffset;
+    //        SetPosition(targetTransform, tilePos);
+    //    }
+    //}
 
     /**
      * Move mirror navigator to a specific tile
      */
-    void MoveMirrorTargetToTile(int tileIndex) {
-        if (mirrorTileTransforms[tileIndex].IsValid() && mirrorTargetTransform.IsValid()) {
-            Vec3 tilePos = GetTileWorldPosition(mirrorTileTransforms[tileIndex]);
-            tilePos.z += zOffset;
-            SetPosition(mirrorTargetTransform, tilePos);
-        }
-    }
+    //void MoveMirrorTargetToTile(int tileIndex) {
+    //    if (mirrorTileTransforms[tileIndex].IsValid() && mirrorTargetTransform.IsValid()) {
+    //        Vec3 tilePos = GetTileWorldPosition(mirrorTileTransforms[tileIndex]);
+    //        tilePos.z += zOffset;
+    //        SetPosition(mirrorTargetTransform, tilePos);
+    //    }
+    //}
 
     /**
      * Check if original navigator reached the goal
@@ -630,7 +702,7 @@ private:
         mirrorCol = mirrorStartCol;
         puzzleSolved = false;
 
-        PositionNavigators();
+        HighlightTiles();
         LogCurrentState();
 
         LOG_DEBUG("Puzzle reset!");
@@ -651,8 +723,15 @@ private:
 	GameObjectRef mazeServerDoor;
 
     // Navigator transforms
-    TransformRef targetTransform;
-    TransformRef mirrorTargetTransform;
+    //TransformRef targetTransform;
+    //TransformRef mirrorTargetTransform;
+
+    MaterialRef originalMaterial;
+    MaterialRef steppedOnMaterial;
+    MaterialRef destinationMaterial;
+    Entity lastOriginalTile = 0;
+    Entity lastMirrorTile = 0;
+
 
     // Original grid tiles (3 rows x 4 cols)
     TransformRef tile00, tile01, tile02, tile03;

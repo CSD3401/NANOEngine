@@ -176,8 +176,8 @@ namespace NE {
 		NE::Serialization::SerializeScene(GetScene().GetECSCoordinator(), rootNodes, _artifactPath);
 	}
 
-	bool LoadScene(const std::string& uuid) {
-		return gSceneManager.LoadScene(uuid);
+	bool LoadScene(const std::string& _uuid) {
+		return gSceneManager.LoadScene(_uuid);
 	}
 
 	void CreateSceneFallback(const std::string& _artifactPath) {

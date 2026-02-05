@@ -7,15 +7,15 @@
 * It simply provides a virtual function Interact that can be overridden by child classes.
 */
 
-// Legacy class
-class Interactable_WireButton : public Interactable_ {
+class Interactable_WireTether : public Interactable_ {
 public:
-    Interactable_WireButton()
+    Interactable_WireTether()
     {
-        SCRIPT_FIELD(leftWireIndex, Int);
+        SCRIPT_FIELD(wireIndex, Int);
         SCRIPT_FIELD(wirePuzzleIndex, Int);
+        SCRIPT_FIELD(correctSide, Bool);
     }
-    ~Interactable_WireButton() override = default;
+    ~Interactable_WireTether() override = default;
 
     // == Custom Methods ==
     virtual void Interact()
@@ -25,7 +25,9 @@ public:
 
         std::string message = "WireButtonPressed" + std::to_string(wirePuzzleIndex);
         LOG_DEBUG("BUTTON PRESSED:" + message);
-        Events::Send(message.c_str(), &leftWireIndex);
+        wireData = correctSide ? "1" : "0";
+        wireData += std::to_string(wireIndex);
+        Events::Send(message.c_str(), &wireData);
     }
 
     // === Lifecycle Methods ===
@@ -81,8 +83,14 @@ public:
     void OnTriggerExit(Entity other) override { (void)other; }
     void OnTriggerStay(Entity other) override { (void)other; }
 
+    bool GetCorrectSide()
+    {
+        return correctSide;
+    }
 private:
-    int leftWireIndex = 0;
+    int wireIndex = 0;
     int wirePuzzleIndex = 0;
     bool puzzleSolved = false;
+    bool correctSide = false; // false -> top row, true -> bottom row
+    std::string wireData;
 };
