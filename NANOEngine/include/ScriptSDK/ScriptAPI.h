@@ -184,7 +184,7 @@ namespace Scripting {
          * @return Entity ID
          */
         Entity GetEntity() const { return m_entity; }
-
+         
         /**
          * Check if the script is currently enabled.
          * @return true if enabled, false otherwise
@@ -851,7 +851,7 @@ namespace Scripting {
     // SCENE API (SDK-level Scene Management functions)
     //=========================================================================
 
-    SCRIPT_API void SwitchScene(const std::string& path);
+    SCRIPT_API void SwitchScene(std::string path);
 
     //=========================================================================
     // LOGGING API (SDK-level logging functions)
