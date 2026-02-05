@@ -363,6 +363,8 @@ namespace Scripting {
         void RB_AddImpulse(const Vec3& impulse, Entity entity = DEFAULT_ENTITY_PARAM);
         void RB_AddImpulse(float x, float y, float z, Entity entity = DEFAULT_ENTITY_PARAM);
 
+        void RB_SetIsTrigger(bool isTrigger, Entity entity = DEFAULT_ENTITY_PARAM);
+
         //=====================================================================
         // CHARACTER CONTROLLER PHYSICS (CC_*)
         // All functions support optional Entity parameter

@@ -14,6 +14,7 @@
  // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
 #include "../ECS/Components/Rigidbody.hpp"
+#include "../ECS/Components/Collider.hpp"
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Renderer.hpp"
@@ -662,6 +663,17 @@ namespace NE {
 
 		void IScript::RB_AddImpulse(float x, float y, float z, Entity entity) {
 			RB_AddImpulse(Vec3(x, y, z), entity);
+		}
+
+		void IScript::RB_SetIsTrigger(bool isTrigger, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			auto& collider = m_context->componentManager->GetComponent<ECS::Component::Collider>(targetEntity);
+
+			collider.isTrigger = isTrigger;
+			Physics::PhysicsManager::GetInstance().SetIsTrigger(meta.luid, isTrigger);
 		}
 
 		void IScript::CC_Move(const Vec3& displacement, Entity entity) {
