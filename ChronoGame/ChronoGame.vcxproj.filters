@@ -50,5 +50,6 @@
     <ClInclude Include="Scripts\Puzzle_Wire.hpp" />
     <ClInclude Include="Scripts\WireChild.hpp" />
     <ClInclude Include="Scripts\ColliderTest.hpp" />
+    <ClInclude Include="Scripts\UI_MasterVolumeButtons.hpp" />
   </ItemGroup>
 </Project>

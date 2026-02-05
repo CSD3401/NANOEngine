@@ -21,4 +21,8 @@ namespace NE::Audio {
  */
 	NANOENGINE_API void StopAllAudio();
 
+
+	NANOENGINE_API void SetMasterVolumeLevel(int level);
+	NANOENGINE_API int GetMasterVolumeLevel();
+
 } // namespace NE::Audio

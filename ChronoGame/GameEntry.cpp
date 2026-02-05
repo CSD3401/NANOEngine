@@ -38,6 +38,7 @@
 #include "Scripts/Puzzle_MultiLightSequencer.hpp"
 #include "Scripts/UIButton_SwitchScene.hpp"
 #include "Scripts/UI_ButtonHoverSwap.hpp"
+#include "Scripts/UI_MasterVolumeButtons.hpp"
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
     // Export this function so it can be called from the Engine DLL
@@ -204,6 +205,8 @@ extern "C" {
         registrar->RegisterScript("UI_ButtonHoverSwap", []() -> NE::Scripting::IScript* {
             return new UI_ButtonHoverSwap();
             });
-
+        registrar->RegisterScript("UI_MasterVolumeButtons", []() -> NE::Scripting::IScript* {
+            return new UI_MasterVolumeButtons();
+            });
     }
 }
