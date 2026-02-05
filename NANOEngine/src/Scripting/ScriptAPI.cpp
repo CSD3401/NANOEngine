@@ -712,6 +712,14 @@ namespace NE {
 			return Vec3(Physics::PhysicsManager::GetInstance().CharacterGetGroundNormal(meta.luid));
 		}
 
+		void IScript::CC_SetPosition(const Vec3& position, Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+
+			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
+			Physics::PhysicsManager::GetInstance().CharacterSetPosition(meta.luid, ToEngineVec3(position));
+		}
+
 		//=========================================================================
 		// Physics Raycasting
 		//=========================================================================

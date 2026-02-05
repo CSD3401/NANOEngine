@@ -93,6 +93,7 @@ namespace NE::Physics {
 		void CharacterRotateYaw(uint64_t entityLUID, float yawDegrees);
 		Math::Vec3 CharacterGetVelocity(uint64_t entityLUID) const;
 		Math::Vec3 CharacterGetGroundNormal(uint64_t entityLUID) const;
+		void CharacterSetPosition(uint64_t entityLUID, const Math::Vec3& position);
 
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID);
         void CreateBody(uint32_t entity, uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col, uint8_t layerID);

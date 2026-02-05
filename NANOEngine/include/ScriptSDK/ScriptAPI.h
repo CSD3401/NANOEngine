@@ -374,6 +374,7 @@ namespace Scripting {
 		void CC_Rotate(float yawDegrees, Entity entity = DEFAULT_ENTITY_PARAM);
         bool CC_IsGrounded(Entity entity = DEFAULT_ENTITY_PARAM) const;
 		Vec3 CC_GetGroundNormal(Entity entity = DEFAULT_ENTITY_PARAM) const;
+		void CC_SetPosition(const Vec3& position, Entity entity = DEFAULT_ENTITY_PARAM);
 
         //=====================================================================
         // PHYSICS RAYCASTING
