@@ -46,9 +46,14 @@ namespace NE::ECS::Systems
 		};
 
 		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> GetAllEvents() const;
+		// Master volume control (0..5 discrete levels)
+		void SetMasterVolumeLevel(int level);
+		int  GetMasterVolumeLevel() const { return m_masterVolumeLevel; }
 
 
 	private:
+		int m_masterVolumeLevel = 5; // 0..5
+		void ApplyMasterVolume();
 
 		ComponentManager* m_componentManager;
 

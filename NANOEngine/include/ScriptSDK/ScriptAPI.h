@@ -850,6 +850,20 @@ namespace Scripting {
     };
 
     //=========================================================================
+// MASTER VOLUME (GLOBAL)
+//=========================================================================
+/**
+ * @brief Set master volume level (discrete 0..5)
+ */
+    SCRIPT_API void SetMasterVolumeLevel(int level);
+
+    /**
+     * @brief Get current master volume level (0..5)
+     */
+    SCRIPT_API int GetMasterVolumeLevel();
+
+
+    //=========================================================================
     // SCENE API (SDK-level Scene Management functions)
     //=========================================================================
 
@@ -1691,6 +1705,18 @@ namespace RenderSettings {
         NE::Scripting::SetFogDensity(density);
     }
 }
+
+/// Audio system namespace - global controls (master volume)
+namespace Audio {
+    inline void SetMasterVolumeLevel(int level) {
+        NE::Scripting::SetMasterVolumeLevel(level);
+    }
+
+    inline int GetMasterVolumeLevel() {
+        return NE::Scripting::GetMasterVolumeLevel();
+    }
+} // namespace Audio
+
 
 /// UI system namespace - text and button interaction
 namespace UI {

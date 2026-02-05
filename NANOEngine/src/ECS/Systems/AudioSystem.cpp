@@ -82,20 +82,8 @@ namespace NE::ECS::Systems {
 #pragma endregion
 
 
-	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const
-	{
-		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> allEvents;
 
-		// Collect events from all loaded banks
-		for (const auto& [bankPath, bankPtr] : m_loadedBanks) {
-			if (bankPtr && bankPtr->IsLoaded()) {
-				const auto& bankEvents = bankPtr->GetEvents();
-				allEvents.insert(bankEvents.begin(), bankEvents.end());
-			}
-		}
 
-		return allEvents;
-	}
 
 	void AudioSystem::ProcessAudioSource(
 		NE::ECS::Component::AudioSource& audioSource,
@@ -449,6 +437,50 @@ namespace NE::ECS::Systems {
 	{
 		CleanupStudioSystem();
 		SPD_INFO("AudioSystem shutdown");
+	}
+
+	std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> AudioSystem::GetAllEvents() const
+	{
+		std::unordered_map<std::string, NE::Asset::AudioBank::EventInfo> allEvents;
+
+		// Collect events from all loaded banks
+		for (const auto& [bankPath, bankPtr] : m_loadedBanks) {
+			if (bankPtr && bankPtr->IsLoaded()) {
+				const auto& bankEvents = bankPtr->GetEvents();
+				allEvents.insert(bankEvents.begin(), bankEvents.end());
+			}
+		}
+
+		return allEvents;
+	}
+
+	void AudioSystem::ApplyMasterVolume()
+	{
+		// Map 0..5 -> 0.0..1.0
+		const float v = std::clamp(static_cast<float>(m_masterVolumeLevel) / 5.0f, 0.0f, 1.0f);
+
+		// Core (non-studio) sounds
+		auto& engine = GetAudioEngine();
+		if (engine.system) {
+			FMOD::ChannelGroup* masterGroup = nullptr;
+			if (engine.system->getMasterChannelGroup(&masterGroup) == FMOD_OK && masterGroup) {
+				masterGroup->setVolume(v);
+			}
+		}
+
+		// Studio events (FMOD Studio)
+		if (studioSystem) {
+			FMOD::Studio::Bus* masterBus = nullptr;
+			if (studioSystem->getBus("bus:/", &masterBus) == FMOD_OK && masterBus) {
+				masterBus->setVolume(v);
+			}
+		}
+	}
+
+	void AudioSystem::SetMasterVolumeLevel(int level)
+	{
+		m_masterVolumeLevel = std::clamp(level, 0, 5);
+		ApplyMasterVolume();
 	}
 
 
