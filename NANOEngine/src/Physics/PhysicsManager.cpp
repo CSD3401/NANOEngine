@@ -41,6 +41,7 @@
 #include "ECS/Components/Rigidbody.hpp"
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Transform.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Core/ComponentManager.hpp"
 #include "ObjectLayerPairFilterImpl.hpp"
@@ -108,6 +109,11 @@ namespace NE::Physics {
 
 		JPH::Quat ToJPHQuat(const NE::Math::Quat& q) {
 			return JPH::Quat(q.x, q.y, q.z, q.w);
+		}
+
+		NE::Math::Quat WorldQuatFromMat4(const NE::Math::Mat4& m) {
+			const NE::Math::Vec3 rotRad = m.GetRotation();
+			return NE::Math::Quat::FromEulerRadians(rotRad.x, rotRad.y, rotRad.z);
 		}
 
 		inline uint32_t FloatBits(float f) {
@@ -591,13 +597,8 @@ namespace NE::Physics {
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
 		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
-		//const JPH::Quat jRot = JPH::Quat::sEulerAngles({
-		//	JPH::DegreesToRadians(t.localRotationEuler.x),
-		//	JPH::DegreesToRadians(t.localRotationEuler.y),
-		//	JPH::DegreesToRadians(t.localRotationEuler.z) }
-		//	);
-
-		const JPH::Quat jRot = ToJPHQuat(t.localRotationQuat);
+		const Math::Quat worldRot = WorldQuatFromMat4(t.worldMatrix);
+		const JPH::Quat jRot = ToJPHQuat(worldRot);
 
 		const JPH::EMotionType motion = ToMotionType(rb);
 		const JPH::ObjectLayer objLayer = ToObjectLayer(layerID, motion);
@@ -654,11 +655,8 @@ namespace NE::Physics {
 
 		const Math::Vec3 pos = t.worldMatrix.GetTranslation();
 		const JPH::RVec3 jPos((double)pos.x, (double)pos.y, (double)pos.z);
-		const JPH::Quat jRot = JPH::Quat::sEulerAngles({
-			JPH::DegreesToRadians(t.localRotationEuler.x),
-			JPH::DegreesToRadians(t.localRotationEuler.y),
-			JPH::DegreesToRadians(t.localRotationEuler.z) }
-			);
+		const Math::Quat worldRot = WorldQuatFromMat4(t.worldMatrix);
+		const JPH::Quat jRot = ToJPHQuat(worldRot);
 
 		const JPH::EMotionType motion = JPH::EMotionType::Static;
 		const JPH::ObjectLayer objLayer = ToObjectLayer(layerID, motion);
@@ -714,9 +712,32 @@ namespace NE::Physics {
 		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
 
 		auto& bodyID = m_bodies.at(luid);
-		t.localPosition = ToEngineVec3(bi.GetPosition(bodyID));
-		t.localRotationEuler = JQuatToDegreeEuler(bi.GetRotation(bodyID));
-		t.localRotationQuat = ToEngineQuat(bi.GetRotation(bodyID));
+		const Math::Vec3 worldPos = ToEngineVec3(bi.GetPosition(bodyID));
+		const Math::Quat worldRot = ToEngineQuat(bi.GetRotation(bodyID));
+
+		Math::Vec3 localPos = worldPos;
+		Math::Quat localRot = worldRot;
+
+		if (m_luidRegistry && m_componentManager) {
+			const Core::LuidRecord* rec = m_luidRegistry->Find(luid);
+			if (rec && m_componentManager->HasComponent<ECS::Component::Hierarchy>(rec->m_entityOwner)) {
+				const auto& h = m_componentManager->GetComponent<ECS::Component::Hierarchy>(rec->m_entityOwner);
+				if (h.parent != ECS::Component::INVALID_PARENT &&
+					m_componentManager->HasComponent<ECS::Component::Transform>(h.parent)) {
+					const auto& parentT = m_componentManager->GetComponent<ECS::Component::Transform>(h.parent);
+					const Math::Mat4 invParent = parentT.worldMatrix.Inverse();
+					localPos = invParent * worldPos;
+
+					const Math::Quat parentWorldRot = WorldQuatFromMat4(parentT.worldMatrix);
+					localRot = parentWorldRot.InverseFast() * worldRot;
+					localRot.Normalize();
+				}
+			}
+		}
+
+		t.localPosition = localPos;
+		t.localRotationQuat = localRot;
+		t.localRotationEuler = localRot.ToEulerDegrees();
 
 		t.isDirty = true;
 	}
