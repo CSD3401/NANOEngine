@@ -990,6 +990,25 @@ namespace NE::Physics {
 		}
 	}
 
+	void PhysicsManager::SetIsTrigger(uint64_t entityLUID, bool isTrigger) {
+		auto it = m_bodies.find(entityLUID);
+		if (it != m_bodies.end()) {
+			JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+			JPH::BodyID bodyID = it->second;
+			bi.SetIsSensor(bodyID, isTrigger);
+		}
+	}
+
+	void PhysicsManager::SetIsKinematic(uint64_t entityLUID, bool isKinematic) {
+		//auto it = m_bodies.find(entityLUID);
+		//if (it != m_bodies.end()) {
+		//	JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+		//	JPH::BodyID bodyID = it->second;
+		//	JPH::EMotionType newMotion = isKinematic ? JPH::EMotionType::Kinematic : JPH::EMotionType::Dynamic;
+		//	bi.SetMotionType(bodyID, newMotion);
+		//}
+	}
+
 	bool PhysicsManager::CookMeshCollider(const std::vector<Math::Vec3>& vertices,
 		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob) {
 		if (!m_physicsSystem)

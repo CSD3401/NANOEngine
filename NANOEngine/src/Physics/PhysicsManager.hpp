@@ -116,6 +116,8 @@ namespace NE::Physics {
         void SetLinearVelocity(uint64_t entityLUID, const Math::Vec3& velocity);
         Math::Vec3 GetAngularVelocity(uint64_t entityLUID) const;
         void SetAngularVelocity(uint64_t entityLUID, const Math::Vec3& angularVelocity);
+		void SetIsTrigger(uint64_t entityLUID, bool isTrigger);
+		void SetIsKinematic(uint64_t entityLUID, bool isKinematic);
 
         bool CookMeshCollider(const std::vector<Math::Vec3>& vertices,
             const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob);
