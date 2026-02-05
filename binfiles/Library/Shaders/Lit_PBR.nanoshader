@@ -91,7 +91,7 @@ uniform vec3 	  u_Offset; // uses .xy
 uniform vec3      u_Emissive;
 uniform float     u_EmissiveStrength;
 uniform sampler2D u_EmissionMap;
-uniform int		  h_hasEmissionMap;
+uniform int		  h_HasEmissionMap;
 
 // Height / POM
 uniform sampler2D u_HeightMap;
@@ -561,7 +561,7 @@ void main() {
     vec3 Lo = vec3(0.0);
 	
 	vec3 emissive = u_Emissive * u_EmissiveStrength;
-    if (h_hasEmissionMap != 0) {
+    if (h_HasEmissionMap != 0) {
         vec3 eTex = texture(u_EmissionMap, uv).rgb;
         emissive *= eTex;
     }
