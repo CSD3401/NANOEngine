@@ -19,14 +19,14 @@ public:
         SCRIPT_COMPONENT_REF(presentMaterial, MaterialRef);
     }
 
-    void Start() override { RegisterEventListeners(); }
+    void Start() override {}
 
     void Update(double deltaTime) override {}
 
     void OnDestroy() override {}
 
     // === Optional Callbacks ===
-    void OnEnable() override { RegisterEventListeners(); }
+    void OnEnable() override {}
 
     void OnDisable() override {}
 
@@ -37,10 +37,12 @@ public:
     }
 
     // === Collision Callbacks ===
-    void OnCollisionEnter(Entity other) override {}
-    void OnCollisionExit(Entity other) override {}
-    void OnTriggerEnter(Entity other) override {}
-    void OnTriggerExit(Entity other) override {}
+    void OnCollisionEnter(Entity other) override { (void)other; }
+    void OnCollisionExit(Entity other) override { (void)other; }
+    void OnCollisionStay(Entity other) override { (void)other; }
+    void OnTriggerEnter(Entity other) override { (void)other; }
+    void OnTriggerExit(Entity other) override { (void)other; }
+    void OnTriggerStay(Entity other) override { (void)other; }
 
     // === Public Actions ===
     void ShowPast() {
@@ -54,20 +56,6 @@ public:
 private:
     MaterialRef pastMaterial;
     MaterialRef presentMaterial;
-    bool eventsRegistered = false;
-
-    void RegisterEventListeners() {
-        if (eventsRegistered) {
-            return;
-        }
-        eventsRegistered = true;
-        Events::Listen("ChronoActivated", [this](void* data) {
-            this->ShowPast();
-        });
-        Events::Listen("ChronoDeactivated", [this](void* data) {
-            this->ShowPresent();
-        });
-    }
 
     void ApplyMaterial(const MaterialRef& material, bool isPast) {
         if (!material.IsValid()) {

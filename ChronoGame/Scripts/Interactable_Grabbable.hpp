@@ -37,7 +37,8 @@ public:
     void Initialize(Entity entity) override {}
     void Start() override 
     {
-
+        std::string eID = "GRAB E_ID: " + std::to_string(GetEntity());
+        LOG_DEBUG(eID);
     }
     void Update(double deltaTime) override {}
     void OnDestroy() override {}

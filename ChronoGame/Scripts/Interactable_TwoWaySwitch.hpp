@@ -10,7 +10,13 @@
 
 class Interactable_TwoWaySwitch : public Interactable_ {
 public:
-    Interactable_TwoWaySwitch() {}
+    Interactable_TwoWaySwitch()
+        : _receiver{ nullptr }
+        , _state{ false }
+		, toggleCooldown{ 0.0f }
+		, timer{ toggleCooldown }
+    {
+    }
     ~Interactable_TwoWaySwitch() override = default;
 
     // === Custom Methods ===
@@ -21,10 +27,16 @@ public:
     }
     void Interact() override
     {
+        if (timer > 0.0f)
+        {
+            return;
+        }
+
         if (_receiver)
         { 
             _receiver->ReceiveInput(_state);
 			_state = !_state;
+			timer = toggleCooldown;
         }
         else
         {
@@ -34,9 +46,16 @@ public:
 
     // === Lifecycle Methods ===
     void Awake() override {}
-    void Initialize(Entity entity) override {}
+    void Initialize(Entity entity) override {
+        SCRIPT_FIELD(toggleCooldown, Float); // If you want to restrict rapid toggling
+    }
     void Start() override {}
-    void Update(double deltaTime) override {}
+    void Update(double deltaTime) override {
+        if (timer > 0.0f)
+        {
+            timer -= static_cast<float>(deltaTime);
+        }
+    }
     void OnDestroy() override {}
 
     // === Optional Callbacks ===
@@ -56,4 +75,6 @@ public:
 private:
     Puzzle_* _receiver;
     bool _state;
+    float toggleCooldown;
+    float timer;
 };

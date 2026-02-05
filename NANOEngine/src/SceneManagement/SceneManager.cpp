@@ -19,7 +19,7 @@ namespace NE::SceneManagement {
 		Physics::PhysicsManager::GetInstance().
 			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
 				&m_editor->GetECSCoordinator().GetLUIDRegistry());
-		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), uuid)) {
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), m_loadedPath)) {
 			m_editor.reset();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 			return false;
