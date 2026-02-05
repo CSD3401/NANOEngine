@@ -86,4 +86,27 @@ namespace NE::Audio {
 		}
 	}
 
+	void SetMasterVolumeLevel(int level) {
+		auto& scene = NE::GetScene();
+		auto audioSystem = scene.GetECSCoordinator().m_audioSystem;
+
+		if (audioSystem) {
+			audioSystem->SetMasterVolumeLevel(level);
+		}
+		else {
+			SPD_ERROR("[Audio] AudioSystem not found - cannot set master volume");
+		}
+	}
+
+	int GetMasterVolumeLevel() {
+		auto& scene = NE::GetScene();
+		auto audioSystem = scene.GetECSCoordinator().m_audioSystem;
+
+		if (audioSystem) {
+			return audioSystem->GetMasterVolumeLevel();
+		}
+		SPD_ERROR("[Audio] AudioSystem not found - cannot get master volume");
+		return 5;
+	}
+
 } // namespace NE::Audio

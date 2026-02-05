@@ -1092,6 +1092,18 @@ namespace NE {
 			return AudioSourceRef();
 		}
 
+		/// Audio system namespace - global controls (master volume)
+		namespace Audio {
+			inline void SetMasterVolumeLevel(int level) {
+				NE::Scripting::SetMasterVolumeLevel(level);
+			}
+
+			inline int GetMasterVolumeLevel() {
+				return NE::Scripting::GetMasterVolumeLevel();
+			}
+		} // namespace Audio
+
+
 		//=========================================================================
 		// Material UUID Registry (Maps material IDs to UUIDs)
 		//=========================================================================
@@ -4158,6 +4170,21 @@ namespace NE {
 			auto& toggle = ecs.GetComponent<ECS::Component::UIToggle>(entity);
 			toggle.interactable = interactable;
 		}
+
+		//=========================================================================
+// MASTER VOLUME (GLOBAL)
+//=========================================================================
+
+		void SetMasterVolumeLevel(int level)
+		{
+			NE::Audio::SetMasterVolumeLevel(level);
+		}
+
+		int GetMasterVolumeLevel()
+		{
+			return NE::Audio::GetMasterVolumeLevel();
+		}
+
 
 	} // namespace Scripting
 } // namespace NE
