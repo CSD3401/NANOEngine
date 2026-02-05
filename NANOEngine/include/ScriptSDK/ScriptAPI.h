@@ -376,6 +376,9 @@ namespace Scripting {
 		Vec3 CC_GetGroundNormal(Entity entity = DEFAULT_ENTITY_PARAM) const;
 		void CC_SetPosition(const Vec3& position, Entity entity = DEFAULT_ENTITY_PARAM);
 
+        void Anim_Play(Entity entity = DEFAULT_ENTITY_PARAM);
+		void Anim_Stop(Entity entity = DEFAULT_ENTITY_PARAM);
+
         //=====================================================================
         // PHYSICS RAYCASTING
         //=====================================================================
