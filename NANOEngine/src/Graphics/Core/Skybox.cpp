@@ -11,7 +11,7 @@
 #include "Vertex.hpp"
 #include "DrawCommand.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
-#include "Graphics/Core/RenderViewManager.hpp"
+#include "RenderViewManager.hpp"
 
 namespace NE::Graphics {
 
@@ -73,14 +73,6 @@ namespace NE::Graphics {
 
 		glDepthMask(GL_TRUE);
         glDepthFunc(GL_LESS);
-    }
-
-    void Skybox::Submit() const {
-        DrawCommand cmd;
-        cmd.mesh = m_mesh;
-        cmd.material = m_material;
-        cmd.transform = Math::Mat4::BuildScaling(50.f, 50.f, 50.f);
-        GraphicsManager::Submit(cmd);
     }
 
     std::shared_ptr<IPipeline> Skybox::GetSkyboxPipeline() const {

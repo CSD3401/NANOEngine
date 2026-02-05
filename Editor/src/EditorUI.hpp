@@ -7,6 +7,7 @@
 #include <Core/Reflection.hpp>
 
 namespace NE::Math {
+    struct Vec2;
     struct Vec3;
 }
 
@@ -20,7 +21,15 @@ namespace Editor {
     void EndPillCombo();
 
     // A pretty Vec3 control with color coding and reset buttons
-    bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f);
+    bool DrawVec3Control(const char* label, NE::Math::Vec3& v, float labelWidth,
+        float speed = 0.1f,
+        float axisTextGap = 6.0f,      // gap between "X" and its field
+        float groupSpacing = 7.0f);
+
+    bool DrawVec2Control(const char* label, NE::Math::Vec2& v, float labelWidth,
+        float speed = 0.1f,
+        float axisTextGap = 6.0f,      // gap between "X" and its field
+        float groupSpacing = 7.0f);
 
     // Generic float
     bool DrawFloatControl(const std::string& label, float& value, float step = 0.1f);

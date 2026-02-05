@@ -1,4 +1,5 @@
-﻿#include "AudioBank.hpp"
+﻿// AudioBank.cpp - FIXED VERSION
+#include "AudioBank.hpp"
 #include <filesystem>
 #include "Core/SpdLogger.hpp"
 
@@ -17,25 +18,24 @@ namespace NE::Asset
 	}
 
 	bool AudioBank::Preload(Resource::BinaryView blob) {
-		return false;
+		// AudioBank doesn't use the blob-based loading system
+		// It's loaded directly by FMOD Studio System in AudioSystem
+		// This method just returns true to satisfy the interface
+		(void)blob; // Suppress unused parameter warning
+		return true;
 	}
 
 	void AudioBank::Finalize()
 	{
+		// AudioBank finalization is handled by AudioSystem
+		// Nothing to do here
 	}
 
 	/*
 	Actual FMOD bank loading happens in AudioSystem
-	This class jus tracks AudioBank asset metadata
+	This class just tracks AudioBank asset metadata
 	FMOD bank pointer will be set by AudioSystem after loading
 	*/
-	//bool AudioBank::LoadFromFile(const std::string& filename)
-	//{
-	//	filePath = filename;
-	//	displayName = std::filesystem::path(filename).stem().string();
-	//	m_loaded = true;
-	//	return true;
-	//}
 
 
 	/*
@@ -44,7 +44,7 @@ namespace NE::Asset
 	*/
 	void AudioBank::Unload()
 	{
-		if (m_bank) 
+		if (m_bank)
 		{
 			m_bank->unload();
 			m_bank = nullptr;
@@ -57,7 +57,8 @@ namespace NE::Asset
 
 	std::string AudioBank::GetDisplayName() const
 	{
-		//return displayName.empty() ? std::filesystem::path(filePath).stem().string() : displayName;
+		// Return empty string for now
+		// In a full implementation, you'd store the bank name
 		return std::string();
 	}
 
@@ -65,7 +66,7 @@ namespace NE::Asset
 	{
 		m_events.clear();
 
-		if (!m_bank) 
+		if (!m_bank)
 		{
 			return;
 		}
@@ -87,7 +88,7 @@ namespace NE::Asset
 				int retrieved = 0;
 				eventDesc->getPath(eventPath, sizeof(eventPath), &retrieved);
 
-				if (retrieved > 0) 
+				if (retrieved > 0)
 				{
 					std::string pathStr = eventPath;
 
@@ -105,7 +106,7 @@ namespace NE::Asset
 					// Store event info
 					EventInfo eventInfo;
 					eventInfo.path = eventPath;
-					//eventInfo.displayName = displayedName;
+					eventInfo.audioName = displayedName;
 					eventInfo.eventDesc = eventDesc;
 
 					m_events[eventPath] = eventInfo;

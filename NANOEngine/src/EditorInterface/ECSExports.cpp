@@ -11,12 +11,17 @@
 #include "../ECS/Components/UIRectTransform.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
+#include "../ECS/Components/UIText.hpp"
+#include "../ECS/Components/UIButton.hpp"
+#include "../ECS/Components/UISlider.hpp"
+#include "../ECS/Components/UIToggle.hpp"
 #include "../ECS/Components/PrefabLink.hpp"
 #include "../ECS/Components/PrefabInstance.hpp"
 #include "../ECS/Components/CharacterController.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
+#include "../ECS/Systems/UIEventSystem.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Animator.hpp"
 #include "Scripting/ScriptingEngine.hpp"
@@ -26,6 +31,8 @@
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Systems/HierarchySystem.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "Graphics/OpenGL/GLTexture.hpp"
+#include "Graphics/Core/Material.hpp"
 
 namespace NE {
 	//SceneManagement::Scene& GetScene();
@@ -81,6 +88,22 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
 		}
 
+		const Component::UIText& GetUIText(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIText>(e);
+		}
+
+		const Component::UIButton& GetUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		const Component::UISlider& GetUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		const Component::UIToggle& GetUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
+		}
+
 		bool HasEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::EntityMeta>(e);
 		}
@@ -103,6 +126,22 @@ namespace NE::ECS {
 
 		bool HasUIImage(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIImage>(e);
+		}
+
+		bool HasUIText(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIText>(e);
+		}
+
+		bool HasUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		bool HasUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		bool HasUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIToggle>(e);
 		}
 
 		bool HasPrefabLink(uint32_t e) {
@@ -215,6 +254,22 @@ namespace NE::ECS {
 
 		ComponentType GetUICanvasComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UICanvas>();
+		}
+
+		ComponentType GetUITextComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIText>();
+		}
+
+		ComponentType GetUIButtonComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIButton>();
+		}
+
+		ComponentType GetUISliderComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UISlider>();
+		}
+
+		ComponentType GetUIToggleComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIToggle>();
 		}
 
 		ComponentType GetEntityAnimatorComponentType() {
@@ -617,8 +672,12 @@ namespace NE::ECS {
 				newEntity,
 				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("cv") });
 
+			// Add Hierarchy component (required for parent-child relationships with UI children)
+			GetScene().GetECSCoordinator().AddComponent(newEntity, Component::Hierarchy{});
+
 			// set up canvas component
 			Component::UICanvas canvas;
+			canvas.luid = Core::LUIDGenerator::Generate("cv");
 			GetScene().GetECSCoordinator().AddComponent(newEntity, canvas);
 
 			// setup RectTransform for canvas (fullscreen by default)
@@ -784,6 +843,22 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::UIImage>(e, c);
 		}
 
+		void AddUITextComponent(uint32_t e, const Component::UIText& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIText>(e, c);
+		}
+
+		void AddUIButtonComponent(uint32_t e, const Component::UIButton& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIButton>(e, c);
+		}
+
+		void AddUISliderComponent(uint32_t e, const Component::UISlider& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UISlider>(e, c);
+		}
+
+		void AddUIToggleComponent(uint32_t e, const Component::UIToggle& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIToggle>(e, c);
+		}
+
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::PrefabLink>(e, c);
 		}
@@ -862,6 +937,22 @@ namespace NE::ECS {
 
 		Component::UICanvas& GetUICanvas(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UICanvas>(e);
+		}
+
+		Component::UIText& GetUIText(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIText>(e);
+		}
+
+		Component::UIButton& GetUIButton(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIButton>(e);
+		}
+
+		Component::UISlider& GetUISlider(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UISlider>(e);
+		}
+
+		Component::UIToggle& GetUIToggle(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
 		}
 
 		Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
@@ -1027,6 +1118,91 @@ namespace NE::ECS {
 			auto& animator = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 			animator.animClipUUID = uuid;
 			animator.clip = Resource::ResourceManager::GetInstance().LoadResource<Animation::AnimationClip>(uuid);
+		}
+
+		//=========================================================================
+		// UI IMAGE UTILITIES
+		//=========================================================================
+
+		bool SetUIImageTexture(uint32_t imageEntity, const char* textureUUID) {
+			return SetUIImageTextureAndMaterial(imageEntity, textureUUID, "");
+		}
+
+		bool SetUIImageTextureAndMaterial(uint32_t imageEntity, const char* textureUUID, const char* materialUUID) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			// Safety check - entity must have UIImage component
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return false;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+
+			// Update texture UUID and load the texture
+			if (textureUUID && textureUUID[0] != '\0') {
+				img.textureUUID = textureUUID;
+				auto texture = Resource::ResourceManager::GetInstance()
+					.LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
+
+				if (texture) {
+					img.bindlessHandle = texture->GetBindlessHandle();
+				} else {
+					img.bindlessHandle = 0;  // Texture load failed, fallback to solid color
+					return false;
+				}
+			} else {
+				img.textureUUID.clear();
+				img.bindlessHandle = 0;  // No texture, solid color only
+			}
+
+			// Update material if provided
+			if (materialUUID && materialUUID[0] != '\0') {
+				img.materialUUID = materialUUID;
+				img.material = Resource::ResourceManager::GetInstance()
+					.LoadResource<Graphics::Material>(materialUUID);
+			}
+
+			img.isDirty = true;  // Signal refresh
+			return true;
+		}
+
+		void SetUIImageColor(uint32_t imageEntity, float r, float g, float b, float a) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+			img.color = Math::Vec4(r, g, b, a);
+			img.isDirty = true;
+		}
+
+		void SetUIImageFillAmount(uint32_t imageEntity, float fillAmount) {
+			auto& ecs = GetScene().GetECSCoordinator();
+
+			if (!ecs.HasComponent<Component::UIImage>(imageEntity)) {
+				return;
+			}
+
+			auto& img = ecs.GetComponent<Component::UIImage>(imageEntity);
+
+			// Clamp to valid range
+			if (fillAmount < 0.0f) fillAmount = 0.0f;
+			if (fillAmount > 1.0f) fillAmount = 1.0f;
+
+			img.fillAmount = fillAmount;
+			img.isDirty = true;
+		}
+	}
+
+	namespace Command {
+		void SetUIViewportBounds(float offsetX, float offsetY, float width, float height, float uiWidth, float uiHeight) {
+			Systems::UIEventSystem::SetViewportBounds(offsetX, offsetY, width, height, uiWidth, uiHeight);
+		}
+
+		void ClearUIViewportBounds() {
+			Systems::UIEventSystem::ClearViewportBounds();
 		}
 	}
 }

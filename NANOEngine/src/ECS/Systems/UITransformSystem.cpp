@@ -22,7 +22,7 @@ namespace NE::ECS::Systems {
         }
 
         // queue parent resolution if needed
-        if (rect.parentLuid != 0) 
+        if (rect.parentLuid != 0)
         {
             m_pendingParents.push_back(PendingParent{ e, rect.parentLuid });
         }
@@ -65,7 +65,47 @@ namespace NE::ECS::Systems {
     }
 
     void UITransformSystem::Init() {
-        ResolvePendingParents();
+        // Rebuild the luid map and re-resolve all parent relationships from scratch.
+        // This is necessary because entity IDs are runtime values that change between sessions,
+        // while parentLuid is the serialized source of truth for parent relationships.
+        m_luidToEntity.clear();
+        m_pendingParents.clear();
+
+        const auto& entities = GetEntities();
+
+        // First pass: build LUID -> Entity map
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<Component::UIRectTransform>(e)) continue;
+            auto& rect = m_cm->GetComponent<Component::UIRectTransform>(e);
+
+            if (rect.luid != 0) {
+                m_luidToEntity[rect.luid] = e;
+            }
+        }
+
+        // Second pass: resolve all parent relationships based on parentLuid
+        // Always re-resolve - never trust the cached parent value since entity IDs change between sessions
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<Component::UIRectTransform>(e)) continue;
+            auto& rect = m_cm->GetComponent<Component::UIRectTransform>(e);
+
+            if (rect.parentLuid != 0) {
+                // Look up parent entity by luid
+                auto it = m_luidToEntity.find(rect.parentLuid);
+                if (it != m_luidToEntity.end()) {
+                    rect.parent = it->second;
+                }
+                else {
+                    // Parent not found - queue for later resolution (shouldn't happen normally)
+                    rect.parent = NO_ENTITY;
+                    m_pendingParents.push_back(PendingParent{ e, rect.parentLuid });
+                }
+            }
+            else {
+                // No parent luid means this is a root UI element
+                rect.parent = NO_ENTITY;
+            }
+        }
     }
 
     void UITransformSystem::ResolvePendingParents() {
@@ -80,12 +120,12 @@ namespace NE::ECS::Systems {
 
             // look up parent entity by luid
             auto it = m_luidToEntity.find(pp.parentLuid);
-            if (it != m_luidToEntity.end()) 
+            if (it != m_luidToEntity.end())
             {
                 Entity parentEnt = it->second;
                 childRect.parent = parentEnt;
             }
-            else 
+            else
             {
                 stillPending.push_back(pp);
             }
@@ -100,12 +140,12 @@ namespace NE::ECS::Systems {
         auto& childRect = m_cm->GetComponent<Component::UIRectTransform>(child);
         childRect.parent = newParent;
 
-        if (newParent != NO_ENTITY && m_cm->HasComponent<Component::UIRectTransform>(newParent)) 
+        if (newParent != NO_ENTITY && m_cm->HasComponent<Component::UIRectTransform>(newParent))
         {
             auto& parentRect = m_cm->GetComponent<Component::UIRectTransform>(newParent);
             childRect.parentLuid = parentRect.luid;
         }
-        else 
+        else
         {
             childRect.parentLuid = 0;
         }
@@ -113,7 +153,7 @@ namespace NE::ECS::Systems {
 
     Entity UITransformSystem::GetEntityFromLUID(uint64_t luid) const {
         auto it = m_luidToEntity.find(luid);
-        if (it != m_luidToEntity.end()) 
+        if (it != m_luidToEntity.end())
         {
             return it->second;
         }
@@ -121,9 +161,14 @@ namespace NE::ECS::Systems {
     }
 
     void UITransformSystem::Update(double) {
+        // Resolve any pending parent relationships (needed after scene load)
+        if (!m_pendingParents.empty()) {
+            ResolvePendingParents();
+        }
+
         // Future: calculate world-space transforms for UI elements
         // Similar to how TransformSystem builds world matrices
-        // shift matrix calculations from uigizmo handling here 
+        // shift matrix calculations from uigizmo handling here
         // and also matrix calculations done in scene panel
         // TODO
     }

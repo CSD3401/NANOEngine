@@ -273,7 +273,7 @@ namespace Editor {
 			if (hierHovered && !m_draggedEntities.empty()) {
 				if (EditorScene::selectedPrefab.empty()) {
 					for (auto child : m_draggedEntities) {
-						if (NE::ECS::Query::HasPrefabLink(child)) {
+						if (!NE::ECS::Query::HasPrefabInstance(child) && NE::ECS::Query::HasPrefabLink(child)) {
 							m_dragRep = NE::ECS::NO_ENTITY;
 							m_draggedEntities.clear();
 							m_previewAsChild = false;
@@ -734,6 +734,55 @@ namespace Editor {
 			if (ImGui::MenuItem("Audio Source", "", false, false)) {
 
 			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("UI")) {
+			if (ImGui::MenuItem("Canvas")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUICanvasEvent{}
+				);
+			}
+			if (ImGui::MenuItem("Text")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUITextEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Image")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIImageEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Button")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIButtonEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Panel")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIPanelEvent{ parentEntityId }
+				);
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Slider")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUISliderEvent{ parentEntityId }
+				);
+			}
+			if (ImGui::MenuItem("Toggle")) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::CreateUIToggleEvent{ parentEntityId }
+				);
+			}
+			ImGui::MenuItem("Input Field", "", false, false); // Phase 3
+			ImGui::MenuItem("Scroll View", "", false, false); // Phase 3
 			ImGui::EndMenu();
 		}
 

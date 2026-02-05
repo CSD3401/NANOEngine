@@ -1,4 +1,6 @@
 #include "EditorUI.hpp"
+
+#include <Math/Vec2.hpp>
 #include <Math/Vec3.hpp>
 #include "AssetManagement/AssetManager.hpp"
 #include <imgui/widgets/imsearch/imsearch.h>
@@ -190,48 +192,102 @@ namespace Editor {
         return changed;
     }
 
-    bool DrawVec3Control(const std::string& label, NE::Math::Vec3& values, float resetValue, float columnWidth)
+    bool DrawVec3Control(const char* label, NE::Math::Vec3& v, float labelWidth,
+        float speed, float axisTextGap, float groupSpacing) 
     {
         bool changed = false;
-        //ImGuiIO& io = ImGui::GetIO();
-        //auto boldFont = io.Fonts->Fonts[0];
+        ImGui::PushID(label);
 
-        ImGui::PushID(label.c_str());
+        if (ImGui::BeginTable("##vec3", 2, ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-        ImGui::Columns(2);
-        ImGui::SetColumnWidth(0, columnWidth);
-        ImGui::Text("%s", label.c_str());
-        ImGui::NextColumn();
+            ImGui::TableNextRow();
 
-        ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0,0 });
+            // Label column
+            ImGui::TableSetColumnIndex(0);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(label);
 
-        float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+            // Value column
+            ImGui::TableSetColumnIndex(1);
 
-        // X
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-        if (ImGui::Button("X", buttonSize)) { values.x = resetValue; changed = true; }
-        ImGui::PopStyleColor();
-        ImGui::SameLine();
-        changed |= ImGui::DragFloat("##X", &values.x, 0.1f); ImGui::PopItemWidth(); ImGui::SameLine();
+            const float avail = ImGui::GetContentRegionAvail().x;
 
-        // Y
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-        if (ImGui::Button("Y", buttonSize)) { values.y = resetValue; changed = true; }
-        ImGui::PopStyleColor();
-        ImGui::SameLine();
-        changed |= ImGui::DragFloat("##Y", &values.y, 0.1f); ImGui::PopItemWidth(); ImGui::SameLine();
+            // Width budget: 3 drags + 2 group spacings + 3 axis letters + 3 axis gaps
+            const float axisW = ImGui::CalcTextSize("X").x; // same for Y/Z
+            const float dragsW = avail - (2.0f * groupSpacing) - (3.0f * axisW) - (3.0f * axisTextGap);
+            const float dragW = (dragsW > 0.0f) ? (dragsW / 3.0f) : 0.0f;
 
-        // Z
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-        if (ImGui::Button("Z", buttonSize)) { values.z = resetValue; changed = true; }
-        ImGui::PopStyleColor();
-        ImGui::SameLine();
-        changed |= ImGui::DragFloat("##Z", &values.z, 0.1f); ImGui::PopItemWidth();
+            auto axisDrag = [&](const char* axisLabel, const char* id, float& value) {
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted(axisLabel);
+                ImGui::SameLine(0.0f, axisTextGap);
 
-        ImGui::PopStyleVar();
-        ImGui::Columns(1);
+                ImGui::PushItemWidth(dragW);
+                changed |= ImGui::DragFloat(id, &value, speed);
+                ImGui::PopItemWidth();
+                };
+
+            axisDrag("X", "##X", v.x);
+            ImGui::SameLine(0.0f, groupSpacing);
+
+            axisDrag("Y", "##Y", v.y);
+            ImGui::SameLine(0.0f, groupSpacing);
+
+            axisDrag("Z", "##Z", v.z);
+
+            ImGui::EndTable();
+        }
+
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool DrawVec2Control(const char* label, NE::Math::Vec2& v, float labelWidth,
+        float speed, float axisTextGap, float groupSpacing)
+    {
+        bool changed = false;
+        ImGui::PushID(label);
+
+        if (ImGui::BeginTable("##vec2", 2, ImGuiTableFlags_SizingFixedFit)) {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+
+            // Label column
+            ImGui::TableSetColumnIndex(0);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(label);
+
+            // Value column
+            ImGui::TableSetColumnIndex(1);
+
+            const float avail = ImGui::GetContentRegionAvail().x;
+
+            // Width budget: 2 drags + 1 group spacing + 2 axis letters + 2 axis gaps
+            const float axisW = ImGui::CalcTextSize("X").x; // same for Y
+            const float dragsW = avail - (1.0f * groupSpacing) - (2.0f * axisW) - (2.0f * axisTextGap);
+            const float dragW = (dragsW > 0.0f) ? (dragsW / 2.0f) : 0.0f;
+
+            auto axisDrag = [&](const char* axisLabel, const char* id, float& value) {
+                ImGui::AlignTextToFramePadding();
+                ImGui::TextUnformatted(axisLabel);
+                ImGui::SameLine(0.0f, axisTextGap);
+
+                ImGui::PushItemWidth(dragW);
+                changed |= ImGui::DragFloat(id, &value, speed);
+                ImGui::PopItemWidth();
+                };
+
+            axisDrag("X", "##X", v.x);
+            ImGui::SameLine(0.0f, groupSpacing);
+            axisDrag("Y", "##Y", v.y);
+
+            ImGui::EndTable();
+        }
+
         ImGui::PopID();
         return changed;
     }

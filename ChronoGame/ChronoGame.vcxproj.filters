@@ -49,5 +49,6 @@
     <ClInclude Include="Scripts\Puzzle_TwoStateRotater.hpp" />
     <ClInclude Include="Scripts\Puzzle_Wire.hpp" />
     <ClInclude Include="Scripts\WireChild.hpp" />
+    <ClInclude Include="Scripts\ColliderTest.hpp" />
   </ItemGroup>
 </Project>

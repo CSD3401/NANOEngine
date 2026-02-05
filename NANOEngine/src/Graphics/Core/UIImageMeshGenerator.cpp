@@ -12,7 +12,8 @@ namespace NE::Graphics {
         float x, float y, float z,
         float width, float height,
         const Math::Vec4& color
-    ) {
+    ) 
+    {
         using ImageType = NE::ECS::Component::UIImage::ImageType;
 
         switch (image.imageType) {
@@ -72,7 +73,8 @@ namespace NE::Graphics {
         float x, float y, float z,
         float width, float height,
         const Math::Vec4& color
-    ) {
+    ) 
+    {
         // 9-slice: divide into 9 sections
         // Corners stay same size, edges stretch in one direction, center stretches both
 

@@ -75,6 +75,9 @@ namespace NE {
 
 	NANOENGINE_API int GetDrawCallCount();
 
+	NANOENGINE_API uint32_t GetUIScreenWidth();
+	NANOENGINE_API uint32_t GetUIScreenHeight();
+
 	NANOENGINE_API void DisplayFinalOutput(int windowWidth, int windowHeight);
 
 	NANOENGINE_API unsigned int LoadCookedThumbnailGL(const std::string& uuid);

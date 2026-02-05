@@ -19,6 +19,10 @@
 #include "ECS/Components/UIRectTransform.hpp"
 #include "ECS/Components/UICanvas.hpp"
 #include "ECS/Components/UIImage.hpp"
+#include "ECS/Components/UIText.hpp"
+#include "ECS/Components/UIButton.hpp"
+#include "ECS/Components/UISlider.hpp"
+#include "ECS/Components/UIToggle.hpp"
 #include "ECS/Components/Hierarchy.hpp"
 #include "ECS/Components/PrefabLink.hpp"
 #include "ECS/Components/PrefabInstance.hpp"
@@ -42,6 +46,9 @@ namespace NE {
 			ECS::Component::UIRectTransform,
 			ECS::Component::UICanvas,
 			ECS::Component::UIImage,
+			ECS::Component::UIText,
+			ECS::Component::UIButton,
+			ECS::Component::UISlider,
 			ECS::Component::CharacterController,
 			ECS::Component::Animator
 		>;
@@ -56,7 +63,7 @@ namespace NE {
 		}
 
 		inline constexpr uint32_t NSCE_MAGIC = 0x4E534345;
-		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 5;
+		inline constexpr int CURRENT_NANOSCENE_FORMAT_VERSION = 4;
 
 		inline constexpr uint32_t NFAB_MAGIC = 0x4E464142;
 		inline constexpr int CURRENT_NANOPREFAB_FORMAT_VERSION = 2;
