@@ -27,6 +27,7 @@ namespace Editor {
 
 		// Now initialize engine (logs will be captured)
 		NE::Initialize();
+		NE::UseProductionSceneManager();
 
 		GLFWwindow* window = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
 
@@ -64,7 +65,7 @@ namespace Editor {
 			NE::InputManager::OnCharInput((uint32_t)c);
 			});
 
-		NE::LoadScene("93a26e09-aaf3-40ac-81b6-f3e284d07dda");
+		NE::LoadScene("81587700-1f12-4eeb-95dd-719f3e9c750a");
 	}
 
 	void Application::Run() {

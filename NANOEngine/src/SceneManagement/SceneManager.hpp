@@ -7,8 +7,16 @@ namespace NE::SceneManagement {
 
 	class SceneManager {
 	public:
+		enum class SceneManagerMode {
+			Editor,
+			RuntimeOnly
+		};
+
 		SceneManager() = default;
 		~SceneManager() = default;
+
+		void SetMode(SceneManagerMode mode) { m_mode = mode; }
+		SceneManagerMode GetMode() const { return m_mode; }
 
 		bool LoadScene(const std::string& uuid);
 		void Update(double dt);
@@ -47,6 +55,8 @@ namespace NE::SceneManagement {
 		bool m_isPlaying = false;
 		bool m_isEditingPrefab = false;
 		std::string m_prefabPath;
+
+		SceneManagerMode m_mode = SceneManagerMode::Editor;
 
 		// Scene switch queue (processed at end of frame)
 		std::string m_queuedScenePath;
