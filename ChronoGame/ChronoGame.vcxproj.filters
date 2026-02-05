@@ -51,5 +51,8 @@
     <ClInclude Include="Scripts\WireChild.hpp" />
     <ClInclude Include="Scripts\ColliderTest.hpp" />
     <ClInclude Include="Scripts\UI_MasterVolumeButtons.hpp" />
+    <ClInclude Include="Scripts\UIButton_SwitchScene.hpp" />
+    <ClInclude Include="Scripts\UIButton_SwitchSceneThree.hpp" />
+    <ClInclude Include="Scripts\UIButton_SwitchSceneTwo.hpp" />
   </ItemGroup>
 </Project>
