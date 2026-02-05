@@ -18,6 +18,7 @@
 #include "../ECS/Components/AudioSource.hpp"
 #include "../ECS/Components/EntityMeta.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/Animator.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Components/NativeScript.hpp"
 #include "../ECS/Components/Hierarchy.hpp"
@@ -718,6 +719,24 @@ namespace NE {
 
 			auto& meta = m_context->componentManager->GetComponent<ECS::Component::EntityMeta>(targetEntity);
 			Physics::PhysicsManager::GetInstance().CharacterSetPosition(meta.luid, ToEngineVec3(position));
+		}
+
+		void IScript::Anim_Play(Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (m_context->componentManager->HasComponent<ECS::Component::Animator>(targetEntity)) {
+				auto& animator = m_context->componentManager->GetComponent<ECS::Component::Animator>(targetEntity);
+				animator.isPlaying = true;
+			}
+		}
+
+		void IScript::Anim_Stop(Entity entity) {
+			CHECK_CONTEXT_OR_RETURN();
+			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
+			if (m_context->componentManager->HasComponent<ECS::Component::Animator>(targetEntity)) {
+				auto& animator = m_context->componentManager->GetComponent<ECS::Component::Animator>(targetEntity);
+				animator.isPlaying = false;
+			}
 		}
 
 		//=========================================================================

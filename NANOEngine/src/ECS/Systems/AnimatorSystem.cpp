@@ -19,7 +19,7 @@
 
 namespace NE::ECS::Systems {
     namespace {
-        float AdvanceTime(float t, float dt, const Animation::AnimationClip& clip) {
+        float AdvanceTime(float t, float dt, NE::ECS::Component::Animator& animator, const Animation::AnimationClip& clip) {
             float L = clip.GetLengthSeconds();
             if (L <= 0.0f) return std::max(0.0f, t + dt);
 
@@ -29,6 +29,8 @@ namespace NE::ECS::Systems {
                 t = std::fmod(t, L);
                 if (t < 0.0f) t += L;
                 return t;
+            } else {
+				if (t >= L) animator.isPlaying = false;
             }
             return std::clamp(t, 0.0f, L);
         }
@@ -192,7 +194,7 @@ namespace NE::ECS::Systems {
             float dt = static_cast<float>(deltaTime);
 
             anim.prevTime = anim.time;
-            anim.time = AdvanceTime(anim.time, dt * anim.speed, *anim.clip);
+            anim.time = AdvanceTime(anim.time, dt * anim.speed, anim, *anim.clip);
 
             ApplyClipAtTime(entity, *anim.clip, anim.time);
         }
