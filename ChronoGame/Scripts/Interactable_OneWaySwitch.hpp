@@ -11,7 +11,6 @@
 class Interactable_OneWaySwitch : public Interactable_ {
 public:
     Interactable_OneWaySwitch() = default;
-
     ~Interactable_OneWaySwitch() override = default;
 
     // === Lifecycle Methods ===
