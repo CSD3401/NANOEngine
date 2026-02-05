@@ -7,18 +7,19 @@
 #include "PrefabManagement/PrefabManager.hpp"
 #include "Serialisation/Serializer.hpp"
 #include "Physics/PhysicsManager.hpp"
+#include "ResourceManagement/ResourcePaths.hpp"
 
 namespace NE::SceneManagement {
 
-	bool SceneManager::LoadScene(const std::string& path) {
-		m_loadedPath = path;
+	bool SceneManager::LoadScene(const std::string& uuid) {
+		m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
 		Physics::PhysicsManager::GetInstance().
 			SetManagers(&m_editor->GetECSCoordinator().GetComponentManager(), 
 				&m_editor->GetECSCoordinator().GetLUIDRegistry());
-		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), path)) {
+		if (!NE::Deserialization::DeserializeScene(m_editor->GetECSCoordinator(), uuid)) {
 			m_editor.reset();
 			Scripting::ScriptingEngine::GetInstance().EndSceneLoad();
 			return false;
@@ -30,7 +31,7 @@ namespace NE::SceneManagement {
 		return true;
 	}
 
-	void SceneManager::CreateSceneFallback(const std::string& scenePath) {
+	void SceneManager::CreateSceneFallback(const std::string& uuid) {
 		if (m_editor) {
 			m_editor->ExitEdit();
 			m_editor.reset();
@@ -42,7 +43,7 @@ namespace NE::SceneManagement {
 			m_isPlaying = false;
 		}
 
-		m_loadedPath = scenePath;
+		m_loadedPath = Resource::ComputeArtifactPathFromUUID(uuid, Resource::ResourceType::Scene);
 		m_editor = std::make_unique<Scene>();
 		Prefab::PrefabManager::Init(this);
 		Scripting::ScriptingEngine::GetInstance().BeginSceneLoad();
