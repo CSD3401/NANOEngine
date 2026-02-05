@@ -52,7 +52,14 @@ namespace NE::ECS::Systems {
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
-			Physics::PhysicsManager::GetInstance().SyncTransformToCharacters(meta.luid, t);
+
+			// If transform was manually changed, sync TO character controller
+			// Otherwise, sync FROM character controller TO transform
+			if (t.isDirty) {
+				Physics::PhysicsManager::GetInstance().SyncCharactersToTransform(meta.luid, t);
+			} else {
+				Physics::PhysicsManager::GetInstance().SyncTransformToCharacters(meta.luid, t);
+			}
 		}
 	}
 

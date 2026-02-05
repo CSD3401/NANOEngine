@@ -101,7 +101,9 @@ namespace NE::Physics {
         void RemoveContactsInvolving(uint64_t luid);
 
         void SyncTransformToBodies(uint64_t entityLUID, ECS::Component::Transform& t) const;
+		void SyncBodiesToTransform(uint64_t entityLUID, const ECS::Component::Transform& t);
 		void SyncTransformToCharacters(uint64_t entityLUID, ECS::Component::Transform& t) const;
+		void SyncCharactersToTransform(uint64_t entityLUID, const ECS::Component::Transform& t);
 
         void DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col);
 

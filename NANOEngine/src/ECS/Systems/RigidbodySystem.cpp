@@ -50,7 +50,14 @@ namespace NE::ECS::Systems {
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
 			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
-			Physics::PhysicsManager::GetInstance().SyncTransformToBodies(meta.luid, t);
+
+			// If transform was manually changed, sync TO physics body
+			// Otherwise, sync FROM physics body TO transform
+			if (t.isDirty) {
+				Physics::PhysicsManager::GetInstance().SyncBodiesToTransform(meta.luid, t);
+			} else {
+				Physics::PhysicsManager::GetInstance().SyncTransformToBodies(meta.luid, t);
+			}
 		}
 	}
 

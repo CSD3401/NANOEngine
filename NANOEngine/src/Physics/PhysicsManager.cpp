@@ -716,6 +716,19 @@ namespace NE::Physics {
 		t.isDirty = true;
 	}
 
+	void PhysicsManager::SyncBodiesToTransform(uint64_t luid, const ECS::Component::Transform& t) {
+		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+
+		auto it = m_bodies.find(luid);
+		if (it == m_bodies.end()) return;
+
+		const JPH::BodyID& bodyID = it->second;
+		const JPH::RVec3 newPos = ToJoltVec3(t.worldMatrix.GetTranslation());
+		const JPH::Quat newRot = ToJPHQuat(t.localRotationQuat);
+
+		bi.SetPositionAndRotation(bodyID, newPos, newRot, JPH::EActivation::Activate);
+	}
+
 	void PhysicsManager::SyncTransformToCharacters(uint64_t entityLUID, ECS::Component::Transform& t) const {
 		auto& rt = m_characters.at(entityLUID);
 		auto& ch = *rt.controller;
@@ -728,6 +741,18 @@ namespace NE::Physics {
 		t.localRotationQuat = ToEngineQuat(ch.GetRotation());
 
 		t.isDirty = true;
+	}
+
+	void PhysicsManager::SyncCharactersToTransform(uint64_t entityLUID, const ECS::Component::Transform& t) {
+		auto it = m_characters.find(entityLUID);
+		if (it == m_characters.end()) return;
+
+		auto& ch = *it->second.controller;
+		const JPH::RVec3 newPos = ToJoltVec3(t.worldMatrix.GetTranslation());
+		const JPH::Quat newRot = ToJPHQuat(t.localRotationQuat);
+
+		ch.SetPosition(newPos);
+		ch.SetRotation(newRot);
 	}
 
 	void PhysicsManager::DrawShapeGizmo(const uint64_t entityLUID, const ECS::Component::Transform& t, const ECS::Component::Collider& col) {
