@@ -133,6 +133,9 @@ namespace NE::Graphics {
             s_RenderViewManager->Bind(handle);
             s_CommandBuffer->Begin();
 
+			// Invalidate cached state per view
+			s_StateCache->InvalidateAll();
+
             const Mat4& camProj = view.projection;
             const Mat4& camView = view.view;
             const Vec3& camPos = view.position;
