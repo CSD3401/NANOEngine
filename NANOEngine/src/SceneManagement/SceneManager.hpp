@@ -10,7 +10,7 @@ namespace NE::SceneManagement {
 		SceneManager() = default;
 		~SceneManager() = default;
 
-		bool LoadScene(const std::string& scenePath);
+		bool LoadScene(const std::string& uuid);
 		void Update(double dt);
 		void Render();
 		void ExitScene();
