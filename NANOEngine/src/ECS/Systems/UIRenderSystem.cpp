@@ -522,9 +522,7 @@ namespace NE::ECS::Systems {
             v.Position = uiVert.Position;
             v.Normal = Math::Vec3(0, 0, 1); // Default normal for UI
             v.TexCoord = uiVert.TexCoord;
-            v.Tangent = Math::Vec3(1, 0, 0); // Default tangent
-            v.Bitangent = Math::Vec3(0, 1, 0); // Default bitangent
-            // BoneIDs and Weights default to 0
+            // BoneIDs and Weights default to 0 (already initialized in struct)
             standardVertices.push_back(v);
         }
 
