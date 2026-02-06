@@ -74,7 +74,8 @@ void main()
     float occlusion = 0.0;
 
     for (int i = 0; i < SAMPLE_COUNT; ++i) {
-        vec2 sampleUV = vUV + offsets[i] * texel * u_Radius * 4.0;
+        float depthScale = max(abs(centerPos.z), 1e-2);
+        vec2 sampleUV = vUV + offsets[i] * texel * (u_Radius / depthScale) * 4.0;
         if (sampleUV.x < 0.0 || sampleUV.x > 1.0 ||
             sampleUV.y < 0.0 || sampleUV.y > 1.0)
             continue;
@@ -91,7 +92,7 @@ void main()
         float NdotD = max(dot(normal, dir), 0.0);
 
         float rangeCheck = smoothstep(0.0, 1.0, u_Radius / (dist + 1e-4));
-        float deltaDepth = samplePos.z - centerPos.z;
+        float deltaDepth = centerPos.z - samplePos.z;
 
         if (deltaDepth > u_Bias && dist < u_Radius) {
             occlusion += NdotD * rangeCheck;
