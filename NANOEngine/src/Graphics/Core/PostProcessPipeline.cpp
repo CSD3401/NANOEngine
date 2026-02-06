@@ -186,9 +186,9 @@ namespace NE::Graphics {
 			glGenTextures(1, &m_SSAOTex);
 		}
 		glBindTexture(GL_TEXTURE_2D, m_SSAOTex);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_R8,
 			static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0,
-			GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			GL_RED, GL_UNSIGNED_BYTE, nullptr);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
