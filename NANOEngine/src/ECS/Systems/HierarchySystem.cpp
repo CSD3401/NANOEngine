@@ -211,13 +211,24 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void HierarchySystem::SetActive(Entity root, bool isActive) {
-        m_componentManager->GetComponent<Component::EntityMeta>(root).isActive = isActive;
-        auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(root);
+    void HierarchySystem::SetActive(Entity root, bool isActive)
+    {
+        // Safely set meta active (some entities may not have EntityMeta)
+        if (m_componentManager->HasComponent<Component::EntityMeta>(root)) {
+            m_componentManager->GetComponent<Component::EntityMeta>(root).isActive = isActive;
+        }
 
-        for (auto child : hier.children)
+        // No hierarchy => nothing to recurse
+        if (!m_componentManager->HasComponent<Component::Hierarchy>(root)) {
+            return;
+        }
+
+        auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(root);
+        for (auto child : hier.children) {
             SetActive(child, isActive);
+        }
     }
+
 
     //void HierarchySystem::SetParent(Entity child,
     //    Entity newParent,

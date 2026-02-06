@@ -51,6 +51,8 @@ namespace NE::ECS::Systems {
 
         explicit UIRenderSystem(ComponentManager* cm);
 
+        bool IsActiveForUI(Entity e, Entity canvasEntity) const;
+
         void Init() override;
         void Update(double deltaTime) override;
         void Exit() override;
