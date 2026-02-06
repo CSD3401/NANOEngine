@@ -703,6 +703,9 @@ namespace NE::ECS {
 				newEntity,
 				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("im") });
 
+			// Add Hierarchy component (required for parent-child relationships)
+			ecs.AddComponent(newEntity, Component::Hierarchy{});
+
 			// setup RectTransform with parent linkage
 			Component::UIRectTransform rect;
 			rect.luid = Core::LUIDGenerator::Generate("rt");
@@ -711,7 +714,7 @@ namespace NE::ECS {
 			rect.z = 0.0f;
 			rect.width = 100.0f;
 			rect.height = 100.0f;
-			rect.parent = parentCanvas;  // Link to parent canvas (runtime)
+			rect.parent = parentCanvas;  // DEPRECATED: kept for backward compatibility during migration
 
 			// set parent luid for serialization
 			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
@@ -721,6 +724,14 @@ namespace NE::ECS {
 			}
 
 			ecs.AddComponent(newEntity, rect);
+
+			// Set parent via HierarchySystem (proper way)
+			if (parentCanvas != NE::ECS::NO_ENTITY) {
+				auto hierarchySystem = ecs.m_hierarchySystem;
+				if (hierarchySystem) {
+					hierarchySystem->SetParent(newEntity, parentCanvas);
+				}
+			}
 
 			// setup UIImage with default white color
 			Component::UIImage img;

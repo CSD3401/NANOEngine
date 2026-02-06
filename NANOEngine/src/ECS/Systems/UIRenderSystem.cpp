@@ -7,6 +7,11 @@
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
 #include "../../Graphics/Core/UITextMeshGenerator.hpp"
+#include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
+#include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
+#include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
+#include "../../Graphics/Core/Material.hpp"
+#include "../../Graphics/Core/DrawCommand.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <iostream>
 #include <algorithm>
@@ -407,12 +412,137 @@ namespace NE::ECS::Systems {
         return result;
     }
 
-    void UIRenderSystem::ApplyPixelPerfectSnapping(WorldTransform& transform) 
+    void UIRenderSystem::ApplyPixelPerfectSnapping(WorldTransform& transform)
     {
         transform.x = std::round(transform.x);
         transform.y = std::round(transform.y);
         transform.width = std::round(transform.width);
         transform.height = std::round(transform.height);
+    }
+
+    void UIRenderSystem::UpdateWorldMatrix(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas
+    )
+    {
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return;
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+        if (!rect.worldMatrixDirty) return;
+
+        // Get accumulated transforms (existing accumulation logic)
+        AccumulatedTransform acc = AccumulateParentTransforms(entity, canvasEntity, canvas);
+
+        // Build TRS matrices
+        Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
+        Math::Mat4 R = rect.GetRotationMatrix();
+        Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
+
+        // Handle pivot offset
+        float pivotOffsetX = rect.width * rect.pivotX;
+        float pivotOffsetY = rect.height * rect.pivotY;
+        Math::Mat4 pivotTrans = Math::Mat4::BuildTranslation(Math::Vec3(pivotOffsetX, pivotOffsetY, 0.0f));
+        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
+
+        // Build final world matrix: T * pivot * R * S * pivot^-1
+        rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
+        rect.worldMatrixDirty = false;
+    }
+
+    std::shared_ptr<NE::Graphics::IGeometryBuffer> UIRenderSystem::CreateDynamicUIGeometry(
+        const std::vector<NE::Graphics::UIVertex2>& vertices
+    )
+    {
+        if (vertices.empty()) {
+            return nullptr;
+        }
+
+        // Generate quad indices (0,1,2, 2,3,0 pattern)
+        std::vector<uint32_t> indices;
+        size_t numQuads = vertices.size() / 4;
+        indices.reserve(numQuads * 6);
+
+        for (size_t i = 0; i < numQuads; ++i) {
+            uint32_t base = static_cast<uint32_t>(i * 4);
+            indices.push_back(base + 0);
+            indices.push_back(base + 1);
+            indices.push_back(base + 2);
+            indices.push_back(base + 2);
+            indices.push_back(base + 3);
+            indices.push_back(base + 0);
+        }
+
+        // Create OpenGL buffers
+        auto vb = std::make_shared<NE::Graphics::OpenGL::GLVertexBuffer>(
+            vertices.data(),
+            static_cast<uint32_t>(vertices.size() * sizeof(NE::Graphics::UIVertex2)),
+            sizeof(NE::Graphics::UIVertex2)
+        );
+
+        auto ib = std::make_shared<NE::Graphics::OpenGL::GLIndexBuffer>(
+            indices.data(),
+            static_cast<uint32_t>(indices.size())
+        );
+
+        return std::make_shared<NE::Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
+    }
+
+    void UIRenderSystem::SubmitUIElement(
+        Entity entity,
+        const UICanvas& canvas,
+        const UIImage& img,
+        const UIRectTransform& rect,
+        const std::vector<NE::Graphics::UIVertex2>& vertices
+    )
+    {
+        // Create dynamic geometry buffer
+        auto geometryBuffer = CreateDynamicUIGeometry(vertices);
+        if (!geometryBuffer) {
+            return;
+        }
+
+        // TODO: Get material (use component material or fallback to default)
+        // For now, this is a placeholder - materials will be loaded in later phases
+        std::shared_ptr<NE::Graphics::Material> material = img.material;
+
+        if (!material) {
+            // TODO: Use default UI material when available
+            // For now, skip rendering if no material (will be fixed in Phase 2)
+            return;
+        }
+
+        // Clone material to set per-instance uniforms
+        auto instanceMaterial = std::make_shared<NE::Graphics::Material>(*material);
+
+        // Set per-instance uniforms
+        instanceMaterial->SetUniformVec4("uColor", img.color);
+
+        // Get screen size from GraphicsManager
+        uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+        uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+        instanceMaterial->SetUniformVec3("uScreenSize",
+            Math::Vec3(static_cast<float>(screenWidth), static_cast<float>(screenHeight), 0.0f));
+
+        instanceMaterial->SetUniformInt("uHasTexture",
+            img.bindlessHandle != 0 ? 1 : 0);
+
+        // Set render queue - UI uses OVERLAY (4000) as base priority
+        instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+        instanceMaterial->SetQueueOffset(canvas.sortingOrder);
+
+        // Build DrawCommand
+        NE::Graphics::DrawCommand cmd;
+        cmd.transform = rect.worldMatrix;
+        cmd.mesh = geometryBuffer;
+        cmd.material = instanceMaterial;
+        cmd.castsShadow = false;
+        cmd.receivesShadow = false;
+
+        // Submit through standard pipeline
+        NE::Graphics::GraphicsManager::Submit(cmd);
     }
 
     //=========================================================================
@@ -632,22 +762,53 @@ namespace NE::ECS::Systems {
             auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
-            AccumulatedTransform accumulated = AccumulateParentTransforms(e, canvasEntity, canvas);
+            if (m_useIntegratedPipeline) {
+                // NEW PATH: Submit through GraphicsManager
+                UpdateWorldMatrix(e, canvasEntity, canvas);
 
-            WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
+                // Generate vertices using UIVertex2
+                std::vector<NE::Graphics::UIVertex2> verticesV2;
+                WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
 
-            std::vector<NE::Graphics::UIVertex> vertices;
+                if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                    // For world space, generate simple unit quad
+                    verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
+                        img, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, img.color
+                    );
+                }
+                else {
+                    // For screen space, use world transform
+                    verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
+                        img,
+                        worldTransform.x, worldTransform.y, worldTransform.z,
+                        worldTransform.width, worldTransform.height,
+                        img.color
+                    );
+                }
 
-            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                vertices = GenerateWorldSpaceVertices(img);
+                if (!verticesV2.empty()) {
+                    SubmitUIElement(e, canvas, img, rect, verticesV2);
+                }
             }
             else {
-                vertices = GenerateScreenSpaceVertices(e, worldTransform, img);
+                // OLD PATH: Submit through UIRenderer
+                AccumulatedTransform accumulated = AccumulateParentTransforms(e, canvasEntity, canvas);
+
+                WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
+
+                std::vector<NE::Graphics::UIVertex> vertices;
+
+                if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                    vertices = GenerateWorldSpaceVertices(img);
+                }
+                else {
+                    vertices = GenerateScreenSpaceVertices(e, worldTransform, img);
+                }
+
+                if (vertices.empty()) continue;
+
+                SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, accumulated, vertices, viewMatrix, projMatrix);
             }
-
-            if (vertices.empty()) continue;
-
-            SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, accumulated, vertices, viewMatrix, projMatrix);
         }
     }
 

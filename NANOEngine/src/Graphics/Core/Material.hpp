@@ -8,6 +8,7 @@
 #include "../Interfaces/IPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
 #include "../../../src/Math/Vec3.hpp"
+#include "../../../src/Math/Vec4.hpp"
 #include "../../../src/Math/Mat4.hpp"
 #include "../../NANOEngineAPI.hpp"
 #include "ResourceManagement/IResource.hpp"
@@ -30,6 +31,7 @@ namespace NE::Graphics {
         void SetUniformInt(const std::string& name, int value);
         void SetUniformFloat(const std::string& name, float value);
         void SetUniformVec3(const std::string& name, const Vec3& value);
+        void SetUniformVec4(const std::string& name, const Vec4& value);
         void SetUniformMat4(const std::string& name, const Mat4& value);
         void SetTexture(const std::string& name, const std::string& uuid);
         void SetQueueBase(RenderQueue queue);
@@ -51,6 +53,7 @@ namespace NE::Graphics {
         std::unordered_map<std::string, int>& GetIntUniforms() { return m_IntUniforms; }
         std::unordered_map<std::string, float>& GetFloatUniforms() { return m_FloatUniforms; }
         const std::unordered_map<std::string, Vec3>& GetVec3Uniforms() const { return m_Vec3Uniforms; }
+        const std::unordered_map<std::string, Vec4>& GetVec4Uniforms() const { return m_Vec4Uniforms; }
         const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
         const RenderQueue& GetQueueBase() const { return m_BaseRQ; }
 		const int32_t& GetQueueOffset() const { return m_OffsetRQ; }
@@ -69,6 +72,7 @@ namespace NE::Graphics {
         std::unordered_map<std::string, int>  m_IntUniforms;
         std::unordered_map<std::string, float> m_FloatUniforms;
         std::unordered_map<std::string, Vec3> m_Vec3Uniforms;
+        std::unordered_map<std::string, Vec4> m_Vec4Uniforms;
         std::unordered_map<std::string, Mat4> m_Mat4Uniforms;
 
         std::unordered_map<std::string, std::shared_ptr<OpenGL::GLTexture>> m_Textures;

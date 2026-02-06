@@ -79,7 +79,7 @@ namespace NE::Graphics {
         // Corners stay same size, edges stretch in one direction, center stretches both
 
         std::vector<UIVertex> vertices;
-        vertices.reserve(54); // 9 quads × 6 vertices
+        vertices.reserve(54); // 9 quads ï¿½ 6 vertices
 
         float left = image.borderLeft;
         float right = image.borderRight;
@@ -384,6 +384,103 @@ namespace NE::Graphics {
         }
 
         return vertices;
+    }
+
+    //=========================================================================
+    // NEW: UIVertex2 Generation Methods (using engine math types)
+    //=========================================================================
+
+    UIVertex2 UIImageMeshGenerator::CreateVertex2(
+        float x, float y, float z,
+        float u, float v,
+        const Math::Vec4& color
+    ) {
+        return UIVertex2{
+            Math::Vec3(x, y, z),
+            Math::Vec2(u, v),
+            color
+        };
+    }
+
+    std::vector<UIVertex2> UIImageMeshGenerator::GenerateVertices2(
+        const NE::ECS::Component::UIImage& image,
+        float x, float y, float z,
+        float width, float height,
+        const Math::Vec4& color
+    )
+    {
+        using ImageType = NE::ECS::Component::UIImage::ImageType;
+
+        switch (image.imageType) {
+        case ImageType::SIMPLE:
+            return GenerateSimple2(x, y, z, width, height, color);
+
+        case ImageType::SLICED:
+            return GenerateSliced2(image, x, y, z, width, height, color);
+
+        case ImageType::TILED:
+            return GenerateTiled2(image, x, y, z, width, height, color);
+
+        case ImageType::FILLED:
+            return GenerateFilled2(image, x, y, z, width, height, color);
+
+        default:
+            return GenerateSimple2(x, y, z, width, height, color);
+        }
+    }
+
+    std::vector<UIVertex2> UIImageMeshGenerator::GenerateSimple2(
+        float x, float y, float z,
+        float width, float height,
+        const Math::Vec4& color
+    ) {
+        // Standard quad: 4 vertices (indices will be generated later)
+        std::vector<UIVertex2> vertices;
+        vertices.reserve(4);
+
+        // Create 4 vertices for a quad (CW winding order)
+        vertices.push_back(CreateVertex2(x, y, z, 0.0f, 1.0f, color)); // Bottom-left
+        vertices.push_back(CreateVertex2(x + width, y, z, 1.0f, 1.0f, color)); // Bottom-right
+        vertices.push_back(CreateVertex2(x + width, y + height, z, 1.0f, 0.0f, color)); // Top-right
+        vertices.push_back(CreateVertex2(x, y + height, z, 0.0f, 0.0f, color)); // Top-left
+
+        return vertices;
+    }
+
+    std::vector<UIVertex2> UIImageMeshGenerator::GenerateSliced2(
+        const NE::ECS::Component::UIImage& image,
+        float x, float y, float z,
+        float width, float height,
+        const Math::Vec4& color
+    )
+    {
+        // For now, implement 9-slice as simple quad (full implementation later)
+        // TODO: Implement full 9-slice logic
+        return GenerateSimple2(x, y, z, width, height, color);
+    }
+
+    std::vector<UIVertex2> UIImageMeshGenerator::GenerateTiled2(
+        const NE::ECS::Component::UIImage& image,
+        float x, float y, float z,
+        float width, float height,
+        const Math::Vec4& color
+    )
+    {
+        // For now, implement tiled as simple quad (full implementation later)
+        // TODO: Implement full tiling logic
+        return GenerateSimple2(x, y, z, width, height, color);
+    }
+
+    std::vector<UIVertex2> UIImageMeshGenerator::GenerateFilled2(
+        const NE::ECS::Component::UIImage& image,
+        float x, float y, float z,
+        float width, float height,
+        const Math::Vec4& color
+    )
+    {
+        // For now, implement filled as simple quad (full implementation later)
+        // TODO: Implement full fill modes (horizontal, vertical, radial)
+        return GenerateSimple2(x, y, z, width, height, color);
     }
 
 } // namespace NE::Graphics

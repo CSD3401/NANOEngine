@@ -83,6 +83,10 @@ namespace NE::Graphics {
         m_Vec3Uniforms[uName] = value;
     }
 
+    void Material::SetUniformVec4(const std::string& uName, const Vec4& value) {
+        m_Vec4Uniforms[uName] = value;
+    }
+
     void Material::SetUniformMat4(const std::string& uName, const Mat4& value) {
         m_Mat4Uniforms[uName] = value;
     }
@@ -117,6 +121,8 @@ namespace NE::Graphics {
             shader->SetUniformFloat(uName, val);
         for (const auto& [uName, val] : m_Vec3Uniforms)
             shader->SetUniformVec3(uName, val);
+        for (const auto& [uName, val] : m_Vec4Uniforms)
+            shader->SetUniformVec4(uName, val);
         for (const auto& [uName, val] : m_Mat4Uniforms)
             shader->SetUniformMat4(uName, val);
         for (const auto& [uName, val] : m_IntUniforms)
@@ -146,12 +152,14 @@ namespace NE::Graphics {
         const auto oldInts = m_IntUniforms;
         const auto oldFloats = m_FloatUniforms;
         const auto oldVec3s = m_Vec3Uniforms;
+        const auto oldVec4s = m_Vec4Uniforms;
         const auto oldMat4s = m_Mat4Uniforms;
         const auto oldTex = m_Textures;
 
         m_IntUniforms.clear();
         m_FloatUniforms.clear();
         m_Vec3Uniforms.clear();
+        m_Vec4Uniforms.clear();
         m_Mat4Uniforms.clear();
         m_Textures.clear();
 
@@ -188,6 +196,11 @@ namespace NE::Graphics {
             case GL_FLOAT_VEC3:
                 if (auto it = oldVec3s.find(name); it != oldVec3s.end())
                     m_Vec3Uniforms[name] = it->second;
+                break;
+
+            case GL_FLOAT_VEC4:
+                if (auto it = oldVec4s.find(name); it != oldVec4s.end())
+                    m_Vec4Uniforms[name] = it->second;
                 break;
 
             case GL_FLOAT_MAT4:

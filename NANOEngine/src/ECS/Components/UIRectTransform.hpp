@@ -11,12 +11,12 @@ namespace NE::ECS::Component {
     //inline constexpr uint32_t INVALID_PARENT = UINT32_MAX;
 
     struct UIRectTransform {
-        // parent entity
-        uint32_t parent = UINT32_MAX;
-
-        // LUID for serialization
-        uint64_t luid = 0;
-        uint64_t parentLuid = 0;
+        // NOTE: Parent-child relationships now managed by Hierarchy component
+        // DEPRECATED: uint32_t parent, luid, parentLuid - use Hierarchy component instead
+        // These fields kept temporarily for backward compatibility during migration
+        uint32_t parent = UINT32_MAX;  // DEPRECATED
+        uint64_t luid = 0;              // DEPRECATED (use Hierarchy::luid)
+        uint64_t parentLuid = 0;        // DEPRECATED (use Hierarchy::parentLuid)
 
         // position of pivot point
         float x = 0.0f;
@@ -55,6 +55,11 @@ namespace NE::ECS::Component {
         // pivot (normalized coordinates, 0-1, determines rotation/scale origin)
         float pivotX = 0.5f;
         float pivotY = 0.5f;
+
+        // Transform matrices (like Transform component)
+        NE::Math::Mat4 localMatrix;           // Local TRS matrix
+        NE::Math::Mat4 worldMatrix;           // World transform (accumulated from parent chain)
+        bool worldMatrixDirty = true;         // Needs recalculation
 
         // Reflection
         NE_REFLECT_BEGIN(UIRectTransform)

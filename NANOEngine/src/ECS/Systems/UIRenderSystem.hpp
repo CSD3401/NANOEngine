@@ -14,6 +14,12 @@
 #include <string>
 #include <memory>
 
+// Forward declarations
+namespace NE::Graphics {
+    class IGeometryBuffer;
+    class Material;
+}
+
 namespace NE::ECS::Systems {
 
     class UIRenderSystem final : public System {
@@ -75,6 +81,13 @@ namespace NE::ECS::Systems {
             const Component::UICanvas& canvas
         );
 
+        // NEW: Build world matrix from accumulated transforms
+        void UpdateWorldMatrix(
+            Entity entity,
+            Entity canvasEntity,
+            const Component::UICanvas& canvas
+        );
+
         std::vector<Entity> BuildParentChain(
             Entity entity,
             Entity canvasEntity,
@@ -104,6 +117,20 @@ namespace NE::ECS::Systems {
         //=================================================================
         // Rendering
         //=================================================================
+
+        // NEW: Create dynamic geometry buffer for UI vertices
+        std::shared_ptr<NE::Graphics::IGeometryBuffer> CreateDynamicUIGeometry(
+            const std::vector<NE::Graphics::UIVertex2>& vertices
+        );
+
+        // NEW: Submit UI element through integrated GraphicsManager pipeline
+        void SubmitUIElement(
+            Entity entity,
+            const Component::UICanvas& canvas,
+            const Component::UIImage& img,
+            const Component::UIRectTransform& rect,
+            const std::vector<NE::Graphics::UIVertex2>& vertices
+        );
 
         void RenderCanvasChildren(
             Entity canvasEntity,
@@ -191,6 +218,11 @@ namespace NE::ECS::Systems {
 
     private:
         ComponentManager* m_cm;
+
+        // NEW: Integrated pipeline support
+        bool m_useIntegratedPipeline = false;  // Feature flag for dual-path testing
+        std::shared_ptr<NE::Graphics::Material> m_defaultUIMaterial;  // Default sprite material
+        std::shared_ptr<NE::Graphics::Material> m_defaultTextMaterial;  // Default text material
     };
 
 } // namespace NE::ECS::Systems
