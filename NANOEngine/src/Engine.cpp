@@ -359,6 +359,10 @@ namespace NE {
 		return ofs.good();
 	}
 
+	void UseProductionSceneManager() {
+		gSceneManager.SetMode(SceneManagement::SceneManager::SceneManagerMode::RuntimeOnly);
+	}
+
 	void StartRuntime() {
 		gSceneManager.LoadRuntime();
 	}

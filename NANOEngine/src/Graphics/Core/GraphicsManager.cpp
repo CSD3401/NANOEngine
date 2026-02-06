@@ -84,7 +84,9 @@ namespace NE::Graphics {
         s_shadowRenderer = std::make_unique<ShadowRenderer>();
         s_shadowRenderer->Init();
 
+#ifndef PRODUCTION_BUILD
         s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
+#endif // !PRODUCTION_BUILD
         s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
         s_FinalGameOutputHandle = s_RenderViewManager->Create(1920, 1080, false);
 
@@ -479,11 +481,21 @@ namespace NE::Graphics {
 
     void GraphicsManager::DisplayFinalOutput(int windowWidth, int windowHeight)
     {
-		// Note: Game view handle should be replaced with final output view handle when post-processing is added
-		s_RenderViewManager->BlitToScreen(s_FinalOutputViewHandle, windowWidth, windowHeight);
+        //bool hasActiveMainView = false;
+        //const auto& views = s_RenderViewManager->GetAllRenderViews();
+        //for (const auto& [handle, view] : views) {
+        //    if (view.isActive && view.isMain) {
+        //        hasActiveMainView = true;
+        //        break;
+        //    }
+        //}
 
-		//s_RenderViewManager->BlitToScreen(s_SceneViewHandle, windowWidth, windowHeight);
-	}
+        //if (hasActiveMainView) {
+            s_RenderViewManager->BlitToScreen(s_FinalGameOutputHandle, windowWidth, windowHeight);
+        //} else {
+        //    s_RenderViewManager->BlitToScreen(s_FinalOutputViewHandle, windowWidth, windowHeight);
+        //}
+    }
 
     IStateCache* GraphicsManager::GetStateCache() {
         return s_StateCache.get();

@@ -69,6 +69,8 @@ namespace NE {
 
 	NANOENGINE_API bool CookShader(const std::string& sourcePath, const std::string& outPath, std::unordered_map<unsigned int, std::string>& shaderStages); // here for now
 
+	NANOENGINE_API void UseProductionSceneManager();
+
 	NANOENGINE_API void StartRuntime();
 	NANOENGINE_API void StopRuntime();
 	//NANOENGINE_API void EditorPause();

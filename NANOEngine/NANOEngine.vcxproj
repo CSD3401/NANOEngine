@@ -461,7 +461,8 @@
     <PostBuildEvent>
       <Command>xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
 xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
-</Command>
+xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"
+xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
@@ -495,7 +496,8 @@ xcopy /Y "$(TargetPath)" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\
 xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"</Command>
+      <Command>xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Editor\$(Configuration)-$(Platform)\"
+xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Chrono\$(Configuration)-$(Platform)\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Production|x64'">
