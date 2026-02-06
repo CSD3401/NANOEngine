@@ -10,8 +10,12 @@
 #include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
 #include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
 #include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
+#include "../../Graphics/OpenGL/GLPipeline.hpp"
+#include "../../Graphics/OpenGL/GLShader.hpp"
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Graphics/Core/DrawCommand.hpp"
+#include "../../Graphics/Core/Vertex.hpp"
+#include "../../Graphics/Core/PipelineCache.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <iostream>
 #include <algorithm>
@@ -70,8 +74,39 @@ namespace NE::ECS::Systems {
     {
     }
 
-    void UIRenderSystem::Init() 
+    void UIRenderSystem::Init()
     {
+        // Load default UI materials from existing compiled shaders
+        // Note: Using existing UI_Overlay.nanoshader for screen-space rendering
+        try {
+            // Load UI Overlay shader (existing compiled shader for screen-space UI)
+            auto overlayShader = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::OpenGL::GLShader>("neuioverlay");
+
+            if (overlayShader) {
+                NE::Graphics::PipelineSpecification spec;
+                spec.shader = overlayShader;
+                spec.EnableBlending = true;
+                spec.EnableDepthTest = false;
+                spec.DepthWrite = false;
+                spec.CullMode = GL_NONE;
+                spec.PolygonMode = GL_FILL;
+
+                auto pipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(spec, "UI_Overlay");
+                m_defaultUIMaterial = std::make_shared<NE::Graphics::Material>(pipeline);
+                m_defaultUIMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+
+                std::cout << "[UIRenderSystem] Loaded default UI overlay material" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[UIRenderSystem] Warning: Failed to load UI overlay shader: " << e.what() << std::endl;
+        }
+
+        // For now, use the same overlay shader for text
+        // TODO: Create separate text shader if needed
+        m_defaultTextMaterial = m_defaultUIMaterial;
+
+        // Load per-entity textures and materials
         const auto& entities = GetEntities();
 
         for (Entity e : entities) {
@@ -475,11 +510,29 @@ namespace NE::ECS::Systems {
             indices.push_back(base + 0);
         }
 
-        // Create OpenGL buffers
+        // NOTE: We can't use GLGeometryBuffer directly because it's hardcoded for Vertex struct
+        // For now, convert UIVertex2 to standard Vertex format as a workaround
+        // TODO Phase 3: Create dedicated UIGeometryBuffer class
+
+        std::vector<NE::Graphics::Vertex> standardVertices;
+        standardVertices.reserve(vertices.size());
+
+        for (const auto& uiVert : vertices) {
+            NE::Graphics::Vertex v;
+            v.Position = uiVert.Position;
+            v.Normal = Math::Vec3(0, 0, 1); // Default normal for UI
+            v.TexCoord = uiVert.TexCoord;
+            v.Tangent = Math::Vec3(1, 0, 0); // Default tangent
+            v.Bitangent = Math::Vec3(0, 1, 0); // Default bitangent
+            // BoneIDs and Weights default to 0
+            standardVertices.push_back(v);
+        }
+
+        // Create buffers with standard Vertex format
         auto vb = std::make_shared<NE::Graphics::OpenGL::GLVertexBuffer>(
-            vertices.data(),
-            static_cast<uint32_t>(vertices.size() * sizeof(NE::Graphics::UIVertex2)),
-            sizeof(NE::Graphics::UIVertex2)
+            standardVertices.data(),
+            static_cast<uint32_t>(standardVertices.size() * sizeof(NE::Graphics::Vertex)),
+            sizeof(NE::Graphics::Vertex)
         );
 
         auto ib = std::make_shared<NE::Graphics::OpenGL::GLIndexBuffer>(
@@ -504,14 +557,18 @@ namespace NE::ECS::Systems {
             return;
         }
 
-        // TODO: Get material (use component material or fallback to default)
-        // For now, this is a placeholder - materials will be loaded in later phases
+        // Get material (use component material or fallback to default)
         std::shared_ptr<NE::Graphics::Material> material = img.material;
 
         if (!material) {
-            // TODO: Use default UI material when available
-            // For now, skip rendering if no material (will be fixed in Phase 2)
-            return;
+            // Use default UI material
+            material = m_defaultUIMaterial;
+
+            if (!material) {
+                // No material available, skip rendering
+                // This happens if shader loading failed in Init()
+                return;
+            }
         }
 
         // Clone material to set per-instance uniforms
