@@ -123,6 +123,18 @@ namespace NE {
 		if (InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
 			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
+
+		// Apply script-driven cursor visibility
+		{
+			auto* win = static_cast<GLFWwindow*>(s_window->GetNativeWindow());
+			int currentMode = glfwGetInputMode(win, GLFW_CURSOR);
+			bool wantVisible = InputManager::IsCursorVisible();
+			if (wantVisible && currentMode != GLFW_CURSOR_NORMAL) {
+				glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			} else if (!wantVisible && currentMode != GLFW_CURSOR_HIDDEN) {
+				glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+			}
+		}
 	}
 
 	void Shutdown() {

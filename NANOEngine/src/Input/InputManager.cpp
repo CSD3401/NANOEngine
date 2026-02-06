@@ -14,6 +14,7 @@ namespace NE {
     double InputManager::s_scrollY = 0.0;
 
     bool InputManager::s_mouseLocked = false;
+    bool InputManager::s_cursorVisible = true;
 
     uint32_t InputManager::s_charBuf[InputManager::CharBufSize] = {};
     int InputManager::s_charHead = 0;
@@ -25,6 +26,7 @@ namespace NE {
         s_mouseX = s_mouseY = s_prevMouseX = s_prevMouseY = 0.0;
         s_scrollX = s_scrollY = 0.0;
         s_mouseLocked = false;
+        s_cursorVisible = true;
         s_charHead = s_charTail = 0;
     }
 
@@ -129,5 +131,11 @@ namespace NE {
     }
 
     bool InputManager::IsMouseLocked() { return s_mouseLocked; }
+
+    void InputManager::SetCursorVisible(bool visible) {
+        s_cursorVisible = visible;
+    }
+
+    bool InputManager::IsCursorVisible() { return s_cursorVisible; }
 
 }

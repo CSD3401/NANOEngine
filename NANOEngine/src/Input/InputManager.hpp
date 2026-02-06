@@ -37,6 +37,9 @@ namespace NE {
         static NANOENGINE_API void SetMouseLocked(bool locked);  // engine can request lock; editor implements actual cursor mode
         static NANOENGINE_API bool IsMouseLocked();
 
+        static NANOENGINE_API void SetCursorVisible(bool visible);
+        static NANOENGINE_API bool IsCursorVisible();
+
     private:
         struct KeyState {
             bool down = false;
@@ -58,6 +61,7 @@ namespace NE {
         static double s_scrollY;
 
         static bool s_mouseLocked;
+        static bool s_cursorVisible;
 
         // very small ring buffer for chars (UI/widgets that need text)
         static constexpr int CharBufSize = 32;

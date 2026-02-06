@@ -1004,6 +1004,18 @@ namespace Scripting {
      */
     SCRIPT_API bool IsMouseLocked();
 
+    /**
+     * @brief Show or hide the mouse cursor
+     * @param visible true to show cursor, false to hide it
+     */
+    SCRIPT_API void SetCursorVisible(bool visible);
+
+    /**
+     * @brief Check if the mouse cursor is currently visible
+     * @return true if cursor is visible
+     */
+    SCRIPT_API bool IsCursorVisible();
+
     //=========================================================================
     // EVENT API (SDK-level event system for script communication)
     //=========================================================================
@@ -1391,6 +1403,10 @@ namespace Input {
     inline std::pair<double, double> GetScrollDelta() { return NE::Scripting::ScrollDelta(); }
     inline void SetMouseLocked(bool locked) { NE::Scripting::SetMouseLocked(locked); }
     inline bool IsMouseLocked() { return NE::Scripting::IsMouseLocked(); }
+    inline void SetCursorVisible(bool visible) { NE::Scripting::SetCursorVisible(visible); }
+    inline bool IsCursorVisible() { return NE::Scripting::IsCursorVisible(); }
+    inline void ShowCursor() { NE::Scripting::SetCursorVisible(true); }
+    inline void HideCursor() { NE::Scripting::SetCursorVisible(false); }
 }
 
 /// Event system namespace - send and listen for game events

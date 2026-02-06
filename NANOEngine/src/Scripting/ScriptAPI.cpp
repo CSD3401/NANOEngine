@@ -3600,6 +3600,14 @@ namespace NE {
 			return NE::InputManager::IsMouseLocked();
 		}
 
+		void SetCursorVisible(bool visible) {
+			NE::InputManager::SetCursorVisible(visible);
+		}
+
+		bool IsCursorVisible() {
+			return NE::InputManager::IsCursorVisible();
+		}
+
 		//=========================================================================
 		// EVENT API IMPLEMENTATION (SDK → Engine bridge)
 		//=========================================================================
