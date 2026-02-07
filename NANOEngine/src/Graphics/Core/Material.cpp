@@ -110,6 +110,10 @@ namespace NE::Graphics {
         //    m_Textures[uName]->MakeResident();
     }
 
+    void Material::SetUniformHandle(const std::string& uName, uint64_t handle) {
+        m_HandleUniforms[uName] = handle;
+    }
+
     void Material::SetQueueBase(RenderQueue queue) {
 		m_BaseRQ = queue;
     }
@@ -138,6 +142,12 @@ namespace NE::Graphics {
         //    shader->SetUniformMat4Array(name, mats.data(), static_cast<int>(mats.size()));
         //}
 
+        // Bind bindless texture handles from m_HandleUniforms
+        for (const auto& [uName, handle] : m_HandleUniforms) {
+            shader->SetUniformHandle(uName, handle);
+        }
+
+        // Bind bindless texture handles from m_Textures
         for (auto& [uName, tex] : m_Textures) {
             if (!tex) continue;
             uint64_t h = tex->GetBindlessHandle();
@@ -161,6 +171,7 @@ namespace NE::Graphics {
         const auto oldVec3s = m_Vec3Uniforms;
         const auto oldVec4s = m_Vec4Uniforms;
         const auto oldMat4s = m_Mat4Uniforms;
+        const auto oldHandles = m_HandleUniforms;
         const auto oldTex = m_Textures;
 
         m_IntUniforms.clear();
@@ -169,6 +180,7 @@ namespace NE::Graphics {
         m_Vec3Uniforms.clear();
         m_Vec4Uniforms.clear();
         m_Mat4Uniforms.clear();
+        m_HandleUniforms.clear();
         m_Textures.clear();
 
         auto TryRestore = [&](const OpenGL::UniformDesc& u) {

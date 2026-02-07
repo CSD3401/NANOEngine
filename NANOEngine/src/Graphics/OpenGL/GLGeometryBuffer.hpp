@@ -28,6 +28,10 @@ namespace NE::Graphics::OpenGL {
         static void InitInstanceBuffer();
         static void UpdateInstanceBuffer(const void* instanceData, size_t instanceDataSize);
         static void ShutdownInstanceBuffer();
+        static unsigned int GetInstanceVBO() { return s_InstanceVBO; }
+
+        // HACK: Allow overriding VAO for custom vertex layouts (UI rendering)
+        void SetVAO(unsigned int vao) { m_VAO = vao; }
 
     private:
         unsigned int m_VAO = 0;

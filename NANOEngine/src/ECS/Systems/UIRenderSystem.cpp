@@ -15,6 +15,7 @@
 #include "../../Graphics/Core/Material.hpp"
 #include "../../Graphics/Core/DrawCommand.hpp"
 #include "../../Graphics/Core/Vertex.hpp"
+#include "../../Graphics/Core/InstanceData.hpp"
 #include "../../Graphics/Core/PipelineCache.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
 #include <glad/glad.h>
@@ -83,12 +84,12 @@ namespace NE::ECS::Systems {
         try {
             // Create UI shader from hardcoded source (same as UIRenderer)
             const char* uiVertexShaderSource = R"(#version 460 core
-                // Per-vertex attributes
-                layout(location = 0) in vec3 aPos;
-                layout(location = 1) in vec3 aNormal;
-                layout(location = 2) in vec2 aTexCoord;
+                // Per-vertex attributes (MUST match UIVertex2 layout!)
+                layout(location = 0) in vec3 aPos;      // Position (Vec3)
+                layout(location = 1) in vec2 aTexCoord; // TexCoord (Vec2) - NOT Normal!
+                layout(location = 2) in vec4 aColor;    // Color (Vec4)
 
-                // Per-instance attributes (required for instanced rendering, even if unused)
+                // Per-instance attributes (required for instanced rendering)
                 layout(location = 5) in vec4 aInstanceModel0;
                 layout(location = 6) in vec4 aInstanceModel1;
                 layout(location = 7) in vec4 aInstanceModel2;
@@ -96,33 +97,40 @@ namespace NE::ECS::Systems {
                 layout(location = 9) in vec3 aInstanceIdRGB;
 
                 out vec2 vUV;
+                out vec4 vColor;
 
                 uniform vec2 uScreenSize;
 
                 void main() {
                     // Convert pixel coordinates to NDC (-1 to 1)
-                    // Note: We ignore the instance model matrix since UI is already in screen space
                     float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
                     float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
 
                     gl_Position = vec4(ndcX, ndcY, aPos.z, 1.0);
                     vUV = aTexCoord;
+                    vColor = aColor;
                 }
             )";
 
             const char* uiFragmentShaderSource = R"(#version 460 core
+                #extension GL_ARB_bindless_texture : require
+
                 in vec2 vUV;
+                in vec4 vColor;
                 out vec4 FragColor;
 
                 uniform vec4 uColor;
                 uniform int uHasTexture;
-                uniform sampler2D uTexture;
+                layout(bindless_sampler) uniform sampler2D uTexture;
 
                 void main() {
+                    // Unity-style: Texture × Vertex Color × Uniform Color
+                    vec4 color = vColor * uColor;
+
                     if (uHasTexture == 1) {
-                        FragColor = texture(uTexture, vUV) * uColor;
+                        FragColor = texture(uTexture, vUV) * color;
                     } else {
-                        FragColor = uColor;
+                        FragColor = color;
                     }
                 }
             )";
@@ -219,6 +227,7 @@ namespace NE::ECS::Systems {
                 auto texture = NE::Resource::ResourceManager::GetInstance()
                     .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
                 if (texture) {
+                    texture->MakeResident();  // CRITICAL: Make texture resident for bindless access
                     img.bindlessHandle = texture->GetBindlessHandle();
                 }
             }
@@ -230,9 +239,30 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void UIRenderSystem::Update(double) 
+    void UIRenderSystem::Update(double)
     {
         const auto& entities = GetEntities();
+
+        // Runtime texture loading - handle textures dragged at runtime
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UIImage>(e)) continue;
+
+            auto& img = m_cm->GetComponent<UIImage>(e);
+
+            // Check if texture UUID changed but handle not loaded
+            if (!img.textureUUID.empty() && img.bindlessHandle == 0) {
+                auto texture = NE::Resource::ResourceManager::GetInstance()
+                    .LoadResource<NE::Graphics::OpenGL::GLTexture>(img.textureUUID);
+                if (texture) {
+                    texture->MakeResident();  // CRITICAL: Make texture resident for bindless access
+                    img.bindlessHandle = texture->GetBindlessHandle();
+                }
+            }
+            // Check if texture was removed (UUID cleared)
+            else if (img.textureUUID.empty() && img.bindlessHandle != 0) {
+                img.bindlessHandle = 0;
+            }
+        }
 
         std::vector<std::pair<int, Entity>> canvases;
 
@@ -611,27 +641,81 @@ namespace NE::ECS::Systems {
             indices.push_back(base + 0);
         }
 
-        // NOTE: We can't use GLGeometryBuffer directly because it's hardcoded for Vertex struct
-        // For now, convert UIVertex2 to standard Vertex format as a workaround
-        // TODO Phase 3: Create dedicated UIGeometryBuffer class
+        // Create raw OpenGL buffers with UIVertex2 layout (NOT standard Vertex!)
+        // UIVertex2 layout:
+        //   vec3 Position (12 bytes)
+        //   vec2 TexCoord (8 bytes)
+        //   vec4 Color (16 bytes)
+        //   Total: 36 bytes
 
-        std::vector<NE::Graphics::Vertex> standardVertices;
-        standardVertices.reserve(vertices.size());
+        GLuint vao, vbo, ebo;
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ebo);
 
-        for (const auto& uiVert : vertices) {
-            NE::Graphics::Vertex v;
-            v.Position = uiVert.Position;
-            v.Normal = Math::Vec3(0, 0, 1); // Default normal for UI
-            v.TexCoord = uiVert.TexCoord;
-            // BoneIDs and Weights default to 0 (already initialized in struct)
-            standardVertices.push_back(v);
+        glBindVertexArray(vao);
+
+        // Upload vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER,
+            vertices.size() * sizeof(NE::Graphics::UIVertex2),
+            vertices.data(),
+            GL_STATIC_DRAW);
+
+        // Upload index data
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+            indices.size() * sizeof(uint32_t),
+            indices.data(),
+            GL_STATIC_DRAW);
+
+        // Set up vertex attributes for UIVertex2 layout
+        const GLsizei stride = sizeof(NE::Graphics::UIVertex2);
+
+        // Location 0: vec3 Position (offset 0)
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+
+        // Location 1: vec2 TexCoord (offset 12 = sizeof(Vec3))
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3)));
+
+        // Location 2: vec4 Color (offset 20 = sizeof(Vec3) + sizeof(Vec2))
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3) + sizeof(Math::Vec2)));
+
+        // Set up instance attributes (locations 5-9) - same as GLGeometryBuffer
+        GLuint instanceVBO = NE::Graphics::OpenGL::GLGeometryBuffer::GetInstanceVBO();
+        if (instanceVBO != 0) {
+            glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+
+            const GLsizei instanceStride = sizeof(NE::Graphics::InstanceData);
+            size_t offset = 0;
+
+            // Locations 5-8: mat4 (4 vec4s)
+            for (int i = 0; i < 4; ++i) {
+                glEnableVertexAttribArray(5 + i);
+                glVertexAttribPointer(5 + i, 4, GL_FLOAT, GL_FALSE, instanceStride, (void*)offset);
+                glVertexAttribDivisor(5 + i, 1);
+                offset += sizeof(float) * 4;
+            }
+
+            // Location 9: vec3 IDRGB
+            glEnableVertexAttribArray(9);
+            glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, instanceStride, (void*)(sizeof(float) * 16));
+            glVertexAttribDivisor(9, 1);
         }
 
-        // Create buffers with standard Vertex format
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // Wrap in a custom geometry buffer wrapper
+        // TODO: Create a proper UIGeometryBuffer class
+        // For now, create a minimal wrapper that stores VAO/VBO/EBO and index count
         auto vb = std::make_shared<NE::Graphics::OpenGL::GLVertexBuffer>(
-            standardVertices.data(),
-            static_cast<uint32_t>(standardVertices.size() * sizeof(NE::Graphics::Vertex)),
-            sizeof(NE::Graphics::Vertex)
+            vertices.data(),
+            static_cast<uint32_t>(vertices.size() * sizeof(NE::Graphics::UIVertex2)),
+            sizeof(NE::Graphics::UIVertex2)
         );
 
         auto ib = std::make_shared<NE::Graphics::OpenGL::GLIndexBuffer>(
@@ -639,7 +723,14 @@ namespace NE::ECS::Systems {
             static_cast<uint32_t>(indices.size())
         );
 
-        return std::make_shared<NE::Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
+        // Create GLGeometryBuffer but override its VAO with our custom one
+        auto geometryBuffer = std::make_shared<NE::Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
+
+        // HACK: Replace the VAO with our custom UIVertex2-compatible one
+        // This is ugly but avoids creating a whole new class for now
+        geometryBuffer->SetVAO(vao);
+
+        return geometryBuffer;
     }
 
     void UIRenderSystem::SubmitUIElement(
@@ -657,23 +748,19 @@ namespace NE::ECS::Systems {
             return;
         }
 
-        // Get material (use component material or fallback to default)
-        std::shared_ptr<NE::Graphics::Material> material = img.material;
+        // CRITICAL: Always use default UI material (has bindless texture support)
+        // Ignore img.material - custom materials don't have our UI shader
+        std::shared_ptr<NE::Graphics::Material> baseMaterial = m_defaultUIMaterial;
 
-        if (!material) {
-            // Use default UI material
-            material = m_defaultUIMaterial;
-
-            if (!material) {
-                // No material available, skip rendering
-                // This happens if shader loading failed in Init()
-                std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: No material available (shader loading failed)" << std::endl;
-                return;
-            }
+        if (!baseMaterial) {
+            // No material available, skip rendering
+            // This happens if shader loading failed in Init()
+            std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: No material available (shader loading failed)" << std::endl;
+            return;
         }
 
-        // Clone material to set per-instance uniforms
-        auto instanceMaterial = std::make_shared<NE::Graphics::Material>(*material);
+        // Create instance material with the same pipeline (for per-instance uniforms)
+        auto instanceMaterial = std::make_shared<NE::Graphics::Material>(baseMaterial->GetPipeline());
 
         // Set per-instance uniforms
         instanceMaterial->SetUniformVec4("uColor", img.color);
@@ -686,18 +773,13 @@ namespace NE::ECS::Systems {
         instanceMaterial->SetUniformVec2("uScreenSize",
             Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
 
-        // Set texture if available
+        // Bindless texture support
         if (img.bindlessHandle != 0) {
+            // Texture is loaded, enable it and pass bindless handle
             instanceMaterial->SetUniformInt("uHasTexture", 1);
-            // TODO Phase 3: Set bindless texture handle
-            // Material::Bind() expects GLTexture objects in m_Textures map
-            // We have a raw bindless handle (uint64_t) which doesn't fit the current API
-            // Need to either:
-            //   1. Add Material::SetUniformHandle(name, handle) method
-            //   2. Create a GLTexture wrapper for existing handle
-            //   3. Set uniform directly on shader after material bind (requires pipeline access)
-            // For now, textures won't render - only solid colors work
+            instanceMaterial->SetUniformHandle("uTexture", img.bindlessHandle);
         } else {
+            // No texture, render solid color only
             instanceMaterial->SetUniformInt("uHasTexture", 0);
         }
 
