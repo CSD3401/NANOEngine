@@ -70,8 +70,9 @@ namespace NE::ECS::Systems {
 
 		for (auto& e : allEntities) {
 			auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(e);
-			auto& t = m_componentManager->GetComponent<Component::Transform>(e);
+			//auto& t = m_componentManager->GetComponent<Component::Transform>(e);
 			auto& col = m_componentManager->GetComponent<Component::Collider>(e);
+
 			if (col.isDirty) {
 				Physics::PhysicsManager::GetInstance().CreateOrUpdateShape(e, meta.luid, col);
 				col.isDirty = false;
