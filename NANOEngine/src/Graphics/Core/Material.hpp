@@ -7,6 +7,7 @@
 #include <algorithm>
 #include "../Interfaces/IPipeline.hpp"
 #include "../OpenGL/GLTexture.hpp"
+#include "../../../src/Math/Vec2.hpp"
 #include "../../../src/Math/Vec3.hpp"
 #include "../../../src/Math/Vec4.hpp"
 #include "../../../src/Math/Mat4.hpp"
@@ -30,6 +31,7 @@ namespace NE::Graphics {
 
         void SetUniformInt(const std::string& name, int value);
         void SetUniformFloat(const std::string& name, float value);
+        void SetUniformVec2(const std::string& name, const Vec2& value);
         void SetUniformVec3(const std::string& name, const Vec3& value);
         void SetUniformVec4(const std::string& name, const Vec4& value);
         void SetUniformMat4(const std::string& name, const Mat4& value);
@@ -52,6 +54,7 @@ namespace NE::Graphics {
         //const std::unordered_map<std::string, float>& GetFloatUniforms() const { return m_FloatUniforms; }
         std::unordered_map<std::string, int>& GetIntUniforms() { return m_IntUniforms; }
         std::unordered_map<std::string, float>& GetFloatUniforms() { return m_FloatUniforms; }
+        const std::unordered_map<std::string, Vec2>& GetVec2Uniforms() const { return m_Vec2Uniforms; }
         const std::unordered_map<std::string, Vec3>& GetVec3Uniforms() const { return m_Vec3Uniforms; }
         const std::unordered_map<std::string, Vec4>& GetVec4Uniforms() const { return m_Vec4Uniforms; }
         const std::unordered_map<std::string, Mat4>& GetMat4Uniforms() const { return m_Mat4Uniforms; }
@@ -71,6 +74,7 @@ namespace NE::Graphics {
 
         std::unordered_map<std::string, int>  m_IntUniforms;
         std::unordered_map<std::string, float> m_FloatUniforms;
+        std::unordered_map<std::string, Vec2> m_Vec2Uniforms;
         std::unordered_map<std::string, Vec3> m_Vec3Uniforms;
         std::unordered_map<std::string, Vec4> m_Vec4Uniforms;
         std::unordered_map<std::string, Mat4> m_Mat4Uniforms;

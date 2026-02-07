@@ -94,7 +94,8 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::DrawFrame();
 		//Graphics::GraphicsManager::DrawAllDebugGeometry();
 		Graphics::GraphicsManager::EndFrame();
-		Graphics::GraphicsManager::DrawUI();
+		// TODO Phase 2: Remove old UIRenderer path once integrated pipeline is verified
+		//Graphics::GraphicsManager::DrawUI();  // DISABLED: Using integrated pipeline instead
 	}
 
 	void Scene::ExitEdit() {

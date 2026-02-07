@@ -276,9 +276,16 @@ namespace NE::Graphics {
                 };
 
             const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
+
             for (const auto& command : commands) {
-                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
+                // Skip OVERLAY commands during view rendering - they'll be rendered separately after post-processing
+                if (command.material && command.material->GetQueueBase() == RenderQueue::OVERLAY) {
                     continue;
+                }
+
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs)) {
+                    continue;
+                }
 
                 auto mesh = command.mesh;
                 auto material = command.material;
@@ -346,6 +353,9 @@ namespace NE::Graphics {
                 s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, false);
             }
         }
+
+        // Render UI (OVERLAY queue) after post-processing to final output framebuffers
+        RenderUIOverlay();
     }
 
     void GraphicsManager::Submit(const DrawCommand& command) {
@@ -356,6 +366,110 @@ namespace NE::Graphics {
 		s_RenderViewManager->Unbind();
         //s_CommandBuffer->EndRenderPass();
         //s_CommandBuffer->End();
+    }
+
+    void GraphicsManager::RenderUIOverlay() {
+        const auto& commands = s_DrawQueue->GetCommands();
+
+        // Filter for OVERLAY commands
+        std::vector<const DrawCommand*> uiCommands;
+        for (const auto& cmd : commands) {
+            if (cmd.material && cmd.material->GetQueueBase() == RenderQueue::OVERLAY) {
+                uiCommands.push_back(&cmd);
+            }
+        }
+
+        if (uiCommands.empty()) {
+            return;
+        }
+
+        // Render UI to both final output views (editor scene view and game view)
+        std::vector<RenderViewHandle> outputViews = { s_FinalOutputViewHandle, s_FinalGameOutputHandle };
+
+        for (RenderViewHandle viewHandle : outputViews) {
+            // Get the view to check if it exists and is active
+            auto& views = s_RenderViewManager->GetAllRenderViews();
+            auto it = views.find(viewHandle);
+            if (it == views.end() || !it->second.framebuffer) {
+                continue;
+            }
+
+            // Bind the final output framebuffer
+            s_RenderViewManager->Bind(viewHandle);
+
+            // Disable depth testing for UI - UI always renders on top
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
+
+            // Prepare batching
+            std::vector<InstanceData> instanceData;
+            instanceData.reserve(32);
+            std::shared_ptr<IGeometryBuffer> currentMesh;
+            std::shared_ptr<Material> currentMaterial;
+
+            auto flushBatch = [&]() {
+                if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
+                    return;
+
+                NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instanceData.data(),
+                    instanceData.size() * sizeof(InstanceData)
+                );
+
+                // Bind pipeline & GL state
+                auto pipeline = currentMaterial->GetPipeline();
+                s_StateCache->Bind(pipeline);
+                currentMaterial->Bind();
+                currentMesh->Bind();
+
+                // Draw mesh with instancing
+                currentMesh->DrawInstanced(instanceData.size());
+                currentMesh->Unbind();
+
+                instanceData.clear();
+            };
+
+            // Batch and render all UI commands
+            for (const DrawCommand* cmdPtr : uiCommands) {
+                const DrawCommand& command = *cmdPtr;
+
+                auto mesh = command.mesh;
+                auto material = command.material;
+
+                // Check compatibility with current batch
+                bool compatible =
+                    (mesh == currentMesh) &&
+                    (material == currentMaterial);
+
+                // Flush current batch if not compatible
+                if (!compatible && !instanceData.empty()) {
+                    flushBatch();
+                }
+
+                // Prepare to create new batch if not compatible
+                if (!compatible) {
+                    currentMesh = mesh;
+                    currentMaterial = material;
+                }
+
+                NE::Graphics::InstanceData instance{};
+                instance.model = command.transform;
+                instance.idRGB = command.idRGB;
+
+                instanceData.push_back(instance);
+            }
+
+            if (!instanceData.empty()) {
+                flushBatch();
+            }
+
+            // Restore depth testing state
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+
+            // Unbind view after rendering UI
+            s_RenderViewManager->Unbind();
+        }
     }
 
     void GraphicsManager::Clear() {

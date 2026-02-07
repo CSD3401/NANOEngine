@@ -17,6 +17,7 @@
 #include "../../Graphics/Core/Vertex.hpp"
 #include "../../Graphics/Core/PipelineCache.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include <glad/glad.h>
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -76,34 +77,134 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::Init()
     {
-        // Load default UI materials from existing compiled shaders
-        // Note: Using existing UI_Overlay.nanoshader for screen-space rendering
+        // Create default UI material programmatically
+        // NOTE: UI shaders are not in the resource system, so we create them from hardcoded strings
+        // This matches the old UIRenderer approach
         try {
-            // Load UI Overlay shader (existing compiled shader for screen-space UI)
-            auto overlayShader = NE::Resource::ResourceManager::GetInstance()
-                .LoadResource<NE::Graphics::OpenGL::GLShader>("neuioverlay");
+            // Create UI shader from hardcoded source (same as UIRenderer)
+            const char* uiVertexShaderSource = R"(#version 460 core
+                // Per-vertex attributes
+                layout(location = 0) in vec3 aPos;
+                layout(location = 1) in vec3 aNormal;
+                layout(location = 2) in vec2 aTexCoord;
 
-            if (overlayShader) {
-                NE::Graphics::PipelineSpecification spec;
-                spec.shader = overlayShader;
-                spec.EnableBlending = true;
-                spec.EnableDepthTest = false;
-                spec.DepthWrite = false;
-                spec.CullMode = GL_NONE;
-                spec.PolygonMode = GL_FILL;
+                // Per-instance attributes (required for instanced rendering, even if unused)
+                layout(location = 5) in vec4 aInstanceModel0;
+                layout(location = 6) in vec4 aInstanceModel1;
+                layout(location = 7) in vec4 aInstanceModel2;
+                layout(location = 8) in vec4 aInstanceModel3;
+                layout(location = 9) in vec3 aInstanceIdRGB;
 
-                auto pipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(spec, "UI_Overlay");
-                m_defaultUIMaterial = std::make_shared<NE::Graphics::Material>(pipeline);
-                m_defaultUIMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+                out vec2 vUV;
 
-                std::cout << "[UIRenderSystem] Loaded default UI overlay material" << std::endl;
+                uniform vec2 uScreenSize;
+
+                void main() {
+                    // Convert pixel coordinates to NDC (-1 to 1)
+                    // Note: We ignore the instance model matrix since UI is already in screen space
+                    float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
+                    float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
+
+                    gl_Position = vec4(ndcX, ndcY, aPos.z, 1.0);
+                    vUV = aTexCoord;
+                }
+            )";
+
+            const char* uiFragmentShaderSource = R"(#version 460 core
+                in vec2 vUV;
+                out vec4 FragColor;
+
+                uniform vec4 uColor;
+                uniform int uHasTexture;
+                uniform sampler2D uTexture;
+
+                void main() {
+                    if (uHasTexture == 1) {
+                        FragColor = texture(uTexture, vUV) * uColor;
+                    } else {
+                        FragColor = uColor;
+                    }
+                }
+            )";
+
+            // Manually compile and link the shader
+            GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource(vertexShader, 1, &uiVertexShaderSource, nullptr);
+            glCompileShader(vertexShader);
+
+            // Check vertex shader compilation
+            GLint vertexSuccess = 0;
+            glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexSuccess);
+            if (!vertexSuccess) {
+                char infoLog[512];
+                glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
+                std::cerr << "[UIRenderSystem] ERROR: Vertex shader compilation failed:\n" << infoLog << std::endl;
+                glDeleteShader(vertexShader);
+                return;
             }
+
+            GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource(fragmentShader, 1, &uiFragmentShaderSource, nullptr);
+            glCompileShader(fragmentShader);
+
+            // Check fragment shader compilation
+            GLint fragmentSuccess = 0;
+            glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentSuccess);
+            if (!fragmentSuccess) {
+                char infoLog[512];
+                glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
+                std::cerr << "[UIRenderSystem] ERROR: Fragment shader compilation failed:\n" << infoLog << std::endl;
+                glDeleteShader(vertexShader);
+                glDeleteShader(fragmentShader);
+                return;
+            }
+
+            // Link shaders
+            GLuint shaderProgram = glCreateProgram();
+            glAttachShader(shaderProgram, vertexShader);
+            glAttachShader(shaderProgram, fragmentShader);
+            glLinkProgram(shaderProgram);
+
+            // Check linking
+            GLint linkSuccess = 0;
+            glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkSuccess);
+            if (!linkSuccess) {
+                char infoLog[512];
+                glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
+                std::cerr << "[UIRenderSystem] ERROR: Shader program linking failed:\n" << infoLog << std::endl;
+                glDeleteShader(vertexShader);
+                glDeleteShader(fragmentShader);
+                glDeleteProgram(shaderProgram);
+                return;
+            }
+
+            // Clean up shader objects (no longer needed after linking)
+            glDeleteShader(vertexShader);
+            glDeleteShader(fragmentShader);
+
+            std::cout << "[UIRenderSystem] UI shader compiled and linked successfully (program ID: " << shaderProgram << ")" << std::endl;
+
+            // Create GLShader with the compiled program
+            auto uiShader = std::make_shared<NE::Graphics::OpenGL::GLShader>(shaderProgram);
+
+            NE::Graphics::PipelineSpecification spec;
+            spec.shader = uiShader;
+            spec.EnableBlending = true;
+            spec.EnableDepthTest = false;
+            spec.DepthWrite = false;
+            spec.CullMode = GL_NONE;
+            spec.PolygonMode = GL_FILL;
+
+            auto pipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(spec, "UI_Programmatic");
+            m_defaultUIMaterial = std::make_shared<NE::Graphics::Material>(pipeline);
+            m_defaultUIMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+
+            std::cout << "[UIRenderSystem] Created programmatic UI material with OVERLAY queue" << std::endl;
         } catch (const std::exception& e) {
-            std::cerr << "[UIRenderSystem] Warning: Failed to load UI overlay shader: " << e.what() << std::endl;
+            std::cerr << "[UIRenderSystem] Error creating programmatic UI material: " << e.what() << std::endl;
         }
 
-        // For now, use the same overlay shader for text
-        // TODO: Create separate text shader if needed
+        // Use same material for text
         m_defaultTextMaterial = m_defaultUIMaterial;
 
         // Load per-entity textures and materials
@@ -552,6 +653,7 @@ namespace NE::ECS::Systems {
         // Create dynamic geometry buffer
         auto geometryBuffer = CreateDynamicUIGeometry(vertices);
         if (!geometryBuffer) {
+            std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: Failed to create geometry buffer!" << std::endl;
             return;
         }
 
@@ -565,6 +667,7 @@ namespace NE::ECS::Systems {
             if (!material) {
                 // No material available, skip rendering
                 // This happens if shader loading failed in Init()
+                std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: No material available (shader loading failed)" << std::endl;
                 return;
             }
         }
@@ -578,11 +681,25 @@ namespace NE::ECS::Systems {
         // Get screen size from GraphicsManager
         uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
         uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
-        instanceMaterial->SetUniformVec3("uScreenSize",
-            Math::Vec3(static_cast<float>(screenWidth), static_cast<float>(screenHeight), 0.0f));
 
-        instanceMaterial->SetUniformInt("uHasTexture",
-            img.bindlessHandle != 0 ? 1 : 0);
+        // Set screen size as Vec2 (shader expects vec2)
+        instanceMaterial->SetUniformVec2("uScreenSize",
+            Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
+
+        // Set texture if available
+        if (img.bindlessHandle != 0) {
+            instanceMaterial->SetUniformInt("uHasTexture", 1);
+            // TODO Phase 3: Set bindless texture handle
+            // Material::Bind() expects GLTexture objects in m_Textures map
+            // We have a raw bindless handle (uint64_t) which doesn't fit the current API
+            // Need to either:
+            //   1. Add Material::SetUniformHandle(name, handle) method
+            //   2. Create a GLTexture wrapper for existing handle
+            //   3. Set uniform directly on shader after material bind (requires pipeline access)
+            // For now, textures won't render - only solid colors work
+        } else {
+            instanceMaterial->SetUniformInt("uHasTexture", 0);
+        }
 
         // Set render queue - UI uses OVERLAY (4000) as base priority
         instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
@@ -590,11 +707,20 @@ namespace NE::ECS::Systems {
 
         // Build DrawCommand
         NE::Graphics::DrawCommand cmd;
-        cmd.transform = rect.worldMatrix;
+
+        // For screen-space UI, vertices are already in pixel coordinates
+        // The shader converts them to NDC, so use identity transform
+        cmd.transform = Math::Mat4(); // Identity matrix
         cmd.mesh = geometryBuffer;
         cmd.material = instanceMaterial;
         cmd.castsShadow = false;
         cmd.receivesShadow = false;
+
+        // CRITICAL: Set bounds to ensure UI passes frustum culling
+        // Screen-space UI should always be considered visible
+        // Set bounds at origin with very large radius to always pass frustum test
+        cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
+        cmd.boundsRadiusWs = 999999.0f;  // Effectively infinite - always visible
 
         // Submit through standard pipeline
         NE::Graphics::GraphicsManager::Submit(cmd);
@@ -825,10 +951,14 @@ namespace NE::ECS::Systems {
                 std::vector<NE::Graphics::UIVertex2> verticesV2;
                 WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
 
+                // Use white color for vertices (color is applied via uniform)
+                // The old shader only uses uColor uniform, not vertex colors
+                Math::Vec4 whiteColor(1.0f, 1.0f, 1.0f, 1.0f);
+
                 if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
                     // For world space, generate simple unit quad
                     verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
-                        img, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, img.color
+                        img, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, whiteColor
                     );
                 }
                 else {
@@ -837,7 +967,7 @@ namespace NE::ECS::Systems {
                         img,
                         worldTransform.x, worldTransform.y, worldTransform.z,
                         worldTransform.width, worldTransform.height,
-                        img.color
+                        whiteColor
                     );
                 }
 

@@ -222,7 +222,7 @@ namespace NE::ECS::Systems {
         // NEW: Integrated pipeline support
         // Set to true to test new GraphicsManager pipeline, false for old UIRenderer path
         // Phase 2: Test both paths by toggling this flag
-        bool m_useIntegratedPipeline = false;
+        bool m_useIntegratedPipeline = true;
         std::shared_ptr<NE::Graphics::Material> m_defaultUIMaterial;  // Default sprite material
         std::shared_ptr<NE::Graphics::Material> m_defaultTextMaterial;  // Default text material
     };

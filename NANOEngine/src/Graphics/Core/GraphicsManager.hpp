@@ -155,8 +155,11 @@ namespace NE::Graphics {
 
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
-        
+
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
+
+        // UI Rendering
+        static void RenderUIOverlay();
 
     };
 }

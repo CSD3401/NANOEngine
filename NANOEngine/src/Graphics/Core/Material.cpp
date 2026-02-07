@@ -79,6 +79,10 @@ namespace NE::Graphics {
         m_FloatUniforms[uName] = value;
     }
 
+    void Material::SetUniformVec2(const std::string& uName, const Vec2& value) {
+        m_Vec2Uniforms[uName] = value;
+    }
+
     void Material::SetUniformVec3(const std::string& uName, const Vec3& value) {
         m_Vec3Uniforms[uName] = value;
     }
@@ -119,6 +123,8 @@ namespace NE::Graphics {
 
         for (const auto& [uName, val] : m_FloatUniforms)
             shader->SetUniformFloat(uName, val);
+        for (const auto& [uName, val] : m_Vec2Uniforms)
+            shader->SetUniformVec2(uName, val);
         for (const auto& [uName, val] : m_Vec3Uniforms)
             shader->SetUniformVec3(uName, val);
         for (const auto& [uName, val] : m_Vec4Uniforms)
@@ -151,6 +157,7 @@ namespace NE::Graphics {
 
         const auto oldInts = m_IntUniforms;
         const auto oldFloats = m_FloatUniforms;
+        const auto oldVec2s = m_Vec2Uniforms;
         const auto oldVec3s = m_Vec3Uniforms;
         const auto oldVec4s = m_Vec4Uniforms;
         const auto oldMat4s = m_Mat4Uniforms;
@@ -158,6 +165,7 @@ namespace NE::Graphics {
 
         m_IntUniforms.clear();
         m_FloatUniforms.clear();
+        m_Vec2Uniforms.clear();
         m_Vec3Uniforms.clear();
         m_Vec4Uniforms.clear();
         m_Mat4Uniforms.clear();
@@ -191,6 +199,11 @@ namespace NE::Graphics {
             case GL_FLOAT:
                 if (auto it = oldFloats.find(name); it != oldFloats.end())
                     m_FloatUniforms[name] = it->second;
+                break;
+
+            case GL_FLOAT_VEC2:
+                if (auto it = oldVec2s.find(name); it != oldVec2s.end())
+                    m_Vec2Uniforms[name] = it->second;
                 break;
 
             case GL_FLOAT_VEC3:
@@ -248,6 +261,10 @@ namespace NE::Graphics {
                 } else {
                     m_FloatUniforms.emplace(u.name, 0.0f);
                 }
+                break;
+
+            case GL_FLOAT_VEC2:
+                m_Vec2Uniforms.emplace(u.name, Vec2{ 0,0 });
                 break;
 
             case GL_FLOAT_VEC3:
