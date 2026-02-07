@@ -204,6 +204,7 @@
     <ClInclude Include="Scripts\UIButton_SwitchSceneThree.hpp" />
     <ClInclude Include="Scripts\UIButton_SwitchSceneTwo.hpp" />
     <ClInclude Include="Scripts\UI_MasterVolumeButtons.hpp" />
+    <ClInclude Include="Scripts\UI_Notes.hpp" />
     <ClInclude Include="Scripts\WireChild.hpp" />
   </ItemGroup>
   <ItemGroup>

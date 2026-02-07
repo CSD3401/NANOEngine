@@ -224,7 +224,9 @@ namespace NE::ECS::Systems {
 
         for (auto child : hier.children)
             SetActive(child, isActive);
+        }
     }
+
 
     //void HierarchySystem::SetParent(Entity child,
     //    Entity newParent,

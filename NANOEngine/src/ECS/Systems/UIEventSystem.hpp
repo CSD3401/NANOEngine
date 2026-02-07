@@ -35,6 +35,8 @@ namespace NE::ECS::Systems {
         static void ClearViewportBounds();
 
     private:
+        bool IsActiveForUI(Entity entity, Entity canvasEntity) const;
+        Entity FindOwningCanvas(Entity entity) const;
         ComponentManager* m_cm = nullptr;
 
         Entity m_hoveredEntity = NO_ENTITY;

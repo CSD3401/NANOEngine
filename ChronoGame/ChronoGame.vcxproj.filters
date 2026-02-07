@@ -54,5 +54,6 @@
     <ClInclude Include="Scripts\UIButton_SwitchScene.hpp" />
     <ClInclude Include="Scripts\UIButton_SwitchSceneThree.hpp" />
     <ClInclude Include="Scripts\UIButton_SwitchSceneTwo.hpp" />
+    <ClInclude Include="Scripts\UI_Notes.hpp" />
   </ItemGroup>
 </Project>

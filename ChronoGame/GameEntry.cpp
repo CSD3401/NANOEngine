@@ -41,6 +41,7 @@
 #include "Scripts/UIButton_SwitchScene.hpp"
 #include "Scripts/UIButton_SwitchSceneTwo.hpp"
 #include "Scripts/UIButton_SwitchSceneThree.hpp"
+#include "Scripts/UI_Notes.hpp"
 
 // extern "C" ensures C linkage so the Engine DLL can find this function
 extern "C" {
@@ -164,6 +165,9 @@ extern "C" {
             });
         registrar->RegisterScript("UIButton_SwitchSceneThree", []() -> NE::Scripting::IScript* {
             return new UIButton_SwitchSceneThree();
+            });
+        registrar->RegisterScript("UI_Notes", []() -> NE::Scripting::IScript* {
+            return new UI_Notes();
             });
         }
 }
