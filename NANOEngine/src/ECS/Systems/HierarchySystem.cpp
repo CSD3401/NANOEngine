@@ -3,10 +3,12 @@
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
 #include "Math/Mat4.hpp"
-#include "../Components/Hierarchy.hpp"
-#include "../Components/Transform.hpp"
-#include "../Components/EntityMeta.hpp"
+#include "ECS/Components/Hierarchy.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/EntityMeta.hpp"
+#include "ECS/Components/Rigidbody.hpp"
 #include <Core/Profiler.hpp>
+#include "Physics/PhysicsManager.hpp"
 
 namespace NE::ECS::Systems {
 
@@ -212,8 +214,13 @@ namespace NE::ECS::Systems {
     }
 
     void HierarchySystem::SetActive(Entity root, bool isActive) {
-        m_componentManager->GetComponent<Component::EntityMeta>(root).isActive = isActive;
+        auto& meta = m_componentManager->GetComponent<Component::EntityMeta>(root);
+        meta.isActive = isActive;
         auto& hier = m_componentManager->GetComponent<Component::Hierarchy>(root);
+
+        if (m_componentManager->HasComponent<Component::Rigidbody>(root)) {
+            Physics::PhysicsManager::GetInstance().UpdateBodyState(meta.luid, isActive);
+        }
 
         for (auto child : hier.children)
             SetActive(child, isActive);

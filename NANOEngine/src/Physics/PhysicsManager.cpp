@@ -599,6 +599,17 @@ namespace NE::Physics {
 		runtime.controller->SetPosition(JPH::RVec3(position.x, position.y, position.z));
 	}
 
+	void PhysicsManager::UpdateBodyState(uint64_t entityLUID, bool isActive) {
+		auto it = m_bodies.find(entityLUID);
+		if (it == m_bodies.end()) return;
+		JPH::BodyID id = it->second;
+		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
+		if (isActive)
+			bi.AddBody(id, JPH::EActivation::Activate);
+		else
+			bi.RemoveBody(id);
+	}
+
 	void PhysicsManager::CreateBody(uint32_t entity, uint64_t luid, const ECS::Component::Transform& t,
 		const ECS::Component::Rigidbody& rb, const ECS::Component::Collider& col, uint8_t layerID) {
 		auto itShape = m_shapes.find(luid);
