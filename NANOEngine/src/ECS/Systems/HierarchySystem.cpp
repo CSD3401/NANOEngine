@@ -224,7 +224,6 @@ namespace NE::ECS::Systems {
 
         for (auto child : hier.children)
             SetActive(child, isActive);
-        }
     }
 
 
