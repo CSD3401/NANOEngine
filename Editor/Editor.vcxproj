@@ -359,7 +359,6 @@
     <ClInclude Include="src\Panels\IPanel.hpp" />
     <ClInclude Include="src\ThumbnailManager.hpp" />
     <ClInclude Include="src\UIGizmoHandler.hpp" />
-    <ClInclude Include="src\Util\DrawSelectedCollider.hpp" />
     <ClInclude Include="src\AssetManagement\Interfaces\TextureSettingsEditor.hpp" />
     <ClInclude Include="src\Util\HierarchyUtils.hpp" />
     <ClInclude Include="src\TagDatabase.hpp" />
