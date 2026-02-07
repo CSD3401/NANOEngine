@@ -27,6 +27,7 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "Animation/AnimationClip.hpp"
 #include "ECS/Systems/AnimatorSystem.hpp"
+#include "Events/EventBus.hpp"
 
 namespace {
 
@@ -110,19 +111,16 @@ namespace NE {
 		Physics::JoltDebugRenderer::BeginFrame();
 		
 		gSceneManager.Update(dt);
-
-		//Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
-
 		Physics::JoltDebugRenderer::EndFrame();
+
+
 		gSceneManager.Render();
 
 		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
 
 		TweenManager::Get().Update(static_cast<float>(dt));
 
-		if (InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
-			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
+		//NANOEngine::Events::EventBus::Get().DispatchQueued();
 	}
 
 	void Shutdown() {
