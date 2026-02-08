@@ -9,14 +9,9 @@
 #include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
 #include "Core/Reflection.hpp"
+#include "Graphics/Core/UIImageMeshGenerator.hpp"  // For UIVertex2
 
 namespace NE::ECS::Component {
-
-    struct UITextVertex {
-        float x, y, z;
-        float u, v;
-        float r, g, b, a;
-    };
 
     struct UIText {
         // === SERIALIZED FIELDS ===
@@ -36,7 +31,7 @@ namespace NE::ECS::Component {
         // === RUNTIME FIELDS (not serialized) ===
         uint64_t fontAtlasHandle = 0;
         bool isDirty = true;
-        std::vector<UITextVertex> cachedVertices;
+        std::vector<NE::Graphics::UIVertex2> cachedVertices;
         std::string cachedText;
         float cachedFontSize = 0.0f;
         NE::Math::Vec3 cachedPos{ 0.0f, 0.0f, 0.0f };

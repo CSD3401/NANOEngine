@@ -193,16 +193,19 @@ namespace NE::ECS::Systems {
             const Math::Mat4* projMatrix
         );
 
-        void SubmitTextDrawCommand(
+        // NEW: Create dynamic geometry buffer for text vertices
+        std::shared_ptr<NE::Graphics::IGeometryBuffer> CreateDynamicTextGeometry(
+            const std::vector<NE::Graphics::UIVertex2>& vertices
+        );
+
+        // NEW: Submit text element through integrated GraphicsManager pipeline
+        void SubmitTextElement(
             Entity entity,
-            Entity canvasEntity,
             const Component::UICanvas& canvas,
-            Component::UIText& text,
+            const Component::UIText& text,
             const Component::UIRectTransform& rect,
-            const WorldTransform& worldTransform,
-            std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
-            const Math::Mat4* viewMatrix,
-            const Math::Mat4* projMatrix
+            const std::vector<NE::Graphics::UIVertex2>& vertices,
+            std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas
         );
 
     private:

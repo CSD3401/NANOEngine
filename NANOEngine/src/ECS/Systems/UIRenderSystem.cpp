@@ -234,8 +234,100 @@ namespace NE::ECS::Systems {
             std::cerr << "[UIRenderSystem] Error creating programmatic UI material: " << e.what() << std::endl;
         }
 
-        // Use same material for text
-        m_defaultTextMaterial = m_defaultUIMaterial;
+        // Create separate text material (different shader for font atlas rendering)
+        try {
+            const char* textVertexSource = R"(#version 460 core
+                layout(location = 0) in vec3 aPos;
+                layout(location = 1) in vec2 aTexCoord;
+                layout(location = 2) in vec4 aColor;
+
+                out vec2 TexCoord;
+                out vec4 Color;
+
+                uniform vec2 uScreenSize;
+
+                void main() {
+                    vec2 ndc = (aPos.xy / uScreenSize) * 2.0 - 1.0;
+                    ndc.y = -ndc.y;
+                    gl_Position = vec4(ndc, 0.0, 1.0);
+                    TexCoord = aTexCoord;
+                    Color = aColor;
+                }
+            )";
+
+            const char* textFragmentSource = R"(#version 460 core
+                #extension GL_ARB_bindless_texture : require
+
+                in vec2 TexCoord;
+                in vec4 Color;
+                out vec4 FragColor;
+
+                uniform sampler2D uFontAtlas;
+                uniform vec4 uColor;
+
+                void main() {
+                    float alpha = texture(uFontAtlas, TexCoord).r;
+                    FragColor = vec4(Color.rgb * uColor.rgb, alpha * Color.a * uColor.a);
+                }
+            )";
+
+            GLuint textVertShader = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource(textVertShader, 1, &textVertexSource, nullptr);
+            glCompileShader(textVertShader);
+
+            GLint textVertSuccess;
+            glGetShaderiv(textVertShader, GL_COMPILE_STATUS, &textVertSuccess);
+            if (!textVertSuccess) {
+                char infoLog[512];
+                glGetShaderInfoLog(textVertShader, 512, nullptr, infoLog);
+                std::cerr << "[UIRenderSystem] Text vertex shader compilation failed: " << infoLog << std::endl;
+            }
+
+            GLuint textFragShader = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource(textFragShader, 1, &textFragmentSource, nullptr);
+            glCompileShader(textFragShader);
+
+            GLint textFragSuccess;
+            glGetShaderiv(textFragShader, GL_COMPILE_STATUS, &textFragSuccess);
+            if (!textFragSuccess) {
+                char infoLog[512];
+                glGetShaderInfoLog(textFragShader, 512, nullptr, infoLog);
+                std::cerr << "[UIRenderSystem] Text fragment shader compilation failed: " << infoLog << std::endl;
+            }
+
+            GLuint textShaderProgram = glCreateProgram();
+            glAttachShader(textShaderProgram, textVertShader);
+            glAttachShader(textShaderProgram, textFragShader);
+            glLinkProgram(textShaderProgram);
+
+            GLint textLinkSuccess;
+            glGetProgramiv(textShaderProgram, GL_LINK_STATUS, &textLinkSuccess);
+            if (!textLinkSuccess) {
+                char infoLog[512];
+                glGetProgramInfoLog(textShaderProgram, 512, nullptr, infoLog);
+                std::cerr << "[UIRenderSystem] Text shader linking failed: " << infoLog << std::endl;
+            }
+
+            glDeleteShader(textVertShader);
+            glDeleteShader(textFragShader);
+
+            auto textShader = std::make_shared<NE::Graphics::OpenGL::GLShader>(textShaderProgram);
+            NE::Graphics::PipelineSpecification textSpec;
+            textSpec.shader = textShader;
+            textSpec.EnableBlending = true;
+            textSpec.EnableDepthTest = false;
+            textSpec.DepthWrite = false;
+            textSpec.CullMode = GL_NONE;
+            textSpec.PolygonMode = GL_FILL;
+
+            auto textPipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(textSpec, "UIText_Programmatic");
+            m_defaultTextMaterial = std::make_shared<NE::Graphics::Material>(textPipeline);
+            m_defaultTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+
+            std::cout << "[UIRenderSystem] Created programmatic UI text material with OVERLAY queue" << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[UIRenderSystem] Error creating programmatic text material: " << e.what() << std::endl;
+        }
 
         // Load per-entity textures and materials
         const auto& entities = GetEntities();
@@ -765,6 +857,86 @@ namespace NE::ECS::Systems {
         return geometryBuffer;
     }
 
+    std::shared_ptr<NE::Graphics::IGeometryBuffer> UIRenderSystem::CreateDynamicTextGeometry(
+        const std::vector<NE::Graphics::UIVertex2>& vertices
+    )
+    {
+        if (vertices.empty()) {
+            return nullptr;
+        }
+
+        // Text vertices come as triangles (6 vertices per glyph), not quads
+        // Generate indices for triangle list
+        std::vector<uint32_t> indices;
+        indices.reserve(vertices.size());
+        for (uint32_t i = 0; i < static_cast<uint32_t>(vertices.size()); ++i) {
+            indices.push_back(i);
+        }
+
+        // Create raw OpenGL buffers with UIVertex2 layout
+        // UIVertex2 layout:
+        //   vec3 Position (12 bytes)
+        //   vec2 TexCoord (8 bytes)
+        //   vec4 Color (16 bytes)
+        //   Total: 36 bytes
+
+        GLuint vao, vbo, ebo;
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ebo);
+
+        glBindVertexArray(vao);
+
+        // Upload vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER,
+            vertices.size() * sizeof(NE::Graphics::UIVertex2),
+            vertices.data(),
+            GL_STATIC_DRAW);
+
+        // Upload index data
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+            indices.size() * sizeof(uint32_t),
+            indices.data(),
+            GL_STATIC_DRAW);
+
+        // Set up vertex attributes for UIVertex2 layout
+        const GLsizei stride = sizeof(NE::Graphics::UIVertex2);
+
+        // Location 0: vec3 Position (offset 0)
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+
+        // Location 1: vec2 TexCoord (offset 12 = sizeof(Vec3))
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3)));
+
+        // Location 2: vec4 Color (offset 20 = sizeof(Vec3) + sizeof(Vec2))
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3) + sizeof(Math::Vec2)));
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // Wrap in geometry buffer
+        auto vb = std::make_shared<NE::Graphics::OpenGL::GLVertexBuffer>(
+            vertices.data(),
+            static_cast<uint32_t>(vertices.size() * sizeof(NE::Graphics::UIVertex2)),
+            sizeof(NE::Graphics::UIVertex2)
+        );
+
+        auto ib = std::make_shared<NE::Graphics::OpenGL::GLIndexBuffer>(
+            indices.data(),
+            static_cast<uint32_t>(indices.size())
+        );
+
+        auto geometryBuffer = std::make_shared<NE::Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
+        geometryBuffer->SetVAO(vao);
+
+        return geometryBuffer;
+    }
+
     void UIRenderSystem::SubmitUIElement(
         Entity entity,
         const UICanvas& canvas,
@@ -840,6 +1012,70 @@ namespace NE::ECS::Systems {
         cmd.boundsRadiusWs = 999999.0f;  // Effectively infinite - always visible
 
         // Submit through standard pipeline
+        NE::Graphics::GraphicsManager::Submit(cmd);
+    }
+
+    void UIRenderSystem::SubmitTextElement(
+        Entity entity,
+        const UICanvas& canvas,
+        const UIText& text,
+        const UIRectTransform& rect,
+        const std::vector<NE::Graphics::UIVertex2>& vertices,
+        std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas
+    )
+    {
+        (void)entity; // Unused parameter
+
+        if (vertices.empty()) {
+            return;
+        }
+
+        // Create dynamic geometry buffer
+        auto geometryBuffer = CreateDynamicTextGeometry(vertices);
+        if (!geometryBuffer) {
+            std::cerr << "[UIRenderSystem::SubmitTextElement] ERROR: Failed to create text geometry buffer!" << std::endl;
+            return;
+        }
+
+        // Use default text material
+        std::shared_ptr<NE::Graphics::Material> baseMaterial = m_defaultTextMaterial;
+
+        if (!baseMaterial) {
+            std::cerr << "[UIRenderSystem::SubmitTextElement] ERROR: No default text material!" << std::endl;
+            return;
+        }
+
+        // Clone material for per-instance uniforms
+        auto instanceMaterial = std::make_shared<NE::Graphics::Material>(baseMaterial->GetPipeline());
+
+        // Set text-specific uniforms
+        instanceMaterial->SetUniformVec4("uColor", text.color);
+        instanceMaterial->SetUniformVec2("uScreenSize",
+            Math::Vec2(
+                static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth()),
+                static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight())
+            )
+        );
+
+        // Set font atlas bindless handle
+        if (fontAtlas) {
+            instanceMaterial->SetUniformHandle("uFontAtlas", fontAtlas->GetBindlessHandle());
+        }
+
+        // Set render queue (OVERLAY + canvas sorting)
+        instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+        instanceMaterial->SetQueueOffset(canvas.sortingOrder);
+
+        // Build DrawCommand
+        NE::Graphics::DrawCommand cmd;
+        cmd.transform = rect.worldMatrix;
+        cmd.mesh = geometryBuffer;
+        cmd.material = instanceMaterial;
+        cmd.castsShadow = false;
+        cmd.receivesShadow = false;
+        cmd.boundsRadiusWs = 999999.0f;  // Always visible
+
+        // Submit through integrated pipeline
         NE::Graphics::GraphicsManager::Submit(cmd);
     }
 
@@ -1164,22 +1400,17 @@ namespace NE::ECS::Systems {
 
         // Get or create font atlas at the effective scaled size
         if (text.fontUUID.empty()) {
-            std::cout << "[UIRenderSystem::RenderTextEntity] Font UUID is empty!" << std::endl;
             return;
         }
-
-        std::cout << "[UIRenderSystem::RenderTextEntity] Loading font: " << text.fontUUID << " at size " << effectiveFontSize << std::endl;
 
         auto fontAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
             text.fontUUID, effectiveFontSize
         );
 
         if (!fontAtlas) {
-            std::cout << "[UIRenderSystem::RenderTextEntity] ✗ Failed to create font atlas!" << std::endl;
+            std::cerr << "[UIRenderSystem::RenderTextEntity] ERROR: Failed to create font atlas!" << std::endl;
             return;
         }
-
-        std::cout << "[UIRenderSystem::RenderTextEntity] ✓ Font atlas created successfully" << std::endl;
 
         WorldTransform worldTransform =
             CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
@@ -1210,8 +1441,6 @@ namespace NE::ECS::Systems {
             transformChanged;
 
         if (needsRegen) {
-            std::cout << "[UIRenderSystem::RenderTextEntity] Regenerating text vertices for: \"" << text.text << "\"" << std::endl;
-
             // Recalculate world transform for text generation
             worldTransform = CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
 
@@ -1230,21 +1459,8 @@ namespace NE::ECS::Systems {
                 effectiveFontSize  // Pass desired size for bucket scaling
             );
 
-            text.cachedVertices.clear();
-            text.cachedVertices.reserve(result.vertices.size());
-            for (const auto& v : result.vertices) {
-                UITextVertex tv;
-                tv.x = v.x;
-                tv.y = v.y;
-                tv.z = v.z;
-                tv.u = v.u;
-                tv.v = v.v;
-                tv.r = v.r;
-                tv.g = v.g;
-                tv.b = v.b;
-                tv.a = v.a;
-                text.cachedVertices.push_back(tv);
-            }
+            // Directly copy vertices (same type now - UITextVertex with Vec3/Vec2/Vec4)
+            text.cachedVertices = result.vertices;
 
             // Apply rotation
             float rot = worldTransform.accumulatedRotationZ * (3.1415926535f / 180.0f);
@@ -1257,12 +1473,12 @@ namespace NE::ECS::Systems {
                 const float s = std::sin(rot);
 
                 for (auto& v : text.cachedVertices) {
-                    float lx = v.x - pivotX;
-                    float ly = v.y - pivotY;
+                    float lx = v.Position.x - pivotX;
+                    float ly = v.Position.y - pivotY;
                     float rx = lx * c - ly * s;
                     float ry = lx * s + ly * c;
-                    v.x = rx + pivotX;
-                    v.y = ry + pivotY;
+                    v.Position.x = rx + pivotX;
+                    v.Position.y = ry + pivotY;
                 }
             }
 
@@ -1274,75 +1490,11 @@ namespace NE::ECS::Systems {
             text.cachedSize = curSize;
             text.cachedRotZ = worldTransform.accumulatedRotationZ;
             text.hasCachedTransform = true;
-
-            std::cout << "[UIRenderSystem::RenderTextEntity] Generated " << text.cachedVertices.size() << " vertices" << std::endl;
         }
 
-        std::cout << "[UIRenderSystem::RenderTextEntity] Submitting text with " << text.cachedVertices.size() << " vertices" << std::endl;
-        SubmitTextDrawCommand(entity, canvasEntity, canvas, text, rect, worldTransform, fontAtlas, viewMatrix, projMatrix);
+        SubmitTextElement(entity, canvas, text, rect, text.cachedVertices, fontAtlas);
     }
 
-    void UIRenderSystem::SubmitTextDrawCommand(
-        Entity entity,
-        Entity canvasEntity,
-        const UICanvas& canvas,
-        UIText& text,
-        const UIRectTransform& rect,
-        const WorldTransform& worldTransform,
-        std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
-        const Math::Mat4* viewMatrix,
-        const Math::Mat4* projMatrix
-    )
-    {
-        (void)canvasEntity; // Unused parameter
-        (void)rect;         // Unused parameter
-
-        if (text.cachedVertices.empty()) {
-            std::cout << "[UIRenderSystem::SubmitTextDrawCommand] No vertices to submit (empty)" << std::endl;
-            return;
-        }
-
-        std::cout << "[UIRenderSystem::SubmitTextDrawCommand] Submitting to UIRenderer with " << text.cachedVertices.size() << " vertices" << std::endl;
-
-        NE::Graphics::UIDrawCommand cmd;
-
-        cmd.x = worldTransform.x;
-        cmd.y = worldTransform.y;
-        cmd.z = worldTransform.z;
-        cmd.width = worldTransform.width;
-        cmd.height = worldTransform.height;
-        cmd.color = text.color;
-        cmd.order = canvas.sortingOrder;
-        cmd.entityId = entity;
-        cmd.renderMode = static_cast<int>(canvas.renderMode);
-        cmd.planeDistance = canvas.planeDistance;
-        std::cout << "[UIRenderSystem::SubmitTextDrawCommand] renderMode = " << cmd.renderMode << std::endl;
-
-        cmd.bindlessTextureHandle = fontAtlas->GetBindlessHandle();
-        cmd.isTextCommand = true;
-
-        // Convert cached vertices to UIVertex
-        cmd.vertices.reserve(text.cachedVertices.size());
-        for (const auto& tv : text.cachedVertices) {
-            NE::Graphics::UIVertex v;
-            v.x = tv.x;
-            v.y = tv.y;
-            v.z = tv.z;
-            v.u = tv.u;
-            v.v = tv.v;
-            v.r = tv.r;
-            v.g = tv.g;
-            v.b = tv.b;
-            v.a = tv.a;
-            cmd.vertices.push_back(v);
-        }
-
-        cmd.useCustomVertices = true;
-
-        if (viewMatrix) cmd.viewMatrix = *viewMatrix;
-        if (projMatrix) cmd.projMatrix = *projMatrix;
-
-        NE::Graphics::UIRenderer::Submit(cmd);
-    }
+    // DEPRECATED: Old SubmitTextDrawCommand removed - text now uses integrated pipeline via SubmitTextElement
 
 } // namespace NE::ECS::Systems

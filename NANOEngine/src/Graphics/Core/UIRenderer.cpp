@@ -472,24 +472,12 @@ namespace NE::Graphics {
             std::cout << "[UIRenderer::DrawUIFrame] Total commands: " << s_Commands.size() << std::endl;
         }
 
-        // DEBUG: Check total commands
-        std::cout << "[UIRenderer::DrawUIFrame] Total commands: " << s_Commands.size() << std::endl;
-
         // filter to only overlay mode (rendermode 0)
         std::vector<UIDrawCommand> overlayCommands;
         for (const auto& cmd : s_Commands)
         {
             if (cmd.renderMode == 0)  // Overlay only
                 overlayCommands.push_back(cmd);
-        }
-
-        // DEBUG: Check for text commands
-        int textCommandCount = 0;
-        for (const auto& cmd : overlayCommands) {
-            if (cmd.isTextCommand) textCommandCount++;
-        }
-        if (textCommandCount > 0) {
-            std::cout << "[UIRenderer] Found " << textCommandCount << " text commands in overlayCommands" << std::endl;
         }
 
         if (overlayCommands.empty()) return;
@@ -531,7 +519,6 @@ namespace NE::Graphics {
             // Check if this is a text command
             if (cmd.isTextCommand)
             {
-                std::cout << "[UIRenderer] Processing TEXT command" << std::endl;
                 glUseProgram(s_TextShader);
                 usingTextShader = true;
             }

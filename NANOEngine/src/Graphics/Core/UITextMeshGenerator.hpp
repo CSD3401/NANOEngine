@@ -14,7 +14,7 @@ namespace NE::Graphics {
     class UITextMeshGenerator {
     public:
         struct TextMeshResult {
-            std::vector<UIVertex> vertices;
+            std::vector<UIVertex2> vertices;
             float totalWidth;
             float totalHeight;
         };
@@ -53,7 +53,7 @@ namespace NE::Graphics {
         );
 
         static void GenerateLineVertices(
-            std::vector<UIVertex>& vertices,
+            std::vector<UIVertex2>& vertices,
             const std::string& line,
             const FontAtlas& fontAtlas,
             float startX, float startY, float z,
@@ -61,7 +61,7 @@ namespace NE::Graphics {
             float scaleFactor = 1.0f
         );
 
-        static UIVertex CreateVertex(
+        static UIVertex2 CreateVertex(
             float x, float y, float z,
             float u, float v,
             const Math::Vec4& color

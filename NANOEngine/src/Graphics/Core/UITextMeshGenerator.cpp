@@ -202,7 +202,7 @@ namespace NE::Graphics {
     }
 
     void UITextMeshGenerator::GenerateLineVertices(
-        std::vector<UIVertex>& vertices,
+        std::vector<UIVertex2>& vertices,
         const std::string& line,
         const FontAtlas& fontAtlas,
         float startX, float startY, float z,
@@ -242,22 +242,16 @@ namespace NE::Graphics {
         }
     }
 
-    UIVertex UITextMeshGenerator::CreateVertex(
+    UIVertex2 UITextMeshGenerator::CreateVertex(
         float x, float y, float z,
         float u, float v,
         const Math::Vec4& color
-    ) 
+    )
     {
-        UIVertex vertex;
-        vertex.x = x;
-        vertex.y = y;
-        vertex.z = z;
-        vertex.u = u;
-        vertex.v = v;
-        vertex.r = color.x;
-        vertex.g = color.y;
-        vertex.b = color.z;
-        vertex.a = color.w;
+        UIVertex2 vertex;
+        vertex.Position = Math::Vec3(x, y, z);
+        vertex.TexCoord = Math::Vec2(u, v);
+        vertex.Color = color;
         return vertex;
     }
 

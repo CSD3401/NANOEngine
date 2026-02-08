@@ -94,8 +94,7 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::DrawFrame();
 		//Graphics::GraphicsManager::DrawAllDebugGeometry();
 		Graphics::GraphicsManager::EndFrame();
-		// NOTE: UIRenderer still needed for text rendering until text is migrated to integrated pipeline
-		Graphics::GraphicsManager::DrawUI();  // Required for UIText rendering
+		// NOTE: DrawUI() removed - all UI (images + text) now uses integrated GraphicsManager pipeline
 	}
 
 	void Scene::ExitEdit() {
