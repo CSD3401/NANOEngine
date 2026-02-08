@@ -3428,6 +3428,45 @@ namespace Editor {
 			}
 		}
 
+		// Auto Scale (Best Fit)
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Auto Scale");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			if (ImGui::Checkbox("##AutoScale", &comp.autoScale)) {
+				comp.isDirty = true;
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Automatically scale font size to fit within bounds");
+			}
+		}
+
+		// Min/Max Font Size (only show if auto-scale is enabled)
+		if (comp.autoScale) {
+			// Min Font Size
+			{
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Min Font Size");
+				ImGui::SameLine(labelWidth);
+				ImGui::SetNextItemWidth(-1);
+				if (ImGui::DragFloat("##MinFontSize", &comp.minFontSize, 1.0f, 1.0f, comp.maxFontSize)) {
+					comp.isDirty = true;
+				}
+			}
+
+			// Max Font Size
+			{
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Max Font Size");
+				ImGui::SameLine(labelWidth);
+				ImGui::SetNextItemWidth(-1);
+				if (ImGui::DragFloat("##MaxFontSize", &comp.maxFontSize, 1.0f, comp.minFontSize, 500.0f)) {
+					comp.isDirty = true;
+				}
+			}
+		}
+
 		// Font (drag-drop area for .ttf/.otf files)
 		{
 			ImGui::AlignTextToFramePadding();

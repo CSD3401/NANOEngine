@@ -32,6 +32,18 @@ namespace NE::Graphics {
             float desiredFontSize = 0.0f  // If 0, use atlas font size; otherwise scale to this size
         );
 
+        // Calculate font size to fit within bounds (for auto-scaling)
+        static float CalculateFitFontSize(
+            const std::string& text,
+            const FontAtlas& fontAtlas,
+            float maxWidth,
+            float maxHeight,
+            float baseFontSize,
+            float minFontSize,
+            float maxFontSize,
+            bool wordWrap
+        );
+
     private:
         struct LineInfo {
             std::string text;

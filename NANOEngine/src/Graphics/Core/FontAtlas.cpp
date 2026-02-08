@@ -195,7 +195,7 @@ namespace NE::Graphics {
         }
 
         if (m_textureID != 0) {
-            glDeleteTextures(1, &m_textureID);
+             glDeleteTextures(1, &m_textureID);
             m_textureID = 0;
         }
 

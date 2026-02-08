@@ -255,4 +255,76 @@ namespace NE::Graphics {
         return vertex;
     }
 
+    float UITextMeshGenerator::CalculateFitFontSize(
+        const std::string& text,
+        const FontAtlas& fontAtlas,
+        float maxWidth,
+        float maxHeight,
+        float baseFontSize,
+        float minFontSize,
+        float maxFontSize,
+        bool wordWrap
+    )
+    {
+        if (text.empty() || maxWidth <= 0.0f || maxHeight <= 0.0f) {
+            return baseFontSize;
+        }
+
+        // Start with base font size clamped to range
+        float currentFontSize = std::clamp(baseFontSize, minFontSize, maxFontSize);
+
+        // Calculate scale factor relative to atlas font size
+        float atlasSize = fontAtlas.GetFontSize();
+        if (atlasSize <= 0.0f) {
+            return currentFontSize;
+        }
+
+        // Binary search for optimal font size
+        float low = minFontSize;
+        float high = maxFontSize;
+        float bestFit = currentFontSize;
+        const int maxIterations = 10; // Limit iterations for performance
+        const float tolerance = 0.5f; // Good enough if within 0.5 pixels
+
+        for (int i = 0; i < maxIterations; ++i) {
+            float testSize = (low + high) / 2.0f;
+            float scaleFactor = testSize / atlasSize;
+
+            // Calculate text dimensions at this size
+            std::vector<LineInfo> lines = CalculateLines(text, fontAtlas, maxWidth / scaleFactor, wordWrap);
+
+            if (lines.empty()) {
+                high = testSize;
+                continue;
+            }
+
+            // Calculate total text dimensions
+            float textHeight = lines.size() * fontAtlas.GetLineHeight() * scaleFactor;
+            float textWidth = 0.0f;
+            for (const auto& line : lines) {
+                textWidth = std::max(textWidth, line.width * scaleFactor);
+            }
+
+            // Check if text fits
+            bool fitsWidth = textWidth <= maxWidth + tolerance;
+            bool fitsHeight = textHeight <= maxHeight + tolerance;
+
+            if (fitsWidth && fitsHeight) {
+                // Text fits! Try larger
+                bestFit = testSize;
+                low = testSize;
+
+                // If we're very close to max size, stop
+                if (high - low < tolerance) {
+                    break;
+                }
+            } else {
+                // Text doesn't fit, try smaller
+                high = testSize;
+            }
+        }
+
+        return bestFit;
+    }
+
 } // namespace NE::Graphics

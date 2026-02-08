@@ -1412,6 +1412,28 @@ namespace NE::ECS::Systems {
         // Calculate effective font size based on accumulated scale
         float effectiveFontSize = text.fontSize * scaleFactorForFont;
 
+        // Auto-scale: Calculate font size to fit within bounds if enabled
+        if (text.autoScale) {
+            // First get a font atlas at base size to calculate with
+            auto tempAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
+                text.fontUUID, text.fontSize
+            );
+
+            if (tempAtlas) {
+                // Calculate what font size fits in the rect bounds
+                effectiveFontSize = NE::Graphics::UITextMeshGenerator::CalculateFitFontSize(
+                    text.text,
+                    *tempAtlas,
+                    rect.width * scaleFactorForFont,   // Available width
+                    rect.height * scaleFactorForFont,  // Available height
+                    text.fontSize * scaleFactorForFont,
+                    text.minFontSize * scaleFactorForFont,
+                    text.maxFontSize * scaleFactorForFont,
+                    text.wordWrap
+                );
+            }
+        }
+
         // Clamp to reasonable range to avoid tiny or huge font atlases
         effectiveFontSize = std::max(8.0f, std::min(effectiveFontSize, 256.0f));
 

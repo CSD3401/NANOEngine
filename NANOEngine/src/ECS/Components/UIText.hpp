@@ -28,6 +28,11 @@ namespace NE::ECS::Component {
 
         bool wordWrap = false;
 
+        // Auto-scaling (like Unity's "Best Fit")
+        bool autoScale = false;
+        float minFontSize = 10.0f;
+        float maxFontSize = 100.0f;
+
         // === RUNTIME FIELDS (not serialized) ===
         uint64_t fontAtlasHandle = 0;
         bool isDirty = true;
@@ -47,7 +52,10 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(color),
             NE_REFLECT_FIELD(horizontalAlign),
             NE_REFLECT_FIELD(verticalAlign),
-            NE_REFLECT_FIELD(wordWrap)
+            NE_REFLECT_FIELD(wordWrap),
+            NE_REFLECT_FIELD(autoScale),
+            NE_REFLECT_FIELD(minFontSize),
+            NE_REFLECT_FIELD(maxFontSize)
         NE_REFLECT_END()
     };
 } // namespace NE::ECS::Component
