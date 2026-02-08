@@ -22,6 +22,18 @@ namespace NE::Audio {
 	NANOENGINE_API void StopAllAudio();
 
 
+	// Bus volume control
+	NANOENGINE_API void SetMasterVolume(float volume);
+	NANOENGINE_API void SetBGMVolume(float volume);
+	NANOENGINE_API void SetSFXVolume(float volume);
+	NANOENGINE_API void SetAmbienceVolume(float volume);
+
+	NANOENGINE_API float GetMasterVolume();
+	NANOENGINE_API float GetBGMVolume();
+	NANOENGINE_API float GetSFXVolume();
+	NANOENGINE_API float GetAmbienceVolume();
+
+
 	NANOENGINE_API void SetMasterVolumeLevel(int level);
 	NANOENGINE_API int GetMasterVolumeLevel();
 

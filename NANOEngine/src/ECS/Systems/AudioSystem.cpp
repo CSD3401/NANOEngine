@@ -399,6 +399,52 @@ namespace NE::ECS::Systems {
 		SPD_INFO("Testing audio playback...");
 		//PlaySound("event:/ForestBGM");
 
+
+		FMOD::Studio::Bus* masterBus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/", &masterBus);
+		if (result == FMOD_OK && masterBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/ (Master)");
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/ (Master): " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* bgmBus = nullptr;
+		result = studioSystem->getBus("bus:/BGM", &bgmBus);
+		if (result == FMOD_OK && bgmBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/BGM " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/BGM: " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* sfxBus = nullptr;
+		result = studioSystem->getBus("bus:/SFX", &sfxBus);
+		if (result == FMOD_OK && sfxBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/SFX " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/SFX: " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* ambienceBus = nullptr;
+		result = studioSystem->getBus("bus:/Ambience", &ambienceBus);
+		if (result == FMOD_OK && ambienceBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/Ambience " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/Ambience: " << FMOD_ErrorString(result));
+		}
+
+		FMOD::Studio::Bus* dummyBus = nullptr;
+		result = studioSystem->getBus("bus:/Dummy", &dummyBus);
+		if (result == FMOD_OK && dummyBus != nullptr) {
+			SPD_INFO("AudioSystem::Init() - Success get bus:/Dummy " << FMOD_ErrorString(result));
+		}
+		else {
+			SPD_ERROR("AudioSystem::Init() - Failed to get bus:/Dummy: " << FMOD_ErrorString(result));
+		}
+
 		SPD_INFO("AudioSystem::Init() - Completed");
 	}
 
@@ -454,6 +500,168 @@ namespace NE::ECS::Systems {
 		return allEvents;
 	}
 
+	void AudioSystem::SetMasterVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set Master volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/", &bus);
+
+		if (result != FMOD_OK || bus == nullptr) {
+			// Try alternative path
+			result = studioSystem->getBus("bus:/Master", &bus);
+		}
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set Master volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set Master volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetMasterVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/", &bus);
+
+		if (result != FMOD_OK || bus == nullptr) {
+			result = studioSystem->getBus("bus:/Master", &bus);
+		}
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	void AudioSystem::SetBGMVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set BGM volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/BGM", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set BGM volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set BGM volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetBGMVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/BGM", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	void AudioSystem::SetSFXVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set SFX volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/SFX", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set SFX volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set SFX volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetSFXVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/SFX", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	void AudioSystem::SetAmbienceVolume(float volume)
+	{
+		if (!studioSystem) {
+			SPD_ERROR("Cannot set Ambience volume: AudioSystem not initialized");
+			return;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/Ambience", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			volume = std::max(0.0f, std::min(1.0f, volume));
+			bus->setVolume(volume);
+			SPD_DEBUG("Set Ambience volume to " << volume);
+		}
+		else {
+			SPD_ERROR("Cannot set Ambience volume: bus not found");
+		}
+	}
+
+	float AudioSystem::GetAmbienceVolume() const
+	{
+		if (!studioSystem) {
+			return -1.0f;
+		}
+
+		FMOD::Studio::Bus* bus = nullptr;
+		FMOD_RESULT result = studioSystem->getBus("bus:/Ambience", &bus);
+
+		if (result == FMOD_OK && bus != nullptr) {
+			float volume = 0.0f;
+			bus->getVolume(&volume);
+			return volume;
+		}
+
+		return -1.0f;
+	}
+
+	// dun use
 	void AudioSystem::ApplyMasterVolume()
 	{
 		// Map 0..5 -> 0.0..1.0
@@ -477,6 +685,7 @@ namespace NE::ECS::Systems {
 		}
 	}
 
+	// dun use
 	void AudioSystem::SetMasterVolumeLevel(int level)
 	{
 		m_masterVolumeLevel = std::clamp(level, 0, 5);
