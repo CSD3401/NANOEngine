@@ -80,19 +80,7 @@ namespace NANOEngine::Events {
         }
 
         // Called once per frame (main thread)
-        void DispatchQueued() {
-            std::queue<std::shared_ptr<IQueuedEvent>> toProcess;
-            {
-                std::scoped_lock lock(mutex_);
-                std::swap(toProcess, queuedEvents_);
-            }
-
-            while (!toProcess.empty()) {
-                auto e = toProcess.front();
-                toProcess.pop();
-                e->Dispatch(*this);
-            }
-        }
+        void DispatchQueued();
 
         template<class EventT>
         void Dispatch(EventDomain domain, const EventT& event) const {

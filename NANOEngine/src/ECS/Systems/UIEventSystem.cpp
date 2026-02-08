@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include "../Components/EntityMeta.hpp"
+#include "../Components/UIRectTransform.hpp"
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -30,6 +32,52 @@ namespace NE::ECS::Systems {
     UIEventSystem::UIEventSystem(ComponentManager* cm) : m_cm(cm) {}
 
     void UIEventSystem::Init() {}
+    Entity UIEventSystem::FindOwningCanvas(Entity entity) const
+    {
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) return NO_ENTITY;
+
+        Entity cur = entity;
+        while (cur != NO_ENTITY)
+        {
+            if (m_cm->HasComponent<UICanvas>(cur)) return cur;
+            if (!m_cm->HasComponent<UIRectTransform>(cur)) break;
+            cur = m_cm->GetComponent<UIRectTransform>(cur).parent;
+        }
+        return NO_ENTITY;
+    }
+
+    bool UIEventSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
+    {
+        Entity cur = entity;
+
+        while (cur != NO_ENTITY)
+        {
+            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(cur)) {
+                if (!m_cm->GetComponent<NE::ECS::Component::EntityMeta>(cur).isActive) {
+                    return false;
+                }
+            }
+
+            if (cur == canvasEntity) break;
+
+            if (!m_cm->HasComponent<UIRectTransform>(cur)) break;
+            cur = m_cm->GetComponent<UIRectTransform>(cur).parent;
+        }
+
+        // Also require canvas itself to be active (both flags)
+        if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
+            const auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
+
+            bool metaActive = true;
+            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(canvasEntity)) {
+                metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(canvasEntity).isActive;
+            }
+
+            if (!canvas.isActive || !metaActive) return false;
+        }
+
+        return true;
+    }
 
     void UIEventSystem::OnEntityAdded(Entity e) {}
 
@@ -155,11 +203,17 @@ namespace NE::ECS::Systems {
             if (m_cm->HasComponent<UICanvas>(e)) {
                 auto& canvas = m_cm->GetComponent<UICanvas>(e);
                 // Only process screen space canvases for hit testing
-                if (canvas.isActive &&
+                bool metaActive = true;
+                if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+                    metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+                }
+
+                if (canvas.isActive && metaActive &&
                     (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-                     canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA)) {
+                        canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA)) {
                     canvases.push_back({ e, &canvas });
                 }
+
             }
         }
 
@@ -168,7 +222,7 @@ namespace NE::ECS::Systems {
             for (Entity e : allEntities) {
                 if (e == canvasEntity) continue;
                 if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
-
+                if (!IsActiveForUI(e, canvasEntity)) continue;
                 // Check if entity is interactable (button, slider, or toggle background)
                 bool isInteractable = false;
 
@@ -239,6 +293,17 @@ namespace NE::ECS::Systems {
 
         for (Entity e : entities) {
             if (!m_cm->HasComponent<UIButton>(e)) continue;
+            Entity canvasEntity = FindOwningCanvas(e);
+            if (canvasEntity != NO_ENTITY) {
+                if (!IsActiveForUI(e, canvasEntity)) continue;
+            }
+            else {
+                // If it's not on a canvas, still respect its EntityMeta
+                if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e) &&
+                    !m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive) {
+                    continue;
+                }
+            }
 
             auto& button = m_cm->GetComponent<UIButton>(e);
             UIButton::State newState = button.currentState;
