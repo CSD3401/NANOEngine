@@ -17,13 +17,12 @@ namespace Editor {
     void AnimatorRuntimePanel::OnImGuiRender() {
         ImGui::Begin("Animator (Runtime)");
 
-        if (!EditorScene::s_selectedEntity) {
+        const uint32_t eid = EditorScene::s_selection.GetPrimary();
+        if (eid == NE::ECS::NO_ENTITY) {
             ImGui::TextDisabled("Select an entity.");
             ImGui::End();
             return;
         }
-
-        const uint32_t eid = EditorScene::s_selectedEntity->linkedEntity;
 
         if (!ECS::Query::HasAnimator(eid)) {
             ImGui::TextDisabled("This entity has no Animator component.");

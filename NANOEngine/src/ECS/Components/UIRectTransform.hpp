@@ -11,12 +11,8 @@ namespace NE::ECS::Component {
     //inline constexpr uint32_t INVALID_PARENT = UINT32_MAX;
 
     struct UIRectTransform {
-        // NOTE: Parent-child relationships now managed by Hierarchy component
-        // DEPRECATED: uint32_t parent, luid, parentLuid - use Hierarchy component instead
-        // These fields kept temporarily for backward compatibility during migration
-        uint32_t parent = UINT32_MAX;  // DEPRECATED
-        uint64_t luid = 0;              // DEPRECATED (use Hierarchy::luid)
-        uint64_t parentLuid = 0;        // DEPRECATED (use Hierarchy::parentLuid)
+        // NOTE: Parent-child relationships managed by Hierarchy component
+        // luid stored in Hierarchy component, not here
 
         // position of pivot point
         float x = 0.0f;
@@ -61,9 +57,8 @@ namespace NE::ECS::Component {
         NE::Math::Mat4 worldMatrix;           // World transform (accumulated from parent chain)
         bool worldMatrixDirty = true;         // Needs recalculation
 
-        // Reflection
+        // Reflection (luid managed by Hierarchy component)
         NE_REFLECT_BEGIN(UIRectTransform)
-            NE_REFLECT_FIELD_HIDDEN(luid),
             NE_REFLECT_FIELD(x),
             NE_REFLECT_FIELD(y),
             NE_REFLECT_FIELD(z),
@@ -84,8 +79,7 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(anchorMaxX),
             NE_REFLECT_FIELD(anchorMaxY),
             NE_REFLECT_FIELD(pivotX),
-            NE_REFLECT_FIELD(pivotY),
-            NE_REFLECT_FIELD_HIDDEN(parentLuid)
+            NE_REFLECT_FIELD(pivotY)
         NE_REFLECT_END()
 
         // Helper functions

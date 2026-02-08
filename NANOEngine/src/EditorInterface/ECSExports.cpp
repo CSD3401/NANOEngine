@@ -291,13 +291,8 @@ namespace NE::ECS {
 		uint32_t GetParent(uint32_t child) {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
 
-			// Check for regular Transform first
+			// All entities use Hierarchy component for parent-child relationships
 			return ecs.GetComponent<NE::ECS::Component::Hierarchy>(child).parent;
-
-			// Check for UI RectTransform
-			if (ecs.HasComponent<NE::ECS::Component::UIRectTransform>(child)) {
-				return ecs.GetComponent<NE::ECS::Component::UIRectTransform>(child).parent;
-			}
 		}
 
 		const Core::LayerID GetLayer(Entity e) {
@@ -673,7 +668,9 @@ namespace NE::ECS {
 				Component::EntityMeta{ .name = "Canvas", .luid = Core::LUIDGenerator::Generate("cv") });
 
 			// Add Hierarchy component (required for parent-child relationships with UI children)
-			GetScene().GetECSCoordinator().AddComponent(newEntity, Component::Hierarchy{});
+			Component::Hierarchy hierarchy;
+			hierarchy.luid = Core::LUIDGenerator::Generate("cv");
+			GetScene().GetECSCoordinator().AddComponent(newEntity, hierarchy);
 
 			// set up canvas component
 			Component::UICanvas canvas;
@@ -682,14 +679,11 @@ namespace NE::ECS {
 
 			// setup RectTransform for canvas (fullscreen by default)
 			Component::UIRectTransform rectTransform;
-			rectTransform.luid = Core::LUIDGenerator::Generate("rt");
 			rectTransform.width = 1920.0f; // temp
 			rectTransform.height = 1080.0f;
 			rectTransform.x = 0.0f;
 			rectTransform.y = 0.0f;
 			rectTransform.z = 0.0f;
-			rectTransform.parent = NE::ECS::Component::INVALID_PARENT;
-			rectTransform.parentLuid = 0;  // No parent LUID for root canvas
 			GetScene().GetECSCoordinator().AddComponent(newEntity, rectTransform);
 
 			return newEntity;
@@ -704,24 +698,17 @@ namespace NE::ECS {
 				Component::EntityMeta{ .name = "Image", .luid = Core::LUIDGenerator::Generate("im") });
 
 			// Add Hierarchy component (required for parent-child relationships)
-			ecs.AddComponent(newEntity, Component::Hierarchy{});
+			Component::Hierarchy hierarchy;
+			hierarchy.luid = Core::LUIDGenerator::Generate("im");
+			ecs.AddComponent(newEntity, hierarchy);
 
 			// setup RectTransform with parent linkage
 			Component::UIRectTransform rect;
-			rect.luid = Core::LUIDGenerator::Generate("rt");
 			rect.x = 0.0f;
 			rect.y = 0.0f;
 			rect.z = 0.0f;
 			rect.width = 100.0f;
 			rect.height = 100.0f;
-			rect.parent = parentCanvas;  // DEPRECATED: kept for backward compatibility during migration
-
-			// set parent luid for serialization
-			if (parentCanvas != NE::ECS::NO_ENTITY && ecs.HasComponent<Component::UIRectTransform>(parentCanvas)) {
-				rect.parentLuid = ecs.GetComponent<Component::UIRectTransform>(parentCanvas).luid;
-			} else {
-				rect.parentLuid = 0;
-			}
 
 			ecs.AddComponent(newEntity, rect);
 

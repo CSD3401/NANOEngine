@@ -1,6 +1,7 @@
 #include "UIGizmoHandler.hpp"
 #include "imgui/imgui_internal.h"
 #include "EditorInterface/ECSExports.hpp"
+#include "ECS/Components/Hierarchy.hpp"
 #include "Command/CommandHistory.hpp"
 #include <algorithm>
 #include <cstring>
@@ -60,7 +61,7 @@ namespace Editor {
         float accumulatedRotZ = rect.rotationZ;
 
         // Accumulate parents (just like a normal Transform hierarchy)
-        uint32_t parentEntity = rect.parent;
+        uint32_t parentEntity = NE::ECS::Query::HasHierarchy(entityId) ? NE::ECS::Query::GetEntityHierarchy(entityId).parent : NE::ECS::NO_ENTITY;
         while (parentEntity != std::numeric_limits<uint32_t>::max() &&
             Query::HasUIRectTransform(parentEntity))
         {
@@ -78,7 +79,7 @@ namespace Editor {
             accumulatedRotY += parentRect.rotationY;
             accumulatedRotZ += parentRect.rotationZ;
 
-            parentEntity = parentRect.parent;
+            parentEntity = NE::ECS::Query::HasHierarchy(parentEntity) ? NE::ECS::Query::GetEntityHierarchy(parentEntity).parent : NE::ECS::NO_ENTITY;
         }
 
         NE::Math::Mat4 S = NE::Math::Mat4::BuildScaling(
@@ -230,7 +231,7 @@ namespace Editor {
             NE::Math::Mat4 parentWorld;
             parentWorld.SetToIdentity();
 
-            uint32_t p = rectCmd.parent;
+            uint32_t p = NE::ECS::Query::HasHierarchy(uiEntityId) ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent : NE::ECS::NO_ENTITY;
             while (p != std::numeric_limits<uint32_t>::max() &&
                 NE::ECS::Query::HasUIRectTransform(p))
             {
@@ -247,7 +248,7 @@ namespace Editor {
 
                 parentWorld = parentWorld * (pT * pR * pS);
 
-                p = parentRect.parent;
+                p = NE::ECS::Query::HasHierarchy(p) ? NE::ECS::Query::GetEntityHierarchy(p).parent : NE::ECS::NO_ENTITY;
             }
 
             // 3. Convert to local matrix: local = parent^-1 * world
@@ -331,7 +332,7 @@ namespace Editor {
         float worldScaleX = rectTransform.scaleX;
         float worldScaleY = rectTransform.scaleY;
 
-        uint32_t currentParent = rectTransform.parent;
+        uint32_t currentParent = NE::ECS::Query::HasHierarchy(uiEntityId) ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent : NE::ECS::NO_ENTITY;
         while (currentParent != std::numeric_limits<uint32_t>::max()) {
             if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
             auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
@@ -339,7 +340,7 @@ namespace Editor {
             worldPivotY += parentRect.y;
             worldScaleX *= parentRect.scaleX;
             worldScaleY *= parentRect.scaleY;
-            currentParent = parentRect.parent;
+            currentParent = NE::ECS::Query::HasHierarchy(currentParent) ? NE::ECS::Query::GetEntityHierarchy(currentParent).parent : NE::ECS::NO_ENTITY;
         }
 
         // Apply world scale to dimensions
@@ -725,12 +726,12 @@ namespace Editor {
             float origWorldScaleY = s_originalTransform.scaleY;
 
             // Accumulate parent scale from original state
-            uint32_t p = s_originalTransform.parent;
+            uint32_t p = NE::ECS::Query::HasHierarchy(uiEntityId) ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent : NE::ECS::NO_ENTITY;
             while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
                 auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
                 origWorldScaleX *= parentRect.scaleX;
                 origWorldScaleY *= parentRect.scaleY;
-                p = parentRect.parent;
+                p = NE::ECS::Query::HasHierarchy(p) ? NE::ECS::Query::GetEntityHierarchy(p).parent : NE::ECS::NO_ENTITY;
             }
 
             // Convert to local units (divide by world scale)
@@ -796,12 +797,12 @@ namespace Editor {
             float origWorldScaleX = s_originalTransform.scaleX;
             float origWorldScaleY = s_originalTransform.scaleY;
 
-            uint32_t p = s_originalTransform.parent;
+            uint32_t p = NE::ECS::Query::HasHierarchy(uiEntityId) ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent : NE::ECS::NO_ENTITY;
             while (p != std::numeric_limits<uint32_t>::max() && NE::ECS::Query::HasUIRectTransform(p)) {
                 auto& parentRect = NE::ECS::Query::GetUIRectTransform(p);
                 origWorldScaleX *= parentRect.scaleX;
                 origWorldScaleY *= parentRect.scaleY;
-                p = parentRect.parent;
+                p = NE::ECS::Query::HasHierarchy(p) ? NE::ECS::Query::GetEntityHierarchy(p).parent : NE::ECS::NO_ENTITY;
             }
 
             // Convert to local units

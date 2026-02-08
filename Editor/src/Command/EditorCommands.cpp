@@ -81,8 +81,7 @@ namespace Editor {
 			// Walk up to find the canvas root
 			while (canvasEntity != NE::ECS::NO_ENTITY) {
 				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
-				auto& parentRect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
-				canvasEntity = parentRect.parent;
+				canvasEntity = NE::ECS::Query::HasHierarchy(canvasEntity) ? NE::ECS::Query::GetEntityHierarchy(canvasEntity).parent : NE::ECS::NO_ENTITY;
 			}
 		}
 
@@ -103,19 +102,17 @@ namespace Editor {
 		NE::ECS::Command::AddEntityMetaComponent(m_entity,
 			NE::ECS::Component::EntityMeta{ .name = "Text", .luid = NE::Core::LUIDGenerator::Generate("em") });
 
-		NE::ECS::Command::AddHierarchyComponent(m_entity, NE::ECS::Component::Hierarchy{});
+		NE::ECS::Component::Hierarchy hierarchy{};
+		hierarchy.luid = NE::Core::LUIDGenerator::Generate("hr");
+		NE::ECS::Command::AddHierarchyComponent(m_entity, hierarchy);
 
 		// Setup UIRectTransform
 		NE::ECS::Component::UIRectTransform rectTransform{};
-		rectTransform.luid = NE::Core::LUIDGenerator::Generate("rt");
 		rectTransform.width = 160.0f;
 		rectTransform.height = 30.0f;
 		rectTransform.x = 0.0f;
 		rectTransform.y = 0.0f;
-		rectTransform.parent = parentForText;
-		if (parentForText != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForText)) {
-			rectTransform.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForText).luid;
-		}
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_entity, rectTransform);
 
 		// Setup UIText
@@ -153,8 +150,7 @@ namespace Editor {
 			canvasEntity = m_parentEntity;
 			while (canvasEntity != NE::ECS::NO_ENTITY) {
 				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
-				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
-				canvasEntity = rect.parent;
+				canvasEntity = NE::ECS::Query::HasHierarchy(canvasEntity) ? NE::ECS::Query::GetEntityHierarchy(canvasEntity).parent : NE::ECS::NO_ENTITY;
 			}
 		}
 
@@ -173,19 +169,17 @@ namespace Editor {
 		NE::ECS::Command::AddEntityMetaComponent(m_entity,
 			NE::ECS::Component::EntityMeta{ .name = "Image", .luid = NE::Core::LUIDGenerator::Generate("em") });
 
-		NE::ECS::Command::AddHierarchyComponent(m_entity, NE::ECS::Component::Hierarchy{});
+		NE::ECS::Component::Hierarchy hierarchy{};
+		hierarchy.luid = NE::Core::LUIDGenerator::Generate("hr");
+		NE::ECS::Command::AddHierarchyComponent(m_entity, hierarchy);
 
 		// Setup UIRectTransform
 		NE::ECS::Component::UIRectTransform rectTransform{};
-		rectTransform.luid = NE::Core::LUIDGenerator::Generate("rt");
 		rectTransform.width = 100.0f;
 		rectTransform.height = 100.0f;
 		rectTransform.x = 0.0f;
 		rectTransform.y = 0.0f;
-		rectTransform.parent = parentForImage;
-		if (parentForImage != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForImage)) {
-			rectTransform.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForImage).luid;
-		}
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_entity, rectTransform);
 
 		// Setup UIImage
@@ -219,8 +213,7 @@ namespace Editor {
 			canvasEntity = m_parentEntity;
 			while (canvasEntity != NE::ECS::NO_ENTITY) {
 				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
-				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
-				canvasEntity = rect.parent;
+				canvasEntity = NE::ECS::Query::HasHierarchy(canvasEntity) ? NE::ECS::Query::GetEntityHierarchy(canvasEntity).parent : NE::ECS::NO_ENTITY;
 			}
 		}
 
@@ -243,15 +236,11 @@ namespace Editor {
 
 		// Setup UIRectTransform for button
 		NE::ECS::Component::UIRectTransform buttonRect{};
-		buttonRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		buttonRect.width = 160.0f;
 		buttonRect.height = 30.0f;
 		buttonRect.x = 0.0f;
 		buttonRect.y = 0.0f;
-		buttonRect.parent = parentForButton;
-		if (parentForButton != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForButton)) {
-			buttonRect.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForButton).luid;
-		}
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_entity, buttonRect);
 
 		// Setup UIImage for button background
@@ -280,15 +269,13 @@ namespace Editor {
 
 		// Setup UIRectTransform for text (stretch to fill button)
 		NE::ECS::Component::UIRectTransform textRect{};
-		textRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		textRect.anchorMinX = 0.0f; textRect.anchorMinY = 0.0f;
 		textRect.anchorMaxX = 1.0f; textRect.anchorMaxY = 1.0f;
 		textRect.offsetMinX = 0.0f; textRect.offsetMinY = 0.0f;
 		textRect.offsetMaxX = 0.0f; textRect.offsetMaxY = 0.0f;
 		textRect.width = 160.0f;
 		textRect.height = 30.0f;
-		textRect.parent = m_entity;
-		textRect.parentLuid = buttonRect.luid;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_textEntity, textRect);
 
 		// Setup UIText for button label
@@ -327,8 +314,7 @@ namespace Editor {
 			canvasEntity = m_parentEntity;
 			while (canvasEntity != NE::ECS::NO_ENTITY) {
 				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
-				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
-				canvasEntity = rect.parent;
+				canvasEntity = NE::ECS::Query::HasHierarchy(canvasEntity) ? NE::ECS::Query::GetEntityHierarchy(canvasEntity).parent : NE::ECS::NO_ENTITY;
 			}
 		}
 
@@ -351,15 +337,11 @@ namespace Editor {
 
 		// Setup UIRectTransform with some default stretch
 		NE::ECS::Component::UIRectTransform rect{};
-		rect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		rect.width = 200.0f;
 		rect.height = 200.0f;
 		rect.x = 0.0f;
 		rect.y = 0.0f;
-		rect.parent = parentForPanel;
-		if (parentForPanel != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForPanel)) {
-			rect.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForPanel).luid;
-		}
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_entity, rect);
 
 		// Setup UIImage with semi-transparent white
@@ -393,8 +375,7 @@ namespace Editor {
 			canvasEntity = m_parentEntity;
 			while (canvasEntity != NE::ECS::NO_ENTITY) {
 				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
-				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
-				canvasEntity = rect.parent;
+				canvasEntity = NE::ECS::Query::HasHierarchy(canvasEntity) ? NE::ECS::Query::GetEntityHierarchy(canvasEntity).parent : NE::ECS::NO_ENTITY;
 			}
 		}
 
@@ -417,15 +398,11 @@ namespace Editor {
 
 		// Setup UIRectTransform for slider root
 		NE::ECS::Component::UIRectTransform sliderRect{};
-		sliderRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		sliderRect.width = 160.0f;
 		sliderRect.height = 20.0f;
 		sliderRect.x = 0.0f;
 		sliderRect.y = 0.0f;
-		sliderRect.parent = parentForSlider;
-		if (parentForSlider != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForSlider)) {
-			sliderRect.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForSlider).luid;
-		}
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_entity, sliderRect);
 
 		// Setup UIImage for background
@@ -447,15 +424,13 @@ namespace Editor {
 
 		// Setup UIRectTransform for fill
 		NE::ECS::Component::UIRectTransform fillRect{};
-		fillRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		fillRect.anchorMinX = 0.0f; fillRect.anchorMinY = 0.0f;
 		fillRect.anchorMaxX = 0.0f; fillRect.anchorMaxY = 1.0f;  // Fill from left
 		fillRect.offsetMinX = 2.0f; fillRect.offsetMinY = 2.0f;
 		fillRect.offsetMaxX = 0.0f; fillRect.offsetMaxY = -2.0f;
 		fillRect.width = 0.0f;  // Will be controlled by slider value
 		fillRect.height = 16.0f;
-		fillRect.parent = m_entity;
-		fillRect.parentLuid = sliderRect.luid;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_fillEntity, fillRect);
 
 		// Setup UIImage for fill
@@ -476,13 +451,11 @@ namespace Editor {
 
 		// Setup UIRectTransform for handle
 		NE::ECS::Component::UIRectTransform handleRect{};
-		handleRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		handleRect.width = 20.0f;
 		handleRect.height = 20.0f;
 		handleRect.x = 0.0f;  // Will be controlled by slider value
 		handleRect.y = 0.0f;
-		handleRect.parent = m_entity;
-		handleRect.parentLuid = sliderRect.luid;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_handleEntity, handleRect);
 
 		// Setup UIImage for handle
@@ -529,8 +502,7 @@ namespace Editor {
 			canvasEntity = m_parentEntity;
 			while (canvasEntity != NE::ECS::NO_ENTITY) {
 				if (NE::ECS::Query::HasUICanvas(canvasEntity)) break;
-				auto& rect = NE::ECS::Query::GetUIRectTransform(canvasEntity);
-				canvasEntity = rect.parent;
+				canvasEntity = NE::ECS::Query::HasHierarchy(canvasEntity) ? NE::ECS::Query::GetEntityHierarchy(canvasEntity).parent : NE::ECS::NO_ENTITY;
 			}
 		}
 
@@ -553,15 +525,11 @@ namespace Editor {
 
 		// Setup UIRectTransform for toggle root
 		NE::ECS::Component::UIRectTransform toggleRect{};
-		toggleRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		toggleRect.width = 160.0f;
 		toggleRect.height = 20.0f;
 		toggleRect.x = 0.0f;
 		toggleRect.y = 0.0f;
-		toggleRect.parent = parentForToggle;
-		if (parentForToggle != NE::ECS::NO_ENTITY && NE::ECS::Query::HasUIRectTransform(parentForToggle)) {
-			toggleRect.parentLuid = NE::ECS::Query::GetUIRectTransform(parentForToggle).luid;
-		}
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_entity, toggleRect);
 
 		// Set hierarchy parent for toggle root
@@ -577,7 +545,6 @@ namespace Editor {
 
 		// Setup UIRectTransform for background
 		NE::ECS::Component::UIRectTransform bgRect{};
-		bgRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		bgRect.width = 20.0f;
 		bgRect.height = 20.0f;
 		bgRect.x = 0.0f;
@@ -585,8 +552,7 @@ namespace Editor {
 		bgRect.anchorMinX = 0.0f; bgRect.anchorMinY = 0.5f;
 		bgRect.anchorMaxX = 0.0f; bgRect.anchorMaxY = 0.5f;
 		bgRect.pivotX = 0.0f; bgRect.pivotY = 0.5f;
-		bgRect.parent = m_entity;
-		bgRect.parentLuid = toggleRect.luid;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_backgroundEntity, bgRect);
 
 		// Setup UIImage for background
@@ -607,15 +573,13 @@ namespace Editor {
 
 		// Setup UIRectTransform for checkmark (centered in background)
 		NE::ECS::Component::UIRectTransform checkRect{};
-		checkRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		checkRect.width = 14.0f;
 		checkRect.height = 14.0f;
 		checkRect.x = 0.0f;
 		checkRect.y = 0.0f;
 		checkRect.anchorMinX = 0.5f; checkRect.anchorMinY = 0.5f;
 		checkRect.anchorMaxX = 0.5f; checkRect.anchorMaxY = 0.5f;
-		checkRect.parent = m_backgroundEntity;
-		checkRect.parentLuid = bgRect.luid;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_checkmarkEntity, checkRect);
 
 		// Setup UIImage for checkmark
@@ -636,7 +600,6 @@ namespace Editor {
 
 		// Setup UIRectTransform for label
 		NE::ECS::Component::UIRectTransform labelRect{};
-		labelRect.luid = NE::Core::LUIDGenerator::Generate("rt");
 		labelRect.width = 130.0f;
 		labelRect.height = 20.0f;
 		labelRect.x = 25.0f;  // Offset to the right of the checkbox
@@ -644,8 +607,7 @@ namespace Editor {
 		labelRect.anchorMinX = 0.0f; labelRect.anchorMinY = 0.5f;
 		labelRect.anchorMaxX = 0.0f; labelRect.anchorMaxY = 0.5f;
 		labelRect.pivotX = 0.0f; labelRect.pivotY = 0.5f;
-		labelRect.parent = m_entity;
-		labelRect.parentLuid = toggleRect.luid;
+		// NOTE: Parent relationship now managed by Hierarchy component via SetParent call below
 		NE::ECS::Command::AddUIRectTransformComponent(m_labelEntity, labelRect);
 
 		// Setup UIText for label

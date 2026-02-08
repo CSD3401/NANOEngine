@@ -2,6 +2,7 @@
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
+#include "../Components/Hierarchy.hpp"
 #include "../../Graphics/Core/UIDrawCommand.hpp"
 #include "../../Graphics/Core/UIRenderer.hpp" // TODO: Remove when text rendering is migrated
 #include "../../Graphics/Core/GraphicsManager.hpp"
@@ -64,8 +65,8 @@ namespace NE::ECS::Systems {
 
             if (cur == canvasEntity) break;
 
-            if (!m_cm->HasComponent<UIRectTransform>(cur)) break;
-            cur = m_cm->GetComponent<UIRectTransform>(cur).parent;
+            if (!m_cm->HasComponent<Hierarchy>(cur)) break;
+            cur = m_cm->GetComponent<Hierarchy>(cur).parent;
         }
 
         return true;
@@ -357,6 +358,20 @@ namespace NE::ECS::Systems {
     {
         const auto& entities = GetEntities();
 
+        // MIGRATION: Add Hierarchy component to old UI entities that don't have it
+        static bool migrationDone = false;
+        if (!migrationDone) {
+            for (Entity e : entities) {
+                if (m_cm->HasComponent<UIRectTransform>(e) && !m_cm->HasComponent<Hierarchy>(e)) {
+                    Hierarchy h;
+                    h.luid = 0; // Will be regenerated if needed
+                    h.parent = Component::INVALID_PARENT;
+                    m_cm->AddComponent<Hierarchy>(e, h);
+                }
+            }
+            migrationDone = true;
+        }
+
         // Runtime texture loading - handle textures dragged at runtime
         for (Entity e : entities) {
             if (!m_cm->HasComponent<UIImage>(e)) continue;
@@ -534,7 +549,7 @@ namespace NE::ECS::Systems {
                 break;
             }
             chain.push_back(current);
-            current = m_cm->GetComponent<UIRectTransform>(current).parent;
+            current = m_cm->GetComponent<Hierarchy>(current).parent;
         }
 
         std::reverse(chain.begin(), chain.end());
@@ -1128,15 +1143,16 @@ namespace NE::ECS::Systems {
 
             // Check if this entity belongs to this canvas (same logic you already used)
             Entity root = e;
-            Entity current = rect.parent;
+            Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
 
             while (current != NO_ENTITY) {
                 root = current;
-                if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                current = m_cm->GetComponent<UIRectTransform>(current).parent;
+                if (!m_cm->HasComponent<Hierarchy>(current)) break;
+                current = m_cm->GetComponent<Hierarchy>(current).parent;
             }
 
-            if (root == canvasEntity || rect.parent == canvasEntity) {
+            Entity parentEntity = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
+            if (root == canvasEntity || parentEntity == canvasEntity) {
                 // NEW: respect EntityMeta::isActive up the UI chain
                 if (!IsActiveForUI(e, canvasEntity)) continue;
 
@@ -1350,15 +1366,16 @@ namespace NE::ECS::Systems {
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
             Entity root = e;
-            Entity current = rect.parent;
+            Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
 
             while (current != NO_ENTITY) {
                 root = current;
-                if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                current = m_cm->GetComponent<UIRectTransform>(current).parent;
+                if (!m_cm->HasComponent<Hierarchy>(current)) break;
+                current = m_cm->GetComponent<Hierarchy>(current).parent;
             }
 
-            if (root == canvasEntity || rect.parent == canvasEntity) {
+            Entity parentEntity2 = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
+            if (root == canvasEntity || parentEntity2 == canvasEntity) {
                 // NEW: respect EntityMeta::isActive up the UI chain
                 if (!IsActiveForUI(e, canvasEntity)) continue;
 

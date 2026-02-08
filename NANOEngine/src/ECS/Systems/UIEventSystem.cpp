@@ -9,6 +9,7 @@
 #include <limits>
 #include "../Components/EntityMeta.hpp"
 #include "../Components/UIRectTransform.hpp"
+#include "../Components/Hierarchy.hpp"
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -40,8 +41,8 @@ namespace NE::ECS::Systems {
         while (cur != NO_ENTITY)
         {
             if (m_cm->HasComponent<UICanvas>(cur)) return cur;
-            if (!m_cm->HasComponent<UIRectTransform>(cur)) break;
-            cur = m_cm->GetComponent<UIRectTransform>(cur).parent;
+            if (!m_cm->HasComponent<Hierarchy>(cur)) break;
+            cur = m_cm->GetComponent<Hierarchy>(cur).parent;
         }
         return NO_ENTITY;
     }
@@ -60,8 +61,8 @@ namespace NE::ECS::Systems {
 
             if (cur == canvasEntity) break;
 
-            if (!m_cm->HasComponent<UIRectTransform>(cur)) break;
-            cur = m_cm->GetComponent<UIRectTransform>(cur).parent;
+            if (!m_cm->HasComponent<Hierarchy>(cur)) break;
+            cur = m_cm->GetComponent<Hierarchy>(cur).parent;
         }
 
         // Also require canvas itself to be active (both flags)
@@ -166,9 +167,8 @@ namespace NE::ECS::Systems {
                 }
                 // Also check if this is a toggle background
                 // Find parent toggle
-                if (m_cm->HasComponent<UIRectTransform>(m_pressedEntity)) {
-                    auto& rect = m_cm->GetComponent<UIRectTransform>(m_pressedEntity);
-                    Entity parent = rect.parent;
+                if (m_cm->HasComponent<Hierarchy>(m_pressedEntity)) {
+                    Entity parent = m_cm->GetComponent<Hierarchy>(m_pressedEntity).parent;
                     if (parent != NO_ENTITY && m_cm->HasComponent<UIToggle>(parent)) {
                         auto& toggle = m_cm->GetComponent<UIToggle>(parent);
                         if (toggle.background == m_pressedEntity && toggle.interactable) {
@@ -250,14 +250,15 @@ namespace NE::ECS::Systems {
 
                 // Check if this entity belongs to this canvas
                 Entity root = e;
-                Entity current = rect.parent;
+                Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
                 while (current != NO_ENTITY) {
                     root = current;
                     if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                    current = m_cm->GetComponent<UIRectTransform>(current).parent;
+                    current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
                 }
 
-                if (root != canvasEntity && rect.parent != canvasEntity) {
+                Entity parentEnt = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
+                if (root != canvasEntity && parentEnt != canvasEntity) {
                     continue;
                 }
 
@@ -388,14 +389,14 @@ namespace NE::ECS::Systems {
 
                 // Find canvas for this slider
                 Entity canvasEntity = NO_ENTITY;
-                Entity current = rect.parent;
+                Entity current = m_cm->HasComponent<Hierarchy>(m_draggingSlider) ? m_cm->GetComponent<Hierarchy>(m_draggingSlider).parent : NO_ENTITY;
                 while (current != NO_ENTITY) {
                     if (m_cm->HasComponent<UICanvas>(current)) {
                         canvasEntity = current;
                         break;
                     }
                     if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                    current = m_cm->GetComponent<UIRectTransform>(current).parent;
+                    current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
                 }
 
                 if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
@@ -548,7 +549,7 @@ namespace NE::ECS::Systems {
         while (current != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(current)) {
             if (current == canvasEntity) break;
             chain.push_back(current);
-            current = m_cm->GetComponent<UIRectTransform>(current).parent;
+            current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
         }
         std::reverse(chain.begin(), chain.end());
 
@@ -707,7 +708,7 @@ namespace NE::ECS::Systems {
 
         while (current != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(current)) {
             chain.push_back(current);
-            current = m_cm->GetComponent<UIRectTransform>(current).parent;
+            current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
         }
 
         std::reverse(chain.begin(), chain.end());
@@ -824,14 +825,15 @@ namespace NE::ECS::Systems {
 
                 // Check if this entity belongs to this canvas
                 Entity root = e;
-                Entity current = rect.parent;
+                Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
                 while (current != NO_ENTITY) {
                     root = current;
                     if (!m_cm->HasComponent<UIRectTransform>(current)) break;
-                    current = m_cm->GetComponent<UIRectTransform>(current).parent;
+                    current = m_cm->HasComponent<Hierarchy>(current) ? m_cm->GetComponent<Hierarchy>(current).parent : NO_ENTITY;
                 }
 
-                if (root != canvasEntity && rect.parent != canvasEntity) {
+                Entity parentEnt = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
+                if (root != canvasEntity && parentEnt != canvasEntity) {
                     continue;
                 }
 

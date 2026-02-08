@@ -17,6 +17,7 @@
 #include <ECS/Components/UIRectTransform.hpp>
 #include <ECS/Components/UICanvas.hpp>
 #include <ECS/Components/UIImage.hpp>
+#include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/UIText.hpp>
 #include <ECS/Components/UIButton.hpp>
 #include <ECS/Components/UISlider.hpp>
@@ -355,21 +356,21 @@ namespace {
 
 	// check if an entity is a child of a specific canvas
 	bool IsChildOfCanvas(uint32_t entity, uint32_t canvasEntity) {
-		if (!NE::ECS::Query::HasUIRectTransform(entity)) return false;
+		if (!NE::ECS::Query::HasHierarchy(entity)) return false;
 
-		auto& rect = NE::ECS::Query::GetUIRectTransform(entity);
-		uint32_t current = rect.parent;
+		uint32_t current = NE::ECS::Query::GetEntityHierarchy(entity).parent;
 
 		// Walk up hierarchy
 		while (current != NE::ECS::NO_ENTITY) {
 			if (current == canvasEntity) return true;
 
-			if (!NE::ECS::Query::HasUIRectTransform(current)) break;
-			current = NE::ECS::Query::GetUIRectTransform(current).parent;
+			if (!NE::ECS::Query::HasHierarchy(current)) break;
+			current = NE::ECS::Query::GetEntityHierarchy(current).parent;
 		}
 
 		// Direct child check
-		return (rect.parent == canvasEntity);
+		uint32_t parent = NE::ECS::Query::GetEntityHierarchy(entity).parent;
+		return (parent == canvasEntity);
 	}
 
 	// rebuild materials for all children of a canvas
@@ -504,7 +505,6 @@ namespace Editor {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
-						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					NE::ECS::Component::UICanvas canvas{};
@@ -514,7 +514,6 @@ namespace Editor {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
-						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					NE::ECS::Component::UIImage img{};
@@ -524,7 +523,6 @@ namespace Editor {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
-						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					NE::ECS::Component::UIText text{};
@@ -534,7 +532,6 @@ namespace Editor {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
-						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					if (!NE::ECS::Query::HasUIImage(entity)) {
@@ -548,7 +545,6 @@ namespace Editor {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
-						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					if (!NE::ECS::Query::HasUIImage(entity)) {
@@ -563,7 +559,6 @@ namespace Editor {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
-						rect.luid = NE::Core::LUIDGenerator::Generate("rt");
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					NE::ECS::Component::UIToggle toggle{};
@@ -2538,15 +2533,15 @@ namespace Editor {
 					auto& compCanvas = NE::ECS::Command::GetUICanvas(entity);
 					isOverlay = (compCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY);
 				} else {
-					uint32_t currentParent = comp.parent;
+					uint32_t currentParent = NE::ECS::Query::HasHierarchy(entity) ? NE::ECS::Query::GetEntityHierarchy(entity).parent : NE::ECS::NO_ENTITY;
 					while (currentParent != NE::ECS::NO_ENTITY) {
 						if (NE::ECS::Query::HasUICanvas(currentParent)) {
 							auto& parentCanvas = NE::ECS::Query::GetUICanvas(currentParent);
 							isOverlay = (parentCanvas.renderMode == NE::ECS::Component::UICanvas::RenderMode::SCREEN_SPACE_OVERLAY);
 							break;
 						}
-						if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-						currentParent = NE::ECS::Query::GetUIRectTransform(currentParent).parent;
+						if (!NE::ECS::Query::HasHierarchy(currentParent)) break;
+						currentParent = NE::ECS::Query::GetEntityHierarchy(currentParent).parent;
 					}
 				}
 			}
@@ -3028,7 +3023,7 @@ namespace Editor {
 						// find parent canvas to determine render mode
 						auto& rectTransform = NE::ECS::Command::GetUIRectTransform(entity);
 						uint32_t canvasEntity = entity;
-						uint32_t current = rectTransform.parent;
+						uint32_t current = NE::ECS::Query::HasHierarchy(entity) ? NE::ECS::Query::GetEntityHierarchy(entity).parent : NE::ECS::NO_ENTITY;
 
 						// walk up hierarchy to find canvas
 						while (current != NE::ECS::NO_ENTITY) {
@@ -3036,8 +3031,8 @@ namespace Editor {
 								canvasEntity = current;
 								break;
 							}
-							if (NE::ECS::Query::HasUIRectTransform(current)) {
-								current = NE::ECS::Query::GetUIRectTransform(current).parent;
+							if (NE::ECS::Query::HasHierarchy(current)) {
+								current = NE::ECS::Query::GetEntityHierarchy(current).parent;
 							} else {
 								break;
 							}
