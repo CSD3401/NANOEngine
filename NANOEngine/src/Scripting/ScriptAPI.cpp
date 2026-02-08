@@ -871,6 +871,47 @@ namespace NE {
 			NE::Audio::StopAllAudio();
 		}
 
+		void IScript::SetMasterVolume(float volume)
+		{
+			NE::Audio::SetMasterVolume(volume);
+		}
+
+		void IScript::SetBGMVolume(float volume)
+		{
+			NE::Audio::SetBGMVolume(volume);
+		}
+
+		void IScript::SetSFXVolume(float volume)
+		{
+			NE::Audio::SetSFXVolume(volume);
+		}
+
+		void IScript::SetAmbienceVolume(float volume)
+		{
+			NE::Audio::SetAmbienceVolume(volume);
+		}
+
+		float IScript::GetMasterVolume() const
+		{
+			return NE::Audio::GetMasterVolume();
+		}
+
+		float IScript::GetBGMVolume() const
+		{
+			return NE::Audio::GetBGMVolume();
+		}
+
+		float IScript::GetSFXVolume() const
+		{
+			return NE::Audio::GetSFXVolume();
+		}
+
+		float IScript::GetAmbienceVolume() const
+		{
+			return NE::Audio::GetAmbienceVolume();
+		}
+
+
 		bool IScript::HasAudioSource(Entity entity) const {
 			if (!m_context || !m_context->componentManager) return false;
 			Entity targetEntity = (entity == DEFAULT_ENTITY_PARAM) ? m_entity : entity;
