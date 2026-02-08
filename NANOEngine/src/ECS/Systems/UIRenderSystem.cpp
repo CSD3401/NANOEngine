@@ -1164,16 +1164,22 @@ namespace NE::ECS::Systems {
 
         // Get or create font atlas at the effective scaled size
         if (text.fontUUID.empty()) {
+            std::cout << "[UIRenderSystem::RenderTextEntity] Font UUID is empty!" << std::endl;
             return;
         }
+
+        std::cout << "[UIRenderSystem::RenderTextEntity] Loading font: " << text.fontUUID << " at size " << effectiveFontSize << std::endl;
 
         auto fontAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
             text.fontUUID, effectiveFontSize
         );
 
         if (!fontAtlas) {
+            std::cout << "[UIRenderSystem::RenderTextEntity] ✗ Failed to create font atlas!" << std::endl;
             return;
         }
+
+        std::cout << "[UIRenderSystem::RenderTextEntity] ✓ Font atlas created successfully" << std::endl;
 
         WorldTransform worldTransform =
             CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
@@ -1204,6 +1210,8 @@ namespace NE::ECS::Systems {
             transformChanged;
 
         if (needsRegen) {
+            std::cout << "[UIRenderSystem::RenderTextEntity] Regenerating text vertices for: \"" << text.text << "\"" << std::endl;
+
             // Recalculate world transform for text generation
             worldTransform = CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
 
@@ -1266,7 +1274,11 @@ namespace NE::ECS::Systems {
             text.cachedSize = curSize;
             text.cachedRotZ = worldTransform.accumulatedRotationZ;
             text.hasCachedTransform = true;
+
+            std::cout << "[UIRenderSystem::RenderTextEntity] Generated " << text.cachedVertices.size() << " vertices" << std::endl;
         }
+
+        std::cout << "[UIRenderSystem::RenderTextEntity] Submitting text with " << text.cachedVertices.size() << " vertices" << std::endl;
         SubmitTextDrawCommand(entity, canvasEntity, canvas, text, rect, worldTransform, fontAtlas, viewMatrix, projMatrix);
     }
 
@@ -1285,7 +1297,12 @@ namespace NE::ECS::Systems {
         (void)canvasEntity; // Unused parameter
         (void)rect;         // Unused parameter
 
-        if (text.cachedVertices.empty()) return;
+        if (text.cachedVertices.empty()) {
+            std::cout << "[UIRenderSystem::SubmitTextDrawCommand] No vertices to submit (empty)" << std::endl;
+            return;
+        }
+
+        std::cout << "[UIRenderSystem::SubmitTextDrawCommand] Submitting to UIRenderer with " << text.cachedVertices.size() << " vertices" << std::endl;
 
         NE::Graphics::UIDrawCommand cmd;
 
@@ -1299,6 +1316,7 @@ namespace NE::ECS::Systems {
         cmd.entityId = entity;
         cmd.renderMode = static_cast<int>(canvas.renderMode);
         cmd.planeDistance = canvas.planeDistance;
+        std::cout << "[UIRenderSystem::SubmitTextDrawCommand] renderMode = " << cmd.renderMode << std::endl;
 
         cmd.bindlessTextureHandle = fontAtlas->GetBindlessHandle();
         cmd.isTextCommand = true;

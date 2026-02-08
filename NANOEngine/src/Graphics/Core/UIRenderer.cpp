@@ -393,6 +393,11 @@ namespace NE::Graphics {
     }
 
     void UIRenderer::Submit(const UIDrawCommand& cmd) {
+        static bool logged = false;
+        if (!logged && cmd.isTextCommand) {
+            std::cout << "[UIRenderer::Submit] Received TEXT command with " << cmd.vertices.size() << " vertices" << std::endl;
+            logged = true;
+        }
         s_Commands.push_back(cmd);
     }
 
@@ -461,12 +466,14 @@ namespace NE::Graphics {
     }
 
     void UIRenderer::DrawUIFrame() {
-        //// DEBUG: Log command count
-        //static int dbgFrame = 0;
-        //if (dbgFrame++ % 120 == 0) {
-        //    std::cout << "[UIRenderer::DrawUIFrame] Total commands: " << s_Commands.size() << std::endl;
-        //}
-        //if (s_Commands.empty()) return;
+        // DEBUG: Log command count
+        static int dbgFrame = 0;
+        if (dbgFrame++ % 120 == 0) {
+            std::cout << "[UIRenderer::DrawUIFrame] Total commands: " << s_Commands.size() << std::endl;
+        }
+
+        // DEBUG: Check total commands
+        std::cout << "[UIRenderer::DrawUIFrame] Total commands: " << s_Commands.size() << std::endl;
 
         // filter to only overlay mode (rendermode 0)
         std::vector<UIDrawCommand> overlayCommands;
@@ -474,6 +481,15 @@ namespace NE::Graphics {
         {
             if (cmd.renderMode == 0)  // Overlay only
                 overlayCommands.push_back(cmd);
+        }
+
+        // DEBUG: Check for text commands
+        int textCommandCount = 0;
+        for (const auto& cmd : overlayCommands) {
+            if (cmd.isTextCommand) textCommandCount++;
+        }
+        if (textCommandCount > 0) {
+            std::cout << "[UIRenderer] Found " << textCommandCount << " text commands in overlayCommands" << std::endl;
         }
 
         if (overlayCommands.empty()) return;
@@ -515,6 +531,7 @@ namespace NE::Graphics {
             // Check if this is a text command
             if (cmd.isTextCommand)
             {
+                std::cout << "[UIRenderer] Processing TEXT command" << std::endl;
                 glUseProgram(s_TextShader);
                 usingTextShader = true;
             }
@@ -569,7 +586,21 @@ namespace NE::Graphics {
                     (float)s_ScreenW, (float)s_ScreenH);
 
                 if (cmd.bindlessTextureHandle != 0) {
-                    glUniformHandleui64ARB(glGetUniformLocation(s_TextShader, "uFontAtlas"), cmd.bindlessTextureHandle);
+                    GLint loc = glGetUniformLocation(s_TextShader, "uFontAtlas");
+                    if (loc >= 0) {
+                        glUniformHandleui64ARB(loc, cmd.bindlessTextureHandle);
+                        static bool logged = false;
+                        if (!logged) {
+                            std::cout << "[UIRenderer] ✓ Setting font atlas handle " << cmd.bindlessTextureHandle << " at location " << loc << std::endl;
+                            logged = true;
+                        }
+                    } else {
+                        static bool warned = false;
+                        if (!warned) {
+                            std::cout << "[UIRenderer] ✗ WARNING: uFontAtlas uniform not found in text shader!" << std::endl;
+                            warned = true;
+                        }
+                    }
                 }
             }
             else if (usingFallbackShader)
