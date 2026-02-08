@@ -89,4 +89,6 @@ namespace NE {
 		const std::vector<uint32_t>& indices, std::vector<uint8_t>& outBlob);
 
 	NANOENGINE_API void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds);
+
+	void SetCursorVisible(bool visible);
 }

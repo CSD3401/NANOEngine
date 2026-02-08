@@ -10,6 +10,7 @@
 #include "ScriptContext.hpp"
 #include "ScriptContextFactory.hpp"
 #include "ScriptingEngine.hpp"
+#include "Engine.hpp"
 
  // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
@@ -3598,6 +3599,11 @@ namespace NE {
 
 		bool IsMouseLocked() {
 			return NE::InputManager::IsMouseLocked();
+		}
+
+		void SetMouseVisible(bool visible) {
+			//NE::InputManager::SetMouseVisible(visible);
+			NE::SetCursorVisible(visible);
 		}
 
 		//=========================================================================
