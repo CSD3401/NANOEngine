@@ -1004,6 +1004,8 @@ namespace Scripting {
      */
     SCRIPT_API bool IsMouseLocked();
 
+	SCRIPT_API void SetMouseVisible(bool visible);
+
     //=========================================================================
     // EVENT API (SDK-level event system for script communication)
     //=========================================================================
