@@ -10,6 +10,7 @@
 #include "ScriptContext.hpp"
 #include "ScriptContextFactory.hpp"
 #include "ScriptingEngine.hpp"
+#include "Engine.hpp"
 
  // Internal engine headers (NOT exposed to scripts)
 #include "../ECS/Components/Transform.hpp"
@@ -870,6 +871,47 @@ namespace NE {
 		void IScript::StopAllAudio() {
 			NE::Audio::StopAllAudio();
 		}
+
+		void IScript::SetMasterVolume(float volume)
+		{
+			NE::Audio::SetMasterVolume(volume);
+		}
+
+		void IScript::SetBGMVolume(float volume)
+		{
+			NE::Audio::SetBGMVolume(volume);
+		}
+
+		void IScript::SetSFXVolume(float volume)
+		{
+			NE::Audio::SetSFXVolume(volume);
+		}
+
+		void IScript::SetAmbienceVolume(float volume)
+		{
+			NE::Audio::SetAmbienceVolume(volume);
+		}
+
+		float IScript::GetMasterVolume() const
+		{
+			return NE::Audio::GetMasterVolume();
+		}
+
+		float IScript::GetBGMVolume() const
+		{
+			return NE::Audio::GetBGMVolume();
+		}
+
+		float IScript::GetSFXVolume() const
+		{
+			return NE::Audio::GetSFXVolume();
+		}
+
+		float IScript::GetAmbienceVolume() const
+		{
+			return NE::Audio::GetAmbienceVolume();
+		}
+
 
 		bool IScript::HasAudioSource(Entity entity) const {
 			if (!m_context || !m_context->componentManager) return false;
@@ -3598,6 +3640,11 @@ namespace NE {
 
 		bool IsMouseLocked() {
 			return NE::InputManager::IsMouseLocked();
+		}
+
+		void SetMouseVisible(bool visible) {
+			//NE::InputManager::SetMouseVisible(visible);
+			NE::SetCursorVisible(visible);
 		}
 
 		//=========================================================================

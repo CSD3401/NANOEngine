@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ECS\ECSEvents.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderGraph\TextureFormats.hpp" />
     <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessPipeline.hpp" />
