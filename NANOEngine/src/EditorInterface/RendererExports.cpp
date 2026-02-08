@@ -120,6 +120,7 @@ namespace NE::Renderer {
 			if (!textureUUID.empty()) {
 				auto texture = Resource::ResourceManager::GetInstance().LoadResource<Graphics::OpenGL::GLTexture>(textureUUID);
 				if (texture) {
+					texture->MakeResident(); // CRITICAL: Make texture resident for bindless access
 					img.bindlessHandle = texture->GetBindlessHandle();
 				}
 			}

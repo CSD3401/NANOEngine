@@ -93,8 +93,9 @@ namespace NE::ECS::Systems {
         img.isDirty = true;
     }
 
-    void UIRenderSystem::OnEntityRemoved(Entity e) 
+    void UIRenderSystem::OnEntityRemoved(Entity e)
     {
+        (void)e; // Unused parameter
     }
 
     void UIRenderSystem::Init()
@@ -365,8 +366,8 @@ namespace NE::ECS::Systems {
                 canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA)
             {
                 auto& canvasRect = m_cm->GetComponent<UIRectTransform>(canvasEntity);
-                float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-                float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+                float screenWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth());
+                float screenHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight());
                 canvasRect.x = screenWidth * DEFAULT_ANCHOR_X;
                 canvasRect.y = screenHeight * DEFAULT_ANCHOR_Y;
                 canvasRect.width = canvas.referenceWidth;
@@ -380,10 +381,10 @@ namespace NE::ECS::Systems {
 
         switch (canvas.renderMode) {
         case UICanvas::RenderMode::SCREEN_SPACE_OVERLAY:
-        case UICanvas::RenderMode::SCREEN_SPACE_CAMERA: 
+        case UICanvas::RenderMode::SCREEN_SPACE_CAMERA:
         {
-            float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-            float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+            float screenWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth());
+            float screenHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight());
 
             canvasRect.x = screenWidth * DEFAULT_ANCHOR_X;
             canvasRect.y = screenHeight * DEFAULT_ANCHOR_Y;
@@ -521,8 +522,8 @@ namespace NE::ECS::Systems {
             }
             else {
                 // Direct child of canvas - use screen dimensions in reference coordinates
-                parentWidth = NE::Graphics::GraphicsManager::GetScreenWidth() / canvas.scaleFactor;
-                parentHeight = NE::Graphics::GraphicsManager::GetScreenHeight() / canvas.scaleFactor;
+                parentWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth()) / canvas.scaleFactor;
+                parentHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight()) / canvas.scaleFactor;
             }
 
             // Center anchor offset
@@ -575,8 +576,11 @@ namespace NE::ECS::Systems {
         const UICanvas& canvas,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) 
+    )
     {
+        (void)viewMatrix;  // Unused - reserved for world-space rendering
+        (void)projMatrix;  // Unused - reserved for world-space rendering
+
         WorldTransform result;
 
         if (!m_cm->HasComponent<UIRectTransform>(entity)) {
@@ -769,6 +773,9 @@ namespace NE::ECS::Systems {
         const std::vector<NE::Graphics::UIVertex2>& vertices
     )
     {
+        (void)entity; // Unused parameter
+        (void)rect;   // Unused parameter
+
         // Create dynamic geometry buffer
         auto geometryBuffer = CreateDynamicUIGeometry(vertices);
         if (!geometryBuffer) {
@@ -840,10 +847,10 @@ namespace NE::ECS::Systems {
     // Canvas & Scaling
     //=========================================================================
 
-    float UIRenderSystem::CalculateScaleFactor(const UICanvas& canvas) 
+    float UIRenderSystem::CalculateScaleFactor(const UICanvas& canvas)
     {
-        float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-        float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+        float screenWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth());
+        float screenHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight());
 
         switch (canvas.scaleMode) {
         case UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE: {
@@ -957,8 +964,11 @@ namespace NE::ECS::Systems {
         Entity canvasEntity,
         const UIRectTransform& rect,
         const AccumulatedTransform& accumulated
-    ) 
+    )
     {
+        (void)entity;       // Unused parameter
+        (void)canvasEntity; // Unused parameter
+
         // compute pivot offset
         Math::Vec2 pivot = rect.GetPivot();
 
@@ -1194,7 +1204,8 @@ namespace NE::ECS::Systems {
             transformChanged;
 
         if (needsRegen) {
-            WorldTransform worldTransform = CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
+            // Recalculate world transform for text generation
+            worldTransform = CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
 
             auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
                 text.text,
@@ -1269,8 +1280,11 @@ namespace NE::ECS::Systems {
         std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) 
+    )
     {
+        (void)canvasEntity; // Unused parameter
+        (void)rect;         // Unused parameter
+
         if (text.cachedVertices.empty()) return;
 
         NE::Graphics::UIDrawCommand cmd;
