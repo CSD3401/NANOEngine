@@ -3,7 +3,7 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
 #include "../../Graphics/Core/UIDrawCommand.hpp"
-#include "../../Graphics/Core/UIRenderer.hpp"
+#include "../../Graphics/Core/UIRenderer.hpp" // TODO: Remove when text rendering is migrated
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
 #include "../../Graphics/Core/UITextMeshGenerator.hpp"
@@ -995,51 +995,6 @@ namespace NE::ECS::Systems {
         return translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
     }
 
-    void UIRenderSystem::SubmitDrawCommand(
-        Entity entity,
-        Entity canvasEntity,
-        const UICanvas& canvas,
-        const UIImage& img,
-        const UIRectTransform& rect,
-        const WorldTransform& worldTransform,
-        const AccumulatedTransform& accumulated,
-        std::vector<NE::Graphics::UIVertex>& vertices,
-        const Math::Mat4* viewMatrix,
-        const Math::Mat4* projMatrix
-    ) 
-    {
-        NE::Graphics::UIDrawCommand cmd;
-
-        cmd.x = worldTransform.x;
-        cmd.y = worldTransform.y;
-        cmd.z = worldTransform.z;
-        cmd.width = worldTransform.width;
-        cmd.height = worldTransform.height;
-        cmd.color = img.color;
-        cmd.order = canvas.sortingOrder;
-        cmd.entityId = entity;
-        cmd.renderMode = static_cast<int>(canvas.renderMode);
-        cmd.planeDistance = canvas.planeDistance;
-
-        cmd.material = img.material;
-        cmd.bindlessTextureHandle = img.bindlessHandle;
-
-        cmd.vertices = vertices;
-        cmd.useCustomVertices = !vertices.empty() &&
-            (img.imageType != UIImage::ImageType::SIMPLE ||
-                img.fillAmount < 1.0f ||
-                std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON);
-
-        if (viewMatrix) cmd.viewMatrix = *viewMatrix;
-        if (projMatrix) cmd.projMatrix = *projMatrix;
-
-        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-            cmd.modelMatrix = BuildWorldSpaceModelMatrix(entity, canvasEntity, rect, accumulated);
-        }
-
-        NE::Graphics::UIRenderer::Submit(cmd);
-    }
-
     void UIRenderSystem::RenderCanvasChildren(
         Entity canvasEntity,
         const UICanvas& canvas,
@@ -1058,56 +1013,34 @@ namespace NE::ECS::Systems {
             auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
-            if (m_useIntegratedPipeline) {
-                // NEW PATH: Submit through GraphicsManager
-                UpdateWorldMatrix(e, canvasEntity, canvas);
+            // Integrated pipeline - submit through GraphicsManager
+            UpdateWorldMatrix(e, canvasEntity, canvas);
 
-                // Generate vertices using UIVertex2
-                std::vector<NE::Graphics::UIVertex2> verticesV2;
-                WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
+            // Generate vertices using UIVertex2
+            std::vector<NE::Graphics::UIVertex2> verticesV2;
+            WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
 
-                // Use white color for vertices (color is applied via uniform)
-                // The old shader only uses uColor uniform, not vertex colors
-                Math::Vec4 whiteColor(1.0f, 1.0f, 1.0f, 1.0f);
+            // Use white color for vertices (color is applied via uniform)
+            Math::Vec4 whiteColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-                if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                    // For world space, generate simple unit quad
-                    verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
-                        img, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, whiteColor
-                    );
-                }
-                else {
-                    // For screen space, use world transform
-                    verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
-                        img,
-                        worldTransform.x, worldTransform.y, worldTransform.z,
-                        worldTransform.width, worldTransform.height,
-                        whiteColor
-                    );
-                }
-
-                if (!verticesV2.empty()) {
-                    SubmitUIElement(e, canvas, img, rect, verticesV2);
-                }
+            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                // For world space, generate simple unit quad
+                verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
+                    img, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, whiteColor
+                );
             }
             else {
-                // OLD PATH: Submit through UIRenderer
-                AccumulatedTransform accumulated = AccumulateParentTransforms(e, canvasEntity, canvas);
+                // For screen space, use world transform
+                verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
+                    img,
+                    worldTransform.x, worldTransform.y, worldTransform.z,
+                    worldTransform.width, worldTransform.height,
+                    whiteColor
+                );
+            }
 
-                WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
-
-                std::vector<NE::Graphics::UIVertex> vertices;
-
-                if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                    vertices = GenerateWorldSpaceVertices(img);
-                }
-                else {
-                    vertices = GenerateScreenSpaceVertices(e, worldTransform, img);
-                }
-
-                if (vertices.empty()) continue;
-
-                SubmitDrawCommand(e, canvasEntity, canvas, img, rect, worldTransform, accumulated, vertices, viewMatrix, projMatrix);
+            if (!verticesV2.empty()) {
+                SubmitUIElement(e, canvas, img, rect, verticesV2);
             }
         }
     }

@@ -162,19 +162,6 @@ namespace NE::ECS::Systems {
             const AccumulatedTransform& accumulated
         );
 
-        void SubmitDrawCommand(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas,
-            const Component::UIImage& img,
-            const Component::UIRectTransform& rect,
-            const WorldTransform& worldTransform,
-            const AccumulatedTransform& accumulated,
-            std::vector<NE::Graphics::UIVertex>& vertices,
-            const Math::Mat4* viewMatrix,
-            const Math::Mat4* projMatrix
-        );
-
         //=================================================================
         // Vertex Manipulation
         //=================================================================
@@ -221,10 +208,7 @@ namespace NE::ECS::Systems {
     private:
         ComponentManager* m_cm;
 
-        // NEW: Integrated pipeline support
-        // Set to true to test new GraphicsManager pipeline, false for old UIRenderer path
-        // Phase 2: Test both paths by toggling this flag
-        bool m_useIntegratedPipeline = true;
+        // Integrated pipeline materials
         std::shared_ptr<NE::Graphics::Material> m_defaultUIMaterial;  // Default sprite material
         std::shared_ptr<NE::Graphics::Material> m_defaultTextMaterial;  // Default text material
     };

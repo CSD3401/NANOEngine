@@ -658,12 +658,13 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::DrawUI() {
+        // TODO: Remove UIRenderer calls when text rendering is migrated to integrated pipeline
+        // Currently still used for UIText rendering (UIRenderSystem::SubmitTextDrawCommand)
         UIRenderer::BeginFrame();
         UIRenderer::DrawUIFrame();
-        //UIRenderer::DrawTestQuad();
         UIRenderer::EndFrame();
         UIRenderer::Draw3DUIFrame(s_FinalOutputViewHandle);
-        
+
         UIRenderer::Composite(s_FinalOutputViewHandle);
         UIRenderer::Draw3DUIFrame(s_FinalGameOutputHandle);
         UIRenderer::Composite(s_FinalGameOutputHandle);
