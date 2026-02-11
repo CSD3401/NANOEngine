@@ -49,7 +49,6 @@
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\Quat.cpp" />
     <ClCompile Include="src\Math\Vec2.cpp" />
-    <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\Math\Vec4.cpp" />
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
@@ -99,6 +98,7 @@
     <ClCompile Include="src\Graphics\Core\FontAtlas.cpp" />
     <ClCompile Include="src\Graphics\Core\Font.cpp" />
     <ClCompile Include="src\ECS\Systems\UIEventSystem.cpp" />
+    <ClCompile Include="src\Math\Vec3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
