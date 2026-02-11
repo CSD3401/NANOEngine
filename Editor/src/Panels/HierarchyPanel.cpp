@@ -180,6 +180,14 @@ namespace Editor {
 			selectionChanged = true;
 
 			if (anchor != NE::ECS::NO_ENTITY) {
+				m_scrollToEntity = anchor;
+				m_scrollToEntityPending = true;
+			} else {
+				m_scrollToEntity = NE::ECS::NO_ENTITY;
+				m_scrollToEntityPending = false;
+			}
+
+			if (anchor != NE::ECS::NO_ENTITY) {
 				using NE::ECS::Entity;
 				using NE::ECS::Component::INVALID_PARENT;
 
@@ -400,6 +408,8 @@ namespace Editor {
 		m_previewParentForInsert = NE::ECS::NO_ENTITY;
 		m_clickCandidate = NE::ECS::NO_ENTITY;
 		m_previewAsChild = false;
+		m_scrollToEntity = NE::ECS::NO_ENTITY;
+		m_scrollToEntityPending = false;
 
 		m_filtering = false;
 		m_visible.clear();
@@ -470,6 +480,11 @@ namespace Editor {
 			ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 		}
 		bool open = ImGui::TreeNodeEx((void*)(intptr_t)e, flags, "%s", name);
+
+		if (m_scrollToEntityPending && e == m_scrollToEntity) {
+			ImGui::SetScrollHereY(0.5f);
+			m_scrollToEntityPending = false;
+		}
 
 		const bool toggledOpen = ImGui::IsItemToggledOpen();
 
