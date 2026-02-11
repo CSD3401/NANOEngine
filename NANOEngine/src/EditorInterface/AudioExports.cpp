@@ -12,6 +12,87 @@ namespace NE {
 
 namespace NE::Audio {
 
+	namespace {
+		std::shared_ptr<NE::ECS::Systems::AudioSystem> GetAudioSystem()
+		{
+			auto& scene = NE::GetScene();
+			auto audioSystem = scene.GetECSCoordinator().m_audioSystem;
+			if (!audioSystem) {
+				SPD_ERROR("[Audio] AudioSystem not found");
+			}
+			return audioSystem;
+		}
+	}
+
+	// Bus volume control implementations
+	void SetMasterVolume(float volume)
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			audioSystem->SetMasterVolume(volume);
+		}
+	}
+
+	void SetBGMVolume(float volume)
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			audioSystem->SetBGMVolume(volume);
+		}
+	}
+
+	void SetSFXVolume(float volume)
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			audioSystem->SetSFXVolume(volume);
+		}
+	}
+
+	void SetAmbienceVolume(float volume)
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			audioSystem->SetAmbienceVolume(volume);
+		}
+	}
+
+	float GetMasterVolume()
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			return audioSystem->GetMasterVolume();
+		}
+		return 0.0f;
+	}
+
+	float GetBGMVolume()
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			return audioSystem->GetBGMVolume();
+		}
+		return 0.0f;
+	}
+
+	float GetSFXVolume()
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			return audioSystem->GetSFXVolume();
+		}
+		return 0.0f;
+	}
+
+	float GetAmbienceVolume()
+	{
+		auto audioSystem = GetAudioSystem();
+		if (audioSystem) {
+			return audioSystem->GetAmbienceVolume();
+		}
+		return 0.0f;
+	}
+
 	void PlayAudio(const std::string& eventName) {
 		auto& scene = NE::GetScene();
 		auto audioSystem = scene.GetECSCoordinator().m_audioSystem;
@@ -85,6 +166,9 @@ namespace NE::Audio {
 			SPD_ERROR("[Audio] AudioSystem not available");
 		}
 	}
+
+
+
 
 	void SetMasterVolumeLevel(int level) {
 		auto& scene = NE::GetScene();

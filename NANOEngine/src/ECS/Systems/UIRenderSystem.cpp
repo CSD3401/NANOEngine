@@ -11,7 +11,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
-
+#include "../Components/EntityMeta.hpp"
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
 
@@ -37,6 +37,27 @@ namespace NE::ECS::Systems {
 
     UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm) 
     {
+    }
+    bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
+    {
+        Entity cur = entity;
+
+        while (cur != NO_ENTITY)
+        {
+            // If any parent/entity is inactive, UI should not render
+            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(cur)) {
+                if (!m_cm->GetComponent<NE::ECS::Component::EntityMeta>(cur).isActive) {
+                    return false;
+                }
+            }
+
+            if (cur == canvasEntity) break;
+
+            if (!m_cm->HasComponent<UIRectTransform>(cur)) break;
+            cur = m_cm->GetComponent<UIRectTransform>(cur).parent;
+        }
+
+        return true;
     }
 
     void UIRenderSystem::OnEntityAdded(Entity e) 
@@ -99,9 +120,16 @@ namespace NE::ECS::Systems {
             if (!m_cm->HasComponent<UICanvas>(e)) continue;
 
             auto& canvas = m_cm->GetComponent<UICanvas>(e);
-            if (canvas.isActive) {
+
+            bool metaActive = true;
+            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(e)) {
+                metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(e).isActive;
+            }
+
+            if (canvas.isActive && metaActive) {
                 canvases.push_back({ canvas.sortingOrder, e });
             }
+
         }
 
         std::sort(canvases.begin(), canvases.end(),
@@ -449,7 +477,7 @@ namespace NE::ECS::Systems {
     // Rendering
     //=========================================================================
 
-    std::vector<Entity> UIRenderSystem::CollectCanvasChildren(Entity canvasEntity) 
+    std::vector<Entity> UIRenderSystem::CollectCanvasChildren(Entity canvasEntity)
     {
         const auto& entities = GetEntities();
         std::vector<Entity> canvasChildren;
@@ -462,6 +490,7 @@ namespace NE::ECS::Systems {
 
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
+            // Check if this entity belongs to this canvas (same logic you already used)
             Entity root = e;
             Entity current = rect.parent;
 
@@ -472,12 +501,16 @@ namespace NE::ECS::Systems {
             }
 
             if (root == canvasEntity || rect.parent == canvasEntity) {
+                // NEW: respect EntityMeta::isActive up the UI chain
+                if (!IsActiveForUI(e, canvasEntity)) continue;
+
                 canvasChildren.push_back(e);
             }
         }
 
         return canvasChildren;
     }
+
 
     void UIRenderSystem::SortEntitiesByZOrder(std::vector<Entity>& entities) 
     {
@@ -696,7 +729,7 @@ namespace NE::ECS::Systems {
     // Text Rendering
     //=========================================================================
 
-    std::vector<Entity> UIRenderSystem::CollectTextChildren(Entity canvasEntity) 
+    std::vector<Entity> UIRenderSystem::CollectTextChildren(Entity canvasEntity)
     {
         const auto& entities = GetEntities();
         std::vector<Entity> textChildren;
@@ -719,12 +752,16 @@ namespace NE::ECS::Systems {
             }
 
             if (root == canvasEntity || rect.parent == canvasEntity) {
+                // NEW: respect EntityMeta::isActive up the UI chain
+                if (!IsActiveForUI(e, canvasEntity)) continue;
+
                 textChildren.push_back(e);
             }
         }
 
         return textChildren;
     }
+
 
     void UIRenderSystem::RenderTextEntity(
         Entity entity,

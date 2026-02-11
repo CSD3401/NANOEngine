@@ -197,6 +197,7 @@
     <ClInclude Include="Scripts\Puzzle_TwoStateRotater.hpp" />
     <ClInclude Include="Scripts\Puzzle_Wire.hpp" />
     <ClInclude Include="Scripts\RenderSettingsDemo.hpp" />
+    <ClInclude Include="Scripts\SampleAudio.hpp" />
     <ClInclude Include="Scripts\TestScript.hpp" />
     <ClInclude Include="Scripts\TextureSwitch.hpp" />
     <ClInclude Include="Scripts\TweenExampleScript.hpp" />
@@ -204,6 +205,7 @@
     <ClInclude Include="Scripts\UIButton_SwitchSceneThree.hpp" />
     <ClInclude Include="Scripts\UIButton_SwitchSceneTwo.hpp" />
     <ClInclude Include="Scripts\UI_MasterVolumeButtons.hpp" />
+    <ClInclude Include="Scripts\UI_Notes.hpp" />
     <ClInclude Include="Scripts\WireChild.hpp" />
   </ItemGroup>
   <ItemGroup>

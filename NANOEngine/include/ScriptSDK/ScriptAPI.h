@@ -410,6 +410,17 @@ namespace Scripting {
         void StopAudio(const std::string& eventName); // directly using FMOD
         void StopAllAudio(); // directly using FMOD
 
+		void SetMasterVolume(float volume); // min 0.0, max 1.0
+        void SetBGMVolume(float volume);  // min 0.0, max 1.0
+        void SetSFXVolume(float volume); // min 0.0, max 1.0
+        void SetAmbienceVolume(float volume); // min 0.0, max 1.0
+
+		float GetMasterVolume() const; // if returns -1.0f, means invalid master bus
+        float GetBGMVolume() const; // if returns -1.0f, means invalid BGM bus
+        float GetSFXVolume() const; // if returns -1.0f, means invalid SFX bus
+        float GetAmbienceVolume() const; // if returns -1.0f, means invalid Ambience bus
+
+
         bool HasAudioSource(Entity entity = DEFAULT_ENTITY_PARAM) const;
 
         // Playback control
@@ -1003,6 +1014,8 @@ namespace Scripting {
      * @return true if mouse is locked
      */
     SCRIPT_API bool IsMouseLocked();
+
+	SCRIPT_API void SetMouseVisible(bool visible);
 
     //=========================================================================
     // EVENT API (SDK-level event system for script communication)

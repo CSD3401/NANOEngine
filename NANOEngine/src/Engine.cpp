@@ -27,6 +27,7 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "Animation/AnimationClip.hpp"
 #include "ECS/Systems/AnimatorSystem.hpp"
+#include "Events/EventBus.hpp"
 
 namespace {
 
@@ -110,19 +111,16 @@ namespace NE {
 		Physics::JoltDebugRenderer::BeginFrame();
 		
 		gSceneManager.Update(dt);
-
-		//Graphics::GraphicsManager::SubmitSkybox(); // Submit skybox once per frame
-
 		Physics::JoltDebugRenderer::EndFrame();
+
+
 		gSceneManager.Render();
 
 		Graphics::GraphicsManager::Clear(); // Clear draw commands after rendering
 
 		TweenManager::Get().Update(static_cast<float>(dt));
 
-		if (InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
-			glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
+		//NANOEngine::Events::EventBus::Get().DispatchQueued();
 	}
 
 	void Shutdown() {
@@ -403,5 +401,9 @@ namespace NE {
 
 	void PreviewAnimation(uint32_t entity, const Animation::AnimationClip& animClip, float timeInSeconds) {
 		gSceneManager.GetActive()->GetECSCoordinator().m_animatorSystem->ApplyClipAtTime(entity, animClip, timeInSeconds);
+	}
+	
+	void SetCursorVisible(bool visible) {
+		glfwSetInputMode(static_cast<GLFWwindow*>(s_window->GetNativeWindow()), GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 	}
 }
