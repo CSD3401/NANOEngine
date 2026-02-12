@@ -1197,6 +1197,8 @@ namespace Editor {
 			}
 		}
 
+		NE::Renderer::Command::DrawSelectedLightGizmos(comp);
+
 		static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
 		int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);
 

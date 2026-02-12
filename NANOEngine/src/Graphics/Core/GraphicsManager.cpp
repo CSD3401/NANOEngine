@@ -48,6 +48,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <variant>
 
 #include "Input/InputManager.hpp"
 #include "ShadowRenderer.hpp"
@@ -60,7 +61,7 @@ namespace NE::Graphics {
 
         constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
             "nedirlight", // Directional
-            "nedirlight", // Point
+            "nepointlight", // Point
             "nespotlight", // Spot
             "nedirlight"  // Area
         };
@@ -111,6 +112,103 @@ namespace NE::Graphics {
             model.SetTranslation(position);
             return model;
         }
+
+        constexpr int LIGHT_DEBUG_CIRCLE_SEGMENTS = 48;
+        constexpr int LIGHT_DEBUG_CONE_RAYS = 8;
+        constexpr float LIGHT_DEBUG_MIN_RANGE = 0.05f;
+        constexpr float LIGHT_DEBUG_MIN_ANGLE_DEG = 0.1f;
+        constexpr float LIGHT_DEBUG_MAX_ANGLE_DEG = 89.0f;
+
+        inline Vec3 BuildPerpendicular(const Vec3& direction) {
+            Vec3 reference = (std::abs(direction.y) < 0.99f) ? Vec3{ 0.0f, 1.0f, 0.0f } : Vec3{ 1.0f, 0.0f, 0.0f };
+            Vec3 perpendicular = direction.Cross(reference);
+            if (perpendicular.LengthSquared() < 1e-6f) {
+                reference = { 0.0f, 0.0f, 1.0f };
+                perpendicular = direction.Cross(reference);
+            }
+            if (perpendicular.LengthSquared() < 1e-6f) {
+                return { 1.0f, 0.0f, 0.0f };
+            }
+            perpendicular.Normalize();
+            return perpendicular;
+        }
+
+        inline void AppendWireCircle(
+            std::vector<Vec3>& vertices,
+            const Vec3& center,
+            const Vec3& axisX,
+            const Vec3& axisY,
+            float radius,
+            int segments)
+        {
+            if (radius <= 0.0f || segments < 3) return;
+
+            Vec3 prev = center + axisX * radius;
+            for (int i = 1; i <= segments; ++i) {
+                const float angle = (2.0f * Math::PI * static_cast<float>(i)) / static_cast<float>(segments);
+                const float c = std::cos(angle);
+                const float s = std::sin(angle);
+                const Vec3 curr = center + (axisX * c + axisY * s) * radius;
+                vertices.push_back(prev);
+                vertices.push_back(curr);
+                prev = curr;
+            }
+        }
+
+        inline void AppendWireCone(
+            std::vector<Vec3>& vertices,
+            const Vec3& apex,
+            const Vec3& direction,
+            float range,
+            float angleDeg,
+            int segments,
+            int rayCount)
+        {
+            const float clampedRange = std::max(range, LIGHT_DEBUG_MIN_RANGE);
+            const float clampedAngleDeg = std::clamp(angleDeg, LIGHT_DEBUG_MIN_ANGLE_DEG, LIGHT_DEBUG_MAX_ANGLE_DEG);
+            const float angleRad = clampedAngleDeg * (Math::PI / 180.0f);
+
+            Vec3 forward = direction;
+            if (forward.LengthSquared() < 1e-6f) {
+                forward = { 0.0f, -1.0f, 0.0f };
+            }
+            forward.Normalize();
+
+            Vec3 right = BuildPerpendicular(forward);
+            Vec3 up = right.Cross(forward).Normalized();
+
+            const float radius = std::tan(angleRad) * clampedRange;
+            const Vec3 baseCenter = apex + forward * clampedRange;
+
+            AppendWireCircle(vertices, baseCenter, right, up, radius, segments);
+
+            const int step = std::max(1, segments / std::max(1, rayCount));
+            for (int i = 0; i < segments; i += step) {
+                const float angle = (2.0f * Math::PI * static_cast<float>(i)) / static_cast<float>(segments);
+                const float c = std::cos(angle);
+                const float s = std::sin(angle);
+                const Vec3 rimPoint = baseCenter + (right * c + up * s) * radius;
+                vertices.push_back(apex);
+                vertices.push_back(rimPoint);
+            }
+        }
+
+        //inline void QueueLightDebugGeometryForView(
+        //    RenderViewHandle handle,
+        //    RenderViewHandle sceneViewHandle,
+        //    const std::vector<ECS::Component::Light*>& lights)
+        //{
+        //    if (handle != sceneViewHandle || lights.empty()) return;
+
+        //    std::vector<Vec3> vertices;
+        //    vertices.reserve(256);
+
+        //    for (const ECS::Component::Light* light : lights) {
+        //        if (!light) continue;
+
+
+        //    }
+        //}
 
         void InitializeLightGizmoResources() {
             auto quadModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/quad");
@@ -523,7 +621,9 @@ namespace NE::Graphics {
 
             RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
 
-            if (handle == 1) // Assuming editor camera handle will always be 1
+            //QueueLightDebugGeometryForView(handle, s_SceneViewHandle, m_lights);
+
+            if (handle == s_SceneViewHandle)
                 DrawAllDebugGeometry();
 
             s_RenderViewManager->Unbind();
@@ -741,6 +841,68 @@ namespace NE::Graphics {
 
     void GraphicsManager::DrawDebugTriangles() {
         DebugDrawSystem::DrawTriangles();
+    }
+
+    void GraphicsManager::DrawSelectedLightGizmos(const ECS::Component::Light& light) {
+        std::vector<Vec3> vertices;
+        vertices.reserve(256);
+
+        Vec3 baseColor = light.color;
+        if (baseColor.LengthSquared() < 1e-6f) {
+            baseColor = { 1.0f, 1.0f, 1.0f };
+        }
+        baseColor.x = std::clamp(baseColor.x, 0.1f, 1.0f);
+        baseColor.y = std::clamp(baseColor.y, 0.1f, 1.0f);
+        baseColor.z = std::clamp(baseColor.z, 0.1f, 1.0f);
+
+        switch (light.type) {
+        case ECS::Component::Light::Type::Point: {
+            const auto* pointData = std::get_if<ECS::Component::Light::PointLightData>(&light.data);
+            if (!pointData) break;
+
+            const float range = std::max(pointData->range, LIGHT_DEBUG_MIN_RANGE);
+            vertices.clear();
+            AppendWireCircle(vertices, light.position, { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            AppendWireCircle(vertices, light.position, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            AppendWireCircle(vertices, light.position, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
+            break;
+        }
+        case ECS::Component::Light::Type::Spot: {
+            const auto* spotData = std::get_if<ECS::Component::Light::SpotLightData>(&light.data);
+            if (!spotData) break;
+
+            const float range = std::max(spotData->range, LIGHT_DEBUG_MIN_RANGE);
+            vertices.clear();
+            AppendWireCone(
+                vertices,
+                light.position,
+                light.direction,
+                range,
+                spotData->outerConeAngleDeg,
+                LIGHT_DEBUG_CIRCLE_SEGMENTS,
+                LIGHT_DEBUG_CONE_RAYS
+            );
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
+
+            if (spotData->innerConeAngleDeg > LIGHT_DEBUG_MIN_ANGLE_DEG) {
+                vertices.clear();
+                AppendWireCone(
+                    vertices,
+                    light.position,
+                    light.direction,
+                    range,
+                    std::min(spotData->innerConeAngleDeg, spotData->outerConeAngleDeg),
+                    LIGHT_DEBUG_CIRCLE_SEGMENTS,
+                    LIGHT_DEBUG_CONE_RAYS
+                );
+                GraphicsManager::AddDebugLinesBatch(vertices, baseColor * 0.6f);
+            }
+            break;
+        }
+        default:
+            break;
+        }
     }
 
     void GraphicsManager::AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
