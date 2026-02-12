@@ -4,7 +4,9 @@
 #include "EditorCamera.hpp"
 #include "Skybox.hpp"
 #include "Material.hpp"
+#include "Model.hpp"
 #include "DrawCommand.hpp"
+#include "LightGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
@@ -40,8 +42,12 @@
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Light.hpp"
 #include "../../SceneManagement/Scene.hpp"
+#include "../../ResourceManagement/ResourceManager.hpp"
 
 #include <glad/glad.h>
+#include <algorithm>
+#include <array>
+#include <cmath>
 
 #include "Input/InputManager.hpp"
 #include "ShadowRenderer.hpp"
@@ -49,6 +55,205 @@
 
 
 namespace NE::Graphics {
+    namespace {
+        constexpr float LIGHT_GIZMO_PIXEL_SIZE = 128.f;
+
+        constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
+            "nedirlight", // Directional
+            "nedirlight", // Point
+            "nespotlight", // Spot
+            "nedirlight"  // Area
+        };
+
+        std::vector<LightGizmoCommand> s_LightGizmoQueue;
+        std::shared_ptr<IGeometryBuffer> s_LightGizmoMesh;
+        std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
+
+        inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
+            const uint8_t raw = static_cast<uint8_t>(type);
+            return (raw < s_LightGizmoMaterials.size()) ? static_cast<size_t>(raw) : static_cast<size_t>(0);
+        }
+
+        inline bool IsPerspectiveProjection(const Mat4& projection) {
+            return std::abs(projection.GetElement(3, 3)) < 0.5f;
+        }
+
+        inline float ComputeWorldSizeForPixels(float pixelSize, float distanceToCamera, const Mat4& projection, float viewportHeight) {
+            float projY = std::abs(projection.GetElement(1, 1));
+            if (projY < 1e-4f) projY = 1.0f;
+
+            if (IsPerspectiveProjection(projection)) {
+                const float safeDistance = std::max(distanceToCamera, 0.001f);
+                return pixelSize * (2.0f * safeDistance) / (projY * viewportHeight);
+            }
+
+            return pixelSize * (2.0f) / (projY * viewportHeight);
+        }
+
+        inline Mat4 BuildBillboardMatrix(const Vec3& position, const Vec3& right, const Vec3& up, float size) {
+            Vec3 forward = right.Cross(up).Normalized();
+
+            Mat4 model;
+            model.SetToIdentity();
+
+            model.GetElement(0, 0) = right.x * size;
+            model.GetElement(1, 0) = right.y * size;
+            model.GetElement(2, 0) = right.z * size;
+
+            model.GetElement(0, 1) = up.x * size;
+            model.GetElement(1, 1) = up.y * size;
+            model.GetElement(2, 1) = up.z * size;
+
+            model.GetElement(0, 2) = forward.x * size;
+            model.GetElement(1, 2) = forward.y * size;
+            model.GetElement(2, 2) = forward.z * size;
+
+            model.SetTranslation(position);
+            return model;
+        }
+
+        void InitializeLightGizmoResources() {
+            auto quadModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/quad");
+            if (quadModel && !quadModel->meshes.empty()) {
+                s_LightGizmoMesh = quadModel->meshes[0].buffer;
+            } else {
+                SPD_WARNING("Light gizmo mesh initialization failed: builtin quad model not available.");
+                return;
+            }
+
+            auto baseMaterial = Resource::ResourceManager::GetInstance().LoadResource<Material>("neunlitmat");
+            if (!baseMaterial) {
+                SPD_WARNING("Light gizmo material initialization failed: neunlitmat not available.");
+                return;
+            }
+
+            for (size_t i = 0; i < s_LightGizmoMaterials.size(); ++i) {
+                auto material = std::make_shared<Material>(*baseMaterial);
+
+                if (material->GetPipeline()) {
+                    auto spec = material->GetPipeline()->GetSpecification();
+                    spec.EnableBlending = true;
+                    spec.EnableDepthTest = true;
+                    spec.DepthWrite = false;
+                    spec.CullMode = GL_NONE;
+                    spec.PolygonMode = GL_FILL;
+                    material->ApplyPipelineSpec(spec);
+                }
+
+                material->SetQueueBase(RenderQueue::OVERLAY);
+                material->SetQueueOffset(0);
+                material->SetUniformVec3("u_BaseColor", { 1.0f, 1.0f, 1.0f });
+                material->SetUniformFloat("u_Opacity", 1.0f);
+                material->SetUniformInt("u_AlphaClip", 1);
+                material->SetUniformFloat("u_AlphaCutoff", 0.1f);
+
+                material->SetUniformInt("h_HasAlbedoMap", 0);
+                material->SetUniformInt("u_HasAlbedoMap", 0);
+                material->SetUniformInt("h_HasOpacityMap", 0);
+                material->SetUniformInt("u_HasOpacityMap", 0);
+                material->m_Textures["u_AlbedoMap"] = nullptr;
+                material->m_Textures["u_OpacityMap"] = nullptr;
+
+                const char* iconUuid = LIGHT_GIZMO_ICON_UUIDS[i];
+                if (iconUuid && iconUuid[0] != '\0') {
+                    auto texture = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLTexture>(iconUuid);
+                    if (texture) {
+                        texture->MakeResident();
+                        material->m_Textures["u_AlbedoMap"] = texture;
+                        material->m_Textures["u_OpacityMap"] = texture;
+                        material->SetUniformInt("h_HasAlbedoMap", 1);
+                        material->SetUniformInt("u_HasAlbedoMap", 1);
+                        material->SetUniformInt("h_HasOpacityMap", 1);
+                        material->SetUniformInt("u_HasOpacityMap", 1);
+                    } else {
+                        SPD_WARNING("Light gizmo icon texture load failed for UUID: " << iconUuid);
+                    }
+                }
+
+                s_LightGizmoMaterials[i] = std::move(material);
+            }
+        }
+
+        void RenderLightGizmosForView(
+            RenderViewHandle handle,
+            const RenderView& view,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const Vec3& camPos,
+            IStateCache* stateCache,
+            RenderViewHandle sceneViewHandle)
+        {
+            if (handle != sceneViewHandle) return;
+            if (s_LightGizmoQueue.empty() || !s_LightGizmoMesh || !stateCache) return;
+
+            const float viewportHeight = static_cast<float>(view.framebuffer ? view.framebuffer->GetHeight() : GraphicsManager::GetScreenHeight());
+            if (viewportHeight <= 0.0f) return;
+
+            Vec3 camRight{
+                camView.GetElement(0, 0),
+                camView.GetElement(0, 1),
+                camView.GetElement(0, 2)
+            };
+            Vec3 camUp{
+                camView.GetElement(1, 0),
+                camView.GetElement(1, 1),
+                camView.GetElement(1, 2)
+            };
+
+            if (camRight.LengthSquared() < 1e-6f) camRight = { 1.0f, 0.0f, 0.0f };
+            if (camUp.LengthSquared() < 1e-6f) camUp = { 0.0f, 1.0f, 0.0f };
+            camRight.Normalize();
+            camUp.Normalize();
+
+            std::array<std::vector<InstanceData>, 4> batchedInstances;
+            for (auto& batch : batchedInstances) {
+                batch.reserve(s_LightGizmoQueue.size());
+            }
+
+            for (const auto& command : s_LightGizmoQueue) {
+                const auto index = ToLightTypeIndex(command.lightType);
+
+                const float distance = (command.position - camPos).Length();
+                const float worldSize = ComputeWorldSizeForPixels(LIGHT_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
+                if (!std::isfinite(worldSize) || worldSize <= 0.0f) continue;
+
+                InstanceData instance{};
+                instance.model = BuildBillboardMatrix(command.position, camRight, camUp, worldSize);
+                instance.idRGB = command.idRGB;
+                batchedInstances[index].push_back(instance);
+            }
+
+            for (size_t i = 0; i < batchedInstances.size(); ++i) {
+                auto& instances = batchedInstances[i];
+                if (instances.empty()) continue;
+
+                auto material = s_LightGizmoMaterials[i];
+                if (!material || !material->GetPipeline() || !material->GetPipeline()->GetSpecification().shader) continue;
+
+                auto pipeline = material->GetPipeline();
+                auto shader = pipeline->GetSpecification().shader;
+
+                stateCache->Bind(pipeline);
+                material->SetUniformInt("i_FogEnabled", 0);
+                material->Bind();
+
+                shader->SetUniformMat4("u_View", camView);
+                shader->SetUniformMat4("u_Projection", camProj);
+                shader->SetUniformVec3("u_CameraPos", camPos);
+                shader->SetUniformInt("i_FogEnabled", 0);
+
+                OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instances.data(),
+                    instances.size() * sizeof(InstanceData)
+                );
+
+                s_LightGizmoMesh->Bind();
+                s_LightGizmoMesh->DrawInstanced(instances.size());
+                s_LightGizmoMesh->Unbind();
+            }
+        }
+    }
+
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
     uint32_t GraphicsManager::s_ScreenHeight = 1080;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
@@ -95,6 +300,7 @@ namespace NE::Graphics {
         InitDebugPrimitives();
         DebugDrawSystem::SetStateCache(s_StateCache.get());
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
+        InitializeLightGizmoResources();
 
 
         //// Load Primitives
@@ -116,9 +322,6 @@ namespace NE::Graphics {
 
     void GraphicsManager::BeginFrame() {
 		s_StateCache->InvalidateAll();
-        
-        //s_CommandBuffer->BeginRenderPass();
-
         drawCount = 0;
     }
 
@@ -318,16 +521,16 @@ namespace NE::Graphics {
                 s_skybox->Draw(view);
             }
 
+            RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
+
             if (handle == 1) // Assuming editor camera handle will always be 1
                 DrawAllDebugGeometry();
 
             s_RenderViewManager->Unbind();
         }
 
-		// Note: Reset should be called right before any post-processing
         s_StateCache->Reset();
 
-        // Post-processing via pipeline
         if (s_PostPipeline) {
             // Scene View
             Math::Mat4 invProj;
@@ -352,14 +555,17 @@ namespace NE::Graphics {
 		s_DrawQueue->Submit(command);
     }
 
+    void GraphicsManager::SubmitLightGizmo(const LightGizmoCommand& command) {
+        s_LightGizmoQueue.push_back(command);
+    }
+
     void GraphicsManager::EndFrame() {
 		s_RenderViewManager->Unbind();
-        //s_CommandBuffer->EndRenderPass();
-        //s_CommandBuffer->End();
     }
 
     void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
+        s_LightGizmoQueue.clear();
 	}
 
     RenderGraph* GraphicsManager::GetRenderGraph() {
@@ -384,6 +590,12 @@ namespace NE::Graphics {
         UIRenderer::Shutdown();
         NE::Graphics::GizmosRenderer::Cleanup();
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
+
+        s_LightGizmoQueue.clear();
+        s_LightGizmoMesh.reset();
+        for (auto& material : s_LightGizmoMaterials) {
+            material.reset();
+        }
     }
 
     void GraphicsManager::SetEditorCamera(EditorCamera* cam) {
@@ -450,7 +662,7 @@ namespace NE::Graphics {
 
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
-          return framebuffer->GetColorAttachment();
+            return framebuffer->GetColorAttachment();
         }
 
         return 0;

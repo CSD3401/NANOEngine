@@ -29,6 +29,7 @@ namespace NE {
         class TexturePool;
         class PostProcessPipeline;
         struct DrawCommand;
+        struct LightGizmoCommand;
         struct RenderView;
         struct RenderSettings;
 
@@ -55,6 +56,7 @@ namespace NE::Graphics {
         static void BeginFrame();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
+        static void SubmitLightGizmo(const LightGizmoCommand& command);
         static void EndFrame();
         static void Clear();
         static void Shutdown();

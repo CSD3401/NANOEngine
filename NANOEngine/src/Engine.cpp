@@ -96,7 +96,7 @@ namespace NE {
 		s_renderContext->Init(s_window->GetNativeWindow());
 
 		// here for now
-		glEnable(GL_CULL_FACE);
+		//glEnable(GL_CULL_FACE);
 
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::GetInstance().Init();
