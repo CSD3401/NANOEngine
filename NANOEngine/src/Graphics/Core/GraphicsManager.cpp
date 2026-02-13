@@ -423,7 +423,9 @@ namespace NE::Graphics {
     }
 
     void GraphicsManager::DrawFrame() {
+#ifndef PRODUCTION_BUILD
         NE_PROFILE_FUNCTION();
+#endif // !PRODUCTION_BUILD
 
         const auto& allViews = s_RenderViewManager->GetAllRenderViews();
         const auto orderedViewHandles = s_RenderViewManager->GetOrderedActiveViews();
