@@ -4,7 +4,9 @@
 #include "EditorCamera.hpp"
 #include "Skybox.hpp"
 #include "Material.hpp"
+#include "Model.hpp"
 #include "DrawCommand.hpp"
+#include "LightGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
@@ -40,8 +42,13 @@
 #include "../../Core/Profiler.hpp"
 #include "../../ECS/Components/Light.hpp"
 #include "../../SceneManagement/Scene.hpp"
+#include "../../ResourceManagement/ResourceManager.hpp"
 
 #include <glad/glad.h>
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <variant>
 
 #include "Input/InputManager.hpp"
 #include "ShadowRenderer.hpp"
@@ -49,6 +56,302 @@
 
 
 namespace NE::Graphics {
+    namespace {
+        constexpr float LIGHT_GIZMO_PIXEL_SIZE = 128.f;
+
+        constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
+            "nedirlight", // Directional
+            "nepointlight", // Point
+            "nespotlight", // Spot
+            "nedirlight"  // Area
+        };
+
+        std::vector<LightGizmoCommand> s_LightGizmoQueue;
+        std::shared_ptr<IGeometryBuffer> s_LightGizmoMesh;
+        std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
+
+        inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
+            const uint8_t raw = static_cast<uint8_t>(type);
+            return (raw < s_LightGizmoMaterials.size()) ? static_cast<size_t>(raw) : static_cast<size_t>(0);
+        }
+
+        inline bool IsPerspectiveProjection(const Mat4& projection) {
+            return std::abs(projection.GetElement(3, 3)) < 0.5f;
+        }
+
+        inline float ComputeWorldSizeForPixels(float pixelSize, float distanceToCamera, const Mat4& projection, float viewportHeight) {
+            float projY = std::abs(projection.GetElement(1, 1));
+            if (projY < 1e-4f) projY = 1.0f;
+
+            if (IsPerspectiveProjection(projection)) {
+                const float safeDistance = std::max(distanceToCamera, 0.001f);
+                return pixelSize * (2.0f * safeDistance) / (projY * viewportHeight);
+            }
+
+            return pixelSize * (2.0f) / (projY * viewportHeight);
+        }
+
+        inline Mat4 BuildBillboardMatrix(const Vec3& position, const Vec3& right, const Vec3& up, float size) {
+            Vec3 forward = right.Cross(up).Normalized();
+
+            Mat4 model;
+            model.SetToIdentity();
+
+            model.GetElement(0, 0) = right.x * size;
+            model.GetElement(1, 0) = right.y * size;
+            model.GetElement(2, 0) = right.z * size;
+
+            model.GetElement(0, 1) = up.x * size;
+            model.GetElement(1, 1) = up.y * size;
+            model.GetElement(2, 1) = up.z * size;
+
+            model.GetElement(0, 2) = forward.x * size;
+            model.GetElement(1, 2) = forward.y * size;
+            model.GetElement(2, 2) = forward.z * size;
+
+            model.SetTranslation(position);
+            return model;
+        }
+
+        constexpr int LIGHT_DEBUG_CIRCLE_SEGMENTS = 48;
+        constexpr int LIGHT_DEBUG_CONE_RAYS = 8;
+        constexpr float LIGHT_DEBUG_MIN_RANGE = 0.05f;
+        constexpr float LIGHT_DEBUG_MIN_ANGLE_DEG = 0.1f;
+        constexpr float LIGHT_DEBUG_MAX_ANGLE_DEG = 89.0f;
+
+        inline Vec3 BuildPerpendicular(const Vec3& direction) {
+            Vec3 reference = (std::abs(direction.y) < 0.99f) ? Vec3{ 0.0f, 1.0f, 0.0f } : Vec3{ 1.0f, 0.0f, 0.0f };
+            Vec3 perpendicular = direction.Cross(reference);
+            if (perpendicular.LengthSquared() < 1e-6f) {
+                reference = { 0.0f, 0.0f, 1.0f };
+                perpendicular = direction.Cross(reference);
+            }
+            if (perpendicular.LengthSquared() < 1e-6f) {
+                return { 1.0f, 0.0f, 0.0f };
+            }
+            perpendicular.Normalize();
+            return perpendicular;
+        }
+
+        inline void AppendWireCircle(
+            std::vector<Vec3>& vertices,
+            const Vec3& center,
+            const Vec3& axisX,
+            const Vec3& axisY,
+            float radius,
+            int segments)
+        {
+            if (radius <= 0.0f || segments < 3) return;
+
+            Vec3 prev = center + axisX * radius;
+            for (int i = 1; i <= segments; ++i) {
+                const float angle = (2.0f * Math::PI * static_cast<float>(i)) / static_cast<float>(segments);
+                const float c = std::cos(angle);
+                const float s = std::sin(angle);
+                const Vec3 curr = center + (axisX * c + axisY * s) * radius;
+                vertices.push_back(prev);
+                vertices.push_back(curr);
+                prev = curr;
+            }
+        }
+
+        inline void AppendWireCone(
+            std::vector<Vec3>& vertices,
+            const Vec3& apex,
+            const Vec3& direction,
+            float range,
+            float angleDeg,
+            int segments,
+            int rayCount)
+        {
+            const float clampedRange = std::max(range, LIGHT_DEBUG_MIN_RANGE);
+            const float clampedAngleDeg = std::clamp(angleDeg, LIGHT_DEBUG_MIN_ANGLE_DEG, LIGHT_DEBUG_MAX_ANGLE_DEG);
+            const float angleRad = clampedAngleDeg * (Math::PI / 180.0f);
+
+            Vec3 forward = direction;
+            if (forward.LengthSquared() < 1e-6f) {
+                forward = { 0.0f, -1.0f, 0.0f };
+            }
+            forward.Normalize();
+
+            Vec3 right = BuildPerpendicular(forward);
+            Vec3 up = right.Cross(forward).Normalized();
+
+            const float radius = std::tan(angleRad) * clampedRange;
+            const Vec3 baseCenter = apex + forward * clampedRange;
+
+            AppendWireCircle(vertices, baseCenter, right, up, radius, segments);
+
+            const int step = std::max(1, segments / std::max(1, rayCount));
+            for (int i = 0; i < segments; i += step) {
+                const float angle = (2.0f * Math::PI * static_cast<float>(i)) / static_cast<float>(segments);
+                const float c = std::cos(angle);
+                const float s = std::sin(angle);
+                const Vec3 rimPoint = baseCenter + (right * c + up * s) * radius;
+                vertices.push_back(apex);
+                vertices.push_back(rimPoint);
+            }
+        }
+
+        //inline void QueueLightDebugGeometryForView(
+        //    RenderViewHandle handle,
+        //    RenderViewHandle sceneViewHandle,
+        //    const std::vector<ECS::Component::Light*>& lights)
+        //{
+        //    if (handle != sceneViewHandle || lights.empty()) return;
+
+        //    std::vector<Vec3> vertices;
+        //    vertices.reserve(256);
+
+        //    for (const ECS::Component::Light* light : lights) {
+        //        if (!light) continue;
+
+
+        //    }
+        //}
+
+        void InitializeLightGizmoResources() {
+            auto quadModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/quad");
+            if (quadModel && !quadModel->meshes.empty()) {
+                s_LightGizmoMesh = quadModel->meshes[0].buffer;
+            } else {
+                SPD_WARNING("Light gizmo mesh initialization failed: builtin quad model not available.");
+                return;
+            }
+
+            auto baseMaterial = Resource::ResourceManager::GetInstance().LoadResource<Material>("neunlitmat");
+            if (!baseMaterial) {
+                SPD_WARNING("Light gizmo material initialization failed: neunlitmat not available.");
+                return;
+            }
+
+            for (size_t i = 0; i < s_LightGizmoMaterials.size(); ++i) {
+                auto material = std::make_shared<Material>(*baseMaterial);
+
+                if (material->GetPipeline()) {
+                    auto spec = material->GetPipeline()->GetSpecification();
+                    spec.EnableBlending = true;
+                    spec.EnableDepthTest = true;
+                    spec.DepthWrite = false;
+                    spec.CullMode = GL_NONE;
+                    spec.PolygonMode = GL_FILL;
+                    material->ApplyPipelineSpec(spec);
+                }
+
+                material->SetQueueBase(RenderQueue::OVERLAY);
+                material->SetQueueOffset(0);
+                material->SetUniformVec3("u_BaseColor", { 1.0f, 1.0f, 1.0f });
+                material->SetUniformFloat("u_Opacity", 1.0f);
+                material->SetUniformInt("u_AlphaClip", 1);
+                material->SetUniformFloat("u_AlphaCutoff", 0.1f);
+
+                material->SetUniformInt("h_HasAlbedoMap", 0);
+                material->SetUniformInt("u_HasAlbedoMap", 0);
+                material->SetUniformInt("h_HasOpacityMap", 0);
+                material->SetUniformInt("u_HasOpacityMap", 0);
+                material->m_Textures["u_AlbedoMap"] = nullptr;
+                material->m_Textures["u_OpacityMap"] = nullptr;
+
+                const char* iconUuid = LIGHT_GIZMO_ICON_UUIDS[i];
+                if (iconUuid && iconUuid[0] != '\0') {
+                    auto texture = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLTexture>(iconUuid);
+                    if (texture) {
+                        texture->MakeResident();
+                        material->m_Textures["u_AlbedoMap"] = texture;
+                        material->m_Textures["u_OpacityMap"] = texture;
+                        material->SetUniformInt("h_HasAlbedoMap", 1);
+                        material->SetUniformInt("u_HasAlbedoMap", 1);
+                        material->SetUniformInt("h_HasOpacityMap", 1);
+                        material->SetUniformInt("u_HasOpacityMap", 1);
+                    } else {
+                        SPD_WARNING("Light gizmo icon texture load failed for UUID: " << iconUuid);
+                    }
+                }
+
+                s_LightGizmoMaterials[i] = std::move(material);
+            }
+        }
+
+        void RenderLightGizmosForView(
+            RenderViewHandle handle,
+            const RenderView& view,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const Vec3& camPos,
+            IStateCache* stateCache,
+            RenderViewHandle sceneViewHandle)
+        {
+            if (handle != sceneViewHandle) return;
+            if (s_LightGizmoQueue.empty() || !s_LightGizmoMesh || !stateCache) return;
+
+            const float viewportHeight = static_cast<float>(view.framebuffer ? view.framebuffer->GetHeight() : GraphicsManager::GetScreenHeight());
+            if (viewportHeight <= 0.0f) return;
+
+            Vec3 camRight{
+                camView.GetElement(0, 0),
+                camView.GetElement(0, 1),
+                camView.GetElement(0, 2)
+            };
+            Vec3 camUp{
+                camView.GetElement(1, 0),
+                camView.GetElement(1, 1),
+                camView.GetElement(1, 2)
+            };
+
+            if (camRight.LengthSquared() < 1e-6f) camRight = { 1.0f, 0.0f, 0.0f };
+            if (camUp.LengthSquared() < 1e-6f) camUp = { 0.0f, 1.0f, 0.0f };
+            camRight.Normalize();
+            camUp.Normalize();
+
+            std::array<std::vector<InstanceData>, 4> batchedInstances;
+            for (auto& batch : batchedInstances) {
+                batch.reserve(s_LightGizmoQueue.size());
+            }
+
+            for (const auto& command : s_LightGizmoQueue) {
+                const auto index = ToLightTypeIndex(command.lightType);
+
+                const float distance = (command.position - camPos).Length();
+                const float worldSize = ComputeWorldSizeForPixels(LIGHT_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
+                if (!std::isfinite(worldSize) || worldSize <= 0.0f) continue;
+
+                InstanceData instance{};
+                instance.model = BuildBillboardMatrix(command.position, camRight, camUp, worldSize);
+                instance.idRGB = command.idRGB;
+                batchedInstances[index].push_back(instance);
+            }
+
+            for (size_t i = 0; i < batchedInstances.size(); ++i) {
+                auto& instances = batchedInstances[i];
+                if (instances.empty()) continue;
+
+                auto material = s_LightGizmoMaterials[i];
+                if (!material || !material->GetPipeline() || !material->GetPipeline()->GetSpecification().shader) continue;
+
+                auto pipeline = material->GetPipeline();
+                auto shader = pipeline->GetSpecification().shader;
+
+                stateCache->Bind(pipeline);
+                material->SetUniformInt("i_FogEnabled", 0);
+                material->Bind();
+
+                shader->SetUniformMat4("u_View", camView);
+                shader->SetUniformMat4("u_Projection", camProj);
+                shader->SetUniformVec3("u_CameraPos", camPos);
+                shader->SetUniformInt("i_FogEnabled", 0);
+
+                OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instances.data(),
+                    instances.size() * sizeof(InstanceData)
+                );
+
+                s_LightGizmoMesh->Bind();
+                s_LightGizmoMesh->DrawInstanced(instances.size());
+                s_LightGizmoMesh->Unbind();
+            }
+        }
+    }
+
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
     uint32_t GraphicsManager::s_ScreenHeight = 1080;
     std::vector<ECS::Component::Light*> GraphicsManager::m_lights;
@@ -95,6 +398,7 @@ namespace NE::Graphics {
         InitDebugPrimitives();
         DebugDrawSystem::SetStateCache(s_StateCache.get());
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
+        InitializeLightGizmoResources();
 
 
         //// Load Primitives
@@ -116,9 +420,6 @@ namespace NE::Graphics {
 
     void GraphicsManager::BeginFrame() {
 		s_StateCache->InvalidateAll();
-        
-        //s_CommandBuffer->BeginRenderPass();
-
         drawCount = 0;
     }
 
@@ -318,16 +619,18 @@ namespace NE::Graphics {
                 s_skybox->Draw(view);
             }
 
-            if (handle == 1) // Assuming editor camera handle will always be 1
+            RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
+
+            //QueueLightDebugGeometryForView(handle, s_SceneViewHandle, m_lights);
+
+            if (handle == s_SceneViewHandle)
                 DrawAllDebugGeometry();
 
             s_RenderViewManager->Unbind();
         }
 
-		// Note: Reset should be called right before any post-processing
         s_StateCache->Reset();
 
-        // Post-processing via pipeline
         if (s_PostPipeline) {
             // Scene View
             Math::Mat4 invProj;
@@ -352,14 +655,17 @@ namespace NE::Graphics {
 		s_DrawQueue->Submit(command);
     }
 
+    void GraphicsManager::SubmitLightGizmo(const LightGizmoCommand& command) {
+        s_LightGizmoQueue.push_back(command);
+    }
+
     void GraphicsManager::EndFrame() {
 		s_RenderViewManager->Unbind();
-        //s_CommandBuffer->EndRenderPass();
-        //s_CommandBuffer->End();
     }
 
     void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
+        s_LightGizmoQueue.clear();
 	}
 
     RenderGraph* GraphicsManager::GetRenderGraph() {
@@ -384,6 +690,12 @@ namespace NE::Graphics {
         UIRenderer::Shutdown();
         NE::Graphics::GizmosRenderer::Cleanup();
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
+
+        s_LightGizmoQueue.clear();
+        s_LightGizmoMesh.reset();
+        for (auto& material : s_LightGizmoMaterials) {
+            material.reset();
+        }
     }
 
     void GraphicsManager::SetEditorCamera(EditorCamera* cam) {
@@ -450,7 +762,7 @@ namespace NE::Graphics {
 
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
-          return framebuffer->GetColorAttachment();
+            return framebuffer->GetColorAttachment();
         }
 
         return 0;
@@ -529,6 +841,68 @@ namespace NE::Graphics {
 
     void GraphicsManager::DrawDebugTriangles() {
         DebugDrawSystem::DrawTriangles();
+    }
+
+    void GraphicsManager::DrawSelectedLightGizmos(const ECS::Component::Light& light) {
+        std::vector<Vec3> vertices;
+        vertices.reserve(256);
+
+        Vec3 baseColor = light.color;
+        if (baseColor.LengthSquared() < 1e-6f) {
+            baseColor = { 1.0f, 1.0f, 1.0f };
+        }
+        baseColor.x = std::clamp(baseColor.x, 0.1f, 1.0f);
+        baseColor.y = std::clamp(baseColor.y, 0.1f, 1.0f);
+        baseColor.z = std::clamp(baseColor.z, 0.1f, 1.0f);
+
+        switch (light.type) {
+        case ECS::Component::Light::Type::Point: {
+            const auto* pointData = std::get_if<ECS::Component::Light::PointLightData>(&light.data);
+            if (!pointData) break;
+
+            const float range = std::max(pointData->range, LIGHT_DEBUG_MIN_RANGE);
+            vertices.clear();
+            AppendWireCircle(vertices, light.position, { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            AppendWireCircle(vertices, light.position, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            AppendWireCircle(vertices, light.position, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, range, LIGHT_DEBUG_CIRCLE_SEGMENTS);
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
+            break;
+        }
+        case ECS::Component::Light::Type::Spot: {
+            const auto* spotData = std::get_if<ECS::Component::Light::SpotLightData>(&light.data);
+            if (!spotData) break;
+
+            const float range = std::max(spotData->range, LIGHT_DEBUG_MIN_RANGE);
+            vertices.clear();
+            AppendWireCone(
+                vertices,
+                light.position,
+                light.direction,
+                range,
+                spotData->outerConeAngleDeg,
+                LIGHT_DEBUG_CIRCLE_SEGMENTS,
+                LIGHT_DEBUG_CONE_RAYS
+            );
+            GraphicsManager::AddDebugLinesBatch(vertices, baseColor);
+
+            if (spotData->innerConeAngleDeg > LIGHT_DEBUG_MIN_ANGLE_DEG) {
+                vertices.clear();
+                AppendWireCone(
+                    vertices,
+                    light.position,
+                    light.direction,
+                    range,
+                    std::min(spotData->innerConeAngleDeg, spotData->outerConeAngleDeg),
+                    LIGHT_DEBUG_CIRCLE_SEGMENTS,
+                    LIGHT_DEBUG_CONE_RAYS
+                );
+                GraphicsManager::AddDebugLinesBatch(vertices, baseColor * 0.6f);
+            }
+            break;
+        }
+        default:
+            break;
+        }
     }
 
     void GraphicsManager::AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {
