@@ -16,7 +16,7 @@ namespace NE::Math {
 	struct NANOENGINE_API Vec3 {
 		float x, y, z;
 
-		inline Vec3(float x = 0, float y = 0, float z = 0) noexcept 
+		constexpr inline Vec3(float x = 0, float y = 0, float z = 0) noexcept
 			: x(x), y(y), z(z) { }
 		Vec3(const Vec3& rhs) = default;
 		Vec3(Vec3&&) = default;

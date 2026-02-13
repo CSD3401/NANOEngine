@@ -7,6 +7,7 @@
 #include "Model.hpp"
 #include "DrawCommand.hpp"
 #include "DecalCommand.hpp"
+#include "DecalGizmoCommand.hpp"
 #include "LightGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
@@ -58,6 +59,7 @@
 namespace NE::Graphics {
     namespace {
         constexpr float LIGHT_GIZMO_PIXEL_SIZE = 128.f;
+        constexpr float DECAL_GIZMO_PIXEL_SIZE = 112.f;
 
         constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
             "nedirlight", // Directional
@@ -67,8 +69,10 @@ namespace NE::Graphics {
         };
 
         std::vector<LightGizmoCommand> s_LightGizmoQueue;
+        std::vector<DecalGizmoCommand> s_DecalGizmoQueue;
         std::shared_ptr<IGeometryBuffer> s_LightGizmoMesh;
         std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
+        std::shared_ptr<Material> s_DecalGizmoMaterial;
         std::shared_ptr<IGeometryBuffer> s_DecalCubeMesh;
 
         inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
@@ -273,6 +277,64 @@ namespace NE::Graphics {
             }
         }
 
+        void InitializeDecalGizmoResources() {
+            if (!s_LightGizmoMesh) {
+                auto quadModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/quad");
+                if (quadModel && !quadModel->meshes.empty()) {
+                    s_LightGizmoMesh = quadModel->meshes[0].buffer;
+                } else {
+                    SPD_WARNING("Decal gizmo mesh initialization failed: builtin quad model not available.");
+                    return;
+                }
+            }
+
+            auto baseMaterial = Resource::ResourceManager::GetInstance().LoadResource<Material>("neunlitmat");
+            if (!baseMaterial) {
+                SPD_WARNING("Decal gizmo material initialization failed: neunlitmat not available.");
+                return;
+            }
+
+            auto material = std::make_shared<Material>(*baseMaterial);
+            if (!material->GetPipeline()) {
+                SPD_WARNING("Decal gizmo material initialization failed: invalid pipeline.");
+                return;
+            }
+
+            auto spec = material->GetPipeline()->GetSpecification();
+            spec.EnableBlending = true;
+            spec.EnableDepthTest = true;
+            spec.DepthWrite = false;
+            spec.CullMode = GL_NONE;
+            spec.PolygonMode = GL_FILL;
+            material->ApplyPipelineSpec(spec);
+
+            material->SetQueueBase(RenderQueue::OVERLAY);
+            material->SetQueueOffset(1);
+            material->SetUniformVec3("u_BaseColor", { 1.0f, 1.0f, 1.0f });
+            material->SetUniformFloat("u_Opacity", 1.0f);
+            material->SetUniformInt("u_AlphaClip", 1);
+            material->SetUniformFloat("u_AlphaCutoff", 0.1f);
+
+            material->SetUniformInt("h_HasAlbedoMap", 0);
+            material->SetUniformInt("u_HasAlbedoMap", 0);
+            material->SetUniformInt("h_HasOpacityMap", 0);
+            material->SetUniformInt("u_HasOpacityMap", 0);
+            material->m_Textures["u_AlbedoMap"] = nullptr;
+            material->m_Textures["u_OpacityMap"] = nullptr;
+
+            auto texture = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLTexture>("nedecal");
+
+            texture->MakeResident();
+            material->m_Textures["u_AlbedoMap"] = texture;
+            material->m_Textures["u_OpacityMap"] = texture;
+            material->SetUniformInt("h_HasAlbedoMap", 1);
+            material->SetUniformInt("u_HasAlbedoMap", 1);
+            material->SetUniformInt("h_HasOpacityMap", 1);
+            material->SetUniformInt("u_HasOpacityMap", 1);
+
+            s_DecalGizmoMaterial = std::move(material);
+        }
+
         void RenderLightGizmosForView(
             RenderViewHandle handle,
             const RenderView& view,
@@ -350,6 +412,71 @@ namespace NE::Graphics {
                 s_LightGizmoMesh->DrawInstanced(instances.size());
                 s_LightGizmoMesh->Unbind();
             }
+        }
+
+        void RenderDecalGizmosForView(
+            RenderViewHandle handle,
+            const RenderView& view,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const Vec3& camPos,
+            IStateCache* stateCache,
+            RenderViewHandle sceneViewHandle)
+        {
+            if (handle != sceneViewHandle) return;
+            if (s_DecalGizmoQueue.empty() || !s_LightGizmoMesh || !s_DecalGizmoMaterial || !stateCache) return;
+            if (!s_DecalGizmoMaterial->GetPipeline() || !s_DecalGizmoMaterial->GetPipeline()->GetSpecification().shader) return;
+
+            const float viewportHeight = static_cast<float>(view.framebuffer ? view.framebuffer->GetHeight() : GraphicsManager::GetScreenHeight());
+            if (viewportHeight <= 0.0f) return;
+
+            Vec3 camRight{
+                camView.GetElement(0, 0),
+                camView.GetElement(0, 1),
+                camView.GetElement(0, 2)
+            };
+            Vec3 camUp{
+                camView.GetElement(1, 0),
+                camView.GetElement(1, 1),
+                camView.GetElement(1, 2)
+            };
+
+            if (camRight.LengthSquared() < 1e-6f) camRight = { 1.0f, 0.0f, 0.0f };
+            if (camUp.LengthSquared() < 1e-6f) camUp = { 0.0f, 1.0f, 0.0f };
+            camRight.Normalize();
+            camUp.Normalize();
+
+            std::vector<InstanceData> instances;
+            instances.reserve(s_DecalGizmoQueue.size());
+            for (const auto& command : s_DecalGizmoQueue) {
+                const float distance = (command.position - camPos).Length();
+                const float worldSize = ComputeWorldSizeForPixels(DECAL_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
+                if (!std::isfinite(worldSize) || worldSize <= 0.0f) continue;
+
+                InstanceData instance{};
+                instance.model = BuildBillboardMatrix(command.position, camRight, camUp, worldSize);
+                instance.idRGB = command.idRGB;
+                instances.push_back(instance);
+            }
+            if (instances.empty()) return;
+
+            auto pipeline = s_DecalGizmoMaterial->GetPipeline();
+            auto shader = pipeline->GetSpecification().shader;
+            stateCache->Bind(pipeline);
+            s_DecalGizmoMaterial->Bind();
+            shader->SetUniformMat4("u_View", camView);
+            shader->SetUniformMat4("u_Projection", camProj);
+            shader->SetUniformVec3("u_CameraPos", camPos);
+            shader->SetUniformInt("i_FogEnabled", 0);
+
+            OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                instances.data(),
+                instances.size() * sizeof(InstanceData)
+            );
+
+            s_LightGizmoMesh->Bind();
+            s_LightGizmoMesh->DrawInstanced(instances.size());
+            s_LightGizmoMesh->Unbind();
         }
 
         bool RenderNormalPrepassForView(
@@ -554,6 +681,7 @@ namespace NE::Graphics {
         DebugDrawSystem::SetStateCache(s_StateCache.get());
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
         InitializeLightGizmoResources();
+        InitializeDecalGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
         auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
         if (decalCubeModel && !decalCubeModel->meshes.empty()) {
@@ -813,6 +941,7 @@ namespace NE::Graphics {
             }
 
             RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
+            RenderDecalGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
 
             //QueueLightDebugGeometryForView(handle, s_SceneViewHandle, m_lights);
 
@@ -860,6 +989,10 @@ namespace NE::Graphics {
         s_DecalQueue.push_back(command);
     }
 
+    void GraphicsManager::SubmitDecalGizmo(const DecalGizmoCommand& command) {
+        s_DecalGizmoQueue.push_back(command);
+    }
+
     void GraphicsManager::SubmitLightGizmo(const LightGizmoCommand& command) {
         s_LightGizmoQueue.push_back(command);
     }
@@ -871,6 +1004,7 @@ namespace NE::Graphics {
     void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
         s_DecalQueue.clear();
+        s_DecalGizmoQueue.clear();
         s_LightGizmoQueue.clear();
 	}
 
@@ -898,7 +1032,9 @@ namespace NE::Graphics {
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
 
         s_LightGizmoQueue.clear();
+        s_DecalGizmoQueue.clear();
         s_LightGizmoMesh.reset();
+        s_DecalGizmoMaterial.reset();
         s_DecalCubeMesh.reset();
         s_DecalQueue.clear();
         s_NormalPrepassShader.reset();

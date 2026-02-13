@@ -9,6 +9,7 @@
 #include "Material.hpp"
 #include "DrawCommand.hpp"
 #include "DecalCommand.hpp"
+#include "DecalGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
@@ -61,6 +62,7 @@ namespace NE::Graphics {
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
         static void SubmitDecal(const DecalCommand& command);
+        static void SubmitDecalGizmo(const DecalGizmoCommand& command);
         static void SubmitLightGizmo(const LightGizmoCommand& command);
         static void EndFrame();
         static void Clear();
