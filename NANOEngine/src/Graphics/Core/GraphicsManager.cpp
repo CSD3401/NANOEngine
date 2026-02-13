@@ -425,9 +425,24 @@ namespace NE::Graphics {
     void GraphicsManager::DrawFrame() {
         NE_PROFILE_FUNCTION();
 
-        for (const auto& [handle, view] : s_RenderViewManager->GetAllRenderViews()) {
-            if (!view.isActive) continue;
-            if (view.isMain && view.order == 0) s_GameViewHandle = handle;
+        const auto& allViews = s_RenderViewManager->GetAllRenderViews();
+        const auto orderedViewHandles = s_RenderViewManager->GetOrderedActiveViews();
+
+        s_GameViewHandle = InvalidRenderView;
+        for (const RenderViewHandle handle : orderedViewHandles) {
+            auto it = allViews.find(handle);
+            if (it == allViews.end()) continue;
+            const auto& view = it->second;
+            if (view.isMain && view.order == 0) {
+                s_GameViewHandle = handle;
+                break;
+            }
+        }
+
+        for (const RenderViewHandle handle : orderedViewHandles) {
+            auto it = allViews.find(handle);
+            if (it == allViews.end()) continue;
+            const auto& view = it->second;
 
             const auto& commands = s_DrawQueue->GetCommands();
             s_shadowRenderer->Update(view, m_lights, commands);
@@ -632,18 +647,23 @@ namespace NE::Graphics {
 
         if (s_PostPipeline) {
             // Scene View
-            Math::Mat4 invProj;
-            if (s_EditorCamera) {
-                invProj = s_EditorCamera->GetProjectionMatrix().Inverse();
-            } else {
-                invProj.SetToIdentity();
+            const auto sceneSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+            const auto sceneDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
+            if (sceneSourceFramebuffer && sceneDestFramebuffer) {
+                Math::Mat4 invProj;
+                if (s_EditorCamera) {
+                    invProj = s_EditorCamera->GetProjectionMatrix().Inverse();
+                } else {
+                    invProj.SetToIdentity();
+                }
+                s_PostPipeline->Execute(s_SceneViewHandle, s_FinalOutputViewHandle, invProj, true);
             }
-            s_PostPipeline->Execute(s_SceneViewHandle, s_FinalOutputViewHandle, invProj, true);
 
             // Game View
-            auto& views = s_RenderViewManager->GetAllRenderViews();
-            auto it = views.find(s_GameViewHandle);
-            if (it != views.end()) {
+            auto it = allViews.find(s_GameViewHandle);
+            const auto gameSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
+            const auto gameDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
+            if (it != allViews.end() && gameSourceFramebuffer && gameDestFramebuffer) {
                 Math::Mat4 gameInvProj = it->second.projection.Inverse();
                 s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, false);
             }
@@ -744,11 +764,19 @@ namespace NE::Graphics {
     }
 
     uint32_t GraphicsManager::ReadPixel(uint32_t x, uint32_t y) {
-		return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->ReadPixel(x, y);
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (!framebuffer) return 0;
+		return framebuffer->ReadPixel(x, y);
     }
 
     void GraphicsManager::ReadPixelRect(uint32_t x, uint32_t y, uint32_t width, uint32_t height, std::vector<uint32_t>& outIds) {
-        s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->ReadPixelRect(x, y, width, height, outIds);
+        auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
+        if (!framebuffer) {
+            outIds.clear();
+            return;
+        }
+
+        framebuffer->ReadPixelRect(x, y, width, height, outIds);
     }
 
     uint32_t GraphicsManager::GetSceneColorAttachment() 
