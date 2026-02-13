@@ -1,0 +1,87 @@
+#type vertex
+#version 460 core
+
+layout(location = 0) in vec3 aPos;
+
+uniform mat4 u_DecalModel;
+uniform mat4 u_View;
+uniform mat4 u_Projection;
+
+out vec3 v_LocalPos;
+
+void main() {
+    v_LocalPos = aPos;
+    vec4 world = u_DecalModel * vec4(aPos, 1.0);
+    gl_Position = u_Projection * u_View * world;
+}
+
+#type fragment
+#version 460 core
+#extension GL_ARB_bindless_texture : require
+
+layout(location = 0) out vec4 FragColor;
+
+in vec3 v_LocalPos;
+
+uniform mat4 u_ViewProjInv;
+uniform mat4 u_DecalModel;
+uniform mat4 u_DecalInvModel;
+
+uniform sampler2D u_SceneDepthTex;
+uniform sampler2D u_SceneNormalTex;
+
+uniform vec3 u_DecalTiling;
+uniform vec3 u_DecalOffset;
+uniform float u_DecalOpacity;
+uniform float u_DecalDistanceFade;
+
+uniform vec3  u_BaseColor;
+uniform sampler2D u_AlbedoMap;
+uniform int h_HasAlbedoMap;
+
+uniform float u_Opacity;
+uniform sampler2D u_OpacityMap;
+uniform int h_HasOpacityMap;
+uniform int u_AlphaClip;
+uniform float u_AlphaCutoff;
+
+vec3 ReconstructWorldPosition(vec2 uv, float depthSample) {
+    float zNdc = depthSample * 2.0 - 1.0;
+    vec4 clip = vec4(uv * 2.0 - 1.0, zNdc, 1.0);
+    vec4 world = u_ViewProjInv * clip;
+    return world.xyz / max(world.w, 1e-5);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / vec2(textureSize(u_SceneDepthTex, 0));
+    float sceneDepth = texture(u_SceneDepthTex, uv).r;
+    if (sceneDepth >= 1.0) discard;
+
+    vec3 worldPos = ReconstructWorldPosition(uv, sceneDepth);
+    vec3 sceneNormal = normalize(texture(u_SceneNormalTex, uv).xyz);
+
+    vec3 decalForward = normalize((u_DecalModel * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+    if (dot(sceneNormal, -decalForward) <= 0.05) discard;
+
+    vec3 localPos = (u_DecalInvModel * vec4(worldPos, 1.0)).xyz;
+    if (abs(localPos.x) > 0.5 || abs(localPos.y) > 0.5 || abs(localPos.z) > 0.5) discard;
+
+    vec2 decalUV = localPos.xy + vec2(0.5);
+    decalUV = decalUV * u_DecalTiling.xy + u_DecalOffset.xy;
+
+    vec3 albedo = u_BaseColor;
+    if (h_HasAlbedoMap != 0) {
+        albedo *= texture(u_AlbedoMap, decalUV).rgb;
+    }
+
+    float alpha = clamp(u_Opacity * u_DecalOpacity * u_DecalDistanceFade, 0.0, 1.0);
+    if (h_HasOpacityMap != 0) {
+        alpha *= clamp(texture(u_OpacityMap, decalUV).r, 0.0, 1.0);
+    }
+
+    if (u_AlphaClip != 0 && alpha < u_AlphaCutoff) {
+        discard;
+    }
+
+    FragColor = vec4(albedo, alpha);
+}

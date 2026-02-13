@@ -1,6 +1,7 @@
 #include "RendererExports.hpp"
 #include "../SceneManagement/Scene.hpp"
 #include "../ECS/Components/Renderer.hpp"
+#include "../ECS/Components/DecalProjector.hpp"
 #include "../ECS/Components/UIImage.hpp"
 #include "../ECS/Components/UICanvas.hpp"
 #include "../ECS/Components/UIRectTransform.hpp"
@@ -10,6 +11,7 @@
 #include "../../include/ScriptSDK/ScriptTypes.h"
 #include <Graphics/Core/GraphicsManager.hpp>
 #include <Graphics/Core/RenderGraph.hpp>
+#include <glad/glad.h>
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -21,6 +23,26 @@ namespace NE {
 }
 
 namespace NE::Renderer {
+
+	namespace {
+		void ConfigureDecalMaterial(const std::shared_ptr<Graphics::Material>& material) {
+			if (!material || !material->GetPipeline()) return;
+
+			material->SetShader("nedecalprojected");
+			material->SetQueueBase(Graphics::RenderQueue::OVERLAY);
+			material->SetQueueOffset(0);
+
+			if (material->GetPipeline()) {
+				auto spec = material->GetPipeline()->GetSpecification();
+				spec.EnableBlending = true;
+				spec.EnableDepthTest = false;
+				spec.DepthWrite = false;
+				spec.CullMode = GL_NONE;
+				spec.PolygonMode = GL_FILL;
+				material->ApplyPipelineSpec(spec);
+			}
+		}
+	}
 
 	namespace Query {
 		std::string GetModel(uint32_t e) {
@@ -86,9 +108,21 @@ namespace NE::Renderer {
 		}
 
 		void AssignMaterial(uint32_t e, const std::string& uuid) {
-			auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
-			r.materialUUID = uuid;
-			r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
+			if (GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::Renderer>(e)) {
+				auto& r = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Renderer>(e);
+				r.materialUUID = uuid;
+				r.material = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
+			} else if (GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::DecalProjector>(e)) {
+				auto& d = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
+				d.materialUUID = uuid;
+				std::shared_ptr<Graphics::Material> sourceMaterial; 
+				sourceMaterial = Resource::ResourceManager::GetInstance().LoadResource<Graphics::Material>(uuid);
+
+				if (sourceMaterial) {
+					d.material = std::make_shared<Graphics::Material>(*sourceMaterial);
+					ConfigureDecalMaterial(d.material);
+				}
+			}
 		}
 
 		Graphics::RenderSettings& GetRenderSettings() { return Graphics::GraphicsManager::renderSettings; }

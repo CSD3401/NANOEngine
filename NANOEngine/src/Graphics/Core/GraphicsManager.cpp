@@ -6,6 +6,7 @@
 #include "Material.hpp"
 #include "Model.hpp"
 #include "DrawCommand.hpp"
+#include "DecalCommand.hpp"
 #include "LightGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
@@ -68,6 +69,7 @@ namespace NE::Graphics {
         std::vector<LightGizmoCommand> s_LightGizmoQueue;
         std::shared_ptr<IGeometryBuffer> s_LightGizmoMesh;
         std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
+        std::shared_ptr<IGeometryBuffer> s_DecalCubeMesh;
 
         inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
             const uint8_t raw = static_cast<uint8_t>(type);
@@ -413,6 +415,86 @@ namespace NE::Graphics {
             view.framebuffer->SetPickingWrite(true);
             return true;
         }
+
+        void RenderDecalsForView(
+            const RenderView& view,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const Vec3& camPos,
+            const std::vector<DecalCommand>& decals,
+            IStateCache* stateCache)
+        {
+            if (decals.empty() || !stateCache || !s_DecalCubeMesh || !view.framebuffer) return;
+            if (!view.framebuffer->HasMiniGBuffer()) return;
+
+            const uint32_t sceneDepth = view.framebuffer->GetDepthAttachment();
+            const uint32_t sceneNormal = view.framebuffer->GetNormalAttachment();
+            if (sceneDepth == 0 || sceneNormal == 0) return;
+
+            const Mat4 invViewProj = (camProj * camView).Inverse();
+
+            const GLenum colorAttachment = GL_COLOR_ATTACHMENT0;
+            glDrawBuffers(1, &colorAttachment);
+
+            const GLboolean wasBlend = glIsEnabled(GL_BLEND);
+            const GLboolean wasDepthTest = glIsEnabled(GL_DEPTH_TEST);
+            GLint depthMask = GL_TRUE;
+            glGetIntegerv(GL_DEPTH_WRITEMASK, &depthMask);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
+
+            for (const auto& decal : decals) {
+                if (!decal.material || !decal.material->GetPipeline()) continue;
+
+                const float maxDistance = std::max(0.0f, decal.drawDistance);
+                const float distanceToCamera = (decal.positionWS - camPos).Length();
+                if (maxDistance > 0.0f && distanceToCamera > maxDistance) continue;
+
+                float fade = 1.0f;
+                const float fadeStart = std::clamp(decal.startFadeDistance, 0.0f, maxDistance);
+                if (maxDistance > fadeStart && distanceToCamera > fadeStart) {
+                    fade = 1.0f - ((distanceToCamera - fadeStart) / (maxDistance - fadeStart));
+                    fade = std::clamp(fade, 0.0f, 1.0f);
+                }
+                if (fade <= 0.001f) continue;
+
+                auto pipeline = decal.material->GetPipeline();
+                auto shader = pipeline->GetSpecification().shader;
+                if (!shader) continue;
+
+                stateCache->Bind(pipeline);
+                decal.material->SetUniformFloat("u_DecalDistanceFade", fade);
+                decal.material->Bind();
+
+                shader->SetUniformMat4("u_View", camView);
+                shader->SetUniformMat4("u_Projection", camProj);
+                shader->SetUniformMat4("u_ViewProjInv", invViewProj);
+                shader->SetUniformMat4("u_DecalModel", decal.model);
+                shader->SetUniformMat4("u_DecalInvModel", decal.invModel);
+                shader->SetUniformVec3("u_CameraPos", camPos);
+
+                shader->SetUniformInt("u_SceneDepthTex", 12);
+                glActiveTexture(GL_TEXTURE12);
+                glBindTexture(GL_TEXTURE_2D, sceneDepth);
+
+                shader->SetUniformInt("u_SceneNormalTex", 13);
+                glActiveTexture(GL_TEXTURE13);
+                glBindTexture(GL_TEXTURE_2D, sceneNormal);
+
+                s_DecalCubeMesh->Bind();
+                s_DecalCubeMesh->Draw();
+                s_DecalCubeMesh->Unbind();
+            }
+
+            if (!wasBlend) glDisable(GL_BLEND);
+            if (wasDepthTest) glEnable(GL_DEPTH_TEST);
+            glDepthMask(depthMask == GL_TRUE ? GL_TRUE : GL_FALSE);
+
+            view.framebuffer->SetPickingWrite(true);
+        }
     }
 
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
@@ -426,6 +508,7 @@ namespace NE::Graphics {
     EditorCamera* GraphicsManager::s_EditorCamera;
 	std::unique_ptr<IStateCache> GraphicsManager::s_StateCache;
 	std::unique_ptr<DrawQueue> GraphicsManager::s_DrawQueue;
+    std::vector<DecalCommand> GraphicsManager::s_DecalQueue;
 	std::unique_ptr<RenderViewManager> GraphicsManager::s_RenderViewManager;
     RenderViewHandle GraphicsManager::s_SceneViewHandle;
     RenderViewHandle GraphicsManager::s_GameViewHandle;
@@ -472,6 +555,12 @@ namespace NE::Graphics {
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
         InitializeLightGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
+        auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
+        if (decalCubeModel && !decalCubeModel->meshes.empty()) {
+            s_DecalCubeMesh = decalCubeModel->meshes[0].buffer;
+        } else {
+            SPD_WARNING("Decal cube mesh initialization failed: builtin cube model not available.");
+        }
 
 
         //// Load Primitives
@@ -716,6 +805,8 @@ namespace NE::Graphics {
                 flushBatch();
             }
 
+            RenderDecalsForView(view, camProj, camView, camPos, s_DecalQueue, s_StateCache.get());
+
             if (s_skybox) {
                 s_StateCache->Bind(s_skybox->GetSkyboxPipeline());
                 s_skybox->Draw(view);
@@ -765,6 +856,10 @@ namespace NE::Graphics {
 		s_DrawQueue->Submit(command);
     }
 
+    void GraphicsManager::SubmitDecal(const DecalCommand& command) {
+        s_DecalQueue.push_back(command);
+    }
+
     void GraphicsManager::SubmitLightGizmo(const LightGizmoCommand& command) {
         s_LightGizmoQueue.push_back(command);
     }
@@ -775,6 +870,7 @@ namespace NE::Graphics {
 
     void GraphicsManager::Clear() {
         s_DrawQueue->Clear();
+        s_DecalQueue.clear();
         s_LightGizmoQueue.clear();
 	}
 
@@ -803,6 +899,8 @@ namespace NE::Graphics {
 
         s_LightGizmoQueue.clear();
         s_LightGizmoMesh.reset();
+        s_DecalCubeMesh.reset();
+        s_DecalQueue.clear();
         s_NormalPrepassShader.reset();
         for (auto& material : s_LightGizmoMaterials) {
             material.reset();

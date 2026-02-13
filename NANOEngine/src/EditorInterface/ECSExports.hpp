@@ -41,6 +41,7 @@ namespace NE::ECS {
 		struct PrefabLink;
 		struct PrefabInstance;
 		struct CharacterController;
+        struct DecalProjector;
 	}
 
 	namespace Query {
@@ -70,6 +71,7 @@ namespace NE::ECS {
 		NANOENGINE_API const Component::PrefabLink& GetPrefabLink(uint32_t e);
 		NANOENGINE_API const Component::PrefabInstance& GetPrefabInstance(uint32_t e);
 		NANOENGINE_API const Component::CharacterController& GetCharacterController(uint32_t e);
+        NANOENGINE_API const Component::DecalProjector& GetDecalProjector(uint32_t e);
 
 		// to move to this in the future
 		// also need to find a way to enforce C as component
@@ -96,6 +98,7 @@ namespace NE::ECS {
 		template<> inline const Component::PrefabLink& GetComponent<Component::PrefabLink>(uint32_t e) { return GetPrefabLink(e); }
 		template<> inline const Component::PrefabInstance& GetComponent<Component::PrefabInstance>(uint32_t e) { return GetPrefabInstance(e); }
 		template<> inline const Component::CharacterController& GetComponent<Component::CharacterController>(uint32_t e) { return GetCharacterController(e); }
+        template<> inline const Component::DecalProjector& GetComponent<Component::DecalProjector>(uint32_t e) { return GetDecalProjector(e); }
 
 		NANOENGINE_API bool HasEntityMeta(uint32_t e);
 		NANOENGINE_API bool HasHierarchy(uint32_t e);
@@ -118,6 +121,7 @@ namespace NE::ECS {
 		NANOENGINE_API bool HasAnimator(uint32_t e);
 		NANOENGINE_API bool HasCamera(uint32_t e);
 		NANOENGINE_API bool HasCharacterController(uint32_t e);
+        NANOENGINE_API bool HasDecalProjector(uint32_t e);
 
 		template <typename C>
 		bool HasComponent(Entity e);
@@ -142,6 +146,7 @@ namespace NE::ECS {
 		template<> inline bool HasComponent<Component::PrefabLink>(uint32_t e) { return HasPrefabLink(e); }
 		template<> inline bool HasComponent<Component::PrefabInstance>(uint32_t e) { return HasPrefabInstance(e); }
 		template<> inline bool HasComponent<Component::CharacterController>(uint32_t e) { return HasCharacterController(e); }
+        template<> inline bool HasComponent<Component::DecalProjector>(uint32_t e) { return HasDecalProjector(e); }
 
 		//template <typename C>
 		//ComponentType GetComponentType() {
@@ -167,6 +172,7 @@ namespace NE::ECS {
 		NANOENGINE_API ComponentType GetEntityCameraComponentType();
 		NANOENGINE_API ComponentType GetPrefabInstanceComponentType();
 		NANOENGINE_API ComponentType GetCharacterControllerComponentType();
+        NANOENGINE_API ComponentType GetDecalProjectorComponentType();
 
 		NANOENGINE_API uint32_t GetParent(uint32_t child);
 
@@ -208,6 +214,7 @@ namespace NE::ECS {
 		NANOENGINE_API void AddAudioSourceComponent(uint32_t e);
 		NANOENGINE_API void AddScriptComponent(uint32_t e);
 		NANOENGINE_API void AddCameraComponent(uint32_t e);
+        NANOENGINE_API void AddDecalProjectorComponent(uint32_t e);
 
 		template <typename C>
 		void AddComponent(Entity e) {
@@ -235,6 +242,7 @@ namespace NE::ECS {
 		NANOENGINE_API void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c);
 		NANOENGINE_API void AddPrefabInstanceComponent(uint32_t e, const Component::PrefabInstance& c);
 		NANOENGINE_API void AddCharacterControllerComponent(uint32_t e, const Component::CharacterController& c);
+        NANOENGINE_API void AddDecalProjectorComponent(uint32_t e, const Component::DecalProjector& c);
 
 		template <typename C>
 		void AddComponent(Entity e, const C& component);
@@ -258,6 +266,7 @@ namespace NE::ECS {
 		template<> inline void AddComponent<Component::PrefabLink>(uint32_t e, const Component::PrefabLink& component) { AddPrefabLinkComponent(e, component); }
 		template<> inline void AddComponent<Component::PrefabInstance>(uint32_t e, const Component::PrefabInstance& component) { AddPrefabInstanceComponent(e, component); }
 		template<> inline void AddComponent<Component::CharacterController>(uint32_t e, const Component::CharacterController& component) { AddCharacterControllerComponent(e, component); }
+        template<> inline void AddComponent<Component::DecalProjector>(uint32_t e, const Component::DecalProjector& component) { AddDecalProjectorComponent(e, component); }
 
 		NANOENGINE_API void RemoveLightComponent(uint32_t e);
 		NANOENGINE_API void RemoveRendererComponent(uint32_t e);
@@ -265,6 +274,7 @@ namespace NE::ECS {
 		NANOENGINE_API void RemoveColliderComponent(uint32_t e);
 		NANOENGINE_API void RemoveAudioSourceComponent(uint32_t e);
 		NANOENGINE_API void RemoveCameraComponent(uint32_t e);
+        NANOENGINE_API void RemoveDecalProjectorComponent(uint32_t e);
 
 		// --- Editor Component Mutators --- //
 		//NANOENGINE_API Component::EntityMeta& GetEntityMeta(uint32_t e);
@@ -303,6 +313,7 @@ namespace NE::ECS {
 		NANOENGINE_API Component::PrefabLink& GetPrefabLink(uint32_t e);
 		NANOENGINE_API Component::PrefabInstance& GetPrefabInstance(uint32_t e);
 		NANOENGINE_API Component::CharacterController& GetCharacterController(uint32_t e);
+        NANOENGINE_API Component::DecalProjector& GetDecalProjector(uint32_t e);
 
 		template <typename C>
 		C& GetComponent(Entity e);
@@ -323,6 +334,7 @@ namespace NE::ECS {
 		template<> inline Component::PrefabLink& GetComponent<Component::PrefabLink>(uint32_t e) { return GetPrefabLink(e); }
 		template<> inline Component::PrefabInstance& GetComponent<Component::PrefabInstance>(uint32_t e) { return GetPrefabInstance(e); }
 		template<> inline Component::CharacterController& GetComponent<Component::CharacterController>(uint32_t e) { return GetCharacterController(e); }
+        template<> inline Component::DecalProjector& GetComponent<Component::DecalProjector>(uint32_t e) { return GetDecalProjector(e); }
 
 		// --- Script Management ---
 		NANOENGINE_API std::vector<std::string> GetRegisteredScriptNames();

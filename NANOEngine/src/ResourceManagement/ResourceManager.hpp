@@ -104,6 +104,8 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSAO.nanoshader"));
 				if (id == "nenormalprepass")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/NormalPrepass.nanoshader"));
+                if (id == "nedecalprojected")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Decal_Projected.nanoshader"));
 			}
 			return nullptr;
 		}

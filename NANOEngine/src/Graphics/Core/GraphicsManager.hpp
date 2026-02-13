@@ -8,6 +8,7 @@
 #include "../Interfaces/IStateCache.hpp"
 #include "Material.hpp"
 #include "DrawCommand.hpp"
+#include "DecalCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
@@ -59,6 +60,7 @@ namespace NE::Graphics {
         static void BeginFrame();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
+        static void SubmitDecal(const DecalCommand& command);
         static void SubmitLightGizmo(const LightGizmoCommand& command);
         static void EndFrame();
         static void Clear();
@@ -152,6 +154,7 @@ namespace NE::Graphics {
 
 		// Draw Queue
 		static std::unique_ptr<DrawQueue> s_DrawQueue;
+        static std::vector<DecalCommand> s_DecalQueue;
 
 		// Framebuffer Manager
 		static std::unique_ptr<RenderViewManager> s_RenderViewManager;

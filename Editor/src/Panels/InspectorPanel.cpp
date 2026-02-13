@@ -23,6 +23,7 @@
 #include <ECS/Components/UIToggle.hpp>
 #include <Core/LUIDGenerator.hpp>
 #include <ECS/Components/Animator.hpp>
+#include <ECS/Components/DecalProjector.hpp>
 #include <ECS/Components/Camera.hpp>
 #include <ECS/Components/PrefabInstance.hpp>
 #include <ECS/Components/CharacterController.hpp>
@@ -44,13 +45,13 @@
 #include <sstream>
 #include <vector>
 #include "../AssetManagement/AssetManager.hpp"
-#include "../AssetManagement/Settings/TextureImportSettings.hpp"
-#include "../AssetManagement/Settings/ModelImportSettings.hpp"
+//#include "../AssetManagement/Settings/TextureImportSettings.hpp"
+//#include "../AssetManagement/Settings/ModelImportSettings.hpp"
 #include <Core/SpdLogger.hpp>
-#include <fstream>
-#include <rapidjson/document.h>
-#include "../Serialization/JSONReflection.hpp"
-#include <rapidjson/istreamwrapper.h>
+//#include <fstream>
+//#include <rapidjson/document.h>
+//#include "../Serialization/JSONReflection.hpp"
+//#include <rapidjson/istreamwrapper.h>
 #include "../Command/EditorCommands.hpp"
 #include "../Layers/LayerDatabase.hpp"
 #include "../Layers/LayerModal.hpp"
@@ -136,6 +137,8 @@ namespace {
 				return NE::ECS::Command::GetCharacterController(e);
 			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::Animator>) {
 				return NE::ECS::Command::GetEntityAnimator(e);
+			} else if constexpr (std::is_same_v<Owner, NE::ECS::Component::DecalProjector>) {
+				return NE::ECS::Command::GetDecalProjector(e);
 			} else {
 				static_assert(sizeof(Owner) == 0, "No getter defined for this component type.");
 			}
@@ -425,6 +428,7 @@ namespace Editor {
 			{ NE::ECS::Query::GetPrefabInstanceComponentType(),		"PrefabInstance",		&InspectorPanel::DrawPrefabInstanceComponent		},
 			{ NE::ECS::Query::GetTransformComponentType(),			"Transform",			&InspectorPanel::DrawTransformComponent				},
 			{ NE::ECS::Query::GetRendererComponentType(),			"Renderer",				&InspectorPanel::DrawRendererComponent				},
+			{ NE::ECS::Query::GetDecalProjectorComponentType(),		"Decal Projector",		&InspectorPanel::DrawDecalProjectorComponent		},
 			{ NE::ECS::Query::GetLightComponentType(),				"Light",				&InspectorPanel::DrawLightComponent					},
 			{ NE::ECS::Query::GetColliderComponentType(),			"Collider",				&InspectorPanel::DrawColliderComponent				},
 			{ NE::ECS::Query::GetRigidbodyComponentType(),			"Rigidbody",			&InspectorPanel::DrawRigidbodyComponent				},
@@ -495,6 +499,9 @@ namespace Editor {
 				}
 				if (ImGui::MenuItem("Animator")) {
 					NE::ECS::Command::AddAnimatorComponent(EditorScene::s_selection.GetLastClicked());
+				}
+				if (ImGui::MenuItem("Decal Projector")) {
+					NE::ECS::Command::AddDecalProjectorComponent(EditorScene::s_selection.GetLastClicked());
 				}
 
 				ImGui::Separator();
@@ -989,6 +996,90 @@ namespace Editor {
 		}
 		if (deleteComp) {
 			NE::ECS::Command::RemoveRendererComponent(entity);
+		}
+
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawDecalProjectorComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Query::GetDecalProjector(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Decal Projector",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		bool openMaterialPopup = false;
+		DrawAssetField(
+			"Material",
+			Assets::AssetManager::GetInstance().RetrieveFilename(comp.materialUUID),
+			true,
+			&openMaterialPopup,
+			ImVec2(0, 0),
+			28.0f,
+			"MATERIAL_PATH",
+			[&](const ImGuiPayload* p) {
+				std::string dropped((const char*)p->Data, p->DataSize ? p->DataSize - 1 : 0);
+				auto uuid = Assets::AssetManager::GetInstance().RetrieveUUID(dropped);
+				NE::Renderer::Command::AssignMaterial(entity, uuid);
+			}
+		);
+
+		if (openMaterialPopup) ImGui::OpenPopup("AssetPicker_Material");
+
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(0.f, 0.f),
+			ImVec2(350.f, 500.f)
+		);
+
+		if (ImGui::BeginPopup("AssetPicker_Material")) {
+			ImGui::Text("Select a Material");
+			ImGui::Separator();
+			auto& materialList = Assets::AssetManager::GetInstance().GetAssetsOfType(Assets::AssetType::Material);
+
+			if (ImSearch::BeginSearch()) {
+				ImSearch::SearchBar();
+				for (const auto& [materialName, uuid] : materialList) {
+					ImSearch::SearchableItem(materialName.c_str(), [&, materialName](const char*) {
+						if (ImGui::Selectable(materialName.c_str())) {
+							NE::Renderer::Command::AssignMaterial(entity, uuid);
+							ImGui::CloseCurrentPopup();
+						}
+						});
+				}
+
+				ImSearch::EndSearch();
+			}
+			ImGui::EndPopup();
+		}
+
+		NE::Core::ForEachFieldView<NE::ECS::Component::DecalProjector>(comp,
+			[&](auto const& desc, auto const& currentValue) {
+				using FieldT = std::decay_t<decltype(currentValue)>;
+
+				FieldT edited = currentValue;
+
+				if (DrawField(desc, edited)) {
+					SubmitSetFieldCommand<NE::ECS::Component::DecalProjector, FieldT>(
+						entity, desc, currentValue, edited
+					);
+				}
+			}
+		);
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveDecalProjectorComponent(entity);
 		}
 
 		ImGui::TreePop();
