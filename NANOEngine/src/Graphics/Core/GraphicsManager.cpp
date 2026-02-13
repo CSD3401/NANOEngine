@@ -11,8 +11,8 @@
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
 
-#include "../../Math/Mat4.hpp"
-#include "../../Math/Vec3.hpp"
+#include "Math/Mat4.hpp"
+#include "Math/Vec3.hpp"
 
 #include "../Interfaces/IFrameBuffer.hpp"
 #include "../Interfaces/IShader.hpp"
@@ -38,11 +38,10 @@
 
 #include "GizmosRenderer.hpp"
 #include "Graphics/DebugRenderer/DebugDrawSystem.hpp"
-#include "../../Core/Logger.hpp"
-#include "../../Core/Profiler.hpp"
-#include "../../ECS/Components/Light.hpp"
-#include "../../SceneManagement/Scene.hpp"
-#include "../../ResourceManagement/ResourceManager.hpp"
+#include "Core/Profiler.hpp"
+#include "ECS/Components/Light.hpp"
+#include "SceneManagement/Scene.hpp"
+#include "ResourceManagement/ResourceManager.hpp"
 
 #include <glad/glad.h>
 #include <algorithm>
