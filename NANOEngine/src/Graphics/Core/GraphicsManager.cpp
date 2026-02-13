@@ -349,6 +349,70 @@ namespace NE::Graphics {
                 s_LightGizmoMesh->Unbind();
             }
         }
+
+        bool RenderNormalPrepassForView(
+            const RenderView& view,
+            const std::vector<DrawCommand>& commands,
+            const Frustum& frustum,
+            const Mat4& camProj,
+            const Mat4& camView,
+            const std::shared_ptr<OpenGL::GLShader>& normalPrepassShader)
+        {
+            if (!view.framebuffer || !view.framebuffer->HasMiniGBuffer() || !normalPrepassShader) {
+                return false;
+            }
+
+            const GLenum normalAttachment = GL_COLOR_ATTACHMENT2;
+            glDrawBuffers(1, &normalAttachment);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            normalPrepassShader->Bind();
+            normalPrepassShader->SetUniformMat4("u_View", camView);
+            normalPrepassShader->SetUniformMat4("u_Projection", camProj);
+
+            std::vector<InstanceData> instanceData;
+            instanceData.reserve(64);
+            std::shared_ptr<IGeometryBuffer> currentMesh;
+
+            auto flushBatch = [&]() {
+                if (instanceData.empty() || !currentMesh) return;
+
+                OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
+                    instanceData.data(),
+                    instanceData.size() * sizeof(InstanceData)
+                );
+
+                currentMesh->Bind();
+                currentMesh->DrawInstanced(instanceData.size());
+                currentMesh->Unbind();
+
+                instanceData.clear();
+            };
+
+            for (const auto& command : commands) {
+                if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
+                    continue;
+                if (!command.mesh) continue;
+
+                if (command.mesh != currentMesh && !instanceData.empty()) {
+                    flushBatch();
+                }
+
+                if (command.mesh != currentMesh) {
+                    currentMesh = command.mesh;
+                }
+
+                InstanceData instance{};
+                instance.model = command.transform;
+                instance.idRGB = { 0.0f, 0.0f, 0.0f };
+                instanceData.push_back(instance);
+            }
+
+            flushBatch();
+
+            view.framebuffer->SetPickingWrite(true);
+            return true;
+        }
     }
 
     uint32_t GraphicsManager::s_ScreenWidth = 1920;
@@ -369,6 +433,7 @@ namespace NE::Graphics {
     RenderViewHandle GraphicsManager::s_FinalGameOutputHandle;
 	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
     std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
+    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
 
 	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
 
@@ -387,7 +452,15 @@ namespace NE::Graphics {
         s_shadowRenderer->Init();
 
 #ifndef PRODUCTION_BUILD
-        s_SceneViewHandle = s_RenderViewManager->CreateHDR(1920, 1080, true);
+        {
+            RenderViewCreateDesc desc;
+            desc.width = 1920;
+            desc.height = 1080;
+            desc.enablePicking = true;
+            desc.enableMiniGBuffer = true;
+            desc.format = RenderViewFormat::HDR;
+            s_SceneViewHandle = s_RenderViewManager->Create(desc);
+        }
 #endif // !PRODUCTION_BUILD
         s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
         s_FinalGameOutputHandle = s_RenderViewManager->Create(1920, 1080, false);
@@ -398,6 +471,7 @@ namespace NE::Graphics {
         DebugDrawSystem::SetStateCache(s_StateCache.get());
         NE::Graphics::OpenGL::GLGeometryBuffer::InitInstanceBuffer();
         InitializeLightGizmoResources();
+        s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
 
 
         //// Load Primitives
@@ -458,6 +532,19 @@ namespace NE::Graphics {
             const Mat4& camProj = view.projection;
             const Mat4& camView = view.view;
             const Vec3& camPos = view.position;
+            const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
+
+            const bool ranPrepass = RenderNormalPrepassForView(
+                view,
+                commands,
+                frustum,
+                camProj,
+                camView,
+                s_NormalPrepassShader
+            );
+            if (ranPrepass) {
+                glDepthFunc(GL_LEQUAL);
+            }
 
             // Sort by RenderQueue -> Material -> Mesh
             if (enableSorting)
@@ -592,7 +679,6 @@ namespace NE::Graphics {
                     ++drawCount;
                 };
 
-            const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
             for (const auto& command : commands) {
                 if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
                     continue;
@@ -643,6 +729,9 @@ namespace NE::Graphics {
                 DrawAllDebugGeometry();
 
             s_RenderViewManager->Unbind();
+            if (ranPrepass) {
+                glDepthFunc(GL_LESS);
+            }
         }
 
         s_StateCache->Reset();
@@ -714,6 +803,7 @@ namespace NE::Graphics {
 
         s_LightGizmoQueue.clear();
         s_LightGizmoMesh.reset();
+        s_NormalPrepassShader.reset();
         for (auto& material : s_LightGizmoMaterials) {
             material.reset();
         }
@@ -743,7 +833,13 @@ namespace NE::Graphics {
 
     RenderViewHandle GraphicsManager::CreateRenderView(uint32_t width, uint32_t height, bool enablePicking) 
     {
-        return s_RenderViewManager->CreateHDR(width, height, enablePicking);
+        RenderViewCreateDesc desc;
+        desc.width = width;
+        desc.height = height;
+        desc.enablePicking = enablePicking;
+        desc.enableMiniGBuffer = true;
+        desc.format = RenderViewFormat::HDR;
+        return s_RenderViewManager->Create(desc);
 	}
 
     void GraphicsManager::DestroyRenderView(RenderViewHandle handle) {

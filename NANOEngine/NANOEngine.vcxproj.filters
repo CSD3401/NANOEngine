@@ -284,6 +284,7 @@
     <ClInclude Include="src\Graphics\Core\Font.hpp" />
     <ClInclude Include="src\ECS\Systems\UIEventSystem.hpp" />
     <ClInclude Include="src\ECS\ECSEvents.hpp" />
+    <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

@@ -36,6 +36,9 @@ namespace NE {
         using RenderViewHandle = std::uint32_t;
 
         class ShadowRenderer;
+        namespace OpenGL {
+            class GLShader;
+        }
 	}
     namespace ECS {
         namespace Component {
@@ -159,6 +162,7 @@ namespace NE::Graphics {
 
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
+        static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
 

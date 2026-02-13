@@ -23,11 +23,11 @@ namespace NE::Graphics {
 		switch (desc.format) {
 		case RenderViewFormat::HDR:
 			framebuffer = std::make_shared<OpenGL::GLFrameBuffer>();
-			framebuffer->CreateAsHDR(desc.width, desc.height, desc.enablePicking);
+			framebuffer->CreateAsHDR(desc.width, desc.height, desc.enablePicking, desc.enableMiniGBuffer);
 			break;
 		case RenderViewFormat::LDR:
 			framebuffer = std::make_shared<OpenGL::GLFrameBuffer>(desc.width, desc.height);
-			framebuffer->CreateAsLDR(desc.width, desc.height, desc.enablePicking);
+			framebuffer->CreateAsLDR(desc.width, desc.height, desc.enablePicking, desc.enableMiniGBuffer);
 			break;
 		case RenderViewFormat::Standard:
 		default:
