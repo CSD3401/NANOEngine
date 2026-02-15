@@ -14,6 +14,7 @@
 #include "../../Graphics/OpenGL/GLPipeline.hpp"
 #include "../../Graphics/OpenGL/GLShader.hpp"
 #include "../../Graphics/Core/Material.hpp"
+#include "../../Graphics/Core/UIGeometryBuffer.hpp"
 #include "../../Graphics/Core/DrawCommand.hpp"
 #include "../../Graphics/Core/Vertex.hpp"
 #include "../../Graphics/Core/InstanceData.hpp"
@@ -24,6 +25,7 @@
 #include <algorithm>
 #include <cmath>
 #include "../Components/EntityMeta.hpp"
+#include "UITransformUtilities.hpp"
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
 
@@ -52,24 +54,7 @@ namespace NE::ECS::Systems {
     }
     bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        Entity cur = entity;
-
-        while (cur != NO_ENTITY)
-        {
-            // If any parent/entity is inactive, UI should not render
-            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(cur)) {
-                if (!m_cm->GetComponent<NE::ECS::Component::EntityMeta>(cur).isActive) {
-                    return false;
-                }
-            }
-
-            if (cur == canvasEntity) break;
-
-            if (!m_cm->HasComponent<Hierarchy>(cur)) break;
-            cur = m_cm->GetComponent<Hierarchy>(cur).parent;
-        }
-
-        return true;
+        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
     }
 
     void UIRenderSystem::OnEntityAdded(Entity e) 
@@ -101,122 +86,14 @@ namespace NE::ECS::Systems {
 
     void UIRenderSystem::Init()
     {
-        // Create default UI material programmatically
-        // NOTE: UI shaders are not in the resource system, so we create them from hardcoded strings
-        // This matches the old UIRenderer approach
+        // Load UI sprite shader from .nanoshader asset file
         try {
-            // Create UI shader from hardcoded source (same as UIRenderer)
-            const char* uiVertexShaderSource = R"(#version 460 core
-                // Per-vertex attributes (MUST match UIVertex2 layout!)
-                layout(location = 0) in vec3 aPos;      // Position (Vec3)
-                layout(location = 1) in vec2 aTexCoord; // TexCoord (Vec2) - NOT Normal!
-                layout(location = 2) in vec4 aColor;    // Color (Vec4)
-
-                // Per-instance attributes (required for instanced rendering)
-                layout(location = 5) in vec4 aInstanceModel0;
-                layout(location = 6) in vec4 aInstanceModel1;
-                layout(location = 7) in vec4 aInstanceModel2;
-                layout(location = 8) in vec4 aInstanceModel3;
-                layout(location = 9) in vec3 aInstanceIdRGB;
-
-                out vec2 vUV;
-                out vec4 vColor;
-
-                uniform vec2 uScreenSize;
-
-                void main() {
-                    // Convert pixel coordinates to NDC (-1 to 1)
-                    float ndcX = (aPos.x / uScreenSize.x) * 2.0 - 1.0;
-                    float ndcY = 1.0 - (aPos.y / uScreenSize.y) * 2.0;
-
-                    gl_Position = vec4(ndcX, ndcY, aPos.z, 1.0);
-                    vUV = aTexCoord;
-                    vColor = aColor;
-                }
-            )";
-
-            const char* uiFragmentShaderSource = R"(#version 460 core
-                #extension GL_ARB_bindless_texture : require
-
-                in vec2 vUV;
-                in vec4 vColor;
-                out vec4 FragColor;
-
-                uniform vec4 uColor;
-                uniform int uHasTexture;
-                layout(bindless_sampler) uniform sampler2D uTexture;
-
-                void main() {
-                    // Unity-style: Texture × Vertex Color × Uniform Color
-                    vec4 color = vColor * uColor;
-
-                    if (uHasTexture == 1) {
-                        FragColor = texture(uTexture, vUV) * color;
-                    } else {
-                        FragColor = color;
-                    }
-                }
-            )";
-
-            // Manually compile and link the shader
-            GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vertexShader, 1, &uiVertexShaderSource, nullptr);
-            glCompileShader(vertexShader);
-
-            // Check vertex shader compilation
-            GLint vertexSuccess = 0;
-            glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexSuccess);
-            if (!vertexSuccess) {
-                char infoLog[512];
-                glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-                std::cerr << "[UIRenderSystem] ERROR: Vertex shader compilation failed:\n" << infoLog << std::endl;
-                glDeleteShader(vertexShader);
+            auto uiShader = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::OpenGL::GLShader>("neuisprite");
+            if (!uiShader) {
+                std::cerr << "[UIRenderSystem] ERROR: Failed to load UI sprite shader (neuisprite)" << std::endl;
                 return;
             }
-
-            GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fragmentShader, 1, &uiFragmentShaderSource, nullptr);
-            glCompileShader(fragmentShader);
-
-            // Check fragment shader compilation
-            GLint fragmentSuccess = 0;
-            glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentSuccess);
-            if (!fragmentSuccess) {
-                char infoLog[512];
-                glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-                std::cerr << "[UIRenderSystem] ERROR: Fragment shader compilation failed:\n" << infoLog << std::endl;
-                glDeleteShader(vertexShader);
-                glDeleteShader(fragmentShader);
-                return;
-            }
-
-            // Link shaders
-            GLuint shaderProgram = glCreateProgram();
-            glAttachShader(shaderProgram, vertexShader);
-            glAttachShader(shaderProgram, fragmentShader);
-            glLinkProgram(shaderProgram);
-
-            // Check linking
-            GLint linkSuccess = 0;
-            glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkSuccess);
-            if (!linkSuccess) {
-                char infoLog[512];
-                glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-                std::cerr << "[UIRenderSystem] ERROR: Shader program linking failed:\n" << infoLog << std::endl;
-                glDeleteShader(vertexShader);
-                glDeleteShader(fragmentShader);
-                glDeleteProgram(shaderProgram);
-                return;
-            }
-
-            // Clean up shader objects (no longer needed after linking)
-            glDeleteShader(vertexShader);
-            glDeleteShader(fragmentShader);
-
-            std::cout << "[UIRenderSystem] UI shader compiled and linked successfully (program ID: " << shaderProgram << ")" << std::endl;
-
-            // Create GLShader with the compiled program
-            auto uiShader = std::make_shared<NE::Graphics::OpenGL::GLShader>(shaderProgram);
 
             NE::Graphics::PipelineSpecification spec;
             spec.shader = uiShader;
@@ -226,93 +103,24 @@ namespace NE::ECS::Systems {
             spec.CullMode = GL_NONE;
             spec.PolygonMode = GL_FILL;
 
-            auto pipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(spec, "UI_Programmatic");
+            auto pipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(spec, "UI_Sprite");
             m_defaultUIMaterial = std::make_shared<NE::Graphics::Material>(pipeline);
             m_defaultUIMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
 
-            std::cout << "[UIRenderSystem] Created programmatic UI material with OVERLAY queue" << std::endl;
+            std::cout << "[UIRenderSystem] Loaded UI sprite material from UI_Sprite.nanoshader" << std::endl;
         } catch (const std::exception& e) {
-            std::cerr << "[UIRenderSystem] Error creating programmatic UI material: " << e.what() << std::endl;
+            std::cerr << "[UIRenderSystem] Error loading UI sprite material: " << e.what() << std::endl;
         }
 
-        // Create separate text material (different shader for font atlas rendering)
+        // Load UI text shader from .nanoshader asset file
         try {
-            const char* textVertexSource = R"(#version 460 core
-                layout(location = 0) in vec3 aPos;
-                layout(location = 1) in vec2 aTexCoord;
-                layout(location = 2) in vec4 aColor;
-
-                out vec2 TexCoord;
-                out vec4 Color;
-
-                uniform vec2 uScreenSize;
-
-                void main() {
-                    vec2 ndc = (aPos.xy / uScreenSize) * 2.0 - 1.0;
-                    ndc.y = -ndc.y;
-                    gl_Position = vec4(ndc, 0.0, 1.0);
-                    TexCoord = aTexCoord;
-                    Color = aColor;
-                }
-            )";
-
-            const char* textFragmentSource = R"(#version 460 core
-                #extension GL_ARB_bindless_texture : require
-
-                in vec2 TexCoord;
-                in vec4 Color;
-                out vec4 FragColor;
-
-                uniform sampler2D uFontAtlas;
-                uniform vec4 uColor;
-
-                void main() {
-                    float alpha = texture(uFontAtlas, TexCoord).r;
-                    FragColor = vec4(Color.rgb * uColor.rgb, alpha * Color.a * uColor.a);
-                }
-            )";
-
-            GLuint textVertShader = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(textVertShader, 1, &textVertexSource, nullptr);
-            glCompileShader(textVertShader);
-
-            GLint textVertSuccess;
-            glGetShaderiv(textVertShader, GL_COMPILE_STATUS, &textVertSuccess);
-            if (!textVertSuccess) {
-                char infoLog[512];
-                glGetShaderInfoLog(textVertShader, 512, nullptr, infoLog);
-                std::cerr << "[UIRenderSystem] Text vertex shader compilation failed: " << infoLog << std::endl;
+            auto textShader = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::OpenGL::GLShader>("neuitext");
+            if (!textShader) {
+                std::cerr << "[UIRenderSystem] ERROR: Failed to load UI text shader (neuitext)" << std::endl;
+                return;
             }
 
-            GLuint textFragShader = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(textFragShader, 1, &textFragmentSource, nullptr);
-            glCompileShader(textFragShader);
-
-            GLint textFragSuccess;
-            glGetShaderiv(textFragShader, GL_COMPILE_STATUS, &textFragSuccess);
-            if (!textFragSuccess) {
-                char infoLog[512];
-                glGetShaderInfoLog(textFragShader, 512, nullptr, infoLog);
-                std::cerr << "[UIRenderSystem] Text fragment shader compilation failed: " << infoLog << std::endl;
-            }
-
-            GLuint textShaderProgram = glCreateProgram();
-            glAttachShader(textShaderProgram, textVertShader);
-            glAttachShader(textShaderProgram, textFragShader);
-            glLinkProgram(textShaderProgram);
-
-            GLint textLinkSuccess;
-            glGetProgramiv(textShaderProgram, GL_LINK_STATUS, &textLinkSuccess);
-            if (!textLinkSuccess) {
-                char infoLog[512];
-                glGetProgramInfoLog(textShaderProgram, 512, nullptr, infoLog);
-                std::cerr << "[UIRenderSystem] Text shader linking failed: " << infoLog << std::endl;
-            }
-
-            glDeleteShader(textVertShader);
-            glDeleteShader(textFragShader);
-
-            auto textShader = std::make_shared<NE::Graphics::OpenGL::GLShader>(textShaderProgram);
             NE::Graphics::PipelineSpecification textSpec;
             textSpec.shader = textShader;
             textSpec.EnableBlending = true;
@@ -321,13 +129,13 @@ namespace NE::ECS::Systems {
             textSpec.CullMode = GL_NONE;
             textSpec.PolygonMode = GL_FILL;
 
-            auto textPipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(textSpec, "UIText_Programmatic");
+            auto textPipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(textSpec, "UI_Text");
             m_defaultTextMaterial = std::make_shared<NE::Graphics::Material>(textPipeline);
             m_defaultTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
 
-            std::cout << "[UIRenderSystem] Created programmatic UI text material with OVERLAY queue" << std::endl;
+            std::cout << "[UIRenderSystem] Loaded UI text material from UI_Text.nanoshader" << std::endl;
         } catch (const std::exception& e) {
-            std::cerr << "[UIRenderSystem] Error creating programmatic text material: " << e.what() << std::endl;
+            std::cerr << "[UIRenderSystem] Error loading UI text material: " << e.what() << std::endl;
         }
 
         // Load per-entity textures and materials
@@ -354,8 +162,46 @@ namespace NE::ECS::Systems {
         }
     }
 
+    std::shared_ptr<NE::Graphics::Material> UIRenderSystem::AcquireSpriteMaterial()
+    {
+        if (m_spriteMaterialIndex >= m_spriteMaterialPool.size()) {
+            m_spriteMaterialPool.push_back(
+                std::make_shared<NE::Graphics::Material>(m_defaultUIMaterial->GetPipeline())
+            );
+        }
+        return m_spriteMaterialPool[m_spriteMaterialIndex++];
+    }
+
+    std::shared_ptr<NE::Graphics::Material> UIRenderSystem::AcquireTextMaterial()
+    {
+        if (m_textMaterialIndex >= m_textMaterialPool.size()) {
+            m_textMaterialPool.push_back(
+                std::make_shared<NE::Graphics::Material>(m_defaultTextMaterial->GetPipeline())
+            );
+        }
+        return m_textMaterialPool[m_textMaterialIndex++];
+    }
+
+    std::shared_ptr<NE::Graphics::IGeometryBuffer> UIRenderSystem::AcquireGeometryBuffer(
+        const std::vector<NE::Graphics::UIVertex2>& vertices,
+        const std::vector<uint32_t>& indices
+    )
+    {
+        if (m_geometryIndex >= m_geometryPool.size()) {
+            m_geometryPool.push_back(std::make_shared<NE::Graphics::UIGeometryBuffer>());
+        }
+        auto buf = std::static_pointer_cast<NE::Graphics::UIGeometryBuffer>(m_geometryPool[m_geometryIndex++]);
+        buf->Upload(vertices, indices);
+        return buf;
+    }
+
     void UIRenderSystem::Update(double)
     {
+        // Reset pool indices for this frame
+        m_spriteMaterialIndex = 0;
+        m_textMaterialIndex = 0;
+        m_geometryIndex = 0;
+
         const auto& entities = GetEntities();
 
         // MIGRATION: Add Hierarchy component to old UI entities that don't have it
@@ -780,96 +626,7 @@ namespace NE::ECS::Systems {
             indices.push_back(base + 0);
         }
 
-        // Create raw OpenGL buffers with UIVertex2 layout (NOT standard Vertex!)
-        // UIVertex2 layout:
-        //   vec3 Position (12 bytes)
-        //   vec2 TexCoord (8 bytes)
-        //   vec4 Color (16 bytes)
-        //   Total: 36 bytes
-
-        GLuint vao, vbo, ebo;
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-        glGenBuffers(1, &ebo);
-
-        glBindVertexArray(vao);
-
-        // Upload vertex data
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER,
-            vertices.size() * sizeof(NE::Graphics::UIVertex2),
-            vertices.data(),
-            GL_STATIC_DRAW);
-
-        // Upload index data
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-            indices.size() * sizeof(uint32_t),
-            indices.data(),
-            GL_STATIC_DRAW);
-
-        // Set up vertex attributes for UIVertex2 layout
-        const GLsizei stride = sizeof(NE::Graphics::UIVertex2);
-
-        // Location 0: vec3 Position (offset 0)
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-
-        // Location 1: vec2 TexCoord (offset 12 = sizeof(Vec3))
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3)));
-
-        // Location 2: vec4 Color (offset 20 = sizeof(Vec3) + sizeof(Vec2))
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3) + sizeof(Math::Vec2)));
-
-        // Set up instance attributes (locations 5-9) - same as GLGeometryBuffer
-        GLuint instanceVBO = NE::Graphics::OpenGL::GLGeometryBuffer::GetInstanceVBO();
-        if (instanceVBO != 0) {
-            glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-
-            const GLsizei instanceStride = sizeof(NE::Graphics::InstanceData);
-            size_t offset = 0;
-
-            // Locations 5-8: mat4 (4 vec4s)
-            for (int i = 0; i < 4; ++i) {
-                glEnableVertexAttribArray(5 + i);
-                glVertexAttribPointer(5 + i, 4, GL_FLOAT, GL_FALSE, instanceStride, (void*)offset);
-                glVertexAttribDivisor(5 + i, 1);
-                offset += sizeof(float) * 4;
-            }
-
-            // Location 9: vec3 IDRGB
-            glEnableVertexAttribArray(9);
-            glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, instanceStride, (void*)(sizeof(float) * 16));
-            glVertexAttribDivisor(9, 1);
-        }
-
-        glBindVertexArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Wrap in a custom geometry buffer wrapper
-        // TODO: Create a proper UIGeometryBuffer class
-        // For now, create a minimal wrapper that stores VAO/VBO/EBO and index count
-        auto vb = std::make_shared<NE::Graphics::OpenGL::GLVertexBuffer>(
-            vertices.data(),
-            static_cast<uint32_t>(vertices.size() * sizeof(NE::Graphics::UIVertex2)),
-            sizeof(NE::Graphics::UIVertex2)
-        );
-
-        auto ib = std::make_shared<NE::Graphics::OpenGL::GLIndexBuffer>(
-            indices.data(),
-            static_cast<uint32_t>(indices.size())
-        );
-
-        // Create GLGeometryBuffer but override its VAO with our custom one
-        auto geometryBuffer = std::make_shared<NE::Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
-
-        // HACK: Replace the VAO with our custom UIVertex2-compatible one
-        // This is ugly but avoids creating a whole new class for now
-        geometryBuffer->SetVAO(vao);
-
-        return geometryBuffer;
+        return AcquireGeometryBuffer(vertices, indices);
     }
 
     std::shared_ptr<NE::Graphics::IGeometryBuffer> UIRenderSystem::CreateDynamicTextGeometry(
@@ -881,75 +638,13 @@ namespace NE::ECS::Systems {
         }
 
         // Text vertices come as triangles (6 vertices per glyph), not quads
-        // Generate indices for triangle list
         std::vector<uint32_t> indices;
         indices.reserve(vertices.size());
         for (uint32_t i = 0; i < static_cast<uint32_t>(vertices.size()); ++i) {
             indices.push_back(i);
         }
 
-        // Create raw OpenGL buffers with UIVertex2 layout
-        // UIVertex2 layout:
-        //   vec3 Position (12 bytes)
-        //   vec2 TexCoord (8 bytes)
-        //   vec4 Color (16 bytes)
-        //   Total: 36 bytes
-
-        GLuint vao, vbo, ebo;
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-        glGenBuffers(1, &ebo);
-
-        glBindVertexArray(vao);
-
-        // Upload vertex data
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER,
-            vertices.size() * sizeof(NE::Graphics::UIVertex2),
-            vertices.data(),
-            GL_STATIC_DRAW);
-
-        // Upload index data
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-            indices.size() * sizeof(uint32_t),
-            indices.data(),
-            GL_STATIC_DRAW);
-
-        // Set up vertex attributes for UIVertex2 layout
-        const GLsizei stride = sizeof(NE::Graphics::UIVertex2);
-
-        // Location 0: vec3 Position (offset 0)
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-
-        // Location 1: vec2 TexCoord (offset 12 = sizeof(Vec3))
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3)));
-
-        // Location 2: vec4 Color (offset 20 = sizeof(Vec3) + sizeof(Vec2))
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3) + sizeof(Math::Vec2)));
-
-        glBindVertexArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Wrap in geometry buffer
-        auto vb = std::make_shared<NE::Graphics::OpenGL::GLVertexBuffer>(
-            vertices.data(),
-            static_cast<uint32_t>(vertices.size() * sizeof(NE::Graphics::UIVertex2)),
-            sizeof(NE::Graphics::UIVertex2)
-        );
-
-        auto ib = std::make_shared<NE::Graphics::OpenGL::GLIndexBuffer>(
-            indices.data(),
-            static_cast<uint32_t>(indices.size())
-        );
-
-        auto geometryBuffer = std::make_shared<NE::Graphics::OpenGL::GLGeometryBuffer>(vb, ib);
-        geometryBuffer->SetVAO(vao);
-
-        return geometryBuffer;
+        return AcquireGeometryBuffer(vertices, indices);
     }
 
     void UIRenderSystem::SubmitUIElement(
@@ -961,7 +656,6 @@ namespace NE::ECS::Systems {
     )
     {
         (void)entity; // Unused parameter
-        (void)rect;   // Unused parameter
 
         // Create dynamic geometry buffer
         auto geometryBuffer = CreateDynamicUIGeometry(vertices);
@@ -970,19 +664,13 @@ namespace NE::ECS::Systems {
             return;
         }
 
-        // CRITICAL: Always use default UI material (has bindless texture support)
-        // Ignore img.material - custom materials don't have our UI shader
-        std::shared_ptr<NE::Graphics::Material> baseMaterial = m_defaultUIMaterial;
-
-        if (!baseMaterial) {
-            // No material available, skip rendering
-            // This happens if shader loading failed in Init()
+        if (!m_defaultUIMaterial) {
             std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: No material available (shader loading failed)" << std::endl;
             return;
         }
 
-        // Create instance material with the same pipeline (for per-instance uniforms)
-        auto instanceMaterial = std::make_shared<NE::Graphics::Material>(baseMaterial->GetPipeline());
+        // Reuse pooled material instance instead of allocating per frame
+        auto instanceMaterial = AcquireSpriteMaterial();
 
         // Set per-instance uniforms
         instanceMaterial->SetUniformVec4("uColor", img.color);
@@ -1012,19 +700,20 @@ namespace NE::ECS::Systems {
         // Build DrawCommand
         NE::Graphics::DrawCommand cmd;
 
-        // For screen-space UI, vertices are already in pixel coordinates
-        // The shader converts them to NDC, so use identity transform
-        cmd.transform = Math::Mat4(); // Identity matrix
+        // Screen-space: vertices are already in pixel coordinates, shader converts to NDC
+        // World-space: vertices are unit quads, worldMatrix positions them in 3D
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+            cmd.transform = rect.worldMatrix;
+        } else {
+            cmd.transform = Math::Mat4(); // Identity — vertices pre-positioned in pixels
+        }
         cmd.mesh = geometryBuffer;
         cmd.material = instanceMaterial;
         cmd.castsShadow = false;
         cmd.receivesShadow = false;
 
-        // CRITICAL: Set bounds to ensure UI passes frustum culling
-        // Screen-space UI should always be considered visible
-        // Set bounds at origin with very large radius to always pass frustum test
         cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
-        cmd.boundsRadiusWs = 999999.0f;  // Effectively infinite - always visible
+        cmd.boundsRadiusWs = 999999.0f;  // Always visible
 
         // Submit through standard pipeline
         NE::Graphics::GraphicsManager::Submit(cmd);
@@ -1052,16 +741,13 @@ namespace NE::ECS::Systems {
             return;
         }
 
-        // Use default text material
-        std::shared_ptr<NE::Graphics::Material> baseMaterial = m_defaultTextMaterial;
-
-        if (!baseMaterial) {
+        if (!m_defaultTextMaterial) {
             std::cerr << "[UIRenderSystem::SubmitTextElement] ERROR: No default text material!" << std::endl;
             return;
         }
 
-        // Clone material for per-instance uniforms
-        auto instanceMaterial = std::make_shared<NE::Graphics::Material>(baseMaterial->GetPipeline());
+        // Reuse pooled material instance instead of allocating per frame
+        auto instanceMaterial = AcquireTextMaterial();
 
         // Set text-specific uniforms
         instanceMaterial->SetUniformVec4("uColor", text.color);
@@ -1100,28 +786,7 @@ namespace NE::ECS::Systems {
 
     float UIRenderSystem::CalculateScaleFactor(const UICanvas& canvas)
     {
-        float screenWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth());
-        float screenHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight());
-
-        switch (canvas.scaleMode) {
-        case UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE: {
-            float widthScale = screenWidth / canvas.referenceWidth;
-            float heightScale = screenHeight / canvas.referenceHeight;
-            return std::min(widthScale, heightScale);
-        }
-
-        case UICanvas::ScaleMode::CONSTANT_PIXEL_SIZE: {
-            return 1.0f;
-        }
-
-        case UICanvas::ScaleMode::CONSTANT_PHYSICAL_SIZE: {
-            float referenceDPI = 96.0f;
-            float currentDPI = 96.0f;
-            return currentDPI / referenceDPI;
-        }
-        }
-
-        return 1.0f;
+        return UIUtil::CalculateScaleFactor(canvas);
     }
 
     //=========================================================================

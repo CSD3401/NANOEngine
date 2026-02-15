@@ -13,7 +13,6 @@
 #include "ECS/Systems/ScriptSystem.hpp"
 #include "ECS/Systems/UIRenderSystem.hpp"
 #include "ECS/Systems/UIEventSystem.hpp"
-#include "ECS/Systems/UITransformSystem.hpp"
 #include "ECS/Systems/CharacterControllerSystem.hpp"
 #include "ECS/Systems/DecalProjectorSystem.hpp"
 #include "../Animation/TransformClipIO.hpp"
@@ -32,7 +31,6 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_decalProjectorSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
-		m_ecsCoordinator.m_uiTransformSystem->Init();
 		m_ecsCoordinator.m_uiEventSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
 
@@ -51,7 +49,6 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_decalProjectorSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
-		m_ecsCoordinator.m_uiTransformSystem->Init();
 		m_ecsCoordinator.m_uiEventSystem->Init();
 		m_ecsCoordinator.m_uiRenderSystem->Init();
 

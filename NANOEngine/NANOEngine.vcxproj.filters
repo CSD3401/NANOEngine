@@ -71,7 +71,6 @@
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
     <ClCompile Include="src\Graphics\Core\RenderViewManager.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
-    <ClCompile Include="src\ECS\Systems\UITransformSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\HierarchySystem.cpp" />
     <ClCompile Include="src\Serialisation\Serializer.cpp" />
     <ClCompile Include="src\Core\LayerRegistry.cpp" />
@@ -239,9 +238,11 @@
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
-    <ClInclude Include="src\ECS\Systems\UITransformSystem.hpp" />
     <ClInclude Include="src\Core\Layers.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessingSettings.hpp" />
+    <ClInclude Include="src\Graphics\Core\UIGeometryBuffer.hpp" />
+    <ClInclude Include="src\ECS\Systems\UITransformUtilities.hpp" />
+    <ClInclude Include="src\Events\UIEvents.hpp" />
     <ClInclude Include="src\ResourceManagement\ResourceTypes.hpp" />
     <ClInclude Include="src\ECS\Systems\HierarchySystem.hpp" />
     <ClInclude Include="src\ECS\Components\Hierarchy.hpp" />

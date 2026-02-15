@@ -140,6 +140,27 @@ namespace NE::Graphics {
             float width, float height,
             const Math::Vec4& color
         );
+
+        static std::vector<UIVertex2> GenerateHorizontalFill2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color
+        );
+
+        static std::vector<UIVertex2> GenerateVerticalFill2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color
+        );
+
+        static std::vector<UIVertex2> GenerateRadialFill2(
+            const NE::ECS::Component::UIImage& image,
+            float x, float y, float z,
+            float width, float height,
+            const Math::Vec4& color
+        );
     };
 
 } // namespace NE::Graphics

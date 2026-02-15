@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <cstdint>
 
 // Forward declarations
 namespace NE::Graphics {
@@ -214,6 +215,24 @@ namespace NE::ECS::Systems {
         // Integrated pipeline materials
         std::shared_ptr<NE::Graphics::Material> m_defaultUIMaterial;  // Default sprite material
         std::shared_ptr<NE::Graphics::Material> m_defaultTextMaterial;  // Default text material
+
+        // Material instance pools (avoids per-frame allocation)
+        std::vector<std::shared_ptr<NE::Graphics::Material>> m_spriteMaterialPool;
+        std::vector<std::shared_ptr<NE::Graphics::Material>> m_textMaterialPool;
+        size_t m_spriteMaterialIndex = 0;
+        size_t m_textMaterialIndex = 0;
+
+        std::shared_ptr<NE::Graphics::Material> AcquireSpriteMaterial();
+        std::shared_ptr<NE::Graphics::Material> AcquireTextMaterial();
+
+        // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
+        std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
+        size_t m_geometryIndex = 0;
+
+        std::shared_ptr<NE::Graphics::IGeometryBuffer> AcquireGeometryBuffer(
+            const std::vector<NE::Graphics::UIVertex2>& vertices,
+            const std::vector<uint32_t>& indices
+        );
     };
 
 } // namespace NE::ECS::Systems

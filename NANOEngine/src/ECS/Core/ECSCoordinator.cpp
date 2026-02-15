@@ -30,7 +30,6 @@
 #include "../Systems/AudioSystem.hpp"
 #include "../Systems/ScriptSystem.hpp"
 #include "../Systems/UIRenderSystem.hpp"
-#include "../Systems/UITransformSystem.hpp"
 #include "../Systems/CameraSystem.hpp"
 #include "../Systems/HierarchySystem.hpp"
 #include "../Systems/PrefabSystem.hpp"
@@ -129,13 +128,6 @@ namespace NE::ECS {
 			sig.set(GetComponentType<Component::NativeScript>());
 			SetSystemSignature<Systems::ScriptSystem>(sig);
 		}
-
-        m_uiTransformSystem = m_systemManager->RegisterSystem<Systems::UITransformSystem>(m_componentManager.get());
-        {
-            Signature sig;
-            sig.set(GetComponentType<Component::UIRectTransform>());
-            SetSystemSignature<Systems::UITransformSystem>(sig);
-        }
 
         // UIEventSystem processes input before rendering - handles button states and hit testing
         m_uiEventSystem = m_systemManager->RegisterSystem<Systems::UIEventSystem>(m_componentManager.get());

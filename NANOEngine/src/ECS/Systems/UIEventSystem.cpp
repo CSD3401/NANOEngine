@@ -10,6 +10,9 @@
 #include "../Components/EntityMeta.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/Hierarchy.hpp"
+#include "../../Events/EventBus.hpp"
+#include "../../Events/UIEvents.hpp"
+#include "UITransformUtilities.hpp"
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -49,35 +52,7 @@ namespace NE::ECS::Systems {
 
     bool UIEventSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
-        Entity cur = entity;
-
-        while (cur != NO_ENTITY)
-        {
-            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(cur)) {
-                if (!m_cm->GetComponent<NE::ECS::Component::EntityMeta>(cur).isActive) {
-                    return false;
-                }
-            }
-
-            if (cur == canvasEntity) break;
-
-            if (!m_cm->HasComponent<Hierarchy>(cur)) break;
-            cur = m_cm->GetComponent<Hierarchy>(cur).parent;
-        }
-
-        // Also require canvas itself to be active (both flags)
-        if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
-            const auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
-
-            bool metaActive = true;
-            if (m_cm->HasComponent<NE::ECS::Component::EntityMeta>(canvasEntity)) {
-                metaActive = m_cm->GetComponent<NE::ECS::Component::EntityMeta>(canvasEntity).isActive;
-            }
-
-            if (!canvas.isActive || !metaActive) return false;
-        }
-
-        return true;
+        return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
     }
 
     void UIEventSystem::OnEntityAdded(Entity e) {}
@@ -155,6 +130,10 @@ namespace NE::ECS::Systems {
                     auto& button = m_cm->GetComponent<UIButton>(m_pressedEntity);
                     if (button.interactable) {
                         button.wasClicked = true;
+                        NANOEngine::Events::EventBus::Get().Dispatch(
+                            NANOEngine::Events::EventDomain::Engine,
+                            NANOEngine::Events::UIButtonClickEvent{ m_pressedEntity, button.onClickEventId }
+                        );
                     }
                 }
                 // Handle toggle click
@@ -163,10 +142,13 @@ namespace NE::ECS::Systems {
                     if (toggle.interactable) {
                         toggle.wasClicked = true;
                         toggle.Toggle();
+                        NANOEngine::Events::EventBus::Get().Dispatch(
+                            NANOEngine::Events::EventDomain::Engine,
+                            NANOEngine::Events::UIToggleChangedEvent{ m_pressedEntity, toggle.isOn }
+                        );
                     }
                 }
                 // Also check if this is a toggle background
-                // Find parent toggle
                 if (m_cm->HasComponent<Hierarchy>(m_pressedEntity)) {
                     Entity parent = m_cm->GetComponent<Hierarchy>(m_pressedEntity).parent;
                     if (parent != NO_ENTITY && m_cm->HasComponent<UIToggle>(parent)) {
@@ -174,6 +156,10 @@ namespace NE::ECS::Systems {
                         if (toggle.background == m_pressedEntity && toggle.interactable) {
                             toggle.wasClicked = true;
                             toggle.Toggle();
+                            NANOEngine::Events::EventBus::Get().Dispatch(
+                                NANOEngine::Events::EventDomain::Engine,
+                                NANOEngine::Events::UIToggleChangedEvent{ parent, toggle.isOn }
+                            );
                         }
                     }
                 }
@@ -428,6 +414,10 @@ namespace NE::ECS::Systems {
                     // Check if value changed
                     if (slider.value != oldValue) {
                         slider.valueChanged = true;
+                        NANOEngine::Events::EventBus::Get().Dispatch(
+                            NANOEngine::Events::EventDomain::Engine,
+                            NANOEngine::Events::UISliderValueChangedEvent{ m_draggingSlider, slider.value, oldValue }
+                        );
                     }
 
                     // Update fill rect width/height based on value
@@ -511,21 +501,7 @@ namespace NE::ECS::Systems {
     }
 
     float UIEventSystem::CalculateScaleFactor(const UICanvas& canvas) {
-        float screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-        float screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
-
-        switch (canvas.scaleMode) {
-            case UICanvas::ScaleMode::SCALE_WITH_SCREEN_SIZE: {
-                float widthScale = screenWidth / canvas.referenceWidth;
-                float heightScale = screenHeight / canvas.referenceHeight;
-                return std::min(widthScale, heightScale);
-            }
-            case UICanvas::ScaleMode::CONSTANT_PIXEL_SIZE:
-                return 1.0f;
-            case UICanvas::ScaleMode::CONSTANT_PHYSICAL_SIZE:
-                return 1.0f;
-        }
-        return 1.0f;
+        return UIUtil::CalculateScaleFactor(canvas);
     }
 
     void UIEventSystem::CalculateWorldRect(
