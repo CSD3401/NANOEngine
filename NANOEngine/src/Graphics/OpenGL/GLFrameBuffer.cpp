@@ -43,25 +43,32 @@ namespace NE::Graphics::OpenGL {
         }
     }
 
-    void GLFrameBuffer::Configure(FormatMode mode, uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer)
+    void GLFrameBuffer::Configure(FormatMode mode, uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer, bool enableDepth, bool enableStencil)
     {
         m_Mode = mode;
         m_Width = width;
         m_Height = height;
         m_EnablePicking = enablePicking;
         m_EnableMiniGBuffer = enableMiniGBuffer;
+        m_EnableDepth = enableDepth;
+        m_EnableStencil = enableStencil;
         m_PickingWriteEnabled = enablePicking;
         RebuildAttachments();
     }
 
-    void GLFrameBuffer::CreateAsHDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer)
+    void GLFrameBuffer::CreateAsStandard(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer, bool enableDepth, bool enableStencil)
     {
-        Configure(FormatMode::HDR, width, height, enablePicking, enableMiniGBuffer);
+        Configure(FormatMode::Standard, width, height, enablePicking, enableMiniGBuffer, enableDepth, enableStencil);
     }
 
-    void GLFrameBuffer::CreateAsLDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer)
+    void GLFrameBuffer::CreateAsHDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer, bool enableDepth, bool enableStencil)
     {
-        Configure(FormatMode::LDR, width, height, enablePicking, enableMiniGBuffer);
+        Configure(FormatMode::HDR, width, height, enablePicking, enableMiniGBuffer, enableDepth, enableStencil);
+    }
+
+    void GLFrameBuffer::CreateAsLDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer, bool enableDepth, bool enableStencil)
+    {
+        Configure(FormatMode::LDR, width, height, enablePicking, enableMiniGBuffer, enableDepth, enableStencil);
     }
 
     void GLFrameBuffer::RebuildAttachments()
@@ -105,14 +112,22 @@ namespace NE::Graphics::OpenGL {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_NormalAttachment, 0);
         }
 
-        glGenTextures(1, &m_DepthAttachment);
-        glBindTexture(GL_TEXTURE_2D, m_DepthAttachment);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_Width, m_Height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachment, 0);
+        if (m_EnableDepth) {
+            glGenTextures(1, &m_DepthAttachment);
+            glBindTexture(GL_TEXTURE_2D, m_DepthAttachment);
+            if (m_EnableStencil) {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_Width, m_Height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachment, 0);
+            }
+            else {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, m_Width, m_Height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_DepthAttachment, 0);
+            }
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        }
 
         ApplyDrawBuffers();
 
@@ -160,7 +175,15 @@ namespace NE::Graphics::OpenGL {
     {
         glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        GLbitfield clearMask = GL_COLOR_BUFFER_BIT;
+        if (m_EnableDepth) {
+            clearMask |= GL_DEPTH_BUFFER_BIT;
+        }
+        if (m_EnableDepth && m_EnableStencil) {
+            clearMask |= GL_STENCIL_BUFFER_BIT;
+        }
+        glClear(clearMask);
     }
 
     void GLFrameBuffer::SetPickingWrite(bool enable)

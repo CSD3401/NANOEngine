@@ -686,12 +686,24 @@ namespace NE::Graphics {
             desc.height = 1080;
             desc.enablePicking = true;
             desc.enableMiniGBuffer = true;
+            desc.enableDepth = true;
+            desc.enableStencil = true;
             desc.format = RenderViewFormat::HDR;
             s_SceneViewHandle = s_RenderViewManager->Create(desc);
         }
 #endif // !PRODUCTION_BUILD
-        s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
-        s_FinalGameOutputHandle = s_RenderViewManager->Create(1920, 1080, false);
+        {
+            RenderViewCreateDesc desc;
+            desc.width = 1920;
+            desc.height = 1080;
+            desc.enablePicking = false;
+            desc.enableMiniGBuffer = false;
+            desc.enableDepth = false;
+            desc.enableStencil = false;
+            desc.format = RenderViewFormat::Standard;
+            s_FinalOutputViewHandle = s_RenderViewManager->Create(desc);
+            s_FinalGameOutputHandle = s_RenderViewManager->Create(desc);
+        }
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
@@ -1089,6 +1101,8 @@ namespace NE::Graphics {
         desc.height = height;
         desc.enablePicking = enablePicking;
         desc.enableMiniGBuffer = true;
+        desc.enableDepth = true;
+        desc.enableStencil = false;
         desc.format = RenderViewFormat::HDR;
         return s_RenderViewManager->Create(desc);
 	}
