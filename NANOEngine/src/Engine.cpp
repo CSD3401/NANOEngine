@@ -95,19 +95,15 @@ namespace NE {
 		s_renderContext = std::make_unique<Graphics::OpenGL::GLContext>();
 		s_renderContext->Init(s_window->GetNativeWindow());
 
-		// here for now
-		//glEnable(GL_CULL_FACE);
-
 		Graphics::GraphicsManager::Init();
 		Physics::PhysicsManager::GetInstance().Init();
 		Scripting::ScriptingEngine::GetInstance().Initialize();
 	}
 
 	void Run(double dt) {
+#ifndef PRODUCTION_BUILD
 		NE_PROFILE_FUNCTION();
-		//s_window->PollEvents();
-
-		//Physics::PhysicsManager::Update(static_cast<float>(dt));
+#endif
 		Physics::JoltDebugRenderer::BeginFrame();
 		
 		gSceneManager.Update(dt);

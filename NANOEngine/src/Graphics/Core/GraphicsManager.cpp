@@ -485,11 +485,19 @@ namespace NE::Graphics {
             const Frustum& frustum,
             const Mat4& camProj,
             const Mat4& camView,
-            const std::shared_ptr<OpenGL::GLShader>& normalPrepassShader)
+            const std::shared_ptr<OpenGL::GLShader>& normalPrepassShader,
+            IStateCache* stateCache)
         {
             if (!view.framebuffer || !view.framebuffer->HasMiniGBuffer() || !normalPrepassShader) {
                 return false;
             }
+
+            // Prepass must not inherit decal/gizmo state from previous draws.
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
 
             const GLenum normalAttachment = GL_COLOR_ATTACHMENT2;
             glDrawBuffers(1, &normalAttachment);
@@ -522,7 +530,6 @@ namespace NE::Graphics {
                 if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
                     continue;
                 if (!command.mesh) continue;
-
                 if (command.mesh != currentMesh && !instanceData.empty()) {
                     flushBatch();
                 }
@@ -538,6 +545,10 @@ namespace NE::Graphics {
             }
 
             flushBatch();
+
+            if (stateCache) {
+                stateCache->InvalidateAll();
+            }
 
             view.framebuffer->SetPickingWrite(true);
             return true;
@@ -757,7 +768,8 @@ namespace NE::Graphics {
                 frustum,
                 camProj,
                 camView,
-                s_NormalPrepassShader
+                s_NormalPrepassShader,
+                s_StateCache.get()
             );
             if (ranPrepass) {
                 glDepthFunc(GL_LEQUAL);
@@ -943,8 +955,6 @@ namespace NE::Graphics {
             RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
             RenderDecalGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
 
-            //QueueLightDebugGeometryForView(handle, s_SceneViewHandle, m_lights);
-
             if (handle == s_SceneViewHandle)
                 DrawAllDebugGeometry();
 
@@ -1111,27 +1121,13 @@ namespace NE::Graphics {
         framebuffer->ReadPixelRect(x, y, width, height, outIds);
     }
 
-    uint32_t GraphicsManager::GetSceneColorAttachment() 
-    {
-        //if (InputManager::IsKeyDown('4')) return s_FinalColorTex;
-        //if (InputManager::IsKeyDown('8')) return s_RenderViewManager->GetFramebuffer(s_SceneViewHandle)->GetColorAttachment();
-        //if (InputManager::IsKeyDown('9')) return s_SSAOTex;
-        //if (InputManager::IsKeyDown('0')) return s_RenderViewManager->GetFramebuffer(s_GameViewHandle)->GetColorAttachment();
-        //if (InputManager::IsKeyDown('P')) return s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle)->GetColorAttachment();
-
+    uint32_t GraphicsManager::GetSceneColorAttachment()  {
         auto framebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
         if (framebuffer) {
             return framebuffer->GetColorAttachment();
         }
 
         return 0;
-
-		//auto framebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
-        //  if (framebuffer) {
-        //  return framebuffer->GetColorAttachment();
-		//}
-
-		//return 0;
 	}
 
     uint32_t GraphicsManager::GetGameColorAttachment() {

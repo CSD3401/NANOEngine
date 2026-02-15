@@ -26,6 +26,7 @@ in vec3 v_LocalPos;
 uniform mat4 u_ViewProjInv;
 uniform mat4 u_DecalModel;
 uniform mat4 u_DecalInvModel;
+uniform vec3 u_CameraPos;
 
 uniform sampler2D u_SceneDepthTex;
 uniform sampler2D u_SceneNormalTex;
@@ -58,10 +59,13 @@ void main() {
     if (sceneDepth >= 1.0) discard;
 
     vec3 worldPos = ReconstructWorldPosition(uv, sceneDepth);
-    vec3 sceneNormal = normalize(texture(u_SceneNormalTex, uv).xyz);
+    vec3 sceneNormal = texture(u_SceneNormalTex, uv).xyz;
+    sceneNormal = normalize(sceneNormal * 2.0 - 1.0);
 
     vec3 decalForward = normalize((u_DecalModel * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
-    if (dot(sceneNormal, -decalForward) <= 0.05) discard;
+    float facing = dot(sceneNormal, -decalForward);
+    float angleFade = smoothstep(0.2, 0.5, facing);
+    if (angleFade <= 0.01) discard;
 
     vec3 localPos = (u_DecalInvModel * vec4(worldPos, 1.0)).xyz;
     if (abs(localPos.x) > 0.5 || abs(localPos.y) > 0.5 || abs(localPos.z) > 0.5) discard;
@@ -78,6 +82,7 @@ void main() {
     if (h_HasOpacityMap != 0) {
         alpha *= clamp(texture(u_OpacityMap, decalUV).r, 0.0, 1.0);
     }
+    alpha *= angleFade;
 
     if (u_AlphaClip != 0 && alpha < u_AlphaCutoff) {
         discard;
