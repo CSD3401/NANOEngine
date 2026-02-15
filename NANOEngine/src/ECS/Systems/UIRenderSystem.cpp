@@ -838,7 +838,14 @@ namespace NE::ECS::Systems {
 
         // Build DrawCommand
         NE::Graphics::DrawCommand cmd;
-        cmd.transform = rect.worldMatrix;
+
+        // Screen-space: vertices are already in pixel coordinates, shader converts to NDC
+        // World-space: vertices are unit quads, worldMatrix positions them in 3D
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+            cmd.transform = rect.worldMatrix;
+        } else {
+            cmd.transform = Math::Mat4(); // Identity — vertices pre-positioned in pixels
+        }
         cmd.mesh = geometryBuffer;
         cmd.material = instanceMaterial;
         cmd.castsShadow = false;
@@ -873,9 +880,7 @@ namespace NE::ECS::Systems {
             if (!m_cm->HasComponent<UIImage>(e)) continue;
             if (m_cm->HasComponent<UICanvas>(e)) continue;
 
-            auto& rect = m_cm->GetComponent<UIRectTransform>(e);
-
-            // Check if this entity belongs to this canvas (same logic you already used)
+            // Check if this entity belongs to this canvas
             Entity root = e;
             Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
 
@@ -906,89 +911,6 @@ namespace NE::ECS::Systems {
                 auto& rectB = m_cm->GetComponent<UIRectTransform>(b);
                 return rectA.z < rectB.z;
             });
-    }
-
-    std::vector<NE::Graphics::UIVertex> UIRenderSystem::GenerateScreenSpaceVertices(
-        Entity entity,
-        const WorldTransform& worldTransform,
-        const UIImage& img
-    ) 
-    {
-        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
-
-        auto vertices = NE::Graphics::UIImageMeshGenerator::GenerateVertices(
-            img,
-            worldTransform.x,
-            worldTransform.y,
-            worldTransform.z,
-            worldTransform.width,
-            worldTransform.height,
-            img.color
-        );
-
-        if (!vertices.empty() && std::abs(worldTransform.accumulatedRotationZ) > ROTATION_EPSILON) {
-            float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
-            float pivotY = worldTransform.y + worldTransform.height * rect.pivotY;
-            RotateVertices2D(vertices, pivotX, pivotY, worldTransform.accumulatedRotationZ);
-        }
-
-        return vertices;
-    }
-
-    std::vector<NE::Graphics::UIVertex> UIRenderSystem::GenerateWorldSpaceVertices(const UIImage& img) 
-    {
-        return NE::Graphics::UIImageMeshGenerator::GenerateVertices(
-            img,
-            0.0f, 0.0f, 0.0f,
-            1.0f, 1.0f,
-            img.color
-        );
-    }
-
-    Math::Mat4 UIRenderSystem::BuildWorldSpaceModelMatrix(
-        Entity entity,
-        Entity canvasEntity,
-        const UIRectTransform& rect,
-        const AccumulatedTransform& accumulated
-    )
-    {
-        (void)entity;       // Unused parameter
-        (void)canvasEntity; // Unused parameter
-
-        // compute pivot offset
-        Math::Vec2 pivot = rect.GetPivot();
-
-        float pivotOffsetX = -rect.width * pivot.x * accumulated.scaleX;
-        float pivotOffsetY = -rect.height * pivot.y * accumulated.scaleY;
-
-        // Scale matrix using accumulated scale
-        Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
-            rect.width * accumulated.scaleX,
-            rect.height * accumulated.scaleY,
-            accumulated.scaleZ
-        );
-
-        // pivot offset in local space
-        Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(
-            pivotOffsetX,
-            pivotOffsetY,
-            0.0f
-        );
-
-        // rotation using accumulated rotations
-        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accumulated.rotationX * PI / 180.0f);
-        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accumulated.rotationY * PI / 180.0f);
-        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accumulated.rotationZ * PI / 180.0f);
-        Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
-
-        // translation using accumulated position
-        Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(
-            accumulated.posX,
-            accumulated.posY,
-            accumulated.posZ
-        );
-
-        return translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
     }
 
     void UIRenderSystem::RenderCanvasChildren(
@@ -1055,32 +977,6 @@ namespace NE::ECS::Systems {
     }
 
     //=========================================================================
-    // Vertex Manipulation
-    //=========================================================================
-
-    void UIRenderSystem::RotateVertices2D(
-        std::vector<NE::Graphics::UIVertex>& vertices,
-        float pivotX,
-        float pivotY,
-        float rotationDegrees
-    ) 
-    {
-        if (std::abs(rotationDegrees) < ROTATION_EPSILON) return;
-
-        float radians = rotationDegrees * PI / 180.0f;
-        float cosR = std::cos(radians);
-        float sinR = std::sin(radians);
-
-        for (auto& v : vertices) {
-            float localX = v.x - pivotX;
-            float localY = v.y - pivotY;
-
-            v.x = pivotX + localX * cosR - localY * sinR;
-            v.y = pivotY + localX * sinR + localY * cosR;
-        }
-    }
-
-    //=========================================================================
     // Camera Utilities
     //=========================================================================
 
@@ -1109,8 +1005,6 @@ namespace NE::ECS::Systems {
             if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
             if (!m_cm->HasComponent<UIText>(e)) continue;
             if (m_cm->HasComponent<UICanvas>(e)) continue;
-
-            auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
             Entity root = e;
             Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
@@ -1152,6 +1046,9 @@ namespace NE::ECS::Systems {
 
         // Accumulate parent transforms ONCE for this text entity
         AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
+
+        // Update world matrix from accumulated (needed for world-space text submission)
+        UpdateWorldMatrixFromAccumulated(entity, accumulated);
 
         // Use the average scale for uniform font scaling (take the smaller to ensure text fits)
         float scaleFactorForFont = std::min(accumulated.scaleX, accumulated.scaleY);

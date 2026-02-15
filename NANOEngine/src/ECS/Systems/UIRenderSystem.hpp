@@ -159,34 +159,6 @@ namespace NE::ECS::Systems {
 
         void SortEntitiesByZOrder(std::vector<Entity>& entities);
 
-        std::vector<NE::Graphics::UIVertex> GenerateScreenSpaceVertices(
-            Entity entity,
-            const WorldTransform& worldTransform,
-            const Component::UIImage& img
-        );
-
-        std::vector<NE::Graphics::UIVertex> GenerateWorldSpaceVertices(
-            const Component::UIImage& img
-        );
-
-        Math::Mat4 BuildWorldSpaceModelMatrix(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UIRectTransform& rect,
-            const AccumulatedTransform& accumulated
-        );
-
-        //=================================================================
-        // Vertex Manipulation
-        //=================================================================
-
-        void RotateVertices2D(
-            std::vector<NE::Graphics::UIVertex>& vertices,
-            float pivotX,
-            float pivotY,
-            float rotationDegrees
-        );
-
         //=================================================================
         // Camera Utilities
         //=================================================================
