@@ -18,6 +18,7 @@
 #include "../ECS/Components/PrefabLink.hpp"
 #include "../ECS/Components/PrefabInstance.hpp"
 #include "../ECS/Components/CharacterController.hpp"
+#include "../ECS/Components/DecalProjector.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -188,6 +189,10 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().HasComponent<ECS::Component::CharacterController>(e);
 		}
 
+        bool HasDecalProjector(uint32_t e) {
+            return GetScene().GetECSCoordinator().HasComponent<ECS::Component::DecalProjector>(e);
+        }
+
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Animator>(e);
 		}
@@ -207,6 +212,10 @@ namespace NE::ECS {
 		const Component::CharacterController& GetCharacterController(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
+
+        const Component::DecalProjector& GetDecalProjector(uint32_t e) {
+            return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
+        }
 
 		const Component::Hierarchy& GetEntityHierarchy(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::Hierarchy>(e);
@@ -287,6 +296,10 @@ namespace NE::ECS {
 		ComponentType GetCharacterControllerComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::CharacterController>();
 		}
+
+        ComponentType GetDecalProjectorComponentType() {
+            return GetScene().GetECSCoordinator().GetComponentType<Component::DecalProjector>();
+        }
 
 		uint32_t GetParent(uint32_t child) {
 			auto& ecs = NE::GetScene().GetECSCoordinator();
@@ -787,6 +800,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::Camera{});
 		}
 
+		void AddDecalProjectorComponent(uint32_t e) {
+			GetScene().GetECSCoordinator().AddComponent(e, ECS::Component::DecalProjector{});
+		}
+
 		void AddEntityMetaComponent(uint32_t e, const Component::EntityMeta& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::EntityMeta>(e, c);
 		}
@@ -871,6 +888,10 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::CharacterController>(e, c);
 		}
 
+        void AddDecalProjectorComponent(uint32_t e, const Component::DecalProjector& c) {
+            GetScene().GetECSCoordinator().AddComponent<Component::DecalProjector>(e, c);
+        }
+
 		void RemoveLightComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Light>(e);
 		}
@@ -894,6 +915,10 @@ namespace NE::ECS {
 		void RemoveCameraComponent(uint32_t e) {
 			GetScene().GetECSCoordinator().RemoveComponent<Component::Camera>(e);
 		}
+
+        void RemoveDecalProjectorComponent(uint32_t e) {
+            GetScene().GetECSCoordinator().RemoveComponent<Component::DecalProjector>(e);
+        }
 
 		Component::EntityMeta& GetEntityMeta(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::EntityMeta>(e);
@@ -978,6 +1003,10 @@ namespace NE::ECS {
 		Component::CharacterController& GetCharacterController(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::CharacterController>(e);
 		}
+
+        Component::DecalProjector& GetDecalProjector(uint32_t e) {
+            return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
+        }
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {
 		//	NE::GetScene().GetECSCoordinator().m_transformSystem->SetParent(child, parent);

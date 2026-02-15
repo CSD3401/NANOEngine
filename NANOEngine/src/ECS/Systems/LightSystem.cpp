@@ -59,11 +59,13 @@ namespace NE::ECS::Systems {
                 light.direction = t.worldMatrix.Forward();
                 Graphics::GraphicsManager::m_lights.push_back(&light);
 
+#ifndef PRODUCTION_BUILD
                 Graphics::LightGizmoCommand gizmoCommand{};
                 gizmoCommand.position = light.position;
                 gizmoCommand.idRGB = EncodeEntityIdRGB(entity);
                 gizmoCommand.lightType = light.type;
                 Graphics::GraphicsManager::SubmitLightGizmo(gizmoCommand);
+#endif // !PRODUCTION_BUILD
             }
         }
     }

@@ -20,6 +20,7 @@ namespace NE::ECS::Component {
 	struct PrefabInstance;
 	struct CharacterController;
 	struct Animator;
+    struct DecalProjector;
 }
 
 template <typename T> struct ComponentKey;
@@ -46,3 +47,4 @@ NE_COMPONENT_KEY(NE::ECS::Component::PrefabLink, "PrefabLink")
 NE_COMPONENT_KEY(NE::ECS::Component::PrefabInstance, "PrefabInstance")
 NE_COMPONENT_KEY(NE::ECS::Component::CharacterController, "CharacterController")
 NE_COMPONENT_KEY(NE::ECS::Component::Animator, "Animator")
+NE_COMPONENT_KEY(NE::ECS::Component::DecalProjector, "DecalProjector")

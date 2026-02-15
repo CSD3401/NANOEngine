@@ -1,27 +1,15 @@
 #include "RenderSystem.hpp"
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Components/Transform.hpp"
-//#include "../Components/Collider.hpp"
-//#include "../Components/Light.hpp"
 #include "ECS/Components/EntityMeta.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
-//#include "../../Graphics/Core/Vertex.hpp"
-//#include "../../Graphics/OpenGL/GLVertexBuffer.hpp"
-//#include "../../Graphics/OpenGL/GLIndexBuffer.hpp"
-//#include "../../Graphics/OpenGL/GLGeometryBuffer.hpp"
-//#include "../../Graphics/OpenGL/GLShader.hpp"
-//#include "../../Graphics/OpenGL/GLPipeline.hpp"
+
 #include "Graphics/Core/Material.hpp"
 #include "Graphics/Core/DrawCommand.hpp"
 #include "Core/Profiler.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
-//#include <glad/glad.h>
 #include "Core/LUIDGenerator.hpp"
 #include "Core/LUIDRegistry.hpp"
-
-using namespace NE::Math;
-using NE::Graphics::Frustum;
-using NE::Graphics::GraphicsManager;
 
 namespace NE::ECS::Systems {
     namespace {
@@ -103,7 +91,7 @@ namespace NE::ECS::Systems {
             float r = (float)(entity & 0xFF) / 255.0f;
             float g = (float)((entity >> 8) & 0xFF) / 255.0f;
             float b = (float)((entity >> 16) & 0xFF) / 255.0f;
-            cmd.idRGB = Vec3{ r, g, b };
+            cmd.idRGB = Math::Vec3{ r, g, b };
 
             cmd.boundsCenterWS = TransformPoint(transform.worldMatrix, ms.center);
             cmd.boundsRadiusWs = baseR * MaxScaleAxis(transform.worldMatrix);

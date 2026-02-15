@@ -8,6 +8,8 @@
 #include "../Interfaces/IStateCache.hpp"
 #include "Material.hpp"
 #include "DrawCommand.hpp"
+#include "DecalCommand.hpp"
+#include "DecalGizmoCommand.hpp"
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
@@ -36,10 +38,15 @@ namespace NE {
         using RenderViewHandle = std::uint32_t;
 
         class ShadowRenderer;
+        namespace OpenGL {
+            class GLShader;
+        }
 	}
     namespace ECS {
         namespace Component {
             struct Light;
+            struct DecalProjector;
+			struct Transform;
         }
 	}
     namespace Math {
@@ -56,6 +63,8 @@ namespace NE::Graphics {
         static void BeginFrame();
 		static void DrawFrame();
         static void Submit(const DrawCommand& command);
+        static void SubmitDecal(const DecalCommand& command);
+        static void SubmitDecalGizmo(const DecalGizmoCommand& command);
         static void SubmitLightGizmo(const LightGizmoCommand& command);
         static void EndFrame();
         static void Clear();
@@ -99,6 +108,8 @@ namespace NE::Graphics {
         static void DrawDebugTriangles(); // drawing solid triangles
 
 		static void DrawSelectedLightGizmos(const ECS::Component::Light& light);
+		static void DrawSelectedDecalGizmos(const ECS::Component::DecalProjector& decal, 
+            const ECS::Component::Transform& transform);
 
         // batch functions
         static void AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);
@@ -149,6 +160,7 @@ namespace NE::Graphics {
 
 		// Draw Queue
 		static std::unique_ptr<DrawQueue> s_DrawQueue;
+        static std::vector<DecalCommand> s_DecalQueue;
 
 		// Framebuffer Manager
 		static std::unique_ptr<RenderViewManager> s_RenderViewManager;
@@ -159,6 +171,7 @@ namespace NE::Graphics {
 
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
+        static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
 
