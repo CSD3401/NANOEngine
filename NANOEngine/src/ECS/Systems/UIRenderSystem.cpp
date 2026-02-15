@@ -107,7 +107,7 @@ namespace NE::ECS::Systems {
             m_defaultUIMaterial = std::make_shared<NE::Graphics::Material>(pipeline);
             m_defaultUIMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
 
-            std::cout << "[UIRenderSystem] Loaded UI sprite material from UI_Sprite.nanoshader" << std::endl;
+           // std::cout << "[UIRenderSystem] Loaded UI sprite material from UI_Sprite.nanoshader" << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "[UIRenderSystem] Error loading UI sprite material: " << e.what() << std::endl;
         }
@@ -133,7 +133,7 @@ namespace NE::ECS::Systems {
             m_defaultTextMaterial = std::make_shared<NE::Graphics::Material>(textPipeline);
             m_defaultTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
 
-            std::cout << "[UIRenderSystem] Loaded UI text material from UI_Text.nanoshader" << std::endl;
+            //std::cout << "[UIRenderSystem] Loaded UI text material from UI_Text.nanoshader" << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "[UIRenderSystem] Error loading UI text material: " << e.what() << std::endl;
         }
@@ -203,6 +203,13 @@ namespace NE::ECS::Systems {
         m_geometryIndex = 0;
 
         const auto& entities = GetEntities();
+
+        // Invalidate cached world rects so stale caches from removed/inactive entities are cleared
+        for (Entity e : entities) {
+            if (m_cm->HasComponent<UIRectTransform>(e)) {
+                m_cm->GetComponent<UIRectTransform>(e).worldRectCached = false;
+            }
+        }
 
         // MIGRATION: Add Hierarchy component to old UI entities that don't have it
         static bool migrationDone = false;
@@ -563,6 +570,40 @@ namespace NE::ECS::Systems {
         return result;
     }
 
+    UIRenderSystem::WorldTransform UIRenderSystem::CalculateWorldTransformFromAccumulated(
+        Entity entity,
+        const UICanvas& canvas,
+        const AccumulatedTransform& accumulated
+    )
+    {
+        WorldTransform result;
+
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return result;
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+
+        result.x = accumulated.posX;
+        result.y = accumulated.posY;
+        result.z = accumulated.posZ;
+        result.width = rect.width * accumulated.scaleX;
+        result.height = rect.height * accumulated.scaleY;
+        result.accumulatedRotationZ = accumulated.rotationZ;
+        result.accumulatedScaleX = accumulated.scaleX;
+        result.accumulatedScaleY = accumulated.scaleY;
+
+        // Pixel-perfect snapping for screen space only
+        if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+            canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+            if (canvas.pixelPerfect) {
+                ApplyPixelPerfectSnapping(result);
+            }
+        }
+
+        return result;
+    }
+
     void UIRenderSystem::ApplyPixelPerfectSnapping(WorldTransform& transform)
     {
         transform.x = std::round(transform.x);
@@ -588,6 +629,34 @@ namespace NE::ECS::Systems {
         AccumulatedTransform acc = AccumulateParentTransforms(entity, canvasEntity, canvas);
 
         // Build TRS matrices
+        Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
+        Math::Mat4 R = rect.GetRotationMatrix();
+        Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
+
+        // Handle pivot offset
+        float pivotOffsetX = rect.width * rect.pivotX;
+        float pivotOffsetY = rect.height * rect.pivotY;
+        Math::Mat4 pivotTrans = Math::Mat4::BuildTranslation(Math::Vec3(pivotOffsetX, pivotOffsetY, 0.0f));
+        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
+
+        // Build final world matrix: T * pivot * R * S * pivot^-1
+        rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
+        rect.worldMatrixDirty = false;
+    }
+
+    void UIRenderSystem::UpdateWorldMatrixFromAccumulated(
+        Entity entity,
+        const AccumulatedTransform& acc
+    )
+    {
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return;
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+        if (!rect.worldMatrixDirty) return;
+
+        // Build TRS matrices using pre-computed accumulated transforms
         Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
         Math::Mat4 R = rect.GetRotationMatrix();
         Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
@@ -940,12 +1009,25 @@ namespace NE::ECS::Systems {
             auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
-            // Integrated pipeline - submit through GraphicsManager
-            UpdateWorldMatrix(e, canvasEntity, canvas);
+            // Accumulate parent transforms ONCE per entity
+            AccumulatedTransform accumulated = AccumulateParentTransforms(e, canvasEntity, canvas);
+
+            // Use the pre-computed accumulated transform for both world matrix and world transform
+            UpdateWorldMatrixFromAccumulated(e, accumulated);
+            WorldTransform worldTransform = CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
+
+            // Cache the world rect for UIEventSystem to reuse
+            rect.cachedWorldX = worldTransform.x;
+            rect.cachedWorldY = worldTransform.y;
+            rect.cachedWorldWidth = worldTransform.width;
+            rect.cachedWorldHeight = worldTransform.height;
+            rect.cachedWorldRotZ = worldTransform.accumulatedRotationZ;
+            rect.cachedWorldScaleX = worldTransform.accumulatedScaleX;
+            rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
+            rect.worldRectCached = true;
 
             // Generate vertices using UIVertex2
             std::vector<NE::Graphics::UIVertex2> verticesV2;
-            WorldTransform worldTransform = CalculateWorldTransform(e, canvasEntity, canvas, viewMatrix, projMatrix);
 
             // Use white color for vertices (color is applied via uniform)
             Math::Vec4 whiteColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -1068,7 +1150,7 @@ namespace NE::ECS::Systems {
         // Skip if no text or font
         if (text.text.empty() || text.fontUUID.empty()) return;
 
-        // Calculate accumulated scale for font scaling
+        // Accumulate parent transforms ONCE for this text entity
         AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
 
         // Use the average scale for uniform font scaling (take the smaller to ensure text fits)
@@ -1116,8 +1198,19 @@ namespace NE::ECS::Systems {
             return;
         }
 
+        // Reuse the pre-computed accumulated transform (no second traversal)
         WorldTransform worldTransform =
-            CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
+            CalculateWorldTransformFromAccumulated(entity, canvas, accumulated);
+
+        // Cache the world rect for UIEventSystem to reuse
+        rect.cachedWorldX = worldTransform.x;
+        rect.cachedWorldY = worldTransform.y;
+        rect.cachedWorldWidth = worldTransform.width;
+        rect.cachedWorldHeight = worldTransform.height;
+        rect.cachedWorldRotZ = worldTransform.accumulatedRotationZ;
+        rect.cachedWorldScaleX = worldTransform.accumulatedScaleX;
+        rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
+        rect.worldRectCached = true;
 
         NE::Math::Vec3 curPos{ worldTransform.x, worldTransform.y, worldTransform.z };
         NE::Math::Vec2 curSize{ worldTransform.width, worldTransform.height };
@@ -1145,8 +1238,7 @@ namespace NE::ECS::Systems {
             transformChanged;
 
         if (needsRegen) {
-            // Recalculate world transform for text generation
-            worldTransform = CalculateWorldTransform(entity, canvasEntity, canvas, viewMatrix, projMatrix);
+            // worldTransform already computed from accumulated above — no re-traversal needed
 
             auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
                 text.text,

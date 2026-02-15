@@ -517,6 +517,17 @@ namespace NE::ECS::Systems {
         }
 
         auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+
+        // Use cached values from UIRenderSystem if available (avoids re-traversal)
+        if (rect.worldRectCached) {
+            outX = rect.cachedWorldX;
+            outY = rect.cachedWorldY;
+            outWidth = rect.cachedWorldWidth;
+            outHeight = rect.cachedWorldHeight;
+            return;
+        }
+
+        // Fallback: compute from scratch (handles entities not processed by UIRenderSystem)
         float scaleFactor = CalculateScaleFactor(canvas);
 
         // Build parent chain (excluding canvas for screen space)
@@ -678,6 +689,12 @@ namespace NE::ECS::Systems {
         Entity canvasEntity,
         const Component::UIRectTransform& rect
     ) {
+        // If UIRenderSystem already computed the world matrix this frame, reuse it
+        if (!rect.worldMatrixDirty) {
+            return rect.worldMatrix;
+        }
+
+        // Fallback: compute from scratch (handles entities not processed by UIRenderSystem)
         // Build parent chain including canvas
         std::vector<Entity> chain;
         Entity current = entity;

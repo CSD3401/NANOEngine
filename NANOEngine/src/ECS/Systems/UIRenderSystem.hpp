@@ -91,6 +91,12 @@ namespace NE::ECS::Systems {
             const Component::UICanvas& canvas
         );
 
+        // Overload that accepts pre-computed AccumulatedTransform (avoids re-traversal)
+        void UpdateWorldMatrixFromAccumulated(
+            Entity entity,
+            const AccumulatedTransform& accumulated
+        );
+
         std::vector<Entity> BuildParentChain(
             Entity entity,
             Entity canvasEntity,
@@ -107,6 +113,13 @@ namespace NE::ECS::Systems {
             const Component::UICanvas& canvas,
             const Math::Mat4* viewMatrix = nullptr,
             const Math::Mat4* projMatrix = nullptr
+        );
+
+        // Overload that accepts pre-computed AccumulatedTransform (avoids re-traversal)
+        WorldTransform CalculateWorldTransformFromAccumulated(
+            Entity entity,
+            const Component::UICanvas& canvas,
+            const AccumulatedTransform& accumulated
         );
 
         void ApplyPixelPerfectSnapping(WorldTransform& transform);

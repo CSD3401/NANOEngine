@@ -57,6 +57,16 @@ namespace NE::ECS::Component {
         NE::Math::Mat4 worldMatrix;           // World transform (accumulated from parent chain)
         bool worldMatrixDirty = true;         // Needs recalculation
 
+        // Cached screen-space world rect (set by UIRenderSystem each frame)
+        float cachedWorldX = 0.f;
+        float cachedWorldY = 0.f;
+        float cachedWorldWidth = 0.f;
+        float cachedWorldHeight = 0.f;
+        float cachedWorldRotZ = 0.f;
+        float cachedWorldScaleX = 1.f;
+        float cachedWorldScaleY = 1.f;
+        bool  worldRectCached = false;   // true once UIRenderSystem has written values this frame
+
         // Reflection (luid managed by Hierarchy component)
         NE_REFLECT_BEGIN(UIRectTransform)
             NE_REFLECT_FIELD(x),
