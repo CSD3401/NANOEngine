@@ -119,7 +119,7 @@ namespace NE::ECS::Systems {
 
 #ifndef PRODUCTION_BUILD
             Graphics::DecalGizmoCommand gizmoCommand{};
-            gizmoCommand.position = cmd.positionWS;
+            gizmoCommand.position = transform.worldMatrix.GetTranslation();
             gizmoCommand.idRGB = EncodeEntityIdRGB(entity);
             Graphics::GraphicsManager::SubmitDecalGizmo(gizmoCommand);
 #endif

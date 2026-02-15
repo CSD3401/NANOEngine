@@ -9,7 +9,7 @@ namespace NE::ECS::Component {
 	struct DecalProjector {
 		std::string materialUUID;
 		std::shared_ptr<Graphics::Material> material;
-		Math::Vec3 pivot{ 0.0f, 0.0f, 0.0f };
+		Math::Vec3 pivot{ 0.0f, 0.0f, 0.5f };
 		Math::Vec2 tilling{ 1.0f, 1.0f };
 		Math::Vec2 offset{ 0.0f, 0.0f };
 		float width = 1.0f;
