@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <vector>
 #include "../NANOEngineAPI.hpp"
 
 // Forward Decl
@@ -43,5 +44,7 @@ namespace NE::Renderer {
 		NANOENGINE_API void DrawSelectedLightGizmos(const NE::ECS::Component::Light& lightComponent);
 		NANOENGINE_API void DrawSelectedDecalGizmos(const NE::ECS::Component::DecalProjector& decalComponent, 
 			const NE::ECS::Component::Transform& transformComponent);
+		NANOENGINE_API void SetSelectedEntities(const std::vector<uint32_t>& selectedIds);
+		NANOENGINE_API void ClearSelectedEntities();
 	}
 }

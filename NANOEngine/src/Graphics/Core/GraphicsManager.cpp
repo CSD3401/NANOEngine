@@ -46,12 +46,14 @@
 #include "ECS/Components/Light.hpp"
 #include "SceneManagement/Scene.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
+#include "ECS/Core/Entity.hpp"
 
 #include <glad/glad.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <variant>
+#include <string>
 
 #include "Input/InputManager.hpp"
 #include "ShadowRenderer.hpp"
@@ -60,8 +62,10 @@
 
 namespace NE::Graphics {
     namespace {
+        constexpr float SELECTION_OUTLINE_SCALE = 1.05f;
+        constexpr Math::Vec4 SELECTION_OUTLINE_COLOR = { 0.89f, 0.61f, 0.06f, 1.0f };
+
         constexpr float ICON_GIZMO_PIXEL_SIZE = 128.f;
-        //constexpr float DECAL_GIZMO_PIXEL_SIZE = 112.f;
 
         constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
             "nedirlight", // Directional
@@ -659,9 +663,11 @@ namespace NE::Graphics {
     RenderViewHandle GraphicsManager::s_GameViewHandle;
     RenderViewHandle GraphicsManager::s_FinalOutputViewHandle;
     RenderViewHandle GraphicsManager::s_FinalGameOutputHandle;
-	std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
+    std::shared_ptr<IClusteredLighting> GraphicsManager::s_clusteredLighting;
     std::unique_ptr<PostProcessPipeline> GraphicsManager::s_PostPipeline;
     std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_NormalPrepassShader;
+    std::shared_ptr<OpenGL::GLShader> GraphicsManager::s_SelectionOutlineProgram;
+    std::unordered_set<uint32_t> GraphicsManager::s_SelectedEntityIds;
 
 	std::unique_ptr<ShadowRenderer> GraphicsManager::s_shadowRenderer;
 
@@ -686,12 +692,24 @@ namespace NE::Graphics {
             desc.height = 1080;
             desc.enablePicking = true;
             desc.enableMiniGBuffer = true;
+            desc.enableDepth = true;
+            desc.enableStencil = true;
             desc.format = RenderViewFormat::HDR;
             s_SceneViewHandle = s_RenderViewManager->Create(desc);
         }
 #endif // !PRODUCTION_BUILD
-        s_FinalOutputViewHandle = s_RenderViewManager->Create(1920, 1080, false);
-        s_FinalGameOutputHandle = s_RenderViewManager->Create(1920, 1080, false);
+        {
+            RenderViewCreateDesc desc;
+            desc.width = 1920;
+            desc.height = 1080;
+            desc.enablePicking = false;
+            desc.enableMiniGBuffer = false;
+            desc.enableDepth = false;
+            desc.enableStencil = false;
+            desc.format = RenderViewFormat::Standard;
+            s_FinalOutputViewHandle = s_RenderViewManager->Create(desc);
+            s_FinalGameOutputHandle = s_RenderViewManager->Create(desc);
+        }
 
         s_clusteredLighting = std::make_shared<OpenGL::GLClusteredLighting>();
 
@@ -701,6 +719,8 @@ namespace NE::Graphics {
         InitializeLightGizmoResources();
         InitializeDecalGizmoResources();
         s_NormalPrepassShader = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("nenormalprepass");
+        s_SelectionOutlineProgram = Resource::ResourceManager::GetInstance().LoadResource<OpenGL::GLShader>("neselectionoutline");
+
         auto decalCubeModel = Resource::ResourceManager::GetInstance().LoadResource<Model>("builtin:model/cube");
         if (decalCubeModel && !decalCubeModel->meshes.empty()) {
             s_DecalCubeMesh = decalCubeModel->meshes[0].buffer;
@@ -959,6 +979,8 @@ namespace NE::Graphics {
                 s_skybox->Draw(view);
             }
 
+            RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
+
             RenderLightGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
             RenderDecalGizmosForView(handle, view, camProj, camView, camPos, s_StateCache.get(), s_SceneViewHandle);
 
@@ -998,6 +1020,158 @@ namespace NE::Graphics {
         }
     }
 
+    uint32_t GraphicsManager::DecodeEntityIdFromRGB(const Math::Vec3& idRGB) {
+        if (idRGB.x < 0.0f || idRGB.y < 0.0f || idRGB.z < 0.0f) {
+            return ECS::NO_ENTITY;
+        }
+
+        auto channelToByte = [](float channel) -> uint32_t {
+            const float scaled = std::round(channel * 255.0f);
+            return static_cast<uint32_t>(std::clamp(scaled, 0.0f, 255.0f));
+        };
+
+        const uint32_t r = channelToByte(idRGB.x);
+        const uint32_t g = channelToByte(idRGB.y);
+        const uint32_t b = channelToByte(idRGB.z);
+        return r | (g << 8) | (b << 16);
+    }
+
+    bool GraphicsManager::IsSelectedDrawCommand(const DrawCommand& command) {
+        if (!command.mesh) return false;
+        const uint32_t entityId = DecodeEntityIdFromRGB(command.idRGB);
+        if (entityId == ECS::NO_ENTITY) return false;
+        return s_SelectedEntityIds.find(entityId) != s_SelectedEntityIds.end();
+    }
+
+    void GraphicsManager::RenderSelectionHighlightForView(
+        RenderViewHandle handle,
+        const RenderView& view,
+        const Math::Mat4& camProj,
+        const Math::Mat4& camView,
+        const std::vector<DrawCommand>& commands)
+    {
+        if (handle != s_SceneViewHandle) return;
+        if (s_SelectedEntityIds.empty()) return;
+        if (s_SelectionOutlineProgram == 0) return;
+        if (!view.framebuffer || !view.framebuffer->HasStencil()) return;
+
+        std::vector<const DrawCommand*> selectedCommands;
+        selectedCommands.reserve(s_SelectedEntityIds.size());
+        for (const auto& command : commands) {
+            if (IsSelectedDrawCommand(command)) {
+                selectedCommands.push_back(&command);
+            }
+        }
+        if (selectedCommands.empty()) return;
+
+        const GLboolean stencilWasEnabled = glIsEnabled(GL_STENCIL_TEST);
+        const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+        const GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+        const GLboolean cullWasEnabled = glIsEnabled(GL_CULL_FACE);
+        GLboolean colorMask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+        glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+        GLboolean depthWriteWasEnabled = GL_TRUE;
+        glGetBooleanv(GL_DEPTH_WRITEMASK, &depthWriteWasEnabled);
+
+        GLint depthFunc = GL_LESS;
+        GLint previousProgram = 0;
+        GLint stencilFunc = GL_ALWAYS;
+        GLint stencilRef = 0;
+        GLint stencilValueMask = 0xFF;
+        GLint stencilWriteMask = 0xFF;
+        GLint stencilFail = GL_KEEP;
+        GLint stencilPassDepthFail = GL_KEEP;
+        GLint stencilPassDepthPass = GL_KEEP;
+        GLint cullFaceMode = GL_BACK;
+        glGetIntegerv(GL_DEPTH_FUNC, &depthFunc);
+        glGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+        glGetIntegerv(GL_STENCIL_FUNC, &stencilFunc);
+        glGetIntegerv(GL_STENCIL_REF, &stencilRef);
+        glGetIntegerv(GL_STENCIL_VALUE_MASK, &stencilValueMask);
+        glGetIntegerv(GL_STENCIL_WRITEMASK, &stencilWriteMask);
+        glGetIntegerv(GL_STENCIL_FAIL, &stencilFail);
+        glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, &stencilPassDepthFail);
+        glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, &stencilPassDepthPass);
+        if (cullWasEnabled) {
+            glGetIntegerv(GL_CULL_FACE_MODE, &cullFaceMode);
+        }
+
+        glEnable(GL_STENCIL_TEST);
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        //glEnable(GL_DEPTH_TEST);
+        //glDepthMask(GL_FALSE);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+        glUseProgram(s_SelectionOutlineProgram->GetProgramID());
+
+        const GLint viewLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_View");
+        const GLint projLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Projection");
+        const GLint modelLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Model");
+        const GLint colorLocation = glGetUniformLocation(s_SelectionOutlineProgram->GetProgramID(), "u_Color");
+        glUniformMatrix4fv(viewLocation, 1, GL_FALSE, camView.Data());
+        glUniformMatrix4fv(projLocation, 1, GL_FALSE, camProj.Data());
+        glUniform4f(colorLocation, SELECTION_OUTLINE_COLOR.x, SELECTION_OUTLINE_COLOR.y, SELECTION_OUTLINE_COLOR.z, SELECTION_OUTLINE_COLOR.w);
+
+        for (const DrawCommand* command : selectedCommands) {
+            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, command->transform.Data());
+            command->mesh->Bind();
+            command->mesh->Draw();
+            command->mesh->Unbind();
+        }
+
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glStencilMask(0x00);
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+        //glDisable(GL_DEPTH_TEST);
+        //glDisable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+
+
+        for (const DrawCommand* command : selectedCommands) {
+            const Math::Mat4 scaledTransform = command->transform * Math::Mat4::BuildScaling(
+                SELECTION_OUTLINE_SCALE,
+                SELECTION_OUTLINE_SCALE,
+                SELECTION_OUTLINE_SCALE
+            );
+            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, scaledTransform.Data());
+            command->mesh->Bind();
+            command->mesh->Draw();
+            command->mesh->Unbind();
+        }
+
+        if (stencilWasEnabled) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
+        if (depthWasEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        if (blendWasEnabled) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+        if (cullWasEnabled) {
+            glEnable(GL_CULL_FACE);
+            glCullFace(cullFaceMode);
+        }
+        else {
+            glDisable(GL_CULL_FACE);
+        }
+
+        glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
+        glDepthMask(depthWriteWasEnabled);
+        glDepthFunc(depthFunc);
+        glStencilMask(stencilWriteMask);
+        glStencilFunc(stencilFunc, stencilRef, stencilValueMask);
+        glStencilOp(stencilFail, stencilPassDepthFail, stencilPassDepthPass);
+        glUseProgram(previousProgram);
+    }
+
     void GraphicsManager::Submit(const DrawCommand& command) {
 		s_DrawQueue->Submit(command);
     }
@@ -1024,6 +1198,20 @@ namespace NE::Graphics {
         s_DecalGizmoQueue.clear();
         s_LightGizmoQueue.clear();
 	}
+
+    void GraphicsManager::SetSelectedEntities(const std::vector<uint32_t>& selectedIds) {
+        s_SelectedEntityIds.clear();
+        s_SelectedEntityIds.reserve(selectedIds.size());
+        for (uint32_t id : selectedIds) {
+            if (id != ECS::NO_ENTITY) {
+                s_SelectedEntityIds.insert(id);
+            }
+        }
+    }
+
+    void GraphicsManager::ClearSelectedEntities() {
+        s_SelectedEntityIds.clear();
+    }
 
     RenderGraph* GraphicsManager::GetRenderGraph() {
         return s_PostPipeline ? s_PostPipeline->GetRenderGraph() : nullptr;
@@ -1055,6 +1243,11 @@ namespace NE::Graphics {
         s_DecalCubeMesh.reset();
         s_DecalQueue.clear();
         s_NormalPrepassShader.reset();
+        //if (s_SelectionOutlineProgram != 0) {
+        //    glDeleteProgram(s_SelectionOutlineProgram);
+        //    s_SelectionOutlineProgram = 0;
+        //}
+        s_SelectedEntityIds.clear();
         for (auto& material : s_LightGizmoMaterials) {
             material.reset();
         }
@@ -1089,6 +1282,8 @@ namespace NE::Graphics {
         desc.height = height;
         desc.enablePicking = enablePicking;
         desc.enableMiniGBuffer = true;
+        desc.enableDepth = true;
+        desc.enableStencil = false;
         desc.format = RenderViewFormat::HDR;
         return s_RenderViewManager->Create(desc);
 	}

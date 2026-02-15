@@ -22,6 +22,8 @@ namespace NE::Graphics {
 		uint32_t height = 0;
 		bool enablePicking = true;
 		bool enableMiniGBuffer = false;
+		bool enableDepth = true;
+		bool enableStencil = false;
 		RenderViewFormat format = RenderViewFormat::Standard;
 	};
 

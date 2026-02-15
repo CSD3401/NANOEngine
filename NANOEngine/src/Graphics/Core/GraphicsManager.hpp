@@ -15,6 +15,7 @@
 #include "RenderSettings.hpp"
 #include "PostProcessingSettings.hpp"
 #include <vector>
+#include <unordered_set>
 
 // Forward declarations
 namespace NE {
@@ -118,6 +119,8 @@ namespace NE::Graphics {
 
         // UI
         static void DrawUI();
+        static void SetSelectedEntities(const std::vector<uint32_t>& selectedIds);
+        static void ClearSelectedEntities();
 
         // lights
         static std::vector<ECS::Component::Light*> m_lights;
@@ -172,8 +175,18 @@ namespace NE::Graphics {
         // Post-processing
         static std::unique_ptr<PostProcessPipeline> s_PostPipeline;
         static std::shared_ptr<OpenGL::GLShader> s_NormalPrepassShader;
+        static std::shared_ptr<OpenGL::GLShader> s_SelectionOutlineProgram;
+        static std::unordered_set<uint32_t> s_SelectedEntityIds;
         
         static std::unique_ptr<ShadowRenderer> s_shadowRenderer;
+        static uint32_t DecodeEntityIdFromRGB(const Math::Vec3& idRGB);
+        static bool IsSelectedDrawCommand(const DrawCommand& command);
+        static void RenderSelectionHighlightForView(
+            RenderViewHandle handle,
+            const RenderView& view,
+            const Math::Mat4& camProj,
+            const Math::Mat4& camView,
+            const std::vector<DrawCommand>& commands);
 
     };
 }
