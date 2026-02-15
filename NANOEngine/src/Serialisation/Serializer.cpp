@@ -28,6 +28,7 @@
 #include "ECS/Components/PrefabInstance.hpp"
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Animator.hpp"
+#include "ECS/Components/DecalProjector.hpp"
 
 namespace NE {
 	namespace {
@@ -50,7 +51,8 @@ namespace NE {
 			ECS::Component::UIButton,
 			ECS::Component::UISlider,
 			ECS::Component::CharacterController,
-			ECS::Component::Animator
+			ECS::Component::Animator,
+            ECS::Component::DecalProjector
 		>;
 
 		using ComponentMask = std::uint64_t;

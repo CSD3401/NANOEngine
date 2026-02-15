@@ -27,6 +27,7 @@
 #include <ECS/Components/PrefabInstance.hpp>
 #include <ECS/Components/CharacterController.hpp>
 #include <ECS/Components/Animator.hpp>
+#include <ECS/Components/DecalProjector.hpp>
 
 #include <EditorInterface/ECSExports.hpp>
 #include <EditorInterface/RendererExports.hpp>
@@ -65,7 +66,8 @@ namespace Editor {
 			NE::ECS::Component::UIButton,
 			NE::ECS::Component::UISlider,
 			NE::ECS::Component::CharacterController,
-			NE::ECS::Component::Animator
+			NE::ECS::Component::Animator,
+			NE::ECS::Component::DecalProjector
 		>;
 
 		template <class F>

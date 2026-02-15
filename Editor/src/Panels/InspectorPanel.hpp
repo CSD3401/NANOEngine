@@ -36,6 +36,7 @@ namespace Editor {
 		void DrawPrefabInstanceComponent(uint32_t entity);
 		void DrawTransformComponent(uint32_t entity);
 		void DrawRendererComponent(uint32_t entity);
+		void DrawDecalProjectorComponent(uint32_t entity);
 		void DrawRigidbodyComponent(uint32_t entity);
 		void DrawColliderComponent(uint32_t entity);
 		void DrawLightComponent(uint32_t entity);

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../../src/Math/Vec3.hpp"
-#include "../../../src/Math/Mat4.hpp"
-#include "../../Core/Reflection.hpp"
+#include "Math/Vec3.hpp"
+#include "Math/Mat4.hpp"
+#include "Core/Reflection.hpp"
 
 namespace NE::ECS::Component {
 	using NE::Math::Vec3;

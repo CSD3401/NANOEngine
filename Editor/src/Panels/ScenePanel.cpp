@@ -550,33 +550,19 @@ namespace Editor {
 					);
 				}
 
-
-
-				//ImVec2 delta = { io.MousePos.x - m_lastMousePos.x, io.MousePos.y - m_lastMousePos.y };
-				//m_lastMousePos = io.MousePos;
-
-				//if (m_wrapIgnoreNextDelta) {
-				//	delta = ImVec2(0, 0);
-				//	m_wrapIgnoreNextDelta = false;
-				//}
-
 				ImVec2 cur = GetCursorScreenPosImVec2();
 
-				// 2) Compute delta from OS cursor pos
 				ImVec2 delta = { cur.x - m_lastMousePos.x, cur.y - m_lastMousePos.y };
 
-				// 3) Warp (monitor wrap)
 				bool warped = false;
 				WrapCursorInCurrentMonitor(/*useWorkArea=*/true, /*marginPx=*/2, warped);
 
 				if (warped) {
-					// After warping, refresh OS cursor pos and reset tracking
 					ImVec2 afterWarp = GetCursorScreenPosImVec2();
 					m_lastMousePos = afterWarp;
 					m_wrapIgnoreNextDelta = true;
 					delta = ImVec2(0, 0);
 				} else {
-					// Normal path: advance last mouse
 					m_lastMousePos = cur;
 				}
 

@@ -8,6 +8,9 @@
 // Forward Decl
 namespace NE::ECS::Component {
 	struct Renderer;
+	struct Light;
+	struct DecalProjector;
+	struct Transform;
 }
 
 namespace NE::Graphics {
@@ -37,5 +40,8 @@ namespace NE::Renderer {
 		NANOENGINE_API void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID);
 		NANOENGINE_API Graphics::RenderSettings& GetRenderSettings();
 		NANOENGINE_API Graphics::PostProcessingSettings& GetPostProcessingSettings();
+		NANOENGINE_API void DrawSelectedLightGizmos(const NE::ECS::Component::Light& lightComponent);
+		NANOENGINE_API void DrawSelectedDecalGizmos(const NE::ECS::Component::DecalProjector& decalComponent, 
+			const NE::ECS::Component::Transform& transformComponent);
 	}
 }

@@ -20,6 +20,7 @@
 #include "../Components/PrefabLink.hpp"
 #include "../Components/PrefabInstance.hpp"
 #include "../Components/CharacterController.hpp"
+#include "../Components/DecalProjector.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -34,6 +35,7 @@
 #include "../Systems/HierarchySystem.hpp"
 #include "../Systems/PrefabSystem.hpp"
 #include "../Systems/CharacterControllerSystem.hpp"
+#include "../Systems/DecalProjectorSystem.hpp"
 #include "../Systems/UIEventSystem.hpp"
 
 #include "../Components/Animator.hpp"
@@ -72,6 +74,7 @@ namespace NE::ECS {
         RegisterComponent<Component::PrefabLink>();
         RegisterComponent<Component::PrefabInstance>();
         RegisterComponent<Component::CharacterController>();
+        RegisterComponent<Component::DecalProjector>();
         
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
@@ -185,6 +188,14 @@ namespace NE::ECS {
             sig.set(GetComponentType<Component::Collider>());
             sig.set(GetComponentType<Component::CharacterController>());
             SetSystemSignature<Systems::CharacterControllerSystem>(sig);
+        }
+
+        m_decalProjectorSystem = m_systemManager->RegisterSystem<Systems::DecalProjectorSystem>(m_componentManager.get(), m_luidRegistry.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::Transform>());
+            sig.set(GetComponentType<Component::DecalProjector>());
+            SetSystemSignature<Systems::DecalProjectorSystem>(sig);
         }
     }
 

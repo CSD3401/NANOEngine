@@ -32,6 +32,8 @@ namespace Editor {
 
 		NE::ECS::Entity m_lastPrimary = NE::ECS::NO_ENTITY;
 		bool selectionChanged = false;
+		NE::ECS::Entity m_scrollToEntity = NE::ECS::NO_ENTITY;
+		bool m_scrollToEntityPending = false;
 
 		NE::ECS::Entity m_dragRep = NE::ECS::NO_ENTITY;
 		std::vector<NE::ECS::Entity> m_draggedEntities;
@@ -55,3 +57,4 @@ namespace Editor {
 		std::string m_searchLower;
 	};
 }
+

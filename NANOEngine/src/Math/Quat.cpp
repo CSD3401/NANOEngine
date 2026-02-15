@@ -14,7 +14,7 @@ namespace NE::Math {
 		}
 	}
 
-	constexpr float EPSILON = 1e-6f;
+	//constexpr float EPSILON = 1e-6f;
 
 	Quat::Quat() noexcept
 		: x(0.0f), y(0.0f), z(0.0f), w(1.0f)

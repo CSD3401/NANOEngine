@@ -49,7 +49,6 @@
     <ClCompile Include="src\Math\Mat4.cpp" />
     <ClCompile Include="src\Math\Quat.cpp" />
     <ClCompile Include="src\Math\Vec2.cpp" />
-    <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\Math\Vec4.cpp" />
     <ClCompile Include="src\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="src\Tween\TweenBase.cpp" />
@@ -99,6 +98,8 @@
     <ClCompile Include="src\Graphics\Core\FontAtlas.cpp" />
     <ClCompile Include="src\Graphics\Core\Font.cpp" />
     <ClCompile Include="src\ECS\Systems\UIEventSystem.cpp" />
+    <ClCompile Include="src\Math\Vec3.cpp" />
+    <ClCompile Include="src\ECS\Systems\DecalProjectorSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Couroutine.hpp" />
@@ -284,6 +285,8 @@
     <ClInclude Include="src\Graphics\Core\Font.hpp" />
     <ClInclude Include="src\ECS\Systems\UIEventSystem.hpp" />
     <ClInclude Include="src\ECS\ECSEvents.hpp" />
+    <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
+    <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

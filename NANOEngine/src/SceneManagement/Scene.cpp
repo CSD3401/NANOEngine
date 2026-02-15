@@ -15,6 +15,7 @@
 #include "ECS/Systems/UIEventSystem.hpp"
 #include "ECS/Systems/UITransformSystem.hpp"
 #include "ECS/Systems/CharacterControllerSystem.hpp"
+#include "ECS/Systems/DecalProjectorSystem.hpp"
 #include "../Animation/TransformClipIO.hpp"
 #include "Core/Couroutine.hpp"
 #include "Physics/PhysicsManager.hpp"
@@ -28,6 +29,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Init();
 		//m_ecsCoordinator.m_colliderSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
+		m_ecsCoordinator.m_decalProjectorSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_uiTransformSystem->Init();
@@ -46,6 +48,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Init();
 		m_ecsCoordinator.m_colliderSystem->Init();
 		m_ecsCoordinator.m_renderSystem->Init();
+		m_ecsCoordinator.m_decalProjectorSystem->Init();
 		m_ecsCoordinator.m_audioSystem->Init();
 		m_ecsCoordinator.m_scriptSystem->Init();
 		m_ecsCoordinator.m_uiTransformSystem->Init();
@@ -62,6 +65,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
 		m_ecsCoordinator.m_colliderSystem->Update(dt);
 		m_ecsCoordinator.m_renderSystem->Update(dt);
+        m_ecsCoordinator.m_decalProjectorSystem->Update(dt);
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
 		m_ecsCoordinator.m_uiEventSystem->Update(dt);
@@ -79,6 +83,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_lightSystem->Update(dt);
 		m_ecsCoordinator.m_cameraSystem->Update(dt);
 		m_ecsCoordinator.m_renderSystem->Update(dt);
+        m_ecsCoordinator.m_decalProjectorSystem->Update(dt);
 
 		m_ecsCoordinator.m_audioSystem->Update(dt);
 
@@ -103,6 +108,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Exit();
 		m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
+        m_ecsCoordinator.m_decalProjectorSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
 		m_ecsCoordinator.m_scriptSystem->Exit();
 		m_ecsCoordinator.m_uiEventSystem->Exit();
@@ -117,6 +123,7 @@ namespace NE::SceneManagement {
 		m_ecsCoordinator.m_cameraSystem->Exit();
 		m_ecsCoordinator.m_colliderSystem->Exit();
 		m_ecsCoordinator.m_renderSystem->Exit();
+        m_ecsCoordinator.m_decalProjectorSystem->Exit();
 		m_ecsCoordinator.m_audioSystem->Exit();
 		m_ecsCoordinator.m_scriptSystem->Exit();
 		m_ecsCoordinator.m_uiEventSystem->Exit();
