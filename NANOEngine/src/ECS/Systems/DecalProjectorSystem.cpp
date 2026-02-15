@@ -28,11 +28,6 @@ namespace NE::ECS::Systems {
             return { r, g, b };
         }
 
-        inline Math::Vec3 TransformPoint(const Math::Mat4& M, const Math::Vec3& p) {
-            Math::Vec4 v = M * Math::Vec4(p.x, p.y, p.z, 1.0f);
-            return { v.x, v.y, v.z };
-        }
-
         void ConfigureDecalMaterial(const std::shared_ptr<Graphics::Material>& material) {
             if (!material || !material->GetPipeline()) return;
 
@@ -50,35 +45,6 @@ namespace NE::ECS::Systems {
                 material->ApplyPipelineSpec(spec);
             }
         }
-
-#ifndef PRODUCTION_BUILD
-        void QueueProjectionBoxGizmo(const Math::Mat4& projectorModel, const Math::Vec3& color) {
-            static constexpr Math::Vec3 kCorners[8] = {
-                { -0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f }, { 0.5f,  0.5f, -0.5f }, { -0.5f,  0.5f, -0.5f },
-                { -0.5f, -0.5f,  0.5f }, { 0.5f, -0.5f,  0.5f }, { 0.5f,  0.5f,  0.5f }, { -0.5f,  0.5f,  0.5f }
-            };
-            static constexpr int kEdges[12][2] = {
-                {0,1}, {1,2}, {2,3}, {3,0},
-                {4,5}, {5,6}, {6,7}, {7,4},
-                {0,4}, {1,5}, {2,6}, {3,7}
-            };
-
-            std::vector<Math::Vec3> vertices;
-            vertices.reserve(24);
-
-            Math::Vec3 wsCorners[8];
-            for (int i = 0; i < 8; ++i) {
-                wsCorners[i] = TransformPoint(projectorModel, kCorners[i]);
-            }
-
-            for (const auto& edge : kEdges) {
-                vertices.push_back(wsCorners[edge[0]]);
-                vertices.push_back(wsCorners[edge[1]]);
-            }
-
-            Graphics::GraphicsManager::AddDebugLinesBatch(vertices, color);
-        }
-#endif
     }
 
     DecalProjectorSystem::DecalProjectorSystem(ComponentManager* cm, Core::LUIDRegistry* lr)
@@ -156,8 +122,6 @@ namespace NE::ECS::Systems {
             gizmoCommand.position = cmd.positionWS;
             gizmoCommand.idRGB = EncodeEntityIdRGB(entity);
             Graphics::GraphicsManager::SubmitDecalGizmo(gizmoCommand);
-
-            QueueProjectionBoxGizmo(projectorModel, { 0.20f, 0.95f, 1.0f });
 #endif
         }
     }

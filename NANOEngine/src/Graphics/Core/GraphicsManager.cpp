@@ -12,6 +12,8 @@
 #include "DrawQueue.hpp"
 #include "RenderViewManager.hpp"
 #include "RenderSettings.hpp"
+#include "ECS/Components/DecalProjector.hpp"
+#include "ECS/Components/Transform.hpp"
 
 #include "Math/Mat4.hpp"
 #include "Math/Vec3.hpp"
@@ -58,8 +60,8 @@
 
 namespace NE::Graphics {
     namespace {
-        constexpr float LIGHT_GIZMO_PIXEL_SIZE = 128.f;
-        constexpr float DECAL_GIZMO_PIXEL_SIZE = 112.f;
+        constexpr float ICON_GIZMO_PIXEL_SIZE = 128.f;
+        //constexpr float DECAL_GIZMO_PIXEL_SIZE = 112.f;
 
         constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
             "nedirlight", // Directional
@@ -74,6 +76,11 @@ namespace NE::Graphics {
         std::array<std::shared_ptr<Material>, 4> s_LightGizmoMaterials;
         std::shared_ptr<Material> s_DecalGizmoMaterial;
         std::shared_ptr<IGeometryBuffer> s_DecalCubeMesh;
+
+        inline Math::Vec3 TransformPoint(const Math::Mat4& M, const Math::Vec3& p) {
+            Math::Vec4 v = M * Math::Vec4(p.x, p.y, p.z, 1.0f);
+            return { v.x, v.y, v.z };
+        }
 
         inline size_t ToLightTypeIndex(ECS::Component::Light::Type type) {
             const uint8_t raw = static_cast<uint8_t>(type);
@@ -375,7 +382,7 @@ namespace NE::Graphics {
                 const auto index = ToLightTypeIndex(command.lightType);
 
                 const float distance = (command.position - camPos).Length();
-                const float worldSize = ComputeWorldSizeForPixels(LIGHT_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
+                const float worldSize = ComputeWorldSizeForPixels(ICON_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
                 if (!std::isfinite(worldSize) || worldSize <= 0.0f) continue;
 
                 InstanceData instance{};
@@ -450,7 +457,7 @@ namespace NE::Graphics {
             instances.reserve(s_DecalGizmoQueue.size());
             for (const auto& command : s_DecalGizmoQueue) {
                 const float distance = (command.position - camPos).Length();
-                const float worldSize = ComputeWorldSizeForPixels(DECAL_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
+                const float worldSize = ComputeWorldSizeForPixels(ICON_GIZMO_PIXEL_SIZE, distance, camProj, viewportHeight);
                 if (!std::isfinite(worldSize) || worldSize <= 0.0f) continue;
 
                 InstanceData instance{};
@@ -1258,6 +1265,40 @@ namespace NE::Graphics {
         default:
             break;
         }
+    }
+
+    void GraphicsManager::DrawSelectedDecalGizmos(const ECS::Component::DecalProjector& decal, 
+        const ECS::Component::Transform& transform
+    ) {
+        static constexpr Math::Vec3 kColour = { 0.20f, 0.95f, 1.0f };
+        static constexpr Math::Vec3 kCorners[8] = {
+            { -0.5f, -0.5f, -0.5f }, { 0.5f, -0.5f, -0.5f }, { 0.5f,  0.5f, -0.5f }, { -0.5f,  0.5f, -0.5f },
+            { -0.5f, -0.5f,  0.5f }, { 0.5f, -0.5f,  0.5f }, { 0.5f,  0.5f,  0.5f }, { -0.5f,  0.5f,  0.5f }
+        };
+        static constexpr int kEdges[12][2] = {
+            {0,1}, {1,2}, {2,3}, {3,0},
+            {4,5}, {5,6}, {6,7}, {7,4},
+            {0,4}, {1,5}, {2,6}, {3,7}
+        };
+
+        const Math::Mat4 localPivot = Math::Mat4::BuildTranslation(decal.pivot);
+        const Math::Mat4 localScale = Math::Mat4::BuildScaling(decal.width, decal.height, decal.depth);
+        const Math::Mat4 projectorModel = transform.worldMatrix * localPivot * localScale;
+
+        std::vector<Math::Vec3> vertices;
+        vertices.reserve(24);
+
+        Math::Vec3 wsCorners[8];
+        for (int i = 0; i < 8; ++i) {
+            wsCorners[i] = TransformPoint(projectorModel, kCorners[i]);
+        }
+
+        for (const auto& edge : kEdges) {
+            vertices.push_back(wsCorners[edge[0]]);
+            vertices.push_back(wsCorners[edge[1]]);
+        }
+
+        Graphics::GraphicsManager::AddDebugLinesBatch(vertices, kColour);
     }
 
     void GraphicsManager::AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color) {

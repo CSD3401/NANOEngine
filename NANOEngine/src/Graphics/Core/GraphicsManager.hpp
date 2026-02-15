@@ -45,6 +45,8 @@ namespace NE {
     namespace ECS {
         namespace Component {
             struct Light;
+            struct DecalProjector;
+			struct Transform;
         }
 	}
     namespace Math {
@@ -106,6 +108,8 @@ namespace NE::Graphics {
         static void DrawDebugTriangles(); // drawing solid triangles
 
 		static void DrawSelectedLightGizmos(const ECS::Component::Light& light);
+		static void DrawSelectedDecalGizmos(const ECS::Component::DecalProjector& decal, 
+            const ECS::Component::Transform& transform);
 
         // batch functions
         static void AddDebugLinesBatch(const std::vector<Math::Vec3>& positions, const Math::Vec3& color);

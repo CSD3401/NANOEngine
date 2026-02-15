@@ -1019,6 +1019,8 @@ namespace Editor {
 			&deleteComp
 		);
 
+		NE::Renderer::Command::DrawSelectedDecalGizmos(comp, NE::ECS::Query::GetEntityTransform(entity));
+
 		if (!open)
 			return;
 
@@ -1261,6 +1263,8 @@ namespace Editor {
 			&deleteComp
 		);
 
+		NE::Renderer::Command::DrawSelectedLightGizmos(comp);
+
 		if (!open)
 			return;
 
@@ -1292,8 +1296,6 @@ namespace Editor {
 				comp.isDirty = true;
 			}
 		}
-
-		NE::Renderer::Command::DrawSelectedLightGizmos(comp);
 
 		static const char* shadowUpdateModeNames[] = { "NoneUpdate", "Realtime", "StaticBake" };
 		int shadowUpdateMode = static_cast<int>(comp.shadowUpdateMode);

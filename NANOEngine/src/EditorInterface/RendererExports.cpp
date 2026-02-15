@@ -1,17 +1,20 @@
 #include "RendererExports.hpp"
-#include "../SceneManagement/Scene.hpp"
-#include "../ECS/Components/Renderer.hpp"
-#include "../ECS/Components/DecalProjector.hpp"
-#include "../ECS/Components/UIImage.hpp"
-#include "../ECS/Components/UICanvas.hpp"
-#include "../ECS/Components/UIRectTransform.hpp"
+#include "SceneManagement/Scene.hpp"
+
 #include "ResourceManagement/ResourceManager.hpp"
 #include "../Graphics/Core/PipelineCache.hpp"
-#include <Core/SpdLogger.hpp>
+#include "Core/SpdLogger.hpp"
 #include "../../include/ScriptSDK/ScriptTypes.h"
-#include <Graphics/Core/GraphicsManager.hpp>
-#include <Graphics/Core/RenderGraph.hpp>
+#include "Graphics/Core/GraphicsManager.hpp"
+#include "Graphics/Core/RenderGraph.hpp"
 #include <glad/glad.h>
+
+#include "ECS/Components/Renderer.hpp"
+#include "ECS/Components/DecalProjector.hpp"
+#include "ECS/Components/Transform.hpp"
+#include "ECS/Components/UIImage.hpp"
+#include "ECS/Components/UICanvas.hpp"
+#include "ECS/Components/UIRectTransform.hpp"
 
 namespace NE {
 	SceneManagement::Scene& GetScene();
@@ -130,6 +133,12 @@ namespace NE::Renderer {
 
 		void DrawSelectedLightGizmos(const NE::ECS::Component::Light& lightComponent) {
 			Graphics::GraphicsManager::DrawSelectedLightGizmos(lightComponent);
+		}
+
+		void DrawSelectedDecalGizmos(const NE::ECS::Component::DecalProjector& decalComponent,
+			const NE::ECS::Component::Transform& transformComponent
+		) {
+			Graphics::GraphicsManager::DrawSelectedDecalGizmos(decalComponent, transformComponent);
 		}
 
         void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID) {
