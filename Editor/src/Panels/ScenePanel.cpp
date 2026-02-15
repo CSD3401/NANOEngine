@@ -855,6 +855,9 @@ namespace Editor {
 		dir.z = sinf(Radians(EditorScene::m_cameraYaw)) * cosf(Radians(EditorScene::m_cameraPitch));
 		EditorScene::m_editorCamera.LookAt(EditorScene::m_editorCamera.GetPosition() + dir, Vec3(0, 1, 0));
 
+		// Keep renderer-side highlight selection in sync with editor selection.
+		NE::Renderer::Command::SetSelectedEntities(EditorScene::s_selection.GetSelection());
+
 		NE::UpdateEditorCameraData();
 
 		ImGui::End();
