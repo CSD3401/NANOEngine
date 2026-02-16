@@ -4,6 +4,10 @@
 #include "SystemManager.hpp"
 #include "Core/LUIDRegistry.hpp"
 
+namespace NE::ECS {
+    class UILayoutEngine;
+}
+
 namespace NE::ECS::Systems {
     class TransformSystem;
     class RenderSystem;
@@ -14,6 +18,7 @@ namespace NE::ECS::Systems {
 	class ScriptSystem;
     class UIRenderSystem;
     class UIEventSystem;
+    class UILayoutSystem;
     class AnimatorSystem;
 	class CameraSystem;
     class HierarchySystem;
@@ -27,6 +32,7 @@ namespace NE::ECS {
     class ECSCoordinator {
     public:
         ECSCoordinator();
+        ~ECSCoordinator();
 
         // --- Entity API ---
         Entity CreateEntity();
@@ -117,6 +123,7 @@ namespace NE::ECS {
 		std::shared_ptr<Systems::ScriptSystem> m_scriptSystem;
 		std::shared_ptr<Systems::UIRenderSystem> m_uiRenderSystem;
         std::shared_ptr<Systems::UIEventSystem> m_uiEventSystem;
+        std::shared_ptr<Systems::UILayoutSystem> m_uiLayoutSystem;
         std::shared_ptr<Systems::AnimatorSystem> m_animatorSystem;
         std::shared_ptr<Systems::CameraSystem> m_cameraSystem;
         std::shared_ptr<Systems::HierarchySystem> m_hierarchySystem;
@@ -130,6 +137,7 @@ namespace NE::ECS {
         std::unique_ptr<ComponentManager> m_componentManager;
         std::unique_ptr<SystemManager> m_systemManager;
         std::unique_ptr<Core::LUIDRegistry> m_luidRegistry;
+        std::unique_ptr<UILayoutEngine> m_uiLayoutEngine;
     };
 
 }

@@ -1,0 +1,413 @@
+#include "UILayoutEngine.hpp"
+#include "../Components/UIRectTransform.hpp"
+#include "../Components/UICanvas.hpp"
+#include "../Components/Hierarchy.hpp"
+#include "../Components/EntityMeta.hpp"
+#include "../../Graphics/Core/GraphicsManager.hpp"
+#include "UITransformUtilities.hpp"
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
+using namespace NE::ECS::Component;
+
+namespace NE::ECS {
+
+    //=========================================================================
+    // Constants
+    //=========================================================================
+
+    static constexpr float PI = 3.14159265358979f;
+    static constexpr float ROTATION_EPSILON = 0.001f;
+    static constexpr float DEFAULT_ANCHOR_X = 0.5f;
+    static constexpr float DEFAULT_ANCHOR_Y = 0.5f;
+
+    //=========================================================================
+    // Constructor
+    //=========================================================================
+
+    UILayoutEngine::UILayoutEngine(ComponentManager* cm) : m_cm(cm) {}
+
+    //=========================================================================
+    // Transform Hierarchy Functions
+    //=========================================================================
+
+    std::vector<Entity> UILayoutEngine::BuildParentChain(
+        Entity entity, Entity canvasEntity, UICanvas::RenderMode renderMode
+    )
+    {
+        std::vector<Entity> chain;
+        Entity current = entity;
+
+        while (current != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(current)) {
+            if (current == canvasEntity && renderMode != UICanvas::RenderMode::WORLD_SPACE) {
+                break;
+            }
+            chain.push_back(current);
+            current = m_cm->GetComponent<Hierarchy>(current).parent;
+        }
+
+        std::reverse(chain.begin(), chain.end());
+        return chain;
+    }
+
+    UILayoutEngine::AccumulatedTransform UILayoutEngine::AccumulateParentTransforms(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas
+    )
+    {
+        AccumulatedTransform result;
+
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return result;
+        }
+
+        //=====================================================================
+        // WORLD SPACE: Original logic - NO center anchor offset
+        //=====================================================================
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+            std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
+
+            for (size_t i = 0; i < chain.size(); ++i) {
+                Entity current = chain[i];
+                auto& rect = m_cm->GetComponent<UIRectTransform>(current);
+
+                result.scaleX *= rect.scaleX;
+                result.scaleY *= rect.scaleY;
+                result.scaleZ *= rect.scaleZ;
+
+                result.rotationX += rect.rotationX;
+                result.rotationY += rect.rotationY;
+                result.rotationZ += rect.rotationZ;
+
+                result.posX += rect.x;
+                result.posY += rect.y;
+                result.posZ += rect.z;
+            }
+
+            return result;
+        }
+
+        //=====================================================================
+        // SCREEN SPACE: Apply center anchor and scaleFactor
+        //=====================================================================
+        result.scaleX = canvas.scaleFactor;
+        result.scaleY = canvas.scaleFactor;
+
+        std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
+
+        for (size_t i = 0; i < chain.size(); ++i) {
+            Entity current = chain[i];
+            auto& rect = m_cm->GetComponent<UIRectTransform>(current);
+            bool isTarget = (current == entity);
+
+            result.scaleX *= rect.scaleX;
+            result.scaleY *= rect.scaleY;
+            result.scaleZ *= rect.scaleZ;
+            result.rotationZ += rect.rotationZ;
+
+            float parentWidth = 0.f;
+            float parentHeight = 0.f;
+
+            if (i > 0) {
+                Entity parentEntity = chain[i - 1];
+                auto& parentRect = m_cm->GetComponent<UIRectTransform>(parentEntity);
+                parentWidth = parentRect.width;
+                parentHeight = parentRect.height;
+            }
+            else {
+                parentWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth()) / canvas.scaleFactor;
+                parentHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight()) / canvas.scaleFactor;
+            }
+
+            float anchorX = parentWidth * DEFAULT_ANCHOR_X;
+            float anchorY = parentHeight * DEFAULT_ANCHOR_Y;
+
+            if (isTarget) {
+                float scaledWidth = rect.width * result.scaleX;
+                float scaledHeight = rect.height * result.scaleY;
+
+                float localX = anchorX + rect.x - scaledWidth * rect.pivotX;
+                float localY = anchorY + rect.y - scaledHeight * rect.pivotY;
+
+                float parentRotation = result.rotationZ - rect.rotationZ;
+                if (std::abs(parentRotation) > ROTATION_EPSILON) {
+                    float rad = parentRotation * PI / 180.0f;
+                    float cosR = std::cos(rad);
+                    float sinR = std::sin(rad);
+                    float rotatedX = localX * cosR - localY * sinR;
+                    float rotatedY = localX * sinR + localY * cosR;
+                    localX = rotatedX;
+                    localY = rotatedY;
+                }
+
+                float parentScaleX = result.scaleX / rect.scaleX;
+                float parentScaleY = result.scaleY / rect.scaleY;
+
+                result.posX += localX * parentScaleX;
+                result.posY += localY * parentScaleY;
+                result.posZ += rect.z;
+            }
+            else {
+                result.posX += anchorX + rect.x;
+                result.posY += anchorY + rect.y;
+                result.posZ += rect.z;
+            }
+        }
+
+        return result;
+    }
+
+    //=========================================================================
+    // World Transform Calculation
+    //=========================================================================
+
+    UILayoutEngine::WorldTransform UILayoutEngine::CalculateWorldTransform(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas,
+        const Math::Mat4* viewMatrix,
+        const Math::Mat4* projMatrix
+    )
+    {
+        (void)viewMatrix;
+        (void)projMatrix;
+
+        WorldTransform result;
+
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return result;
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+        AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
+
+        result.x = accumulated.posX;
+        result.y = accumulated.posY;
+        result.z = accumulated.posZ;
+        result.width = rect.width * accumulated.scaleX;
+        result.height = rect.height * accumulated.scaleY;
+        result.accumulatedRotationZ = accumulated.rotationZ;
+        result.accumulatedScaleX = accumulated.scaleX;
+        result.accumulatedScaleY = accumulated.scaleY;
+
+        if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+            canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+            if (canvas.pixelPerfect) {
+                ApplyPixelPerfectSnapping(result);
+            }
+        }
+
+        return result;
+    }
+
+    UILayoutEngine::WorldTransform UILayoutEngine::CalculateWorldTransformFromAccumulated(
+        Entity entity,
+        const UICanvas& canvas,
+        const AccumulatedTransform& accumulated
+    )
+    {
+        WorldTransform result;
+
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return result;
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+
+        result.x = accumulated.posX;
+        result.y = accumulated.posY;
+        result.z = accumulated.posZ;
+        result.width = rect.width * accumulated.scaleX;
+        result.height = rect.height * accumulated.scaleY;
+        result.accumulatedRotationZ = accumulated.rotationZ;
+        result.accumulatedScaleX = accumulated.scaleX;
+        result.accumulatedScaleY = accumulated.scaleY;
+
+        if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
+            canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
+            if (canvas.pixelPerfect) {
+                ApplyPixelPerfectSnapping(result);
+            }
+        }
+
+        return result;
+    }
+
+    void UILayoutEngine::ApplyPixelPerfectSnapping(WorldTransform& transform)
+    {
+        transform.x = std::round(transform.x);
+        transform.y = std::round(transform.y);
+        transform.width = std::round(transform.width);
+        transform.height = std::round(transform.height);
+    }
+
+    //=========================================================================
+    // World Matrix
+    //=========================================================================
+
+    void UILayoutEngine::UpdateWorldMatrix(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas
+    )
+    {
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return;
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+        if (!rect.worldMatrixDirty) return;
+
+        AccumulatedTransform acc = AccumulateParentTransforms(entity, canvasEntity, canvas);
+
+        Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
+        Math::Mat4 R = rect.GetRotationMatrix();
+        Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
+
+        float pivotOffsetX = rect.width * rect.pivotX;
+        float pivotOffsetY = rect.height * rect.pivotY;
+        Math::Mat4 pivotTrans = Math::Mat4::BuildTranslation(Math::Vec3(pivotOffsetX, pivotOffsetY, 0.0f));
+        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
+
+        rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
+        rect.worldMatrixDirty = false;
+    }
+
+    void UILayoutEngine::UpdateWorldMatrixFromAccumulated(
+        Entity entity,
+        const AccumulatedTransform& acc
+    )
+    {
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return;
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+        if (!rect.worldMatrixDirty) return;
+
+        Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
+        Math::Mat4 R = rect.GetRotationMatrix();
+        Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
+
+        float pivotOffsetX = rect.width * rect.pivotX;
+        float pivotOffsetY = rect.height * rect.pivotY;
+        Math::Mat4 pivotTrans = Math::Mat4::BuildTranslation(Math::Vec3(pivotOffsetX, pivotOffsetY, 0.0f));
+        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
+
+        rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
+        rect.worldMatrixDirty = false;
+    }
+
+    //=========================================================================
+    // Canvas & Scaling
+    //=========================================================================
+
+    float UILayoutEngine::CalculateScaleFactor(const UICanvas& canvas)
+    {
+        return UIUtil::CalculateScaleFactor(canvas);
+    }
+
+    //=========================================================================
+    // Utility Helpers
+    //=========================================================================
+
+    Entity UILayoutEngine::FindOwningCanvas(Entity entity) const
+    {
+        Entity current = m_cm->HasComponent<Hierarchy>(entity)
+            ? m_cm->GetComponent<Hierarchy>(entity).parent
+            : NO_ENTITY;
+
+        while (current != NO_ENTITY) {
+            if (m_cm->HasComponent<UICanvas>(current)) {
+                return current;
+            }
+            if (!m_cm->HasComponent<Hierarchy>(current)) break;
+            current = m_cm->GetComponent<Hierarchy>(current).parent;
+        }
+
+        return NO_ENTITY;
+    }
+
+    void UILayoutEngine::ComputeAndCacheWorldRect(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas
+    )
+    {
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) return;
+
+        AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
+        WorldTransform wt = CalculateWorldTransformFromAccumulated(entity, canvas, accumulated);
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+        rect.cachedWorldX = wt.x;
+        rect.cachedWorldY = wt.y;
+        rect.cachedWorldWidth = wt.width;
+        rect.cachedWorldHeight = wt.height;
+        rect.cachedWorldRotZ = wt.accumulatedRotationZ;
+        rect.cachedWorldScaleX = wt.accumulatedScaleX;
+        rect.cachedWorldScaleY = wt.accumulatedScaleY;
+        rect.worldRectCached = true;
+    }
+
+    UILayoutEngine::WorldRect UILayoutEngine::GetWorldRect(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas
+    )
+    {
+        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
+            return {};
+        }
+
+        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+
+        if (rect.worldRectCached) {
+            return { rect.cachedWorldX, rect.cachedWorldY,
+                     rect.cachedWorldWidth, rect.cachedWorldHeight };
+        }
+
+        ComputeAndCacheWorldRect(entity, canvasEntity, canvas);
+        return { rect.cachedWorldX, rect.cachedWorldY,
+                 rect.cachedWorldWidth, rect.cachedWorldHeight };
+    }
+
+    UILayoutEngine::WorldRect UILayoutEngine::CalculateContentBounds(Entity entity)
+    {
+        if (!m_cm->HasComponent<Hierarchy>(entity)) {
+            return {};
+        }
+
+        auto& hierarchy = m_cm->GetComponent<Hierarchy>(entity);
+        if (hierarchy.children.empty()) {
+            return {};
+        }
+
+        float minX = std::numeric_limits<float>::max();
+        float minY = std::numeric_limits<float>::max();
+        float maxX = std::numeric_limits<float>::lowest();
+        float maxY = std::numeric_limits<float>::lowest();
+
+        Entity canvasEntity = FindOwningCanvas(entity);
+        if (canvasEntity == NO_ENTITY) return {};
+        auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
+
+        for (uint32_t child : hierarchy.children) {
+            if (!m_cm->HasComponent<UIRectTransform>(child)) continue;
+
+            WorldRect wr = GetWorldRect(child, canvasEntity, canvas);
+
+            if (wr.x < minX) minX = wr.x;
+            if (wr.y < minY) minY = wr.y;
+            if (wr.x + wr.width > maxX) maxX = wr.x + wr.width;
+            if (wr.y + wr.height > maxY) maxY = wr.y + wr.height;
+        }
+
+        if (minX > maxX || minY > maxY) return {};
+
+        return { minX, minY, maxX - minX, maxY - minY };
+    }
+
+} // namespace NE::ECS

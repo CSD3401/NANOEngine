@@ -97,6 +97,8 @@
     <ClCompile Include="src\Graphics\Core\FontAtlas.cpp" />
     <ClCompile Include="src\Graphics\Core\Font.cpp" />
     <ClCompile Include="src\ECS\Systems\UIEventSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\UILayoutEngine.cpp" />
+    <ClCompile Include="src\ECS\Systems\UILayoutSystem.cpp" />
     <ClCompile Include="src\Math\Vec3.cpp" />
     <ClCompile Include="src\ECS\Systems\DecalProjectorSystem.cpp" />
   </ItemGroup>
@@ -282,6 +284,14 @@
     <ClInclude Include="src\Graphics\Core\FontAtlas.hpp" />
     <ClInclude Include="src\Graphics\Core\Font.hpp" />
     <ClInclude Include="src\ECS\Systems\UIEventSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\UILayoutEngine.hpp" />
+    <ClInclude Include="src\ECS\Systems\UILayoutSystem.hpp" />
+    <ClInclude Include="src\ECS\Components\UIHorizontalLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UIVerticalLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UIGridLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UILayoutElement.hpp" />
+    <ClInclude Include="src\ECS\Components\UIRectMask2D.hpp" />
+    <ClInclude Include="src\ECS\Components\UIScrollRect.hpp" />
     <ClInclude Include="src\ECS\ECSEvents.hpp" />
     <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
     <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />

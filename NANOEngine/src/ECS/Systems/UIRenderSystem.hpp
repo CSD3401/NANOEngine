@@ -10,6 +10,8 @@
 #include "../src/Math/Mat4.hpp"
 #include "../../Graphics/Core/UIImageMeshGenerator.hpp"
 #include "../../Graphics/Core/FontAtlas.hpp"
+#include "../../Graphics/Core/DrawCommand.hpp"
+#include "UILayoutEngine.hpp"
 #include <vector>
 #include <string>
 #include <memory>
@@ -26,38 +28,17 @@ namespace NE::ECS::Systems {
 
     class UIRenderSystem final : public System {
     public:
-        //=================================================================
-        // Public Structures
-        //=================================================================
-
-        struct AccumulatedTransform {
-            float posX = 0.f;
-            float posY = 0.f;
-            float posZ = 0.f;
-            float scaleX = 1.f;
-            float scaleY = 1.f;
-            float scaleZ = 1.f;
-            float rotationX = 0.f;
-            float rotationY = 0.f;
-            float rotationZ = 0.f;
-        };
-
-        struct WorldTransform {
-            float x = 0.f;
-            float y = 0.f;
-            float z = 0.f;
-            float width = 0.f;
-            float height = 0.f;
-            float accumulatedRotationZ = 0.f;
-            float accumulatedScaleX = 1.f;
-            float accumulatedScaleY = 1.f;
-        };
+        // Re-export types from UILayoutEngine for backward compatibility
+        using AccumulatedTransform = UILayoutEngine::AccumulatedTransform;
+        using WorldTransform = UILayoutEngine::WorldTransform;
 
         //=================================================================
         // Lifecycle
         //=================================================================
 
         explicit UIRenderSystem(ComponentManager* cm);
+
+        void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
         bool IsActiveForUI(Entity e, Entity canvasEntity) const;
 
@@ -76,62 +57,6 @@ namespace NE::ECS::Systems {
         void SetupCanvasDefaults(Entity canvasEntity, Component::UICanvas& canvas);
 
         //=================================================================
-        // Transform Hierarchy Functions
-        //=================================================================
-
-        AccumulatedTransform AccumulateParentTransforms(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas
-        );
-
-        // NEW: Build world matrix from accumulated transforms
-        void UpdateWorldMatrix(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas
-        );
-
-        // Overload that accepts pre-computed AccumulatedTransform (avoids re-traversal)
-        void UpdateWorldMatrixFromAccumulated(
-            Entity entity,
-            const AccumulatedTransform& accumulated
-        );
-
-        std::vector<Entity> BuildParentChain(
-            Entity entity,
-            Entity canvasEntity,
-            Component::UICanvas::RenderMode renderMode
-        );
-
-        //=================================================================
-        // World Transform Calculation
-        //=================================================================
-
-        WorldTransform CalculateWorldTransform(
-            Entity entity,
-            Entity canvasEntity,
-            const Component::UICanvas& canvas,
-            const Math::Mat4* viewMatrix = nullptr,
-            const Math::Mat4* projMatrix = nullptr
-        );
-
-        // Overload that accepts pre-computed AccumulatedTransform (avoids re-traversal)
-        WorldTransform CalculateWorldTransformFromAccumulated(
-            Entity entity,
-            const Component::UICanvas& canvas,
-            const AccumulatedTransform& accumulated
-        );
-
-        void ApplyPixelPerfectSnapping(WorldTransform& transform);
-
-        //=================================================================
-        // Canvas & Scaling
-        //=================================================================
-
-        float CalculateScaleFactor(const Component::UICanvas& canvas);
-
-        //=================================================================
         // Rendering
         //=================================================================
 
@@ -140,13 +65,14 @@ namespace NE::ECS::Systems {
             const std::vector<NE::Graphics::UIVertex2>& vertices
         );
 
-        // NEW: Submit UI element through integrated GraphicsManager pipeline
+        // Submit UI element through integrated GraphicsManager pipeline
         void SubmitUIElement(
             Entity entity,
             const Component::UICanvas& canvas,
             const Component::UIImage& img,
             const Component::UIRectTransform& rect,
-            const std::vector<NE::Graphics::UIVertex2>& vertices
+            const std::vector<NE::Graphics::UIVertex2>& vertices,
+            const std::optional<NE::Graphics::ScissorRect>& scissor = std::nullopt
         );
 
         void RenderCanvasChildren(
@@ -173,9 +99,6 @@ namespace NE::ECS::Systems {
         // Single O(N) pass to bucket all UI entities by their owning canvas
         void BuildCanvasChildrenMap();
 
-        // Walk parent chain to find the owning canvas entity
-        Entity FindOwningCanvas(Entity entity) const;
-
         //=================================================================
         // Camera Utilities
         //=================================================================
@@ -195,18 +118,20 @@ namespace NE::ECS::Systems {
             const std::vector<NE::Graphics::UIVertex2>& vertices
         );
 
-        // NEW: Submit text element through integrated GraphicsManager pipeline
+        // Submit text element through integrated GraphicsManager pipeline
         void SubmitTextElement(
             Entity entity,
             const Component::UICanvas& canvas,
             const Component::UIText& text,
             const Component::UIRectTransform& rect,
             const std::vector<NE::Graphics::UIVertex2>& vertices,
-            std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas
+            std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
+            const std::optional<NE::Graphics::ScissorRect>& scissor = std::nullopt
         );
 
     private:
         ComponentManager* m_cm;
+        UILayoutEngine* m_layoutEngine = nullptr;
 
         // Integrated pipeline materials
         std::shared_ptr<NE::Graphics::Material> m_defaultUIMaterial;  // Default sprite material
@@ -228,6 +153,13 @@ namespace NE::ECS::Systems {
         std::shared_ptr<NE::Graphics::IGeometryBuffer> AcquireGeometryBuffer(
             const std::vector<NE::Graphics::UIVertex2>& vertices,
             const std::vector<uint32_t>& indices
+        );
+
+        // Scissor clipping for RectMask2D
+        std::optional<NE::Graphics::ScissorRect> ComputeScissorRect(
+            Entity entity,
+            Entity canvasEntity,
+            const Component::UICanvas& canvas
         );
     };
 

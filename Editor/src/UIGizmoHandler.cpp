@@ -326,30 +326,17 @@ namespace Editor {
         float panelScaleX = panelSize.x / fbWidth;
         float panelScaleY = panelSize.y / fbHeight;
 
-        // Calculate world pivot position and accumulated scale
-        float worldPivotX = rectTransform.x;
-        float worldPivotY = rectTransform.y;
-        float worldScaleX = rectTransform.scaleX;
-        float worldScaleY = rectTransform.scaleY;
+        // Use cached world rect from UIRenderSystem/UILayoutEngine
+        // These are populated each frame with correct anchor offsets, pivot corrections,
+        // and canvas scale factor - matching exactly where the element is rendered.
+        float topLeftX = rectTransform.cachedWorldX;
+        float topLeftY = rectTransform.cachedWorldY;
+        float scaledWidth = rectTransform.cachedWorldWidth;
+        float scaledHeight = rectTransform.cachedWorldHeight;
 
-        uint32_t currentParent = NE::ECS::Query::HasHierarchy(uiEntityId) ? NE::ECS::Query::GetEntityHierarchy(uiEntityId).parent : NE::ECS::NO_ENTITY;
-        while (currentParent != std::numeric_limits<uint32_t>::max()) {
-            if (!NE::ECS::Query::HasUIRectTransform(currentParent)) break;
-            auto& parentRect = NE::ECS::Query::GetUIRectTransform(currentParent);
-            worldPivotX += parentRect.x;
-            worldPivotY += parentRect.y;
-            worldScaleX *= parentRect.scaleX;
-            worldScaleY *= parentRect.scaleY;
-            currentParent = NE::ECS::Query::HasHierarchy(currentParent) ? NE::ECS::Query::GetEntityHierarchy(currentParent).parent : NE::ECS::NO_ENTITY;
-        }
-
-        // Apply world scale to dimensions
-        float scaledWidth = rectTransform.width * worldScaleX;
-        float scaledHeight = rectTransform.height * worldScaleY;
-
-        // Calculate top-left from pivot (using scaled dimensions)
-        float topLeftX = worldPivotX - scaledWidth * rectTransform.pivotX;
-        float topLeftY = worldPivotY - scaledHeight * rectTransform.pivotY;
+        // Derive the world pivot position from top-left + pivot offset
+        float worldPivotX = topLeftX + scaledWidth * rectTransform.pivotX;
+        float worldPivotY = topLeftY + scaledHeight * rectTransform.pivotY;
 
         // Convert to screen coordinates
         ImVec2 topLeft(

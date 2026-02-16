@@ -73,6 +73,8 @@
     <ClInclude Include="src\Graphics\Core\FontAtlas.hpp" />
     <ClInclude Include="src\Graphics\Core\Font.hpp" />
     <ClInclude Include="src\ECS\Systems\UIEventSystem.hpp" />
+    <ClInclude Include="src\ECS\Systems\UILayoutEngine.hpp" />
+    <ClInclude Include="src\ECS\Systems\UILayoutSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\UITransformUtilities.hpp" />
     <ClInclude Include="src\Events\UIEvents.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
@@ -103,6 +105,12 @@
     <ClInclude Include="src\ECS\Components\UIText.hpp" />
     <ClInclude Include="src\ECS\Components\UISlider.hpp" />
     <ClInclude Include="src\ECS\Components\UIToggle.hpp" />
+    <ClInclude Include="src\ECS\Components\UIHorizontalLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UIVerticalLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UIGridLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UILayoutElement.hpp" />
+    <ClInclude Include="src\ECS\Components\UIRectMask2D.hpp" />
+    <ClInclude Include="src\ECS\Components\UIScrollRect.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
@@ -246,6 +254,8 @@
     <ClCompile Include="src\Core\Couroutine.cpp" />
     <ClCompile Include="src\ECS\Systems\UIRenderSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\UIEventSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\UILayoutEngine.cpp" />
+    <ClCompile Include="src\ECS\Systems\UILayoutSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />

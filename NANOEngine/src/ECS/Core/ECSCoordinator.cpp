@@ -21,6 +21,12 @@
 #include "../Components/PrefabInstance.hpp"
 #include "../Components/CharacterController.hpp"
 #include "../Components/DecalProjector.hpp"
+#include "../Components/UIHorizontalLayoutGroup.hpp"
+#include "../Components/UIVerticalLayoutGroup.hpp"
+#include "../Components/UIGridLayoutGroup.hpp"
+#include "../Components/UILayoutElement.hpp"
+#include "../Components/UIRectMask2D.hpp"
+#include "../Components/UIScrollRect.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -36,6 +42,8 @@
 #include "../Systems/CharacterControllerSystem.hpp"
 #include "../Systems/DecalProjectorSystem.hpp"
 #include "../Systems/UIEventSystem.hpp"
+#include "../Systems/UILayoutEngine.hpp"
+#include "../Systems/UILayoutSystem.hpp"
 
 #include "../Components/Animator.hpp"
 #include "../Systems/AnimatorSystem.hpp"  
@@ -74,7 +82,12 @@ namespace NE::ECS {
         RegisterComponent<Component::PrefabInstance>();
         RegisterComponent<Component::CharacterController>();
         RegisterComponent<Component::DecalProjector>();
-        
+        RegisterComponent<Component::UIHorizontalLayoutGroup>();
+        RegisterComponent<Component::UIVerticalLayoutGroup>();
+        RegisterComponent<Component::UIGridLayoutGroup>();
+        RegisterComponent<Component::UILayoutElement>();
+        RegisterComponent<Component::UIRectMask2D>();
+        RegisterComponent<Component::UIScrollRect>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
         SetSystemSignature<Systems::TransformSystem>(
@@ -129,6 +142,9 @@ namespace NE::ECS {
 			SetSystemSignature<Systems::ScriptSystem>(sig);
 		}
 
+        // Create UILayoutEngine (shared utility, not a System)
+        m_uiLayoutEngine = std::make_unique<UILayoutEngine>(m_componentManager.get());
+
         // UIEventSystem processes input before rendering - handles button states and hit testing
         m_uiEventSystem = m_systemManager->RegisterSystem<Systems::UIEventSystem>(m_componentManager.get());
         {
@@ -136,6 +152,7 @@ namespace NE::ECS {
             sig.set(GetComponentType<Component::UIRectTransform>());
             SetSystemSignature<Systems::UIEventSystem>(sig);
         }
+        m_uiEventSystem->SetLayoutEngine(m_uiLayoutEngine.get());
 
         m_uiRenderSystem = m_systemManager->RegisterSystem<Systems::UIRenderSystem>(m_componentManager.get());
         {
@@ -143,6 +160,15 @@ namespace NE::ECS {
             sig.set(m_componentManager->GetComponentType<NE::ECS::Component::UIRectTransform>());
             SetSystemSignature<Systems::UIRenderSystem>(sig);
         }
+        m_uiRenderSystem->SetLayoutEngine(m_uiLayoutEngine.get());
+
+        m_uiLayoutSystem = m_systemManager->RegisterSystem<Systems::UILayoutSystem>(m_componentManager.get());
+        {
+            Signature sig;
+            sig.set(GetComponentType<Component::UIRectTransform>());
+            SetSystemSignature<Systems::UILayoutSystem>(sig);
+        }
+        m_uiLayoutSystem->SetLayoutEngine(m_uiLayoutEngine.get());
 
         m_animatorSystem = m_systemManager->RegisterSystem<Systems::AnimatorSystem>(m_componentManager.get(), m_entityManager.get(), m_luidRegistry.get());
         {
@@ -190,6 +216,8 @@ namespace NE::ECS {
             SetSystemSignature<Systems::DecalProjectorSystem>(sig);
         }
     }
+
+    ECSCoordinator::~ECSCoordinator() = default;
 
     Entity ECSCoordinator::CreateEntity() {
         return m_entityManager->CreateEntity();

@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cmath>
 #include "../Components/EntityMeta.hpp"
+#include "../Components/UIRectMask2D.hpp"
 #include "UITransformUtilities.hpp"
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -32,10 +33,6 @@ namespace NE::ECS::Systems {
     // Constants
     //=========================================================================
 
-    static constexpr float PI = 3.14159265358979f;
-    static constexpr float ROTATION_EPSILON = 0.001f;
-
-    // Default anchor at center for Screen Space modes
     static constexpr float DEFAULT_ANCHOR_X = 0.5f;
     static constexpr float DEFAULT_ANCHOR_Y = 0.5f;
 
@@ -46,7 +43,7 @@ namespace NE::ECS::Systems {
     // Lifecycle
     //=========================================================================
 
-    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm) 
+    UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm)
     {
     }
     bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
@@ -54,7 +51,7 @@ namespace NE::ECS::Systems {
         return UIUtil::IsActiveForUI(m_cm, entity, canvasEntity);
     }
 
-    void UIRenderSystem::OnEntityAdded(Entity e) 
+    void UIRenderSystem::OnEntityAdded(Entity e)
     {
         if (!m_cm->HasComponent<UIImage>(e)) return;
 
@@ -104,7 +101,6 @@ namespace NE::ECS::Systems {
             m_defaultUIMaterial = std::make_shared<NE::Graphics::Material>(pipeline);
             m_defaultUIMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
 
-           // std::cout << "[UIRenderSystem] Loaded UI sprite material from UI_Sprite.nanoshader" << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "[UIRenderSystem] Error loading UI sprite material: " << e.what() << std::endl;
         }
@@ -130,7 +126,6 @@ namespace NE::ECS::Systems {
             m_defaultTextMaterial = std::make_shared<NE::Graphics::Material>(textPipeline);
             m_defaultTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
 
-            //std::cout << "[UIRenderSystem] Loaded UI text material from UI_Text.nanoshader" << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "[UIRenderSystem] Error loading UI text material: " << e.what() << std::endl;
         }
@@ -250,7 +245,7 @@ namespace NE::ECS::Systems {
             auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
 
             // Calculate scale factor based on scale mode
-            canvas.scaleFactor = CalculateScaleFactor(canvas);
+            canvas.scaleFactor = m_layoutEngine->CalculateScaleFactor(canvas);
 
             // Setup canvas defaults based on render mode
             SetupCanvasDefaults(canvasEntity, canvas);
@@ -283,7 +278,7 @@ namespace NE::ECS::Systems {
         }
     }
 
-    void UIRenderSystem::Exit() 
+    void UIRenderSystem::Exit()
     {
     }
 
@@ -291,7 +286,7 @@ namespace NE::ECS::Systems {
     // Canvas Setup Helpers
     //=========================================================================
 
-    void UIRenderSystem::SetupCanvasDefaults(Entity canvasEntity, UICanvas& canvas) 
+    void UIRenderSystem::SetupCanvasDefaults(Entity canvasEntity, UICanvas& canvas)
     {
         if (!m_cm->HasComponent<UIRectTransform>(canvasEntity)) {
             return;
@@ -345,7 +340,7 @@ namespace NE::ECS::Systems {
             canvasRect.rotationZ = 0.f;
             break;
         }
-        case UICanvas::RenderMode::WORLD_SPACE: 
+        case UICanvas::RenderMode::WORLD_SPACE:
         {
             // Apply default world space scale
             canvasRect.scaleX = DEFAULT_WORLD_SPACE_SCALE;
@@ -367,290 +362,6 @@ namespace NE::ECS::Systems {
         // Mark as initialized with current mode
         canvas.hasBeenInitialized = true;
         canvas.lastInitializedMode = canvas.renderMode;
-    }
-
-    //=========================================================================
-    // Transform Hierarchy Functions
-    //=========================================================================
-
-    std::vector<Entity> UIRenderSystem::BuildParentChain(Entity entity, Entity canvasEntity, UICanvas::RenderMode renderMode) 
-    {
-        std::vector<Entity> chain;
-        Entity current = entity;
-
-        while (current != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(current)) {
-            if (current == canvasEntity && renderMode != UICanvas::RenderMode::WORLD_SPACE) {
-                break;
-            }
-            chain.push_back(current);
-            current = m_cm->GetComponent<Hierarchy>(current).parent;
-        }
-
-        std::reverse(chain.begin(), chain.end());
-        return chain;
-    }
-
-    UIRenderSystem::AccumulatedTransform UIRenderSystem::AccumulateParentTransforms(
-        Entity entity,
-        Entity canvasEntity,
-        const UICanvas& canvas
-    ) 
-    {
-        AccumulatedTransform result;
-
-        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
-            return result;
-        }
-
-        //=====================================================================
-        // WORLD SPACE: Original logic - NO center anchor offset
-        // Canvas transform IS included (position, rotation, scale all apply)
-        //=====================================================================
-        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-            std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
-
-            for (size_t i = 0; i < chain.size(); ++i) {
-                Entity current = chain[i];
-                auto& rect = m_cm->GetComponent<UIRectTransform>(current);
-
-                // accumulate scale
-                result.scaleX *= rect.scaleX;
-                result.scaleY *= rect.scaleY;
-                result.scaleZ *= rect.scaleZ;
-
-                // accumulate rotation
-                result.rotationX += rect.rotationX;
-                result.rotationY += rect.rotationY;
-                result.rotationZ += rect.rotationZ;
-
-                // accumulate position
-                result.posX += rect.x;
-                result.posY += rect.y;
-                result.posZ += rect.z;
-            }
-
-            return result;
-        }
-
-        //=====================================================================
-        // SCREEN SPACE: Apply center anchor and scaleFactor
-        // Canvas transform is IGNORED (locked like Unity)
-        //=====================================================================
-        result.scaleX = canvas.scaleFactor;
-        result.scaleY = canvas.scaleFactor;
-
-        std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
-
-        for (size_t i = 0; i < chain.size(); ++i) {
-            Entity current = chain[i];
-            auto& rect = m_cm->GetComponent<UIRectTransform>(current);
-            bool isTarget = (current == entity);
-
-            result.scaleX *= rect.scaleX;
-            result.scaleY *= rect.scaleY;
-            result.scaleZ *= rect.scaleZ;
-            result.rotationZ += rect.rotationZ;
-
-            // Get parent dimensions for anchor calculation
-            float parentWidth = 0.f;
-            float parentHeight = 0.f;
-
-            if (i > 0) {
-                Entity parentEntity = chain[i - 1];
-                auto& parentRect = m_cm->GetComponent<UIRectTransform>(parentEntity);
-                parentWidth = parentRect.width;
-                parentHeight = parentRect.height;
-            }
-            else {
-                // Direct child of canvas - use screen dimensions in reference coordinates
-                parentWidth = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth()) / canvas.scaleFactor;
-                parentHeight = static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight()) / canvas.scaleFactor;
-            }
-
-            // Center anchor offset
-            float anchorX = parentWidth * DEFAULT_ANCHOR_X;
-            float anchorY = parentHeight * DEFAULT_ANCHOR_Y;
-
-            if (isTarget) {
-                // Use scaled dimensions for pivot offset calculation
-                float scaledWidth = rect.width * result.scaleX;
-                float scaledHeight = rect.height * result.scaleY;
-
-                float localX = anchorX + rect.x - scaledWidth * rect.pivotX;
-                float localY = anchorY + rect.y - scaledHeight * rect.pivotY;
-
-                float parentRotation = result.rotationZ - rect.rotationZ;
-                if (std::abs(parentRotation) > ROTATION_EPSILON) {
-                    float rad = parentRotation * PI / 180.0f;
-                    float cosR = std::cos(rad);
-                    float sinR = std::sin(rad);
-                    float rotatedX = localX * cosR - localY * sinR;
-                    float rotatedY = localX * sinR + localY * cosR;
-                    localX = rotatedX;
-                    localY = rotatedY;
-                }
-
-                float parentScaleX = result.scaleX / rect.scaleX;
-                float parentScaleY = result.scaleY / rect.scaleY;
-
-                result.posX += localX * parentScaleX;
-                result.posY += localY * parentScaleY;
-                result.posZ += rect.z;
-            }
-            else {
-                result.posX += anchorX + rect.x;
-                result.posY += anchorY + rect.y;
-                result.posZ += rect.z;
-            }
-        }
-
-        return result;
-    }
-
-    //=========================================================================
-    // World Transform Calculation
-    //=========================================================================
-
-    UIRenderSystem::WorldTransform UIRenderSystem::CalculateWorldTransform(
-        Entity entity,
-        Entity canvasEntity,
-        const UICanvas& canvas,
-        const Math::Mat4* viewMatrix,
-        const Math::Mat4* projMatrix
-    )
-    {
-        (void)viewMatrix;  // Unused - reserved for world-space rendering
-        (void)projMatrix;  // Unused - reserved for world-space rendering
-
-        WorldTransform result;
-
-        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
-            return result;
-        }
-
-        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
-        AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
-
-        result.x = accumulated.posX;
-        result.y = accumulated.posY;
-        result.z = accumulated.posZ;
-        result.width = rect.width * accumulated.scaleX;
-        result.height = rect.height * accumulated.scaleY;
-        result.accumulatedRotationZ = accumulated.rotationZ;
-        result.accumulatedScaleX = accumulated.scaleX;
-        result.accumulatedScaleY = accumulated.scaleY;
-
-        // Pixel-perfect snapping for screen space only
-        if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-            canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
-            if (canvas.pixelPerfect) {
-                ApplyPixelPerfectSnapping(result);
-            }
-        }
-
-        return result;
-    }
-
-    UIRenderSystem::WorldTransform UIRenderSystem::CalculateWorldTransformFromAccumulated(
-        Entity entity,
-        const UICanvas& canvas,
-        const AccumulatedTransform& accumulated
-    )
-    {
-        WorldTransform result;
-
-        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
-            return result;
-        }
-
-        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
-
-        result.x = accumulated.posX;
-        result.y = accumulated.posY;
-        result.z = accumulated.posZ;
-        result.width = rect.width * accumulated.scaleX;
-        result.height = rect.height * accumulated.scaleY;
-        result.accumulatedRotationZ = accumulated.rotationZ;
-        result.accumulatedScaleX = accumulated.scaleX;
-        result.accumulatedScaleY = accumulated.scaleY;
-
-        // Pixel-perfect snapping for screen space only
-        if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_OVERLAY ||
-            canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA) {
-            if (canvas.pixelPerfect) {
-                ApplyPixelPerfectSnapping(result);
-            }
-        }
-
-        return result;
-    }
-
-    void UIRenderSystem::ApplyPixelPerfectSnapping(WorldTransform& transform)
-    {
-        transform.x = std::round(transform.x);
-        transform.y = std::round(transform.y);
-        transform.width = std::round(transform.width);
-        transform.height = std::round(transform.height);
-    }
-
-    void UIRenderSystem::UpdateWorldMatrix(
-        Entity entity,
-        Entity canvasEntity,
-        const UICanvas& canvas
-    )
-    {
-        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
-            return;
-        }
-
-        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
-        if (!rect.worldMatrixDirty) return;
-
-        // Get accumulated transforms (existing accumulation logic)
-        AccumulatedTransform acc = AccumulateParentTransforms(entity, canvasEntity, canvas);
-
-        // Build TRS matrices
-        Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
-        Math::Mat4 R = rect.GetRotationMatrix();
-        Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
-
-        // Handle pivot offset
-        float pivotOffsetX = rect.width * rect.pivotX;
-        float pivotOffsetY = rect.height * rect.pivotY;
-        Math::Mat4 pivotTrans = Math::Mat4::BuildTranslation(Math::Vec3(pivotOffsetX, pivotOffsetY, 0.0f));
-        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
-
-        // Build final world matrix: T * pivot * R * S * pivot^-1
-        rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
-        rect.worldMatrixDirty = false;
-    }
-
-    void UIRenderSystem::UpdateWorldMatrixFromAccumulated(
-        Entity entity,
-        const AccumulatedTransform& acc
-    )
-    {
-        if (!m_cm->HasComponent<UIRectTransform>(entity)) {
-            return;
-        }
-
-        auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
-        if (!rect.worldMatrixDirty) return;
-
-        // Build TRS matrices using pre-computed accumulated transforms
-        Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
-        Math::Mat4 R = rect.GetRotationMatrix();
-        Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
-
-        // Handle pivot offset
-        float pivotOffsetX = rect.width * rect.pivotX;
-        float pivotOffsetY = rect.height * rect.pivotY;
-        Math::Mat4 pivotTrans = Math::Mat4::BuildTranslation(Math::Vec3(pivotOffsetX, pivotOffsetY, 0.0f));
-        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
-
-        // Build final world matrix: T * pivot * R * S * pivot^-1
-        rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
-        rect.worldMatrixDirty = false;
     }
 
     std::shared_ptr<NE::Graphics::IGeometryBuffer> UIRenderSystem::CreateDynamicUIGeometry(
@@ -702,7 +413,8 @@ namespace NE::ECS::Systems {
         const UICanvas& canvas,
         const UIImage& img,
         const UIRectTransform& rect,
-        const std::vector<NE::Graphics::UIVertex2>& vertices
+        const std::vector<NE::Graphics::UIVertex2>& vertices,
+        const std::optional<NE::Graphics::ScissorRect>& scissor
     )
     {
         (void)entity; // Unused parameter
@@ -764,6 +476,7 @@ namespace NE::ECS::Systems {
 
         cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
         cmd.boundsRadiusWs = 999999.0f;  // Always visible
+        cmd.scissorRect = scissor;
 
         // Submit through standard pipeline
         NE::Graphics::GraphicsManager::Submit(cmd);
@@ -775,7 +488,8 @@ namespace NE::ECS::Systems {
         const UIText& text,
         const UIRectTransform& rect,
         const std::vector<NE::Graphics::UIVertex2>& vertices,
-        std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas
+        std::shared_ptr<NE::Graphics::FontAtlas> fontAtlas,
+        const std::optional<NE::Graphics::ScissorRect>& scissor
     )
     {
         (void)entity; // Unused parameter
@@ -832,40 +546,15 @@ namespace NE::ECS::Systems {
         cmd.castsShadow = false;
         cmd.receivesShadow = false;
         cmd.boundsRadiusWs = 999999.0f;  // Always visible
+        cmd.scissorRect = scissor;
 
         // Submit through integrated pipeline
         NE::Graphics::GraphicsManager::Submit(cmd);
     }
 
     //=========================================================================
-    // Canvas & Scaling
-    //=========================================================================
-
-    float UIRenderSystem::CalculateScaleFactor(const UICanvas& canvas)
-    {
-        return UIUtil::CalculateScaleFactor(canvas);
-    }
-
-    //=========================================================================
     // Canvas Children Collection (single-pass)
     //=========================================================================
-
-    Entity UIRenderSystem::FindOwningCanvas(Entity entity) const
-    {
-        Entity current = m_cm->HasComponent<Hierarchy>(entity)
-            ? m_cm->GetComponent<Hierarchy>(entity).parent
-            : NO_ENTITY;
-
-        while (current != NO_ENTITY) {
-            if (m_cm->HasComponent<UICanvas>(current)) {
-                return current;
-            }
-            if (!m_cm->HasComponent<Hierarchy>(current)) break;
-            current = m_cm->GetComponent<Hierarchy>(current).parent;
-        }
-
-        return NO_ENTITY;
-    }
 
     void UIRenderSystem::BuildCanvasChildrenMap()
     {
@@ -881,7 +570,7 @@ namespace NE::ECS::Systems {
             bool hasText = m_cm->HasComponent<UIText>(e);
             if (!hasImage && !hasText) continue;
 
-            Entity canvasEntity = FindOwningCanvas(e);
+            Entity canvasEntity = m_layoutEngine->FindOwningCanvas(e);
             if (canvasEntity == NO_ENTITY) continue;
 
             // Check active state once
@@ -898,7 +587,7 @@ namespace NE::ECS::Systems {
     //=========================================================================
 
 
-    void UIRenderSystem::SortEntitiesByZOrder(std::vector<Entity>& entities) 
+    void UIRenderSystem::SortEntitiesByZOrder(std::vector<Entity>& entities)
     {
         std::sort(entities.begin(), entities.end(),
             [this](Entity a, Entity b) {
@@ -915,12 +604,15 @@ namespace NE::ECS::Systems {
         const Math::Mat4* projMatrix
     )
     {
+        (void)viewMatrix;
+        (void)projMatrix;
+
         auto it = m_canvasChildrenMap.find(canvasEntity);
         if (it == m_canvasChildrenMap.end()) return;
 
         std::vector<Entity>& canvasChildren = it->second.images;
 
-        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && canvasChildren.size() > 1) 
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && canvasChildren.size() > 1)
         {
             SortEntitiesByZOrder(canvasChildren);
         }
@@ -929,12 +621,12 @@ namespace NE::ECS::Systems {
             auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
-            // Accumulate parent transforms ONCE per entity
-            AccumulatedTransform accumulated = AccumulateParentTransforms(e, canvasEntity, canvas);
+            // Accumulate parent transforms ONCE per entity (delegated to UILayoutEngine)
+            AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(e, canvasEntity, canvas);
 
             // Use the pre-computed accumulated transform for both world matrix and world transform
-            UpdateWorldMatrixFromAccumulated(e, accumulated);
-            WorldTransform worldTransform = CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
+            m_layoutEngine->UpdateWorldMatrixFromAccumulated(e, accumulated);
+            WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
 
             // Cache the world rect for UIEventSystem to reuse
             rect.cachedWorldX = worldTransform.x;
@@ -969,7 +661,9 @@ namespace NE::ECS::Systems {
             }
 
             if (!verticesV2.empty()) {
-                SubmitUIElement(e, canvas, img, rect, verticesV2);
+                // Compute scissor rect from parent RectMask2D chain
+                auto scissor = ComputeScissorRect(e, canvasEntity, canvas);
+                SubmitUIElement(e, canvas, img, rect, verticesV2, scissor);
             }
         }
     }
@@ -978,7 +672,7 @@ namespace NE::ECS::Systems {
     // Camera Utilities
     //=========================================================================
 
-    bool UIRenderSystem::GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj) 
+    bool UIRenderSystem::GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj)
     {
         auto* cam = NE::Graphics::GraphicsManager::GetEditorCamera();
         if (!cam) return false;
@@ -1001,8 +695,11 @@ namespace NE::ECS::Systems {
         const UICanvas& canvas,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) 
+    )
     {
+        (void)viewMatrix;
+        (void)projMatrix;
+
         if (!m_cm->HasComponent<UIText>(entity) || !m_cm->HasComponent<UIRectTransform>(entity)) return;
 
         auto& text = m_cm->GetComponent<UIText>(entity);
@@ -1011,11 +708,11 @@ namespace NE::ECS::Systems {
         // Skip if no text or font
         if (text.text.empty() || text.fontUUID.empty()) return;
 
-        // Accumulate parent transforms ONCE for this text entity
-        AccumulatedTransform accumulated = AccumulateParentTransforms(entity, canvasEntity, canvas);
+        // Accumulate parent transforms ONCE for this text entity (delegated to UILayoutEngine)
+        AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(entity, canvasEntity, canvas);
 
         // Update world matrix from accumulated (needed for world-space text submission)
-        UpdateWorldMatrixFromAccumulated(entity, accumulated);
+        m_layoutEngine->UpdateWorldMatrixFromAccumulated(entity, accumulated);
 
         // Use the average scale for uniform font scaling (take the smaller to ensure text fits)
         float scaleFactorForFont = std::min(accumulated.scaleX, accumulated.scaleY);
@@ -1064,7 +761,7 @@ namespace NE::ECS::Systems {
 
         // Reuse the pre-computed accumulated transform (no second traversal)
         WorldTransform worldTransform =
-            CalculateWorldTransformFromAccumulated(entity, canvas, accumulated);
+            m_layoutEngine->CalculateWorldTransformFromAccumulated(entity, canvas, accumulated);
 
         // Cache the world rect for UIEventSystem to reuse
         rect.cachedWorldX = worldTransform.x;
@@ -1152,9 +849,71 @@ namespace NE::ECS::Systems {
             text.hasCachedTransform = true;
         }
 
-        SubmitTextElement(entity, canvas, text, rect, text.cachedVertices, fontAtlas);
+        auto scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+        SubmitTextElement(entity, canvas, text, rect, text.cachedVertices, fontAtlas, scissor);
     }
 
-    // DEPRECATED: Old SubmitTextDrawCommand removed - text now uses integrated pipeline via SubmitTextElement
+    //=========================================================================
+    // Scissor Clipping (RectMask2D)
+    //=========================================================================
+
+    std::optional<NE::Graphics::ScissorRect> UIRenderSystem::ComputeScissorRect(
+        Entity entity,
+        Entity canvasEntity,
+        const UICanvas& canvas
+    )
+    {
+        // Walk parent chain looking for UIRectMask2D components
+        Entity current = m_cm->HasComponent<Hierarchy>(entity)
+            ? m_cm->GetComponent<Hierarchy>(entity).parent
+            : NO_ENTITY;
+
+        std::optional<NE::Graphics::ScissorRect> result;
+
+        while (current != NO_ENTITY && current != canvasEntity) {
+            if (m_cm->HasComponent<UIRectMask2D>(current)) {
+                auto& mask = m_cm->GetComponent<UIRectMask2D>(current);
+                if (mask.enabled) {
+                    auto wr = m_layoutEngine->GetWorldRect(current, canvasEntity, canvas);
+
+                    // Apply mask padding (shrinks inward)
+                    float maskX = wr.x + mask.paddingLeft;
+                    float maskY = wr.y + mask.paddingTop;
+                    float maskW = wr.width - mask.paddingLeft - mask.paddingRight;
+                    float maskH = wr.height - mask.paddingTop - mask.paddingBottom;
+
+                    if (maskW < 0.f) maskW = 0.f;
+                    if (maskH < 0.f) maskH = 0.f;
+
+                    // Convert from UI coords (top-left origin) to GL scissor coords (bottom-left origin)
+                    int screenHeight = static_cast<int>(NE::Graphics::GraphicsManager::GetScreenHeight());
+                    NE::Graphics::ScissorRect sr;
+                    sr.x = static_cast<int>(maskX);
+                    sr.y = screenHeight - static_cast<int>(maskY + maskH);
+                    sr.width = static_cast<int>(maskW);
+                    sr.height = static_cast<int>(maskH);
+
+                    // Intersect with existing result (nested masks)
+                    if (result.has_value()) {
+                        int x1 = std::max(result->x, sr.x);
+                        int y1 = std::max(result->y, sr.y);
+                        int x2 = std::min(result->x + result->width, sr.x + sr.width);
+                        int y2 = std::min(result->y + result->height, sr.y + sr.height);
+                        result->x = x1;
+                        result->y = y1;
+                        result->width = std::max(0, x2 - x1);
+                        result->height = std::max(0, y2 - y1);
+                    } else {
+                        result = sr;
+                    }
+                }
+            }
+
+            if (!m_cm->HasComponent<Hierarchy>(current)) break;
+            current = m_cm->GetComponent<Hierarchy>(current).parent;
+        }
+
+        return result;
+    }
 
 } // namespace NE::ECS::Systems

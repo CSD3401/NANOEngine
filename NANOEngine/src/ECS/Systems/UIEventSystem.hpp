@@ -9,6 +9,9 @@
 #include "../Components/UISlider.hpp"
 #include "../Components/UIToggle.hpp"
 #include "../Components/UIImage.hpp"
+#include "../Components/UIRectMask2D.hpp"
+#include "../Components/UIScrollRect.hpp"
+#include "UILayoutEngine.hpp"
 #include "../../Math/Vec3.hpp"
 #include "../../Math/Vec4.hpp"
 #include "../../Math/Mat4.hpp"
@@ -20,6 +23,8 @@ namespace NE::ECS::Systems {
     class UIEventSystem final : public System {
     public:
         explicit UIEventSystem(ComponentManager* cm);
+
+        void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
         void Init() override;
         void Update(double deltaTime) override;
@@ -38,6 +43,7 @@ namespace NE::ECS::Systems {
         bool IsActiveForUI(Entity entity, Entity canvasEntity) const;
         Entity FindOwningCanvas(Entity entity) const;
         ComponentManager* m_cm = nullptr;
+        UILayoutEngine* m_layoutEngine = nullptr;
 
         Entity m_hoveredEntity = NO_ENTITY;
         Entity m_pressedEntity = NO_ENTITY;
@@ -86,8 +92,14 @@ namespace NE::ECS::Systems {
         void UpdateSliderStates(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased);
         void UpdateToggleStates();
         void UpdateCheckmarkVisibility(Entity toggleEntity);
+        void UpdateScrollRects(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased, double deltaTime);
 
         void ApplyButtonColorToImage(Entity buttonEntity);
+
+        // Mask-aware hit testing (RectMask2D)
+        bool IsPointInMaskBounds(Entity entity, float px, float py);
+
+        Entity m_draggingScrollRect = NO_ENTITY;
 
         float CalculateScaleFactor(const Component::UICanvas& canvas);
 

@@ -1235,10 +1235,20 @@ namespace NE::Graphics {
             instanceData.reserve(32);
             std::shared_ptr<IGeometryBuffer> currentMesh;
             std::shared_ptr<Material> currentMaterial;
+            std::optional<ScissorRect> currentScissor;
 
             auto flushBatch = [&]() {
                 if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
                     return;
+
+                // Apply scissor state before drawing this batch
+                if (currentScissor.has_value()) {
+                    glEnable(GL_SCISSOR_TEST);
+                    glScissor(currentScissor->x, currentScissor->y,
+                              currentScissor->width, currentScissor->height);
+                } else {
+                    glDisable(GL_SCISSOR_TEST);
+                }
 
                 NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
                     instanceData.data(),
@@ -1265,10 +1275,11 @@ namespace NE::Graphics {
                 auto mesh = command.mesh;
                 auto material = command.material;
 
-                // Check compatibility with current batch
+                // Check compatibility with current batch (includes scissor rect)
                 bool compatible =
                     (mesh == currentMesh) &&
-                    (material == currentMaterial);
+                    (material == currentMaterial) &&
+                    (command.scissorRect == currentScissor);
 
                 // Flush current batch if not compatible
                 if (!compatible && !instanceData.empty()) {
@@ -1279,6 +1290,7 @@ namespace NE::Graphics {
                 if (!compatible) {
                     currentMesh = mesh;
                     currentMaterial = material;
+                    currentScissor = command.scissorRect;
                 }
 
                 NE::Graphics::InstanceData instance{};
@@ -1292,7 +1304,8 @@ namespace NE::Graphics {
                 flushBatch();
             }
 
-            // Restore depth testing state
+            // Restore GL state
+            glDisable(GL_SCISSOR_TEST);
             glEnable(GL_DEPTH_TEST);
             glDepthMask(GL_TRUE);
 

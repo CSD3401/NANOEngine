@@ -9,6 +9,8 @@
 #include <limits>
 #include "../Components/EntityMeta.hpp"
 #include "../Components/UIRectTransform.hpp"
+#include "../Components/UIRectMask2D.hpp"
+#include "../Components/UIScrollRect.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../../Events/EventBus.hpp"
 #include "../../Events/UIEvents.hpp"
@@ -38,6 +40,10 @@ namespace NE::ECS::Systems {
     void UIEventSystem::Init() {}
     Entity UIEventSystem::FindOwningCanvas(Entity entity) const
     {
+        if (m_layoutEngine) {
+            return m_layoutEngine->FindOwningCanvas(entity);
+        }
+
         if (!m_cm->HasComponent<UIRectTransform>(entity)) return NO_ENTITY;
 
         Entity cur = entity;
@@ -68,7 +74,7 @@ namespace NE::ECS::Systems {
 
     void UIEventSystem::Exit() {}
 
-    void UIEventSystem::Update(double) {
+    void UIEventSystem::Update(double deltaTime) {
         // Clear wasClicked and valueChanged flags at the start of each frame
         const auto& entities = GetEntities();
         for (Entity e : entities) {
@@ -104,12 +110,15 @@ namespace NE::ECS::Systems {
                 return a.zOrder > b.zOrder;
             });
 
-        // Find topmost screen-space element under mouse
+        // Find topmost screen-space element under mouse (with mask awareness)
         Entity hoveredEntity = NO_ENTITY;
         for (const auto& elem : elements) {
             if (PointInRect(static_cast<float>(mouseX), static_cast<float>(mouseY), elem)) {
-                hoveredEntity = elem.entity;
-                break;
+                // Check if point is within all ancestor RectMask2D bounds
+                if (IsPointInMaskBounds(elem.entity, static_cast<float>(mouseX), static_cast<float>(mouseY))) {
+                    hoveredEntity = elem.entity;
+                    break;
+                }
             }
         }
 
@@ -177,6 +186,9 @@ namespace NE::ECS::Systems {
 
         // Update toggle states
         UpdateToggleStates();
+
+        // Update scroll rects (drag, inertia, elastic bounce)
+        UpdateScrollRects(static_cast<float>(mouseX), static_cast<float>(mouseY), mouseDown, mousePressed, mouseReleased, deltaTime);
     }
 
     std::vector<UIEventSystem::UIElementInfo> UIEventSystem::CollectInteractableElements() {
@@ -940,6 +952,231 @@ namespace NE::ECS::Systems {
             // Scale to UI coords
             mouseX = normX * s_uiWidth;
             mouseY = normY * s_uiHeight;
+        }
+    }
+
+    //=========================================================================
+    // Mask-Aware Hit Testing (RectMask2D)
+    //=========================================================================
+
+    bool UIEventSystem::IsPointInMaskBounds(Entity entity, float px, float py) {
+        Entity current = m_cm->HasComponent<Hierarchy>(entity)
+            ? m_cm->GetComponent<Hierarchy>(entity).parent
+            : NO_ENTITY;
+
+        while (current != NO_ENTITY) {
+            if (m_cm->HasComponent<UIRectMask2D>(current)) {
+                auto& mask = m_cm->GetComponent<UIRectMask2D>(current);
+                if (mask.enabled) {
+                    Entity canvasEntity = FindOwningCanvas(current);
+                    if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
+                        auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
+                        float mx, my, mw, mh;
+                        CalculateWorldRect(current, canvasEntity, canvas, mx, my, mw, mh);
+
+                        // Apply mask padding
+                        mx += mask.paddingLeft;
+                        my += mask.paddingTop;
+                        mw -= mask.paddingLeft + mask.paddingRight;
+                        mh -= mask.paddingTop + mask.paddingBottom;
+
+                        if (px < mx || px > mx + mw || py < my || py > my + mh) {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            if (!m_cm->HasComponent<Hierarchy>(current)) break;
+            current = m_cm->GetComponent<Hierarchy>(current).parent;
+        }
+
+        return true;
+    }
+
+    //=========================================================================
+    // ScrollRect
+    //=========================================================================
+
+    void UIEventSystem::UpdateScrollRects(
+        float mouseX, float mouseY,
+        bool mouseDown, bool mousePressed, bool mouseReleased,
+        double deltaTime
+    ) {
+        float dt = static_cast<float>(deltaTime);
+        if (dt <= 0.f) dt = 1.f / 60.f;
+
+        const auto& entities = GetEntities();
+
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UIScrollRect>(e)) continue;
+
+            auto& scroll = m_cm->GetComponent<UIScrollRect>(e);
+            if (!scroll.interactable) continue;
+
+            // Get viewport entity and its world rect
+            Entity viewportEnt = scroll.viewportEntity;
+            if (viewportEnt == UINT32_MAX || !m_cm->HasComponent<UIRectTransform>(viewportEnt)) continue;
+
+            Entity contentEnt = scroll.contentEntity;
+            if (contentEnt == UINT32_MAX || !m_cm->HasComponent<UIRectTransform>(contentEnt)) continue;
+
+            Entity canvasEntity = FindOwningCanvas(e);
+            if (canvasEntity == NO_ENTITY) continue;
+            auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
+
+            float vpX, vpY, vpW, vpH;
+            CalculateWorldRect(viewportEnt, canvasEntity, canvas, vpX, vpY, vpW, vpH);
+
+            auto& contentRect = m_cm->GetComponent<UIRectTransform>(contentEnt);
+
+            // Cache viewport dimensions
+            scroll.viewportWidth = vpW;
+            scroll.viewportHeight = vpH;
+
+            // Calculate content bounds from children
+            if (m_layoutEngine) {
+                auto bounds = m_layoutEngine->CalculateContentBounds(contentEnt);
+                scroll.contentWidth = std::max(bounds.width, contentRect.width);
+                scroll.contentHeight = std::max(bounds.height, contentRect.height);
+            } else {
+                scroll.contentWidth = contentRect.width;
+                scroll.contentHeight = contentRect.height;
+            }
+
+            bool mouseInViewport = (mouseX >= vpX && mouseX <= vpX + vpW &&
+                                    mouseY >= vpY && mouseY <= vpY + vpH);
+
+            // Handle drag start
+            if (mousePressed && mouseInViewport && m_draggingScrollRect == NO_ENTITY) {
+                m_draggingScrollRect = e;
+                scroll.isDragging = true;
+                scroll.dragStartX = mouseX;
+                scroll.dragStartY = mouseY;
+                scroll.contentStartX = contentRect.x;
+                scroll.contentStartY = contentRect.y;
+                scroll.velocity = Math::Vec2(0.f, 0.f);
+            }
+
+            // Handle drag
+            if (scroll.isDragging && m_draggingScrollRect == e && mouseDown) {
+                float deltaX = mouseX - scroll.dragStartX;
+                float deltaY = mouseY - scroll.dragStartY;
+
+                float newX = scroll.contentStartX + (scroll.horizontal ? deltaX : 0.f);
+                float newY = scroll.contentStartY + (scroll.vertical ? deltaY : 0.f);
+
+                // Calculate scroll bounds
+                float maxScrollX = std::max(0.f, scroll.contentWidth - scroll.viewportWidth);
+                float maxScrollY = std::max(0.f, scroll.contentHeight - scroll.viewportHeight);
+
+                // The content starts at the center of the viewport, so min scroll offset
+                // is when content top-left aligns with viewport top-left
+                float halfVpW = scroll.viewportWidth * 0.5f;
+                float halfVpH = scroll.viewportHeight * 0.5f;
+                float minX = -maxScrollX + halfVpW - scroll.contentWidth * contentRect.pivotX;
+                float maxX = halfVpW - scroll.contentWidth * contentRect.pivotX;
+                float minY = -maxScrollY + halfVpH - scroll.contentHeight * contentRect.pivotY;
+                float maxY = halfVpH - scroll.contentHeight * contentRect.pivotY;
+
+                if (scroll.movementType == 2) { // Clamped
+                    if (scroll.horizontal) newX = std::max(minX, std::min(maxX, newX));
+                    if (scroll.vertical) newY = std::max(minY, std::min(maxY, newY));
+                }
+
+                if (scroll.horizontal) contentRect.x = newX;
+                if (scroll.vertical) contentRect.y = newY;
+
+                // Track velocity for inertia
+                if (dt > 0.f) {
+                    scroll.velocity.x = (scroll.horizontal ? deltaX : 0.f) / dt;
+                    scroll.velocity.y = (scroll.vertical ? deltaY : 0.f) / dt;
+                }
+
+                // Update drag start for next frame delta
+                scroll.dragStartX = mouseX;
+                scroll.dragStartY = mouseY;
+                scroll.contentStartX = contentRect.x;
+                scroll.contentStartY = contentRect.y;
+
+                contentRect.worldMatrixDirty = true;
+                contentRect.worldRectCached = false;
+            }
+
+            // Handle drag end
+            if (scroll.isDragging && m_draggingScrollRect == e && mouseReleased) {
+                scroll.isDragging = false;
+                m_draggingScrollRect = NO_ENTITY;
+                if (!scroll.inertia) {
+                    scroll.velocity = Math::Vec2(0.f, 0.f);
+                }
+            }
+
+            // Apply inertia (when not dragging)
+            if (!scroll.isDragging && (std::abs(scroll.velocity.x) > 0.1f || std::abs(scroll.velocity.y) > 0.1f)) {
+                if (scroll.horizontal) contentRect.x += scroll.velocity.x * dt;
+                if (scroll.vertical) contentRect.y += scroll.velocity.y * dt;
+
+                // Decay velocity (framerate-independent)
+                float decay = std::pow(scroll.decelerationRate, dt);
+                scroll.velocity.x *= decay;
+                scroll.velocity.y *= decay;
+
+                contentRect.worldMatrixDirty = true;
+                contentRect.worldRectCached = false;
+            }
+
+            // Elastic bounce-back (when content is out of bounds and movementType == Elastic)
+            if (!scroll.isDragging && scroll.movementType == 1) {
+                float maxScrollX = std::max(0.f, scroll.contentWidth - scroll.viewportWidth);
+                float maxScrollY = std::max(0.f, scroll.contentHeight - scroll.viewportHeight);
+                float halfVpW = scroll.viewportWidth * 0.5f;
+                float halfVpH = scroll.viewportHeight * 0.5f;
+                float minX = -maxScrollX + halfVpW - scroll.contentWidth * contentRect.pivotX;
+                float maxX2 = halfVpW - scroll.contentWidth * contentRect.pivotX;
+                float minY = -maxScrollY + halfVpH - scroll.contentHeight * contentRect.pivotY;
+                float maxY2 = halfVpH - scroll.contentHeight * contentRect.pivotY;
+
+                float springFactor = 1.f - std::pow(scroll.elasticity, dt);
+
+                if (scroll.horizontal) {
+                    if (contentRect.x < minX) {
+                        contentRect.x += (minX - contentRect.x) * springFactor;
+                        scroll.velocity.x = 0.f;
+                        contentRect.worldMatrixDirty = true;
+                        contentRect.worldRectCached = false;
+                    } else if (contentRect.x > maxX2) {
+                        contentRect.x += (maxX2 - contentRect.x) * springFactor;
+                        scroll.velocity.x = 0.f;
+                        contentRect.worldMatrixDirty = true;
+                        contentRect.worldRectCached = false;
+                    }
+                }
+
+                if (scroll.vertical) {
+                    if (contentRect.y < minY) {
+                        contentRect.y += (minY - contentRect.y) * springFactor;
+                        scroll.velocity.y = 0.f;
+                        contentRect.worldMatrixDirty = true;
+                        contentRect.worldRectCached = false;
+                    } else if (contentRect.y > maxY2) {
+                        contentRect.y += (maxY2 - contentRect.y) * springFactor;
+                        scroll.velocity.y = 0.f;
+                        contentRect.worldMatrixDirty = true;
+                        contentRect.worldRectCached = false;
+                    }
+                }
+            }
+
+            // Update normalized position
+            float maxScrollX = std::max(0.001f, scroll.contentWidth - scroll.viewportWidth);
+            float maxScrollY = std::max(0.001f, scroll.contentHeight - scroll.viewportHeight);
+            float halfVpW = scroll.viewportWidth * 0.5f;
+            float halfVpH = scroll.viewportHeight * 0.5f;
+            float baseX = halfVpW - scroll.contentWidth * contentRect.pivotX;
+            float baseY = halfVpH - scroll.contentHeight * contentRect.pivotY;
+            scroll.normalizedPosition.x = std::max(0.f, std::min(1.f, (baseX - contentRect.x) / maxScrollX));
+            scroll.normalizedPosition.y = std::max(0.f, std::min(1.f, (baseY - contentRect.y) / maxScrollY));
         }
     }
 

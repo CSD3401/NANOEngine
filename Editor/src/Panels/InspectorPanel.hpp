@@ -51,6 +51,12 @@ namespace Editor {
 		void DrawButtonComponent(uint32_t entity);
 		void DrawSliderComponent(uint32_t entity);
 		void DrawToggleComponent(uint32_t entity);
+		void DrawHorizontalLayoutGroupComponent(uint32_t entity);
+		void DrawVerticalLayoutGroupComponent(uint32_t entity);
+		void DrawGridLayoutGroupComponent(uint32_t entity);
+		void DrawLayoutElementComponent(uint32_t entity);
+		void DrawRectMask2DComponent(uint32_t entity);
+		void DrawScrollRectComponent(uint32_t entity);
 		void DrawCharacterControllerComponent(uint32_t entity);
 		
 
