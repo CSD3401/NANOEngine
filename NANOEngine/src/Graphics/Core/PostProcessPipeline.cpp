@@ -51,14 +51,23 @@ namespace NE::Graphics {
 	void PostProcessPipeline::Execute(RenderViewHandle sourceView,
 		RenderViewHandle destView,
 		const Math::Mat4& invProj,
+		const Math::Mat4& currView,
+		const Math::Mat4& currProj,
 		bool isSceneView
 	) {
 		if (!m_rvm || !m_graph) return;
+		if (m_settings && m_settings->taaSettings.resetHistory) {
+			for (auto& [_, state] : m_taaStates) {
+				state.hasHistory = false;
+			}
+			m_settings->taaSettings.resetHistory = false;
+		}
 
 		m_context.invProj = invProj;
 		m_context.isSceneView = isSceneView;
+		m_context.currViewProjInv = (currProj * currView).Inverse();
 
-		SetupGraph(sourceView, destView, invProj, isSceneView);
+		SetupGraph(sourceView, destView, invProj, currView, currProj, isSceneView);
 		m_graph->Execute();
 	}
 
@@ -206,6 +215,57 @@ namespace NE::Graphics {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	void PostProcessPipeline::EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h)
+	{
+		if (w == 0 || h == 0) return;
+
+		auto& state = m_taaStates[viewHandle];
+		if (state.width == w && state.height == h && state.historyTex[0] != 0 && state.historyTex[1] != 0) {
+			return;
+		}
+
+		for (int i = 0; i < 2; ++i) {
+			if (state.historyTex[i] != 0) {
+				glDeleteTextures(1, &state.historyTex[i]);
+				state.historyTex[i] = 0;
+			}
+			if (state.historyFBO[i] != 0) {
+				glDeleteFramebuffers(1, &state.historyFBO[i]);
+				state.historyFBO[i] = 0;
+			}
+		}
+
+		state.width = w;
+		state.height = h;
+		state.readIndex = 0;
+		state.writeIndex = 1;
+		state.hasHistory = false;
+		state.prevViewProj.SetToIdentity();
+
+		for (int i = 0; i < 2; ++i) {
+			glGenTextures(1, &state.historyTex[i]);
+			glBindTexture(GL_TEXTURE_2D, state.historyTex[i]);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
+				static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0,
+				GL_RGBA, GL_FLOAT, nullptr);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+			glGenFramebuffers(1, &state.historyFBO[i]);
+			glBindFramebuffer(GL_FRAMEBUFFER, state.historyFBO[i]);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state.historyTex[i], 0);
+			const GLenum att = GL_COLOR_ATTACHMENT0;
+			glDrawBuffers(1, &att);
+			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+				LOG_ERROR("TAA history FBO incomplete!");
+			}
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
 	void PostProcessPipeline::LoadShaders() {
 		if (!m_brightPassShader) {
 			m_brightPassShader = Resource::ResourceManager::GetInstance()
@@ -231,11 +291,17 @@ namespace NE::Graphics {
 			m_SSAOShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nessao");
 		}
+		if (!m_taaShader) {
+			m_taaShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("netaa");
+		}
 	}
 
 	void PostProcessPipeline::SetupGraph(RenderViewHandle sourceView,
 		RenderViewHandle destView,
 		const Math::Mat4& invProj,
+		const Math::Mat4& currView,
+		const Math::Mat4& currProj,
 		bool isSceneView)
 	{
 		if (!m_rvm || !m_graph) return;
@@ -250,9 +316,100 @@ namespace NE::Graphics {
 		m_context.destFB = destFB;
 		m_context.invProj = invProj;
 		m_context.isSceneView = isSceneView;
+		m_context.currViewProjInv = (currProj * currView).Inverse();
+		m_context.sceneColorTex = sourceFB->GetColorAttachment();
+		m_context.taaHasHistory = false;
+		m_context.taaHistoryTex = 0;
 
 		auto sceneColor = m_graph->ImportTexture(sourceFB->GetColorAttachment(), "SceneHDR");
 		auto sceneDepth = m_graph->ImportTexture(sourceFB->GetDepthAttachment(), "SceneDepth");
+
+		const bool canRunTAA = m_settings
+			&& m_settings->taaSettings.enabled
+			&& m_taaShader
+			&& sourceFB->HasDepth()
+			&& sourceFB->GetDepthAttachment() != 0;
+
+		if (canRunTAA) {
+			EnsureTAAResources(sourceView, sourceFB->GetWidth(), sourceFB->GetHeight());
+			auto stateIt = m_taaStates.find(sourceView);
+			if (stateIt != m_taaStates.end()) {
+				auto& state = stateIt->second;
+				m_context.prevViewProj = state.prevViewProj;
+				m_context.taaHasHistory = state.hasHistory;
+				m_context.taaHistoryTex = state.historyTex[state.readIndex];
+
+				auto historyRead = m_graph->ImportTexture(state.historyTex[state.readIndex], "TAAHistoryRead");
+				auto historyWrite = m_graph->ImportTexture(state.historyTex[state.writeIndex], "TAAHistoryWrite");
+
+				m_graph->AddPass("TAA")
+					.Read(sceneColor)
+					.Read(sceneDepth)
+					.Read(historyRead)
+					.Write(historyWrite)
+					.Execute([this, sourceView, currView, currProj](const RenderGraphContext& ctx) {
+						if (!m_settings || !m_taaShader) return;
+						auto it = m_taaStates.find(sourceView);
+						if (it == m_taaStates.end()) return;
+
+						auto& pctx = m_context;
+						auto& state = it->second;
+						const uint32_t w = pctx.sourceFB->GetWidth();
+						const uint32_t h = pctx.sourceFB->GetHeight();
+						if (w == 0 || h == 0) return;
+
+						glBindFramebuffer(GL_FRAMEBUFFER, state.historyFBO[state.writeIndex]);
+						glViewport(0, 0, w, h);
+						glClearColor(0, 0, 0, 1);
+						glClear(GL_COLOR_BUFFER_BIT);
+
+						const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+						glDisable(GL_DEPTH_TEST);
+
+						m_taaShader->Bind();
+						m_taaShader->SetUniformInt("u_CurrentColor", 0);
+						m_taaShader->SetUniformInt("u_CurrentDepth", 1);
+						m_taaShader->SetUniformInt("u_History", 2);
+						m_taaShader->SetUniformInt("u_HasHistory", state.hasHistory ? 1 : 0);
+						m_taaShader->SetUniformFloat("u_FeedbackMin", m_settings->taaSettings.feedbackMin);
+						m_taaShader->SetUniformFloat("u_FeedbackMax", m_settings->taaSettings.feedbackMax);
+						m_taaShader->SetUniformFloat("u_Sharpen", m_settings->taaSettings.sharpen);
+						m_taaShader->SetUniformVec2("u_TexelSize", { 1.0f / static_cast<float>(w), 1.0f / static_cast<float>(h) });
+						m_taaShader->SetUniformMat4("u_CurrViewProjInv", (currProj * currView).Inverse());
+						m_taaShader->SetUniformMat4("u_PrevViewProj", state.prevViewProj);
+
+						glActiveTexture(GL_TEXTURE0);
+						glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetColorAttachment());
+
+						glActiveTexture(GL_TEXTURE1);
+						glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetDepthAttachment());
+
+						glActiveTexture(GL_TEXTURE2);
+						glBindTexture(GL_TEXTURE_2D, state.historyTex[state.readIndex]);
+
+						glBindVertexArray(m_QuadVAO);
+						glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+						glBindVertexArray(0);
+
+						glBindFramebuffer(GL_FRAMEBUFFER, 0);
+						if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+
+						state.prevViewProj = currProj * currView;
+						state.hasHistory = true;
+
+						std::swap(state.readIndex, state.writeIndex);
+					});
+
+				m_context.sceneColorTex = state.historyTex[state.writeIndex];
+				sceneColor = m_graph->ImportTexture(m_context.sceneColorTex, "SceneTAA");
+			}
+		} else {
+			auto stateIt = m_taaStates.find(sourceView);
+			if (stateIt != m_taaStates.end()) {
+				stateIt->second.hasHistory = false;
+			}
+		}
+
 		auto ssaoTex = m_graph->ImportTexture(m_SSAOTex, "SSAO");
 		auto brightTex = m_graph->ImportTexture(m_brightPassTex, "BrightPass");
 		auto bloomTex = m_graph->ImportTexture(m_bloomTex[0], "BloomResult");
@@ -317,7 +474,7 @@ namespace NE::Graphics {
 				m_brightPassShader->SetUniformFloat("u_SoftKnee", m_settings->bloomSettings.softKnee);
 
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetColorAttachment());
+				glBindTexture(GL_TEXTURE_2D, pctx.sceneColorTex);
 
 				glBindVertexArray(m_QuadVAO);
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -473,7 +630,7 @@ namespace NE::Graphics {
 				m_compositeShader->SetUniformFloat("u_AOIntensity", m_settings->ssaoSettings.intensity);
 
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetColorAttachment());
+				glBindTexture(GL_TEXTURE_2D, pctx.sceneColorTex);
 
 				glActiveTexture(GL_TEXTURE1);
 				glBindTexture(GL_TEXTURE_2D, m_bloomTex[0]);
@@ -543,5 +700,20 @@ namespace NE::Graphics {
 			glDeleteFramebuffers(1, &m_SSAOFBO);
 			m_SSAOFBO = 0;
 		}
+
+		for (auto& [_, state] : m_taaStates) {
+			for (int i = 0; i < 2; ++i) {
+				if (state.historyTex[i]) {
+					glDeleteTextures(1, &state.historyTex[i]);
+					state.historyTex[i] = 0;
+				}
+				if (state.historyFBO[i]) {
+					glDeleteFramebuffers(1, &state.historyFBO[i]);
+					state.historyFBO[i] = 0;
+				}
+			}
+			state.hasHistory = false;
+		}
+		m_taaStates.clear();
 	}
 }

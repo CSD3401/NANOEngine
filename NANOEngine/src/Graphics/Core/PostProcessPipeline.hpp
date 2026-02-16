@@ -2,6 +2,7 @@
 
 #include <array>
 #include <memory>
+#include <unordered_map>
 
 #include "RenderGraph/TexturePool.hpp"
 #include "RenderGraph.hpp"
@@ -31,6 +32,8 @@ namespace NE::Graphics {
 		void Execute(RenderViewHandle sourceView,
 			RenderViewHandle destView,
 			const Math::Mat4& invProj,
+			const Math::Mat4& currView,
+			const Math::Mat4& currProj,
 			bool isSceneView);
 
 		void SetSettings(PostProcessingSettings* settings);
@@ -42,10 +45,13 @@ namespace NE::Graphics {
 		void InitFullscreenQuad();
 		void InitBloomResources(uint32_t w, uint32_t h);
 		void InitSSAOResources(uint32_t w, uint32_t h);
+		void EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h);
 		void LoadShaders();
 		void SetupGraph(RenderViewHandle sourceView,
 			RenderViewHandle destView,
 			const Math::Mat4& invProj,
+			const Math::Mat4& currView,
+			const Math::Mat4& currProj,
 			bool isSceneView);
 		void DestroyResources(bool destroyQuad);
 
@@ -54,7 +60,23 @@ namespace NE::Graphics {
 			std::shared_ptr<IFrameBuffer> sourceFB;
 			std::shared_ptr<IFrameBuffer> destFB;
 			Math::Mat4 invProj;
+			Math::Mat4 currViewProjInv;
+			Math::Mat4 prevViewProj;
+			uint32_t sceneColorTex = 0;
+			uint32_t taaHistoryTex = 0;
+			bool taaHasHistory = false;
 			bool isSceneView = true;
+		};
+
+		struct TAAViewState {
+			std::array<unsigned int, 2> historyTex{};
+			std::array<unsigned int, 2> historyFBO{};
+			uint32_t width = 0;
+			uint32_t height = 0;
+			int readIndex = 0;
+			int writeIndex = 1;
+			bool hasHistory = false;
+			Math::Mat4 prevViewProj;
 		};
 
 		static constexpr int BLOOM_LEVELS = 5;
@@ -87,10 +109,13 @@ namespace NE::Graphics {
 		std::shared_ptr<OpenGL::GLShader> m_blurShader;
 		std::shared_ptr<OpenGL::GLShader> m_upSampleShader;
 		std::shared_ptr<OpenGL::GLShader> m_compositeShader;
+		std::shared_ptr<OpenGL::GLShader> m_taaShader;
 
 		unsigned int m_SSAOFBO = 0;
 		unsigned int m_SSAOTex = 0;
 		std::shared_ptr<OpenGL::GLShader> m_SSAOShader;
+
+		std::unordered_map<RenderViewHandle, TAAViewState> m_taaStates;
 
 		PostProcessContext m_context;
 	};
