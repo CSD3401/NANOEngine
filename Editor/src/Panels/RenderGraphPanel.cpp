@@ -2,6 +2,7 @@
 
 #include <imgui/imgui.h>
 #include <Graphics/Core/RenderGraph.hpp>
+#include <Graphics/Core/PostProcessingSettings.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include <Graphics/Interfaces/IFrameBuffer.hpp>
 #include <Graphics/Core/RenderGraph/TexturePool.hpp>
@@ -29,6 +30,34 @@ namespace Editor {
         ImGui::Text("| Passes: %zu", m_RenderGraph->GetPassCount());
         ImGui::SameLine();
         ImGui::Text("| Resources: %zu", m_RenderGraph->GetResourceCount());
+        ImGui::Separator();
+
+        // Runtime controls
+        auto& ppSettings = NE::Renderer::Command::GetPostProcessingSettings();
+        bool postEnabled = ppSettings.enabled;
+        if (ImGui::Checkbox("Post Processing Enabled", &postEnabled)) {
+            ppSettings.enabled = postEnabled;
+        }
+
+        bool bloomEnabled = ppSettings.bloomSettings.enabled;
+        if (ImGui::Checkbox("Bloom Enabled", &bloomEnabled)) {
+            ppSettings.bloomSettings.enabled = bloomEnabled;
+        }
+        ImGui::SameLine();
+        bool ssaoEnabled = ppSettings.ssaoSettings.enabled;
+        if (ImGui::Checkbox("SSAO Enabled", &ssaoEnabled)) {
+            ppSettings.ssaoSettings.enabled = ssaoEnabled;
+        }
+        ImGui::SameLine();
+        bool taaEnabled = ppSettings.taaSettings.enabled;
+        if (ImGui::Checkbox("TAA Enabled", &taaEnabled)) {
+            ppSettings.taaSettings.enabled = taaEnabled;
+        }
+
+        bool poolingEnabled = m_RenderGraph->IsPoolingEnabled();
+        if (ImGui::Checkbox("Texture Pooling Enabled", &poolingEnabled)) {
+            m_RenderGraph->SetPoolingEnabled(poolingEnabled);
+        }
         ImGui::Separator();
 
         // Tabs for different views
@@ -397,12 +426,26 @@ ImVec2 bgStart(barStartX, barY);
 
         const auto& stats = pool->GetStats();
         bool poolEnabled = m_RenderGraph && m_RenderGraph->IsPoolingEnabled();
+        size_t transientCount = 0;
+        if (m_RenderGraph) {
+            for (const auto& resource : m_RenderGraph->GetResources()) {
+                if (resource.type == NE::Graphics::ResourceType::TransientTexture) {
+                    ++transientCount;
+                }
+            }
+        }
 
         // Pooling status
         if (poolEnabled) {
             ImGui::TextColored(ImVec4(0.3f, 0.8f, 0.3f, 1.0f), "Texture Pooling: ENABLED");
         } else {
             ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.2f, 1.0f), "Texture Pooling: DISABLED");
+        }
+        if (transientCount == 0) {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f),
+                "Pool linked, but no transient resources in current graph.");
+        } else {
+            ImGui::Text("Transient Resources: %zu", transientCount);
         }
         ImGui::Separator();
 
