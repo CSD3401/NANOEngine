@@ -75,7 +75,6 @@
     <ClInclude Include="src\ECS\Systems\UIEventSystem.hpp" />
     <ClInclude Include="src\ECS\Systems\UITransformUtilities.hpp" />
     <ClInclude Include="src\Events\UIEvents.hpp" />
-    <ClInclude Include="src\Math\UILayoutCalculator.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderSettings.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IClusteredLighting.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLClusteredLighting.hpp" />
@@ -112,8 +111,6 @@
     <ClInclude Include="src\Graphics\Core\DrawQueue.hpp" />
     <ClInclude Include="src\Graphics\Core\PipelineData.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderQueue.hpp" />
-    <ClInclude Include="src\Graphics\Core\UIDrawCommand.hpp" />
-    <ClInclude Include="src\Graphics\Core\UIRenderer.hpp" />
     <ClInclude Include="src\Graphics\Interfaces\IStateCache.hpp" />
     <ClInclude Include="src\Graphics\OpenGL\GLStateCache.hpp" />
     <ClInclude Include="src\Core\SpdLoggerInternal.hpp" />
@@ -239,6 +236,7 @@
     <ClCompile Include="src\Graphics\OpenGL\GLClusteredLighting.cpp" />
     <ClCompile Include="src\Graphics\Core\UIImageMeshGenerator.cpp" />
     <ClCompile Include="src\Graphics\Core\UITextMeshGenerator.cpp" />
+    <ClCompile Include="src\Graphics\Core\UIGeometryBuffer.cpp" />
     <ClCompile Include="src\Graphics\Core\FontAtlas.cpp" />
     <ClCompile Include="src\Graphics\Core\Font.cpp" />
     <ClCompile Include="src\PrefabManagement\PrefabManager.cpp" />
@@ -251,7 +249,6 @@
     <ClCompile Include="src\Graphics\Core\GizmosRenderer.cpp" />
     <ClCompile Include="src\EditorInterface\PhysicsExports.cpp" />
     <ClCompile Include="src\Graphics\Core\DrawQueue.cpp" />
-    <ClCompile Include="src\Graphics\Core\UIRenderer.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLStateCache.cpp" />
     <ClCompile Include="src\Core\SpdLogger.cpp" />
     <ClCompile Include="src\ECS\Systems\AnimatorSystem.cpp" />

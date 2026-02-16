@@ -32,7 +32,7 @@
 #include "../OpenGL/GLTexture.hpp"
 #include "../OpenGL/GLStateCache.hpp"
 #include "../Core/Primitives.hpp"
-#include "UIRenderer.hpp"
+#include <glad/glad.h>
 #include "glfw/glfw3.h"
 #include "Core/SpdLogger.hpp"
 #include "InstanceData.hpp"
@@ -48,7 +48,6 @@
 #include "ResourceManagement/ResourceManager.hpp"
 #include "ECS/Core/Entity.hpp"
 
-#include <glad/glad.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -735,11 +734,8 @@ namespace NE::Graphics {
         //skinned->LoadFromFile("Library/Shaders/Skinned.nanoshader");
         //Asset::AssetManager::GetInstance().AddToMap<OpenGL::GLShader>(skinned, "Skinned");
 
-        // initialize UI renderer
         s_ScreenWidth = static_cast<uint32_t>(1920);
         s_ScreenHeight = static_cast<uint32_t>(1080);
-
-        UIRenderer::Init(s_ScreenWidth, s_ScreenHeight, s_RenderViewManager.get());
 
         s_PostPipeline = std::make_unique<PostProcessPipeline>();
         s_PostPipeline->Init(s_RenderViewManager.get(), s_ScreenWidth, s_ScreenHeight);
@@ -1345,7 +1341,6 @@ namespace NE::Graphics {
         s_CommandBuffer.reset();
         DebugDrawSystem::Shutdown();
 
-        UIRenderer::Shutdown();
         NE::Graphics::GizmosRenderer::Cleanup();
         NE::Graphics::OpenGL::GLGeometryBuffer::ShutdownInstanceBuffer();
 
@@ -1621,17 +1616,4 @@ namespace NE::Graphics {
         DebugDrawSystem::DrawAll();
     }
 
-    void GraphicsManager::DrawUI() {
-        // TODO: Remove UIRenderer calls when text rendering is migrated to integrated pipeline
-        // Currently still used for UIText rendering (UIRenderSystem::SubmitTextDrawCommand)
-        UIRenderer::BeginFrame();
-        UIRenderer::DrawUIFrame();
-        UIRenderer::EndFrame();
-        UIRenderer::Draw3DUIFrame(s_FinalOutputViewHandle);
-
-        UIRenderer::Composite(s_FinalOutputViewHandle);
-        UIRenderer::Draw3DUIFrame(s_FinalGameOutputHandle);
-        UIRenderer::Composite(s_FinalGameOutputHandle);
-        UIRenderer::ClearCommands();
-    }
 }

@@ -17,7 +17,6 @@
 #include <ECS/Components/UICanvas.hpp>
 #include "../Command/EditorSetTransformCommand.hpp"
 #include "../Command/CommandHistory.hpp"
-#include "Graphics/Core/UIRenderer.hpp"
 #include "../UIGizmoHandler.hpp"
 #include <limits>
 #include <algorithm>

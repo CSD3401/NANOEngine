@@ -96,7 +96,6 @@ namespace NE::SceneManagement {
 		Graphics::GraphicsManager::DrawFrame();
 		//Graphics::GraphicsManager::DrawAllDebugGeometry();
 		Graphics::GraphicsManager::EndFrame();
-		// NOTE: DrawUI() removed - all UI (images + text) now uses integrated GraphicsManager pipeline
 	}
 
 	void Scene::ExitEdit() {

@@ -26,7 +26,8 @@ namespace NE::ECS::Component {
         RenderMode renderMode = RenderMode::SCREEN_SPACE_OVERLAY;
         ScaleMode scaleMode = ScaleMode::SCALE_WITH_SCREEN_SIZE;
 
-        // for Camera mode
+        // For Camera / World Space mode
+        uint32_t cameraEntity = UINT32_MAX;  // Entity with Camera component (UINT32_MAX = use editor/main camera)
         float planeDistance = 100.0f;  // Distance from camera
 
         float referenceWidth = 1920.0f;
@@ -43,6 +44,7 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD_HIDDEN(luid),
             NE_REFLECT_FIELD(renderMode),
             NE_REFLECT_FIELD(scaleMode),
+            NE_REFLECT_FIELD(cameraEntity),
             NE_REFLECT_FIELD(planeDistance),
             NE_REFLECT_FIELD(referenceWidth),
             NE_REFLECT_FIELD(referenceHeight),

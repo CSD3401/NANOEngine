@@ -1,3 +1,4 @@
+#include <glad/glad.h>
 #include "RendererExports.hpp"
 #include "SceneManagement/Scene.hpp"
 
@@ -7,7 +8,6 @@
 #include "../../include/ScriptSDK/ScriptTypes.h"
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Graphics/Core/RenderGraph.hpp"
-#include <glad/glad.h>
 
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Components/DecalProjector.hpp"

@@ -14,6 +14,7 @@
 #include <string>
 #include <memory>
 #include <cstdint>
+#include <unordered_map>
 
 // Forward declarations
 namespace NE::Graphics {
@@ -155,21 +156,31 @@ namespace NE::ECS::Systems {
             const Math::Mat4* projMatrix = nullptr
         );
 
-        std::vector<Entity> CollectCanvasChildren(Entity canvasEntity);
-
         void SortEntitiesByZOrder(std::vector<Entity>& entities);
+
+        //=================================================================
+        // Canvas Children Collection (single-pass)
+        //=================================================================
+
+        struct CanvasChildren {
+            std::vector<Entity> images;
+            std::vector<Entity> texts;
+        };
+
+        // Built once per frame in Update(), keyed by canvas entity
+        std::unordered_map<Entity, CanvasChildren> m_canvasChildrenMap;
+
+        // Single O(N) pass to bucket all UI entities by their owning canvas
+        void BuildCanvasChildrenMap();
+
+        // Walk parent chain to find the owning canvas entity
+        Entity FindOwningCanvas(Entity entity) const;
 
         //=================================================================
         // Camera Utilities
         //=================================================================
 
         bool GetCameraMatrices(Math::Mat4& outView, Math::Mat4& outProj);
-
-        //=================================================================
-        // Text Rendering
-        //=================================================================
-
-        std::vector<Entity> CollectTextChildren(Entity canvasEntity);
 
         void RenderTextEntity(
             Entity entity,

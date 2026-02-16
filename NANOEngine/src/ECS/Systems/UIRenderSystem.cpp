@@ -3,8 +3,6 @@
 #include "../Components/UIImage.hpp"
 #include "../Components/UIText.hpp"
 #include "../Components/Hierarchy.hpp"
-#include "../../Graphics/Core/UIDrawCommand.hpp"
-#include "../../Graphics/Core/UIRenderer.hpp" // TODO: Remove when text rendering is migrated
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "../../Graphics/Core/EditorCamera.hpp"
 #include "../../Graphics/Core/UITextMeshGenerator.hpp"
@@ -20,7 +18,6 @@
 #include "../../Graphics/Core/InstanceData.hpp"
 #include "../../Graphics/Core/PipelineCache.hpp"
 #include "ResourceManagement/ResourceManager.hpp"
-#include <glad/glad.h>
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -100,8 +97,8 @@ namespace NE::ECS::Systems {
             spec.EnableBlending = true;
             spec.EnableDepthTest = false;
             spec.DepthWrite = false;
-            spec.CullMode = GL_NONE;
-            spec.PolygonMode = GL_FILL;
+            spec.CullMode = 0;
+            spec.PolygonMode = 0x1B02;
 
             auto pipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(spec, "UI_Sprite");
             m_defaultUIMaterial = std::make_shared<NE::Graphics::Material>(pipeline);
@@ -126,8 +123,8 @@ namespace NE::ECS::Systems {
             textSpec.EnableBlending = true;
             textSpec.EnableDepthTest = false;
             textSpec.DepthWrite = false;
-            textSpec.CullMode = GL_NONE;
-            textSpec.PolygonMode = GL_FILL;
+            textSpec.CullMode = 0;
+            textSpec.PolygonMode = 0x1B02;
 
             auto textPipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(textSpec, "UI_Text");
             m_defaultTextMaterial = std::make_shared<NE::Graphics::Material>(textPipeline);
@@ -204,27 +201,6 @@ namespace NE::ECS::Systems {
 
         const auto& entities = GetEntities();
 
-        // Invalidate cached world rects so stale caches from removed/inactive entities are cleared
-        for (Entity e : entities) {
-            if (m_cm->HasComponent<UIRectTransform>(e)) {
-                m_cm->GetComponent<UIRectTransform>(e).worldRectCached = false;
-            }
-        }
-
-        // MIGRATION: Add Hierarchy component to old UI entities that don't have it
-        static bool migrationDone = false;
-        if (!migrationDone) {
-            for (Entity e : entities) {
-                if (m_cm->HasComponent<UIRectTransform>(e) && !m_cm->HasComponent<Hierarchy>(e)) {
-                    Hierarchy h;
-                    h.luid = 0; // Will be regenerated if needed
-                    h.parent = Component::INVALID_PARENT;
-                    m_cm->AddComponent<Hierarchy>(e, h);
-                }
-            }
-            migrationDone = true;
-        }
-
         // Runtime texture loading - handle textures dragged at runtime
         for (Entity e : entities) {
             if (!m_cm->HasComponent<UIImage>(e)) continue;
@@ -245,6 +221,9 @@ namespace NE::ECS::Systems {
                 img.bindlessHandle = 0;
             }
         }
+
+        // Single O(N) pass: bucket all UI entities by their owning canvas
+        BuildCanvasChildrenMap();
 
         std::vector<std::pair<int, Entity>> canvases;
 
@@ -294,10 +273,12 @@ namespace NE::ECS::Systems {
 
             RenderCanvasChildren(canvasEntity, canvas, pView, pProj);
 
-            // Render text entities
-            std::vector<Entity> textChildren = CollectTextChildren(canvasEntity);
-            for (Entity e : textChildren) {
-                RenderTextEntity(e, canvasEntity, canvas, pView, pProj);
+            // Render text entities from pre-built map
+            auto textIt = m_canvasChildrenMap.find(canvasEntity);
+            if (textIt != m_canvasChildrenMap.end()) {
+                for (Entity e : textIt->second.texts) {
+                    RenderTextEntity(e, canvasEntity, canvas, pView, pProj);
+                }
             }
         }
     }
@@ -866,41 +847,55 @@ namespace NE::ECS::Systems {
     }
 
     //=========================================================================
-    // Rendering
+    // Canvas Children Collection (single-pass)
     //=========================================================================
 
-    std::vector<Entity> UIRenderSystem::CollectCanvasChildren(Entity canvasEntity)
+    Entity UIRenderSystem::FindOwningCanvas(Entity entity) const
     {
-        const auto& entities = GetEntities();
-        std::vector<Entity> canvasChildren;
+        Entity current = m_cm->HasComponent<Hierarchy>(entity)
+            ? m_cm->GetComponent<Hierarchy>(entity).parent
+            : NO_ENTITY;
 
-        for (Entity e : entities) {
-            if (e == canvasEntity) continue;
-            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
-            if (!m_cm->HasComponent<UIImage>(e)) continue;
-            if (m_cm->HasComponent<UICanvas>(e)) continue;
-
-            // Check if this entity belongs to this canvas
-            Entity root = e;
-            Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-
-            while (current != NO_ENTITY) {
-                root = current;
-                if (!m_cm->HasComponent<Hierarchy>(current)) break;
-                current = m_cm->GetComponent<Hierarchy>(current).parent;
+        while (current != NO_ENTITY) {
+            if (m_cm->HasComponent<UICanvas>(current)) {
+                return current;
             }
-
-            Entity parentEntity = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-            if (root == canvasEntity || parentEntity == canvasEntity) {
-                // NEW: respect EntityMeta::isActive up the UI chain
-                if (!IsActiveForUI(e, canvasEntity)) continue;
-
-                canvasChildren.push_back(e);
-            }
+            if (!m_cm->HasComponent<Hierarchy>(current)) break;
+            current = m_cm->GetComponent<Hierarchy>(current).parent;
         }
 
-        return canvasChildren;
+        return NO_ENTITY;
     }
+
+    void UIRenderSystem::BuildCanvasChildrenMap()
+    {
+        m_canvasChildrenMap.clear();
+
+        const auto& entities = GetEntities();
+
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
+            if (m_cm->HasComponent<UICanvas>(e)) continue; // Skip canvas entities themselves
+
+            bool hasImage = m_cm->HasComponent<UIImage>(e);
+            bool hasText = m_cm->HasComponent<UIText>(e);
+            if (!hasImage && !hasText) continue;
+
+            Entity canvasEntity = FindOwningCanvas(e);
+            if (canvasEntity == NO_ENTITY) continue;
+
+            // Check active state once
+            if (!IsActiveForUI(e, canvasEntity)) continue;
+
+            auto& children = m_canvasChildrenMap[canvasEntity];
+            if (hasImage) children.images.push_back(e);
+            if (hasText)  children.texts.push_back(e);
+        }
+    }
+
+    //=========================================================================
+    // Rendering
+    //=========================================================================
 
 
     void UIRenderSystem::SortEntitiesByZOrder(std::vector<Entity>& entities) 
@@ -918,9 +913,12 @@ namespace NE::ECS::Systems {
         const UICanvas& canvas,
         const Math::Mat4* viewMatrix,
         const Math::Mat4* projMatrix
-    ) 
+    )
     {
-        std::vector<Entity> canvasChildren = CollectCanvasChildren(canvasEntity);
+        auto it = m_canvasChildrenMap.find(canvasEntity);
+        if (it == m_canvasChildrenMap.end()) return;
+
+        std::vector<Entity>& canvasChildren = it->second.images;
 
         if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE && canvasChildren.size() > 1) 
         {
@@ -995,37 +993,6 @@ namespace NE::ECS::Systems {
     // Text Rendering
     //=========================================================================
 
-    std::vector<Entity> UIRenderSystem::CollectTextChildren(Entity canvasEntity)
-    {
-        const auto& entities = GetEntities();
-        std::vector<Entity> textChildren;
-
-        for (Entity e : entities) {
-            if (e == canvasEntity) continue;
-            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
-            if (!m_cm->HasComponent<UIText>(e)) continue;
-            if (m_cm->HasComponent<UICanvas>(e)) continue;
-
-            Entity root = e;
-            Entity current = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-
-            while (current != NO_ENTITY) {
-                root = current;
-                if (!m_cm->HasComponent<Hierarchy>(current)) break;
-                current = m_cm->GetComponent<Hierarchy>(current).parent;
-            }
-
-            Entity parentEntity2 = m_cm->HasComponent<Hierarchy>(e) ? m_cm->GetComponent<Hierarchy>(e).parent : NO_ENTITY;
-            if (root == canvasEntity || parentEntity2 == canvasEntity) {
-                // NEW: respect EntityMeta::isActive up the UI chain
-                if (!IsActiveForUI(e, canvasEntity)) continue;
-
-                textChildren.push_back(e);
-            }
-        }
-
-        return textChildren;
-    }
 
 
     void UIRenderSystem::RenderTextEntity(

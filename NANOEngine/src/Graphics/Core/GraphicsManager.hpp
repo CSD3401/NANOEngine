@@ -118,7 +118,6 @@ namespace NE::Graphics {
         static void DrawAllDebugGeometry();
 
         // UI
-        static void DrawUI();
         static void SetSelectedEntities(const std::vector<uint32_t>& selectedIds);
         static void ClearSelectedEntities();
 
