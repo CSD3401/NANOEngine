@@ -141,6 +141,14 @@ namespace NE::Renderer {
 			Graphics::GraphicsManager::DrawSelectedDecalGizmos(decalComponent, transformComponent);
 		}
 
+		void SetSelectedEntities(const std::vector<uint32_t>& selectedIds) {
+			Graphics::GraphicsManager::SetSelectedEntities(selectedIds);
+		}
+
+		void ClearSelectedEntities() {
+			Graphics::GraphicsManager::ClearSelectedEntities();
+		}
+
         void AssignUITexture(uint32_t e, const std::string& textureUUID, const std::string& materialUUID) {
             auto& img = NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIImage>(e);
 

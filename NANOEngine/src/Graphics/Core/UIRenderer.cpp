@@ -102,8 +102,17 @@ namespace NE::Graphics {
         s_ScreenH = height;
         s_RenderViewManager = renderViewManager;
 
-        // Create UI render view (no picking needed for UI)
-        s_UIViewHandle = s_RenderViewManager->Create(width, height, false);
+        RenderViewCreateDesc desc;
+        desc.width = width;
+        desc.height = height;
+        desc.enablePicking = false;
+        desc.enableMiniGBuffer = false;
+        desc.enableDepth = false;
+        desc.enableStencil = false;
+        desc.format = RenderViewFormat::Standard;
+
+        // Create UI render view with color-only target.
+        s_UIViewHandle = s_RenderViewManager->Create(desc);
 
         // color UI shader
         // compile overlay shader

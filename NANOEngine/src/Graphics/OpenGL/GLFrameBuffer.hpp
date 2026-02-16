@@ -16,8 +16,9 @@ namespace NE::Graphics::OpenGL {
         GLFrameBuffer(uint32_t width, uint32_t height);
         ~GLFrameBuffer();
 
-        void CreateAsHDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer = false);
-        void CreateAsLDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer = false);
+        void CreateAsStandard(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer = false, bool enableDepth = true, bool enableStencil = false);
+        void CreateAsHDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer = false, bool enableDepth = true, bool enableStencil = false);
+        void CreateAsLDR(uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer = false, bool enableDepth = true, bool enableStencil = false);
 
         void Bind() const override;
         void Resize(uint32_t width, uint32_t height) override;
@@ -30,6 +31,9 @@ namespace NE::Graphics::OpenGL {
         uint32_t GetDepthAttachment() const override { return m_DepthAttachment; }
         uint32_t GetNormalAttachment() const override { return m_NormalAttachment; }
         bool HasMiniGBuffer() const override { return m_EnableMiniGBuffer; }
+        bool HasDepth() const override { return m_EnableDepth; }
+        bool HasStencil() const override { return m_EnableDepth && m_EnableStencil; }
+        bool HasPickingAttachment() const override { return m_EnablePicking && m_PickingAttachment != 0; }
         uint32_t GetWidth() const override { return m_Width; }
         uint32_t GetHeight() const override { return m_Height; }
         uint32_t GetFramebuffer() const override { return m_FBO; }
@@ -45,7 +49,7 @@ namespace NE::Graphics::OpenGL {
 
     private:
         void Invalidate();
-        void Configure(FormatMode mode, uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer);
+        void Configure(FormatMode mode, uint32_t width, uint32_t height, bool enablePicking, bool enableMiniGBuffer, bool enableDepth, bool enableStencil);
         void RebuildAttachments();
         void ApplyDrawBuffers() const;
         void DestroyAttachments();
@@ -60,6 +64,8 @@ namespace NE::Graphics::OpenGL {
         FormatMode m_Mode = FormatMode::Standard;
         bool m_EnablePicking = true;
         bool m_EnableMiniGBuffer = false;
+        bool m_EnableDepth = true;
+        bool m_EnableStencil = false;
         bool m_PickingWriteEnabled = true;
     };
 }
