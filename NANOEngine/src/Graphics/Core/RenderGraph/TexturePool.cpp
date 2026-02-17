@@ -93,22 +93,24 @@ namespace NE::Graphics {
     }
 
     PooledTexture* TexturePool::Acquire(uint32_t width, uint32_t height, TextureFormat format) {
-        // First, try to find an existing texture that matches and is not in use
         for (auto& tex : m_Textures) {
             if (!tex->inUse &&
                 tex->width == width &&
                 tex->height == height &&
                 tex->format == format) {
                 tex->inUse = true;
+#ifndef PRODUCTION_BUILD
                 m_Stats.hits++;
                 m_Stats.inUseCount++;
+#endif
                 return tex.get();
             }
         }
 
-        // No match found, create a new texture
+#ifndef PRODUCTION_BUILD
         m_Stats.misses++;
         m_Stats.totalAllocated++;
+#endif
 
         auto pooledTex = std::make_unique<PooledTexture>();
         pooledTex->width = width;
@@ -116,7 +118,6 @@ namespace NE::Graphics {
         pooledTex->format = format;
         pooledTex->inUse = true;
 
-        // Create OpenGL texture
         GLuint textureId;
         glGenTextures(1, &textureId);
         glBindTexture(GL_TEXTURE_2D, textureId);
@@ -138,7 +139,6 @@ namespace NE::Graphics {
 
         pooledTex->textureId = textureId;
 
-        // Create FBO for this texture
         GLuint fboId;
         glGenFramebuffers(1, &fboId);
         glBindFramebuffer(GL_FRAMEBUFFER, fboId);
@@ -164,8 +164,10 @@ namespace NE::Graphics {
 
         PooledTexture* result = pooledTex.get();
         m_Textures.push_back(std::move(pooledTex));
+#ifndef PRODUCTION_BUILD
         m_Stats.poolSize++;
         m_Stats.inUseCount++;
+#endif
 
         return result;
     }
@@ -173,9 +175,11 @@ namespace NE::Graphics {
     void TexturePool::Release(PooledTexture* texture) {
         if (texture && texture->inUse) {
             texture->inUse = false;
+#ifndef PRODUCTION_BUILD
             if (m_Stats.inUseCount > 0) {
                 m_Stats.inUseCount--;
             }
+#endif
         }
     }
 
@@ -183,7 +187,9 @@ namespace NE::Graphics {
         for (auto& tex : m_Textures) {
             tex->inUse = false;
         }
+#ifndef PRODUCTION_BUILD
         m_Stats.inUseCount = 0;
+#endif
     }
 
     void TexturePool::Clear() {
@@ -196,6 +202,8 @@ namespace NE::Graphics {
             }
         }
         m_Textures.clear();
+#ifndef PRODUCTION_BUILD
         m_Stats = TexturePoolStats{};
+#endif
     }
 }
