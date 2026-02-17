@@ -56,7 +56,10 @@ namespace NE::Graphics {
 
     private:
         std::vector<std::unique_ptr<PooledTexture>> m_Textures;
+#ifndef PRODUCTION_BUILD
+		// In debug builds, we can keep track of texture usage history for better insights
         TexturePoolStats m_Stats;
+#endif
     };
 
 }
