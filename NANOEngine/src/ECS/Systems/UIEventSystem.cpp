@@ -9,7 +9,7 @@
 #include <limits>
 #include "../Components/EntityMeta.hpp"
 #include "../Components/UIRectTransform.hpp"
-#include "../Components/UIRectMask2D.hpp"
+// UIRectMask2D folded into UIRectTransform (enableMask + maskPadding fields)
 #include "../Components/UIScrollRect.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../../Events/EventBus.hpp"
@@ -174,6 +174,22 @@ namespace NE::ECS::Systems {
                 }
             }
             m_pressedEntity = NO_ENTITY;
+        }
+
+        // Dispatch pointer enter/exit events on hover change
+        if (hoveredEntity != m_hoveredEntity) {
+            if (m_hoveredEntity != NO_ENTITY) {
+                NANOEngine::Events::EventBus::Get().Dispatch(
+                    NANOEngine::Events::EventDomain::Engine,
+                    NANOEngine::Events::UIPointerExitEvent{ m_hoveredEntity }
+                );
+            }
+            if (hoveredEntity != NO_ENTITY) {
+                NANOEngine::Events::EventBus::Get().Dispatch(
+                    NANOEngine::Events::EventDomain::Engine,
+                    NANOEngine::Events::UIPointerEnterEvent{ hoveredEntity }
+                );
+            }
         }
 
         m_hoveredEntity = hoveredEntity;
@@ -965,9 +981,9 @@ namespace NE::ECS::Systems {
             : NO_ENTITY;
 
         while (current != NO_ENTITY) {
-            if (m_cm->HasComponent<UIRectMask2D>(current)) {
-                auto& mask = m_cm->GetComponent<UIRectMask2D>(current);
-                if (mask.enabled) {
+            if (m_cm->HasComponent<UIRectTransform>(current)) {
+                auto& maskRect = m_cm->GetComponent<UIRectTransform>(current);
+                if (maskRect.enableMask) {
                     Entity canvasEntity = FindOwningCanvas(current);
                     if (canvasEntity != NO_ENTITY && m_cm->HasComponent<UICanvas>(canvasEntity)) {
                         auto& canvas = m_cm->GetComponent<UICanvas>(canvasEntity);
@@ -975,10 +991,10 @@ namespace NE::ECS::Systems {
                         CalculateWorldRect(current, canvasEntity, canvas, mx, my, mw, mh);
 
                         // Apply mask padding
-                        mx += mask.paddingLeft;
-                        my += mask.paddingTop;
-                        mw -= mask.paddingLeft + mask.paddingRight;
-                        mh -= mask.paddingTop + mask.paddingBottom;
+                        mx += maskRect.maskPaddingLeft;
+                        my += maskRect.maskPaddingTop;
+                        mw -= maskRect.maskPaddingLeft + maskRect.maskPaddingRight;
+                        mh -= maskRect.maskPaddingTop + maskRect.maskPaddingBottom;
 
                         if (px < mx || px > mx + mw || py < my || py > my + mh) {
                             return false;

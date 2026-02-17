@@ -52,6 +52,13 @@ namespace NE::ECS::Component {
         float pivotX = 0.5f;
         float pivotY = 0.5f;
 
+        // Mask clipping (folded from UIRectMask2D)
+        bool enableMask = false;
+        float maskPaddingLeft = 0.f;
+        float maskPaddingRight = 0.f;
+        float maskPaddingTop = 0.f;
+        float maskPaddingBottom = 0.f;
+
         // Transform matrices (like Transform component)
         NE::Math::Mat4 localMatrix;           // Local TRS matrix
         NE::Math::Mat4 worldMatrix;           // World transform (accumulated from parent chain)
@@ -89,7 +96,12 @@ namespace NE::ECS::Component {
             NE_REFLECT_FIELD(anchorMaxX),
             NE_REFLECT_FIELD(anchorMaxY),
             NE_REFLECT_FIELD(pivotX),
-            NE_REFLECT_FIELD(pivotY)
+            NE_REFLECT_FIELD(pivotY),
+            NE_REFLECT_FIELD(enableMask),
+            NE_REFLECT_FIELD(maskPaddingLeft),
+            NE_REFLECT_FIELD(maskPaddingRight),
+            NE_REFLECT_FIELD(maskPaddingTop),
+            NE_REFLECT_FIELD(maskPaddingBottom)
         NE_REFLECT_END()
 
         // Helper functions

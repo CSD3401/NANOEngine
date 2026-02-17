@@ -19,12 +19,11 @@
 #include "../ECS/Components/PrefabInstance.hpp"
 #include "../ECS/Components/CharacterController.hpp"
 #include "../ECS/Components/DecalProjector.hpp"
-#include "../ECS/Components/UIHorizontalLayoutGroup.hpp"
-#include "../ECS/Components/UIVerticalLayoutGroup.hpp"
+#include "../ECS/Components/UILayoutGroup.hpp"
 #include "../ECS/Components/UIGridLayoutGroup.hpp"
 #include "../ECS/Components/UILayoutElement.hpp"
-#include "../ECS/Components/UIRectMask2D.hpp"
 #include "../ECS/Components/UIScrollRect.hpp"
+#include "../ECS/Components/UIAutoSize.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -111,12 +110,8 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIToggle>(e);
 		}
 
-		const Component::UIHorizontalLayoutGroup& GetUIHorizontalLayoutGroup(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIHorizontalLayoutGroup>(e);
-		}
-
-		const Component::UIVerticalLayoutGroup& GetUIVerticalLayoutGroup(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIVerticalLayoutGroup>(e);
+		const Component::UILayoutGroup& GetUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutGroup>(e);
 		}
 
 		const Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e) {
@@ -127,12 +122,12 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutElement>(e);
 		}
 
-		const Component::UIRectMask2D& GetUIRectMask2D(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectMask2D>(e);
-		}
-
 		const Component::UIScrollRect& GetUIScrollRect(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		const Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
 		}
 
 		bool HasEntityMeta(uint32_t e) {
@@ -223,12 +218,8 @@ namespace NE::ECS {
             return GetScene().GetECSCoordinator().HasComponent<ECS::Component::DecalProjector>(e);
         }
 
-		bool HasUIHorizontalLayoutGroup(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIHorizontalLayoutGroup>(e);
-		}
-
-		bool HasUIVerticalLayoutGroup(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIVerticalLayoutGroup>(e);
+		bool HasUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UILayoutGroup>(e);
 		}
 
 		bool HasUIGridLayoutGroup(uint32_t e) {
@@ -239,12 +230,12 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UILayoutElement>(e);
 		}
 
-		bool HasUIRectMask2D(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIRectMask2D>(e);
-		}
-
 		bool HasUIScrollRect(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		bool HasUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIAutoSize>(e);
 		}
 
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
@@ -355,12 +346,8 @@ namespace NE::ECS {
             return GetScene().GetECSCoordinator().GetComponentType<Component::DecalProjector>();
         }
 
-		ComponentType GetUIHorizontalLayoutGroupComponentType() {
-			return GetScene().GetECSCoordinator().GetComponentType<Component::UIHorizontalLayoutGroup>();
-		}
-
-		ComponentType GetUIVerticalLayoutGroupComponentType() {
-			return GetScene().GetECSCoordinator().GetComponentType<Component::UIVerticalLayoutGroup>();
+		ComponentType GetUILayoutGroupComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UILayoutGroup>();
 		}
 
 		ComponentType GetUIGridLayoutGroupComponentType() {
@@ -371,12 +358,12 @@ namespace NE::ECS {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UILayoutElement>();
 		}
 
-		ComponentType GetUIRectMask2DComponentType() {
-			return GetScene().GetECSCoordinator().GetComponentType<Component::UIRectMask2D>();
-		}
-
 		ComponentType GetUIScrollRectComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UIScrollRect>();
+		}
+
+		ComponentType GetUIAutoSizeComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIAutoSize>();
 		}
 
 		uint32_t GetParent(uint32_t child) {
@@ -952,12 +939,8 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::UIToggle>(e, c);
 		}
 
-		void AddUIHorizontalLayoutGroupComponent(uint32_t e, const Component::UIHorizontalLayoutGroup& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIHorizontalLayoutGroup>(e, c);
-		}
-
-		void AddUIVerticalLayoutGroupComponent(uint32_t e, const Component::UIVerticalLayoutGroup& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIVerticalLayoutGroup>(e, c);
+		void AddUILayoutGroupComponent(uint32_t e, const Component::UILayoutGroup& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UILayoutGroup>(e, c);
 		}
 
 		void AddUIGridLayoutGroupComponent(uint32_t e, const Component::UIGridLayoutGroup& c) {
@@ -968,12 +951,12 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::UILayoutElement>(e, c);
 		}
 
-		void AddUIRectMask2DComponent(uint32_t e, const Component::UIRectMask2D& c) {
-			GetScene().GetECSCoordinator().AddComponent<Component::UIRectMask2D>(e, c);
-		}
-
 		void AddUIScrollRectComponent(uint32_t e, const Component::UIScrollRect& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::UIScrollRect>(e, c);
+		}
+
+		void AddUIAutoSizeComponent(uint32_t e, const Component::UIAutoSize& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIAutoSize>(e, c);
 		}
 
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
@@ -1108,12 +1091,8 @@ namespace NE::ECS {
             return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::DecalProjector>(e);
         }
 
-		Component::UIHorizontalLayoutGroup& GetUIHorizontalLayoutGroup(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIHorizontalLayoutGroup>(e);
-		}
-
-		Component::UIVerticalLayoutGroup& GetUIVerticalLayoutGroup(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIVerticalLayoutGroup>(e);
+		Component::UILayoutGroup& GetUILayoutGroup(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutGroup>(e);
 		}
 
 		Component::UIGridLayoutGroup& GetUIGridLayoutGroup(uint32_t e) {
@@ -1124,12 +1103,12 @@ namespace NE::ECS {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UILayoutElement>(e);
 		}
 
-		Component::UIRectMask2D& GetUIRectMask2D(uint32_t e) {
-			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIRectMask2D>(e);
-		}
-
 		Component::UIScrollRect& GetUIScrollRect(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIScrollRect>(e);
+		}
+
+		Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {

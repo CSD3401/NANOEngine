@@ -21,12 +21,11 @@
 #include "../Components/PrefabInstance.hpp"
 #include "../Components/CharacterController.hpp"
 #include "../Components/DecalProjector.hpp"
-#include "../Components/UIHorizontalLayoutGroup.hpp"
-#include "../Components/UIVerticalLayoutGroup.hpp"
+#include "../Components/UILayoutGroup.hpp"
 #include "../Components/UIGridLayoutGroup.hpp"
 #include "../Components/UILayoutElement.hpp"
-#include "../Components/UIRectMask2D.hpp"
 #include "../Components/UIScrollRect.hpp"
+#include "../Components/UIAutoSize.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -82,12 +81,11 @@ namespace NE::ECS {
         RegisterComponent<Component::PrefabInstance>();
         RegisterComponent<Component::CharacterController>();
         RegisterComponent<Component::DecalProjector>();
-        RegisterComponent<Component::UIHorizontalLayoutGroup>();
-        RegisterComponent<Component::UIVerticalLayoutGroup>();
+        RegisterComponent<Component::UILayoutGroup>();
         RegisterComponent<Component::UIGridLayoutGroup>();
         RegisterComponent<Component::UILayoutElement>();
-        RegisterComponent<Component::UIRectMask2D>();
         RegisterComponent<Component::UIScrollRect>();
+        RegisterComponent<Component::UIAutoSize>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
         SetSystemSignature<Systems::TransformSystem>(

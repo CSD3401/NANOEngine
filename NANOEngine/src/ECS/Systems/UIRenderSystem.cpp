@@ -22,7 +22,7 @@
 #include <algorithm>
 #include <cmath>
 #include "../Components/EntityMeta.hpp"
-#include "../Components/UIRectMask2D.hpp"
+// UIRectMask2D folded into UIRectTransform (enableMask + maskPadding fields)
 #include "UITransformUtilities.hpp"
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -863,7 +863,7 @@ namespace NE::ECS::Systems {
         const UICanvas& canvas
     )
     {
-        // Walk parent chain looking for UIRectMask2D components
+        // Walk parent chain looking for UIRectTransform with enableMask
         Entity current = m_cm->HasComponent<Hierarchy>(entity)
             ? m_cm->GetComponent<Hierarchy>(entity).parent
             : NO_ENTITY;
@@ -871,16 +871,16 @@ namespace NE::ECS::Systems {
         std::optional<NE::Graphics::ScissorRect> result;
 
         while (current != NO_ENTITY && current != canvasEntity) {
-            if (m_cm->HasComponent<UIRectMask2D>(current)) {
-                auto& mask = m_cm->GetComponent<UIRectMask2D>(current);
-                if (mask.enabled) {
+            if (m_cm->HasComponent<UIRectTransform>(current)) {
+                auto& maskRect = m_cm->GetComponent<UIRectTransform>(current);
+                if (maskRect.enableMask) {
                     auto wr = m_layoutEngine->GetWorldRect(current, canvasEntity, canvas);
 
                     // Apply mask padding (shrinks inward)
-                    float maskX = wr.x + mask.paddingLeft;
-                    float maskY = wr.y + mask.paddingTop;
-                    float maskW = wr.width - mask.paddingLeft - mask.paddingRight;
-                    float maskH = wr.height - mask.paddingTop - mask.paddingBottom;
+                    float maskX = wr.x + maskRect.maskPaddingLeft;
+                    float maskY = wr.y + maskRect.maskPaddingTop;
+                    float maskW = wr.width - maskRect.maskPaddingLeft - maskRect.maskPaddingRight;
+                    float maskH = wr.height - maskRect.maskPaddingTop - maskRect.maskPaddingBottom;
 
                     if (maskW < 0.f) maskW = 0.f;
                     if (maskH < 0.f) maskH = 0.f;

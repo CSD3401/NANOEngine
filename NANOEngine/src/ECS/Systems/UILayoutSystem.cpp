@@ -1,11 +1,13 @@
 #include "UILayoutSystem.hpp"
 #include "../Components/UIRectTransform.hpp"
-#include "../Components/UIHorizontalLayoutGroup.hpp"
-#include "../Components/UIVerticalLayoutGroup.hpp"
+#include "../Components/UILayoutGroup.hpp"
 #include "../Components/UIGridLayoutGroup.hpp"
 #include "../Components/UILayoutElement.hpp"
 #include "../Components/Hierarchy.hpp"
 #include "../Components/EntityMeta.hpp"
+#include "../Components/UIAutoSize.hpp"
+#include "../Components/UIText.hpp"
+#include "../Components/UICanvas.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -22,14 +24,15 @@ namespace NE::ECS::Systems {
 
     void UILayoutSystem::Update(double)
     {
-        const auto& entities = GetEntities();
+        // Phase 1: Auto-size containers before layout groups process them
+        ProcessAutoSize();
 
+        // Phase 2: Layout groups position their children
+        const auto& entities = GetEntities();
         for (Entity e : entities) {
-            if (m_cm->HasComponent<UIHorizontalLayoutGroup>(e)) {
-                ProcessLinearLayout(e, true);
-            }
-            else if (m_cm->HasComponent<UIVerticalLayoutGroup>(e)) {
-                ProcessLinearLayout(e, false);
+            if (m_cm->HasComponent<UILayoutGroup>(e)) {
+                auto& layout = m_cm->GetComponent<UILayoutGroup>(e);
+                ProcessLinearLayout(e, layout.isHorizontal);
             }
             else if (m_cm->HasComponent<UIGridLayoutGroup>(e)) {
                 ProcessGridLayout(e);
@@ -41,49 +44,23 @@ namespace NE::ECS::Systems {
     {
         if (!m_cm->HasComponent<UIRectTransform>(entity)) return;
         if (!m_cm->HasComponent<Hierarchy>(entity)) return;
+        if (!m_cm->HasComponent<UILayoutGroup>(entity)) return;
 
         auto& parentRect = m_cm->GetComponent<UIRectTransform>(entity);
         auto& hierarchy = m_cm->GetComponent<Hierarchy>(entity);
+        auto& layout = m_cm->GetComponent<UILayoutGroup>(entity);
 
-        // Get layout group settings
-        float padLeft = 0.f, padRight = 0.f, padTop = 0.f, padBottom = 0.f;
-        float spacing = 0.f;
-        int childAlignment = 0;
-        bool controlChildWidth = true, controlChildHeight = true;
-        bool forceExpandWidth = true, forceExpandHeight = true;
-        bool reverseArrangement = false;
-
-        if (isHorizontal && m_cm->HasComponent<UIHorizontalLayoutGroup>(entity)) {
-            auto& layout = m_cm->GetComponent<UIHorizontalLayoutGroup>(entity);
-            padLeft = layout.paddingLeft;
-            padRight = layout.paddingRight;
-            padTop = layout.paddingTop;
-            padBottom = layout.paddingBottom;
-            spacing = layout.spacing;
-            childAlignment = layout.childAlignment;
-            controlChildWidth = layout.controlChildWidth;
-            controlChildHeight = layout.controlChildHeight;
-            forceExpandWidth = layout.childForceExpandWidth;
-            forceExpandHeight = layout.childForceExpandHeight;
-            reverseArrangement = layout.reverseArrangement;
-        }
-        else if (!isHorizontal && m_cm->HasComponent<UIVerticalLayoutGroup>(entity)) {
-            auto& layout = m_cm->GetComponent<UIVerticalLayoutGroup>(entity);
-            padLeft = layout.paddingLeft;
-            padRight = layout.paddingRight;
-            padTop = layout.paddingTop;
-            padBottom = layout.paddingBottom;
-            spacing = layout.spacing;
-            childAlignment = layout.childAlignment;
-            controlChildWidth = layout.controlChildWidth;
-            controlChildHeight = layout.controlChildHeight;
-            forceExpandWidth = layout.childForceExpandWidth;
-            forceExpandHeight = layout.childForceExpandHeight;
-            reverseArrangement = layout.reverseArrangement;
-        }
-        else {
-            return;
-        }
+        float padLeft = layout.paddingLeft;
+        float padRight = layout.paddingRight;
+        float padTop = layout.paddingTop;
+        float padBottom = layout.paddingBottom;
+        float spacing = layout.spacing;
+        int childAlignment = layout.childAlignment;
+        bool controlChildWidth = layout.controlChildWidth;
+        bool controlChildHeight = layout.controlChildHeight;
+        bool forceExpandWidth = layout.childForceExpandWidth;
+        bool forceExpandHeight = layout.childForceExpandHeight;
+        bool reverseArrangement = layout.reverseArrangement;
 
         // Collect active children (skip ignoreLayout and inactive)
         std::vector<Entity> children;
@@ -328,6 +305,133 @@ namespace NE::ECS::Systems {
 
             childRect.worldMatrixDirty = true;
             childRect.worldRectCached = false;
+        }
+    }
+
+    void UILayoutSystem::ProcessAutoSize()
+    {
+        const auto& entities = GetEntities();
+
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UIAutoSize>(e)) continue;
+            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
+
+            auto& fitter = m_cm->GetComponent<UIAutoSize>(e);
+            auto& rect = m_cm->GetComponent<UIRectTransform>(e);
+            bool changed = false;
+
+            // === Content Size Fitter ===
+            if (fitter.horizontalFit != 0 || fitter.verticalFit != 0) {
+                float preferredW = rect.width;
+                float preferredH = rect.height;
+
+                // Priority 1: If entity has UIText, use text bounds as preferred size
+                if (m_cm->HasComponent<UIText>(e)) {
+                    auto& text = m_cm->GetComponent<UIText>(e);
+                    if (text.cachedSize.x > 0.f || text.cachedSize.y > 0.f) {
+                        preferredW = text.cachedSize.x;
+                        preferredH = text.cachedSize.y;
+                    }
+                }
+                // Priority 2: If entity has children, use content bounds
+                else if (m_cm->HasComponent<Hierarchy>(e) && m_layoutEngine) {
+                    auto& hierarchy = m_cm->GetComponent<Hierarchy>(e);
+                    if (!hierarchy.children.empty()) {
+                        auto bounds = m_layoutEngine->CalculateContentBounds(e);
+                        if (bounds.width > 0.f) preferredW = bounds.width;
+                        if (bounds.height > 0.f) preferredH = bounds.height;
+                    }
+                }
+
+                // horizontalFit: 1=MinSize, 2=PreferredSize
+                if (fitter.horizontalFit == 2) {
+                    if (std::abs(rect.width - preferredW) > 0.01f) {
+                        rect.width = preferredW;
+                        changed = true;
+                    }
+                }
+
+                // verticalFit: 1=MinSize, 2=PreferredSize
+                if (fitter.verticalFit == 2) {
+                    if (std::abs(rect.height - preferredH) > 0.01f) {
+                        rect.height = preferredH;
+                        changed = true;
+                    }
+                }
+            }
+
+            // === Aspect Ratio Fitter ===
+            if (fitter.aspectMode != 0 && fitter.aspectRatio > 0.f) {
+                switch (fitter.aspectMode) {
+                case 1: { // WidthControlsHeight
+                    float newH = rect.width / fitter.aspectRatio;
+                    if (std::abs(rect.height - newH) > 0.01f) {
+                        rect.height = newH;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 2: { // HeightControlsWidth
+                    float newW = rect.height * fitter.aspectRatio;
+                    if (std::abs(rect.width - newW) > 0.01f) {
+                        rect.width = newW;
+                        changed = true;
+                    }
+                    break;
+                }
+                case 3: // FitInParent
+                case 4: // EnvelopeParent
+                {
+                    float parentW = rect.width;
+                    float parentH = rect.height;
+
+                    // Get parent dimensions
+                    if (m_cm->HasComponent<Hierarchy>(e)) {
+                        Entity parent = m_cm->GetComponent<Hierarchy>(e).parent;
+                        if (parent != NO_ENTITY && m_cm->HasComponent<UIRectTransform>(parent)) {
+                            auto& pRect = m_cm->GetComponent<UIRectTransform>(parent);
+                            parentW = pRect.width;
+                            parentH = pRect.height;
+                        }
+                    }
+
+                    float parentAspect = (parentH > 0.f) ? parentW / parentH : 1.f;
+                    float newW, newH;
+
+                    if (fitter.aspectMode == 3) {
+                        // FitInParent: Fit inside parent, maintaining ratio
+                        if (fitter.aspectRatio > parentAspect) {
+                            newW = parentW;
+                            newH = parentW / fitter.aspectRatio;
+                        } else {
+                            newH = parentH;
+                            newW = parentH * fitter.aspectRatio;
+                        }
+                    } else {
+                        // EnvelopeParent: Fill parent, may overflow
+                        if (fitter.aspectRatio > parentAspect) {
+                            newH = parentH;
+                            newW = parentH * fitter.aspectRatio;
+                        } else {
+                            newW = parentW;
+                            newH = parentW / fitter.aspectRatio;
+                        }
+                    }
+
+                    if (std::abs(rect.width - newW) > 0.01f || std::abs(rect.height - newH) > 0.01f) {
+                        rect.width = newW;
+                        rect.height = newH;
+                        changed = true;
+                    }
+                    break;
+                }
+                }
+            }
+
+            if (changed) {
+                rect.worldMatrixDirty = true;
+                rect.worldRectCached = false;
+            }
         }
     }
 

@@ -19,4 +19,12 @@ namespace NANOEngine::Events {
         float previousValue;
     };
 
+    struct UIPointerEnterEvent {
+        uint32_t entity;
+    };
+
+    struct UIPointerExitEvent {
+        uint32_t entity;
+    };
+
 } // namespace NANOEngine::Events

@@ -9,7 +9,6 @@
 #include "../Components/UISlider.hpp"
 #include "../Components/UIToggle.hpp"
 #include "../Components/UIImage.hpp"
-#include "../Components/UIRectMask2D.hpp"
 #include "../Components/UIScrollRect.hpp"
 #include "UILayoutEngine.hpp"
 #include "../../Math/Vec3.hpp"

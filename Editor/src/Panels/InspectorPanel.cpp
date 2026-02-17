@@ -22,12 +22,11 @@
 #include <ECS/Components/UIButton.hpp>
 #include <ECS/Components/UISlider.hpp>
 #include <ECS/Components/UIToggle.hpp>
-#include <ECS/Components/UIHorizontalLayoutGroup.hpp>
-#include <ECS/Components/UIVerticalLayoutGroup.hpp>
+#include <ECS/Components/UILayoutGroup.hpp>
 #include <ECS/Components/UIGridLayoutGroup.hpp>
 #include <ECS/Components/UILayoutElement.hpp>
-#include <ECS/Components/UIRectMask2D.hpp>
 #include <ECS/Components/UIScrollRect.hpp>
+#include <ECS/Components/UIAutoSize.hpp>
 #include <Core/LUIDGenerator.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/DecalProjector.hpp>
@@ -455,12 +454,11 @@ namespace Editor {
 			{ NE::ECS::Query::GetUIButtonComponentType(),			"Button",				&InspectorPanel::DrawButtonComponent				},
 			{ NE::ECS::Query::GetUISliderComponentType(),			"Slider",				&InspectorPanel::DrawSliderComponent				},
 			{ NE::ECS::Query::GetUIToggleComponentType(),			"Toggle",				&InspectorPanel::DrawToggleComponent				},
-			{ NE::ECS::Query::GetUIHorizontalLayoutGroupComponentType(), "Horizontal Layout Group", &InspectorPanel::DrawHorizontalLayoutGroupComponent },
-			{ NE::ECS::Query::GetUIVerticalLayoutGroupComponentType(),   "Vertical Layout Group",   &InspectorPanel::DrawVerticalLayoutGroupComponent   },
+			{ NE::ECS::Query::GetUILayoutGroupComponentType(),           "Layout Group",            &InspectorPanel::DrawLayoutGroupComponent           },
 			{ NE::ECS::Query::GetUIGridLayoutGroupComponentType(),       "Grid Layout Group",       &InspectorPanel::DrawGridLayoutGroupComponent       },
 			{ NE::ECS::Query::GetUILayoutElementComponentType(),         "Layout Element",          &InspectorPanel::DrawLayoutElementComponent         },
-			{ NE::ECS::Query::GetUIRectMask2DComponentType(),            "Rect Mask 2D",            &InspectorPanel::DrawRectMask2DComponent            },
 			{ NE::ECS::Query::GetUIScrollRectComponentType(),            "Scroll Rect",             &InspectorPanel::DrawScrollRectComponent            },
+			{ NE::ECS::Query::GetUIAutoSizeComponentType(),              "Auto Size",               &InspectorPanel::DrawAutoSizeComponent              },
 			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
 		};
 	}
@@ -599,8 +597,10 @@ namespace Editor {
 						NE::ECS::Component::UIRectTransform rect{};
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
-					NE::ECS::Component::UIHorizontalLayoutGroup comp{};
-					NE::ECS::Command::AddUIHorizontalLayoutGroupComponent(entity, comp);
+					NE::ECS::Component::UILayoutGroup comp{};
+					comp.isHorizontal = true;
+					comp.childAlignment = 3; // MiddleLeft
+					NE::ECS::Command::AddUILayoutGroupComponent(entity, comp);
 				}
 				if (ImGui::MenuItem("UI Vertical Layout Group")) {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
@@ -608,8 +608,10 @@ namespace Editor {
 						NE::ECS::Component::UIRectTransform rect{};
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
-					NE::ECS::Component::UIVerticalLayoutGroup comp{};
-					NE::ECS::Command::AddUIVerticalLayoutGroupComponent(entity, comp);
+					NE::ECS::Component::UILayoutGroup comp{};
+					comp.isHorizontal = false;
+					comp.childAlignment = 1; // UpperCenter
+					NE::ECS::Command::AddUILayoutGroupComponent(entity, comp);
 				}
 				if (ImGui::MenuItem("UI Grid Layout Group")) {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
@@ -629,15 +631,6 @@ namespace Editor {
 					NE::ECS::Component::UILayoutElement comp{};
 					NE::ECS::Command::AddUILayoutElementComponent(entity, comp);
 				}
-				if (ImGui::MenuItem("UI Rect Mask 2D")) {
-					uint32_t entity = EditorScene::s_selection.GetLastClicked();
-					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
-						NE::ECS::Component::UIRectTransform rect{};
-						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
-					}
-					NE::ECS::Component::UIRectMask2D comp{};
-					NE::ECS::Command::AddUIRectMask2DComponent(entity, comp);
-				}
 				if (ImGui::MenuItem("UI Scroll Rect")) {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
@@ -646,6 +639,15 @@ namespace Editor {
 					}
 					NE::ECS::Component::UIScrollRect comp{};
 					NE::ECS::Command::AddUIScrollRectComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Auto Size")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					NE::ECS::Component::UIAutoSize comp{};
+					NE::ECS::Command::AddUIAutoSizeComponent(entity, comp);
 				}
 
 				ImGui::EndPopup();
@@ -2982,6 +2984,50 @@ namespace Editor {
 				ImGui::PopItemWidth();
 			}
 
+			// Mask Clipping section
+			ImGui::Separator();
+			if (ImGui::TreeNode("Mask Clipping")) {
+				float lw = 150.0f;
+				{
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Enable Mask");
+					ImGui::SameLine(lw);
+					ImGui::SetNextItemWidth(-1);
+					ImGui::Checkbox("##EnableMask", &comp.enableMask);
+				}
+				if (comp.enableMask) {
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Left");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadLeft", &comp.maskPaddingLeft, 0.5f);
+					}
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Right");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadRight", &comp.maskPaddingRight, 0.5f);
+					}
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Top");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadTop", &comp.maskPaddingTop, 0.5f);
+					}
+					{
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mask Pad Bottom");
+						ImGui::SameLine(lw);
+						ImGui::SetNextItemWidth(-1);
+						ImGui::DragFloat("##MaskPadBottom", &comp.maskPaddingBottom, 0.5f);
+					}
+				}
+				ImGui::TreePop();
+			}
+
 #undef UI_RECT_DRAG
 #undef UI_RECT_SLIDER
 
@@ -3980,14 +4026,15 @@ namespace Editor {
 		ImGui::TreePop();
 	}
 
-	void InspectorPanel::DrawHorizontalLayoutGroupComponent(uint32_t entity) {
-		auto& comp = NE::ECS::Command::GetUIHorizontalLayoutGroup(entity);
+	void InspectorPanel::DrawLayoutGroupComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUILayoutGroup(entity);
 
 		bool copyComp = false;
 		bool deleteComp = false;
 
+		const char* title = comp.isHorizontal ? "Horizontal Layout Group" : "Vertical Layout Group";
 		const bool open = DrawComponentHeaderWithMenu(
-			"Horizontal Layout Group",
+			title,
 			true,
 			&copyComp,
 			&deleteComp
@@ -3999,124 +4046,19 @@ namespace Editor {
 		float labelWidth = 150.0f;
 		ImGui::Indent();
 
-		// Padding
-		ImGui::TextDisabled("Padding");
 		{
 			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Left");
+			ImGui::Text("Direction");
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingLeft", &comp.paddingLeft, 0.5f);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Right");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingRight", &comp.paddingRight, 0.5f);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Top");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingTop", &comp.paddingTop, 0.5f);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Bottom");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingBottom", &comp.paddingBottom, 0.5f);
+			static const char* DirNames[] = { "Vertical", "Horizontal" };
+			int dirIdx = comp.isHorizontal ? 1 : 0;
+			if (ImGui::Combo("##Direction", &dirIdx, DirNames, IM_ARRAYSIZE(DirNames))) {
+				comp.isHorizontal = (dirIdx == 1);
+			}
 		}
 
 		ImGui::Separator();
-
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Spacing");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##Spacing", &comp.spacing, 0.5f);
-		}
-
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Child Alignment");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			static const char* AlignNames[] = { "Upper Left", "Upper Center", "Upper Right", "Middle Left", "Middle Center", "Middle Right", "Lower Left", "Lower Center", "Lower Right" };
-			ImGui::Combo("##ChildAlignment", &comp.childAlignment, AlignNames, IM_ARRAYSIZE(AlignNames));
-		}
-
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Reverse Arrangement");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::Checkbox("##ReverseArrangement", &comp.reverseArrangement);
-		}
-
-		ImGui::Separator();
-		ImGui::TextDisabled("Child Controls");
-
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Control Width");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::Checkbox("##ControlChildWidth", &comp.controlChildWidth);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Control Height");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::Checkbox("##ControlChildHeight", &comp.controlChildHeight);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Force Expand Width");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::Checkbox("##ForceExpandWidth", &comp.childForceExpandWidth);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Force Expand Height");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::Checkbox("##ForceExpandHeight", &comp.childForceExpandHeight);
-		}
-
-		if (deleteComp) {
-			// TODO: implement remove
-		}
-
-		ImGui::Unindent();
-		ImGui::TreePop();
-	}
-
-	void InspectorPanel::DrawVerticalLayoutGroupComponent(uint32_t entity) {
-		auto& comp = NE::ECS::Command::GetUIVerticalLayoutGroup(entity);
-
-		bool copyComp = false;
-		bool deleteComp = false;
-
-		const bool open = DrawComponentHeaderWithMenu(
-			"Vertical Layout Group",
-			true,
-			&copyComp,
-			&deleteComp
-		);
-
-		if (!open)
-			return;
-
-		float labelWidth = 150.0f;
-		ImGui::Indent();
-
-		// Padding
 		ImGui::TextDisabled("Padding");
 		{
 			ImGui::AlignTextToFramePadding();
@@ -4434,73 +4376,6 @@ namespace Editor {
 		ImGui::TreePop();
 	}
 
-	void InspectorPanel::DrawRectMask2DComponent(uint32_t entity) {
-		auto& comp = NE::ECS::Command::GetUIRectMask2D(entity);
-
-		bool copyComp = false;
-		bool deleteComp = false;
-
-		const bool open = DrawComponentHeaderWithMenu(
-			"Rect Mask 2D",
-			true,
-			&copyComp,
-			&deleteComp
-		);
-
-		if (!open)
-			return;
-
-		float labelWidth = 150.0f;
-		ImGui::Indent();
-
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Enabled");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::Checkbox("##Enabled", &comp.enabled);
-		}
-
-		ImGui::Separator();
-		ImGui::TextDisabled("Padding");
-
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Left");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingLeft", &comp.paddingLeft, 0.5f);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Right");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingRight", &comp.paddingRight, 0.5f);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Top");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingTop", &comp.paddingTop, 0.5f);
-		}
-		{
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Bottom");
-			ImGui::SameLine(labelWidth);
-			ImGui::SetNextItemWidth(-1);
-			ImGui::DragFloat("##PaddingBottom", &comp.paddingBottom, 0.5f);
-		}
-
-		if (deleteComp) {
-			// TODO: implement remove
-		}
-
-		ImGui::Unindent();
-		ImGui::TreePop();
-	}
-
 	void InspectorPanel::DrawScrollRectComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Command::GetUIScrollRect(entity);
 
@@ -4624,6 +4499,73 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			ImGui::TextDisabled("Entity %u", comp.verticalScrollbar);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawAutoSizeComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIAutoSize(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Auto Size",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Content Size Fitter section
+		ImGui::TextDisabled("Content Size Fitter");
+		const char* fitModes[] = { "Unconstrained", "Min Size", "Preferred Size" };
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Horizontal Fit");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Combo("##HorizontalFit", &comp.horizontalFit, fitModes, IM_ARRAYSIZE(fitModes));
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Vertical Fit");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Combo("##VerticalFit", &comp.verticalFit, fitModes, IM_ARRAYSIZE(fitModes));
+		}
+
+		ImGui::Separator();
+
+		// Aspect Ratio Fitter section
+		ImGui::TextDisabled("Aspect Ratio Fitter");
+		const char* aspectModes[] = { "None", "Width Controls Height", "Height Controls Width", "Fit In Parent", "Envelope Parent" };
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Aspect Mode");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::Combo("##AspectMode", &comp.aspectMode, aspectModes, IM_ARRAYSIZE(aspectModes));
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Aspect Ratio");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragFloat("##AspectRatio", &comp.aspectRatio, 0.01f, 0.001f, 100.0f);
 		}
 
 		if (deleteComp) {

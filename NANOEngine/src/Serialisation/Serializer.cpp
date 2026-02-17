@@ -29,12 +29,11 @@
 #include "ECS/Components/CharacterController.hpp"
 #include "ECS/Components/Animator.hpp"
 #include "ECS/Components/DecalProjector.hpp"
-#include "ECS/Components/UIHorizontalLayoutGroup.hpp"
-#include "ECS/Components/UIVerticalLayoutGroup.hpp"
+#include "ECS/Components/UILayoutGroup.hpp"
 #include "ECS/Components/UIGridLayoutGroup.hpp"
 #include "ECS/Components/UILayoutElement.hpp"
-#include "ECS/Components/UIRectMask2D.hpp"
 #include "ECS/Components/UIScrollRect.hpp"
+#include "ECS/Components/UIAutoSize.hpp"
 
 namespace NE {
 	namespace {
@@ -57,12 +56,11 @@ namespace NE {
 			ECS::Component::UIButton,
 			ECS::Component::UISlider,
 			ECS::Component::UIToggle,
-			ECS::Component::UIHorizontalLayoutGroup,
-			ECS::Component::UIVerticalLayoutGroup,
+			ECS::Component::UILayoutGroup,
 			ECS::Component::UIGridLayoutGroup,
 			ECS::Component::UILayoutElement,
-			ECS::Component::UIRectMask2D,
 			ECS::Component::UIScrollRect,
+			ECS::Component::UIAutoSize,
 			ECS::Component::CharacterController,
 			ECS::Component::Animator,
             ECS::Component::DecalProjector

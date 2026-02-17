@@ -19,6 +19,7 @@ namespace NE::ECS::Systems {
         void OnEntityRemoved(Entity e) override;
 
     private:
+        void ProcessAutoSize();
         void ProcessLinearLayout(Entity entity, bool isHorizontal);
         void ProcessGridLayout(Entity entity);
 

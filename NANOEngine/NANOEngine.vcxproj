@@ -105,12 +105,11 @@
     <ClInclude Include="src\ECS\Components\UIText.hpp" />
     <ClInclude Include="src\ECS\Components\UISlider.hpp" />
     <ClInclude Include="src\ECS\Components\UIToggle.hpp" />
-    <ClInclude Include="src\ECS\Components\UIHorizontalLayoutGroup.hpp" />
-    <ClInclude Include="src\ECS\Components\UIVerticalLayoutGroup.hpp" />
+    <ClInclude Include="src\ECS\Components\UILayoutGroup.hpp" />
     <ClInclude Include="src\ECS\Components\UIGridLayoutGroup.hpp" />
     <ClInclude Include="src\ECS\Components\UILayoutElement.hpp" />
-    <ClInclude Include="src\ECS\Components\UIRectMask2D.hpp" />
     <ClInclude Include="src\ECS\Components\UIScrollRect.hpp" />
+    <ClInclude Include="src\ECS\Components\UIAutoSize.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />
