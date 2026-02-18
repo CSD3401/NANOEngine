@@ -756,6 +756,10 @@ namespace NE::ECS::Systems {
             // Accumulate parent transforms ONCE per entity (delegated to UILayoutEngine)
             AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(e, canvasEntity, canvas);
 
+            // Force dirty so UpdateWorldMatrixFromAccumulated always rebuilds from fresh accumulated data.
+            // Without this, inspector transform changes would be ignored after frame 1.
+            rect.worldMatrixDirty = true;
+
             // Use the pre-computed accumulated transform for both world matrix and world transform
             m_layoutEngine->UpdateWorldMatrixFromAccumulated(e, accumulated, isWorldSpace);
             WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
@@ -847,6 +851,9 @@ namespace NE::ECS::Systems {
 
         // Accumulate parent transforms ONCE for this text entity (delegated to UILayoutEngine)
         AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(entity, canvasEntity, canvas);
+
+        // Force dirty so the world matrix is always rebuilt from fresh accumulated data.
+        rect.worldMatrixDirty = true;
 
         // Update world matrix from accumulated (needed for world-space text submission)
         m_layoutEngine->UpdateWorldMatrixFromAccumulated(entity, accumulated, isWorldSpace);

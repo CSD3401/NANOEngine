@@ -24,6 +24,8 @@
 #include "../ECS/Components/UILayoutElement.hpp"
 #include "../ECS/Components/UIScrollRect.hpp"
 #include "../ECS/Components/UIAutoSize.hpp"
+#include "../ECS/Components/UIInputField.hpp"
+#include "../ECS/Components/UIDropdown.hpp"
 #include "../ECS/Components/Camera.hpp"
 #include "../ECS/Systems/ScriptSystem.hpp"
 #include "../ECS/Systems/UIRenderSystem.hpp"
@@ -128,6 +130,14 @@ namespace NE::ECS {
 
 		const Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		const Component::UIInputField& GetUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		const Component::UIDropdown& GetUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
 		}
 
 		bool HasEntityMeta(uint32_t e) {
@@ -236,6 +246,14 @@ namespace NE::ECS {
 
 		bool HasUIAutoSize(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		bool HasUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		bool HasUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().HasComponent<NE::ECS::Component::UIDropdown>(e);
 		}
 
 		const Component::Animator& GetEntityAnimator(uint32_t e) {
@@ -364,6 +382,14 @@ namespace NE::ECS {
 
 		ComponentType GetUIAutoSizeComponentType() {
 			return GetScene().GetECSCoordinator().GetComponentType<Component::UIAutoSize>();
+		}
+
+		ComponentType GetUIInputFieldComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIInputField>();
+		}
+
+		ComponentType GetUIDropdownComponentType() {
+			return GetScene().GetECSCoordinator().GetComponentType<Component::UIDropdown>();
 		}
 
 		uint32_t GetParent(uint32_t child) {
@@ -959,6 +985,14 @@ namespace NE::ECS {
 			GetScene().GetECSCoordinator().AddComponent<Component::UIAutoSize>(e, c);
 		}
 
+		void AddUIInputFieldComponent(uint32_t e, const Component::UIInputField& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIInputField>(e, c);
+		}
+
+		void AddUIDropdownComponent(uint32_t e, const Component::UIDropdown& c) {
+			GetScene().GetECSCoordinator().AddComponent<Component::UIDropdown>(e, c);
+		}
+
 		void AddPrefabLinkComponent(uint32_t e, const Component::PrefabLink& c) {
 			GetScene().GetECSCoordinator().AddComponent<Component::PrefabLink>(e, c);
 		}
@@ -1109,6 +1143,14 @@ namespace NE::ECS {
 
 		Component::UIAutoSize& GetUIAutoSize(uint32_t e) {
 			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIAutoSize>(e);
+		}
+
+		Component::UIInputField& GetUIInputField(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIInputField>(e);
+		}
+
+		Component::UIDropdown& GetUIDropdown(uint32_t e) {
+			return NE::GetScene().GetECSCoordinator().GetComponent<NE::ECS::Component::UIDropdown>(e);
 		}
 
 		//void SetParent(uint32_t child, uint32_t parent, bool worldPositionStays) {

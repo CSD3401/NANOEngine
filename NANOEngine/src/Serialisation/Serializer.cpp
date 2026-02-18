@@ -34,6 +34,8 @@
 #include "ECS/Components/UILayoutElement.hpp"
 #include "ECS/Components/UIScrollRect.hpp"
 #include "ECS/Components/UIAutoSize.hpp"
+#include "ECS/Components/UIInputField.hpp"
+#include "ECS/Components/UIDropdown.hpp"
 
 namespace NE {
 	namespace {
@@ -61,6 +63,8 @@ namespace NE {
 			ECS::Component::UILayoutElement,
 			ECS::Component::UIScrollRect,
 			ECS::Component::UIAutoSize,
+			ECS::Component::UIInputField,
+			ECS::Component::UIDropdown,
 			ECS::Component::CharacterController,
 			ECS::Component::Animator,
             ECS::Component::DecalProjector

@@ -110,6 +110,8 @@
     <ClInclude Include="src\ECS\Components\UILayoutElement.hpp" />
     <ClInclude Include="src\ECS\Components\UIScrollRect.hpp" />
     <ClInclude Include="src\ECS\Components\UIAutoSize.hpp" />
+    <ClInclude Include="src\ECS\Components\UIInputField.hpp" />
+    <ClInclude Include="src\ECS\Components\UIDropdown.hpp" />
     <ClInclude Include="src\ECS\Systems\UIRenderSystem.hpp" />
     <ClInclude Include="src\Graphics\Core\GizmosRenderer.hpp" />
     <ClInclude Include="src\ECS\Components\PhysicsBody.hpp" />

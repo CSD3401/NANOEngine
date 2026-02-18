@@ -15,6 +15,11 @@
 #include "../../Events/EventBus.hpp"
 #include "../../Events/UIEvents.hpp"
 #include "UITransformUtilities.hpp"
+#include "../Components/UIInputField.hpp"
+#include "../Components/UIDropdown.hpp"
+#include "../Components/UIText.hpp"
+#include "Engine.hpp"
+#include "glfw/glfw3.h"
 
 using namespace NE::ECS;
 using namespace NE::ECS::Component;
@@ -70,6 +75,12 @@ namespace NE::ECS::Systems {
         if (e == m_pressedEntity) {
             m_pressedEntity = NO_ENTITY;
         }
+        if (e == m_focusedEntity) {
+            ClearFocus();
+        }
+        if (e == m_expandedDropdown) {
+            CollapseDropdown();
+        }
     }
 
     void UIEventSystem::Exit() {}
@@ -90,6 +101,20 @@ namespace NE::ECS::Systems {
                 auto& toggle = m_cm->GetComponent<UIToggle>(e);
                 toggle.valueChanged = false;
                 toggle.wasClicked = false;
+            }
+            // Ensure dropdown panels start hidden and caption text stays in sync
+            if (m_cm->HasComponent<UIDropdown>(e)) {
+                auto& dropdown = m_cm->GetComponent<UIDropdown>(e);
+                if (!dropdown.isExpanded && dropdown.optionsPanelEntity != UINT32_MAX) {
+                    if (m_cm->HasComponent<EntityMeta>(dropdown.optionsPanelEntity)) {
+                        auto& panelMeta = m_cm->GetComponent<EntityMeta>(dropdown.optionsPanelEntity);
+                        if (panelMeta.isActive && m_expandedDropdown != e) {
+                            panelMeta.isActive = false;
+                        }
+                    }
+                }
+                // Always keep caption text up to date
+                SyncDropdownCaptionText(e);
             }
         }
 
@@ -194,6 +219,9 @@ namespace NE::ECS::Systems {
 
         m_hoveredEntity = hoveredEntity;
 
+        // Handle focus changes (click on input field = focus, click elsewhere = blur)
+        HandleFocusChange(hoveredEntity, mousePressed);
+
         // Update button states
         UpdateButtonStates();
 
@@ -205,6 +233,15 @@ namespace NE::ECS::Systems {
 
         // Update scroll rects (drag, inertia, elastic bounce)
         UpdateScrollRects(static_cast<float>(mouseX), static_cast<float>(mouseY), mouseDown, mousePressed, mouseReleased, deltaTime);
+
+        // Update dropdowns (expand/collapse, option selection, caption sync)
+        UpdateDropdowns(static_cast<float>(mouseX), static_cast<float>(mouseY), mousePressed, mouseReleased);
+
+        // Update input fields (keyboard input, cursor blink, color)
+        UpdateInputFields(deltaTime);
+
+        // Update drag events
+        UpdateDragEvents(static_cast<float>(mouseX), static_cast<float>(mouseY), mouseDown, mousePressed, mouseReleased);
     }
 
     std::vector<UIEventSystem::UIElementInfo> UIEventSystem::CollectInteractableElements() {
@@ -251,6 +288,14 @@ namespace NE::ECS::Systems {
                 if (m_cm->HasComponent<UIToggle>(e)) {
                     auto& toggle = m_cm->GetComponent<UIToggle>(e);
                     if (toggle.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UIInputField>(e)) {
+                    auto& inputField = m_cm->GetComponent<UIInputField>(e);
+                    if (inputField.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UIDropdown>(e)) {
+                    auto& dropdown = m_cm->GetComponent<UIDropdown>(e);
+                    if (dropdown.interactable) isInteractable = true;
                 }
                 // Check if this is a toggle background (has image with raycastTarget)
                 if (m_cm->HasComponent<UIImage>(e)) {
@@ -393,13 +438,12 @@ namespace NE::ECS::Systems {
             m_draggingSlider = NO_ENTITY;
         }
 
-        // Handle slider drag
+        // Handle slider drag: update value from mouse position
         if (mouseDown && m_draggingSlider != NO_ENTITY) {
             if (m_cm->HasComponent<UISlider>(m_draggingSlider) &&
                 m_cm->HasComponent<UIRectTransform>(m_draggingSlider)) {
 
                 auto& slider = m_cm->GetComponent<UISlider>(m_draggingSlider);
-                auto& rect = m_cm->GetComponent<UIRectTransform>(m_draggingSlider);
 
                 // Find canvas for this slider
                 Entity canvasEntity = NO_ENTITY;
@@ -447,32 +491,47 @@ namespace NE::ECS::Systems {
                             NANOEngine::Events::UISliderValueChangedEvent{ m_draggingSlider, slider.value, oldValue }
                         );
                     }
+                }
+            }
+        }
 
-                    // Update fill rect width/height based on value
-                    if (slider.fillRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
-                        auto& fillRect = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
-                        float fillNormalized = slider.GetNormalizedValue();
+        // Every frame: sync fill rect and handle position for ALL sliders based on current value
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UISlider>(e)) continue;
+            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
 
-                        if (slider.IsHorizontal()) {
-                            fillRect.width = rect.width * fillNormalized;
-                        } else {
-                            fillRect.height = rect.height * fillNormalized;
-                        }
-                    }
+            auto& slider = m_cm->GetComponent<UISlider>(e);
+            auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
-                    // Update handle position
-                    if (slider.handleRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
-                        auto& handleRect = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
-                        float handleNormalized = slider.GetNormalizedValue();
+            float fillNormalized = slider.GetNormalizedValue();
+            float handleNormalized = fillNormalized;
 
-                        if (slider.IsHorizontal()) {
-                            float trackWidth = rect.width - handleRect.width;
-                            handleRect.x = trackWidth * handleNormalized - trackWidth / 2.0f;
-                        } else {
-                            float trackHeight = rect.height - handleRect.height;
-                            handleRect.y = trackHeight * handleNormalized - trackHeight / 2.0f;
-                        }
-                    }
+            // Update fill rect: grows from left (horizontal) or bottom (vertical)
+            if (slider.fillRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.fillRect)) {
+                auto& fillRect = m_cm->GetComponent<UIRectTransform>(slider.fillRect);
+
+                if (slider.IsHorizontal()) {
+                    fillRect.width = rect.width * fillNormalized;
+                    // Keep left edge fixed: center x = left_edge + half_fill_width
+                    fillRect.x = -rect.width * 0.5f + fillRect.width * 0.5f;
+                } else {
+                    fillRect.height = rect.height * fillNormalized;
+                    // Keep bottom edge fixed: center y = bottom_edge - half_fill_height
+                    // (y increases downward in UI space, so bottom = +height/2)
+                    fillRect.y = rect.height * 0.5f - fillRect.height * 0.5f;
+                }
+            }
+
+            // Update handle position along the track
+            if (slider.handleRect != UINT32_MAX && m_cm->HasComponent<UIRectTransform>(slider.handleRect)) {
+                auto& handleRect = m_cm->GetComponent<UIRectTransform>(slider.handleRect);
+
+                if (slider.IsHorizontal()) {
+                    float trackWidth = rect.width - handleRect.width;
+                    handleRect.x = trackWidth * handleNormalized - trackWidth * 0.5f;
+                } else {
+                    float trackHeight = rect.height - handleRect.height;
+                    handleRect.y = trackHeight * handleNormalized - trackHeight * 0.5f;
                 }
             }
         }
@@ -1205,6 +1264,765 @@ namespace NE::ECS::Systems {
             float baseY = halfVpH - scroll.contentHeight * contentRect.pivotY;
             scroll.normalizedPosition.x = std::max(0.f, std::min(1.f, (baseX - contentRect.x) / maxScrollX));
             scroll.normalizedPosition.y = std::max(0.f, std::min(1.f, (baseY - contentRect.y) / maxScrollY));
+        }
+    }
+
+    //=========================================================================
+    // Focus Management
+    //=========================================================================
+
+    void UIEventSystem::SetFocusedEntity(Entity e) {
+        if (e == m_focusedEntity) return;
+
+        // Blur old
+        if (m_focusedEntity != NO_ENTITY) {
+            if (m_cm->HasComponent<UIInputField>(m_focusedEntity)) {
+                auto& field = m_cm->GetComponent<UIInputField>(m_focusedEntity);
+                field.isFocused = false;
+                field.selectionStart = -1;
+                field.selectionEnd = -1;
+            }
+            NANOEngine::Events::EventBus::Get().Dispatch(
+                NANOEngine::Events::EventDomain::Engine,
+                NANOEngine::Events::UIBlurEvent{ m_focusedEntity }
+            );
+        }
+
+        m_focusedEntity = e;
+
+        // Focus new
+        if (m_focusedEntity != NO_ENTITY) {
+            if (m_cm->HasComponent<UIInputField>(m_focusedEntity)) {
+                auto& field = m_cm->GetComponent<UIInputField>(m_focusedEntity);
+                field.isFocused = true;
+                field.cursorBlinkTimer = 0.0f;
+                field.cursorVisible = true;
+                // Place cursor at end of text
+                field.cursorPosition = static_cast<int>(field.text.size());
+                field.previousText = field.text;
+            }
+            NANOEngine::Events::EventBus::Get().Dispatch(
+                NANOEngine::Events::EventDomain::Engine,
+                NANOEngine::Events::UIFocusEvent{ m_focusedEntity }
+            );
+        }
+    }
+
+    void UIEventSystem::ClearFocus() {
+        SetFocusedEntity(NO_ENTITY);
+    }
+
+    void UIEventSystem::HandleFocusChange(Entity clickedEntity, bool mousePressed) {
+        if (!mousePressed) return;
+
+        // Determine if clicked entity is focusable (has UIInputField)
+        bool clickedIsFocusable = (clickedEntity != NO_ENTITY &&
+            m_cm->HasComponent<UIInputField>(clickedEntity) &&
+            m_cm->GetComponent<UIInputField>(clickedEntity).interactable);
+
+        if (clickedIsFocusable) {
+            SetFocusedEntity(clickedEntity);
+        } else if (clickedEntity != m_focusedEntity) {
+            // Clicked on something else or empty space — blur
+            ClearFocus();
+        }
+    }
+
+    Entity UIEventSystem::FindNextFocusable(Entity current, bool reverse) {
+        const auto& allEntities = GetEntities();
+        std::vector<Entity> focusable;
+
+        for (Entity e : allEntities) {
+            if (!m_cm->HasComponent<UIInputField>(e)) continue;
+            if (!m_cm->GetComponent<UIInputField>(e).interactable) continue;
+            if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
+
+            Entity canvas = FindOwningCanvas(e);
+            if (canvas != NO_ENTITY && !IsActiveForUI(e, canvas)) continue;
+
+            focusable.push_back(e);
+        }
+
+        if (focusable.empty()) return NO_ENTITY;
+
+        // Find current index
+        auto it = std::find(focusable.begin(), focusable.end(), current);
+        if (it == focusable.end()) {
+            return focusable.front();
+        }
+
+        size_t idx = std::distance(focusable.begin(), it);
+        if (reverse) {
+            return (idx == 0) ? focusable.back() : focusable[idx - 1];
+        } else {
+            return (idx + 1 >= focusable.size()) ? focusable.front() : focusable[idx + 1];
+        }
+    }
+
+    //=========================================================================
+    // Input Field Handling
+    //=========================================================================
+
+    bool UIEventSystem::IsCharAllowed(char32_t codepoint, const UIInputField& field) {
+        switch (field.contentType) {
+        case UIInputField::ContentType::INTEGER:
+            return (codepoint >= '0' && codepoint <= '9') || codepoint == '-';
+        case UIInputField::ContentType::DECIMAL:
+            return (codepoint >= '0' && codepoint <= '9') || codepoint == '-' || codepoint == '.';
+        case UIInputField::ContentType::ALPHA_NUMERIC:
+            return (codepoint >= 'a' && codepoint <= 'z') ||
+                   (codepoint >= 'A' && codepoint <= 'Z') ||
+                   (codepoint >= '0' && codepoint <= '9') ||
+                   codepoint == '_';
+        case UIInputField::ContentType::STANDARD:
+        case UIInputField::ContentType::PASSWORD:
+        default:
+            return codepoint >= 32; // All printable characters
+        }
+    }
+
+    void UIEventSystem::DeleteSelection(UIInputField& field) {
+        if (field.selectionStart < 0 || field.selectionEnd < 0) return;
+
+        int start = std::min(field.selectionStart, field.selectionEnd);
+        int end = std::max(field.selectionStart, field.selectionEnd);
+        start = std::max(0, std::min(start, static_cast<int>(field.text.size())));
+        end = std::max(0, std::min(end, static_cast<int>(field.text.size())));
+
+        field.text.erase(start, end - start);
+        field.cursorPosition = start;
+        field.selectionStart = -1;
+        field.selectionEnd = -1;
+    }
+
+    void UIEventSystem::InsertText(UIInputField& field, const std::string& text) {
+        // Delete selection first if any
+        if (field.selectionStart >= 0 && field.selectionEnd >= 0 &&
+            field.selectionStart != field.selectionEnd) {
+            DeleteSelection(field);
+        }
+
+        // Check character limit
+        if (field.characterLimit > 0 &&
+            static_cast<int>(field.text.size() + text.size()) > field.characterLimit) {
+            int remaining = field.characterLimit - static_cast<int>(field.text.size());
+            if (remaining <= 0) return;
+            field.text.insert(field.cursorPosition, text.substr(0, remaining));
+            field.cursorPosition += remaining;
+        } else {
+            field.text.insert(field.cursorPosition, text);
+            field.cursorPosition += static_cast<int>(text.size());
+        }
+    }
+
+    void UIEventSystem::ProcessInputFieldKeyboard(Entity entity, UIInputField& field, double deltaTime) {
+        bool ctrlHeld = NE::InputManager::IsKeyDown(GLFW_KEY_LEFT_CONTROL) ||
+                        NE::InputManager::IsKeyDown(GLFW_KEY_RIGHT_CONTROL);
+        bool shiftHeld = NE::InputManager::IsKeyDown(GLFW_KEY_LEFT_SHIFT) ||
+                         NE::InputManager::IsKeyDown(GLFW_KEY_RIGHT_SHIFT);
+
+        bool textChanged = false;
+
+        // Tab — cycle focus
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_TAB)) {
+            Entity next = FindNextFocusable(entity, shiftHeld);
+            if (next != NO_ENTITY) {
+                SetFocusedEntity(next);
+            }
+            return;
+        }
+
+        // Escape — blur
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_ESCAPE)) {
+            ClearFocus();
+            return;
+        }
+
+        // Enter / Return
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_ENTER) ||
+            NE::InputManager::WasKeyPressed(GLFW_KEY_KP_ENTER)) {
+            if (field.lineType == UIInputField::LineType::SINGLE_LINE) {
+                // Submit
+                NANOEngine::Events::EventBus::Get().Dispatch(
+                    NANOEngine::Events::EventDomain::Engine,
+                    NANOEngine::Events::UIInputFieldSubmitEvent{ entity, field.text, field.onSubmitEventId }
+                );
+                ClearFocus();
+                return;
+            } else {
+                // Multi-line: insert newline
+                if (!field.readOnly) {
+                    InsertText(field, "\n");
+                    textChanged = true;
+                }
+            }
+        }
+
+        if (!field.readOnly) {
+            // Ctrl+A — select all
+            if (ctrlHeld && NE::InputManager::WasKeyPressed(GLFW_KEY_A)) {
+                field.selectionStart = 0;
+                field.selectionEnd = static_cast<int>(field.text.size());
+                field.cursorPosition = field.selectionEnd;
+            }
+
+            // Ctrl+C — copy
+            if (ctrlHeld && NE::InputManager::WasKeyPressed(GLFW_KEY_C)) {
+                if (field.selectionStart >= 0 && field.selectionEnd >= 0 &&
+                    field.selectionStart != field.selectionEnd &&
+                    field.contentType != UIInputField::ContentType::PASSWORD) {
+                    int start = std::min(field.selectionStart, field.selectionEnd);
+                    int end = std::max(field.selectionStart, field.selectionEnd);
+                    std::string selected = field.text.substr(start, end - start);
+                    GLFWwindow* win = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+                    if (win) glfwSetClipboardString(win, selected.c_str());
+                }
+            }
+
+            // Ctrl+X — cut
+            if (ctrlHeld && NE::InputManager::WasKeyPressed(GLFW_KEY_X)) {
+                if (field.selectionStart >= 0 && field.selectionEnd >= 0 &&
+                    field.selectionStart != field.selectionEnd &&
+                    field.contentType != UIInputField::ContentType::PASSWORD) {
+                    int start = std::min(field.selectionStart, field.selectionEnd);
+                    int end = std::max(field.selectionStart, field.selectionEnd);
+                    std::string selected = field.text.substr(start, end - start);
+                    GLFWwindow* win = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+                    if (win) glfwSetClipboardString(win, selected.c_str());
+                    DeleteSelection(field);
+                    textChanged = true;
+                }
+            }
+
+            // Ctrl+V — paste
+            if (ctrlHeld && NE::InputManager::WasKeyPressed(GLFW_KEY_V)) {
+                GLFWwindow* win = static_cast<GLFWwindow*>(NE::GetNativeWindowHandle());
+                if (win) {
+                    const char* cb = glfwGetClipboardString(win);
+                    if (cb) {
+                        std::string pasteText(cb);
+                        // Filter single-line: remove newlines
+                        if (field.lineType == UIInputField::LineType::SINGLE_LINE) {
+                            pasteText.erase(std::remove(pasteText.begin(), pasteText.end(), '\n'), pasteText.end());
+                            pasteText.erase(std::remove(pasteText.begin(), pasteText.end(), '\r'), pasteText.end());
+                        }
+                        InsertText(field, pasteText);
+                        textChanged = true;
+                    }
+                }
+            }
+
+            // Backspace
+            if (NE::InputManager::WasKeyPressed(GLFW_KEY_BACKSPACE)) {
+                if (field.selectionStart >= 0 && field.selectionEnd >= 0 &&
+                    field.selectionStart != field.selectionEnd) {
+                    DeleteSelection(field);
+                    textChanged = true;
+                } else if (field.cursorPosition > 0) {
+                    field.text.erase(field.cursorPosition - 1, 1);
+                    field.cursorPosition--;
+                    textChanged = true;
+                }
+            }
+
+            // Delete
+            if (NE::InputManager::WasKeyPressed(GLFW_KEY_DELETE)) {
+                if (field.selectionStart >= 0 && field.selectionEnd >= 0 &&
+                    field.selectionStart != field.selectionEnd) {
+                    DeleteSelection(field);
+                    textChanged = true;
+                } else if (field.cursorPosition < static_cast<int>(field.text.size())) {
+                    field.text.erase(field.cursorPosition, 1);
+                    textChanged = true;
+                }
+            }
+
+            // Character input
+            uint32_t codepoint;
+            while ((codepoint = NE::InputManager::PopChar()) != 0) {
+                if (!ctrlHeld && IsCharAllowed(codepoint, field)) {
+                    // Convert codepoint to UTF-8 (simple ASCII for now)
+                    if (codepoint < 128) {
+                        InsertText(field, std::string(1, static_cast<char>(codepoint)));
+                        textChanged = true;
+                    }
+                }
+            }
+        }
+
+        // Cursor movement (works even in readOnly)
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_LEFT)) {
+            if (shiftHeld) {
+                if (field.selectionStart < 0) {
+                    field.selectionStart = field.cursorPosition;
+                    field.selectionEnd = field.cursorPosition;
+                }
+                if (field.cursorPosition > 0) field.cursorPosition--;
+                field.selectionEnd = field.cursorPosition;
+            } else {
+                if (field.selectionStart >= 0 && field.selectionStart != field.selectionEnd) {
+                    field.cursorPosition = std::min(field.selectionStart, field.selectionEnd);
+                } else if (field.cursorPosition > 0) {
+                    field.cursorPosition--;
+                }
+                field.selectionStart = -1;
+                field.selectionEnd = -1;
+            }
+            field.cursorBlinkTimer = 0.0f;
+            field.cursorVisible = true;
+        }
+
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_RIGHT)) {
+            if (shiftHeld) {
+                if (field.selectionStart < 0) {
+                    field.selectionStart = field.cursorPosition;
+                    field.selectionEnd = field.cursorPosition;
+                }
+                if (field.cursorPosition < static_cast<int>(field.text.size())) field.cursorPosition++;
+                field.selectionEnd = field.cursorPosition;
+            } else {
+                if (field.selectionStart >= 0 && field.selectionStart != field.selectionEnd) {
+                    field.cursorPosition = std::max(field.selectionStart, field.selectionEnd);
+                } else if (field.cursorPosition < static_cast<int>(field.text.size())) {
+                    field.cursorPosition++;
+                }
+                field.selectionStart = -1;
+                field.selectionEnd = -1;
+            }
+            field.cursorBlinkTimer = 0.0f;
+            field.cursorVisible = true;
+        }
+
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_HOME)) {
+            if (shiftHeld) {
+                if (field.selectionStart < 0) field.selectionStart = field.cursorPosition;
+                field.cursorPosition = 0;
+                field.selectionEnd = 0;
+            } else {
+                field.cursorPosition = 0;
+                field.selectionStart = -1;
+                field.selectionEnd = -1;
+            }
+        }
+
+        if (NE::InputManager::WasKeyPressed(GLFW_KEY_END)) {
+            if (shiftHeld) {
+                if (field.selectionStart < 0) field.selectionStart = field.cursorPosition;
+                field.cursorPosition = static_cast<int>(field.text.size());
+                field.selectionEnd = field.cursorPosition;
+            } else {
+                field.cursorPosition = static_cast<int>(field.text.size());
+                field.selectionStart = -1;
+                field.selectionEnd = -1;
+            }
+        }
+
+        // Clamp cursor
+        field.cursorPosition = std::max(0, std::min(field.cursorPosition, static_cast<int>(field.text.size())));
+
+        // Cursor blink
+        field.cursorBlinkTimer += static_cast<float>(deltaTime);
+        if (field.cursorBlinkTimer >= field.cursorBlinkRate) {
+            field.cursorBlinkTimer -= field.cursorBlinkRate;
+            field.cursorVisible = !field.cursorVisible;
+        }
+
+        // Reset blink on text change
+        if (textChanged) {
+            field.cursorBlinkTimer = 0.0f;
+            field.cursorVisible = true;
+        }
+
+        // Dispatch change event
+        if (textChanged && field.text != field.previousText) {
+            NANOEngine::Events::EventBus::Get().Dispatch(
+                NANOEngine::Events::EventDomain::Engine,
+                NANOEngine::Events::UIInputFieldChangedEvent{
+                    entity, field.text, field.previousText, field.onValueChangedEventId
+                }
+            );
+            field.previousText = field.text;
+        }
+    }
+
+    void UIEventSystem::ApplyInputFieldColorToImage(Entity entity) {
+        if (!m_cm->HasComponent<UIInputField>(entity)) return;
+        if (!m_cm->HasComponent<UIImage>(entity)) return;
+
+        auto& field = m_cm->GetComponent<UIInputField>(entity);
+        auto& image = m_cm->GetComponent<UIImage>(entity);
+
+        if (!field.interactable) {
+            image.color = field.disabledColor;
+        } else if (field.isFocused) {
+            image.color = field.selectedColor;
+        } else {
+            image.color = field.normalColor;
+        }
+    }
+
+    void UIEventSystem::SyncInputFieldToText(Entity entity) {
+        if (!m_cm->HasComponent<UIInputField>(entity)) return;
+
+        auto& field = m_cm->GetComponent<UIInputField>(entity);
+
+        // Find sibling UIText — look on the same entity first, then children
+        Entity textEntity = NO_ENTITY;
+        if (m_cm->HasComponent<UIText>(entity)) {
+            textEntity = entity;
+        } else if (m_cm->HasComponent<Hierarchy>(entity)) {
+            auto& hierarchy = m_cm->GetComponent<Hierarchy>(entity);
+            for (uint32_t child : hierarchy.children) {
+                if (m_cm->HasComponent<UIText>(child)) {
+                    textEntity = child;
+                    break;
+                }
+            }
+        }
+
+        if (textEntity == NO_ENTITY) return;
+
+        auto& text = m_cm->GetComponent<UIText>(textEntity);
+
+        // Display text content or placeholder
+        bool showPlaceholder = field.text.empty() && !field.isFocused;
+        std::string displayText;
+
+        if (showPlaceholder) {
+            displayText = field.placeholderText;
+            text.color = field.placeholderColor;
+        } else if (field.contentType == UIInputField::ContentType::PASSWORD) {
+            displayText = std::string(field.text.size(), field.passwordChar);
+            text.color = field.textColor;
+        } else {
+            displayText = field.text;
+            text.color = field.textColor;
+        }
+
+        if (text.text != displayText) {
+            text.text = displayText;
+            text.isDirty = true;
+        }
+    }
+
+    void UIEventSystem::UpdateInputFields(double deltaTime) {
+        const auto& entities = GetEntities();
+
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UIInputField>(e)) continue;
+
+            auto& field = m_cm->GetComponent<UIInputField>(e);
+
+            // Process keyboard input for focused field
+            if (field.isFocused && e == m_focusedEntity) {
+                ProcessInputFieldKeyboard(e, field, deltaTime);
+            }
+
+            // Apply visual state
+            ApplyInputFieldColorToImage(e);
+
+            // Sync text display
+            SyncInputFieldToText(e);
+        }
+    }
+
+    //=========================================================================
+    // Drag Events
+    //=========================================================================
+
+    void UIEventSystem::UpdateDragEvents(float mouseX, float mouseY, bool mouseDown, bool mousePressed, bool mouseReleased) {
+        if (mousePressed && m_hoveredEntity != NO_ENTITY) {
+            m_isDragging = true;
+            m_lastDragX = mouseX;
+            m_lastDragY = mouseY;
+        }
+
+        if (mouseReleased) {
+            m_isDragging = false;
+        }
+
+        if (m_isDragging && mouseDown && m_pressedEntity != NO_ENTITY) {
+            float dx = mouseX - m_lastDragX;
+            float dy = mouseY - m_lastDragY;
+
+            if (std::abs(dx) > 0.1f || std::abs(dy) > 0.1f) {
+                NANOEngine::Events::EventBus::Get().Dispatch(
+                    NANOEngine::Events::EventDomain::Engine,
+                    NANOEngine::Events::UIPointerDragEvent{
+                        m_pressedEntity, dx, dy, mouseX, mouseY
+                    }
+                );
+                m_lastDragX = mouseX;
+                m_lastDragY = mouseY;
+            }
+        }
+    }
+
+    //=========================================================================
+    // Dropdown Handling
+    //=========================================================================
+
+    bool UIEventSystem::IsEntityInDropdownPanel(Entity entity, Entity dropdownEntity) {
+        if (!m_cm->HasComponent<UIDropdown>(dropdownEntity)) return false;
+        auto& dropdown = m_cm->GetComponent<UIDropdown>(dropdownEntity);
+        Entity panelEntity = dropdown.optionsPanelEntity;
+        if (panelEntity == UINT32_MAX) return false;
+
+        // Check if entity IS the panel or a descendant of it
+        Entity cur = entity;
+        while (cur != NO_ENTITY) {
+            if (cur == panelEntity) return true;
+            if (!m_cm->HasComponent<Hierarchy>(cur)) break;
+            cur = m_cm->GetComponent<Hierarchy>(cur).parent;
+            if (cur == UINT32_MAX) break;
+        }
+        return false;
+    }
+
+    int UIEventSystem::GetOptionIndexFromEntity(Entity clickedEntity, Entity dropdownEntity) {
+        if (!m_cm->HasComponent<UIDropdown>(dropdownEntity)) return -1;
+        auto& dropdown = m_cm->GetComponent<UIDropdown>(dropdownEntity);
+        Entity panelEntity = dropdown.optionsPanelEntity;
+        if (panelEntity == UINT32_MAX) return -1;
+        if (!m_cm->HasComponent<Hierarchy>(panelEntity)) return -1;
+
+        auto& panelHierarchy = m_cm->GetComponent<Hierarchy>(panelEntity);
+        for (size_t i = 0; i < panelHierarchy.children.size(); ++i) {
+            Entity child = panelHierarchy.children[i];
+            // Clicked directly on the option entity or one of its children (UIText)
+            if (clickedEntity == child) return static_cast<int>(i);
+            if (m_cm->HasComponent<Hierarchy>(clickedEntity)) {
+                Entity parent = m_cm->GetComponent<Hierarchy>(clickedEntity).parent;
+                if (parent == child) return static_cast<int>(i);
+            }
+        }
+        return -1;
+    }
+
+    void UIEventSystem::ExpandDropdown(Entity dropdownEntity) {
+        // Collapse any currently expanded dropdown first
+        if (m_expandedDropdown != NO_ENTITY && m_expandedDropdown != dropdownEntity) {
+            CollapseDropdown();
+        }
+
+        if (!m_cm->HasComponent<UIDropdown>(dropdownEntity)) return;
+        auto& dropdown = m_cm->GetComponent<UIDropdown>(dropdownEntity);
+        Entity panelEntity = dropdown.optionsPanelEntity;
+        if (panelEntity == UINT32_MAX) return;
+
+        // Activate the panel entity
+        if (m_cm->HasComponent<EntityMeta>(panelEntity)) {
+            m_cm->GetComponent<EntityMeta>(panelEntity).isActive = true;
+        }
+
+        dropdown.isExpanded = true;
+        dropdown.hoveredOptionIndex = -1;
+        m_expandedDropdown = dropdownEntity;
+
+        // Sync option text to panel children
+        SyncDropdownOptionsToPanel(dropdownEntity);
+    }
+
+    void UIEventSystem::CollapseDropdown() {
+        if (m_expandedDropdown == NO_ENTITY) return;
+        if (!m_cm->HasComponent<UIDropdown>(m_expandedDropdown)) {
+            m_expandedDropdown = NO_ENTITY;
+            return;
+        }
+
+        auto& dropdown = m_cm->GetComponent<UIDropdown>(m_expandedDropdown);
+        Entity panelEntity = dropdown.optionsPanelEntity;
+
+        // Deactivate the panel entity
+        if (panelEntity != UINT32_MAX && m_cm->HasComponent<EntityMeta>(panelEntity)) {
+            m_cm->GetComponent<EntityMeta>(panelEntity).isActive = false;
+        }
+
+        dropdown.isExpanded = false;
+        dropdown.hoveredOptionIndex = -1;
+        m_expandedDropdown = NO_ENTITY;
+    }
+
+    void UIEventSystem::SyncDropdownOptionsToPanel(Entity dropdownEntity) {
+        if (!m_cm->HasComponent<UIDropdown>(dropdownEntity)) return;
+        auto& dropdown = m_cm->GetComponent<UIDropdown>(dropdownEntity);
+        Entity panelEntity = dropdown.optionsPanelEntity;
+        if (panelEntity == UINT32_MAX) return;
+        if (!m_cm->HasComponent<Hierarchy>(panelEntity)) return;
+
+        auto& panelHierarchy = m_cm->GetComponent<Hierarchy>(panelEntity);
+
+        for (size_t i = 0; i < panelHierarchy.children.size(); ++i) {
+            Entity child = panelHierarchy.children[i];
+
+            // Hide children that exceed option count
+            if (i >= dropdown.options.size()) {
+                if (m_cm->HasComponent<EntityMeta>(child)) {
+                    m_cm->GetComponent<EntityMeta>(child).isActive = false;
+                }
+                continue;
+            }
+
+            // Show and set text for valid options
+            if (m_cm->HasComponent<EntityMeta>(child)) {
+                m_cm->GetComponent<EntityMeta>(child).isActive = true;
+            }
+
+            // Set text — check child directly or its first UIText child
+            if (m_cm->HasComponent<UIText>(child)) {
+                m_cm->GetComponent<UIText>(child).text = dropdown.options[i];
+            } else if (m_cm->HasComponent<Hierarchy>(child)) {
+                for (uint32_t grandchild : m_cm->GetComponent<Hierarchy>(child).children) {
+                    if (m_cm->HasComponent<UIText>(grandchild)) {
+                        m_cm->GetComponent<UIText>(grandchild).text = dropdown.options[i];
+                        break;
+                    }
+                }
+            }
+
+            // Apply normal color to option image
+            if (m_cm->HasComponent<UIImage>(child)) {
+                m_cm->GetComponent<UIImage>(child).color = dropdown.optionNormalColor;
+            }
+        }
+    }
+
+    void UIEventSystem::SyncDropdownCaptionText(Entity dropdownEntity) {
+        if (!m_cm->HasComponent<UIDropdown>(dropdownEntity)) return;
+        auto& dropdown = m_cm->GetComponent<UIDropdown>(dropdownEntity);
+
+        Entity captionEntity = dropdown.captionTextEntity;
+        if (captionEntity == UINT32_MAX) return;
+        if (!m_cm->HasComponent<UIText>(captionEntity)) return;
+
+        auto& text = m_cm->GetComponent<UIText>(captionEntity);
+        if (dropdown.selectedIndex >= 0 && dropdown.selectedIndex < static_cast<int>(dropdown.options.size())) {
+            text.text = dropdown.options[dropdown.selectedIndex];
+        } else {
+            text.text = "";
+        }
+    }
+
+    void UIEventSystem::ApplyDropdownColorToImage(Entity dropdownEntity) {
+        if (!m_cm->HasComponent<UIDropdown>(dropdownEntity)) return;
+        if (!m_cm->HasComponent<UIImage>(dropdownEntity)) return;
+
+        auto& dropdown = m_cm->GetComponent<UIDropdown>(dropdownEntity);
+        auto& image = m_cm->GetComponent<UIImage>(dropdownEntity);
+
+        if (!dropdown.interactable) {
+            image.color = dropdown.disabledColor;
+        } else if (m_pressedEntity == dropdownEntity) {
+            image.color = dropdown.pressedColor;
+        } else if (m_hoveredEntity == dropdownEntity || dropdown.isExpanded) {
+            image.color = dropdown.highlightedColor;
+        } else {
+            image.color = dropdown.normalColor;
+        }
+    }
+
+    void UIEventSystem::UpdateDropdowns(float mouseX, float mouseY, bool mousePressed, bool mouseReleased) {
+        const auto& entities = GetEntities();
+
+        // Handle clicks
+        if (mousePressed) {
+            bool clickedOnDropdownOrPanel = false;
+
+            // Check if we clicked on a dropdown entity
+            if (m_hoveredEntity != NO_ENTITY && m_cm->HasComponent<UIDropdown>(m_hoveredEntity)) {
+                auto& dropdown = m_cm->GetComponent<UIDropdown>(m_hoveredEntity);
+                if (dropdown.interactable) {
+                    if (dropdown.isExpanded) {
+                        CollapseDropdown();
+                    } else {
+                        ExpandDropdown(m_hoveredEntity);
+                    }
+                    clickedOnDropdownOrPanel = true;
+                }
+            }
+
+            // Check if we clicked on an option in the expanded panel
+            if (!clickedOnDropdownOrPanel && m_expandedDropdown != NO_ENTITY && m_hoveredEntity != NO_ENTITY) {
+                if (IsEntityInDropdownPanel(m_hoveredEntity, m_expandedDropdown)) {
+                    int optionIndex = GetOptionIndexFromEntity(m_hoveredEntity, m_expandedDropdown);
+                    if (optionIndex >= 0) {
+                        auto& dropdown = m_cm->GetComponent<UIDropdown>(m_expandedDropdown);
+                        int prevIndex = dropdown.selectedIndex;
+                        dropdown.selectedIndex = optionIndex;
+                        dropdown.previousSelectedIndex = prevIndex;
+
+                        // Sync caption text
+                        SyncDropdownCaptionText(m_expandedDropdown);
+
+                        // Dispatch event
+                        std::string selectedOption;
+                        if (optionIndex < static_cast<int>(dropdown.options.size())) {
+                            selectedOption = dropdown.options[optionIndex];
+                        }
+                        NANOEngine::Events::EventBus::Get().Dispatch(
+                            NANOEngine::Events::EventDomain::Engine,
+                            NANOEngine::Events::UIDropdownValueChangedEvent{
+                                m_expandedDropdown,
+                                optionIndex,
+                                prevIndex,
+                                selectedOption,
+                                dropdown.onValueChangedEventId
+                            }
+                        );
+
+                        Entity expandedCopy = m_expandedDropdown;
+                        CollapseDropdown();
+                    }
+                    clickedOnDropdownOrPanel = true;
+                }
+            }
+
+            // Click outside expanded dropdown — collapse
+            if (!clickedOnDropdownOrPanel && m_expandedDropdown != NO_ENTITY) {
+                CollapseDropdown();
+            }
+        }
+
+        // Update hover highlighting on option panel children
+        if (m_expandedDropdown != NO_ENTITY && m_cm->HasComponent<UIDropdown>(m_expandedDropdown)) {
+            auto& dropdown = m_cm->GetComponent<UIDropdown>(m_expandedDropdown);
+            Entity panelEntity = dropdown.optionsPanelEntity;
+
+            if (panelEntity != UINT32_MAX && m_cm->HasComponent<Hierarchy>(panelEntity)) {
+                auto& panelHierarchy = m_cm->GetComponent<Hierarchy>(panelEntity);
+                int newHovered = -1;
+
+                // Determine which option is hovered
+                if (m_hoveredEntity != NO_ENTITY) {
+                    newHovered = GetOptionIndexFromEntity(m_hoveredEntity, m_expandedDropdown);
+                }
+
+                dropdown.hoveredOptionIndex = newHovered;
+
+                // Apply highlight colors to option images
+                for (size_t i = 0; i < panelHierarchy.children.size() && i < dropdown.options.size(); ++i) {
+                    Entity child = panelHierarchy.children[i];
+                    if (!m_cm->HasComponent<UIImage>(child)) continue;
+                    auto& img = m_cm->GetComponent<UIImage>(child);
+
+                    if (static_cast<int>(i) == newHovered) {
+                        img.color = dropdown.optionHighlightedColor;
+                    } else {
+                        img.color = dropdown.optionNormalColor;
+                    }
+                }
+            }
+        }
+
+        // Update all dropdown states (color, caption sync)
+        for (Entity e : entities) {
+            if (!m_cm->HasComponent<UIDropdown>(e)) continue;
+
+            Entity canvasEntity = FindOwningCanvas(e);
+            if (canvasEntity != NO_ENTITY && !IsActiveForUI(e, canvasEntity)) continue;
+
+            ApplyDropdownColorToImage(e);
+            SyncDropdownCaptionText(e);
         }
     }
 

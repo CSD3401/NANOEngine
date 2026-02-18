@@ -26,6 +26,8 @@
 #include "../Components/UILayoutElement.hpp"
 #include "../Components/UIScrollRect.hpp"
 #include "../Components/UIAutoSize.hpp"
+#include "../Components/UIInputField.hpp"
+#include "../Components/UIDropdown.hpp"
 
 #include "../Systems/TransformSystem.hpp"
 #include "../Systems/RenderSystem.hpp"
@@ -86,6 +88,8 @@ namespace NE::ECS {
         RegisterComponent<Component::UILayoutElement>();
         RegisterComponent<Component::UIScrollRect>();
         RegisterComponent<Component::UIAutoSize>();
+        RegisterComponent<Component::UIInputField>();
+        RegisterComponent<Component::UIDropdown>();
 
         m_transformSystem = m_systemManager->RegisterSystem<Systems::TransformSystem>(m_componentManager.get(), m_luidRegistry.get());
         SetSystemSignature<Systems::TransformSystem>(

@@ -27,6 +27,8 @@
 #include <ECS/Components/UILayoutElement.hpp>
 #include <ECS/Components/UIScrollRect.hpp>
 #include <ECS/Components/UIAutoSize.hpp>
+#include <ECS/Components/UIInputField.hpp>
+#include <ECS/Components/UIDropdown.hpp>
 #include <Core/LUIDGenerator.hpp>
 #include <ECS/Components/Animator.hpp>
 #include <ECS/Components/DecalProjector.hpp>
@@ -459,6 +461,8 @@ namespace Editor {
 			{ NE::ECS::Query::GetUILayoutElementComponentType(),         "Layout Element",          &InspectorPanel::DrawLayoutElementComponent         },
 			{ NE::ECS::Query::GetUIScrollRectComponentType(),            "Scroll Rect",             &InspectorPanel::DrawScrollRectComponent            },
 			{ NE::ECS::Query::GetUIAutoSizeComponentType(),              "Auto Size",               &InspectorPanel::DrawAutoSizeComponent              },
+			{ NE::ECS::Query::GetUIInputFieldComponentType(),            "Input Field",             &InspectorPanel::DrawInputFieldComponent             },
+			{ NE::ECS::Query::GetUIDropdownComponentType(),              "Dropdown",                &InspectorPanel::DrawDropdownComponent               },
 			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
 		};
 	}
@@ -565,16 +569,64 @@ namespace Editor {
 				}
 				if (ImGui::MenuItem("UI Slider")) {
 					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					// Slider entity: track background (grey bar)
 					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
 						NE::ECS::Component::UIRectTransform rect{};
+						rect.width = 200.0f;
+						rect.height = 20.0f;
 						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
 					}
 					if (!NE::ECS::Query::HasUIImage(entity)) {
 						NE::ECS::Component::UIImage img{};
+						img.color = NE::Math::Vec4{ 0.7f, 0.7f, 0.7f, 1.0f }; // Grey track
 						NE::ECS::Command::AddUIImageComponent(entity, img);
 					}
+
 					NE::ECS::Component::UISlider slider{};
 					slider.luid = NE::Core::LUIDGenerator::Generate("sl");
+
+					// Create Fill child entity
+					uint32_t fillEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Fill";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(fillEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(fillEnt, hr);
+						NE::ECS::Component::UIRectTransform fillRect{};
+						fillRect.width = 0.0f;   // Starts empty
+						fillRect.height = 20.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(fillEnt, fillRect);
+						NE::ECS::Component::UIImage fillImg{};
+						fillImg.color = NE::Math::Vec4{ 0.2f, 0.6f, 1.0f, 1.0f }; // Blue fill
+						NE::ECS::Command::AddUIImageComponent(fillEnt, fillImg);
+						NE::ECS::Command::SetParent(fillEnt, entity, -1, false);
+					}
+					slider.fillRect = fillEnt;
+
+					// Create Handle child entity
+					uint32_t handleEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Handle";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(handleEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(handleEnt, hr);
+						NE::ECS::Component::UIRectTransform handleRect{};
+						handleRect.width = 20.0f;
+						handleRect.height = 20.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(handleEnt, handleRect);
+						NE::ECS::Component::UIImage handleImg{};
+						handleImg.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f }; // White handle
+						NE::ECS::Command::AddUIImageComponent(handleEnt, handleImg);
+						NE::ECS::Command::SetParent(handleEnt, entity, -1, false);
+					}
+					slider.handleRect = handleEnt;
+
 					NE::ECS::Command::AddUISliderComponent(entity, slider);
 				}
 				if (ImGui::MenuItem("UI Toggle")) {
@@ -648,6 +700,126 @@ namespace Editor {
 					}
 					NE::ECS::Component::UIAutoSize comp{};
 					NE::ECS::Command::AddUIAutoSizeComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Dropdown")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						rect.width = 200.0f;
+						rect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						img.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
+					NE::ECS::Component::UIDropdown comp{};
+
+					// Create caption text child
+					uint32_t captionEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Caption";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(captionEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(captionEnt, hr);
+						NE::ECS::Component::UIRectTransform captRect{};
+						captRect.width = 200.0f;
+						captRect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(captionEnt, captRect);
+						NE::ECS::Component::UIText txt{};
+						txt.text = comp.options.empty() ? "Option A" : comp.options[0];
+						txt.color = NE::Math::Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+						txt.horizontalAlign = NE::ECS::Component::UIText::Alignment::CENTER;
+						txt.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+						NE::ECS::Command::AddUITextComponent(captionEnt, txt);
+						NE::ECS::Command::SetParent(captionEnt, entity, -1, false);
+					}
+					comp.captionTextEntity = captionEnt;
+
+					// Create options panel child (initially inactive)
+					uint32_t panelEnt = NE::ECS::Command::CreateEntityNoComponents();
+					{
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = "Options Panel";
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						meta.isActive = false;
+						NE::ECS::Command::AddEntityMetaComponent(panelEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(panelEnt, hr);
+						NE::ECS::Component::UIRectTransform panelRect{};
+						panelRect.width = 200.0f;
+						panelRect.height = 90.0f;
+						panelRect.y = -60.0f;  // below the dropdown button
+						NE::ECS::Command::AddUIRectTransformComponent(panelEnt, panelRect);
+						NE::ECS::Component::UIImage panelImg{};
+						panelImg.color = NE::Math::Vec4{ 0.95f, 0.95f, 0.95f, 1.0f };
+						NE::ECS::Command::AddUIImageComponent(panelEnt, panelImg);
+						NE::ECS::Component::UILayoutGroup layout{};
+						layout.isHorizontal = false;
+						layout.spacing = 0.0f;
+						NE::ECS::Command::AddUILayoutGroupComponent(panelEnt, layout);
+						NE::ECS::Command::SetParent(panelEnt, entity, -1, false);
+					}
+					comp.optionsPanelEntity = panelEnt;
+
+					// Create 3 default option items inside the panel
+					const std::vector<std::string>& opts = comp.options;
+					for (size_t i = 0; i < opts.size(); ++i) {
+						uint32_t optEnt = NE::ECS::Command::CreateEntityNoComponents();
+						NE::ECS::Component::EntityMeta meta{};
+						meta.name = std::string("Option ") + std::to_string(i);
+						meta.luid = NE::Core::LUIDGenerator::Generate("em");
+						NE::ECS::Command::AddEntityMetaComponent(optEnt, meta);
+						NE::ECS::Component::Hierarchy hr{};
+						hr.luid = NE::Core::LUIDGenerator::Generate("hr");
+						NE::ECS::Command::AddHierarchyComponent(optEnt, hr);
+						NE::ECS::Component::UIRectTransform optRect{};
+						optRect.width = 200.0f;
+						optRect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(optEnt, optRect);
+						NE::ECS::Component::UIImage optImg{};
+						optImg.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+						optImg.raycastTarget = true;
+						NE::ECS::Command::AddUIImageComponent(optEnt, optImg);
+						NE::ECS::Component::UIText optTxt{};
+						optTxt.text = opts[i];
+						optTxt.color = NE::Math::Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+						optTxt.horizontalAlign = NE::ECS::Component::UIText::Alignment::LEFT;
+						optTxt.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+						NE::ECS::Command::AddUITextComponent(optEnt, optTxt);
+						NE::ECS::Command::SetParent(optEnt, panelEnt, -1, false);
+					}
+
+					NE::ECS::Command::AddUIDropdownComponent(entity, comp);
+				}
+				if (ImGui::MenuItem("UI Input Field")) {
+					uint32_t entity = EditorScene::s_selection.GetLastClicked();
+					if (!NE::ECS::Query::HasUIRectTransform(entity)) {
+						NE::ECS::Component::UIRectTransform rect{};
+						rect.width = 200.0f;
+						rect.height = 30.0f;
+						NE::ECS::Command::AddUIRectTransformComponent(entity, rect);
+					}
+					if (!NE::ECS::Query::HasUIImage(entity)) {
+						NE::ECS::Component::UIImage img{};
+						img.color = NE::Math::Vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+						NE::ECS::Command::AddUIImageComponent(entity, img);
+					}
+					if (!NE::ECS::Query::HasUIText(entity)) {
+						NE::ECS::Component::UIText txt{};
+						txt.text = "";
+						txt.color = NE::Math::Vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+						txt.horizontalAlign = NE::ECS::Component::UIText::Alignment::LEFT;
+						txt.verticalAlign = NE::ECS::Component::UIText::VerticalAlignment::MIDDLE;
+						NE::ECS::Command::AddUITextComponent(entity, txt);
+					}
+					NE::ECS::Component::UIInputField comp{};
+					NE::ECS::Command::AddUIInputFieldComponent(entity, comp);
 				}
 
 				ImGui::EndPopup();
@@ -4566,6 +4738,347 @@ namespace Editor {
 			ImGui::SameLine(labelWidth);
 			ImGui::SetNextItemWidth(-1);
 			ImGui::DragFloat("##AspectRatio", &comp.aspectRatio, 0.01f, 0.001f, 100.0f);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawDropdownComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIDropdown(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Dropdown",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Options list
+		ImGui::Separator();
+		ImGui::TextDisabled("Options");
+		{
+			for (int i = 0; i < static_cast<int>(comp.options.size()); ++i) {
+				char label[32];
+				snprintf(label, sizeof(label), "Option %d", i);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("%s", label);
+				ImGui::SameLine(labelWidth);
+				ImGui::SetNextItemWidth(-40.0f);
+				char id[64]; snprintf(id, sizeof(id), "##DropOpt%d", i);
+				char buf[256];
+				strncpy(buf, comp.options[i].c_str(), sizeof(buf) - 1);
+				buf[sizeof(buf) - 1] = '\0';
+				if (ImGui::InputText(id, buf, sizeof(buf))) {
+					comp.options[i] = buf;
+				}
+				ImGui::SameLine();
+				char rmId[64]; snprintf(rmId, sizeof(rmId), "X##DropRm%d", i);
+				if (ImGui::SmallButton(rmId)) {
+					comp.options.erase(comp.options.begin() + i);
+					if (comp.selectedIndex >= static_cast<int>(comp.options.size()))
+						comp.selectedIndex = static_cast<int>(comp.options.size()) - 1;
+					break;
+				}
+			}
+			if (ImGui::SmallButton("+ Add Option")) {
+				comp.options.push_back("New Option");
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("State");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Selected Index");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragInt("##SelectedIdx", &comp.selectedIndex, 1.0f, 0,
+				static_cast<int>(comp.options.size()) - 1);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::Checkbox("##DropInteractable", &comp.interactable);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Entity References");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Caption Text");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int cEnt = static_cast<int>(comp.captionTextEntity == UINT32_MAX ? -1 : comp.captionTextEntity);
+			if (ImGui::DragInt("##DropCaption", &cEnt, 1.0f, -1, 99999)) {
+				comp.captionTextEntity = cEnt < 0 ? UINT32_MAX : static_cast<uint32_t>(cEnt);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Options Panel");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int pEnt = static_cast<int>(comp.optionsPanelEntity == UINT32_MAX ? -1 : comp.optionsPanelEntity);
+			if (ImGui::DragInt("##DropPanel", &pEnt, 1.0f, -1, 99999)) {
+				comp.optionsPanelEntity = pEnt < 0 ? UINT32_MAX : static_cast<uint32_t>(pEnt);
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Colors");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Normal");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropNormal", &comp.normalColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Highlighted");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropHighlight", &comp.highlightedColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Pressed");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropPressed", &comp.pressedColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Disabled");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropDisabled", &comp.disabledColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Option Normal");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropOptNormal", &comp.optionNormalColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Option Highlight");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DropOptHighlight", &comp.optionHighlightedColor.r);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Events");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("On Changed ID");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.onValueChangedEventId);
+			if (ImGui::DragInt("##DropOnChangedID", &val, 1.0f, 0, 99999)) {
+				comp.onValueChangedEventId = static_cast<uint32_t>(val);
+			}
+		}
+
+		// Runtime info (read-only)
+		if (comp.isExpanded) {
+			ImGui::Separator();
+			ImGui::TextDisabled("Runtime");
+			ImGui::Text("Expanded: true");
+			if (comp.hoveredOptionIndex >= 0)
+				ImGui::Text("Hovered Option: %d", comp.hoveredOptionIndex);
+		}
+
+		if (deleteComp) {
+			// TODO: implement remove
+		}
+
+		ImGui::Unindent();
+		ImGui::TreePop();
+	}
+
+	void InspectorPanel::DrawInputFieldComponent(uint32_t entity) {
+		auto& comp = NE::ECS::Command::GetUIInputField(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Input Field",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (!open)
+			return;
+
+		float labelWidth = 150.0f;
+		ImGui::Indent();
+
+		// Text content
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Text");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			char buf[1024];
+			strncpy(buf, comp.text.c_str(), sizeof(buf) - 1);
+			buf[sizeof(buf) - 1] = '\0';
+			if (ImGui::InputText("##InputFieldText", buf, sizeof(buf))) {
+				comp.text = buf;
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Placeholder");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			char buf[512];
+			strncpy(buf, comp.placeholderText.c_str(), sizeof(buf) - 1);
+			buf[sizeof(buf) - 1] = '\0';
+			if (ImGui::InputText("##Placeholder", buf, sizeof(buf))) {
+				comp.placeholderText = buf;
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Configuration");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Content Type");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			const char* contentTypes[] = { "Standard", "Integer", "Decimal", "Alpha Numeric", "Password" };
+			int ct = static_cast<int>(comp.contentType);
+			if (ImGui::Combo("##ContentType", &ct, contentTypes, IM_ARRAYSIZE(contentTypes))) {
+				comp.contentType = static_cast<NE::ECS::Component::UIInputField::ContentType>(ct);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Line Type");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			const char* lineTypes[] = { "Single Line", "Multi Line" };
+			int lt = static_cast<int>(comp.lineType);
+			if (ImGui::Combo("##LineType", &lt, lineTypes, IM_ARRAYSIZE(lineTypes))) {
+				comp.lineType = static_cast<NE::ECS::Component::UIInputField::LineType>(lt);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Character Limit");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::DragInt("##CharLimit", &comp.characterLimit, 1.0f, 0, 10000);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Interactable");
+			ImGui::SameLine(labelWidth);
+			ImGui::Checkbox("##Interactable", &comp.interactable);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Read Only");
+			ImGui::SameLine(labelWidth);
+			ImGui::Checkbox("##ReadOnly", &comp.readOnly);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Colors");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Normal");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##NormalColor", &comp.normalColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Selected");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##SelectedColor", &comp.selectedColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Disabled");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##DisabledColor", &comp.disabledColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Text Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##TextColor", &comp.textColor.r);
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Placeholder Color");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			ImGui::ColorEdit4("##PlaceholderColor", &comp.placeholderColor.r);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Events");
+
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("On Changed ID");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.onValueChangedEventId);
+			if (ImGui::DragInt("##OnChangedID", &val, 1.0f, 0, 99999)) {
+				comp.onValueChangedEventId = static_cast<uint32_t>(val);
+			}
+		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("On Submit ID");
+			ImGui::SameLine(labelWidth);
+			ImGui::SetNextItemWidth(-1);
+			int val = static_cast<int>(comp.onSubmitEventId);
+			if (ImGui::DragInt("##OnSubmitID", &val, 1.0f, 0, 99999)) {
+				comp.onSubmitEventId = static_cast<uint32_t>(val);
+			}
+		}
+
+		// Runtime info (read-only)
+		if (comp.isFocused) {
+			ImGui::Separator();
+			ImGui::TextDisabled("Runtime");
+			ImGui::Text("Cursor: %d", comp.cursorPosition);
+			if (comp.selectionStart >= 0 && comp.selectionStart != comp.selectionEnd) {
+				ImGui::Text("Selection: %d - %d", comp.selectionStart, comp.selectionEnd);
+			}
 		}
 
 		if (deleteComp) {

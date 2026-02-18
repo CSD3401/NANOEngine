@@ -291,6 +291,8 @@
     <ClInclude Include="src\ECS\Components\UILayoutElement.hpp" />
     <ClInclude Include="src\ECS\Components\UIScrollRect.hpp" />
     <ClInclude Include="src\ECS\Components\UIAutoSize.hpp" />
+    <ClInclude Include="src\ECS\Components\UIInputField.hpp" />
+    <ClInclude Include="src\ECS\Components\UIDropdown.hpp" />
     <ClInclude Include="src\ECS\ECSEvents.hpp" />
     <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
     <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />
