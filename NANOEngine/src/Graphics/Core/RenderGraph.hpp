@@ -186,6 +186,9 @@ namespace NE::Graphics {
         // Get the framebuffer pointer from a resource handle
         IFrameBuffer* GetFramebuffer(RenderGraphResource handle) const;
 
+        // Get the OpenGL framebuffer ID for a resource (0 if unavailable)
+        uint32_t GetFramebufferId(RenderGraphResource handle) const;
+
         //----------------------------------------------------------------------
         // Query
         //----------------------------------------------------------------------

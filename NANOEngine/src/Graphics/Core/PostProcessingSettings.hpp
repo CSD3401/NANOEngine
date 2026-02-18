@@ -6,6 +6,8 @@
 namespace NE::Graphics {
 
 	struct BloomSettings {
+		bool enabled = true;
+
 		enum ToneMapType {
 			Reinhard,
 			ReinhardExtended,
@@ -25,6 +27,7 @@ namespace NE::Graphics {
 		ToneMapType toneMapType = ToneMapType::Reinhard;
 
 		NE_REFLECT_BEGIN(BloomSettings)
+			NE_REFLECT_FIELD(enabled),
 			NE_REFLECT_FIELD(tint),
 			NE_REFLECT_FIELD(brightThreshold),
 			NE_REFLECT_FIELD(brightScale),
@@ -49,16 +52,36 @@ namespace NE::Graphics {
 			NE_REFLECT_FIELD(bias),
 			NE_REFLECT_FIELD(intensity),
 			NE_REFLECT_FIELD(power)
-			NE_REFLECT_END()
+		NE_REFLECT_END()
+	};
+
+	struct TAASettings {
+		bool enabled = false;
+		float feedbackMin = 0.05f;
+		float feedbackMax = 0.95f;
+		float sharpen = 0.0f;
+		bool resetHistory = false;
+
+		NE_REFLECT_BEGIN(TAASettings)
+			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(feedbackMin),
+			NE_REFLECT_FIELD(feedbackMax),
+			NE_REFLECT_FIELD(sharpen),
+			NE_REFLECT_FIELD(resetHistory)
+		NE_REFLECT_END()
 	};
 
 	struct PostProcessingSettings {
+		bool enabled = true;
 		BloomSettings bloomSettings;
 		SSAOSettings  ssaoSettings;
+		TAASettings taaSettings;
 
 		NE_REFLECT_BEGIN(PostProcessingSettings)
+			NE_REFLECT_FIELD(enabled),
 			NE_REFLECT_FIELD(bloomSettings),
-			NE_REFLECT_FIELD(ssaoSettings)
+			NE_REFLECT_FIELD(ssaoSettings),
+			NE_REFLECT_FIELD(taaSettings)
 		NE_REFLECT_END()
 	};
 

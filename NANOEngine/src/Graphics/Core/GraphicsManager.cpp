@@ -50,9 +50,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cmath>
 #include <variant>
 #include <string>
+#include <unordered_map>
 
 #include "Input/InputManager.hpp"
 #include "ShadowRenderer.hpp"
@@ -65,6 +67,7 @@ namespace NE::Graphics {
         constexpr Math::Vec4 SELECTION_OUTLINE_COLOR = { 0.89f, 0.61f, 0.06f, 1.0f };
 
         constexpr float ICON_GIZMO_PIXEL_SIZE = 128.f;
+        constexpr uint32_t TAA_HALTON_PERIOD = 8;
 
         constexpr std::array<const char*, 4> LIGHT_GIZMO_ICON_UUIDS = {
             "nedirlight", // Directional
@@ -92,6 +95,32 @@ namespace NE::Graphics {
 
         inline bool IsPerspectiveProjection(const Mat4& projection) {
             return std::abs(projection.GetElement(3, 3)) < 0.5f;
+        }
+
+        inline float Halton(uint32_t index, uint32_t base) {
+            float f = 1.0f;
+            float r = 0.0f;
+            uint32_t i = index;
+            while (i > 0) {
+                f /= static_cast<float>(base);
+                r += f * static_cast<float>(i % base);
+                i /= base;
+            }
+            return r;
+        }
+
+        inline std::array<float, 2> ComputeTAAJitterNDC(uint64_t frameIndex, RenderViewHandle handle, float width, float height) {
+            if (width <= 0.0f || height <= 0.0f) {
+                return { 0.0f, 0.0f };
+            }
+
+            const uint32_t sequenceIndex = static_cast<uint32_t>((frameIndex + static_cast<uint64_t>(handle)) % TAA_HALTON_PERIOD) + 1;
+            const float haltonX = Halton(sequenceIndex, 2);
+            const float haltonY = Halton(sequenceIndex, 3);
+
+            const float jitterX = (haltonX - 0.5f) * 2.0f / width;
+            const float jitterY = (haltonY - 0.5f) * 2.0f / height;
+            return { jitterX, jitterY };
         }
 
         inline float ComputeWorldSizeForPixels(float pixelSize, float distanceToCamera, const Mat4& projection, float viewportHeight) {
@@ -752,8 +781,11 @@ namespace NE::Graphics {
         NE_PROFILE_FUNCTION();
 #endif // !PRODUCTION_BUILD
 
+        static uint64_t s_TAAFrameIndex = 0;
         const auto& allViews = s_RenderViewManager->GetAllRenderViews();
         const auto orderedViewHandles = s_RenderViewManager->GetOrderedActiveViews();
+        std::unordered_map<RenderViewHandle, Mat4> frameViewMatrices;
+        std::unordered_map<RenderViewHandle, Mat4> frameProjMatrices;
 
         s_GameViewHandle = InvalidRenderView;
         for (const RenderViewHandle handle : orderedViewHandles) {
@@ -780,9 +812,20 @@ namespace NE::Graphics {
 			// Invalidate cached state per view
 			s_StateCache->InvalidateAll();
 
-            const Mat4& camProj = view.projection;
+            Mat4 camProj = view.projection;
             const Mat4& camView = view.view;
             const Vec3& camPos = view.position;
+
+            if (postProcessingSettings.taaSettings.enabled && IsPerspectiveProjection(camProj)) {
+                const float width = view.framebuffer ? static_cast<float>(view.framebuffer->GetWidth()) : static_cast<float>(s_ScreenWidth);
+                const float height = view.framebuffer ? static_cast<float>(view.framebuffer->GetHeight()) : static_cast<float>(s_ScreenHeight);
+                const auto jitterNdc = ComputeTAAJitterNDC(s_TAAFrameIndex, handle, width, height);
+                camProj.GetElement(0, 2) += jitterNdc[0];
+                camProj.GetElement(1, 2) += jitterNdc[1];
+            }
+
+            frameViewMatrices[handle] = camView;
+            frameProjMatrices[handle] = camProj;
             const Frustum frustum = Frustum::ExtractPlanesFromVP(camProj * camView);
 
             const bool ranPrepass = RenderNormalPrepassForView(
@@ -843,7 +886,9 @@ namespace NE::Graphics {
                 }
             }
 
-            s_clusteredLighting->BuildForView(view, m_lights);
+            RenderView viewForLighting = view;
+            viewForLighting.projection = camProj;
+            s_clusteredLighting->BuildForView(viewForLighting, m_lights);
 
             // Prepare instance data buffer and batching variables
             std::vector<InstanceData> instanceData;
@@ -978,7 +1023,9 @@ namespace NE::Graphics {
 
             if (s_skybox) {
                 s_StateCache->Bind(s_skybox->GetSkyboxPipeline());
-                s_skybox->Draw(view);
+                RenderView skyboxView = view;
+                skyboxView.projection = camProj;
+                s_skybox->Draw(skyboxView);
             }
 
             RenderSelectionHighlightForView(handle, view, camProj, camView, commands);
@@ -1002,13 +1049,28 @@ namespace NE::Graphics {
             const auto sceneSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_SceneViewHandle);
             const auto sceneDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalOutputViewHandle);
             if (sceneSourceFramebuffer && sceneDestFramebuffer) {
-                Math::Mat4 invProj;
-                if (s_EditorCamera) {
-                    invProj = s_EditorCamera->GetProjectionMatrix().Inverse();
+                Math::Mat4 sceneView;
+                Math::Mat4 sceneProj;
+                auto viewIt = frameViewMatrices.find(s_SceneViewHandle);
+                auto projIt = frameProjMatrices.find(s_SceneViewHandle);
+                if (viewIt != frameViewMatrices.end()) {
+                    sceneView = viewIt->second;
+                } else if (s_EditorCamera) {
+                    sceneView = s_EditorCamera->GetViewMatrix();
                 } else {
-                    invProj.SetToIdentity();
+                    sceneView.SetToIdentity();
                 }
-                s_PostPipeline->Execute(s_SceneViewHandle, s_FinalOutputViewHandle, invProj, true);
+
+                if (projIt != frameProjMatrices.end()) {
+                    sceneProj = projIt->second;
+                } else if (s_EditorCamera) {
+                    sceneProj = s_EditorCamera->GetProjectionMatrix();
+                } else {
+                    sceneProj.SetToIdentity();
+                }
+
+                Math::Mat4 invProj = sceneProj.Inverse();
+                s_PostPipeline->Execute(s_SceneViewHandle, s_FinalOutputViewHandle, invProj, sceneView, sceneProj, true);
             }
 
             // Game View
@@ -1016,13 +1078,26 @@ namespace NE::Graphics {
             const auto gameSourceFramebuffer = s_RenderViewManager->GetFramebuffer(s_GameViewHandle);
             const auto gameDestFramebuffer = s_RenderViewManager->GetFramebuffer(s_FinalGameOutputHandle);
             if (it != allViews.end() && gameSourceFramebuffer && gameDestFramebuffer) {
-                Math::Mat4 gameInvProj = it->second.projection.Inverse();
-                s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, false);
+                Math::Mat4 gameView = it->second.view;
+                Math::Mat4 gameProj = it->second.projection;
+
+                auto gameViewIt = frameViewMatrices.find(s_GameViewHandle);
+                auto gameProjIt = frameProjMatrices.find(s_GameViewHandle);
+                if (gameViewIt != frameViewMatrices.end()) {
+                    gameView = gameViewIt->second;
+                }
+                if (gameProjIt != frameProjMatrices.end()) {
+                    gameProj = gameProjIt->second;
+                }
+
+                Math::Mat4 gameInvProj = gameProj.Inverse();
+                s_PostPipeline->Execute(s_GameViewHandle, s_FinalGameOutputHandle, gameInvProj, gameView, gameProj, false);
             }
         }
 
-        // Render UI (OVERLAY queue) after post-processing to final output framebuffers
+        // Render UI (OVERLAY queue) after post-processing to final output framebuffers (Not sure if should be below or above post-processing? For now, render after so that UI is always crisp and unaffected by TAA)
         RenderUIOverlay();
+        ++s_TAAFrameIndex;
     }
 
     uint32_t GraphicsManager::DecodeEntityIdFromRGB(const Math::Vec3& idRGB) {

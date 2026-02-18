@@ -287,6 +287,22 @@ namespace NE::Graphics {
         return nullptr;
     }
 
+    uint32_t RenderGraph::GetFramebufferId(RenderGraphResource handle) const {
+        if (!handle.IsValid() || handle.id >= m_Resources.size()) {
+            return 0;
+        }
+
+        const auto& resource = m_Resources[handle.id];
+        switch (resource.type) {
+            case ResourceType::ImportedFramebuffer:
+                return resource.framebuffer ? resource.framebuffer->GetFramebuffer() : 0;
+            case ResourceType::TransientTexture:
+                return resource.transientFboId;
+            default:
+                return 0;
+        }
+    }
+
     RenderPassData& RenderGraph::GetPassData(size_t index) {
         return m_Passes[index];
     }
