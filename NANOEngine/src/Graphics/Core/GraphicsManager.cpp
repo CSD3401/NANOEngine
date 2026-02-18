@@ -1226,7 +1226,7 @@ namespace NE::Graphics {
             // Bind the final output framebuffer
             s_RenderViewManager->Bind(viewHandle);
 
-            // Disable depth testing for UI - UI always renders on top
+            // Start with depth disabled (screen-space UI default)
             glDisable(GL_DEPTH_TEST);
             glDepthMask(GL_FALSE);
 
@@ -1236,6 +1236,7 @@ namespace NE::Graphics {
             std::shared_ptr<IGeometryBuffer> currentMesh;
             std::shared_ptr<Material> currentMaterial;
             std::optional<ScissorRect> currentScissor;
+            bool currentDepthTest = false;
 
             auto flushBatch = [&]() {
                 if (instanceData.empty() || !currentMesh || !currentMaterial || !currentMaterial->GetPipeline()->GetSpecification().shader)
@@ -1248,6 +1249,16 @@ namespace NE::Graphics {
                               currentScissor->width, currentScissor->height);
                 } else {
                     glDisable(GL_SCISSOR_TEST);
+                }
+
+                // Apply depth test state for this batch
+                if (currentDepthTest) {
+                    glEnable(GL_DEPTH_TEST);
+                    glDepthFunc(GL_LEQUAL);
+                    glDepthMask(GL_FALSE);  // Read depth but don't write (UI doesn't occlude 3D)
+                } else {
+                    glDisable(GL_DEPTH_TEST);
+                    glDepthMask(GL_FALSE);
                 }
 
                 NE::Graphics::OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
@@ -1275,11 +1286,12 @@ namespace NE::Graphics {
                 auto mesh = command.mesh;
                 auto material = command.material;
 
-                // Check compatibility with current batch (includes scissor rect)
+                // Check compatibility with current batch (includes scissor rect and depth test)
                 bool compatible =
                     (mesh == currentMesh) &&
                     (material == currentMaterial) &&
-                    (command.scissorRect == currentScissor);
+                    (command.scissorRect == currentScissor) &&
+                    (command.enableDepthTest == currentDepthTest);
 
                 // Flush current batch if not compatible
                 if (!compatible && !instanceData.empty()) {
@@ -1291,6 +1303,7 @@ namespace NE::Graphics {
                     currentMesh = mesh;
                     currentMaterial = material;
                     currentScissor = command.scissorRect;
+                    currentDepthTest = command.enableDepthTest;
                 }
 
                 NE::Graphics::InstanceData instance{};

@@ -100,7 +100,8 @@ namespace NE::ECS {
 
         void UpdateWorldMatrixFromAccumulated(
             Entity entity,
-            const AccumulatedTransform& acc
+            const AccumulatedTransform& acc,
+            bool isWorldSpace = false
         );
 
         //=================================================================

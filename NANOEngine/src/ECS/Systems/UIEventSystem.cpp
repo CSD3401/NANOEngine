@@ -555,6 +555,13 @@ namespace NE::ECS::Systems {
             return;
         }
 
+        // For WorldSpace, the fallback screen-space logic doesn't apply.
+        // Use zero rect (one-frame lag on first frame is acceptable).
+        if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+            outX = outY = outWidth = outHeight = 0.0f;
+            return;
+        }
+
         // Fallback: compute from scratch (handles entities not processed by UIRenderSystem)
         float scaleFactor = CalculateScaleFactor(canvas);
 
@@ -748,39 +755,44 @@ namespace NE::ECS::Systems {
         for (Entity ent : chain) {
             auto& r = m_cm->GetComponent<UIRectTransform>(ent);
 
+            // Position is in parent's local space — scale by accumulated parent scale
+            accPosX += r.x * accScaleX;
+            accPosY += r.y * accScaleY;
+            accPosZ += r.z * accScaleZ;
+
+            // Then apply this entity's own scale
             accScaleX *= r.scaleX;
             accScaleY *= r.scaleY;
             accScaleZ *= r.scaleZ;
             accRotX += r.rotationX;
             accRotY += r.rotationY;
             accRotZ += r.rotationZ;
-            accPosX += r.x;
-            accPosY += r.y;
-            accPosZ += r.z;
         }
 
-        // Compute pivot offset
-        Math::Vec2 pivot = rect.GetPivot();
-        float pivotOffsetX = -rect.width * pivot.x * accScaleX;
-        float pivotOffsetY = -rect.height * pivot.y * accScaleY;
-
-        // Build matrices
+        // Build matrices — must match UILayoutEngine::UpdateWorldMatrixFromAccumulated (WorldSpace path)
+        // Scale includes element dimensions (unit quad → world-sized element)
         Math::Mat4 scaleMatrix = Math::Mat4::BuildScaling(
             rect.width * accScaleX,
             rect.height * accScaleY,
             accScaleZ
         );
 
-        Math::Mat4 pivotMatrix = Math::Mat4::BuildTranslation(pivotOffsetX, pivotOffsetY, 0.0f);
+        // Pivot in unit space (0..1), applied before scale
+        float unitPivotX = rect.pivotX;
+        float unitPivotY = rect.pivotY;
+        Math::Mat4 pivotTrans    = Math::Mat4::BuildTranslation( unitPivotX,  unitPivotY, 0.0f);
+        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(-unitPivotX, -unitPivotY, 0.0f);
 
-        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accRotX * PI / 180.0f);
-        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accRotY * PI / 180.0f);
-        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accRotZ * PI / 180.0f);
+        // Build*Rotation takes degrees — no conversion needed
+        Math::Mat4 rotationX = Math::Mat4::BuildXRotation(accRotX);
+        Math::Mat4 rotationY = Math::Mat4::BuildYRotation(accRotY);
+        Math::Mat4 rotationZ = Math::Mat4::BuildZRotation(accRotZ);
         Math::Mat4 rotationMatrix = rotationZ * rotationY * rotationX;
 
         Math::Mat4 translationMatrix = Math::Mat4::BuildTranslation(accPosX, accPosY, accPosZ);
 
-        return translationMatrix * rotationMatrix * pivotMatrix * scaleMatrix;
+        // Order: offset pivot in unit space → rotate → restore pivot → scale to world → translate
+        return translationMatrix * scaleMatrix * pivotTrans * rotationMatrix * pivotTransInv;
     }
 
     bool UIEventSystem::IsPointInWorldSpaceElement(

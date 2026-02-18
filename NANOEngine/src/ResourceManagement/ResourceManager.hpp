@@ -110,6 +110,10 @@ namespace NE::Resource {
                     return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_Sprite.nanoshader"));
                 if (id == "neuitext")
                     return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_Text.nanoshader"));
+                if (id == "neuiworld")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_World.nanoshader"));
+                if (id == "neuiworldtext")
+                    return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/UI_World_Text.nanoshader"));
 				if (id == "neselectionoutline")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SelectionOutline.nanoshader"));
 			}

@@ -64,7 +64,7 @@ namespace NE::ECS {
         }
 
         //=====================================================================
-        // WORLD SPACE: Original logic - NO center anchor offset
+        // WORLD SPACE: Position scaled by accumulated parent scale
         //=====================================================================
         if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
             std::vector<Entity> chain = BuildParentChain(entity, canvasEntity, canvas.renderMode);
@@ -73,17 +73,20 @@ namespace NE::ECS {
                 Entity current = chain[i];
                 auto& rect = m_cm->GetComponent<UIRectTransform>(current);
 
+                // Position is in parent's local space — scale by accumulated parent scale
+                result.posX += rect.x * result.scaleX;
+                result.posY += rect.y * result.scaleY;
+                result.posZ += rect.z * result.scaleZ;
+
+                // Then apply this entity's own scale
                 result.scaleX *= rect.scaleX;
                 result.scaleY *= rect.scaleY;
                 result.scaleZ *= rect.scaleZ;
 
+                // Rotation: sum Euler angles (sufficient for UI — most elements only use Z)
                 result.rotationX += rect.rotationX;
                 result.rotationY += rect.rotationY;
                 result.rotationZ += rect.rotationZ;
-
-                result.posX += rect.x;
-                result.posY += rect.y;
-                result.posZ += rect.z;
             }
 
             return result;
@@ -277,7 +280,8 @@ namespace NE::ECS {
 
     void UILayoutEngine::UpdateWorldMatrixFromAccumulated(
         Entity entity,
-        const AccumulatedTransform& acc
+        const AccumulatedTransform& acc,
+        bool isWorldSpace
     )
     {
         if (!m_cm->HasComponent<UIRectTransform>(entity)) {
@@ -288,15 +292,43 @@ namespace NE::ECS {
         if (!rect.worldMatrixDirty) return;
 
         Math::Mat4 T = Math::Mat4::BuildTranslation(Math::Vec3(acc.posX, acc.posY, acc.posZ));
-        Math::Mat4 R = rect.GetRotationMatrix();
-        Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
 
-        float pivotOffsetX = rect.width * rect.pivotX;
-        float pivotOffsetY = rect.height * rect.pivotY;
-        Math::Mat4 pivotTrans = Math::Mat4::BuildTranslation(Math::Vec3(pivotOffsetX, pivotOffsetY, 0.0f));
-        Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
+        // For WorldSpace, build rotation from accumulated angles (full 3D rotation)
+        Math::Mat4 R;
+        if (isWorldSpace) {
+            Math::Mat4 rotX = Math::Mat4::BuildXRotation(acc.rotationX);
+            Math::Mat4 rotY = Math::Mat4::BuildYRotation(acc.rotationY);
+            Math::Mat4 rotZ = Math::Mat4::BuildZRotation(acc.rotationZ);
+            R = rotZ * rotY * rotX;
+        } else {
+            R = rect.GetRotationMatrix();
+        }
 
-        rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
+        if (isWorldSpace) {
+            // WorldSpace: unit quad [0..1], scale includes element dimensions.
+            // Pivot is in unit space (0..1), applied BEFORE scale so rotation
+            // happens around the correct point on the unit quad.
+            Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX * rect.width, acc.scaleY * rect.height, acc.scaleZ);
+
+            float unitPivotX = rect.pivotX;   // 0..1
+            float unitPivotY = rect.pivotY;   // 0..1
+            Math::Mat4 pivotTrans    = Math::Mat4::BuildTranslation(Math::Vec3( unitPivotX,  unitPivotY, 0.0f));
+            Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-unitPivotX, -unitPivotY, 0.0f));
+
+            // Order: offset pivot in unit space → rotate → restore pivot → scale to world → translate
+            rect.worldMatrix = T * S * pivotTrans * R * pivotTransInv;
+        } else {
+            // Screen-space: vertices pre-positioned in pixels, scale is parent accumulation only.
+            // Pivot is in pixel space (width * pivotX, height * pivotY).
+            Math::Mat4 S = Math::Mat4::BuildScaling(acc.scaleX, acc.scaleY, acc.scaleZ);
+
+            float pivotOffsetX = rect.width * rect.pivotX;
+            float pivotOffsetY = rect.height * rect.pivotY;
+            Math::Mat4 pivotTrans    = Math::Mat4::BuildTranslation(Math::Vec3( pivotOffsetX,  pivotOffsetY, 0.0f));
+            Math::Mat4 pivotTransInv = Math::Mat4::BuildTranslation(Math::Vec3(-pivotOffsetX, -pivotOffsetY, 0.0f));
+
+            rect.worldMatrix = T * pivotTrans * R * S * pivotTransInv;
+        }
         rect.worldMatrixDirty = false;
     }
 

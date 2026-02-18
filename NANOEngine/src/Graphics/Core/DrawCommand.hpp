@@ -33,5 +33,8 @@ namespace NE::Graphics {
 
         // Optional scissor rect for UI clipping (RectMask2D)
         std::optional<ScissorRect> scissorRect;
+
+        // Enable depth testing for this command (WorldSpace UI)
+        bool enableDepthTest = false;
     };
 }

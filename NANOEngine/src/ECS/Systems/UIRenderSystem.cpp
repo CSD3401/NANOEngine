@@ -130,6 +130,52 @@ namespace NE::ECS::Systems {
             std::cerr << "[UIRenderSystem] Error loading UI text material: " << e.what() << std::endl;
         }
 
+        // Load world-space sprite shader
+        try {
+            auto worldShader = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::OpenGL::GLShader>("neuiworld");
+            if (worldShader) {
+                NE::Graphics::PipelineSpecification worldSpec;
+                worldSpec.shader = worldShader;
+                worldSpec.EnableBlending = true;
+                worldSpec.EnableDepthTest = true;   // WorldSpace participates in depth
+                worldSpec.DepthWrite = false;        // Don't occlude 3D objects behind UI
+                worldSpec.CullMode = 0;
+                worldSpec.PolygonMode = 0x1B02;
+
+                auto worldPipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(worldSpec, "UI_World");
+                m_worldUIMaterial = std::make_shared<NE::Graphics::Material>(worldPipeline);
+                m_worldUIMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            } else {
+                std::cerr << "[UIRenderSystem] Warning: Failed to load world sprite shader (neuiworld)" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[UIRenderSystem] Error loading world sprite material: " << e.what() << std::endl;
+        }
+
+        // Load world-space text shader
+        try {
+            auto worldTextShader = NE::Resource::ResourceManager::GetInstance()
+                .LoadResource<NE::Graphics::OpenGL::GLShader>("neuiworldtext");
+            if (worldTextShader) {
+                NE::Graphics::PipelineSpecification worldTextSpec;
+                worldTextSpec.shader = worldTextShader;
+                worldTextSpec.EnableBlending = true;
+                worldTextSpec.EnableDepthTest = true;
+                worldTextSpec.DepthWrite = false;
+                worldTextSpec.CullMode = 0;
+                worldTextSpec.PolygonMode = 0x1B02;
+
+                auto worldTextPipeline = std::make_shared<NE::Graphics::OpenGL::GLPipeline>(worldTextSpec, "UI_World_Text");
+                m_worldTextMaterial = std::make_shared<NE::Graphics::Material>(worldTextPipeline);
+                m_worldTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            } else {
+                std::cerr << "[UIRenderSystem] Warning: Failed to load world text shader (neuiworldtext)" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[UIRenderSystem] Error loading world text material: " << e.what() << std::endl;
+        }
+
         // Load per-entity textures and materials
         const auto& entities = GetEntities();
 
@@ -174,6 +220,26 @@ namespace NE::ECS::Systems {
         return m_textMaterialPool[m_textMaterialIndex++];
     }
 
+    std::shared_ptr<NE::Graphics::Material> UIRenderSystem::AcquireWorldSpriteMaterial()
+    {
+        if (m_worldSpriteMaterialIndex >= m_worldSpriteMaterialPool.size()) {
+            m_worldSpriteMaterialPool.push_back(
+                std::make_shared<NE::Graphics::Material>(m_worldUIMaterial->GetPipeline())
+            );
+        }
+        return m_worldSpriteMaterialPool[m_worldSpriteMaterialIndex++];
+    }
+
+    std::shared_ptr<NE::Graphics::Material> UIRenderSystem::AcquireWorldTextMaterial()
+    {
+        if (m_worldTextMaterialIndex >= m_worldTextMaterialPool.size()) {
+            m_worldTextMaterialPool.push_back(
+                std::make_shared<NE::Graphics::Material>(m_worldTextMaterial->GetPipeline())
+            );
+        }
+        return m_worldTextMaterialPool[m_worldTextMaterialIndex++];
+    }
+
     std::shared_ptr<NE::Graphics::IGeometryBuffer> UIRenderSystem::AcquireGeometryBuffer(
         const std::vector<NE::Graphics::UIVertex2>& vertices,
         const std::vector<uint32_t>& indices
@@ -192,6 +258,8 @@ namespace NE::ECS::Systems {
         // Reset pool indices for this frame
         m_spriteMaterialIndex = 0;
         m_textMaterialIndex = 0;
+        m_worldSpriteMaterialIndex = 0;
+        m_worldTextMaterialIndex = 0;
         m_geometryIndex = 0;
 
         const auto& entities = GetEntities();
@@ -250,6 +318,30 @@ namespace NE::ECS::Systems {
             // Setup canvas defaults based on render mode
             SetupCanvasDefaults(canvasEntity, canvas);
 
+            // Cache the canvas entity's own world rect (used by editor gizmos)
+            {
+                auto& canvasRect = m_cm->GetComponent<UIRectTransform>(canvasEntity);
+                if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                    // WorldSpace: canvas position/scale are in world coordinates
+                    canvasRect.cachedWorldX = canvasRect.x;
+                    canvasRect.cachedWorldY = canvasRect.y;
+                    canvasRect.cachedWorldWidth = canvasRect.width * canvasRect.scaleX;
+                    canvasRect.cachedWorldHeight = canvasRect.height * canvasRect.scaleY;
+                } else {
+                    // Screen-space: canvas covers the scaled reference area
+                    float sw = canvasRect.width * canvas.scaleFactor;
+                    float sh = canvasRect.height * canvas.scaleFactor;
+                    canvasRect.cachedWorldX = canvasRect.x - sw * canvasRect.pivotX;
+                    canvasRect.cachedWorldY = canvasRect.y - sh * canvasRect.pivotY;
+                    canvasRect.cachedWorldWidth = sw;
+                    canvasRect.cachedWorldHeight = sh;
+                }
+                canvasRect.cachedWorldScaleX = canvasRect.scaleX;
+                canvasRect.cachedWorldScaleY = canvasRect.scaleY;
+                canvasRect.cachedWorldRotZ = canvasRect.rotationZ;
+                canvasRect.worldRectCached = true;
+            }
+
             // Get camera matrices if needed
             Math::Mat4 viewMatrix, projMatrix;
             Math::Mat4* pView = nullptr;
@@ -260,6 +352,9 @@ namespace NE::ECS::Systems {
                 if (GetCameraMatrices(viewMatrix, projMatrix)) {
                     pView = &viewMatrix;
                     pProj = &projMatrix;
+                    // Store for WorldSpace element submission
+                    m_currentView = viewMatrix;
+                    m_currentProj = projMatrix;
                 }
                 else {
                     std::cerr << "[UIRenderSystem] Warning: Canvas requires camera but none found!" << std::endl;
@@ -342,20 +437,19 @@ namespace NE::ECS::Systems {
         }
         case UICanvas::RenderMode::WORLD_SPACE:
         {
-            // Apply default world space scale
-            canvasRect.scaleX = DEFAULT_WORLD_SPACE_SCALE;
-            canvasRect.scaleY = DEFAULT_WORLD_SPACE_SCALE;
-            canvasRect.scaleZ = 1.f;
-
-            // Reset position to origin (user can move it)
-            canvasRect.x = 0.f;
-            canvasRect.y = 0.f;
-            canvasRect.z = 0.f;
-
-            // Keep rotation as is or reset
-            canvasRect.rotationX = 0.f;
-            canvasRect.rotationY = 0.f;
-            canvasRect.rotationZ = 0.f;
+            // Only reset when switching TO world space from another mode
+            // On first init (deserialized), preserve serialized values
+            if (renderModeChanged) {
+                canvasRect.scaleX = DEFAULT_WORLD_SPACE_SCALE;
+                canvasRect.scaleY = DEFAULT_WORLD_SPACE_SCALE;
+                canvasRect.scaleZ = DEFAULT_WORLD_SPACE_SCALE;
+                canvasRect.x = 0.f;
+                canvasRect.y = 0.f;
+                canvasRect.z = 0.f;
+                canvasRect.rotationX = 0.f;
+                canvasRect.rotationY = 0.f;
+                canvasRect.rotationZ = 0.f;
+            }
             break;
         }
         }
@@ -426,60 +520,77 @@ namespace NE::ECS::Systems {
             return;
         }
 
-        if (!m_defaultUIMaterial) {
-            std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: No material available (shader loading failed)" << std::endl;
-            return;
-        }
-
-        // Reuse pooled material instance instead of allocating per frame
-        auto instanceMaterial = AcquireSpriteMaterial();
-
-        // Set per-instance uniforms
-        instanceMaterial->SetUniformVec4("uColor", img.color);
-
-        // Get screen size from GraphicsManager
-        uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-        uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
-
-        // Set screen size as Vec2 (shader expects vec2)
-        instanceMaterial->SetUniformVec2("uScreenSize",
-            Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
-
-        // Bindless texture support
-        if (img.bindlessHandle != 0) {
-            // Texture is loaded, enable it and pass bindless handle
-            instanceMaterial->SetUniformInt("uHasTexture", 1);
-            instanceMaterial->SetUniformHandle("uTexture", img.bindlessHandle);
-        } else {
-            // No texture, render solid color only
-            instanceMaterial->SetUniformInt("uHasTexture", 0);
-        }
-
-        // Set render queue - UI uses OVERLAY (4000) as base priority
-        instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
-        instanceMaterial->SetQueueOffset(canvas.sortingOrder);
-
-        // Build DrawCommand
-        NE::Graphics::DrawCommand cmd;
-
-        // Screen-space: vertices are already in pixel coordinates, shader converts to NDC
-        // World-space: vertices are unit quads, worldMatrix positions them in 3D
+        // WorldSpace uses MVP world shader; screen-space uses pixel-to-NDC shader
         if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+            if (!m_worldUIMaterial) {
+                std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: No world material available" << std::endl;
+                return;
+            }
+
+            auto instanceMaterial = AcquireWorldSpriteMaterial();
+            instanceMaterial->SetUniformMat4("uModel", rect.worldMatrix);
+            instanceMaterial->SetUniformMat4("uView", m_currentView);
+            instanceMaterial->SetUniformMat4("uProj", m_currentProj);
+            instanceMaterial->SetUniformVec4("uColor", img.color);
+
+            if (img.bindlessHandle != 0) {
+                instanceMaterial->SetUniformInt("uHasTexture", 1);
+                instanceMaterial->SetUniformHandle("uTexture", img.bindlessHandle);
+            } else {
+                instanceMaterial->SetUniformInt("uHasTexture", 0);
+            }
+
+            instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            instanceMaterial->SetQueueOffset(canvas.sortingOrder);
+
+            NE::Graphics::DrawCommand cmd;
             cmd.transform = rect.worldMatrix;
+            cmd.mesh = geometryBuffer;
+            cmd.material = instanceMaterial;
+            cmd.castsShadow = false;
+            cmd.receivesShadow = false;
+            cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
+            cmd.boundsRadiusWs = 999999.0f;
+            cmd.scissorRect = scissor;
+            cmd.enableDepthTest = true;
+
+            NE::Graphics::GraphicsManager::Submit(cmd);
         } else {
+            if (!m_defaultUIMaterial) {
+                std::cerr << "[UIRenderSystem::SubmitUIElement] ERROR: No material available (shader loading failed)" << std::endl;
+                return;
+            }
+
+            auto instanceMaterial = AcquireSpriteMaterial();
+            instanceMaterial->SetUniformVec4("uColor", img.color);
+
+            uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+            uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+            instanceMaterial->SetUniformVec2("uScreenSize",
+                Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
+
+            if (img.bindlessHandle != 0) {
+                instanceMaterial->SetUniformInt("uHasTexture", 1);
+                instanceMaterial->SetUniformHandle("uTexture", img.bindlessHandle);
+            } else {
+                instanceMaterial->SetUniformInt("uHasTexture", 0);
+            }
+
+            instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            instanceMaterial->SetQueueOffset(canvas.sortingOrder);
+
+            NE::Graphics::DrawCommand cmd;
             cmd.transform = Math::Mat4(); // Identity — vertices pre-positioned in pixels
+            cmd.mesh = geometryBuffer;
+            cmd.material = instanceMaterial;
+            cmd.castsShadow = false;
+            cmd.receivesShadow = false;
+            cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
+            cmd.boundsRadiusWs = 999999.0f;
+            cmd.scissorRect = scissor;
+
+            NE::Graphics::GraphicsManager::Submit(cmd);
         }
-        cmd.mesh = geometryBuffer;
-        cmd.material = instanceMaterial;
-        cmd.castsShadow = false;
-        cmd.receivesShadow = false;
-
-        cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
-        cmd.boundsRadiusWs = 999999.0f;  // Always visible
-        cmd.scissorRect = scissor;
-
-        // Submit through standard pipeline
-        NE::Graphics::GraphicsManager::Submit(cmd);
     }
 
     void UIRenderSystem::SubmitTextElement(
@@ -505,51 +616,70 @@ namespace NE::ECS::Systems {
             return;
         }
 
-        if (!m_defaultTextMaterial) {
-            std::cerr << "[UIRenderSystem::SubmitTextElement] ERROR: No default text material!" << std::endl;
-            return;
-        }
-
-        // Reuse pooled material instance instead of allocating per frame
-        auto instanceMaterial = AcquireTextMaterial();
-
-        // Set text-specific uniforms
-        instanceMaterial->SetUniformVec4("uColor", text.color);
-        instanceMaterial->SetUniformVec2("uScreenSize",
-            Math::Vec2(
-                static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth()),
-                static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight())
-            )
-        );
-
-        // Set font atlas bindless handle
-        if (fontAtlas) {
-            instanceMaterial->SetUniformHandle("uFontAtlas", fontAtlas->GetBindlessHandle());
-        }
-
-        // Set render queue (OVERLAY + canvas sorting)
-        instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
-        instanceMaterial->SetQueueOffset(canvas.sortingOrder);
-
-        // Build DrawCommand
-        NE::Graphics::DrawCommand cmd;
-
-        // Screen-space: vertices are already in pixel coordinates, shader converts to NDC
-        // World-space: vertices are unit quads, worldMatrix positions them in 3D
+        // WorldSpace uses MVP world text shader; screen-space uses pixel-to-NDC shader
         if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-            cmd.transform = rect.worldMatrix;
-        } else {
-            cmd.transform = Math::Mat4(); // Identity — vertices pre-positioned in pixels
-        }
-        cmd.mesh = geometryBuffer;
-        cmd.material = instanceMaterial;
-        cmd.castsShadow = false;
-        cmd.receivesShadow = false;
-        cmd.boundsRadiusWs = 999999.0f;  // Always visible
-        cmd.scissorRect = scissor;
+            if (!m_worldTextMaterial) {
+                std::cerr << "[UIRenderSystem::SubmitTextElement] ERROR: No world text material!" << std::endl;
+                return;
+            }
 
-        // Submit through integrated pipeline
-        NE::Graphics::GraphicsManager::Submit(cmd);
+            auto instanceMaterial = AcquireWorldTextMaterial();
+            instanceMaterial->SetUniformMat4("uModel", rect.worldMatrix);
+            instanceMaterial->SetUniformMat4("uView", m_currentView);
+            instanceMaterial->SetUniformMat4("uProj", m_currentProj);
+            instanceMaterial->SetUniformVec4("uColor", text.color);
+
+            if (fontAtlas) {
+                instanceMaterial->SetUniformHandle("uFontAtlas", fontAtlas->GetBindlessHandle());
+            }
+
+            instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            instanceMaterial->SetQueueOffset(canvas.sortingOrder);
+
+            NE::Graphics::DrawCommand cmd;
+            cmd.transform = rect.worldMatrix;
+            cmd.mesh = geometryBuffer;
+            cmd.material = instanceMaterial;
+            cmd.castsShadow = false;
+            cmd.receivesShadow = false;
+            cmd.boundsRadiusWs = 999999.0f;
+            cmd.scissorRect = scissor;
+            cmd.enableDepthTest = true;
+
+            NE::Graphics::GraphicsManager::Submit(cmd);
+        } else {
+            if (!m_defaultTextMaterial) {
+                std::cerr << "[UIRenderSystem::SubmitTextElement] ERROR: No default text material!" << std::endl;
+                return;
+            }
+
+            auto instanceMaterial = AcquireTextMaterial();
+            instanceMaterial->SetUniformVec4("uColor", text.color);
+            instanceMaterial->SetUniformVec2("uScreenSize",
+                Math::Vec2(
+                    static_cast<float>(NE::Graphics::GraphicsManager::GetScreenWidth()),
+                    static_cast<float>(NE::Graphics::GraphicsManager::GetScreenHeight())
+                )
+            );
+
+            if (fontAtlas) {
+                instanceMaterial->SetUniformHandle("uFontAtlas", fontAtlas->GetBindlessHandle());
+            }
+
+            instanceMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            instanceMaterial->SetQueueOffset(canvas.sortingOrder);
+
+            NE::Graphics::DrawCommand cmd;
+            cmd.transform = Math::Mat4(); // Identity — vertices pre-positioned in pixels
+            cmd.mesh = geometryBuffer;
+            cmd.material = instanceMaterial;
+            cmd.castsShadow = false;
+            cmd.receivesShadow = false;
+            cmd.boundsRadiusWs = 999999.0f;
+            cmd.scissorRect = scissor;
+
+            NE::Graphics::GraphicsManager::Submit(cmd);
+        }
     }
 
     //=========================================================================
@@ -617,6 +747,8 @@ namespace NE::ECS::Systems {
             SortEntitiesByZOrder(canvasChildren);
         }
 
+        bool isWorldSpace = (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE);
+
         for (Entity e : canvasChildren) {
             auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
@@ -625,7 +757,7 @@ namespace NE::ECS::Systems {
             AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(e, canvasEntity, canvas);
 
             // Use the pre-computed accumulated transform for both world matrix and world transform
-            m_layoutEngine->UpdateWorldMatrixFromAccumulated(e, accumulated);
+            m_layoutEngine->UpdateWorldMatrixFromAccumulated(e, accumulated, isWorldSpace);
             WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
 
             // Cache the world rect for UIEventSystem to reuse
@@ -661,8 +793,11 @@ namespace NE::ECS::Systems {
             }
 
             if (!verticesV2.empty()) {
-                // Compute scissor rect from parent RectMask2D chain
-                auto scissor = ComputeScissorRect(e, canvasEntity, canvas);
+                // Skip scissor for WorldSpace (screen-space operation)
+                std::optional<NE::Graphics::ScissorRect> scissor;
+                if (!isWorldSpace) {
+                    scissor = ComputeScissorRect(e, canvasEntity, canvas);
+                }
                 SubmitUIElement(e, canvas, img, rect, verticesV2, scissor);
             }
         }
@@ -708,32 +843,35 @@ namespace NE::ECS::Systems {
         // Skip if no text or font
         if (text.text.empty() || text.fontUUID.empty()) return;
 
+        bool isWorldSpace = (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE);
+
         // Accumulate parent transforms ONCE for this text entity (delegated to UILayoutEngine)
         AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(entity, canvasEntity, canvas);
 
         // Update world matrix from accumulated (needed for world-space text submission)
-        m_layoutEngine->UpdateWorldMatrixFromAccumulated(entity, accumulated);
+        m_layoutEngine->UpdateWorldMatrixFromAccumulated(entity, accumulated, isWorldSpace);
 
-        // Use the average scale for uniform font scaling (take the smaller to ensure text fits)
-        float scaleFactorForFont = std::min(accumulated.scaleX, accumulated.scaleY);
+        // For WorldSpace, use fontSize directly — world matrix handles scaling
+        // For screen-space, scale font by accumulated parent scale
+        float scaleFactorForFont = isWorldSpace ? 1.0f : std::min(accumulated.scaleX, accumulated.scaleY);
 
         // Calculate effective font size based on accumulated scale
         float effectiveFontSize = text.fontSize * scaleFactorForFont;
 
         // Auto-scale: Calculate font size to fit within bounds if enabled
         if (text.autoScale) {
-            // First get a font atlas at base size to calculate with
             auto tempAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
                 text.fontUUID, text.fontSize
             );
 
             if (tempAtlas) {
-                // Calculate what font size fits in the rect bounds
+                float fitWidth = isWorldSpace ? rect.width : rect.width * scaleFactorForFont;
+                float fitHeight = isWorldSpace ? rect.height : rect.height * scaleFactorForFont;
                 effectiveFontSize = NE::Graphics::UITextMeshGenerator::CalculateFitFontSize(
                     text.text,
                     *tempAtlas,
-                    rect.width * scaleFactorForFont,   // Available width
-                    rect.height * scaleFactorForFont,  // Available height
+                    fitWidth,
+                    fitHeight,
                     text.fontSize * scaleFactorForFont,
                     text.minFontSize * scaleFactorForFont,
                     text.maxFontSize * scaleFactorForFont,
@@ -773,8 +911,25 @@ namespace NE::ECS::Systems {
         rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
         rect.worldRectCached = true;
 
-        NE::Math::Vec3 curPos{ worldTransform.x, worldTransform.y, worldTransform.z };
-        NE::Math::Vec2 curSize{ worldTransform.width, worldTransform.height };
+        // For WorldSpace, generate text at local coordinates (world matrix handles positioning)
+        // For screen-space, generate text at world transform coordinates
+        float textX, textY, textZ, textW, textH;
+        if (isWorldSpace) {
+            textX = 0.0f;
+            textY = 0.0f;
+            textZ = 0.0f;
+            textW = rect.width;
+            textH = rect.height;
+        } else {
+            textX = worldTransform.x;
+            textY = worldTransform.y;
+            textZ = worldTransform.z;
+            textW = worldTransform.width;
+            textH = worldTransform.height;
+        }
+
+        NE::Math::Vec3 curPos{ textX, textY, textZ };
+        NE::Math::Vec2 curSize{ textW, textH };
 
         const float POS_EPS = 0.01f;
         const float SIZE_EPS = 0.01f;
@@ -791,7 +946,6 @@ namespace NE::ECS::Systems {
             absf(text.cachedRotZ - worldTransform.accumulatedRotationZ) > ROT_EPS;
 
         // Check if text needs to be regenerated
-        // Include effective font size in the check since scale can change
         bool needsRegen = text.isDirty ||
             text.cachedText != text.text ||
             std::abs(text.cachedFontSize - effectiveFontSize) > 0.1f ||
@@ -799,43 +953,41 @@ namespace NE::ECS::Systems {
             transformChanged;
 
         if (needsRegen) {
-            // worldTransform already computed from accumulated above — no re-traversal needed
-
             auto result = NE::Graphics::UITextMeshGenerator::GenerateVertices(
                 text.text,
                 *fontAtlas,
-                worldTransform.x,
-                worldTransform.y,
-                worldTransform.z,
-                worldTransform.width,
-                worldTransform.height,
+                textX,
+                textY,
+                textZ,
+                textW,
+                textH,
                 text.color,
                 text.horizontalAlign,
                 text.verticalAlign,
                 text.wordWrap,
-                effectiveFontSize  // Pass desired size for bucket scaling
+                effectiveFontSize
             );
 
-            // Directly copy vertices (same type now - UITextVertex with Vec3/Vec2/Vec4)
             text.cachedVertices = result.vertices;
 
-            // Apply rotation
-            float rot = worldTransform.accumulatedRotationZ * (3.1415926535f / 180.0f);
-            if (std::abs(rot) > 0.0001f) {
-                // Rotate around rect pivot (preferred). If you don't have pivot, use 0.5f, 0.5f.
-                const float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
-                const float pivotY = worldTransform.y + worldTransform.height * rect.pivotY;
+            // For screen-space, apply manual rotation; for WorldSpace, world matrix handles it
+            if (!isWorldSpace) {
+                float rot = worldTransform.accumulatedRotationZ * (3.1415926535f / 180.0f);
+                if (std::abs(rot) > 0.0001f) {
+                    const float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
+                    const float pivotY = worldTransform.y + worldTransform.height * rect.pivotY;
 
-                const float c = std::cos(rot);
-                const float s = std::sin(rot);
+                    const float c = std::cos(rot);
+                    const float s = std::sin(rot);
 
-                for (auto& v : text.cachedVertices) {
-                    float lx = v.Position.x - pivotX;
-                    float ly = v.Position.y - pivotY;
-                    float rx = lx * c - ly * s;
-                    float ry = lx * s + ly * c;
-                    v.Position.x = rx + pivotX;
-                    v.Position.y = ry + pivotY;
+                    for (auto& v : text.cachedVertices) {
+                        float lx = v.Position.x - pivotX;
+                        float ly = v.Position.y - pivotY;
+                        float rx = lx * c - ly * s;
+                        float ry = lx * s + ly * c;
+                        v.Position.x = rx + pivotX;
+                        v.Position.y = ry + pivotY;
+                    }
                 }
             }
 
@@ -849,7 +1001,11 @@ namespace NE::ECS::Systems {
             text.hasCachedTransform = true;
         }
 
-        auto scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+        // Skip scissor for WorldSpace (screen-space operation)
+        std::optional<NE::Graphics::ScissorRect> scissor;
+        if (!isWorldSpace) {
+            scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+        }
         SubmitTextElement(entity, canvas, text, rect, text.cachedVertices, fontAtlas, scissor);
     }
 

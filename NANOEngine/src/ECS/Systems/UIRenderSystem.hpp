@@ -136,15 +136,27 @@ namespace NE::ECS::Systems {
         // Integrated pipeline materials
         std::shared_ptr<NE::Graphics::Material> m_defaultUIMaterial;  // Default sprite material
         std::shared_ptr<NE::Graphics::Material> m_defaultTextMaterial;  // Default text material
+        std::shared_ptr<NE::Graphics::Material> m_worldUIMaterial;    // World-space sprite material
+        std::shared_ptr<NE::Graphics::Material> m_worldTextMaterial;  // World-space text material
+
+        // Camera matrices (stored per frame for WorldSpace rendering)
+        Math::Mat4 m_currentView;
+        Math::Mat4 m_currentProj;
 
         // Material instance pools (avoids per-frame allocation)
         std::vector<std::shared_ptr<NE::Graphics::Material>> m_spriteMaterialPool;
         std::vector<std::shared_ptr<NE::Graphics::Material>> m_textMaterialPool;
+        std::vector<std::shared_ptr<NE::Graphics::Material>> m_worldSpriteMaterialPool;
+        std::vector<std::shared_ptr<NE::Graphics::Material>> m_worldTextMaterialPool;
         size_t m_spriteMaterialIndex = 0;
         size_t m_textMaterialIndex = 0;
+        size_t m_worldSpriteMaterialIndex = 0;
+        size_t m_worldTextMaterialIndex = 0;
 
         std::shared_ptr<NE::Graphics::Material> AcquireSpriteMaterial();
         std::shared_ptr<NE::Graphics::Material> AcquireTextMaterial();
+        std::shared_ptr<NE::Graphics::Material> AcquireWorldSpriteMaterial();
+        std::shared_ptr<NE::Graphics::Material> AcquireWorldTextMaterial();
 
         // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
         std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
