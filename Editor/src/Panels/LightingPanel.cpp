@@ -5,6 +5,7 @@
 #include <Graphics/Core/PostProcessingSettings.hpp>
 #include <EditorInterface/RendererExports.hpp>
 #include "../EditorUI.hpp"
+#include <algorithm>
 
 
 namespace Editor {
@@ -175,6 +176,20 @@ namespace Editor {
 				Editor::DrawFloatField("Bias", postProcessingSettings.ssaoSettings.bias, 0.1f, true);
 				Editor::DrawFloatField("Intensity", postProcessingSettings.ssaoSettings.intensity, 0.1f, true);
 				Editor::DrawFloatField("Power", postProcessingSettings.ssaoSettings.power, 0.1f, true);
+			}
+
+			if (ImGui::CollapsingHeader("SSR##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
+				Editor::DrawCheckbox("Enabled", postProcessingSettings.ssrSettings.enabled);
+				Editor::DrawFloatField("Intensity", postProcessingSettings.ssrSettings.intensity, 0.05f, true);
+				Editor::DrawFloatField("Max Distance", postProcessingSettings.ssrSettings.maxDistance, 0.5f, true);
+				Editor::DrawFloatField("Thickness", postProcessingSettings.ssrSettings.thickness, 0.01f, true);
+				Editor::DrawFloatField("Stride", postProcessingSettings.ssrSettings.stride, 0.01f, true);
+				Editor::DrawFloatField("Roughness Cutoff", postProcessingSettings.ssrSettings.roughnessCutoff, 0.01f, true);
+				Editor::DrawFloatField("Fresnel Power", postProcessingSettings.ssrSettings.fresnelPower, 0.1f, true);
+				Editor::DrawFloatField("Edge Fade", postProcessingSettings.ssrSettings.edgeFade, 0.01f, true);
+				ImGui::SliderInt("Max Steps", &postProcessingSettings.ssrSettings.maxSteps, 8, 128);
+				ImGui::SliderInt("Binary Search Steps", &postProcessingSettings.ssrSettings.binarySearchSteps, 0, 10);
+				postProcessingSettings.ssrSettings.thickness = std::max(0.0f, postProcessingSettings.ssrSettings.thickness);
 			}
 
 		} break;

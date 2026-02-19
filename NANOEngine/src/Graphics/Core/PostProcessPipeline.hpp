@@ -110,6 +110,8 @@ namespace NE::Graphics {
 		std::shared_ptr<OpenGL::GLShader> m_upSampleShader;
 		std::shared_ptr<OpenGL::GLShader> m_compositeShader;
 		std::shared_ptr<OpenGL::GLShader> m_taaShader;
+		std::shared_ptr<OpenGL::GLShader> m_ssrShader;
+		std::shared_ptr<OpenGL::GLShader> m_ssrResolveShader;
 
 		unsigned int m_SSAOFBO = 0;
 		unsigned int m_SSAOTex = 0;

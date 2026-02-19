@@ -9,6 +9,8 @@
 #include <queue>
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
+#include <limits>
 
 namespace NE::Graphics {
 
@@ -357,16 +359,42 @@ namespace NE::Graphics {
         std::vector<std::vector<size_t>>& adjacency,
         std::vector<size_t>& inDegree) const
     {
+        auto getLogicalResourceKey = [this](const RenderGraphResource& res) -> uint64_t {
+            if (!res.IsValid() || res.id >= m_Resources.size()) {
+                return std::numeric_limits<uint64_t>::max();
+            }
+
+            const auto& data = m_Resources[res.id];
+            if (data.type == ResourceType::ImportedTexture) {
+                if (data.textureId != 0) {
+                    return (1ull << 63) | static_cast<uint64_t>(data.textureId);
+                }
+                return static_cast<uint64_t>(res.id);
+            }
+
+            if (data.type == ResourceType::ImportedFramebuffer) {
+                if (data.framebuffer != nullptr) {
+                    return (1ull << 62) | static_cast<uint64_t>(reinterpret_cast<uintptr_t>(data.framebuffer));
+                }
+                return static_cast<uint64_t>(res.id);
+            }
+
+            return static_cast<uint64_t>(res.id);
+        };
+
         // Track the last writer as we walk passes in insertion order.
         // This preserves ordering for multiple writes to the same resource.
-        std::unordered_map<uint32_t, size_t> lastWriter;
+        std::unordered_map<uint64_t, size_t> lastWriter;
 
         for (size_t i = 0; i < m_Passes.size(); ++i) {
             const auto& pass = m_Passes[i];
 
             // Reads depend on the most recent writer.
             for (const auto& read : pass.reads) {
-                auto it = lastWriter.find(read.id);
+                const uint64_t key = getLogicalResourceKey(read);
+                if (key == std::numeric_limits<uint64_t>::max()) continue;
+
+                auto it = lastWriter.find(key);
                 if (it != lastWriter.end() && it->second != i) {
                     adjacency[it->second].push_back(i);
                     ++inDegree[i];
@@ -375,12 +403,15 @@ namespace NE::Graphics {
 
             // Writes must be ordered after the previous writer (write-after-write).
             for (const auto& write : pass.writes) {
-                auto it = lastWriter.find(write.id);
+                const uint64_t key = getLogicalResourceKey(write);
+                if (key == std::numeric_limits<uint64_t>::max()) continue;
+
+                auto it = lastWriter.find(key);
                 if (it != lastWriter.end() && it->second != i) {
                     adjacency[it->second].push_back(i);
                     ++inDegree[i];
                 }
-                lastWriter[write.id] = i;
+                lastWriter[key] = i;
             }
         }
     }

@@ -71,17 +71,45 @@ namespace NE::Graphics {
 		NE_REFLECT_END()
 	};
 
+	struct SSRSettings {
+		bool enabled = false;
+		float intensity = 0.6f;
+		float maxDistance = 30.0f;
+		float thickness = 0.0f;
+		int maxSteps = 48;
+		float stride = 0.2f;
+		int binarySearchSteps = 5;
+		float roughnessCutoff = 0.85f;
+		float fresnelPower = 5.0f;
+		float edgeFade = 0.2f;
+
+		NE_REFLECT_BEGIN(SSRSettings)
+			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(intensity),
+			NE_REFLECT_FIELD(maxDistance),
+			NE_REFLECT_FIELD(thickness),
+			NE_REFLECT_FIELD(maxSteps),
+			NE_REFLECT_FIELD(stride),
+			NE_REFLECT_FIELD(binarySearchSteps),
+			NE_REFLECT_FIELD(roughnessCutoff),
+			NE_REFLECT_FIELD(fresnelPower),
+			NE_REFLECT_FIELD(edgeFade)
+		NE_REFLECT_END()
+	};
+
 	struct PostProcessingSettings {
 		bool enabled = true;
 		BloomSettings bloomSettings;
 		SSAOSettings  ssaoSettings;
 		TAASettings taaSettings;
+		SSRSettings ssrSettings;
 
 		NE_REFLECT_BEGIN(PostProcessingSettings)
 			NE_REFLECT_FIELD(enabled),
 			NE_REFLECT_FIELD(bloomSettings),
 			NE_REFLECT_FIELD(ssaoSettings),
-			NE_REFLECT_FIELD(taaSettings)
+			NE_REFLECT_FIELD(taaSettings),
+			NE_REFLECT_FIELD(ssrSettings)
 		NE_REFLECT_END()
 	};
 

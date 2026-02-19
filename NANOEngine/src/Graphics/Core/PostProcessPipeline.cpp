@@ -10,6 +10,7 @@
 #include "../../Core/Logger.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <glad/glad.h>
 #include <GL/gl.h>
 
@@ -295,6 +296,14 @@ namespace NE::Graphics {
 			m_taaShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("netaa");
 		}
+		if (!m_ssrShader) {
+			m_ssrShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("nessr");
+		}
+		if (!m_ssrResolveShader) {
+			m_ssrResolveShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("nessrresolve");
+		}
 	}
 
 	void PostProcessPipeline::SetupGraph(RenderViewHandle sourceView,
@@ -354,6 +363,184 @@ namespace NE::Graphics {
 
 		auto sceneColor = m_graph->ImportTexture(sourceFB->GetColorAttachment(), "SceneHDR");
 		auto sceneDepth = m_graph->ImportTexture(sourceFB->GetDepthAttachment(), "SceneDepth");
+		const bool hasMiniGBuffer = sourceFB->HasMiniGBuffer();
+		const bool hasNormalAttachment = hasMiniGBuffer && sourceFB->GetNormalAttachment() != 0;
+		const bool hasRoughnessAttachment = hasMiniGBuffer && sourceFB->GetRoughnessAttachment() != 0;
+		RenderGraphResource sceneNormal{};
+		RenderGraphResource sceneRoughness{};
+		if (hasNormalAttachment) {
+			sceneNormal = m_graph->ImportTexture(sourceFB->GetNormalAttachment(), "SceneNormal");
+		}
+		if (hasRoughnessAttachment) {
+			sceneRoughness = m_graph->ImportTexture(sourceFB->GetRoughnessAttachment(), "SceneRoughness");
+		}
+
+		const bool ssrEnabled = m_settings
+			&& m_settings->ssrSettings.enabled
+			&& m_ssrShader
+			&& m_ssrResolveShader
+			&& sourceFB->HasDepth()
+			&& sourceFB->GetDepthAttachment() != 0
+			&& hasNormalAttachment
+			&& hasRoughnessAttachment;
+
+		if (ssrEnabled) {
+			TextureDesc ssrRawDesc;
+			ssrRawDesc.width = sourceFB->GetWidth();
+			ssrRawDesc.height = sourceFB->GetHeight();
+			ssrRawDesc.format = TextureFormat::RGBA16F;
+			ssrRawDesc.name = "SSRRaw";
+			auto ssrRawTex = m_graph->CreateTexture(ssrRawDesc);
+
+			TextureDesc ssrResolvedDesc;
+			ssrResolvedDesc.width = sourceFB->GetWidth();
+			ssrResolvedDesc.height = sourceFB->GetHeight();
+			ssrResolvedDesc.format = TextureFormat::RGBA16F;
+			ssrResolvedDesc.name = "SSRResolved";
+			auto ssrResolvedTex = m_graph->CreateTexture(ssrResolvedDesc);
+
+			const auto ssrSceneInput = sceneColor;
+
+			m_graph->AddPass("SSR: Build Scene Mips")
+				.Read(ssrSceneInput)
+				.Write(ssrSceneInput)
+				.Execute([ssrSceneInput](const RenderGraphContext& ctx) {
+					if (!ctx.graph) return;
+					const uint32_t sceneTex = ctx.GetTexture(ssrSceneInput);
+					if (sceneTex == 0) return;
+
+					glBindTexture(GL_TEXTURE_2D, sceneTex);
+					glGenerateMipmap(GL_TEXTURE_2D);
+					glBindTexture(GL_TEXTURE_2D, 0);
+				});
+
+			m_graph->AddPass("SSR: Trace")
+				.Read(ssrSceneInput)
+				.Read(sceneDepth)
+				.Read(sceneNormal)
+				.Read(sceneRoughness)
+				.Write(ssrRawTex)
+				.Execute([this, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, currProj, ssrRawTex](const RenderGraphContext& ctx) {
+					if (!m_settings || !m_ssrShader || !ctx.graph) return;
+
+					auto& pctx = m_context;
+					const uint32_t w = pctx.sourceFB->GetWidth();
+					const uint32_t h = pctx.sourceFB->GetHeight();
+					if (w == 0 || h == 0) return;
+
+					const uint32_t targetFbo = ctx.graph->GetFramebufferId(ssrRawTex);
+					if (targetFbo == 0) return;
+
+					const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+					glDisable(GL_DEPTH_TEST);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
+					glViewport(0, 0, w, h);
+					glClearColor(0, 0, 0, 0);
+					glClear(GL_COLOR_BUFFER_BIT);
+
+					const float maxSceneMip = std::floor(std::log2(static_cast<float>(std::max(w, h))));
+
+					m_ssrShader->Bind();
+					m_ssrShader->SetUniformInt("u_SceneColor", 0);
+					m_ssrShader->SetUniformInt("u_Depth", 1);
+					m_ssrShader->SetUniformInt("u_Normal", 2);
+					m_ssrShader->SetUniformInt("u_Roughness", 3);
+					m_ssrShader->SetUniformMat4("u_InvProj", pctx.invProj);
+					m_ssrShader->SetUniformMat4("u_Proj", currProj);
+					m_ssrShader->SetUniformMat4("u_View", currView);
+					m_ssrShader->SetUniformVec2("u_TexelSize", { 1.0f / static_cast<float>(w), 1.0f / static_cast<float>(h) });
+					m_ssrShader->SetUniformFloat("u_Intensity", m_settings->ssrSettings.intensity);
+					m_ssrShader->SetUniformFloat("u_MaxDistance", m_settings->ssrSettings.maxDistance);
+					m_ssrShader->SetUniformFloat("u_Thickness", m_settings->ssrSettings.thickness);
+					m_ssrShader->SetUniformInt("u_MaxSteps", m_settings->ssrSettings.maxSteps);
+					m_ssrShader->SetUniformFloat("u_Stride", m_settings->ssrSettings.stride);
+					m_ssrShader->SetUniformInt("u_BinarySearchSteps", m_settings->ssrSettings.binarySearchSteps);
+					m_ssrShader->SetUniformFloat("u_RoughnessCutoff", m_settings->ssrSettings.roughnessCutoff);
+					m_ssrShader->SetUniformFloat("u_FresnelPower", m_settings->ssrSettings.fresnelPower);
+					m_ssrShader->SetUniformFloat("u_EdgeFade", m_settings->ssrSettings.edgeFade);
+					m_ssrShader->SetUniformFloat("u_MaxSceneMip", maxSceneMip);
+
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrSceneInput));
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneDepth));
+					glActiveTexture(GL_TEXTURE2);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneNormal));
+					glActiveTexture(GL_TEXTURE3);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneRoughness));
+
+					glBindVertexArray(m_QuadVAO);
+					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+					glBindVertexArray(0);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+				});
+
+			m_graph->AddPass("SSR: Resolve")
+				.Read(ssrRawTex)
+				.Read(ssrSceneInput)
+				.Read(sceneDepth)
+				.Read(sceneNormal)
+				.Read(sceneRoughness)
+				.Write(ssrResolvedTex)
+				.Execute([this, ssrRawTex, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, ssrResolvedTex](const RenderGraphContext& ctx) {
+					if (!m_settings || !m_ssrResolveShader || !ctx.graph) return;
+
+					auto& pctx = m_context;
+					const uint32_t w = pctx.sourceFB->GetWidth();
+					const uint32_t h = pctx.sourceFB->GetHeight();
+					if (w == 0 || h == 0) return;
+
+					const uint32_t targetFbo = ctx.graph->GetFramebufferId(ssrResolvedTex);
+					if (targetFbo == 0) return;
+
+					const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+					glDisable(GL_DEPTH_TEST);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
+					glViewport(0, 0, w, h);
+					glClearColor(0, 0, 0, 1);
+					glClear(GL_COLOR_BUFFER_BIT);
+
+					const float maxSceneMip = std::floor(std::log2(static_cast<float>(std::max(w, h))));
+
+					m_ssrResolveShader->Bind();
+					m_ssrResolveShader->SetUniformInt("u_SSRRaw", 0);
+					m_ssrResolveShader->SetUniformInt("u_SceneColor", 1);
+					m_ssrResolveShader->SetUniformInt("u_Depth", 2);
+					m_ssrResolveShader->SetUniformInt("u_Normal", 3);
+					m_ssrResolveShader->SetUniformInt("u_Roughness", 4);
+					m_ssrResolveShader->SetUniformMat4("u_InvProj", pctx.invProj);
+					m_ssrResolveShader->SetUniformMat4("u_View", currView);
+					m_ssrResolveShader->SetUniformVec2("u_TexelSize", { 1.0f / static_cast<float>(w), 1.0f / static_cast<float>(h) });
+					m_ssrResolveShader->SetUniformFloat("u_Intensity", m_settings->ssrSettings.intensity);
+					m_ssrResolveShader->SetUniformFloat("u_RoughnessCutoff", m_settings->ssrSettings.roughnessCutoff);
+					m_ssrResolveShader->SetUniformFloat("u_FresnelPower", m_settings->ssrSettings.fresnelPower);
+					m_ssrResolveShader->SetUniformFloat("u_MaxSceneMip", maxSceneMip);
+
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrRawTex));
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrSceneInput));
+					glActiveTexture(GL_TEXTURE2);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneDepth));
+					glActiveTexture(GL_TEXTURE3);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneNormal));
+					glActiveTexture(GL_TEXTURE4);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneRoughness));
+
+					glBindVertexArray(m_QuadVAO);
+					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+					glBindVertexArray(0);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+				});
+
+			sceneColor = ssrResolvedTex;
+		}
 
 		const bool canRunTAA = m_settings
 			&& m_settings->taaSettings.enabled
@@ -372,13 +559,14 @@ namespace NE::Graphics {
 
 				auto historyRead = m_graph->ImportTexture(state.historyTex[state.readIndex], "TAAHistoryRead");
 				auto historyWrite = m_graph->ImportTexture(state.historyTex[state.writeIndex], "TAAHistoryWrite");
+				const auto taaInputSceneColor = sceneColor;
 
 				m_graph->AddPass("TAA")
-					.Read(sceneColor)
+					.Read(taaInputSceneColor)
 					.Read(sceneDepth)
 					.Read(historyRead)
 					.Write(historyWrite)
-					.Execute([this, sourceView, currView, currProj](const RenderGraphContext& ctx) {
+					.Execute([this, sourceView, currView, currProj, taaInputSceneColor](const RenderGraphContext& ctx) {
 						if (!m_settings || !m_taaShader) return;
 						auto it = m_taaStates.find(sourceView);
 						if (it == m_taaStates.end()) return;
@@ -410,7 +598,7 @@ namespace NE::Graphics {
 						m_taaShader->SetUniformMat4("u_PrevViewProj", state.prevViewProj);
 
 						glActiveTexture(GL_TEXTURE0);
-						glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetColorAttachment());
+						glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(taaInputSceneColor));
 
 						glActiveTexture(GL_TEXTURE1);
 						glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetDepthAttachment());
@@ -434,7 +622,8 @@ namespace NE::Graphics {
 				m_context.sceneColorTex = state.historyTex[state.writeIndex];
 				sceneColor = m_graph->ImportTexture(m_context.sceneColorTex, "SceneTAA");
 			}
-		} else {
+		}
+		else {
 			auto stateIt = m_taaStates.find(sourceView);
 			if (stateIt != m_taaStates.end()) {
 				stateIt->second.hasHistory = false;
@@ -514,10 +703,11 @@ namespace NE::Graphics {
 		}
 
 		if (bloomEnabled) {
+			const auto bloomSceneInput = sceneColor;
 			m_graph->AddPass("Bloom: Bright Extract")
-				.Read(sceneColor)
+				.Read(bloomSceneInput)
 				.Write(brightTex)
-				.Execute([this, brightTex](const RenderGraphContext& ctx) {
+				.Execute([this, brightTex, bloomSceneInput](const RenderGraphContext& ctx) {
 					if (!m_settings || !m_brightPassShader || !ctx.graph) return;
 
 					auto& pctx = m_context;
@@ -539,7 +729,7 @@ namespace NE::Graphics {
 					m_brightPassShader->SetUniformFloat("u_SoftKnee", m_settings->bloomSettings.softKnee);
 
 					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, pctx.sceneColorTex);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(bloomSceneInput));
 
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -670,7 +860,7 @@ namespace NE::Graphics {
 			.Read(ssaoTex)
 			.Read(bloomTex)
 			.Write(finalTex)
-			.Execute([this, ssaoTex, bloomEnabled, ssaoEnabled](const RenderGraphContext& ctx) {
+			.Execute([this, sceneColor, ssaoTex, bloomEnabled, ssaoEnabled](const RenderGraphContext& ctx) {
 				if (!m_settings || !m_compositeShader) return;
 
 				auto& pctx = m_context;
@@ -697,7 +887,7 @@ namespace NE::Graphics {
 				m_compositeShader->SetUniformFloat("u_AOIntensity", m_settings->ssaoSettings.intensity);
 
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, pctx.sceneColorTex);
+				glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneColor));
 
 				glActiveTexture(GL_TEXTURE1);
 				glBindTexture(GL_TEXTURE_2D, bloomEnabled ? m_bloomTex[0] : 0);
