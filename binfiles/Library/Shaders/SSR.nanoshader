@@ -32,7 +32,6 @@ uniform int u_MaxSteps;
 uniform float u_Stride;
 uniform int u_BinarySearchSteps;
 uniform float u_RoughnessCutoff;
-uniform float u_FresnelPower;
 uniform float u_EdgeFade;
 uniform float u_MaxSceneMip;
 

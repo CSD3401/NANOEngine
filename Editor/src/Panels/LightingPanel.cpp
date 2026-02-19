@@ -13,8 +13,7 @@ namespace Editor {
     // Call this every frame where you want the panel:
 
 	void LightingPanel::OnImGuiRender() {
-		ImGui::Begin("Lighting", nullptr,
-			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		ImGui::Begin("Lighting", nullptr);
 
 		NE::Graphics::RenderSettings& renderSettings = NE::Renderer::Command::GetRenderSettings();
 
@@ -187,6 +186,8 @@ namespace Editor {
 				Editor::DrawFloatField("Roughness Cutoff", postProcessingSettings.ssrSettings.roughnessCutoff, 0.01f, true);
 				Editor::DrawFloatField("Fresnel Power", postProcessingSettings.ssrSettings.fresnelPower, 0.1f, true);
 				Editor::DrawFloatField("Edge Fade", postProcessingSettings.ssrSettings.edgeFade, 0.01f, true);
+				Editor::DrawFloatField("Half Res Scale", postProcessingSettings.ssrSettings.halfResScale, 0.01f, true);
+				ImGui::SliderInt("Tap Counts", &postProcessingSettings.ssrSettings.resolveTapCount, 0, 12);
 				ImGui::SliderInt("Max Steps", &postProcessingSettings.ssrSettings.maxSteps, 8, 128);
 				ImGui::SliderInt("Binary Search Steps", &postProcessingSettings.ssrSettings.binarySearchSteps, 0, 10);
 				postProcessingSettings.ssrSettings.thickness = std::max(0.0f, postProcessingSettings.ssrSettings.thickness);

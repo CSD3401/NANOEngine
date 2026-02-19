@@ -432,11 +432,16 @@ namespace NE::Graphics {
 				LOG_WARNING("SSR skipped: dedicated scene mip texture is unavailable.");
 			}
 			else {
+			const float ssrHalfScale = std::clamp(m_settings->ssrSettings.halfResScale, 0.25f, 1.0f);
+			const uint32_t ssrRawW = std::max(1u, static_cast<uint32_t>(std::floor(sourceFB->GetWidth() * ssrHalfScale)));
+			const uint32_t ssrRawH = std::max(1u, static_cast<uint32_t>(std::floor(sourceFB->GetHeight() * ssrHalfScale)));
+			const int ssrResolveTapCount = (m_settings->ssrSettings.resolveTapCount >= 8) ? 8 : 4;
+
 			TextureDesc ssrRawDesc;
-			ssrRawDesc.width = sourceFB->GetWidth();
-			ssrRawDesc.height = sourceFB->GetHeight();
+			ssrRawDesc.width = ssrRawW;
+			ssrRawDesc.height = ssrRawH;
 			ssrRawDesc.format = TextureFormat::RGBA16F;
-			ssrRawDesc.name = "SSRRaw";
+			ssrRawDesc.name = "SSRRawHalf";
 			auto ssrRawTex = m_graph->CreateTexture(ssrRawDesc);
 
 			TextureDesc ssrResolvedDesc;
@@ -488,13 +493,13 @@ namespace NE::Graphics {
 				.Read(sceneNormal)
 				.Read(sceneRoughness)
 				.Write(ssrRawTex)
-				.Execute([this, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, currProj, ssrRawTex](const RenderGraphContext& ctx) {
+				.Execute([this, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, currProj, ssrRawTex, ssrRawW, ssrRawH](const RenderGraphContext& ctx) {
 					if (!m_settings || !m_ssrShader || !ctx.graph) return;
 
 					auto& pctx = m_context;
-					const uint32_t w = pctx.sourceFB->GetWidth();
-					const uint32_t h = pctx.sourceFB->GetHeight();
-					if (w == 0 || h == 0) return;
+					const uint32_t fullW = pctx.sourceFB->GetWidth();
+					const uint32_t fullH = pctx.sourceFB->GetHeight();
+					if (fullW == 0 || fullH == 0 || ssrRawW == 0 || ssrRawH == 0) return;
 
 					const uint32_t targetFbo = ctx.graph->GetFramebufferId(ssrRawTex);
 					if (targetFbo == 0) return;
@@ -503,11 +508,11 @@ namespace NE::Graphics {
 					glDisable(GL_DEPTH_TEST);
 
 					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
-					glViewport(0, 0, w, h);
+					glViewport(0, 0, static_cast<GLint>(ssrRawW), static_cast<GLint>(ssrRawH));
 					glClearColor(0, 0, 0, 0);
 					glClear(GL_COLOR_BUFFER_BIT);
 
-					const float maxSceneMip = std::floor(std::log2(static_cast<float>(std::max(w, h))));
+					const float maxSceneMip = std::floor(std::log2(static_cast<float>(std::max(fullW, fullH))));
 
 					m_ssrShader->Bind();
 					m_ssrShader->SetUniformInt("u_SceneColor", 0);
@@ -523,7 +528,6 @@ namespace NE::Graphics {
 					m_ssrShader->SetUniformFloat("u_Stride", m_settings->ssrSettings.stride);
 					m_ssrShader->SetUniformInt("u_BinarySearchSteps", m_settings->ssrSettings.binarySearchSteps);
 					m_ssrShader->SetUniformFloat("u_RoughnessCutoff", m_settings->ssrSettings.roughnessCutoff);
-					m_ssrShader->SetUniformFloat("u_FresnelPower", m_settings->ssrSettings.fresnelPower);
 					m_ssrShader->SetUniformFloat("u_EdgeFade", m_settings->ssrSettings.edgeFade);
 					m_ssrShader->SetUniformFloat("u_MaxSceneMip", maxSceneMip);
 
@@ -551,7 +555,7 @@ namespace NE::Graphics {
 				.Read(sceneNormal)
 				.Read(sceneRoughness)
 				.Write(ssrResolvedTex)
-				.Execute([this, ssrRawTex, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, ssrResolvedTex](const RenderGraphContext& ctx) {
+				.Execute([this, ssrRawTex, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, ssrResolvedTex, ssrRawW, ssrRawH, ssrResolveTapCount](const RenderGraphContext& ctx) {
 					if (!m_settings || !m_ssrResolveShader || !ctx.graph) return;
 
 					auto& pctx = m_context;
@@ -570,8 +574,6 @@ namespace NE::Graphics {
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
 
-					const float maxSceneMip = std::floor(std::log2(static_cast<float>(std::max(w, h))));
-
 					m_ssrResolveShader->Bind();
 					m_ssrResolveShader->SetUniformInt("u_SSRRaw", 0);
 					m_ssrResolveShader->SetUniformInt("u_SceneColor", 1);
@@ -580,11 +582,11 @@ namespace NE::Graphics {
 					m_ssrResolveShader->SetUniformInt("u_Roughness", 4);
 					m_ssrResolveShader->SetUniformMat4("u_InvProj", pctx.invProj);
 					m_ssrResolveShader->SetUniformMat4("u_View", currView);
-					m_ssrResolveShader->SetUniformVec2("u_TexelSize", { 1.0f / static_cast<float>(w), 1.0f / static_cast<float>(h) });
+					m_ssrResolveShader->SetUniformVec2("u_RawTexelSize", { 1.0f / static_cast<float>(ssrRawW), 1.0f / static_cast<float>(ssrRawH) });
+					m_ssrResolveShader->SetUniformInt("u_ResolveTapCount", ssrResolveTapCount);
 					m_ssrResolveShader->SetUniformFloat("u_Intensity", m_settings->ssrSettings.intensity);
 					m_ssrResolveShader->SetUniformFloat("u_RoughnessCutoff", m_settings->ssrSettings.roughnessCutoff);
 					m_ssrResolveShader->SetUniformFloat("u_FresnelPower", m_settings->ssrSettings.fresnelPower);
-					m_ssrResolveShader->SetUniformFloat("u_MaxSceneMip", maxSceneMip);
 
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrRawTex));

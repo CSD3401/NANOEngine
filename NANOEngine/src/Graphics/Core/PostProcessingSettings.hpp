@@ -74,6 +74,8 @@ namespace NE::Graphics {
 	struct SSRSettings {
 		bool enabled = false;
 		float intensity = 0.6f;
+		float halfResScale = 0.5f;
+		int resolveTapCount = 4;
 		float maxDistance = 30.0f;
 		float thickness = 0.0f;
 		int maxSteps = 48;
@@ -86,6 +88,8 @@ namespace NE::Graphics {
 		NE_REFLECT_BEGIN(SSRSettings)
 			NE_REFLECT_FIELD(enabled),
 			NE_REFLECT_FIELD(intensity),
+			NE_REFLECT_FIELD(halfResScale),
+			NE_REFLECT_FIELD(resolveTapCount),
 			NE_REFLECT_FIELD(maxDistance),
 			NE_REFLECT_FIELD(thickness),
 			NE_REFLECT_FIELD(maxSteps),

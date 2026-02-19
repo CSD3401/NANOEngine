@@ -25,12 +25,12 @@ uniform sampler2D u_Roughness;
 
 uniform mat4 u_InvProj;
 uniform mat4 u_View;
-uniform vec2 u_TexelSize;
+uniform vec2 u_RawTexelSize;
+uniform int u_ResolveTapCount;
 
 uniform float u_Intensity;
 uniform float u_RoughnessCutoff;
 uniform float u_FresnelPower;
-uniform float u_MaxSceneMip;
 
 vec3 ReconstructViewPos(vec2 uv, float depth) {
     float z = depth * 2.0 - 1.0;
@@ -53,8 +53,10 @@ void main() {
     vec3 viewDir = normalize(-viewPos);
 
     float roughness = clamp(texture(u_Roughness, vUV).r, 0.0, 1.0);
-    float maxSceneMip = max(u_MaxSceneMip, 0.0);
-    float fallbackLod = clamp(roughness * maxSceneMip, 0.0, maxSceneMip);
+    if (roughness >= u_RoughnessCutoff) {
+        FragColor = vec4(scene, 1.0);
+        return;
+    }
 
     vec4 centerSSR = texture(u_SSRRaw, vUV);
     const float validThreshold = 0.05;
@@ -69,15 +71,20 @@ void main() {
         vec3 accum = vec3(0.0);
         float accumW = 0.0;
 
-        vec2 taps[4] = vec2[](
+        vec2 taps[8] = vec2[](
             vec2(1.0, 0.0),
             vec2(-1.0, 0.0),
             vec2(0.0, 1.0),
-            vec2(0.0, -1.0)
+            vec2(0.0, -1.0),
+            vec2(1.0, 1.0),
+            vec2(-1.0, 1.0),
+            vec2(1.0, -1.0),
+            vec2(-1.0, -1.0)
         );
 
-        for (int i = 0; i < 4; ++i) {
-            vec2 uv = vUV + taps[i] * u_TexelSize;
+        int tapCount = (u_ResolveTapCount >= 8) ? 8 : 4;
+        for (int i = 0; i < tapCount; ++i) {
+            vec2 uv = clamp(vUV + taps[i] * u_RawTexelSize, vec2(0.0), vec2(1.0));
             if (uv.x <= 0.0 || uv.x >= 1.0 || uv.y <= 0.0 || uv.y >= 1.0) continue;
 
             vec4 ssrTap = texture(u_SSRRaw, uv);
@@ -104,9 +111,6 @@ void main() {
         if (accumW > 1e-4) {
             reflection = accum / accumW;
             reflectionValidity = clamp(accumW / 1.5, 0.0, 1.0);
-        } else {
-            reflection = textureLod(u_SceneColor, vUV, fallbackLod).rgb;
-            reflectionValidity = 0.0;
         }
     }
 
