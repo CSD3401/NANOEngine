@@ -25,11 +25,15 @@ void main() {
 #type fragment
 #version 460 core
 #extension GL_ARB_bindless_texture : require
+#extension GL_NV_gpu_shader5 : enable
+#extension GL_ARB_gpu_shader_int64 : enable
 
 in vec2 TexCoord;
 in vec4 Color;
 flat in uvec2 vTexHandle;
 out vec4 FragColor;
+
+uniform float uFontSmoothing = 0.07;  // Dynamic smoothing parameter
 
 void main() {
     uint64_t handle = uint64_t(vTexHandle.y) << 32 | uint64_t(vTexHandle.x);
@@ -38,8 +42,7 @@ void main() {
     // SDF rendering: read distance field and use smoothstep for edge recovery
     float dist = texture(fontAtlas, TexCoord).r;
     float edgeCenter = 180.0 / 255.0;  // SDF edge is at 180/255
-    float smoothing = 0.07;             // Adjust for desired crispness
-    float alpha = smoothstep(edgeCenter - smoothing, edgeCenter + smoothing, dist);
+    float alpha = smoothstep(edgeCenter - uFontSmoothing, edgeCenter + uFontSmoothing, dist);
 
     FragColor = vec4(Color.rgb, alpha * Color.a);
 }

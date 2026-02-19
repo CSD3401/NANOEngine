@@ -25,6 +25,8 @@ void main() {
 #type fragment
 #version 460 core
 #extension GL_ARB_bindless_texture : require
+#extension GL_NV_gpu_shader5 : enable
+#extension GL_ARB_gpu_shader_int64 : enable
 
 in vec2 vUV;
 in vec4 vColor;

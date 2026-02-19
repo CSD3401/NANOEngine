@@ -21,6 +21,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include "../Components/EntityMeta.hpp"
 // UIRectMask2D folded into UIRectTransform (enableMask + maskPadding fields)
 #include "UITransformUtilities.hpp"
@@ -45,6 +46,8 @@ namespace NE::ECS::Systems {
 
     UIRenderSystem::UIRenderSystem(ComponentManager* cm) : m_cm(cm)
     {
+        m_currentView.SetToIdentity();
+        m_currentProj.SetToIdentity();
     }
     bool UIRenderSystem::IsActiveForUI(Entity entity, Entity canvasEntity) const
     {
@@ -238,6 +241,12 @@ namespace NE::ECS::Systems {
         // Reset geometry pool index for this frame
         m_geometryIndex = 0;
 
+        // Reset batching diagnostics
+        m_frameDrawCalls = 0;
+        m_frameSpriteBatches = 0;
+        m_frameTextBatches = 0;
+        m_frameUIElements = 0;
+
         const auto& entities = GetEntities();
 
         // Runtime texture loading - handle textures dragged at runtime
@@ -334,6 +343,7 @@ namespace NE::ECS::Systems {
             Math::Mat4 viewMatrix, projMatrix;
             Math::Mat4* pView = nullptr;
             Math::Mat4* pProj = nullptr;
+            bool hasValidCamera = true;
 
             if (canvas.renderMode == UICanvas::RenderMode::SCREEN_SPACE_CAMERA ||
                 canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
@@ -345,8 +355,14 @@ namespace NE::ECS::Systems {
                     m_currentProj = projMatrix;
                 }
                 else {
-                    std::cerr << "[UIRenderSystem] Warning: Canvas requires camera but none found!" << std::endl;
+                    std::cerr << "[UIRenderSystem] WARNING: Canvas requires camera but none found!" << std::endl;
+                    hasValidCamera = false;
                 }
+            }
+
+            // Skip WorldSpace rendering if no camera found
+            if (!hasValidCamera && canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
+                continue;
             }
 
             RenderCanvasChildren(canvasEntity, canvas, pView, pProj);
@@ -659,8 +675,14 @@ namespace NE::ECS::Systems {
             if (!IsActiveForUI(e, canvasEntity)) continue;
 
             auto& children = m_canvasChildrenMap[canvasEntity];
-            if (hasImage) children.images.push_back(e);
-            if (hasText)  children.texts.push_back(e);
+            if (hasImage) {
+                children.images.push_back(e);
+                m_frameUIElements++;
+            }
+            if (hasText) {
+                children.texts.push_back(e);
+                m_frameUIElements++;
+            }
         }
     }
 
@@ -701,26 +723,74 @@ namespace NE::ECS::Systems {
 
         bool isWorldSpace = (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE);
 
-        // Batch accumulation: group elements by batch key to reduce draw calls
+        // WorldSpace: submit each element individually (each needs its own transform)
+        if (isWorldSpace) {
+            for (Entity e : canvasChildren) {
+                auto& img = m_cm->GetComponent<UIImage>(e);
+                auto& rect = m_cm->GetComponent<UIRectTransform>(e);
+
+                AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(e, canvasEntity, canvas);
+                rect.worldMatrixDirty = true;
+                m_layoutEngine->UpdateWorldMatrixFromAccumulated(e, accumulated, true);
+                WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
+
+                rect.cachedWorldX = worldTransform.x;
+                rect.cachedWorldY = worldTransform.y;
+                rect.cachedWorldWidth = worldTransform.width;
+                rect.cachedWorldHeight = worldTransform.height;
+                rect.cachedWorldRotZ = worldTransform.accumulatedRotationZ;
+                rect.cachedWorldScaleX = worldTransform.accumulatedScaleX;
+                rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
+                rect.worldRectCached = true;
+
+                // Generate unit quad for world space
+                std::vector<NE::Graphics::UIVertex2> verticesV2 =
+                    NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
+                        img, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, img.color, img.bindlessHandle
+                    );
+
+                if (!verticesV2.empty()) {
+                    m_frameDrawCalls++;
+                    auto geometryBuffer = CreateDynamicUIGeometry(verticesV2);
+                    if (!geometryBuffer) continue;
+
+                    if (!m_sharedWorldSpriteMaterial) continue;
+
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uView", m_currentView);
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uProj", m_currentProj);
+                    m_sharedWorldSpriteMaterial->SetUniformMat4("uModel", rect.worldMatrix);
+                    m_sharedWorldSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+                    m_sharedWorldSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
+
+                    NE::Graphics::DrawCommand cmd;
+                    cmd.transform = rect.worldMatrix;
+                    cmd.mesh = geometryBuffer;
+                    cmd.material = m_sharedWorldSpriteMaterial;
+                    cmd.castsShadow = false;
+                    cmd.receivesShadow = false;
+                    cmd.boundsCenterWS = Math::Vec3(0.0f, 0.0f, 0.0f);
+                    cmd.boundsRadiusWs = 999999.0f;
+                    cmd.scissorRect = std::nullopt;
+                    cmd.enableDepthTest = true;
+
+                    NE::Graphics::GraphicsManager::Submit(cmd);
+                }
+            }
+            return;
+        }
+
+        // ScreenSpace: Batch accumulation: group elements by batch key to reduce draw calls
         std::map<UIBatchKey, UIBatch> batchMap;
-        std::map<UIBatchKey, std::vector<std::pair<Entity, std::optional<NE::Graphics::ScissorRect>>>> batchMetadata;
 
         for (Entity e : canvasChildren) {
             auto& img = m_cm->GetComponent<UIImage>(e);
             auto& rect = m_cm->GetComponent<UIRectTransform>(e);
 
-            // Accumulate parent transforms ONCE per entity (delegated to UILayoutEngine)
             AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(e, canvasEntity, canvas);
-
-            // Force dirty so UpdateWorldMatrixFromAccumulated always rebuilds from fresh accumulated data.
-            // Without this, inspector transform changes would be ignored after frame 1.
             rect.worldMatrixDirty = true;
-
-            // Use the pre-computed accumulated transform for both world matrix and world transform
-            m_layoutEngine->UpdateWorldMatrixFromAccumulated(e, accumulated, isWorldSpace);
+            m_layoutEngine->UpdateWorldMatrixFromAccumulated(e, accumulated, false);
             WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(e, canvas, accumulated);
 
-            // Cache the world rect for UIEventSystem to reuse
             rect.cachedWorldX = worldTransform.x;
             rect.cachedWorldY = worldTransform.y;
             rect.cachedWorldWidth = worldTransform.width;
@@ -730,41 +800,25 @@ namespace NE::ECS::Systems {
             rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
             rect.worldRectCached = true;
 
-            // Generate vertices using UIVertex2 with color and bindless handle embedded per-vertex
-            std::vector<NE::Graphics::UIVertex2> verticesV2;
-
-            if (canvas.renderMode == UICanvas::RenderMode::WORLD_SPACE) {
-                // For world space, generate simple unit quad
-                verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
-                    img, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, img.color, img.bindlessHandle
-                );
-            }
-            else {
-                // For screen space, use world transform
-                verticesV2 = NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
+            // Generate screen-space vertices
+            std::vector<NE::Graphics::UIVertex2> verticesV2 =
+                NE::Graphics::UIImageMeshGenerator::GenerateVertices2(
                     img,
                     worldTransform.x, worldTransform.y, worldTransform.z,
                     worldTransform.width, worldTransform.height,
                     img.color, img.bindlessHandle
                 );
-            }
 
             if (!verticesV2.empty()) {
-                // Compute scissor rect (if any)
-                std::optional<NE::Graphics::ScissorRect> scissor;
-                if (!isWorldSpace) {
-                    scissor = ComputeScissorRect(e, canvasEntity, canvas);
-                }
+                std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(e, canvasEntity, canvas);
 
-                // Create batch key for this element
                 UIBatchKey key;
                 key.isText = false;
-                key.isWorldSpace = isWorldSpace;
-                key.enableDepthTest = isWorldSpace;
+                key.isWorldSpace = false;
+                key.enableDepthTest = false;
                 key.scissorRect = scissor;
                 key.sortingOrder = rect.z + canvas.sortingOrder * 1000.0f;
 
-                // Accumulate vertices into batch (with index offset adjustment)
                 UIBatch& batch = batchMap[key];
                 uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
 
@@ -772,7 +826,6 @@ namespace NE::ECS::Systems {
                     batch.vertices.push_back(v);
                 }
 
-                // Generate quad indices (4 verts per quad, 2 triangles)
                 uint32_t quadCount = static_cast<uint32_t>(verticesV2.size()) / 4;
                 for (uint32_t i = 0; i < quadCount; ++i) {
                     uint32_t base = baseVertex + i * 4;
@@ -783,60 +836,36 @@ namespace NE::ECS::Systems {
                     batch.indices.push_back(base + 3);
                     batch.indices.push_back(base + 0);
                 }
-
-                // Store metadata for this batch (used for uniforms)
-                batchMetadata[key].push_back({ e, scissor });
             }
         }
 
-        // Submit accumulated batches (one draw call per batch instead of per element!)
+        // Submit screen-space batches
+        m_frameSpriteBatches += batchMap.size();
         for (auto& [key, batch] : batchMap) {
             if (batch.vertices.empty()) continue;
+            m_frameDrawCalls++;
 
             auto geometryBuffer = AcquireGeometryBuffer(batch.vertices, batch.indices);
-            if (!geometryBuffer) {
-                std::cerr << "[UIRenderSystem::RenderCanvasChildren] ERROR: Failed to create batch geometry buffer!" << std::endl;
-                continue;
-            }
+            if (!geometryBuffer) continue;
 
-            // Use shared material and submit batch
-            if (key.isWorldSpace) {
-                if (!m_sharedWorldSpriteMaterial) continue;
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uView", m_currentView);
-                m_sharedWorldSpriteMaterial->SetUniformMat4("uProj", m_currentProj);
-                m_sharedWorldSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
-                m_sharedWorldSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
+            if (!m_sharedSpriteMaterial) continue;
+            uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+            uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+            m_sharedSpriteMaterial->SetUniformVec2("uScreenSize",
+                Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
+            m_sharedSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            m_sharedSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
 
-                NE::Graphics::DrawCommand cmd;
-                cmd.mesh = geometryBuffer;
-                cmd.material = m_sharedWorldSpriteMaterial;
-                cmd.scissorRect = key.scissorRect;
-                cmd.enableDepthTest = true;
-                cmd.castsShadow = false;
-                cmd.receivesShadow = false;
-                cmd.boundsRadiusWs = 999999.0f;
+            NE::Graphics::DrawCommand cmd;
+            cmd.transform = Math::Mat4();  // Identity — vertices pre-positioned in pixels
+            cmd.mesh = geometryBuffer;
+            cmd.material = m_sharedSpriteMaterial;
+            cmd.scissorRect = key.scissorRect;
+            cmd.castsShadow = false;
+            cmd.receivesShadow = false;
+            cmd.boundsRadiusWs = 999999.0f;
 
-                NE::Graphics::GraphicsManager::Submit(cmd);
-            } else {
-                if (!m_sharedSpriteMaterial) continue;
-                uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-                uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
-                m_sharedSpriteMaterial->SetUniformVec2("uScreenSize",
-                    Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
-                m_sharedSpriteMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
-                m_sharedSpriteMaterial->SetQueueOffset(canvas.sortingOrder);
-
-                NE::Graphics::DrawCommand cmd;
-                cmd.transform = Math::Mat4();  // Identity — vertices pre-positioned in pixels
-                cmd.mesh = geometryBuffer;
-                cmd.material = m_sharedSpriteMaterial;
-                cmd.scissorRect = key.scissorRect;
-                cmd.castsShadow = false;
-                cmd.receivesShadow = false;
-                cmd.boundsRadiusWs = 999999.0f;
-
-                NE::Graphics::GraphicsManager::Submit(cmd);
-            }
+            NE::Graphics::GraphicsManager::Submit(cmd);
         }
     }
 
@@ -856,25 +885,16 @@ namespace NE::ECS::Systems {
             SortEntitiesByZOrder(textChildren);
         }
 
-        // Batch accumulation for text: group by font atlas handle to reduce draw calls
-        std::map<UIBatchKey, UIBatch> batchMap;
-
-        for (Entity entity : textChildren) {
-            if (!m_cm->HasComponent<UIText>(entity) || !m_cm->HasComponent<UIRectTransform>(entity)) continue;
-
+        // Helper lambda for vertex generation and caching logic
+        auto GenerateTextVertices = [&](Entity entity) -> std::vector<NE::Graphics::UIVertex2> {
             auto& text = m_cm->GetComponent<UIText>(entity);
             auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
 
-            // Skip if no text or font
-            if (text.text.empty() || text.fontUUID.empty()) continue;
-
-            // Accumulate parent transforms
             AccumulatedTransform accumulated = m_layoutEngine->AccumulateParentTransforms(entity, canvasEntity, canvas);
             rect.worldMatrixDirty = true;
             m_layoutEngine->UpdateWorldMatrixFromAccumulated(entity, accumulated, isWorldSpace);
             WorldTransform worldTransform = m_layoutEngine->CalculateWorldTransformFromAccumulated(entity, canvas, accumulated);
 
-            // Cache the world rect for UIEventSystem
             rect.cachedWorldX = worldTransform.x;
             rect.cachedWorldY = worldTransform.y;
             rect.cachedWorldWidth = worldTransform.width;
@@ -884,11 +904,9 @@ namespace NE::ECS::Systems {
             rect.cachedWorldScaleY = worldTransform.accumulatedScaleY;
             rect.worldRectCached = true;
 
-            // Calculate font size
             float scaleFactorForFont = isWorldSpace ? 1.0f : std::min(accumulated.scaleX, accumulated.scaleY);
             float effectiveFontSize = text.fontSize * scaleFactorForFont;
 
-            // Auto-scale if enabled
             if (text.autoScale) {
                 auto tempAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
                     text.fontUUID, text.fontSize
@@ -909,13 +927,11 @@ namespace NE::ECS::Systems {
 
             effectiveFontSize = std::max(8.0f, std::min(effectiveFontSize, 256.0f));
 
-            // Get font atlas
             auto fontAtlas = NE::Graphics::FontAtlasCache::GetInstance().GetOrCreate(
                 text.fontUUID, effectiveFontSize
             );
-            if (!fontAtlas) continue;
+            if (!fontAtlas) return {};
 
-            // Check if vertices need regeneration
             const float POS_EPS = 0.01f;
             const float SIZE_EPS = 0.01f;
             const float ROT_EPS = 0.001f;
@@ -945,7 +961,6 @@ namespace NE::ECS::Systems {
                 text.fontAtlasHandle != fontAtlas->GetBindlessHandle() ||
                 transformChanged;
 
-            // Generate vertices if needed
             std::vector<NE::Graphics::UIVertex2> verticesV2;
             if (needsRegen) {
                 float textX = isWorldSpace ? 0.0f : worldTransform.x;
@@ -966,7 +981,6 @@ namespace NE::ECS::Systems {
                 );
                 verticesV2 = result.vertices;
 
-                // Apply rotation for screen-space text
                 if (!isWorldSpace && std::abs(worldTransform.accumulatedRotationZ) > 0.0001f) {
                     float rot = worldTransform.accumulatedRotationZ * (3.1415926535f / 180.0f);
                     const float pivotX = worldTransform.x + worldTransform.width * rect.pivotX;
@@ -995,80 +1009,113 @@ namespace NE::ECS::Systems {
                 verticesV2 = text.cachedVertices;
             }
 
-            if (!verticesV2.empty()) {
-                // Compute scissor (screen-space only)
-                std::optional<NE::Graphics::ScissorRect> scissor;
-                if (!isWorldSpace) {
-                    scissor = ComputeScissorRect(entity, canvasEntity, canvas);
-                }
+            return verticesV2;
+        };
 
-                // Create batch key (includes atlas handle for different fonts)
-                UIBatchKey key;
-                key.isText = true;
-                key.isWorldSpace = isWorldSpace;
-                key.enableDepthTest = isWorldSpace;
-                key.scissorRect = scissor;
-                key.sortingOrder = rect.z + canvas.sortingOrder * 1000.0f;
+        // WorldSpace: submit each text individually with its own transform
+        if (isWorldSpace) {
+            for (Entity entity : textChildren) {
+                if (!m_cm->HasComponent<UIText>(entity) || !m_cm->HasComponent<UIRectTransform>(entity)) continue;
 
-                // Accumulate vertices into batch
-                UIBatch& batch = batchMap[key];
-                uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
+                auto& text = m_cm->GetComponent<UIText>(entity);
+                auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
 
-                for (const auto& v : verticesV2) {
-                    batch.vertices.push_back(v);
-                }
+                if (text.text.empty() || text.fontUUID.empty()) continue;
 
-                // Text uses triangle lists (no quads), so indices are sequential
-                for (uint32_t i = 0; i < static_cast<uint32_t>(verticesV2.size()); ++i) {
-                    batch.indices.push_back(baseVertex + i);
-                }
-            }
-        }
+                std::vector<NE::Graphics::UIVertex2> verticesV2 = GenerateTextVertices(entity);
+                if (verticesV2.empty()) continue;
 
-        // Submit accumulated text batches
-        for (auto& [key, batch] : batchMap) {
-            if (batch.vertices.empty()) continue;
+                m_frameDrawCalls++;
+                auto geometryBuffer = CreateDynamicTextGeometry(verticesV2);
+                if (!geometryBuffer) continue;
 
-            auto geometryBuffer = AcquireGeometryBuffer(batch.vertices, batch.indices);
-            if (!geometryBuffer) continue;
-
-            if (key.isWorldSpace) {
                 if (!m_sharedWorldTextMaterial) continue;
+                float smoothing = 0.07f;
                 m_sharedWorldTextMaterial->SetUniformMat4("uView", m_currentView);
                 m_sharedWorldTextMaterial->SetUniformMat4("uProj", m_currentProj);
+                m_sharedWorldTextMaterial->SetUniformMat4("uModel", rect.worldMatrix);
+                m_sharedWorldTextMaterial->SetUniformFloat("uFontSmoothing", smoothing);
                 m_sharedWorldTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
                 m_sharedWorldTextMaterial->SetQueueOffset(canvas.sortingOrder);
 
                 NE::Graphics::DrawCommand cmd;
+                cmd.transform = rect.worldMatrix;  // Apply element's world matrix
                 cmd.mesh = geometryBuffer;
                 cmd.material = m_sharedWorldTextMaterial;
-                cmd.scissorRect = key.scissorRect;
                 cmd.enableDepthTest = true;
                 cmd.castsShadow = false;
                 cmd.receivesShadow = false;
                 cmd.boundsRadiusWs = 999999.0f;
 
                 NE::Graphics::GraphicsManager::Submit(cmd);
-            } else {
-                if (!m_sharedTextMaterial) continue;
-                uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
-                uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
-                m_sharedTextMaterial->SetUniformVec2("uScreenSize",
-                    Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
-                m_sharedTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
-                m_sharedTextMaterial->SetQueueOffset(canvas.sortingOrder);
-
-                NE::Graphics::DrawCommand cmd;
-                cmd.transform = Math::Mat4();
-                cmd.mesh = geometryBuffer;
-                cmd.material = m_sharedTextMaterial;
-                cmd.scissorRect = key.scissorRect;
-                cmd.castsShadow = false;
-                cmd.receivesShadow = false;
-                cmd.boundsRadiusWs = 999999.0f;
-
-                NE::Graphics::GraphicsManager::Submit(cmd);
             }
+            return;
+        }
+
+        // ScreenSpace: batch text by font atlas
+        std::map<UIBatchKey, UIBatch> batchMap;
+
+        for (Entity entity : textChildren) {
+            if (!m_cm->HasComponent<UIText>(entity) || !m_cm->HasComponent<UIRectTransform>(entity)) continue;
+
+            auto& text = m_cm->GetComponent<UIText>(entity);
+            auto& rect = m_cm->GetComponent<UIRectTransform>(entity);
+
+            if (text.text.empty() || text.fontUUID.empty()) continue;
+
+            std::vector<NE::Graphics::UIVertex2> verticesV2 = GenerateTextVertices(entity);
+            if (verticesV2.empty()) continue;
+
+            std::optional<NE::Graphics::ScissorRect> scissor = ComputeScissorRect(entity, canvasEntity, canvas);
+
+            UIBatchKey key;
+            key.isText = true;
+            key.isWorldSpace = false;
+            key.enableDepthTest = false;
+            key.scissorRect = scissor;
+            key.sortingOrder = rect.z + canvas.sortingOrder * 1000.0f;
+
+            UIBatch& batch = batchMap[key];
+            uint32_t baseVertex = static_cast<uint32_t>(batch.vertices.size());
+
+            for (const auto& v : verticesV2) {
+                batch.vertices.push_back(v);
+            }
+
+            for (uint32_t i = 0; i < static_cast<uint32_t>(verticesV2.size()); ++i) {
+                batch.indices.push_back(baseVertex + i);
+            }
+        }
+
+        // Submit screen-space text batches
+        m_frameTextBatches += batchMap.size();
+        for (auto& [key, batch] : batchMap) {
+            if (batch.vertices.empty()) continue;
+            m_frameDrawCalls++;
+
+            auto geometryBuffer = AcquireGeometryBuffer(batch.vertices, batch.indices);
+            if (!geometryBuffer) continue;
+
+            if (!m_sharedTextMaterial) continue;
+            float smoothing = 0.07f;
+            uint32_t screenWidth = NE::Graphics::GraphicsManager::GetScreenWidth();
+            uint32_t screenHeight = NE::Graphics::GraphicsManager::GetScreenHeight();
+            m_sharedTextMaterial->SetUniformVec2("uScreenSize",
+                Math::Vec2(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
+            m_sharedTextMaterial->SetUniformFloat("uFontSmoothing", smoothing);
+            m_sharedTextMaterial->SetQueueBase(NE::Graphics::RenderQueue::OVERLAY);
+            m_sharedTextMaterial->SetQueueOffset(canvas.sortingOrder);
+
+            NE::Graphics::DrawCommand cmd;
+            cmd.transform = Math::Mat4();
+            cmd.mesh = geometryBuffer;
+            cmd.material = m_sharedTextMaterial;
+            cmd.scissorRect = key.scissorRect;
+            cmd.castsShadow = false;
+            cmd.receivesShadow = false;
+            cmd.boundsRadiusWs = 999999.0f;
+
+            NE::Graphics::GraphicsManager::Submit(cmd);
         }
     }
 

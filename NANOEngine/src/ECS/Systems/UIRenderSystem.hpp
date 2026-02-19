@@ -64,6 +64,12 @@ namespace NE::ECS::Systems {
 
         void SetLayoutEngine(UILayoutEngine* engine) { m_layoutEngine = engine; }
 
+        // Batching diagnostics
+        int GetFrameUIElements() const { return m_frameUIElements; }
+        int GetFrameDrawCalls() const { return m_frameDrawCalls; }
+        int GetFrameSpriteBatches() const { return m_frameSpriteBatches; }
+        int GetFrameTextBatches() const { return m_frameTextBatches; }
+
         bool IsActiveForUI(Entity e, Entity canvasEntity) const;
 
         void Init() override;
@@ -162,6 +168,12 @@ namespace NE::ECS::Systems {
         ComponentManager* m_cm;
         UILayoutEngine* m_layoutEngine = nullptr;
 
+        // Batching diagnostics
+        int m_frameDrawCalls = 0;
+        int m_frameSpriteBatches = 0;
+        int m_frameTextBatches = 0;
+        int m_frameUIElements = 0;
+
         // Shared pipeline materials (one per shader type, reused for all batches)
         std::shared_ptr<NE::Graphics::Material> m_sharedSpriteMaterial;       // neuisprite — only uScreenSize
         std::shared_ptr<NE::Graphics::Material> m_sharedTextMaterial;         // neuitext — only uScreenSize
@@ -171,10 +183,6 @@ namespace NE::ECS::Systems {
         // Camera matrices (stored per frame for WorldSpace rendering)
         Math::Mat4 m_currentView;
         Math::Mat4 m_currentProj;
-
-        // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
-        std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
-        size_t m_geometryIndex = 0;
 
         // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
         std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
