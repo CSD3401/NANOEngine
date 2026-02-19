@@ -216,6 +216,49 @@ namespace NE::Graphics {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	void PostProcessPipeline::EnsureSSRSceneMipResources(uint32_t w, uint32_t h)
+	{
+		if (w == 0 || h == 0) return;
+		if (m_ssrSceneMipTex != 0 && m_ssrSceneMipWidth == w && m_ssrSceneMipHeight == h) {
+			return;
+		}
+
+		if (m_ssrSceneMipTex != 0) {
+			glDeleteTextures(1, &m_ssrSceneMipTex);
+			m_ssrSceneMipTex = 0;
+		}
+		if (m_ssrSceneMipFBO != 0) {
+			glDeleteFramebuffers(1, &m_ssrSceneMipFBO);
+			m_ssrSceneMipFBO = 0;
+		}
+
+		m_ssrSceneMipWidth = w;
+		m_ssrSceneMipHeight = h;
+		m_ssrSceneMipLevels = static_cast<int>(std::floor(std::log2(static_cast<float>(std::max(w, h))))) + 1;
+		m_ssrSceneMipLevels = std::max(1, m_ssrSceneMipLevels);
+
+		glGenTextures(1, &m_ssrSceneMipTex);
+		glBindTexture(GL_TEXTURE_2D, m_ssrSceneMipTex);
+		glTexStorage2D(GL_TEXTURE_2D, m_ssrSceneMipLevels, GL_RGBA16F, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, m_ssrSceneMipLevels - 1);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glGenFramebuffers(1, &m_ssrSceneMipFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_ssrSceneMipFBO);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ssrSceneMipTex, 0);
+		const GLenum att = GL_COLOR_ATTACHMENT0;
+		glDrawBuffers(1, &att);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			LOG_ERROR("SSR mip source FBO incomplete!");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
 	void PostProcessPipeline::EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h)
 	{
 		if (w == 0 || h == 0) return;
@@ -326,7 +369,6 @@ namespace NE::Graphics {
 		m_context.invProj = invProj;
 		m_context.isSceneView = isSceneView;
 		m_context.currViewProjInv = (currProj * currView).Inverse();
-		m_context.sceneColorTex = sourceFB->GetColorAttachment();
 		m_context.taaHasHistory = false;
 		m_context.taaHistoryTex = 0;
 
@@ -385,6 +427,11 @@ namespace NE::Graphics {
 			&& hasRoughnessAttachment;
 
 		if (ssrEnabled) {
+			EnsureSSRSceneMipResources(sourceFB->GetWidth(), sourceFB->GetHeight());
+			if (m_ssrSceneMipTex == 0) {
+				LOG_WARNING("SSR skipped: dedicated scene mip texture is unavailable.");
+			}
+			else {
 			TextureDesc ssrRawDesc;
 			ssrRawDesc.width = sourceFB->GetWidth();
 			ssrRawDesc.height = sourceFB->GetHeight();
@@ -399,15 +446,36 @@ namespace NE::Graphics {
 			ssrResolvedDesc.name = "SSRResolved";
 			auto ssrResolvedTex = m_graph->CreateTexture(ssrResolvedDesc);
 
-			const auto ssrSceneInput = sceneColor;
+			const auto ssrSceneInput = m_graph->ImportTexture(m_ssrSceneMipTex, "SSRSceneMipSource");
+
+			m_graph->AddPass("SSR: Copy Scene To Mip Source")
+				.Read(sceneColor)
+				.Write(ssrSceneInput)
+				.Execute([sceneColor, ssrSceneInput, sourceW = sourceFB->GetWidth(), sourceH = sourceFB->GetHeight()](const RenderGraphContext& ctx) {
+					if (!ctx.graph || sourceW == 0 || sourceH == 0) return;
+					const uint32_t srcTex = ctx.GetTexture(sceneColor);
+					const uint32_t dstTex = ctx.GetTexture(ssrSceneInput);
+					if (srcTex == 0 || dstTex == 0) return;
+
+					glCopyImageSubData(
+						srcTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+						dstTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+						static_cast<GLsizei>(sourceW),
+						static_cast<GLsizei>(sourceH),
+						1
+					);
+				});
 
 			m_graph->AddPass("SSR: Build Scene Mips")
-				.Read(ssrSceneInput)
 				.Write(ssrSceneInput)
-				.Execute([ssrSceneInput](const RenderGraphContext& ctx) {
+				.Execute([ssrSceneInput, sourceW = sourceFB->GetWidth(), sourceH = sourceFB->GetHeight()](const RenderGraphContext& ctx) {
 					if (!ctx.graph) return;
 					const uint32_t sceneTex = ctx.GetTexture(ssrSceneInput);
 					if (sceneTex == 0) return;
+					if (sourceW == 0 || sourceH == 0) {
+						LOG_WARNING("SSR mip generation skipped: invalid source dimensions.");
+						return;
+					}
 
 					glBindTexture(GL_TEXTURE_2D, sceneTex);
 					glGenerateMipmap(GL_TEXTURE_2D);
@@ -540,6 +608,7 @@ namespace NE::Graphics {
 				});
 
 			sceneColor = ssrResolvedTex;
+			}
 		}
 
 		const bool canRunTAA = m_settings
@@ -553,21 +622,29 @@ namespace NE::Graphics {
 			auto stateIt = m_taaStates.find(sourceView);
 			if (stateIt != m_taaStates.end()) {
 				auto& state = stateIt->second;
+				const int taaReadIndex = state.readIndex;
+				const int taaWriteIndex = state.writeIndex;
 				m_context.prevViewProj = state.prevViewProj;
 				m_context.taaHasHistory = state.hasHistory;
-				m_context.taaHistoryTex = state.historyTex[state.readIndex];
+				m_context.taaHistoryTex = state.historyTex[taaReadIndex];
 
-				auto historyRead = m_graph->ImportTexture(state.historyTex[state.readIndex], "TAAHistoryRead");
-				auto historyWrite = m_graph->ImportTexture(state.historyTex[state.writeIndex], "TAAHistoryWrite");
+				auto historyRead = m_graph->ImportTexture(state.historyTex[taaReadIndex], "TAAHistoryRead");
+				auto historyWrite = m_graph->ImportTexture(state.historyTex[taaWriteIndex], "TAAHistoryWrite");
 				const auto taaInputSceneColor = sceneColor;
+				TextureDesc taaOutputDesc;
+				taaOutputDesc.width = sourceFB->GetWidth();
+				taaOutputDesc.height = sourceFB->GetHeight();
+				taaOutputDesc.format = TextureFormat::RGBA16F;
+				taaOutputDesc.name = "TAAOutput";
+				auto taaOutput = m_graph->CreateTexture(taaOutputDesc);
 
 				m_graph->AddPass("TAA")
 					.Read(taaInputSceneColor)
 					.Read(sceneDepth)
 					.Read(historyRead)
-					.Write(historyWrite)
-					.Execute([this, sourceView, currView, currProj, taaInputSceneColor](const RenderGraphContext& ctx) {
-						if (!m_settings || !m_taaShader) return;
+					.Write(taaOutput)
+					.Execute([this, sourceView, currView, currProj, taaInputSceneColor, historyRead, taaOutput, taaReadIndex, taaWriteIndex](const RenderGraphContext& ctx) {
+						if (!m_settings || !m_taaShader || !ctx.graph) return;
 						auto it = m_taaStates.find(sourceView);
 						if (it == m_taaStates.end()) return;
 
@@ -577,7 +654,10 @@ namespace NE::Graphics {
 						const uint32_t h = pctx.sourceFB->GetHeight();
 						if (w == 0 || h == 0) return;
 
-						glBindFramebuffer(GL_FRAMEBUFFER, state.historyFBO[state.writeIndex]);
+						const uint32_t targetFbo = ctx.graph->GetFramebufferId(taaOutput);
+						if (targetFbo == 0) return;
+
+						glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 						glViewport(0, 0, w, h);
 						glClearColor(0, 0, 0, 1);
 						glClear(GL_COLOR_BUFFER_BIT);
@@ -604,7 +684,7 @@ namespace NE::Graphics {
 						glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetDepthAttachment());
 
 						glActiveTexture(GL_TEXTURE2);
-						glBindTexture(GL_TEXTURE_2D, state.historyTex[state.readIndex]);
+						glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(historyRead));
 
 						glBindVertexArray(m_QuadVAO);
 						glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -615,12 +695,35 @@ namespace NE::Graphics {
 
 						state.prevViewProj = currProj * currView;
 						state.hasHistory = true;
-
-						std::swap(state.readIndex, state.writeIndex);
+						state.readIndex = taaWriteIndex;
+						state.writeIndex = taaReadIndex;
 					});
 
-				m_context.sceneColorTex = state.historyTex[state.writeIndex];
-				sceneColor = m_graph->ImportTexture(m_context.sceneColorTex, "SceneTAA");
+				m_graph->AddPass("TAA: Commit History")
+					.Read(taaOutput)
+					.Write(historyWrite)
+					.Execute([this, sourceView, taaOutput, historyWrite](const RenderGraphContext& ctx) {
+						if (!ctx.graph) return;
+						auto it = m_taaStates.find(sourceView);
+						if (it == m_taaStates.end()) return;
+
+						const uint32_t srcTex = ctx.GetTexture(taaOutput);
+						const uint32_t dstTex = ctx.GetTexture(historyWrite);
+						if (srcTex == 0 || dstTex == 0) return;
+
+						const auto& state = it->second;
+						if (state.width == 0 || state.height == 0) return;
+
+						glCopyImageSubData(
+							srcTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+							dstTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+							static_cast<GLsizei>(state.width),
+							static_cast<GLsizei>(state.height),
+							1
+						);
+					});
+
+				sceneColor = taaOutput;
 			}
 		}
 		else {
@@ -829,7 +932,6 @@ namespace NE::Graphics {
 						int w = m_bloomWidth[hi];
 						int h = m_bloomHeight[hi];
 
-						// Avoid read/write hazards by ping-ponging to a temp target.
 						glBindFramebuffer(GL_FRAMEBUFFER, m_bloomTempFBO[hi]);
 						glViewport(0, 0, w, h);
 						glClearColor(0, 0, 0, 1);
@@ -848,8 +950,11 @@ namespace NE::Graphics {
 						glBindVertexArray(m_QuadVAO);
 						glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-						std::swap(m_bloomTex[hi], m_bloomTempTex[hi]);
-						std::swap(m_bloomFBO[hi], m_bloomTempFBO[hi]);
+						glCopyImageSubData(
+							m_bloomTempTex[hi], GL_TEXTURE_2D, 0, 0, 0, 0,
+							m_bloomTex[hi], GL_TEXTURE_2D, 0, 0, 0, 0,
+							w, h, 1
+						);
 					}
 					glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				});
@@ -860,7 +965,7 @@ namespace NE::Graphics {
 			.Read(ssaoTex)
 			.Read(bloomTex)
 			.Write(finalTex)
-			.Execute([this, sceneColor, ssaoTex, bloomEnabled, ssaoEnabled](const RenderGraphContext& ctx) {
+			.Execute([this, sceneColor, ssaoTex, bloomTex, bloomEnabled, ssaoEnabled](const RenderGraphContext& ctx) {
 				if (!m_settings || !m_compositeShader) return;
 
 				auto& pctx = m_context;
@@ -890,7 +995,7 @@ namespace NE::Graphics {
 				glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneColor));
 
 				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, bloomEnabled ? m_bloomTex[0] : 0);
+				glBindTexture(GL_TEXTURE_2D, bloomEnabled ? ctx.GetTexture(bloomTex) : 0);
 
 				glActiveTexture(GL_TEXTURE2);
 				glBindTexture(GL_TEXTURE_2D, ssaoEnabled ? ctx.GetTexture(ssaoTex) : 0);
@@ -957,6 +1062,17 @@ namespace NE::Graphics {
 			glDeleteFramebuffers(1, &m_SSAOFBO);
 			m_SSAOFBO = 0;
 		}
+		if (m_ssrSceneMipTex) {
+			glDeleteTextures(1, &m_ssrSceneMipTex);
+			m_ssrSceneMipTex = 0;
+		}
+		if (m_ssrSceneMipFBO) {
+			glDeleteFramebuffers(1, &m_ssrSceneMipFBO);
+			m_ssrSceneMipFBO = 0;
+		}
+		m_ssrSceneMipWidth = 0;
+		m_ssrSceneMipHeight = 0;
+		m_ssrSceneMipLevels = 1;
 
 		for (auto& [_, state] : m_taaStates) {
 			for (int i = 0; i < 2; ++i) {

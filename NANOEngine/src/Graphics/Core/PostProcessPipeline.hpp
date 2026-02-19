@@ -45,6 +45,7 @@ namespace NE::Graphics {
 		void InitFullscreenQuad();
 		void InitBloomResources(uint32_t w, uint32_t h);
 		void InitSSAOResources(uint32_t w, uint32_t h);
+		void EnsureSSRSceneMipResources(uint32_t w, uint32_t h);
 		void EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h);
 		void LoadShaders();
 		void SetupGraph(RenderViewHandle sourceView,
@@ -62,7 +63,6 @@ namespace NE::Graphics {
 			Math::Mat4 invProj;
 			Math::Mat4 currViewProjInv;
 			Math::Mat4 prevViewProj;
-			uint32_t sceneColorTex = 0;
 			uint32_t taaHistoryTex = 0;
 			bool taaHasHistory = false;
 			bool isSceneView = true;
@@ -116,6 +116,11 @@ namespace NE::Graphics {
 		unsigned int m_SSAOFBO = 0;
 		unsigned int m_SSAOTex = 0;
 		std::shared_ptr<OpenGL::GLShader> m_SSAOShader;
+		unsigned int m_ssrSceneMipTex = 0;
+		unsigned int m_ssrSceneMipFBO = 0;
+		uint32_t m_ssrSceneMipWidth = 0;
+		uint32_t m_ssrSceneMipHeight = 0;
+		int m_ssrSceneMipLevels = 1;
 
 		std::unordered_map<RenderViewHandle, TAAViewState> m_taaStates;
 
