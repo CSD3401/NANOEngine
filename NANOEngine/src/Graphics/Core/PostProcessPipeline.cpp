@@ -517,8 +517,6 @@ namespace NE::Graphics {
 					m_ssrShader->SetUniformMat4("u_InvProj", pctx.invProj);
 					m_ssrShader->SetUniformMat4("u_Proj", currProj);
 					m_ssrShader->SetUniformMat4("u_View", currView);
-					m_ssrShader->SetUniformVec2("u_TexelSize", { 1.0f / static_cast<float>(w), 1.0f / static_cast<float>(h) });
-					m_ssrShader->SetUniformFloat("u_Intensity", m_settings->ssrSettings.intensity);
 					m_ssrShader->SetUniformFloat("u_MaxDistance", m_settings->ssrSettings.maxDistance);
 					m_ssrShader->SetUniformFloat("u_Thickness", m_settings->ssrSettings.thickness);
 					m_ssrShader->SetUniformInt("u_MaxSteps", m_settings->ssrSettings.maxSteps);

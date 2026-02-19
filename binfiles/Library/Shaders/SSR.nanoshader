@@ -26,9 +26,6 @@ uniform mat4 u_InvProj;
 uniform mat4 u_Proj;
 uniform mat4 u_View;
 
-uniform vec2 u_TexelSize;
-
-uniform float u_Intensity;
 uniform float u_MaxDistance;
 uniform float u_Thickness;
 uniform int u_MaxSteps;

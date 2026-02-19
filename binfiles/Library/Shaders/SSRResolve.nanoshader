@@ -114,9 +114,8 @@ void main() {
     float fresnel = pow(clamp(1.0 - max(dot(normalVS, viewDir), 0.0), 0.0, 1.0), u_FresnelPower);
     float reflectionWeight = clamp(u_Intensity * roughnessFactor * fresnel, 0.0, 1.0);
 
-    // For true misses with no valid neighborhood, fallback shouldn't add bright energy.
-    // Keep it conservative by damping with validity floor.
-    float mixWeight = reflectionWeight * max(reflectionValidity, 0.05);
+    // True misses should not add reflection energy.
+    float mixWeight = reflectionWeight * reflectionValidity;
     vec3 finalColor = scene + reflection * mixWeight;
     FragColor = vec4(finalColor, 1.0);
 }
