@@ -4,9 +4,12 @@
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aTexCoord;
 layout(location = 2) in vec4 aColor;
+layout(location = 3) in uint texHandleLo;
+layout(location = 4) in uint texHandleHi;
 
 out vec2 TexCoord;
 out vec4 Color;
+flat out uvec2 vTexHandle;
 
 uniform mat4 uModel;
 uniform mat4 uView;
@@ -16,6 +19,7 @@ void main() {
     gl_Position = uProj * uView * uModel * vec4(aPos, 1.0);
     TexCoord = aTexCoord;
     Color = aColor;
+    vTexHandle = uvec2(texHandleLo, texHandleHi);
 }
 
 #type fragment
@@ -24,12 +28,18 @@ void main() {
 
 in vec2 TexCoord;
 in vec4 Color;
+flat in uvec2 vTexHandle;
 out vec4 FragColor;
 
-layout(bindless_sampler) uniform sampler2D uFontAtlas;
-uniform vec4 uColor;
-
 void main() {
-    float alpha = texture(uFontAtlas, TexCoord).r;
-    FragColor = vec4(Color.rgb * uColor.rgb, alpha * Color.a * uColor.a);
+    uint64_t handle = uint64_t(vTexHandle.y) << 32 | uint64_t(vTexHandle.x);
+    sampler2D fontAtlas = sampler2D(handle);
+
+    // SDF rendering: read distance field and use smoothstep for edge recovery
+    float dist = texture(fontAtlas, TexCoord).r;
+    float edgeCenter = 180.0 / 255.0;  // SDF edge is at 180/255
+    float smoothing = 0.07;             // Adjust for desired crispness
+    float alpha = smoothstep(edgeCenter - smoothing, edgeCenter + smoothing, dist);
+
+    FragColor = vec4(Color.rgb, alpha * Color.a);
 }

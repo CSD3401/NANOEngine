@@ -13,7 +13,8 @@ namespace NE::Graphics {
         NE::ECS::Component::UIText::Alignment horizontalAlign,
         NE::ECS::Component::UIText::VerticalAlignment verticalAlign,
         bool wordWrap,
-        float desiredFontSize
+        float desiredFontSize,
+        uint64_t bindlessHandle
     )
     {
         TextMeshResult result;
@@ -80,7 +81,7 @@ namespace NE::Graphics {
                     break;
             }
 
-            GenerateLineVertices(result.vertices, line.text, fontAtlas, startX, currentY, z, color, scaleFactor);
+            GenerateLineVertices(result.vertices, line.text, fontAtlas, startX, currentY, z, color, scaleFactor, bindlessHandle);
             currentY += lineHeight;
         }
 
@@ -207,7 +208,8 @@ namespace NE::Graphics {
         const FontAtlas& fontAtlas,
         float startX, float startY, float z,
         const Math::Vec4& color,
-        float scaleFactor
+        float scaleFactor,
+        uint64_t bindlessHandle
     )
     {
         float cursorX = startX;
@@ -229,14 +231,14 @@ namespace NE::Graphics {
 
             // Create two triangles (6 vertices) for the glyph quad
             // Triangle 1: top-left, bottom-left, bottom-right
-            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color)); // top-left
-            vertices.push_back(CreateVertex(x0, y1, z, glyph->u0, glyph->v1, color)); // bottom-left
-            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color)); // bottom-right
+            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color, bindlessHandle)); // top-left
+            vertices.push_back(CreateVertex(x0, y1, z, glyph->u0, glyph->v1, color, bindlessHandle)); // bottom-left
+            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color, bindlessHandle)); // bottom-right
 
             // Triangle 2: top-left, bottom-right, top-right
-            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color)); // top-left
-            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color)); // bottom-right
-            vertices.push_back(CreateVertex(x1, y0, z, glyph->u1, glyph->v0, color)); // top-right
+            vertices.push_back(CreateVertex(x0, y0, z, glyph->u0, glyph->v0, color, bindlessHandle)); // top-left
+            vertices.push_back(CreateVertex(x1, y1, z, glyph->u1, glyph->v1, color, bindlessHandle)); // bottom-right
+            vertices.push_back(CreateVertex(x1, y0, z, glyph->u1, glyph->v0, color, bindlessHandle)); // top-right
 
             cursorX += glyph->xAdvance * scaleFactor;
         }
@@ -245,13 +247,18 @@ namespace NE::Graphics {
     UIVertex2 UITextMeshGenerator::CreateVertex(
         float x, float y, float z,
         float u, float v,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
+        uint32_t handleLo = static_cast<uint32_t>(bindlessHandle & 0xFFFFFFFF);
+        uint32_t handleHi = static_cast<uint32_t>(bindlessHandle >> 32);
         UIVertex2 vertex;
         vertex.Position = Math::Vec3(x, y, z);
         vertex.TexCoord = Math::Vec2(u, v);
         vertex.Color = color;
+        vertex.texHandleLo = handleLo;
+        vertex.texHandleHi = handleHi;
         return vertex;
     }
 

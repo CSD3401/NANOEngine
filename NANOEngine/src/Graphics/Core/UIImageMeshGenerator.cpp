@@ -10,12 +10,17 @@ namespace NE::Graphics {
     UIVertex2 UIImageMeshGenerator::CreateVertex2(
         float x, float y, float z,
         float u, float v,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     ) {
+        uint32_t handleLo = static_cast<uint32_t>(bindlessHandle & 0xFFFFFFFF);
+        uint32_t handleHi = static_cast<uint32_t>(bindlessHandle >> 32);
         return UIVertex2{
             Math::Vec3(x, y, z),
             Math::Vec2(u, v),
-            color
+            color,
+            handleLo,
+            handleHi
         };
     }
 
@@ -23,43 +28,45 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
         using ImageType = NE::ECS::Component::UIImage::ImageType;
 
         switch (image.imageType) {
         case ImageType::SIMPLE:
-            return GenerateSimple2(x, y, z, width, height, color);
+            return GenerateSimple2(x, y, z, width, height, color, bindlessHandle);
 
         case ImageType::SLICED:
-            return GenerateSliced2(image, x, y, z, width, height, color);
+            return GenerateSliced2(image, x, y, z, width, height, color, bindlessHandle);
 
         case ImageType::TILED:
-            return GenerateTiled2(image, x, y, z, width, height, color);
+            return GenerateTiled2(image, x, y, z, width, height, color, bindlessHandle);
 
         case ImageType::FILLED:
-            return GenerateFilled2(image, x, y, z, width, height, color);
+            return GenerateFilled2(image, x, y, z, width, height, color, bindlessHandle);
 
         default:
-            return GenerateSimple2(x, y, z, width, height, color);
+            return GenerateSimple2(x, y, z, width, height, color, bindlessHandle);
         }
     }
 
     std::vector<UIVertex2> UIImageMeshGenerator::GenerateSimple2(
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     ) {
         // Standard quad: 4 vertices (indices will be generated later)
         std::vector<UIVertex2> vertices;
         vertices.reserve(4);
 
         // Create 4 vertices for a quad (CW winding order)
-        vertices.push_back(CreateVertex2(x, y, z, 0.0f, 1.0f, color)); // Bottom-left
-        vertices.push_back(CreateVertex2(x + width, y, z, 1.0f, 1.0f, color)); // Bottom-right
-        vertices.push_back(CreateVertex2(x + width, y + height, z, 1.0f, 0.0f, color)); // Top-right
-        vertices.push_back(CreateVertex2(x, y + height, z, 0.0f, 0.0f, color)); // Top-left
+        vertices.push_back(CreateVertex2(x, y, z, 0.0f, 1.0f, color, bindlessHandle)); // Bottom-left
+        vertices.push_back(CreateVertex2(x + width, y, z, 1.0f, 1.0f, color, bindlessHandle)); // Bottom-right
+        vertices.push_back(CreateVertex2(x + width, y + height, z, 1.0f, 0.0f, color, bindlessHandle)); // Top-right
+        vertices.push_back(CreateVertex2(x, y + height, z, 0.0f, 0.0f, color, bindlessHandle)); // Top-left
 
         return vertices;
     }
@@ -68,7 +75,8 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
         // 9-slice: divide into 9 sections
@@ -123,10 +131,10 @@ namespace NE::Graphics {
         // Helper lambda: emit 4 vertices per quad (indexed by CreateDynamicUIGeometry)
         auto AddQuad = [&](float qx0, float qy0, float qx1, float qy1,
             float qu0, float qv0, float qu1, float qv1) {
-                vertices.push_back(CreateVertex2(qx0, qy0, z, qu0, qv0, color));
-                vertices.push_back(CreateVertex2(qx1, qy0, z, qu1, qv0, color));
-                vertices.push_back(CreateVertex2(qx1, qy1, z, qu1, qv1, color));
-                vertices.push_back(CreateVertex2(qx0, qy1, z, qu0, qv1, color));
+                vertices.push_back(CreateVertex2(qx0, qy0, z, qu0, qv0, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx1, qy0, z, qu1, qv0, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx1, qy1, z, qu1, qv1, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx0, qy1, z, qu0, qv1, color, bindlessHandle));
             };
 
         // Generate 9 quads:
@@ -152,7 +160,8 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
         // Tile the texture to fill the area
@@ -176,10 +185,10 @@ namespace NE::Graphics {
                 float qu1 = (qx1 - qx0) / tileWidth;
                 float qv1 = (qy1 - qy0) / tileHeight;
 
-                vertices.push_back(CreateVertex2(qx0, qy0, z, 0.0f, qv1, color));
-                vertices.push_back(CreateVertex2(qx1, qy0, z, qu1, qv1, color));
-                vertices.push_back(CreateVertex2(qx1, qy1, z, qu1, 0.0f, color));
-                vertices.push_back(CreateVertex2(qx0, qy1, z, 0.0f, 0.0f, color));
+                vertices.push_back(CreateVertex2(qx0, qy0, z, 0.0f, qv1, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx1, qy0, z, qu1, qv1, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx1, qy1, z, qu1, 0.0f, color, bindlessHandle));
+                vertices.push_back(CreateVertex2(qx0, qy1, z, 0.0f, 0.0f, color, bindlessHandle));
             }
         }
 
@@ -190,25 +199,26 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
         using FillMethod = NE::ECS::Component::UIImage::FillMethod;
 
         switch (image.fillMethod) {
         case FillMethod::HORIZONTAL:
-            return GenerateHorizontalFill2(image, x, y, z, width, height, color);
+            return GenerateHorizontalFill2(image, x, y, z, width, height, color, bindlessHandle);
 
         case FillMethod::VERTICAL:
-            return GenerateVerticalFill2(image, x, y, z, width, height, color);
+            return GenerateVerticalFill2(image, x, y, z, width, height, color, bindlessHandle);
 
         case FillMethod::RADIAL_90:
         case FillMethod::RADIAL_180:
         case FillMethod::RADIAL_360:
-            return GenerateRadialFill2(image, x, y, z, width, height, color);
+            return GenerateRadialFill2(image, x, y, z, width, height, color, bindlessHandle);
 
         default:
-            return GenerateSimple2(x, y, z, width, height, color);
+            return GenerateSimple2(x, y, z, width, height, color, bindlessHandle);
         }
     }
 
@@ -216,7 +226,8 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
         using FillOrigin = NE::ECS::Component::UIImage::FillOrigin;
@@ -241,10 +252,10 @@ namespace NE::Graphics {
             u1 = 1.0f;
         }
 
-        vertices.push_back(CreateVertex2(startX, y, z, u0, 1.0f, color));
-        vertices.push_back(CreateVertex2(endX, y, z, u1, 1.0f, color));
-        vertices.push_back(CreateVertex2(endX, y + height, z, u1, 0.0f, color));
-        vertices.push_back(CreateVertex2(startX, y + height, z, u0, 0.0f, color));
+        vertices.push_back(CreateVertex2(startX, y, z, u0, 1.0f, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(endX, y, z, u1, 1.0f, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(endX, y + height, z, u1, 0.0f, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(startX, y + height, z, u0, 0.0f, color, bindlessHandle));
 
         return vertices;
     }
@@ -253,7 +264,8 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
         using FillOrigin = NE::ECS::Component::UIImage::FillOrigin;
@@ -278,10 +290,10 @@ namespace NE::Graphics {
             v1 = 0.0f;
         }
 
-        vertices.push_back(CreateVertex2(x, startY, z, 0.0f, v0, color));
-        vertices.push_back(CreateVertex2(x + width, startY, z, 1.0f, v0, color));
-        vertices.push_back(CreateVertex2(x + width, endY, z, 1.0f, v1, color));
-        vertices.push_back(CreateVertex2(x, endY, z, 0.0f, v1, color));
+        vertices.push_back(CreateVertex2(x, startY, z, 0.0f, v0, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(x + width, startY, z, 1.0f, v0, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(x + width, endY, z, 1.0f, v1, color, bindlessHandle));
+        vertices.push_back(CreateVertex2(x, endY, z, 0.0f, v1, color, bindlessHandle));
 
         return vertices;
     }
@@ -290,7 +302,8 @@ namespace NE::Graphics {
         const NE::ECS::Component::UIImage& image,
         float x, float y, float z,
         float width, float height,
-        const Math::Vec4& color
+        const Math::Vec4& color,
+        uint64_t bindlessHandle
     )
     {
         using FillMethod = NE::ECS::Component::UIImage::FillMethod;
@@ -348,10 +361,10 @@ namespace NE::Graphics {
             float u2 = 0.5f + std::cos(angle2) * 0.5f;
             float pv2 = 0.5f + std::sin(angle2) * 0.5f;
 
-            vertices.push_back(CreateVertex2(centerX, centerY, z, centerU, centerV, color));
-            vertices.push_back(CreateVertex2(px1, py1, z, u1, pv1, color));
-            vertices.push_back(CreateVertex2(px2, py2, z, u2, pv2, color));
-            vertices.push_back(CreateVertex2(centerX, centerY, z, centerU, centerV, color)); // degenerate 4th vertex
+            vertices.push_back(CreateVertex2(centerX, centerY, z, centerU, centerV, color, bindlessHandle));
+            vertices.push_back(CreateVertex2(px1, py1, z, u1, pv1, color, bindlessHandle));
+            vertices.push_back(CreateVertex2(px2, py2, z, u2, pv2, color, bindlessHandle));
+            vertices.push_back(CreateVertex2(centerX, centerY, z, centerU, centerV, color, bindlessHandle)); // degenerate 4th vertex
         }
 
         return vertices;

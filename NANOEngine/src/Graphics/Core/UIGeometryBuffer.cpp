@@ -25,6 +25,14 @@ namespace NE::Graphics {
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(Math::Vec3) + sizeof(Math::Vec2)));
 
+        // location 3 — texHandleLo (uint32)
+        glEnableVertexAttribArray(3);
+        glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, stride, (void*)(offsetof(UIVertex2, texHandleLo)));
+
+        // location 4 — texHandleHi (uint32)
+        glEnableVertexAttribArray(4);
+        glVertexAttribIPointer(4, 1, GL_UNSIGNED_INT, stride, (void*)(offsetof(UIVertex2, texHandleHi)));
+
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }

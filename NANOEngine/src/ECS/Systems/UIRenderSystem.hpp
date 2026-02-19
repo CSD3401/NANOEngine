@@ -26,6 +26,30 @@ namespace NE::Graphics {
 
 namespace NE::ECS::Systems {
 
+    // Batch key for grouping UI elements into single draw calls
+    struct UIBatchKey {
+        bool isText;
+        bool isWorldSpace;
+        bool enableDepthTest;
+        std::optional<NE::Graphics::ScissorRect> scissorRect;
+        int sortingOrder;
+
+        bool operator<(const UIBatchKey& other) const {
+            if (sortingOrder != other.sortingOrder) return sortingOrder < other.sortingOrder;
+            if (isText != other.isText) return isText < other.isText;
+            if (isWorldSpace != other.isWorldSpace) return isWorldSpace < other.isWorldSpace;
+            if (enableDepthTest != other.enableDepthTest) return enableDepthTest < other.enableDepthTest;
+            // Scissor rects can't be compared directly, so use address for determinism
+            return false;
+        }
+    };
+
+    // Batch data for accumulated vertices and indices
+    struct UIBatch {
+        std::vector<NE::Graphics::UIVertex2> vertices;
+        std::vector<uint32_t> indices;
+    };
+
     class UIRenderSystem final : public System {
     public:
         // Re-export types from UILayoutEngine for backward compatibility
@@ -82,6 +106,11 @@ namespace NE::ECS::Systems {
             const Math::Mat4* projMatrix = nullptr
         );
 
+        void RenderCanvasTextChildren(
+            Entity canvasEntity,
+            const Component::UICanvas& canvas
+        );
+
         void SortEntitiesByZOrder(std::vector<Entity>& entities);
 
         //=================================================================
@@ -133,30 +162,19 @@ namespace NE::ECS::Systems {
         ComponentManager* m_cm;
         UILayoutEngine* m_layoutEngine = nullptr;
 
-        // Integrated pipeline materials
-        std::shared_ptr<NE::Graphics::Material> m_defaultUIMaterial;  // Default sprite material
-        std::shared_ptr<NE::Graphics::Material> m_defaultTextMaterial;  // Default text material
-        std::shared_ptr<NE::Graphics::Material> m_worldUIMaterial;    // World-space sprite material
-        std::shared_ptr<NE::Graphics::Material> m_worldTextMaterial;  // World-space text material
+        // Shared pipeline materials (one per shader type, reused for all batches)
+        std::shared_ptr<NE::Graphics::Material> m_sharedSpriteMaterial;       // neuisprite — only uScreenSize
+        std::shared_ptr<NE::Graphics::Material> m_sharedTextMaterial;         // neuitext — only uScreenSize
+        std::shared_ptr<NE::Graphics::Material> m_sharedWorldSpriteMaterial;  // neuiworld — uView, uProj
+        std::shared_ptr<NE::Graphics::Material> m_sharedWorldTextMaterial;    // neuiworldtext — uView, uProj
 
         // Camera matrices (stored per frame for WorldSpace rendering)
         Math::Mat4 m_currentView;
         Math::Mat4 m_currentProj;
 
-        // Material instance pools (avoids per-frame allocation)
-        std::vector<std::shared_ptr<NE::Graphics::Material>> m_spriteMaterialPool;
-        std::vector<std::shared_ptr<NE::Graphics::Material>> m_textMaterialPool;
-        std::vector<std::shared_ptr<NE::Graphics::Material>> m_worldSpriteMaterialPool;
-        std::vector<std::shared_ptr<NE::Graphics::Material>> m_worldTextMaterialPool;
-        size_t m_spriteMaterialIndex = 0;
-        size_t m_textMaterialIndex = 0;
-        size_t m_worldSpriteMaterialIndex = 0;
-        size_t m_worldTextMaterialIndex = 0;
-
-        std::shared_ptr<NE::Graphics::Material> AcquireSpriteMaterial();
-        std::shared_ptr<NE::Graphics::Material> AcquireTextMaterial();
-        std::shared_ptr<NE::Graphics::Material> AcquireWorldSpriteMaterial();
-        std::shared_ptr<NE::Graphics::Material> AcquireWorldTextMaterial();
+        // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
+        std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
+        size_t m_geometryIndex = 0;
 
         // Geometry buffer pool (avoids per-frame VAO/VBO/EBO allocation + fixes GL object leak)
         std::vector<std::shared_ptr<NE::Graphics::IGeometryBuffer>> m_geometryPool;
@@ -165,6 +183,14 @@ namespace NE::ECS::Systems {
         std::shared_ptr<NE::Graphics::IGeometryBuffer> AcquireGeometryBuffer(
             const std::vector<NE::Graphics::UIVertex2>& vertices,
             const std::vector<uint32_t>& indices
+        );
+
+        // Batch rendering helper
+        void SubmitBatch(
+            const UIBatch& batch,
+            std::shared_ptr<NE::Graphics::Material> material,
+            const std::optional<NE::Graphics::ScissorRect>& scissor = std::nullopt,
+            bool enableDepthTest = false
         );
 
         // Scissor clipping for RectMask2D

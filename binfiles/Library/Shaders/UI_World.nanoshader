@@ -4,6 +4,8 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aUV;
 layout(location = 2) in vec4 aColor;
+layout (location = 3) in uint texHandleLo;
+layout (location = 4) in uint texHandleHi;
 
 uniform mat4 uModel;
 uniform mat4 uView;
@@ -11,11 +13,13 @@ uniform mat4 uProj;
 
 out vec2 vUV;
 out vec4 vColor;
+flat out uvec2 vTexHandle;
 
 void main() {
     gl_Position = uProj * uView * uModel * vec4(aPos, 1.0);
     vUV = aUV;
     vColor = aColor;
+    vTexHandle = uvec2(texHandleLo, texHandleHi);
 }
 
 #type fragment
@@ -24,17 +28,16 @@ void main() {
 
 in vec2 vUV;
 in vec4 vColor;
+flat in uvec2 vTexHandle;
 out vec4 FragColor;
 
-uniform vec4 uColor;
-uniform int uHasTexture;
-layout(bindless_sampler) uniform sampler2D uTexture;
-
 void main() {
-    if (uHasTexture != 0) {
-        vec4 texColor = texture(uTexture, vUV);
-        FragColor = texColor * uColor * vColor;
+    uint64_t handle = uint64_t(vTexHandle.y) << 32 | uint64_t(vTexHandle.x);
+    if (handle != 0u) {
+        sampler2D tex = sampler2D(handle);
+        vec4 texColor = texture(tex, vUV);
+        FragColor = texColor * vColor;
     } else {
-        FragColor = uColor * vColor;
+        FragColor = vColor;
     }
 }

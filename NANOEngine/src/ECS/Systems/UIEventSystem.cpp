@@ -918,6 +918,7 @@ namespace NE::ECS::Systems {
             for (Entity e : allEntities) {
                 if (e == canvasEntity) continue;
                 if (!m_cm->HasComponent<UIRectTransform>(e)) continue;
+                if (!IsActiveForUI(e, canvasEntity)) continue;
 
                 // Check if entity is interactable
                 bool isInteractable = false;
@@ -1359,8 +1360,24 @@ namespace NE::ECS::Systems {
         if (clickedIsFocusable) {
             SetFocusedEntity(clickedEntity);
         } else if (clickedEntity != m_focusedEntity) {
-            // Clicked on something else or empty space — blur
-            ClearFocus();
+            // Check if clicked entity is a child of the focused entity
+            bool isChildOfFocused = false;
+            if (m_focusedEntity != NO_ENTITY && clickedEntity != NO_ENTITY) {
+                Entity current = clickedEntity;
+                while (current != NO_ENTITY) {
+                    if (current == m_focusedEntity) {
+                        isChildOfFocused = true;
+                        break;
+                    }
+                    if (!m_cm->HasComponent<Hierarchy>(current)) break;
+                    current = m_cm->GetComponent<Hierarchy>(current).parent;
+                }
+            }
+
+            // Only blur if clicked entity is not a child of the focused input field
+            if (!isChildOfFocused) {
+                ClearFocus();
+            }
         }
     }
 
@@ -1577,9 +1594,24 @@ namespace NE::ECS::Systems {
             uint32_t codepoint;
             while ((codepoint = NE::InputManager::PopChar()) != 0) {
                 if (!ctrlHeld && IsCharAllowed(codepoint, field)) {
-                    // Convert codepoint to UTF-8 (simple ASCII for now)
+                    // Convert codepoint to UTF-8
+                    // Support ASCII (0-127) and Latin Extended (128-383)
+                    // Characters not in the atlas are dropped gracefully
+                    std::string utf8Text;
                     if (codepoint < 128) {
-                        InsertText(field, std::string(1, static_cast<char>(codepoint)));
+                        utf8Text = std::string(1, static_cast<char>(codepoint));
+                    } else if (codepoint < 256) {
+                        // Latin Extended-A (128-255): 2-byte UTF-8 sequence
+                        utf8Text += static_cast<char>(0xC0 | (codepoint >> 6));
+                        utf8Text += static_cast<char>(0x80 | (codepoint & 0x3F));
+                    } else if (codepoint < 384) {
+                        // Latin Extended-B (256-383): 2-byte UTF-8 sequence
+                        utf8Text += static_cast<char>(0xC0 | (codepoint >> 6));
+                        utf8Text += static_cast<char>(0x80 | (codepoint & 0x3F));
+                    }
+
+                    if (!utf8Text.empty()) {
+                        InsertText(field, utf8Text);
                         textChanged = true;
                     }
                 }
@@ -2006,7 +2038,6 @@ namespace NE::ECS::Systems {
                             }
                         );
 
-                        Entity expandedCopy = m_expandedDropdown;
                         CollapseDropdown();
                     }
                     clickedOnDropdownOrPanel = true;
