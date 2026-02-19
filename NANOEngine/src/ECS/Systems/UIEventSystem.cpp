@@ -157,6 +157,10 @@ namespace NE::ECS::Systems {
             m_pressedEntity = hoveredEntity;
         }
 
+        // Update drag events BEFORE clearing m_pressedEntity on release, so the release
+        // frame still has a valid entity reference for the final drag delta / drag-end event.
+        UpdateDragEvents(static_cast<float>(mouseX), static_cast<float>(mouseY), mouseDown, mousePressed, mouseReleased);
+
         if (mouseReleased) {
             // Check for click (release over same entity that was pressed)
             if (m_pressedEntity != NO_ENTITY && m_pressedEntity == hoveredEntity) {
@@ -239,9 +243,6 @@ namespace NE::ECS::Systems {
 
         // Update input fields (keyboard input, cursor blink, color)
         UpdateInputFields(deltaTime);
-
-        // Update drag events
-        UpdateDragEvents(static_cast<float>(mouseX), static_cast<float>(mouseY), mouseDown, mousePressed, mouseReleased);
     }
 
     std::vector<UIEventSystem::UIElementInfo> UIEventSystem::CollectInteractableElements() {
@@ -333,6 +334,10 @@ namespace NE::ECS::Systems {
                 info.worldHeight = worldHeight;
                 info.zOrder = rect.z + canvasPtr->sortingOrder * 1000.0f;
                 info.canvasEntity = canvasEntity;
+                // Store accumulated rotation and pivot for rotation-aware hit testing
+                info.rotationZ = rect.cachedWorldRotZ;
+                info.pivotX = rect.pivotX;
+                info.pivotY = rect.pivotY;
 
                 elements.push_back(info);
             }
@@ -342,6 +347,29 @@ namespace NE::ECS::Systems {
     }
 
     bool UIEventSystem::PointInRect(float px, float py, const UIElementInfo& element) {
+        // Handle rotation by transforming point into the element's local space before AABB check
+        if (std::abs(element.rotationZ) > 0.001f) {
+            // Center of element based on pivot
+            float centerX = element.worldX + element.worldWidth  * element.pivotX;
+            float centerY = element.worldY + element.worldHeight * element.pivotY;
+
+            // Translate point relative to center
+            float dx = px - centerX;
+            float dy = py - centerY;
+
+            // Rotate point back by -rotationZ to align with element's local (unrotated) space
+            float rad = element.rotationZ * PI / 180.0f;
+            float cos_a = std::cos(-rad);
+            float sin_a = std::sin(-rad);
+            float localX = dx * cos_a - dy * sin_a + centerX;
+            float localY = dx * sin_a + dy * cos_a + centerY;
+
+            // AABB check in local space
+            return localX >= element.worldX && localX <= element.worldX + element.worldWidth &&
+                   localY >= element.worldY && localY <= element.worldY + element.worldHeight;
+        }
+
+        // No rotation: simple AABB
         return px >= element.worldX &&
                px <= element.worldX + element.worldWidth &&
                py >= element.worldY &&
@@ -909,6 +937,14 @@ namespace NE::ECS::Systems {
                 if (m_cm->HasComponent<UIImage>(e)) {
                     auto& image = m_cm->GetComponent<UIImage>(e);
                     if (image.raycastTarget) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UIInputField>(e)) {
+                    auto& inputField = m_cm->GetComponent<UIInputField>(e);
+                    if (inputField.interactable) isInteractable = true;
+                }
+                if (m_cm->HasComponent<UIDropdown>(e)) {
+                    auto& dropdown = m_cm->GetComponent<UIDropdown>(e);
+                    if (dropdown.interactable) isInteractable = true;
                 }
 
                 if (!isInteractable) continue;

@@ -285,6 +285,18 @@ namespace NE::ECS::Systems {
             }
         }
 
+        // Reset worldRectCached for all UI entities to ensure fresh computation each frame.
+        // Without this, stale cached rects persist across frames and for inactive entities.
+        {
+            const auto& allEntities = GetEntities();
+            for (Entity e : allEntities) {
+                if (m_cm->HasComponent<UIRectTransform>(e)) {
+                    auto& rect = m_cm->GetComponent<UIRectTransform>(e);
+                    rect.worldRectCached = false;
+                }
+            }
+        }
+
         // Single O(N) pass: bucket all UI entities by their owning canvas
         BuildCanvasChildrenMap();
 

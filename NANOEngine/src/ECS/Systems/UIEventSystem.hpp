@@ -70,6 +70,10 @@ namespace NE::ECS::Systems {
             float zOrder;
             Entity canvasEntity;
             bool isWorldSpace = false;
+            // Rotation for screen-space hit testing (accumulated rotation in degrees)
+            float rotationZ = 0.0f;
+            float pivotX = 0.5f;
+            float pivotY = 0.5f;
             // World-space specific data
             Math::Vec3 worldPosition;
             Math::Vec3 worldNormal;

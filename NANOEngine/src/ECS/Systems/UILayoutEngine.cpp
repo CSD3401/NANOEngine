@@ -44,6 +44,7 @@ namespace NE::ECS {
                 break;
             }
             chain.push_back(current);
+            if (!m_cm->HasComponent<Hierarchy>(current)) break;
             current = m_cm->GetComponent<Hierarchy>(current).parent;
         }
 
