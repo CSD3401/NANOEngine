@@ -216,10 +216,23 @@ namespace NE::Graphics {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void PostProcessPipeline::EnsureSSRSceneMipResources(uint32_t w, uint32_t h)
+	void PostProcessPipeline::EnsureSSRSceneMipResources(uint32_t sourceTex, uint32_t w, uint32_t h)
 	{
 		if (w == 0 || h == 0) return;
-		if (m_ssrSceneMipTex != 0 && m_ssrSceneMipWidth == w && m_ssrSceneMipHeight == h) {
+		GLint sourceInternalFormat = GL_RGBA16F;
+		if (sourceTex != 0) {
+			glBindTexture(GL_TEXTURE_2D, sourceTex);
+			glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &sourceInternalFormat);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			if (sourceInternalFormat == 0) {
+				sourceInternalFormat = GL_RGBA16F;
+			}
+		}
+
+		if (m_ssrSceneMipTex != 0
+			&& m_ssrSceneMipWidth == w
+			&& m_ssrSceneMipHeight == h
+			&& m_ssrSceneMipInternalFormat == sourceInternalFormat) {
 			return;
 		}
 
@@ -236,10 +249,11 @@ namespace NE::Graphics {
 		m_ssrSceneMipHeight = h;
 		m_ssrSceneMipLevels = static_cast<int>(std::floor(std::log2(static_cast<float>(std::max(w, h))))) + 1;
 		m_ssrSceneMipLevels = std::max(1, m_ssrSceneMipLevels);
+		m_ssrSceneMipInternalFormat = sourceInternalFormat;
 
 		glGenTextures(1, &m_ssrSceneMipTex);
 		glBindTexture(GL_TEXTURE_2D, m_ssrSceneMipTex);
-		glTexStorage2D(GL_TEXTURE_2D, m_ssrSceneMipLevels, GL_RGBA16F, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
+		glTexStorage2D(GL_TEXTURE_2D, m_ssrSceneMipLevels, m_ssrSceneMipInternalFormat, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -427,7 +441,7 @@ namespace NE::Graphics {
 			&& hasRoughnessAttachment;
 
 		if (ssrEnabled) {
-			EnsureSSRSceneMipResources(sourceFB->GetWidth(), sourceFB->GetHeight());
+			EnsureSSRSceneMipResources(sourceFB->GetColorAttachment(), sourceFB->GetWidth(), sourceFB->GetHeight());
 			if (m_ssrSceneMipTex == 0) {
 				LOG_WARNING("SSR skipped: dedicated scene mip texture is unavailable.");
 			}
@@ -643,7 +657,7 @@ namespace NE::Graphics {
 					.Read(sceneDepth)
 					.Read(historyRead)
 					.Write(taaOutput)
-					.Execute([this, sourceView, currView, currProj, taaInputSceneColor, historyRead, taaOutput, taaReadIndex, taaWriteIndex](const RenderGraphContext& ctx) {
+					.Execute([this, sourceView, currView, currProj, taaInputSceneColor, sceneDepth, historyRead, taaOutput, taaReadIndex, taaWriteIndex](const RenderGraphContext& ctx) {
 						if (!m_settings || !m_taaShader || !ctx.graph) return;
 						auto it = m_taaStates.find(sourceView);
 						if (it == m_taaStates.end()) return;
@@ -681,7 +695,7 @@ namespace NE::Graphics {
 						glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(taaInputSceneColor));
 
 						glActiveTexture(GL_TEXTURE1);
-						glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetDepthAttachment());
+						glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneDepth));
 
 						glActiveTexture(GL_TEXTURE2);
 						glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(historyRead));
@@ -767,7 +781,7 @@ namespace NE::Graphics {
 			m_graph->AddPass("SSAO")
 				.Read(sceneDepth)
 				.Write(ssaoTex)
-				.Execute([this, ssaoTex](const RenderGraphContext& ctx) {
+				.Execute([this, ssaoTex, sceneDepth](const RenderGraphContext& ctx) {
 					if (!m_settings || !m_SSAOShader || !ctx.graph) return;
 
 					auto& pctx = m_context;
@@ -794,7 +808,7 @@ namespace NE::Graphics {
 					m_SSAOShader->SetUniformMat4("u_InvProj", pctx.invProj);
 
 					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, pctx.sourceFB->GetDepthAttachment());
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneDepth));
 
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1073,6 +1087,7 @@ namespace NE::Graphics {
 		m_ssrSceneMipWidth = 0;
 		m_ssrSceneMipHeight = 0;
 		m_ssrSceneMipLevels = 1;
+		m_ssrSceneMipInternalFormat = 0;
 
 		for (auto& [_, state] : m_taaStates) {
 			for (int i = 0; i < 2; ++i) {

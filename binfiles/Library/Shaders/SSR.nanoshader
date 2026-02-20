@@ -115,6 +115,7 @@ void main() {
             vec3 lo = prevPos;
             vec3 hi = currPos;
             vec2 finalUV = uv;
+            vec3 finalPos = currPos;
             for (int j = 0; j < 16; ++j) {
                 if (j >= u_BinarySearchSteps) break;
                 vec3 mid = mix(lo, hi, 0.5);
@@ -134,13 +135,14 @@ void main() {
                 if (midDelta >= 0.0) {
                     hi = mid;
                     finalUV = midUV;
+                    finalPos = mid;
                 } else {
                     lo = mid;
                 }
             }
 
             hitUV = finalUV;
-            hitPos = hi;
+            hitPos = finalPos;
             hitTravel = traveled;
             hit = true;
             break;

@@ -45,7 +45,7 @@ namespace NE::Graphics {
 		void InitFullscreenQuad();
 		void InitBloomResources(uint32_t w, uint32_t h);
 		void InitSSAOResources(uint32_t w, uint32_t h);
-		void EnsureSSRSceneMipResources(uint32_t w, uint32_t h);
+		void EnsureSSRSceneMipResources(uint32_t sourceTex, uint32_t w, uint32_t h);
 		void EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h);
 		void LoadShaders();
 		void SetupGraph(RenderViewHandle sourceView,
@@ -121,6 +121,7 @@ namespace NE::Graphics {
 		uint32_t m_ssrSceneMipWidth = 0;
 		uint32_t m_ssrSceneMipHeight = 0;
 		int m_ssrSceneMipLevels = 1;
+		int m_ssrSceneMipInternalFormat = 0;
 
 		std::unordered_map<RenderViewHandle, TAAViewState> m_taaStates;
 
