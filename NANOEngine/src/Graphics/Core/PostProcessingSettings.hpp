@@ -12,7 +12,8 @@ namespace NE::Graphics {
 			Reinhard,
 			ReinhardExtended,
 			ACESApproximation,
-			FilmicACES
+			FilmicACES,
+			ACESFitted
 		};
 
 		Math::Vec3 tint;

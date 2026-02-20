@@ -154,7 +154,7 @@ namespace Editor {
 				Editor::DrawFloatField("Bloom Strength", postProcessingSettings.bloomSettings.bloomIntensity, 0.1f, true);
 			}
 
-			const char* toneMapTypeItems[] = { "Reinhard", "ReinhardExtended", "ACESApproximation", "FilmicACES" };
+			const char* toneMapTypeItems[] = { "Reinhard", "ReinhardExtended", "ACESApproximation", "FilmicACES", "ACESFitted"};
 			int toneMapType = static_cast<int>(postProcessingSettings.bloomSettings.toneMapType);
 
 			if (ImGui::CollapsingHeader("Tone-Mapping##Header", ImGuiTreeNodeFlags_DefaultOpen)) {
