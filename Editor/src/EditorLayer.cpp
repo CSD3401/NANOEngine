@@ -1,4 +1,5 @@
 ﻿#include "EditorLayer.hpp"
+#include "ImGuiLayer.hpp"
 #include "imgui/imgui.h"
 #include <imgui/imgui_internal.h>
 #include <wtypes.h>
@@ -59,7 +60,12 @@ namespace Editor {
 		ImGui::DockSpace(dockspace_id, ImGui::GetContentRegionAvail(), dockspace_flags);
 
 		if ((ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)) {
-			if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
+			if (ImGui::IsKeyPressed(ImGuiKey_Equal, false)) {
+				RebuildFonts(GetFontSize() + 1.0f);
+			} else if (ImGui::IsKeyPressed(ImGuiKey_Minus, false)) {
+				float newSize = GetFontSize() - 1.0f;
+				if (newSize >= 8.0f) RebuildFonts(newSize);
+			} else if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
 				auto sceneAsset = dynamic_cast<Assets::SceneAsset*>(Assets::AssetManager::GetInstance().GetRecord(EditorScene::s_currentSceneUUID)->asset.get());
 				sceneAsset->SaveScene(EditorScene::s_currentScenePath);
 				EditorScene::isDirty = false;
