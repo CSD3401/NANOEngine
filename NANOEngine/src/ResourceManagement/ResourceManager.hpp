@@ -110,6 +110,8 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSR.nanoshader"));
 				if (id == "nessrresolve")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRResolve.nanoshader"));
+				if (id == "nessrhizbuild")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRHiZBuild.nanoshader"));
 				if (id == "nessrtemporal")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/SSRTemporal.nanoshader"));
 				if (id == "nessrapply")

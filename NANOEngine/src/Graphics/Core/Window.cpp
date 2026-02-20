@@ -41,6 +41,7 @@ namespace NE::Graphics {
         glfwMakeContextCurrent(m_windowHandle);
 
         glfwSwapInterval(m_vsync ? 1 : 0);
+        //glfwSwapInterval(0);
     }
 
     void Window::Shutdown() {

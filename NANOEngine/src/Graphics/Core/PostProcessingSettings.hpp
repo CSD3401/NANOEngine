@@ -85,6 +85,10 @@ namespace NE::Graphics {
 		float roughnessCutoff = 0.85f;
 		float fresnelPower = 5.0f;
 		float edgeFade = 0.2f;
+		bool hizEnabled = true;
+		int hizStartMip = 4;
+		int hizRefineSteps = 10;
+		float hizDepthBias = 0.0005f;
 		float temporalHistoryMin = 0.65f;
 		float temporalHistoryMax = 0.92f;
 		float temporalNormalRejectDot = 0.9f;
@@ -106,6 +110,10 @@ namespace NE::Graphics {
 			NE_REFLECT_FIELD(roughnessCutoff),
 			NE_REFLECT_FIELD(fresnelPower),
 			NE_REFLECT_FIELD(edgeFade),
+			NE_REFLECT_FIELD(hizEnabled),
+			NE_REFLECT_FIELD(hizStartMip),
+			NE_REFLECT_FIELD(hizRefineSteps),
+			NE_REFLECT_FIELD(hizDepthBias),
 			NE_REFLECT_FIELD(temporalHistoryMin),
 			NE_REFLECT_FIELD(temporalHistoryMax),
 			NE_REFLECT_FIELD(temporalNormalRejectDot),

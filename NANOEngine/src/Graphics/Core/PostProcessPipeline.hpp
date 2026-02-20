@@ -46,6 +46,7 @@ namespace NE::Graphics {
 		void InitBloomResources(uint32_t w, uint32_t h);
 		void InitSSAOResources(uint32_t w, uint32_t h);
 		void EnsureSSRSceneMipResources(uint32_t sourceTex, uint32_t w, uint32_t h);
+		void EnsureSSRHiZResources(uint32_t w, uint32_t h);
 		void EnsureSSRTemporalResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h, uint32_t sourceDepthTex, uint32_t sourceNormalTex, uint32_t sourceRoughnessTex);
 		void EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h);
 		void LoadShaders();
@@ -129,6 +130,7 @@ namespace NE::Graphics {
 		std::shared_ptr<OpenGL::GLShader> m_taaShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrResolveShader;
+		std::shared_ptr<OpenGL::GLShader> m_ssrHiZBuildShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrTemporalShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrApplyShader;
 
@@ -141,6 +143,11 @@ namespace NE::Graphics {
 		uint32_t m_ssrSceneMipHeight = 0;
 		int m_ssrSceneMipLevels = 1;
 		int m_ssrSceneMipInternalFormat = 0;
+
+		unsigned int m_ssrHiZTex = 0;
+		uint32_t m_ssrHiZWidth = 0;
+		uint32_t m_ssrHiZHeight = 0;
+		int m_ssrHiZLevels = 1;
 
 		std::unordered_map<RenderViewHandle, TAAViewState> m_taaStates;
 		std::unordered_map<RenderViewHandle, SSRTemporalViewState> m_ssrTemporalStates;

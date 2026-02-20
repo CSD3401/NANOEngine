@@ -342,6 +342,45 @@ namespace NE::Graphics {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	void PostProcessPipeline::EnsureSSRHiZResources(uint32_t w, uint32_t h)
+	{
+		if (w == 0 || h == 0) return;
+
+		const int levels = std::max(1, static_cast<int>(std::floor(std::log2(static_cast<float>(std::max(w, h))))) + 1);
+		if (m_ssrHiZTex != 0
+			&& m_ssrHiZWidth == w
+			&& m_ssrHiZHeight == h
+			&& m_ssrHiZLevels == levels) {
+			return;
+		}
+
+		if (m_ssrHiZTex != 0) {
+			glDeleteTextures(1, &m_ssrHiZTex);
+			m_ssrHiZTex = 0;
+		}
+
+		m_ssrHiZWidth = w;
+		m_ssrHiZHeight = h;
+		m_ssrHiZLevels = levels;
+
+		glGenTextures(1, &m_ssrHiZTex);
+		glBindTexture(GL_TEXTURE_2D, m_ssrHiZTex);
+		glTexStorage2D(GL_TEXTURE_2D, m_ssrHiZLevels, GL_R32F, static_cast<GLsizei>(w), static_cast<GLsizei>(h));
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, m_ssrHiZLevels - 1);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		// Initialize to far depth, so MIN-reduction remains conservative.
+		const float farDepth = 1.0f;
+		for (int mip = 0; mip < m_ssrHiZLevels; ++mip) {
+			glClearTexImage(m_ssrHiZTex, mip, GL_RED, GL_FLOAT, &farDepth);
+		}
+	}
+
 	void PostProcessPipeline::EnsureSSRTemporalResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h, uint32_t sourceDepthTex, uint32_t sourceNormalTex, uint32_t sourceRoughnessTex)
 	{
 		if (w == 0 || h == 0) return;
@@ -548,6 +587,10 @@ namespace NE::Graphics {
 			m_ssrResolveShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nessrresolve");
 		}
+		if (!m_ssrHiZBuildShader) {
+			m_ssrHiZBuildShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("nessrhizbuild");
+		}
 		if (!m_ssrTemporalShader) {
 			m_ssrTemporalShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nessrtemporal");
@@ -662,6 +705,71 @@ namespace NE::Graphics {
 			auto ssrResolvedTex = m_graph->CreateTexture(ssrResolvedDesc);
 
 			const auto ssrSceneInput = m_graph->ImportTexture(m_ssrSceneMipTex, "SSRSceneMipSource");
+			RenderGraphResource ssrHiZ{};
+			const bool hizRequested = m_settings && m_settings->ssrSettings.hizEnabled;
+			const bool hizCanBuild = hizRequested && m_ssrHiZBuildShader != nullptr;
+			if (hizCanBuild) {
+				EnsureSSRHiZResources(sourceFB->GetWidth(), sourceFB->GetHeight());
+				if (m_ssrHiZTex != 0) {
+					ssrHiZ = m_graph->ImportTexture(m_ssrHiZTex, "SSRHiZ");
+					const uint32_t hizW = m_ssrHiZWidth;
+					const uint32_t hizH = m_ssrHiZHeight;
+					const int hizLevels = m_ssrHiZLevels;
+
+					m_graph->AddPass("SSR: Build HiZ")
+						.Read(sceneDepth)
+						.Write(ssrHiZ)
+						.Execute([this, sceneDepth, ssrHiZ, hizW, hizH, hizLevels](const RenderGraphContext& ctx) {
+							if (!ctx.graph || !m_ssrHiZBuildShader) return;
+							if (hizW == 0 || hizH == 0 || hizLevels <= 0) return;
+
+							const uint32_t depthTex = ctx.GetTexture(sceneDepth);
+							const uint32_t hizTex = ctx.GetTexture(ssrHiZ);
+							if (depthTex == 0 || hizTex == 0) return;
+
+							m_ssrHiZBuildShader->Bind();
+							m_ssrHiZBuildShader->SetUniformInt("u_Depth", 0);
+							m_ssrHiZBuildShader->SetUniformInt("u_HiZSampler", 1);
+
+							glActiveTexture(GL_TEXTURE0);
+							glBindTexture(GL_TEXTURE_2D, depthTex);
+							glActiveTexture(GL_TEXTURE1);
+							glBindTexture(GL_TEXTURE_2D, hizTex);
+
+							auto DispatchFor = [](uint32_t w, uint32_t h) {
+								const GLuint groupsX = (w + 15u) / 16u;
+								const GLuint groupsY = (h + 15u) / 16u;
+								glDispatchCompute(groupsX ? groupsX : 1u, groupsY ? groupsY : 1u, 1);
+							};
+
+							// Copy scene depth -> HiZ mip0
+							glBindImageTexture(0, hizTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+							m_ssrHiZBuildShader->SetUniformInt("u_Mode", 0);
+							m_ssrHiZBuildShader->SetUniformInt("u_SrcMip", 0);
+							DispatchFor(hizW, hizH);
+							glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+
+							// Downsample chain
+							for (int mip = 0; mip < hizLevels - 1; ++mip) {
+								const uint32_t dstW = std::max(1u, hizW >> (mip + 1));
+								const uint32_t dstH = std::max(1u, hizH >> (mip + 1));
+								glBindImageTexture(0, hizTex, mip + 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+								m_ssrHiZBuildShader->SetUniformInt("u_Mode", 1);
+								m_ssrHiZBuildShader->SetUniformInt("u_SrcMip", mip);
+								DispatchFor(dstW, dstH);
+								glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+							}
+
+							glBindTexture(GL_TEXTURE_2D, 0);
+						});
+				}
+				else {
+					LOG_WARNING("SSR HiZ disabled: unable to allocate Hi-Z texture.");
+				}
+			}
+			else if (hizRequested) {
+				LOG_WARNING("SSR HiZ disabled: missing compute shader.");
+			}
 
 			m_graph->AddPass("SSR: Copy Scene To Mip Source")
 				.Read(sceneColor)
@@ -702,8 +810,9 @@ namespace NE::Graphics {
 				.Read(sceneDepth)
 				.Read(sceneNormal)
 				.Read(sceneRoughness)
+				.Read(ssrHiZ)
 				.Write(ssrRawTex)
-				.Execute([this, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, currProj, ssrRawTex, ssrRawW, ssrRawH](const RenderGraphContext& ctx) {
+				.Execute([this, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, ssrHiZ, currView, currProj, ssrRawTex, ssrRawW, ssrRawH](const RenderGraphContext& ctx) {
 					if (!m_settings || !m_ssrShader || !ctx.graph) return;
 
 					auto& pctx = m_context;
@@ -742,6 +851,14 @@ namespace NE::Graphics {
 					m_ssrShader->SetUniformFloat("u_EdgeFade", m_settings->ssrSettings.edgeFade);
 					m_ssrShader->SetUniformFloat("u_MaxSceneMip", maxSceneMip);
 
+					const uint32_t hizTex = ctx.GetTexture(ssrHiZ);
+					const bool hizEnabled = m_settings->ssrSettings.hizEnabled && (hizTex != 0);
+					m_ssrShader->SetUniformInt("u_HiZ", 4);
+					m_ssrShader->SetUniformInt("u_HiZEnabled", hizEnabled ? 1 : 0);
+					m_ssrShader->SetUniformInt("u_HiZStartMip", m_settings->ssrSettings.hizStartMip);
+					m_ssrShader->SetUniformFloat("u_HiZDepthBias", m_settings->ssrSettings.hizDepthBias);
+					m_ssrShader->SetUniformInt("u_HiZRefineSteps", m_settings->ssrSettings.hizRefineSteps);
+
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrSceneInput));
 					glActiveTexture(GL_TEXTURE1);
@@ -750,6 +867,8 @@ namespace NE::Graphics {
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneNormal));
 					glActiveTexture(GL_TEXTURE3);
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneRoughness));
+					glActiveTexture(GL_TEXTURE4);
+					glBindTexture(GL_TEXTURE_2D, hizEnabled ? hizTex : 0);
 
 					glBindVertexArray(m_QuadVAO);
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1525,6 +1644,14 @@ namespace NE::Graphics {
 		m_ssrSceneMipHeight = 0;
 		m_ssrSceneMipLevels = 1;
 		m_ssrSceneMipInternalFormat = 0;
+
+		if (m_ssrHiZTex) {
+			glDeleteTextures(1, &m_ssrHiZTex);
+			m_ssrHiZTex = 0;
+		}
+		m_ssrHiZWidth = 0;
+		m_ssrHiZHeight = 0;
+		m_ssrHiZLevels = 1;
 
 		for (auto& [_, state] : m_taaStates) {
 			for (int i = 0; i < 2; ++i) {
