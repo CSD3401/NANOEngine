@@ -84,6 +84,13 @@ namespace NE::ECS {
                 result.scaleY *= rect.scaleY;
                 result.scaleZ *= rect.scaleZ;
 
+                // Clamp scale to prevent singular matrices in children
+                // A scale of exactly 0 makes child transforms undefined and causes NaN
+                static constexpr float MIN_SCALE = 1e-6f;
+                if (std::abs(result.scaleX) < MIN_SCALE) result.scaleX = result.scaleX < 0 ? -MIN_SCALE : MIN_SCALE;
+                if (std::abs(result.scaleY) < MIN_SCALE) result.scaleY = result.scaleY < 0 ? -MIN_SCALE : MIN_SCALE;
+                if (std::abs(result.scaleZ) < MIN_SCALE) result.scaleZ = result.scaleZ < 0 ? -MIN_SCALE : MIN_SCALE;
+
                 // Rotation: sum Euler angles (sufficient for UI — most elements only use Z)
                 result.rotationX += rect.rotationX;
                 result.rotationY += rect.rotationY;

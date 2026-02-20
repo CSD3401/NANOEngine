@@ -102,6 +102,9 @@ namespace NE::Graphics {
             int sdfWidth = glyphWidth + padding * 2;
             int sdfHeight = glyphHeight + padding * 2;
 
+            // Declare offset variables for SDF (used after glyph rendering)
+            int xOffset = 0, yOffset = 0;
+
             // Check if glyph fits in current row
             if (packX + sdfWidth + padding > m_atlasWidth) {
                 // Move to next row
@@ -119,7 +122,6 @@ namespace NE::Graphics {
 
             // Render glyph to atlas using SDF
             if (glyphWidth > 0 && glyphHeight > 0) {
-                int xOffset = 0, yOffset = 0;
                 unsigned char* sdfBitmap = stbtt_GetCodepointSDF(
                     &fontInfo,
                     scale,
@@ -153,10 +155,16 @@ namespace NE::Graphics {
             info.px = packX;
             info.py = packY;
 
-            info.width = static_cast<float>(glyphWidth);
-            info.height = static_cast<float>(glyphHeight);
-            info.xOffset = static_cast<float>(x0);
-            info.yOffset = static_cast<float>(y0);
+            // Use SDF dimensions (includes padding on all sides) so UVs cover the full
+            // SDF falloff region, not just the bitmap-box body. Without this the shader
+            // samples only the hard glyph body and never sees the smooth distance gradient
+            // in the border, which produces aliased edges instead of smooth SDF rendering.
+            info.width = static_cast<float>(sdfWidth);
+            info.height = static_cast<float>(sdfHeight);
+            // Use the bearing offsets returned by stbtt_GetCodepointSDF so that glyph
+            // placement accounts for the SDF padding offset, not the bitmap-box origin.
+            info.xOffset = static_cast<float>(xOffset);
+            info.yOffset = static_cast<float>(yOffset);
             info.xAdvance = advanceWidth * scale;
 
             m_glyphs[static_cast<char>(c)] = info;
@@ -238,7 +246,9 @@ namespace NE::Graphics {
     float FontAtlas::QuantizeToFontBucket(float fontSize) {
         // Font size buckets for memory optimization
         // Requested sizes snap to nearest bucket, then scale at render time
-        static const float buckets[] = { 16.0f, 32.0f, 64.0f, 128.0f, 256.0f };
+        // Three buckets: 32pt (body text 8-32pt), 64pt (mid 32-96pt), 128pt (headers/large)
+        // Consolidating from 5 buckets reduces memory: 5 fonts × 3 buckets = 9MB vs 15MB
+        static const float buckets[] = { 32.0f, 64.0f, 128.0f };
         static const int bucketCount = sizeof(buckets) / sizeof(float);
 
         // Clamp to valid range

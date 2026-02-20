@@ -245,10 +245,40 @@ namespace Editor {
             invParent.SetToIdentity();
             {
                 float det = parentWorld.Determinant();
-                if (std::abs(det) > 1e-6f)
+                if (std::abs(det) > 1e-6f) {
                     invParent = parentWorld.Inverse();
+                    // Verify inversion didn't produce NaN/Inf
+                    bool hasNaN = false;
+                    for (int i = 0; i < 16; ++i) {
+                        float val = invParent.Data()[i];
+                        if (std::isnan(val) || std::isinf(val)) {
+                            hasNaN = true;
+                            break;
+                        }
+                    }
+                    if (hasNaN) {
+                        invParent.SetToIdentity();
+                    }
+                }
             }
             NE::Math::Mat4 newLocal = invParent * newWorld;
+
+            // Validate the result matrix before decomposing
+            bool localHasNaN = false;
+            for (int i = 0; i < 16; ++i) {
+                float val = newLocal.Data()[i];
+                if (std::isnan(val) || std::isinf(val)) {
+                    localHasNaN = true;
+                    break;
+                }
+            }
+
+            // If we got NaN, skip the gizmo update this frame
+            if (localHasNaN) {
+                s_gizmoActive = false;
+                End3DGizmo(uiEntityId);
+                return;
+            }
 
             // 4. Decompose LOCAL matrix (not world!)
             float localMatrix[16];

@@ -17,6 +17,7 @@
 #include <memory>
 #include <cstdint>
 #include <unordered_map>
+#include <cstring>
 
 // Forward declarations
 namespace NE::Graphics {
@@ -39,8 +40,34 @@ namespace NE::ECS::Systems {
             if (isText != other.isText) return isText < other.isText;
             if (isWorldSpace != other.isWorldSpace) return isWorldSpace < other.isWorldSpace;
             if (enableDepthTest != other.enableDepthTest) return enableDepthTest < other.enableDepthTest;
-            // Scissor rects can't be compared directly, so use address for determinism
-            return false;
+
+            // Compare scissor rects field-by-field
+            // If both are nullopt, they are equal (fall through to return false at end)
+            // If one is nullopt and the other is not, nullopt < has_value
+            if (scissorRect.has_value() != other.scissorRect.has_value()) {
+                return !scissorRect.has_value();  // nullopt comes first
+            }
+            // Both have values, compare fields
+            if (scissorRect.has_value()) {
+                if (scissorRect->x != other.scissorRect->x) return scissorRect->x < other.scissorRect->x;
+                if (scissorRect->y != other.scissorRect->y) return scissorRect->y < other.scissorRect->y;
+                if (scissorRect->width != other.scissorRect->width) return scissorRect->width < other.scissorRect->width;
+                if (scissorRect->height != other.scissorRect->height) return scissorRect->height < other.scissorRect->height;
+            }
+
+            return false;  // all fields equal
+        }
+    };
+
+    // Batch key for WorldSpace sprites: groups by identical world matrix
+    // All WorldSpace sprites use unit quad [0,1]x[0,1] in local space, so elements
+    // sharing a worldMatrix can be merged into one draw call with that transform
+    struct WorldSpriteBatchKey {
+        float matBytes[16];  // world matrix as 64 bytes (float a[16])
+
+        bool operator<(const WorldSpriteBatchKey& other) const {
+            int cmp = std::memcmp(matBytes, other.matBytes, sizeof(matBytes));
+            return cmp < 0;
         }
     };
 
