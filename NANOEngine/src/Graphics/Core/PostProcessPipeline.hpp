@@ -46,6 +46,7 @@ namespace NE::Graphics {
 		void InitBloomResources(uint32_t w, uint32_t h);
 		void InitSSAOResources(uint32_t w, uint32_t h);
 		void EnsureSSRSceneMipResources(uint32_t sourceTex, uint32_t w, uint32_t h);
+		void EnsureSSRTemporalResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h, uint32_t sourceDepthTex, uint32_t sourceNormalTex, uint32_t sourceRoughnessTex);
 		void EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h);
 		void LoadShaders();
 		void SetupGraph(RenderViewHandle sourceView,
@@ -77,6 +78,22 @@ namespace NE::Graphics {
 			int writeIndex = 1;
 			bool hasHistory = false;
 			Math::Mat4 prevViewProj;
+		};
+		struct SSRTemporalViewState {
+			std::array<unsigned int, 2> historyColorTex{};
+			std::array<unsigned int, 2> historyDepthTex{};
+			std::array<unsigned int, 2> historyNormalTex{};
+			std::array<unsigned int, 2> historyRoughnessTex{};
+			uint32_t width = 0;
+			uint32_t height = 0;
+			int readIndex = 0;
+			int writeIndex = 1;
+			bool hasHistory = false;
+			Math::Mat4 prevViewProj;
+			Math::Mat4 prevProj;
+			int depthInternalFormat = 0;
+			int normalInternalFormat = 0;
+			int roughnessInternalFormat = 0;
 		};
 
 		static constexpr int BLOOM_LEVELS = 5;
@@ -112,6 +129,8 @@ namespace NE::Graphics {
 		std::shared_ptr<OpenGL::GLShader> m_taaShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrShader;
 		std::shared_ptr<OpenGL::GLShader> m_ssrResolveShader;
+		std::shared_ptr<OpenGL::GLShader> m_ssrTemporalShader;
+		std::shared_ptr<OpenGL::GLShader> m_ssrApplyShader;
 
 		unsigned int m_SSAOFBO = 0;
 		unsigned int m_SSAOTex = 0;
@@ -124,6 +143,8 @@ namespace NE::Graphics {
 		int m_ssrSceneMipInternalFormat = 0;
 
 		std::unordered_map<RenderViewHandle, TAAViewState> m_taaStates;
+		std::unordered_map<RenderViewHandle, SSRTemporalViewState> m_ssrTemporalStates;
+		uint32_t m_frameIndex = 0;
 
 		PostProcessContext m_context;
 	};

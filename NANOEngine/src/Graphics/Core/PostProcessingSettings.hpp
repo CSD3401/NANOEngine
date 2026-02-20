@@ -73,6 +73,7 @@ namespace NE::Graphics {
 
 	struct SSRSettings {
 		bool enabled = false;
+		bool temporalEnabled = true;
 		float intensity = 0.6f;
 		float halfResScale = 0.5f;
 		int resolveTapCount = 4;
@@ -84,9 +85,16 @@ namespace NE::Graphics {
 		float roughnessCutoff = 0.85f;
 		float fresnelPower = 5.0f;
 		float edgeFade = 0.2f;
+		float temporalHistoryMin = 0.65f;
+		float temporalHistoryMax = 0.92f;
+		float temporalNormalRejectDot = 0.9f;
+		float temporalRoughnessReject = 0.2f;
+		float temporalDepthReject = 0.003f;
+		float temporalProjectionResetThreshold = 0.05f;
 
 		NE_REFLECT_BEGIN(SSRSettings)
 			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(temporalEnabled),
 			NE_REFLECT_FIELD(intensity),
 			NE_REFLECT_FIELD(halfResScale),
 			NE_REFLECT_FIELD(resolveTapCount),
@@ -97,7 +105,13 @@ namespace NE::Graphics {
 			NE_REFLECT_FIELD(binarySearchSteps),
 			NE_REFLECT_FIELD(roughnessCutoff),
 			NE_REFLECT_FIELD(fresnelPower),
-			NE_REFLECT_FIELD(edgeFade)
+			NE_REFLECT_FIELD(edgeFade),
+			NE_REFLECT_FIELD(temporalHistoryMin),
+			NE_REFLECT_FIELD(temporalHistoryMax),
+			NE_REFLECT_FIELD(temporalNormalRejectDot),
+			NE_REFLECT_FIELD(temporalRoughnessReject),
+			NE_REFLECT_FIELD(temporalDepthReject),
+			NE_REFLECT_FIELD(temporalProjectionResetThreshold)
 		NE_REFLECT_END()
 	};
 

@@ -18,14 +18,12 @@ in vec2 vUV;
 out vec4 FragColor;
 
 uniform sampler2D u_SSRRaw;
-uniform sampler2D u_SceneColor;
 uniform sampler2D u_Depth;
 uniform sampler2D u_Normal;
 uniform sampler2D u_Roughness;
 
 uniform mat4 u_InvProj;
 uniform mat4 u_View;
-uniform vec2 u_RawTexelSize;
 uniform int u_ResolveTapCount;
 
 uniform float u_Intensity;
@@ -40,10 +38,9 @@ vec3 ReconstructViewPos(vec2 uv, float depth) {
 }
 
 void main() {
-    vec3 scene = texture(u_SceneColor, vUV).rgb;
     float centerDepth = texture(u_Depth, vUV).r;
     if (centerDepth >= 1.0) {
-        FragColor = vec4(scene, 1.0);
+        FragColor = vec4(0.0);
         return;
     }
 
@@ -54,7 +51,7 @@ void main() {
 
     float roughness = clamp(texture(u_Roughness, vUV).r, 0.0, 1.0);
     if (roughness >= u_RoughnessCutoff) {
-        FragColor = vec4(scene, 1.0);
+        FragColor = vec4(0.0);
         return;
     }
 
@@ -72,6 +69,7 @@ void main() {
     } else {
         vec3 accum = vec3(0.0);
         float accumW = 0.0;
+        float maxTapW = 0.0;
 
         vec2 taps[8] = vec2[](
             vec2(1.0, 0.0),
@@ -87,7 +85,7 @@ void main() {
         int tapCount = (u_ResolveTapCount >= 8) ? 8 : 4;
         for (int i = 0; i < tapCount; ++i) {
             ivec2 tapRaw = clamp(centerRaw + ivec2(taps[i]), ivec2(0), rawSize - ivec2(1));
-            vec2 uv = clamp(vUV + taps[i] * u_RawTexelSize, vec2(0.0), vec2(1.0));
+            vec2 uv = (vec2(tapRaw) + vec2(0.5)) / vec2(rawSize);
             vec4 ssrTap = texelFetch(u_SSRRaw, tapRaw, 0);
             if (ssrTap.a <= validThreshold) continue;
 
@@ -107,11 +105,12 @@ void main() {
 
             accum += ssrTap.rgb * w;
             accumW += w;
+            maxTapW = max(maxTapW, w);
         }
 
         if (accumW > 1e-4) {
             reflection = accum / accumW;
-            reflectionValidity = clamp(accumW / 1.5, 0.0, 1.0);
+            reflectionValidity = clamp(maxTapW, 0.0, 1.0);
         }
     }
 
@@ -120,7 +119,6 @@ void main() {
     float reflectionWeight = clamp(u_Intensity * roughnessFactor * fresnel, 0.0, 1.0);
 
     // True misses should not add reflection energy.
-    float mixWeight = reflectionWeight * reflectionValidity;
-    vec3 finalColor = scene + reflection * mixWeight;
-    FragColor = vec4(finalColor, 1.0);
+    float contributionWeight = reflectionWeight * reflectionValidity;
+    FragColor = vec4(reflection * contributionWeight, contributionWeight);
 }

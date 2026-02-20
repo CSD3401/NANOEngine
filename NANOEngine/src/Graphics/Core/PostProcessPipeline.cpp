@@ -11,10 +11,75 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <glad/glad.h>
 #include <GL/gl.h>
 
 namespace NE::Graphics {
+	namespace {
+		GLint QueryTextureInternalFormat(uint32_t texture) {
+			if (texture == 0) return 0;
+			GLint internalFormat = 0;
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &internalFormat);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			return internalFormat;
+		}
+
+		void ResolvePixelFormatAndType(GLint internalFormat, GLenum& format, GLenum& type) {
+			switch (internalFormat) {
+			case GL_RGBA16F: format = GL_RGBA; type = GL_FLOAT; break;
+			case GL_RGBA8: format = GL_RGBA; type = GL_UNSIGNED_BYTE; break;
+			case GL_R8: format = GL_RED; type = GL_UNSIGNED_BYTE; break;
+			case GL_R16F: format = GL_RED; type = GL_FLOAT; break;
+			case GL_DEPTH_COMPONENT16: format = GL_DEPTH_COMPONENT; type = GL_UNSIGNED_SHORT; break;
+			case GL_DEPTH_COMPONENT24: format = GL_DEPTH_COMPONENT; type = GL_UNSIGNED_INT; break;
+			case GL_DEPTH_COMPONENT32F: format = GL_DEPTH_COMPONENT; type = GL_FLOAT; break;
+			case GL_DEPTH24_STENCIL8: format = GL_DEPTH_STENCIL; type = GL_UNSIGNED_INT_24_8; break;
+			default: format = GL_RGBA; type = GL_FLOAT; break;
+			}
+		}
+
+		void ClearTexture(uint32_t texture, GLint internalFormat) {
+			if (texture == 0) return;
+			switch (internalFormat) {
+			case GL_DEPTH_COMPONENT16:
+			case GL_DEPTH_COMPONENT24:
+			case GL_DEPTH_COMPONENT32F: {
+				const float depthClear = 1.0f;
+				glClearTexImage(texture, 0, GL_DEPTH_COMPONENT, GL_FLOAT, &depthClear);
+				break;
+			}
+			case GL_DEPTH24_STENCIL8: {
+				struct DepthStencilClearValue {
+					float depth;
+					uint32_t stencil;
+				} clearValue = { 1.0f, 0u };
+				glClearTexImage(texture, 0, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, &clearValue);
+				break;
+			}
+			case GL_R8: {
+				const uint8_t zero = 0u;
+				glClearTexImage(texture, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
+				break;
+			}
+			default: {
+				const float zeros[4] = { 0.f, 0.f, 0.f, 0.f };
+				glClearTexImage(texture, 0, GL_RGBA, GL_FLOAT, zeros);
+				break;
+			}
+			}
+		}
+
+		float MaxAbsMatrixDelta(const Math::Mat4& a, const Math::Mat4& b) {
+			float maxDelta = 0.0f;
+			for (unsigned i = 0; i < 16; ++i) {
+				maxDelta = std::max(maxDelta, std::abs(a[i] - b[i]));
+			}
+			return maxDelta;
+		}
+	}
+
 	void PostProcessPipeline::Init(RenderViewManager* rvm, uint32_t initialW, uint32_t initialH) {
 		m_rvm = rvm;
 		m_Width = initialW;
@@ -61,6 +126,9 @@ namespace NE::Graphics {
 			for (auto& [_, state] : m_taaStates) {
 				state.hasHistory = false;
 			}
+			for (auto& [_, state] : m_ssrTemporalStates) {
+				state.hasHistory = false;
+			}
 			m_settings->taaSettings.resetHistory = false;
 		}
 
@@ -70,6 +138,7 @@ namespace NE::Graphics {
 
 		SetupGraph(sourceView, destView, invProj, currView, currProj, isSceneView);
 		m_graph->Execute();
+		++m_frameIndex;
 	}
 
 	void PostProcessPipeline::SetSettings(PostProcessingSettings* settings) {
@@ -273,6 +342,124 @@ namespace NE::Graphics {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
+	void PostProcessPipeline::EnsureSSRTemporalResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h, uint32_t sourceDepthTex, uint32_t sourceNormalTex, uint32_t sourceRoughnessTex)
+	{
+		if (w == 0 || h == 0) return;
+
+		GLint depthFormat = QueryTextureInternalFormat(sourceDepthTex);
+		GLint normalFormat = QueryTextureInternalFormat(sourceNormalTex);
+		GLint roughnessFormat = QueryTextureInternalFormat(sourceRoughnessTex);
+		if (depthFormat == 0) depthFormat = GL_DEPTH_COMPONENT24;
+		if (normalFormat == 0) normalFormat = GL_RGBA16F;
+		if (roughnessFormat == 0) roughnessFormat = GL_R8;
+
+		auto& state = m_ssrTemporalStates[viewHandle];
+		if (state.width == w
+			&& state.height == h
+			&& state.depthInternalFormat == depthFormat
+			&& state.normalInternalFormat == normalFormat
+			&& state.roughnessInternalFormat == roughnessFormat
+			&& state.historyColorTex[0] != 0 && state.historyColorTex[1] != 0
+			&& state.historyDepthTex[0] != 0 && state.historyDepthTex[1] != 0
+			&& state.historyNormalTex[0] != 0 && state.historyNormalTex[1] != 0
+			&& state.historyRoughnessTex[0] != 0 && state.historyRoughnessTex[1] != 0) {
+			return;
+		}
+
+		for (int i = 0; i < 2; ++i) {
+			if (state.historyColorTex[i] != 0) {
+				glDeleteTextures(1, &state.historyColorTex[i]);
+				state.historyColorTex[i] = 0;
+			}
+			if (state.historyDepthTex[i] != 0) {
+				glDeleteTextures(1, &state.historyDepthTex[i]);
+				state.historyDepthTex[i] = 0;
+			}
+			if (state.historyNormalTex[i] != 0) {
+				glDeleteTextures(1, &state.historyNormalTex[i]);
+				state.historyNormalTex[i] = 0;
+			}
+			if (state.historyRoughnessTex[i] != 0) {
+				glDeleteTextures(1, &state.historyRoughnessTex[i]);
+				state.historyRoughnessTex[i] = 0;
+			}
+		}
+
+		state.width = w;
+		state.height = h;
+		state.readIndex = 0;
+		state.writeIndex = 1;
+		state.hasHistory = false;
+		state.prevViewProj.SetToIdentity();
+		state.prevProj.SetToIdentity();
+		state.depthInternalFormat = depthFormat;
+		state.normalInternalFormat = normalFormat;
+		state.roughnessInternalFormat = roughnessFormat;
+
+		for (int i = 0; i < 2; ++i) {
+			glGenTextures(1, &state.historyColorTex[i]);
+			glBindTexture(GL_TEXTURE_2D, state.historyColorTex[i]);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
+				static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0,
+				GL_RGBA, GL_FLOAT, nullptr);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			ClearTexture(state.historyColorTex[i], GL_RGBA16F);
+
+			glGenTextures(1, &state.historyDepthTex[i]);
+			glBindTexture(GL_TEXTURE_2D, state.historyDepthTex[i]);
+			{
+				GLenum depthFormatExternal = GL_DEPTH_COMPONENT;
+				GLenum depthType = GL_FLOAT;
+				ResolvePixelFormatAndType(depthFormat, depthFormatExternal, depthType);
+				glTexImage2D(GL_TEXTURE_2D, 0, depthFormat,
+					static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0,
+					depthFormatExternal, depthType, nullptr);
+			}
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			ClearTexture(state.historyDepthTex[i], depthFormat);
+
+			glGenTextures(1, &state.historyNormalTex[i]);
+			glBindTexture(GL_TEXTURE_2D, state.historyNormalTex[i]);
+			{
+				GLenum normalFormatExternal = GL_RGBA;
+				GLenum normalType = GL_FLOAT;
+				ResolvePixelFormatAndType(normalFormat, normalFormatExternal, normalType);
+				glTexImage2D(GL_TEXTURE_2D, 0, normalFormat,
+					static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0,
+					normalFormatExternal, normalType, nullptr);
+			}
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			ClearTexture(state.historyNormalTex[i], normalFormat);
+
+			glGenTextures(1, &state.historyRoughnessTex[i]);
+			glBindTexture(GL_TEXTURE_2D, state.historyRoughnessTex[i]);
+			{
+				GLenum roughnessFormatExternal = GL_RED;
+				GLenum roughnessType = GL_UNSIGNED_BYTE;
+				ResolvePixelFormatAndType(roughnessFormat, roughnessFormatExternal, roughnessType);
+				glTexImage2D(GL_TEXTURE_2D, 0, roughnessFormat,
+					static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0,
+					roughnessFormatExternal, roughnessType, nullptr);
+			}
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			ClearTexture(state.historyRoughnessTex[i], roughnessFormat);
+		}
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
 	void PostProcessPipeline::EnsureTAAResources(RenderViewHandle viewHandle, uint32_t w, uint32_t h)
 	{
 		if (w == 0 || h == 0) return;
@@ -361,6 +548,14 @@ namespace NE::Graphics {
 			m_ssrResolveShader = Resource::ResourceManager::GetInstance()
 				.LoadResource<OpenGL::GLShader>("nessrresolve");
 		}
+		if (!m_ssrTemporalShader) {
+			m_ssrTemporalShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("nessrtemporal");
+		}
+		if (!m_ssrApplyShader) {
+			m_ssrApplyShader = Resource::ResourceManager::GetInstance()
+				.LoadResource<OpenGL::GLShader>("nessrapply");
+		}
 	}
 
 	void PostProcessPipeline::SetupGraph(RenderViewHandle sourceView,
@@ -435,6 +630,7 @@ namespace NE::Graphics {
 			&& m_settings->ssrSettings.enabled
 			&& m_ssrShader
 			&& m_ssrResolveShader
+			&& m_ssrApplyShader
 			&& sourceFB->HasDepth()
 			&& sourceFB->GetDepthAttachment() != 0
 			&& hasNormalAttachment
@@ -539,6 +735,7 @@ namespace NE::Graphics {
 					m_ssrShader->SetUniformFloat("u_MaxDistance", m_settings->ssrSettings.maxDistance);
 					m_ssrShader->SetUniformFloat("u_Thickness", m_settings->ssrSettings.thickness);
 					m_ssrShader->SetUniformInt("u_MaxSteps", m_settings->ssrSettings.maxSteps);
+					m_ssrShader->SetUniformInt("u_FrameIndex", static_cast<int>(m_frameIndex & 0x7fffffff));
 					m_ssrShader->SetUniformFloat("u_Stride", m_settings->ssrSettings.stride);
 					m_ssrShader->SetUniformInt("u_BinarySearchSteps", m_settings->ssrSettings.binarySearchSteps);
 					m_ssrShader->SetUniformFloat("u_RoughnessCutoff", m_settings->ssrSettings.roughnessCutoff);
@@ -564,12 +761,11 @@ namespace NE::Graphics {
 
 			m_graph->AddPass("SSR: Resolve")
 				.Read(ssrRawTex)
-				.Read(ssrSceneInput)
 				.Read(sceneDepth)
 				.Read(sceneNormal)
 				.Read(sceneRoughness)
 				.Write(ssrResolvedTex)
-				.Execute([this, ssrRawTex, ssrSceneInput, sceneDepth, sceneNormal, sceneRoughness, currView, ssrResolvedTex, ssrRawW, ssrRawH, ssrResolveTapCount](const RenderGraphContext& ctx) {
+				.Execute([this, ssrRawTex, sceneDepth, sceneNormal, sceneRoughness, currView, ssrResolvedTex, ssrResolveTapCount](const RenderGraphContext& ctx) {
 					if (!m_settings || !m_ssrResolveShader || !ctx.graph) return;
 
 					auto& pctx = m_context;
@@ -590,13 +786,11 @@ namespace NE::Graphics {
 
 					m_ssrResolveShader->Bind();
 					m_ssrResolveShader->SetUniformInt("u_SSRRaw", 0);
-					m_ssrResolveShader->SetUniformInt("u_SceneColor", 1);
-					m_ssrResolveShader->SetUniformInt("u_Depth", 2);
-					m_ssrResolveShader->SetUniformInt("u_Normal", 3);
-					m_ssrResolveShader->SetUniformInt("u_Roughness", 4);
+					m_ssrResolveShader->SetUniformInt("u_Depth", 1);
+					m_ssrResolveShader->SetUniformInt("u_Normal", 2);
+					m_ssrResolveShader->SetUniformInt("u_Roughness", 3);
 					m_ssrResolveShader->SetUniformMat4("u_InvProj", pctx.invProj);
 					m_ssrResolveShader->SetUniformMat4("u_View", currView);
-					m_ssrResolveShader->SetUniformVec2("u_RawTexelSize", { 1.0f / static_cast<float>(ssrRawW), 1.0f / static_cast<float>(ssrRawH) });
 					m_ssrResolveShader->SetUniformInt("u_ResolveTapCount", ssrResolveTapCount);
 					m_ssrResolveShader->SetUniformFloat("u_Intensity", m_settings->ssrSettings.intensity);
 					m_ssrResolveShader->SetUniformFloat("u_RoughnessCutoff", m_settings->ssrSettings.roughnessCutoff);
@@ -605,12 +799,10 @@ namespace NE::Graphics {
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrRawTex));
 					glActiveTexture(GL_TEXTURE1);
-					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrSceneInput));
-					glActiveTexture(GL_TEXTURE2);
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneDepth));
-					glActiveTexture(GL_TEXTURE3);
+					glActiveTexture(GL_TEXTURE2);
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneNormal));
-					glActiveTexture(GL_TEXTURE4);
+					glActiveTexture(GL_TEXTURE3);
 					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneRoughness));
 
 					glBindVertexArray(m_QuadVAO);
@@ -621,7 +813,252 @@ namespace NE::Graphics {
 					if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
 				});
 
-			sceneColor = ssrResolvedTex;
+			RenderGraphResource ssrContributionTex = ssrResolvedTex;
+			const bool ssrTemporalEnabled = m_settings->ssrSettings.temporalEnabled && m_ssrTemporalShader;
+			if (ssrTemporalEnabled) {
+				EnsureSSRTemporalResources(
+					sourceView,
+					sourceFB->GetWidth(),
+					sourceFB->GetHeight(),
+					sourceFB->GetDepthAttachment(),
+					sourceFB->GetNormalAttachment(),
+					sourceFB->GetRoughnessAttachment()
+				);
+				auto temporalIt = m_ssrTemporalStates.find(sourceView);
+				if (temporalIt != m_ssrTemporalStates.end()) {
+					auto& temporalState = temporalIt->second;
+					const float projResetThreshold = std::max(0.0f, m_settings->ssrSettings.temporalProjectionResetThreshold);
+					if (temporalState.hasHistory && MaxAbsMatrixDelta(currProj, temporalState.prevProj) > projResetThreshold) {
+						temporalState.hasHistory = false;
+					}
+
+					const int ssrHistoryReadIndex = temporalState.readIndex;
+					const int ssrHistoryWriteIndex = temporalState.writeIndex;
+					auto historyRead = m_graph->ImportTexture(temporalState.historyColorTex[ssrHistoryReadIndex], "SSRHistoryRead");
+					auto historyWrite = m_graph->ImportTexture(temporalState.historyColorTex[ssrHistoryWriteIndex], "SSRHistoryWrite");
+					auto prevDepthRead = m_graph->ImportTexture(temporalState.historyDepthTex[ssrHistoryReadIndex], "SSRHistoryPrevDepth");
+					auto prevDepthWrite = m_graph->ImportTexture(temporalState.historyDepthTex[ssrHistoryWriteIndex], "SSRHistoryWriteDepth");
+					auto prevNormalRead = m_graph->ImportTexture(temporalState.historyNormalTex[ssrHistoryReadIndex], "SSRHistoryPrevNormal");
+					auto prevNormalWrite = m_graph->ImportTexture(temporalState.historyNormalTex[ssrHistoryWriteIndex], "SSRHistoryWriteNormal");
+					auto prevRoughnessRead = m_graph->ImportTexture(temporalState.historyRoughnessTex[ssrHistoryReadIndex], "SSRHistoryPrevRoughness");
+					auto prevRoughnessWrite = m_graph->ImportTexture(temporalState.historyRoughnessTex[ssrHistoryWriteIndex], "SSRHistoryWriteRoughness");
+
+					TextureDesc ssrTemporalDesc;
+					ssrTemporalDesc.width = sourceFB->GetWidth();
+					ssrTemporalDesc.height = sourceFB->GetHeight();
+					ssrTemporalDesc.format = TextureFormat::RGBA16F;
+					ssrTemporalDesc.name = "SSRTemporal";
+					auto ssrTemporalTex = m_graph->CreateTexture(ssrTemporalDesc);
+
+					m_graph->AddPass("SSR: Temporal")
+						.Read(ssrResolvedTex)
+						.Read(historyRead)
+						.Read(prevDepthRead)
+						.Read(prevNormalRead)
+						.Read(prevRoughnessRead)
+						.Read(sceneDepth)
+						.Read(sceneNormal)
+						.Read(sceneRoughness)
+						.Write(ssrTemporalTex)
+						.Execute([this, sourceView, ssrResolvedTex, historyRead, prevDepthRead, prevNormalRead, prevRoughnessRead, sceneDepth, sceneNormal, sceneRoughness, ssrTemporalTex](const RenderGraphContext& ctx) {
+							if (!m_settings || !m_ssrTemporalShader || !ctx.graph) return;
+							auto it = m_ssrTemporalStates.find(sourceView);
+							if (it == m_ssrTemporalStates.end()) return;
+
+							auto& pctx = m_context;
+							auto& state = it->second;
+							const uint32_t w = pctx.sourceFB->GetWidth();
+							const uint32_t h = pctx.sourceFB->GetHeight();
+							if (w == 0 || h == 0) return;
+
+							const uint32_t targetFbo = ctx.graph->GetFramebufferId(ssrTemporalTex);
+							if (targetFbo == 0) return;
+
+							const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+							glDisable(GL_DEPTH_TEST);
+
+							glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
+							glViewport(0, 0, static_cast<GLint>(w), static_cast<GLint>(h));
+							glClearColor(0, 0, 0, 0);
+							glClear(GL_COLOR_BUFFER_BIT);
+
+							m_ssrTemporalShader->Bind();
+							m_ssrTemporalShader->SetUniformInt("u_CurrentSSR", 0);
+							m_ssrTemporalShader->SetUniformInt("u_HistorySSR", 1);
+							m_ssrTemporalShader->SetUniformInt("u_Depth", 2);
+							m_ssrTemporalShader->SetUniformInt("u_Normal", 3);
+							m_ssrTemporalShader->SetUniformInt("u_Roughness", 4);
+							m_ssrTemporalShader->SetUniformInt("u_PrevDepth", 5);
+							m_ssrTemporalShader->SetUniformInt("u_PrevNormal", 6);
+							m_ssrTemporalShader->SetUniformInt("u_PrevRoughness", 7);
+							m_ssrTemporalShader->SetUniformInt("u_HasHistory", state.hasHistory ? 1 : 0);
+							m_ssrTemporalShader->SetUniformMat4("u_CurrViewProjInv", pctx.currViewProjInv);
+							m_ssrTemporalShader->SetUniformMat4("u_PrevViewProj", state.prevViewProj);
+							m_ssrTemporalShader->SetUniformVec2("u_TexelSize", { 1.0f / static_cast<float>(w), 1.0f / static_cast<float>(h) });
+							m_ssrTemporalShader->SetUniformFloat("u_RoughnessCutoff", m_settings->ssrSettings.roughnessCutoff);
+							m_ssrTemporalShader->SetUniformFloat("u_HistoryBlendMin", m_settings->ssrSettings.temporalHistoryMin);
+							m_ssrTemporalShader->SetUniformFloat("u_HistoryBlendMax", m_settings->ssrSettings.temporalHistoryMax);
+							m_ssrTemporalShader->SetUniformFloat("u_NormalRejectDot", m_settings->ssrSettings.temporalNormalRejectDot);
+							m_ssrTemporalShader->SetUniformFloat("u_RoughnessReject", m_settings->ssrSettings.temporalRoughnessReject);
+							m_ssrTemporalShader->SetUniformFloat("u_DepthReject", m_settings->ssrSettings.temporalDepthReject);
+
+							glActiveTexture(GL_TEXTURE0);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrResolvedTex));
+							glActiveTexture(GL_TEXTURE1);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(historyRead));
+							glActiveTexture(GL_TEXTURE2);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneDepth));
+							glActiveTexture(GL_TEXTURE3);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneNormal));
+							glActiveTexture(GL_TEXTURE4);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneRoughness));
+							glActiveTexture(GL_TEXTURE5);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(prevDepthRead));
+							glActiveTexture(GL_TEXTURE6);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(prevNormalRead));
+							glActiveTexture(GL_TEXTURE7);
+							glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(prevRoughnessRead));
+
+							glBindVertexArray(m_QuadVAO);
+							glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+							glBindVertexArray(0);
+
+							glBindFramebuffer(GL_FRAMEBUFFER, 0);
+							if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+						});
+
+					m_graph->AddPass("SSR: Commit History")
+						.Read(ssrTemporalTex)
+						.Write(historyWrite)
+						.Write(prevDepthWrite)
+						.Write(prevNormalWrite)
+						.Write(prevRoughnessWrite)
+						.Read(sceneDepth)
+						.Read(sceneNormal)
+						.Read(sceneRoughness)
+						.Execute([this, sourceView, currView, currProj, ssrTemporalTex, historyWrite, prevDepthWrite, prevNormalWrite, prevRoughnessWrite, sceneDepth, sceneNormal, sceneRoughness, ssrHistoryReadIndex, ssrHistoryWriteIndex](const RenderGraphContext& ctx) {
+							if (!ctx.graph) return;
+							auto it = m_ssrTemporalStates.find(sourceView);
+							if (it == m_ssrTemporalStates.end()) return;
+
+							auto& state = it->second;
+							const uint32_t srcTex = ctx.GetTexture(ssrTemporalTex);
+							const uint32_t dstTex = ctx.GetTexture(historyWrite);
+							if (srcTex == 0 || dstTex == 0 || state.width == 0 || state.height == 0) return;
+
+							glCopyImageSubData(
+								srcTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+								dstTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+								static_cast<GLsizei>(state.width),
+								static_cast<GLsizei>(state.height),
+								1
+							);
+
+							const uint32_t currDepthTex = ctx.GetTexture(sceneDepth);
+							const uint32_t currNormalTex = ctx.GetTexture(sceneNormal);
+							const uint32_t currRoughnessTex = ctx.GetTexture(sceneRoughness);
+							const uint32_t dstDepthTex = ctx.GetTexture(prevDepthWrite);
+							const uint32_t dstNormalTex = ctx.GetTexture(prevNormalWrite);
+							const uint32_t dstRoughnessTex = ctx.GetTexture(prevRoughnessWrite);
+							if (currDepthTex != 0 && dstDepthTex != 0) {
+								glCopyImageSubData(
+									currDepthTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+									dstDepthTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+									static_cast<GLsizei>(state.width),
+									static_cast<GLsizei>(state.height),
+									1
+								);
+							}
+							if (currNormalTex != 0 && dstNormalTex != 0) {
+								glCopyImageSubData(
+									currNormalTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+									dstNormalTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+									static_cast<GLsizei>(state.width),
+									static_cast<GLsizei>(state.height),
+									1
+								);
+							}
+							if (currRoughnessTex != 0 && dstRoughnessTex != 0) {
+								glCopyImageSubData(
+									currRoughnessTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+									dstRoughnessTex, GL_TEXTURE_2D, 0, 0, 0, 0,
+									static_cast<GLsizei>(state.width),
+									static_cast<GLsizei>(state.height),
+									1
+								);
+							}
+
+							state.prevViewProj = currProj * currView;
+							state.prevProj = currProj;
+							state.hasHistory = true;
+							state.readIndex = ssrHistoryWriteIndex;
+							state.writeIndex = ssrHistoryReadIndex;
+						});
+
+					ssrContributionTex = ssrTemporalTex;
+				}
+			}
+			else {
+				auto temporalIt = m_ssrTemporalStates.find(sourceView);
+				if (temporalIt != m_ssrTemporalStates.end()) {
+					temporalIt->second.hasHistory = false;
+				}
+			}
+
+			TextureDesc ssrAppliedDesc;
+			ssrAppliedDesc.width = sourceFB->GetWidth();
+			ssrAppliedDesc.height = sourceFB->GetHeight();
+			ssrAppliedDesc.format = TextureFormat::RGBA16F;
+			ssrAppliedDesc.name = "SSRApplied";
+			auto ssrAppliedTex = m_graph->CreateTexture(ssrAppliedDesc);
+
+			m_graph->AddPass("SSR: Apply")
+				.Read(sceneColor)
+				.Read(ssrContributionTex)
+				.Write(ssrAppliedTex)
+				.Execute([this, sceneColor, ssrContributionTex, ssrAppliedTex](const RenderGraphContext& ctx) {
+					if (!m_ssrApplyShader || !ctx.graph) return;
+
+					auto& pctx = m_context;
+					const uint32_t w = pctx.sourceFB->GetWidth();
+					const uint32_t h = pctx.sourceFB->GetHeight();
+					if (w == 0 || h == 0) return;
+
+					const uint32_t targetFbo = ctx.graph->GetFramebufferId(ssrAppliedTex);
+					if (targetFbo == 0) return;
+
+					const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+					glDisable(GL_DEPTH_TEST);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
+					glViewport(0, 0, static_cast<GLint>(w), static_cast<GLint>(h));
+					glClearColor(0, 0, 0, 1);
+					glClear(GL_COLOR_BUFFER_BIT);
+
+					m_ssrApplyShader->Bind();
+					m_ssrApplyShader->SetUniformInt("u_SceneColor", 0);
+					m_ssrApplyShader->SetUniformInt("u_SSRContribution", 1);
+
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(sceneColor));
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, ctx.GetTexture(ssrContributionTex));
+
+					glBindVertexArray(m_QuadVAO);
+					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+					glBindVertexArray(0);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					if (depthWasEnabled) glEnable(GL_DEPTH_TEST);
+				});
+
+			sceneColor = ssrAppliedTex;
+			}
+		}
+		else {
+			auto temporalIt = m_ssrTemporalStates.find(sourceView);
+			if (temporalIt != m_ssrTemporalStates.end()) {
+				temporalIt->second.hasHistory = false;
 			}
 		}
 
@@ -1103,5 +1540,28 @@ namespace NE::Graphics {
 			state.hasHistory = false;
 		}
 		m_taaStates.clear();
+
+		for (auto& [_, state] : m_ssrTemporalStates) {
+			for (int i = 0; i < 2; ++i) {
+				if (state.historyColorTex[i]) {
+					glDeleteTextures(1, &state.historyColorTex[i]);
+					state.historyColorTex[i] = 0;
+				}
+				if (state.historyDepthTex[i]) {
+					glDeleteTextures(1, &state.historyDepthTex[i]);
+					state.historyDepthTex[i] = 0;
+				}
+				if (state.historyNormalTex[i]) {
+					glDeleteTextures(1, &state.historyNormalTex[i]);
+					state.historyNormalTex[i] = 0;
+				}
+				if (state.historyRoughnessTex[i]) {
+					glDeleteTextures(1, &state.historyRoughnessTex[i]);
+					state.historyRoughnessTex[i] = 0;
+				}
+			}
+			state.hasHistory = false;
+		}
+		m_ssrTemporalStates.clear();
 	}
 }
