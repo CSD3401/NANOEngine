@@ -53,6 +53,11 @@ namespace Editor {
         if (ImGui::Checkbox("TAA Enabled", &taaEnabled)) {
             ppSettings.taaSettings.enabled = taaEnabled;
         }
+        ImGui::SameLine();
+        bool ssrEnabled = ppSettings.ssrSettings.enabled;
+        if (ImGui::Checkbox("SSR Enabled", &ssrEnabled)) {
+            ppSettings.ssrSettings.enabled = ssrEnabled;
+        }
 
         bool poolingEnabled = m_RenderGraph->IsPoolingEnabled();
         if (ImGui::Checkbox("Texture Pooling Enabled", &poolingEnabled)) {

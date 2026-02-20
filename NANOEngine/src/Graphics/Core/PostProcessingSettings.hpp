@@ -71,17 +71,71 @@ namespace NE::Graphics {
 		NE_REFLECT_END()
 	};
 
+	struct SSRSettings {
+		bool enabled = false;
+		bool temporalEnabled = true;
+		float intensity = 0.6f;
+		float halfResScale = 0.5f;
+		int resolveTapCount = 4;
+		float maxDistance = 30.0f;
+		float thickness = 0.0f;
+		int maxSteps = 48;
+		float stride = 0.2f;
+		int binarySearchSteps = 5;
+		float roughnessCutoff = 0.85f;
+		float fresnelPower = 5.0f;
+		float edgeFade = 0.2f;
+		bool hizEnabled = true;
+		int hizStartMip = 4;
+		int hizRefineSteps = 10;
+		float hizDepthBias = 0.0005f;
+		float temporalHistoryMin = 0.65f;
+		float temporalHistoryMax = 0.92f;
+		float temporalNormalRejectDot = 0.9f;
+		float temporalRoughnessReject = 0.2f;
+		float temporalDepthReject = 0.003f;
+		float temporalProjectionResetThreshold = 0.05f;
+
+		NE_REFLECT_BEGIN(SSRSettings)
+			NE_REFLECT_FIELD(enabled),
+			NE_REFLECT_FIELD(temporalEnabled),
+			NE_REFLECT_FIELD(intensity),
+			NE_REFLECT_FIELD(halfResScale),
+			NE_REFLECT_FIELD(resolveTapCount),
+			NE_REFLECT_FIELD(maxDistance),
+			NE_REFLECT_FIELD(thickness),
+			NE_REFLECT_FIELD(maxSteps),
+			NE_REFLECT_FIELD(stride),
+			NE_REFLECT_FIELD(binarySearchSteps),
+			NE_REFLECT_FIELD(roughnessCutoff),
+			NE_REFLECT_FIELD(fresnelPower),
+			NE_REFLECT_FIELD(edgeFade),
+			NE_REFLECT_FIELD(hizEnabled),
+			NE_REFLECT_FIELD(hizStartMip),
+			NE_REFLECT_FIELD(hizRefineSteps),
+			NE_REFLECT_FIELD(hizDepthBias),
+			NE_REFLECT_FIELD(temporalHistoryMin),
+			NE_REFLECT_FIELD(temporalHistoryMax),
+			NE_REFLECT_FIELD(temporalNormalRejectDot),
+			NE_REFLECT_FIELD(temporalRoughnessReject),
+			NE_REFLECT_FIELD(temporalDepthReject),
+			NE_REFLECT_FIELD(temporalProjectionResetThreshold)
+		NE_REFLECT_END()
+	};
+
 	struct PostProcessingSettings {
 		bool enabled = true;
 		BloomSettings bloomSettings;
 		SSAOSettings  ssaoSettings;
 		TAASettings taaSettings;
+		SSRSettings ssrSettings;
 
 		NE_REFLECT_BEGIN(PostProcessingSettings)
 			NE_REFLECT_FIELD(enabled),
 			NE_REFLECT_FIELD(bloomSettings),
 			NE_REFLECT_FIELD(ssaoSettings),
-			NE_REFLECT_FIELD(taaSettings)
+			NE_REFLECT_FIELD(taaSettings),
+			NE_REFLECT_FIELD(ssrSettings)
 		NE_REFLECT_END()
 	};
 
