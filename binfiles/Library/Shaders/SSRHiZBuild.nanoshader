@@ -3,8 +3,6 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-// Mode 0: copy scene depth into Hi-Z mip0
-// Mode 1: downsample Hi-Z mip u_SrcMip -> mip (u_SrcMip + 1) using MIN (standard depth)
 uniform int u_Mode;
 uniform int u_SrcMip;
 
