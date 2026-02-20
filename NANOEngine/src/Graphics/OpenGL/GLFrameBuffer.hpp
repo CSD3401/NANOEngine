@@ -30,6 +30,7 @@ namespace NE::Graphics::OpenGL {
         uint32_t GetColorAttachment() const override { return m_ColorAttachment; }
         uint32_t GetDepthAttachment() const override { return m_DepthAttachment; }
         uint32_t GetNormalAttachment() const override { return m_NormalAttachment; }
+        uint32_t GetRoughnessAttachment() const override { return m_RoughnessAttachment; }
         bool HasMiniGBuffer() const override { return m_EnableMiniGBuffer; }
         bool HasDepth() const override { return m_EnableDepth; }
         bool HasStencil() const override { return m_EnableDepth && m_EnableStencil; }
@@ -56,8 +57,9 @@ namespace NE::Graphics::OpenGL {
 
         uint32_t m_FBO = 0;
 		uint32_t m_ColorAttachment = 0; // Color for normal rendering
-		uint32_t m_PickingAttachment = 0; // Color for object picking
+        uint32_t m_PickingAttachment = 0; // Color for object picking
         uint32_t m_NormalAttachment = 0; // optional mini-gbuffer normal
+        uint32_t m_RoughnessAttachment = 0; // optional mini-gbuffer roughness
         uint32_t m_DepthAttachment = 0;
 
         uint32_t m_Width = 0, m_Height = 0;

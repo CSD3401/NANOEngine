@@ -538,9 +538,13 @@ namespace NE::Graphics {
             glEnable(GL_CULL_FACE);
             glCullFace(GL_BACK);
 
-            const GLenum normalAttachment = GL_COLOR_ATTACHMENT2;
-            glDrawBuffers(1, &normalAttachment);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            const GLenum gbufferAttachments[2] = { GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+            glDrawBuffers(2, gbufferAttachments);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            const float normalClear[4] = { 0.5f, 0.5f, 1.0f, 1.0f };
+            glClearBufferfv(GL_COLOR, 0, normalClear);
+            const float roughnessClear[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+            glClearBufferfv(GL_COLOR, 1, roughnessClear);
 
             normalPrepassShader->Bind();
             normalPrepassShader->SetUniformMat4("u_View", camView);
@@ -549,9 +553,64 @@ namespace NE::Graphics {
             std::vector<InstanceData> instanceData;
             instanceData.reserve(64);
             std::shared_ptr<IGeometryBuffer> currentMesh;
+            std::shared_ptr<Material> currentMaterial;
 
             auto flushBatch = [&]() {
                 if (instanceData.empty() || !currentMesh) return;
+
+                float roughness = 1.0f;
+                float opacity = 1.0f;
+                int hasRoughnessMap = 0;
+                int hasOpacityMap = 0;
+                int alphaClip = 0;
+                float alphaCutoff = 0.5f;
+
+                if (currentMaterial) {
+                    auto& floatUniforms = currentMaterial->GetFloatUniforms();
+                    auto getFloat = [&floatUniforms](const char* key, float defaultValue) {
+                        auto it = floatUniforms.find(key);
+                        return it != floatUniforms.end() ? it->second : defaultValue;
+                    };
+
+                    roughness = getFloat("u_Roughness", roughness);
+                    opacity = getFloat("u_Opacity", opacity);
+                    alphaCutoff = getFloat("u_AlphaCutoff", alphaCutoff);
+
+                    const auto& intUniforms = currentMaterial->m_IntUniforms;
+                    auto getInt = [&intUniforms](const char* key, int defaultValue) {
+                        auto it = intUniforms.find(key);
+                        return it != intUniforms.end() ? it->second : defaultValue;
+                    };
+
+                    hasRoughnessMap = getInt("h_HasRoughnessMap", 0);
+                    hasOpacityMap = getInt("h_HasOpacityMap", 0);
+                    alphaClip = getInt("u_AlphaClip", 0);
+
+                    const auto& textures = currentMaterial->GetTextures();
+                    auto bindTextureIfPresent = [&](const char* name, int unit) -> bool {
+                        auto texIt = textures.find(name);
+                        if (texIt == textures.end() || !texIt->second) return false;
+                        glActiveTexture(GL_TEXTURE0 + unit);
+                        glBindTexture(GL_TEXTURE_2D, texIt->second->GLName());
+                        return true;
+                    };
+
+                    if (!bindTextureIfPresent("u_RoughnessMap", 0)) {
+                        hasRoughnessMap = 0;
+                    }
+                    if (!bindTextureIfPresent("u_OpacityMap", 1)) {
+                        hasOpacityMap = 0;
+                    }
+                }
+
+                normalPrepassShader->SetUniformFloat("u_Roughness", roughness);
+                normalPrepassShader->SetUniformInt("u_RoughnessMap", 0);
+                normalPrepassShader->SetUniformInt("h_HasRoughnessMap", hasRoughnessMap);
+                normalPrepassShader->SetUniformFloat("u_Opacity", opacity);
+                normalPrepassShader->SetUniformInt("u_OpacityMap", 1);
+                normalPrepassShader->SetUniformInt("h_HasOpacityMap", hasOpacityMap);
+                normalPrepassShader->SetUniformInt("u_AlphaClip", alphaClip);
+                normalPrepassShader->SetUniformFloat("u_AlphaCutoff", alphaCutoff);
 
                 OpenGL::GLGeometryBuffer::UpdateInstanceBuffer(
                     instanceData.data(),
@@ -569,12 +628,13 @@ namespace NE::Graphics {
                 if (!frustum.IntersectsSphere(command.boundsCenterWS, command.boundsRadiusWs))
                     continue;
                 if (!command.mesh) continue;
-                if (command.mesh != currentMesh && !instanceData.empty()) {
+                if ((command.mesh != currentMesh || command.material != currentMaterial) && !instanceData.empty()) {
                     flushBatch();
                 }
 
-                if (command.mesh != currentMesh) {
+                if (command.mesh != currentMesh || command.material != currentMaterial) {
                     currentMesh = command.mesh;
+                    currentMaterial = command.material;
                 }
 
                 InstanceData instance{};
@@ -589,7 +649,7 @@ namespace NE::Graphics {
                 stateCache->InvalidateAll();
             }
 
-            view.framebuffer->SetPickingWrite(true);
+            view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
             return true;
         }
 
@@ -670,7 +730,7 @@ namespace NE::Graphics {
             if (wasDepthTest) glEnable(GL_DEPTH_TEST);
             glDepthMask(depthMask == GL_TRUE ? GL_TRUE : GL_FALSE);
 
-            view.framebuffer->SetPickingWrite(true);
+            view.framebuffer->SetPickingWrite(view.framebuffer->HasPickingAttachment());
         }
     }
 
