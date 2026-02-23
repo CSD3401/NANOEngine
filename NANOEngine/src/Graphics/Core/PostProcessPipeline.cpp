@@ -1,14 +1,14 @@
 #include "PostProcessPipeline.hpp"
 
 #include "PostProcessingSettings.hpp"
-#include "../../Math/Mat4.hpp"
+#include "Math/Mat4.hpp"
 #include "RenderGraph.hpp"
 #include "RenderViewManager.hpp"
 #include "../Interfaces/IFrameBuffer.hpp"
 #include "../OpenGL/GLShader.hpp"
-#include "../../ResourceManagement/ResourceManager.hpp"
-#include "../../Core/Logger.hpp"
-
+#include "ResourceManagement/ResourceManager.hpp"
+#include "Core/Logger.hpp"
+#include "Core/Profiler.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -121,7 +121,12 @@ namespace NE::Graphics {
 		const Math::Mat4& currProj,
 		bool isSceneView
 	) {
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
+
 		if (!m_rvm || !m_graph) return;
+
 		if (m_settings && m_settings->taaSettings.resetHistory) {
 			for (auto& [_, state] : m_taaStates) {
 				state.hasHistory = false;
@@ -173,6 +178,10 @@ namespace NE::Graphics {
 	void PostProcessPipeline::InitBloomResources(uint32_t w, uint32_t h) {
 		if (w == 0 || h == 0) return;
 
+		constexpr GLint bloomInternalFormat = GL_RGB16F;
+		constexpr GLenum bloomUploadFormat = GL_RGB;
+		constexpr GLenum bloomUploadType = GL_FLOAT;
+
 		GLenum att = GL_COLOR_ATTACHMENT0;
 		int levelW = std::max(1, static_cast<int>(w / BLOOM_BASE_DIVISOR));
 		int levelH = std::max(1, static_cast<int>(h / BLOOM_BASE_DIVISOR));
@@ -190,9 +199,9 @@ namespace NE::Graphics {
 				glGenTextures(1, &m_bloomTex[i]);
 			}
 			glBindTexture(GL_TEXTURE_2D, m_bloomTex[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
+			glTexImage2D(GL_TEXTURE_2D, 0, bloomInternalFormat,
 				levelW, levelH, 0,
-				GL_RGBA, GL_FLOAT, nullptr);
+				bloomUploadFormat, bloomUploadType, nullptr);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -200,6 +209,11 @@ namespace NE::Graphics {
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 				GL_TEXTURE_2D, m_bloomTex[i], 0);
 			glDrawBuffers(1, &att);
+#ifndef PRODUCTION_BUILD
+			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+				LOG_ERROR("Bloom FBO incomplete! level=" << i);
+			}
+#endif
 
 			if (m_bloomTempFBO[i] == 0) {
 				glGenFramebuffers(1, &m_bloomTempFBO[i]);
@@ -210,9 +224,9 @@ namespace NE::Graphics {
 				glGenTextures(1, &m_bloomTempTex[i]);
 			}
 			glBindTexture(GL_TEXTURE_2D, m_bloomTempTex[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
+			glTexImage2D(GL_TEXTURE_2D, 0, bloomInternalFormat,
 				levelW, levelH, 0,
-				GL_RGBA, GL_FLOAT, nullptr);
+				bloomUploadFormat, bloomUploadType, nullptr);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -221,6 +235,11 @@ namespace NE::Graphics {
 				GL_TEXTURE_2D, m_bloomTempTex[i], 0);
 
 			glDrawBuffers(1, &att);
+#ifndef PRODUCTION_BUILD
+			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+				LOG_ERROR("Bloom temp FBO incomplete! level=" << i);
+			}
+#endif
 
 			levelW = std::max(1, levelW / 2);
 			levelH = std::max(1, levelH / 2);
@@ -797,8 +816,10 @@ namespace NE::Graphics {
 
 					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 					glViewport(0, 0, static_cast<GLint>(ssrRawW), static_cast<GLint>(ssrRawH));
+#ifndef PRODUCTION_BUILD
 					glClearColor(0, 0, 0, 0);
 					glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
 					const float maxSceneMip = std::floor(std::log2(static_cast<float>(std::max(fullW, fullH))));
 
@@ -869,8 +890,10 @@ namespace NE::Graphics {
 
 					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 					glViewport(0, 0, w, h);
+#ifndef PRODUCTION_BUILD
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
 					m_ssrResolveShader->Bind();
 					m_ssrResolveShader->SetUniformInt("u_SSRRaw", 0);
@@ -967,8 +990,10 @@ namespace NE::Graphics {
 
 							glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 							glViewport(0, 0, static_cast<GLint>(w), static_cast<GLint>(h));
+#ifndef PRODUCTION_BUILD
 							glClearColor(0, 0, 0, 0);
 							glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
 							m_ssrTemporalShader->Bind();
 							m_ssrTemporalShader->SetUniformInt("u_CurrentSSR", 0);
@@ -1120,8 +1145,10 @@ namespace NE::Graphics {
 
 					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 					glViewport(0, 0, static_cast<GLint>(w), static_cast<GLint>(h));
+#ifndef PRODUCTION_BUILD
 					glClearColor(0, 0, 0, 1);
 					glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
 					m_ssrApplyShader->Bind();
 					m_ssrApplyShader->SetUniformInt("u_SceneColor", 0);
@@ -1198,8 +1225,10 @@ namespace NE::Graphics {
 
 						glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 						glViewport(0, 0, w, h);
+#ifndef PRODUCTION_BUILD
 						glClearColor(0, 0, 0, 1);
 						glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
 						const GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
 						glDisable(GL_DEPTH_TEST);
@@ -1310,6 +1339,10 @@ namespace NE::Graphics {
 
 					glBindFramebuffer(GL_FRAMEBUFFER, targetFbo);
 					glViewport(0, 0, w, h);
+#ifndef PRODUCTION_BUILD
+					glClearColor(0, 0, 0, 1);
+					glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
 					m_SSAOShader->Bind();
 					m_SSAOShader->SetUniformInt("u_Depth", 0);
@@ -1358,6 +1391,7 @@ namespace NE::Graphics {
 					const float softKnee = m_settings->bloomSettings.softKnee;
 					const float scale = m_settings->bloomSettings.brightScale;
 					const float fireflyStrength = 0.35f;
+					const float filterRadius = std::clamp(m_settings->bloomSettings.bloomRadius, 0.25f, 3.0f);
 
 					for (int level = 0; level < BLOOM_LEVELS; ++level) {
 						const int dstW = m_bloomWidth[level];
@@ -1369,7 +1403,7 @@ namespace NE::Graphics {
 						m_downSampleShader->Bind();
 						m_downSampleShader->SetUniformInt("u_Source", 0);
 						m_downSampleShader->SetUniformVec2("u_TexelSize", { 1.0f / srcW, 1.0f / srcH });
-						m_downSampleShader->SetUniformFloat("u_FilterRadius", 1.0f);
+						m_downSampleShader->SetUniformFloat("u_FilterRadius", filterRadius);
 
 						const int applyThreshold = (level == 0) ? 1 : 0;
 						m_downSampleShader->SetUniformInt("u_ApplyThreshold", applyThreshold);
@@ -1424,12 +1458,15 @@ namespace NE::Graphics {
 						glBindFramebuffer(GL_FRAMEBUFFER, m_bloomFBO[hi]);
 						glViewport(0, 0, dstW, dstH);
 
+						const float t = (BLOOM_LEVELS > 1) ? (static_cast<float>(level) / static_cast<float>(BLOOM_LEVELS - 1)) : 1.0f;
+						const float mipWeight = std::lerp(0.6f, 1.0f, std::clamp(t, 0.0f, 1.0f));
+
 						m_upSampleShader->Bind();
 						m_upSampleShader->SetUniformInt("u_LowRes", 0);
 						m_upSampleShader->SetUniformInt("u_HighRes", 1);
 						m_upSampleShader->SetUniformVec2("u_LowTexelSize", { 1.0f / lowW, 1.0f / lowH });
 						m_upSampleShader->SetUniformFloat("u_FilterRadius", filterRadius);
-						m_upSampleShader->SetUniformFloat("u_Intensity", 1.0f);
+						m_upSampleShader->SetUniformFloat("u_Intensity", mipWeight);
 
 						glActiveTexture(GL_TEXTURE0);
 						glBindTexture(GL_TEXTURE_2D, lowTex);
@@ -1466,6 +1503,10 @@ namespace NE::Graphics {
 
 				pctx.destFB->Bind();
 				glViewport(0, 0, w, h);
+#ifndef PRODUCTION_BUILD
+				glClearColor(0, 0, 0, 1);
+				glClear(GL_COLOR_BUFFER_BIT);
+#endif
 
 				glDisable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);

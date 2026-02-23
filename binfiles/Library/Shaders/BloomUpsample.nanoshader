@@ -31,16 +31,16 @@ void main()
     vec2 o = u_LowTexelSize * u_FilterRadius;
 
     // Dual-filter style upsample (blurred upsample)
-    vec3 low = vec3(0.0);
-    low += texture(u_LowRes, vUV + o * vec2( 1.0,  0.0)).rgb;
-    low += texture(u_LowRes, vUV + o * vec2(-1.0,  0.0)).rgb;
-    low += texture(u_LowRes, vUV + o * vec2( 0.0,  1.0)).rgb;
-    low += texture(u_LowRes, vUV + o * vec2( 0.0, -1.0)).rgb;
-    low += texture(u_LowRes, vUV + o * vec2( 1.0,  1.0)).rgb;
-    low += texture(u_LowRes, vUV + o * vec2(-1.0,  1.0)).rgb;
-    low += texture(u_LowRes, vUV + o * vec2( 1.0, -1.0)).rgb;
-    low += texture(u_LowRes, vUV + o * vec2(-1.0, -1.0)).rgb;
-    low *= 0.125;
+    // 9-tap tent to keep highlights anchored.
+    vec3 low = texture(u_LowRes, vUV).rgb * 0.25;
+    low += texture(u_LowRes, vUV + o * vec2( 1.0,  0.0)).rgb * 0.125;
+    low += texture(u_LowRes, vUV + o * vec2(-1.0,  0.0)).rgb * 0.125;
+    low += texture(u_LowRes, vUV + o * vec2( 0.0,  1.0)).rgb * 0.125;
+    low += texture(u_LowRes, vUV + o * vec2( 0.0, -1.0)).rgb * 0.125;
+    low += texture(u_LowRes, vUV + o * vec2( 1.0,  1.0)).rgb * 0.0625;
+    low += texture(u_LowRes, vUV + o * vec2(-1.0,  1.0)).rgb * 0.0625;
+    low += texture(u_LowRes, vUV + o * vec2( 1.0, -1.0)).rgb * 0.0625;
+    low += texture(u_LowRes, vUV + o * vec2(-1.0, -1.0)).rgb * 0.0625;
 
     vec3 result = high + low * u_Intensity;
 
