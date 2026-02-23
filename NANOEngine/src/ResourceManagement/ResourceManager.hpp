@@ -82,16 +82,12 @@ namespace NE::Resource {
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Unlit.nanoshader"));
 				if (id == "nelitpbr")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Lit_PBR.nanoshader"));
-				if (id == "nebloomblur")
-					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomBlur.nanoshader"));
-				if (id == "nebloomcomposite")
-					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomComposite.nanoshader"));
+				if (id == "necomposite")
+					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Composite.nanoshader"));
 				if (id == "nebloomdownsample")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomDownsample.nanoshader"));
 				if (id == "nebloomupsample")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BloomUpsample.nanoshader"));
-				if (id == "nebrightpass")
-					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/BrightPass.nanoshader"));
 				if (id == "neskybox")
 					return std::static_pointer_cast<T>(NE::Graphics::LoadBuiltinShader("Library/Shaders/Skybox.nanoshader"));
 				if (id == "nefpfill")

@@ -98,6 +98,7 @@ namespace NE::Graphics {
 		};
 
 		static constexpr int BLOOM_LEVELS = 5;
+		static constexpr int BLOOM_BASE_DIVISOR = 2; // 2 = half-res base, 4 = quarter-res base
 
 		RenderViewManager* m_rvm = nullptr;
 		PostProcessingSettings* m_settings = nullptr;
@@ -111,10 +112,6 @@ namespace NE::Graphics {
 		unsigned int m_QuadVAO = 0;
 		unsigned int m_QuadVBO = 0;
 
-		std::shared_ptr<OpenGL::GLShader> m_brightPassShader;
-		unsigned int m_brightPassTex = 0;
-		unsigned int m_brightPassFBO = 0;
-
 		std::array<unsigned int, BLOOM_LEVELS> m_bloomFBO{};
 		std::array<unsigned int, BLOOM_LEVELS> m_bloomTex{};
 		std::array<int, BLOOM_LEVELS> m_bloomWidth{};
@@ -124,7 +121,6 @@ namespace NE::Graphics {
 		std::array<unsigned int, BLOOM_LEVELS> m_bloomTempTex{};
 
 		std::shared_ptr<OpenGL::GLShader> m_downSampleShader;
-		std::shared_ptr<OpenGL::GLShader> m_blurShader;
 		std::shared_ptr<OpenGL::GLShader> m_upSampleShader;
 		std::shared_ptr<OpenGL::GLShader> m_compositeShader;
 		std::shared_ptr<OpenGL::GLShader> m_taaShader;
