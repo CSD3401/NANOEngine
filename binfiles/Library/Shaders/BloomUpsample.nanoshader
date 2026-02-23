@@ -20,12 +20,27 @@ out vec4 FragColor;
 
 uniform sampler2D u_LowRes;
 uniform sampler2D u_HighRes;
+uniform vec2      u_LowTexelSize;
+uniform float     u_FilterRadius;
 uniform float     u_Intensity;
 
 void main()
 {
     vec3 high = texture(u_HighRes, vUV).rgb;
-    vec3 low  = texture(u_LowRes,  vUV).rgb;
+
+    vec2 o = u_LowTexelSize * u_FilterRadius;
+
+    // Dual-filter style upsample (blurred upsample)
+    vec3 low = vec3(0.0);
+    low += texture(u_LowRes, vUV + o * vec2( 1.0,  0.0)).rgb;
+    low += texture(u_LowRes, vUV + o * vec2(-1.0,  0.0)).rgb;
+    low += texture(u_LowRes, vUV + o * vec2( 0.0,  1.0)).rgb;
+    low += texture(u_LowRes, vUV + o * vec2( 0.0, -1.0)).rgb;
+    low += texture(u_LowRes, vUV + o * vec2( 1.0,  1.0)).rgb;
+    low += texture(u_LowRes, vUV + o * vec2(-1.0,  1.0)).rgb;
+    low += texture(u_LowRes, vUV + o * vec2( 1.0, -1.0)).rgb;
+    low += texture(u_LowRes, vUV + o * vec2(-1.0, -1.0)).rgb;
+    low *= 0.125;
 
     vec3 result = high + low * u_Intensity;
 
