@@ -613,6 +613,16 @@ namespace Editor {
     }
 
     // New Styling
+    void ToolTip(const char* text) {
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+            ImGui::TextUnformatted(text);
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    }
+
     bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned) {
         bool changed = false;
         ImGui::PushID(label);

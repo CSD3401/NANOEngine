@@ -84,6 +84,7 @@ namespace Editor {
     void DrawAssetField(const char* label, const std::string& assetPath, bool* openPopup = nullptr, bool rightAligned = true, ImVec2 size = { 380.f, 0.f }, float plusWidth = 38.f);
 
     // New Styling
+    void ToolTip(const char* text);
     bool DrawFloatSliderWithField(const char* label, float& value, float min, float max, float step, bool rightAligned);
     bool DrawFloatField(const char* label, float& value, float step, bool rightAligned);
     bool DrawIntField(const char* label, int& value, bool rightAligned);
