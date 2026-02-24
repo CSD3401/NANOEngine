@@ -55,8 +55,7 @@ namespace Editor::Events {
 	};
 
 	struct DeleteEntityEvent {
-		std::vector<uint32_t> entitiesToBeDeleted;
-		uint32_t oldParentEntity;
+		std::vector<uint32_t> rootEntitiesToDelete;
 	};
 
 	struct HideCursorEvent {};

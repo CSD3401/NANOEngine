@@ -239,16 +239,23 @@ namespace Editor {
 
     class DeleteEntityCommand final : public ICommand {
     public:
-        DeleteEntityCommand(std::vector<uint32_t> deletedEntity, uint32_t oldParent);
+        explicit DeleteEntityCommand(std::vector<uint32_t> rootEntitiesToDelete);
 
         void Execute() override;
         void Undo() override;
         const char* GetName() const override { return "Delete Entity"; }
 
     private:
-        uint32_t oldParentEntity = NE::ECS::NO_ENTITY;
-        std::vector<uint32_t> m_entities;
-        std::vector<uint8_t> m_data;
+        struct DeletedRootSnapshot {
+            std::vector<uint8_t> blob;
+            uint32_t oldParent = NE::ECS::NO_ENTITY;
+            int oldIndex = -1;
+            bool wasRoot = false;
+            uint32_t liveEntityId = NE::ECS::NO_ENTITY;
+        };
+
+        std::vector<uint32_t> m_initialRootEntities;
+        std::vector<DeletedRootSnapshot> m_snapshots;
 
         //struct DeletedUIEntityInfo {
         //    uint32_t id;
