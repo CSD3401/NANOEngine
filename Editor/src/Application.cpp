@@ -36,7 +36,6 @@ namespace Editor {
 	static bool s_showUnsavedChangesPopup = false;
 
 	void Application::Init() {
-
 		NANOEngine::Events::EventBus::Get().Subscribe<Events::ShowCursorEvent>(
 			NANOEngine::Events::EventDomain::Editor,
 			[&](const Events::ShowCursorEvent&) {
@@ -138,14 +137,12 @@ namespace Editor {
 		editorLayer.AddPanel<InspectorPanel>();
 		editorLayer.AddPanel<ProfilerPanel>();
 		editorLayer.AddPanel<LoggerPanel>();
-		editorLayer.AddPanel<AnimationPanel>();
 
 		NE::SetEditorCamera(reinterpret_cast<void*>(&EditorScene::m_editorCamera));
 		Deserialization::JSON::DeserializeProjectSettings();
 	}
 
-	void Application::Run()
-	{
+	void Application::Run() {
 		while (!NE::WindowShouldClose()) {
 			Profiler::BeginFrame();
 			timer.Update(); // move to engine run
