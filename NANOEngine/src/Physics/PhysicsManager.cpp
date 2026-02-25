@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "PhysicsManager.hpp"
 
 #include <Jolt/RegisterTypes.h>

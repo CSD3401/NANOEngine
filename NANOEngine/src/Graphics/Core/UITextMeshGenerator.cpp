@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UITextMeshGenerator.hpp"
 #include <algorithm>
 #include <cmath>

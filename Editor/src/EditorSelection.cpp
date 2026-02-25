@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorSelection.hpp"
 
 #include <algorithm>

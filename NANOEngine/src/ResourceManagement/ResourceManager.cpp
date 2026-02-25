@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ResourceManager.hpp"
 
 #include <filesystem>

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "HierarchyPanel.hpp"
 
 #include <imgui/imgui.h>

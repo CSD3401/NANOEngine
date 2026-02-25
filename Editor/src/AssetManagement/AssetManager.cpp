@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AssetManager.hpp"
 #include <fstream>
 #include <filesystem>

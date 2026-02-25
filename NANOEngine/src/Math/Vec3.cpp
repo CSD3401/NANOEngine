@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Vec3.hpp"
 #include "Vec2.hpp"
 #include "Vec4.hpp"

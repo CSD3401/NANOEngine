@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Skybox.hpp"
 #include "GraphicsManager.hpp"
 #include "../OpenGL/GLVertexBuffer.hpp"

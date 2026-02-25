@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "../Panels/AnimationGraphPanel.hpp"
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "SceneManager.hpp"
 
 #include "Scripting/ScriptingEngine.hpp"

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "SceneAsset.hpp"
 
 #include <Engine.hpp>

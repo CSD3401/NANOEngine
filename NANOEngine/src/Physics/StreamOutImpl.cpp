@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "StreamOutImpl.hpp"
 
 namespace NE::Physics {
