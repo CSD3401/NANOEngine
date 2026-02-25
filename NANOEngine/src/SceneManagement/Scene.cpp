@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Scene.hpp"
 #include "Graphics/Core/GraphicsManager.hpp"
 #include "Graphics/Core/GizmosRenderer.hpp"

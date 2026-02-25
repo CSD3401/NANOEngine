@@ -1,4 +1,5 @@
-﻿// AudioSystem.cpp - FIXED VERSION
+#include "pch.h"
+// AudioSystem.cpp - FIXED VERSION
 // This version properly loads FMOD banks using the new ResourceManager system
 
 #include "AudioSystem.hpp"

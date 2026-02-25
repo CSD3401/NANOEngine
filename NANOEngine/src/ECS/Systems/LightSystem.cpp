@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "LightSystem.hpp"
 #include "../../Core/Profiler.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"

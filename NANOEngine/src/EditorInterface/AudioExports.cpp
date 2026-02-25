@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AudioExports.hpp"
 #include "../ECS/Systems/AudioSystem.hpp"
 #include "../SceneManagement/Scene.hpp"

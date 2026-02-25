@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "RendererExports.hpp"
 #include "SceneManagement/Scene.hpp"
 

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "RenderSystem.hpp"
 #include "ECS/Components/Renderer.hpp"
 #include "ECS/Components/Transform.hpp"

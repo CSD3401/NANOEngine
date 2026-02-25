@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorCommands.hpp"
 
 // Include component headers before ECSExports (which has forward declarations)

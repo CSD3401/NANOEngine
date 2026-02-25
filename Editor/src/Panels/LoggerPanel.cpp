@@ -1,3 +1,4 @@
+#include "pch.h"
 /*!
 \fileLoggerPanel.cpp
 \author     Anson Teng

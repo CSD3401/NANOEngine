@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AnimatorSystem.hpp"
 
 #include <algorithm>

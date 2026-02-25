@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Timer.hpp"
 
 Timer::Timer(double fixedDeltaTime, int maxSteps)

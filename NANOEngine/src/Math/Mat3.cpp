@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Mat3.hpp"
 
 namespace NE::Math {

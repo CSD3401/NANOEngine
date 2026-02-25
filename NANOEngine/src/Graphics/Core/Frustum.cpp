@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Frustum.hpp"
 
 using NE::Math::Vec3;

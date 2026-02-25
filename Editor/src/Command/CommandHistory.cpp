@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "CommandHistory.hpp"
 
 #include <memory>

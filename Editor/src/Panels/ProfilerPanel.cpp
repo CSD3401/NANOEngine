@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ProfilerPanel.hpp"
 
 #include <imgui/imgui.h>

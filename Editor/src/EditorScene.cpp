@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorScene.hpp"
 #include <algorithm>
 #include <EditorInterface/ECSExports.hpp>

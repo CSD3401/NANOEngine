@@ -1,3 +1,4 @@
+#include "pch.h"
 /**
  * @file ScriptContextFactory.cpp
  * @brief Implementation of ScriptContext factory functions

@@ -1,4 +1,5 @@
-﻿#include "EditorLayer.hpp"
+#include "pch.h"
+#include "EditorLayer.hpp"
 #include "ImGuiLayer.hpp"
 #include "imgui/imgui.h"
 #include <imgui/imgui_internal.h>

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "LightingPanel.hpp"
 #include <imgui/imgui.h>
 #include "Engine.hpp"
