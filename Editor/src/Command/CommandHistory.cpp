@@ -137,7 +137,7 @@ namespace Editor {
         NANOEngine::Events::EventBus::Get().Subscribe<Events::DeleteEntityEvent>(
             NANOEngine::Events::EventDomain::Editor,
             [&](const Events::DeleteEntityEvent& e) {
-                ExecuteCommand(std::make_unique<DeleteEntityCommand>(e.entitiesToBeDeleted, e.oldParentEntity));
+                ExecuteCommand(std::make_unique<DeleteEntityCommand>(e.rootEntitiesToDelete));
             }
         );
 

@@ -240,8 +240,9 @@ namespace NE {
 		return buffer;
 	}
 
-	uint32_t PasteEntity(std::vector<uint8_t> clipboard) {
-		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), clipboard);
+	uint32_t PasteEntity(const std::vector<uint8_t>& clipboard) {
+		std::vector<uint8_t> buffer = clipboard;
+		return NE::Deserialization::DeserializeEntitiesFromMemory(gSceneManager.GetActive()->GetECSCoordinator(), buffer);
 	}
 
 	void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot) {

@@ -60,7 +60,7 @@ namespace NE {
 
 	NANOENGINE_API uint32_t DuplicateEntity(uint32_t entity);
 	NANOENGINE_API std::vector<uint8_t> CopyEntity(uint32_t entity);
-	NANOENGINE_API uint32_t PasteEntity(std::vector<uint8_t> clipboard);
+	NANOENGINE_API uint32_t PasteEntity(const std::vector<uint8_t>& clipboard);
 
 	NANOENGINE_API void CreatePrefabFromEntity(uint32_t entity, std::string& uuid, uint32_t& localID, bool isRoot = false);
 	NANOENGINE_API void UnpackPrefab(uint32_t entity, bool isRoot = false);
