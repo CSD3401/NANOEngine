@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UILayoutEngine.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UICanvas.hpp"
@@ -5,7 +6,6 @@
 #include "../Components/EntityMeta.hpp"
 #include "../../Graphics/Core/GraphicsManager.hpp"
 #include "UITransformUtilities.hpp"
-#include <algorithm>
 #include <cmath>
 #include <limits>
 

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UILayoutSystem.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UILayoutGroup.hpp"
@@ -8,8 +9,6 @@
 #include "../Components/UIAutoSize.hpp"
 #include "../Components/UIText.hpp"
 #include "../Components/UICanvas.hpp"
-#include <algorithm>
-#include <cmath>
 
 using namespace NE::ECS::Component;
 
