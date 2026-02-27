@@ -54,13 +54,7 @@
 #include <sstream>
 #include <vector>
 #include "../AssetManagement/AssetManager.hpp"
-//#include "../AssetManagement/Settings/TextureImportSettings.hpp"
-//#include "../AssetManagement/Settings/ModelImportSettings.hpp"
 #include <Core/SpdLogger.hpp>
-//#include <fstream>
-//#include <rapidjson/document.h>
-//#include "../Serialization/JSONReflection.hpp"
-//#include <rapidjson/istreamwrapper.h>
 #include "../Command/EditorCommands.hpp"
 #include "../Layers/LayerDatabase.hpp"
 #include "../Layers/LayerModal.hpp"
@@ -457,13 +451,13 @@ namespace Editor {
 			{ NE::ECS::Query::GetUIButtonComponentType(),			"Button",				&InspectorPanel::DrawButtonComponent				},
 			{ NE::ECS::Query::GetUISliderComponentType(),			"Slider",				&InspectorPanel::DrawSliderComponent				},
 			{ NE::ECS::Query::GetUIToggleComponentType(),			"Toggle",				&InspectorPanel::DrawToggleComponent				},
-			{ NE::ECS::Query::GetUILayoutGroupComponentType(),           "Layout Group",            &InspectorPanel::DrawLayoutGroupComponent           },
-			{ NE::ECS::Query::GetUIGridLayoutGroupComponentType(),       "Grid Layout Group",       &InspectorPanel::DrawGridLayoutGroupComponent       },
-			{ NE::ECS::Query::GetUILayoutElementComponentType(),         "Layout Element",          &InspectorPanel::DrawLayoutElementComponent         },
-			{ NE::ECS::Query::GetUIScrollRectComponentType(),            "Scroll Rect",             &InspectorPanel::DrawScrollRectComponent            },
-			{ NE::ECS::Query::GetUIAutoSizeComponentType(),              "Auto Size",               &InspectorPanel::DrawAutoSizeComponent              },
-			{ NE::ECS::Query::GetUIInputFieldComponentType(),            "Input Field",             &InspectorPanel::DrawInputFieldComponent             },
-			{ NE::ECS::Query::GetUIDropdownComponentType(),              "Dropdown",                &InspectorPanel::DrawDropdownComponent               },
+			{ NE::ECS::Query::GetUILayoutGroupComponentType(),		"Layout Group",			&InspectorPanel::DrawLayoutGroupComponent           },
+			{ NE::ECS::Query::GetUIGridLayoutGroupComponentType(),	"Grid Layout Group",	&InspectorPanel::DrawGridLayoutGroupComponent       },
+			{ NE::ECS::Query::GetUILayoutElementComponentType(),	"Layout Element",		&InspectorPanel::DrawLayoutElementComponent         },
+			{ NE::ECS::Query::GetUIScrollRectComponentType(),		"Scroll Rect",			&InspectorPanel::DrawScrollRectComponent            },
+			{ NE::ECS::Query::GetUIAutoSizeComponentType(),			"Auto Size",			&InspectorPanel::DrawAutoSizeComponent              },
+			{ NE::ECS::Query::GetUIInputFieldComponentType(),		"Input Field",			&InspectorPanel::DrawInputFieldComponent			},
+			{ NE::ECS::Query::GetUIDropdownComponentType(),			"Dropdown",				&InspectorPanel::DrawDropdownComponent				},
 			{ NE::ECS::Query::GetScriptComponentType(),				"Script",				&InspectorPanel::DrawScriptComponent				}
 		};
 	}
@@ -2696,6 +2690,27 @@ namespace Editor {
 
 	void InspectorPanel::DrawCameraComponent(uint32_t entity) {
 		auto& comp = NE::ECS::Query::GetEntityCamera(entity);
+
+		bool copyComp = false;
+		bool deleteComp = false;
+
+		const bool open = DrawComponentHeaderWithMenu(
+			"Camera",
+			true,
+			&copyComp,
+			&deleteComp
+		);
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveCameraComponent(entity);
+		}
+
+		if (!open)
+			return;
+
 		ImGui::SeparatorText("Camera");
 
 		NE::Core::ForEachFieldView<NE::ECS::Component::Camera>(comp,
@@ -2785,7 +2800,10 @@ namespace Editor {
 						}
 					}
 				}
-			});
+			}
+		);
+
+		ImGui::TreePop();
 	}
 
 	void InspectorPanel::DrawAnimatorComponent(uint32_t entity) {
@@ -2801,6 +2819,13 @@ namespace Editor {
 			&copyComp,
 			&deleteComp
 		);
+
+		if (copyComp) {
+
+		}
+		if (deleteComp) {
+			NE::ECS::Command::RemoveAnimatorComponent(entity);
+		}
 
 		if (!open)
 			return;
@@ -2854,13 +2879,6 @@ namespace Editor {
 					);
 				}
 			});
-
-		if (copyComp) {
-
-		}
-		if (deleteComp) {
-			NE::ECS::Command::RemoveRendererComponent(entity);
-		}
 
 		ImGui::TreePop();
 	}
