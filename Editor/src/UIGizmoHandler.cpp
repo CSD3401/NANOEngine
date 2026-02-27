@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UIGizmoHandler.hpp"
 #include "imgui/imgui_internal.h"
 #include "EditorInterface/ECSExports.hpp"

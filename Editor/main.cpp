@@ -1,3 +1,4 @@
+#include "pch.h"
 #include <crtdbg.h> // To check for memory leaks
 #include "src/Application.hpp"
 

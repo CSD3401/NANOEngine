@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Font.hpp"
 #include "Core/SpdLogger.hpp"
 #include <cstring>

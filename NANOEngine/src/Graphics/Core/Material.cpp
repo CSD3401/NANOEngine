@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Material.hpp"
 #include "../OpenGL/GLShader.hpp"
 #include "../OpenGL/GLPipeline.hpp"

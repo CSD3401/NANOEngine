@@ -1,3 +1,4 @@
+#include "pch.h"
 /**
  * @file ScriptTypes.cpp
  * @brief Implementation of ScriptSDK types

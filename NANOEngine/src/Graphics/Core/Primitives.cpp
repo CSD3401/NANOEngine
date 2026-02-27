@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Primitives.hpp"
 #include <algorithm>
 #include <corecrt_math_defines.h>

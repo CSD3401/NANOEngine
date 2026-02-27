@@ -1,3 +1,4 @@
+#include "pch.h"
 /**
  * @file ScriptAPI.cpp
  * @brief Implementation of the clean scripting SDK API

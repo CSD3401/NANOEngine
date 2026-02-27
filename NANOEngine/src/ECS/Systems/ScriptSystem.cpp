@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ScriptSystem.hpp"
 #include <iostream>
 #include <filesystem>

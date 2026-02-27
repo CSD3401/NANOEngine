@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "HierarchySystem.hpp"
 
 #include "Core/LUIDGenerator.hpp"

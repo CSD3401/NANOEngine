@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "RenderGraphPanel.hpp"
 
 #include <imgui/imgui.h>

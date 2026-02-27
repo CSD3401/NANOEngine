@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AssetBrowserPanel.hpp"
 #include <fstream>
 #include <vector>

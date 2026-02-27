@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "../Panels/AnimationRuntimePanel.hpp"
 #include <imgui/imgui.h>
 #include <cstdio>          // std::snprintf

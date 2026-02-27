@@ -1,4 +1,5 @@
-﻿// AudioBank.cpp - FIXED VERSION
+#include "pch.h"
+// AudioBank.cpp - FIXED VERSION
 #include "AudioBank.hpp"
 #include <filesystem>
 #include "Core/SpdLogger.hpp"

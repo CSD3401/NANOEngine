@@ -1,4 +1,5 @@
-﻿#include "EditorLayer.hpp"
+#include "pch.h"
+#include "EditorLayer.hpp"
 #include "ImGuiLayer.hpp"
 #include "imgui/imgui.h"
 #include <imgui/imgui_internal.h>
@@ -20,6 +21,7 @@
 #include "ThumbnailManager.hpp"
 #include <Events/EventBus.hpp>
 #include "EditorEvents.hpp"
+#include "Panels/AnimationPanel.hpp"
 
 namespace Editor {
 	void EditorLayer::Init() {
@@ -237,14 +239,14 @@ namespace Editor {
 			}
 			if (ImGui::BeginMenu("Animation")) {
 				if (ImGui::MenuItem("Animation", nullptr, false)) {
-					//AddPanel<AnimationPanel>();
+					AddPanel<AnimationPanel>();
 				}
-				if (ImGui::MenuItem("Animator", nullptr, false)) {
-					//AddPanel<AnimatorGraphPanel>();
-				}
-				if (ImGui::MenuItem("Animation Runtime", nullptr, false)) {
-					//AddPanel<AnimatorRuntimePanel>();
-				}
+				//if (ImGui::MenuItem("Animator", nullptr, false)) {
+				//	//AddPanel<AnimatorGraphPanel>();
+				//}
+				//if (ImGui::MenuItem("Animation Runtime", nullptr, false)) {
+				//	//AddPanel<AnimatorRuntimePanel>();
+				//}
 				ImGui::EndMenu();
 			}
 			ImGui::EndPopup();

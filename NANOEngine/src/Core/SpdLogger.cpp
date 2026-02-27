@@ -1,3 +1,4 @@
+#include "pch.h"
 /*!
 \file       SpdLogger.cpp
 \author     Anson Teng

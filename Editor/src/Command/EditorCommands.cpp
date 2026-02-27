@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EditorCommands.hpp"
 
 // Include component headers before ECSExports (which has forward declarations)
@@ -18,6 +19,7 @@
 #include <ECS/Core/Entity.hpp>
 #include <SceneManagement/SceneManager.hpp>
 #include <algorithm>
+#include <limits>
 #include <Core/LUIDGenerator.hpp>
 
 namespace Editor {
@@ -643,164 +645,142 @@ namespace Editor {
 		}
 	}
 
-	DeleteEntityCommand::DeleteEntityCommand(std::vector<uint32_t> deletedEntity, uint32_t oldParent) 
-		: m_entities(deletedEntity), oldParentEntity(oldParent) {}
+	DeleteEntityCommand::DeleteEntityCommand(std::vector<uint32_t> rootEntitiesToDelete)
+		: m_initialRootEntities(std::move(rootEntitiesToDelete)) {}
 
 	void DeleteEntityCommand::Execute() {
-		for (auto& e : m_entities) {
-			m_data = NE::CopyEntity(e);
-			NE::ECS::Command::DestroyEntity(e);
-			EditorScene::UnregisterRoot(e);
+		constexpr int kAppendIndex = std::numeric_limits<int>::max();
+
+		auto isEntityAlive = [](uint32_t entity) {
+			if (entity == NE::ECS::NO_ENTITY)
+				return false;
+
+			const auto& usedEntities = NE::GetNumEntities();
+			return std::find(usedEntities.begin(), usedEntities.end(), entity) != usedEntities.end();
+		};
+
+		// First Execute() captures deletion snapshots. Later Execute() calls are redo.
+		if (m_snapshots.empty()) {
+			m_snapshots.reserve(m_initialRootEntities.size());
+
+			for (uint32_t rootEntity : m_initialRootEntities) {
+				if (!isEntityAlive(rootEntity))
+					continue;
+
+				const auto& hierarchy = NE::ECS::Query::GetEntityHierarchy(rootEntity);
+
+				DeletedRootSnapshot snapshot{};
+				snapshot.wasRoot = hierarchy.parent == NE::ECS::Component::INVALID_PARENT;
+				snapshot.oldParent = snapshot.wasRoot
+					? NE::ECS::NO_ENTITY
+					: static_cast<uint32_t>(hierarchy.parent);
+
+				uint32_t oldIndex = EditorScene::GetIndexInParentOrRoot(rootEntity);
+				snapshot.oldIndex = (oldIndex == NE::ECS::NO_ENTITY)
+					? kAppendIndex
+					: static_cast<int>(oldIndex);
+
+				snapshot.blob = NE::CopyEntity(rootEntity);
+				if (snapshot.blob.empty())
+					continue;
+
+				snapshot.liveEntityId = rootEntity;
+				m_snapshots.push_back(std::move(snapshot));
+			}
+		}
+
+		for (auto& snapshot : m_snapshots) {
+			if (!isEntityAlive(snapshot.liveEntityId))
+				continue;
+
+			NE::ECS::Command::DestroyEntity(snapshot.liveEntityId);
+			EditorScene::UnregisterRoot(snapshot.liveEntityId);
+			snapshot.liveEntityId = NE::ECS::NO_ENTITY;
 		}
 
 		EditorScene::s_selection.Clear();
-		//const uint32_t rootId = m_entity;
-
-		//std::vector<uint32_t> toDelete;
-		//EditorScene::GetAllDescendants(rootId, toDelete);
-
-		//// store information about deleted UI entities before destroying them
-		//m_deletedEntities.clear();
-		//for (uint32_t id : toDelete) {
-		//	DeletedUIEntityInfo info;
-		//	info.id = id;
-		//	info.wasCanvas = NE::ECS::Query::HasUICanvas(id);
-		//	info.wasUIImage = NE::ECS::Query::HasUIImage(id);
-		//	info.parentId = NE::ECS::Query::GetParent(id);
-		//	m_deletedEntities.push_back(info);
-		//}
-
-		//for (uint32_t id : toDelete) {
-		//	{
-		//		auto it = std::find_if(
-		//			EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
-		//			[id](const EditorEntity& e) { return e.linkedEntity == id; }
-		//		);
-		//		if (it != EditorScene::s_entities.end()) {
-		//			EditorScene::s_entities.erase(it);
-		//		}
-		//	}
-
-		//	EditorScene::s_nodes.erase(id);
-
-		//	auto& roots = EditorScene::s_roots;
-		//	roots.erase(std::remove(roots.begin(), roots.end(), id), roots.end());
-
-		//	for (auto& [parent, vec] : EditorScene::s_children) {
-		//		vec.erase(std::remove(vec.begin(), vec.end(), id), vec.end());
-		//	}
-
-		//	NE::ECS::Command::DestroyEntity(id);
-		//}
-
-		//if (EditorScene::s_selectedEntity &&
-		//	std::find(toDelete.begin(), toDelete.end(),
-		//		EditorScene::s_selectedEntity->linkedEntity) != toDelete.end()) {
-		//	EditorScene::s_selectedEntity = nullptr;
-		//}
 	}
 
 	void DeleteEntityCommand::Undo() {
-		for (auto& e : m_entities) {
-			auto newEntt = NE::PasteEntity(m_data);
-			EditorScene::SetParent(newEntt, oldParentEntity, -1, true);
+		if (m_snapshots.empty())
+			return;
 
-			if (oldParentEntity == NE::ECS::NO_ENTITY)
-				EditorScene::RegisterRoot(newEntt);
+		auto isEntityAlive = [](uint32_t entity) {
+			if (entity == NE::ECS::NO_ENTITY)
+				return false;
+
+			const auto& usedEntities = NE::GetNumEntities();
+			return std::find(usedEntities.begin(), usedEntities.end(), entity) != usedEntities.end();
+		};
+
+		auto restoreSnapshot = [&](DeletedRootSnapshot& snapshot) {
+			uint32_t recreatedEntity = NE::PasteEntity(snapshot.blob);
+			if (recreatedEntity == NE::ECS::NO_ENTITY) {
+				snapshot.liveEntityId = NE::ECS::NO_ENTITY;
+				return;
+			}
+
+			const bool canRestoreToOriginalParent =
+				!snapshot.wasRoot &&
+				snapshot.oldParent != NE::ECS::NO_ENTITY &&
+				isEntityAlive(snapshot.oldParent);
+
+			if (canRestoreToOriginalParent) {
+				EditorScene::SetParent(recreatedEntity, snapshot.oldParent, snapshot.oldIndex, true);
+			} else {
+				EditorScene::RegisterRoot(recreatedEntity);
+				EditorScene::ReorderRoot(recreatedEntity, snapshot.oldIndex);
+			}
+
+			snapshot.liveEntityId = recreatedEntity;
+		};
+
+		std::vector<DeletedRootSnapshot*> nonRootSnapshots;
+		std::vector<DeletedRootSnapshot*> rootSnapshots;
+		nonRootSnapshots.reserve(m_snapshots.size());
+		rootSnapshots.reserve(m_snapshots.size());
+
+		for (auto& snapshot : m_snapshots) {
+			if (snapshot.wasRoot) {
+				rootSnapshots.push_back(&snapshot);
+			} else {
+				nonRootSnapshots.push_back(&snapshot);
+			}
 		}
-		//// sort entities so parents are recreated before children
-		//// (entities with no parent first, then their children, etc.)
-		//std::sort(m_deletedEntities.begin(), m_deletedEntities.end(),
-		//	[](const DeletedUIEntityInfo& a, const DeletedUIEntityInfo& b) {
-		//		// Canvases (no parent) should come first
-		//		if (a.parentId == NE::ECS::NO_ENTITY && b.parentId != NE::ECS::NO_ENTITY) return true;
-		//		if (a.parentId != NE::ECS::NO_ENTITY && b.parentId == NE::ECS::NO_ENTITY) return false;
-		//		return false;
-		//	});
 
-		//std::unordered_map<uint32_t, uint32_t> oldToNewId; // map old id to new id
+		std::sort(nonRootSnapshots.begin(), nonRootSnapshots.end(),
+			[](const DeletedRootSnapshot* lhs, const DeletedRootSnapshot* rhs) {
+				if (lhs->oldParent != rhs->oldParent)
+					return lhs->oldParent < rhs->oldParent;
+				return lhs->oldIndex < rhs->oldIndex;
+			});
 
-		//for (const auto& info : m_deletedEntities)
-		//{
-		//	uint32_t newEntity;
-		//	uint32_t newParentId = NE::ECS::NO_ENTITY;
-		//	if (info.parentId != NE::ECS::NO_ENTITY)
-		//	{
-		//		// If the parent was also deleted & recreated, remap to the NEW id
-		//		auto it = oldToNewId.find(info.parentId);
-		//		if (it != oldToNewId.end())
-		//		{
-		//			newParentId = it->second; // parent was recreated
-		//		}
-		//		else
-		//		{
-		//			newParentId = info.parentId; // parent still exists, keep original id
-		//		}
-		//	}
+		std::sort(rootSnapshots.begin(), rootSnapshots.end(),
+			[](const DeletedRootSnapshot* lhs, const DeletedRootSnapshot* rhs) {
+				return lhs->oldIndex < rhs->oldIndex;
+			});
 
-		//	// recreate the correct type of entity
-		//	if (info.wasCanvas)
-		//	{
-		//		newEntity = NE::ECS::Command::CreateUICanvasEntity();
-		//	}
-		//	else if (info.wasUIImage)
-		//	{
-		//		newEntity = NE::ECS::Command::CreateUIImageEntity(newParentId);
-		//	}
-		//	else
-		//	{
-		//		// just regular 3D entity
-		//		newEntity = NE::ECS::Command::CreateEntity();
-		//	}
+		for (DeletedRootSnapshot* snapshot : nonRootSnapshots)
+			restoreSnapshot(*snapshot);
 
-		//	oldToNewId[info.id] = newEntity;
+		for (DeletedRootSnapshot* snapshot : rootSnapshots)
+			restoreSnapshot(*snapshot);
 
-		//	// add to editor scene
-		//	EditorScene::s_entities.push_back(EditorEntity{ newEntity });
+		std::vector<uint32_t> restoredSelection;
+		restoredSelection.reserve(m_snapshots.size());
+		for (const auto& snapshot : m_snapshots) {
+			if (snapshot.liveEntityId != NE::ECS::NO_ENTITY)
+				restoredSelection.push_back(snapshot.liveEntityId);
+		}
 
-		//	// setup editor hierarchy
-		//	Editor::Node node{};
-		//	node.id = newEntity;
+		if (restoredSelection.empty()) {
+			EditorScene::s_selection.Clear();
+			return;
+		}
 
-		//	if (newParentId != NE::ECS::NO_ENTITY)
-		//	{
-		//		// has a parent
-		//		node.parent = newParentId;
-		//		auto& children = EditorScene::s_children[newParentId];
-		//		node.orderKey = static_cast<float>(children.size());
-		//		children.push_back(newEntity);
-		//	}
-		//	else
-		//	{
-		//		// root entity
-		//		node.parent = NE::ECS::NO_ENTITY;
-		//		node.orderKey = static_cast<float>(EditorScene::s_roots.size());
-		//		EditorScene::s_roots.push_back(newEntity);
-		//	}
-
-		//	EditorScene::s_nodes[newEntity] = node;
-		//}
-
-		//// update m_entity to the new root id (the canvas in this case)
-		//if (!m_deletedEntities.empty())
-		//{
-		//	// find the root entity (the one with no parent)
-		//	for (const auto& info : m_deletedEntities)
-		//	{
-		//		if (info.parentId == NE::ECS::NO_ENTITY)
-		//		{
-		//			m_entity = oldToNewId[info.id];
-		//			break;
-		//		}
-		//	}
-
-		//	// select the recreated root entity
-		//	auto it = std::find_if(EditorScene::s_entities.begin(), EditorScene::s_entities.end(),
-		//		[id = m_entity](const EditorEntity& e) { return e.linkedEntity == id; });
-		//	if (it != EditorScene::s_entities.end()) {
-		//		Editor::EditorScene::s_selectedEntity = &(*it);
-		//	}
-		//}
+		EditorScene::s_selection.SetSingle(restoredSelection.front());
+		for (size_t i = 1; i < restoredSelection.size(); ++i)
+			EditorScene::s_selection.Add(restoredSelection[i]);
 	}
 
 	CreateCubeEntityCommand::CreateCubeEntityCommand(uint32_t parentEntity) 

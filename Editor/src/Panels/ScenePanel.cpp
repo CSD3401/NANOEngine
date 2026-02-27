@@ -1,4 +1,5 @@
-﻿#include "ScenePanel.hpp"
+#include "pch.h"
+#include "ScenePanel.hpp"
 #include "Math/Vec3.hpp"
 #include <imgui/imgui.h>
 #include <unordered_set>

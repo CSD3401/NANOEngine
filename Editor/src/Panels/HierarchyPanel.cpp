@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "HierarchyPanel.hpp"
 
 #include <imgui/imgui.h>
@@ -64,7 +65,7 @@ namespace Editor {
 			return false;
 		}
 
-		std::vector<uint32_t> BuildDeleteList(const std::vector<uint32_t>& selection) {
+		std::vector<uint32_t> BuildDeleteRoots(const std::vector<uint32_t>& selection) {
 			std::unordered_set<uint32_t> selected;
 			selected.reserve(selection.size() * 2);
 			for (auto e : selection) selected.insert(e);
@@ -75,29 +76,7 @@ namespace Editor {
 				if (!Utility::IsDescendantOfSelected(e, selected))
 					roots.push_back(e);
 			}
-
-			std::vector<uint32_t> out;
-			std::unordered_set<uint32_t> visited;
-			visited.reserve(roots.size() * 8);
-
-			std::vector<uint32_t> stack;
-			for (auto r : roots) stack.push_back(r);
-
-			while (!stack.empty()) {
-				uint32_t e = stack.back();
-				stack.pop_back();
-
-				if (!visited.insert(e).second)
-					continue;
-
-				out.push_back(e);
-
-				auto& children = NE::ECS::Query::GetEntityHierarchy(e).children;
-				for (uint32_t c : children)
-					stack.push_back(c);
-			}
-
-			return out;
+			return roots;
 		}
 	}
 
@@ -257,15 +236,13 @@ namespace Editor {
 			}
 
 			if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && !EditorScene::s_selection.Empty()) {
-				//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
-				std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] };
-
-				auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
-
-				NANOEngine::Events::EventBus::Get().Dispatch(
-					NANOEngine::Events::EventDomain::Editor,
-					Events::DeleteEntityEvent{ toDelete, h.parent }
-				);
+				std::vector<uint32_t> toDelete = BuildDeleteRoots(EditorScene::s_selection.GetSelection());
+				if (!toDelete.empty()) {
+					NANOEngine::Events::EventBus::Get().Dispatch(
+						NANOEngine::Events::EventDomain::Editor,
+						Events::DeleteEntityEvent{ toDelete }
+					);
+				}
 			}
 
 			if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -637,15 +614,13 @@ namespace Editor {
 			//		DeleteEntityEvent{ idToDelete }
 			//	);
 			//}
-			//std::vector<uint32_t> toDelete = BuildDeleteList(EditorScene::s_selection.GetSelection());
-			std::vector<uint32_t> toDelete{ EditorScene::s_selection.GetSelection()[0] }; // just delete the first selected for now
-
-			auto& h = NE::ECS::Query::GetEntityHierarchy(toDelete[0]);
-
-			NANOEngine::Events::EventBus::Get().Dispatch(
-				NANOEngine::Events::EventDomain::Editor,
-				Events::DeleteEntityEvent{ toDelete, h.parent }
-			);
+			std::vector<uint32_t> toDelete = BuildDeleteRoots(EditorScene::s_selection.GetSelection());
+			if (!toDelete.empty()) {
+				NANOEngine::Events::EventBus::Get().Dispatch(
+					NANOEngine::Events::EventDomain::Editor,
+					Events::DeleteEntityEvent{ toDelete }
+				);
+			}
 		}
 
 		ImGui::Separator();

@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "Quat.hpp"
 #include "Vec3.hpp"
 #include "Mat4.hpp"

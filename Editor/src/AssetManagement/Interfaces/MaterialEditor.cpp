@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "MaterialEditor.hpp"
 
 #include <fstream>

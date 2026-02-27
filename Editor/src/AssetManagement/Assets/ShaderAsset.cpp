@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ShaderAsset.hpp"
 
 #include <fstream>

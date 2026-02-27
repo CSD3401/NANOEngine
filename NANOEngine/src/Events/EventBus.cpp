@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "EventBus.hpp"
 
 namespace NANOEngine::Events {

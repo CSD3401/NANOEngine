@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ModelSettingsEditor.hpp"
 
 #include <imgui/imgui.h>

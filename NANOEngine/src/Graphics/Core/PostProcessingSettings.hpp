@@ -16,13 +16,13 @@ namespace NE::Graphics {
 			ACESFitted
 		};
 
-		Math::Vec3 tint;
+		Math::Vec3 tint{ 1.f, 1.f, 1.f };
 
 		float brightThreshold = 1.f;
 		float brightScale = 1.f;
-		float softKnee = 0.2f;
+		float softKnee = 0.5f;
 		float bloomRadius = 1.f;
-		float bloomIntensity = 0.1f;
+		float bloomIntensity = 0.06f;
 		float exposure = 1.f;
 
 		ToneMapType toneMapType = ToneMapType::Reinhard;

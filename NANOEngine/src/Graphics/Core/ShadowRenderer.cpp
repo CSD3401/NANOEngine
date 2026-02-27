@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ShadowRenderer.hpp"
 
 #include <algorithm>
@@ -12,6 +13,7 @@
 #include "Frustum.hpp"
 
 #include "ECS/Components/Light.hpp"
+#include "Core/Profiler.hpp"
 
 namespace NE::Graphics {
 	namespace {
@@ -167,6 +169,9 @@ namespace NE::Graphics {
 		std::vector<ECS::Component::Light*>& lights,
 		const std::vector<DrawCommand>& commands
 	) {
+#ifndef PRODUCTION_BUILD
+		NE_PROFILE_FUNCTION();
+#endif
 		if (lights.empty() || commands.empty()) return;
 
 		for (auto& light : lights) {

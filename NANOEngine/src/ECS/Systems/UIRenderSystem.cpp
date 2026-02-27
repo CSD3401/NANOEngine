@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UIRenderSystem.hpp"
 #include "../Components/UIRectTransform.hpp"
 #include "../Components/UIImage.hpp"

@@ -26,10 +26,15 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+    <ItemGroup>
+    <ClInclude Include="src\pch.h" />
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />
     <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
     <ClInclude Include="src\ECS\ECSEvents.hpp" />
+    <ClInclude Include="src\Graphics\Core\DecalCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\DecalGizmoCommand.hpp" />
     <ClInclude Include="src\Graphics\Core\RenderGraph\TextureFormats.hpp" />
     <ClInclude Include="src\Graphics\Core\ShadowRenderer.hpp" />
     <ClInclude Include="src\Graphics\Core\PostProcessPipeline.hpp" />
@@ -222,6 +227,11 @@
     <ClInclude Include="src\Graphics\Core\RenderGraph\TexturePool.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\ECS\Systems\DecalProjectorSystem.cpp" />
     <ClCompile Include="src\Graphics\DebugRenderer\DebugDrawSystem.cpp" />
     <ClCompile Include="src\Graphics\Core\ShadowRenderer.cpp" />
@@ -304,7 +314,11 @@
     <ClCompile Include="src\Graphics\OpenGL\GLShader.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLPipeline.cpp" />
     <ClCompile Include="src\Graphics\OpenGL\GLCommandBuffer.cpp" />
-    <ClCompile Include="src\Graphics\OpenGL\glad.c" />
+    <ClCompile Include="src\Graphics\OpenGL\glad.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Production|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\Graphics\OpenGL\GLContext.cpp" />
     <ClCompile Include="src\Graphics\Core\Window.cpp" />
     <ClCompile Include="src\Math\Mat3.cpp" />
@@ -464,6 +478,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -493,6 +509,8 @@ xcopy /y /d "$(ProjectDir)vendor\lib\fmod\*.dll" "$(SolutionDir)bin\Chrono\$(Con
       <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -525,6 +543,8 @@ xcopy /Y "$(ProjectDir)vendor\lib\glfw\glfw3.dll" "$(SolutionDir)bin\Chrono\$(Co
       <TreatWarningAsError>false</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir)vendor\include;$(ProjectDir)src</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

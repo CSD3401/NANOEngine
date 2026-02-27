@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "AnimatorControllerIO.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>

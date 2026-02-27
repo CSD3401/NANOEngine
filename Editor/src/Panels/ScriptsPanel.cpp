@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "ScriptsPanel.hpp"
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>

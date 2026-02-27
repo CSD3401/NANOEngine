@@ -296,6 +296,8 @@
     <ClInclude Include="src\ECS\ECSEvents.hpp" />
     <ClInclude Include="src\ECS\Components\DecalProjector.hpp" />
     <ClInclude Include="src\ECS\Systems\DecalProjectorSystem.hpp" />
+    <ClInclude Include="src\Graphics\Core\DecalGizmoCommand.hpp" />
+    <ClInclude Include="src\Graphics\Core\DecalCommand.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Timer.cpp">

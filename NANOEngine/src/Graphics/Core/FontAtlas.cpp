@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "FontAtlas.hpp"
 #include "Font.hpp"
 #include "ResourceManagement/ResourceManager.hpp"

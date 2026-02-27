@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "DecalProjectorSystem.hpp"
 #include "ECS/Components/EntityMeta.hpp"
 #include "ECS/Components/Transform.hpp"
