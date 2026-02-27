@@ -1177,8 +1177,10 @@ namespace NE::Physics {
 		JPH::BodyInterface& bi = m_physicsSystem->GetBodyInterface();
 
 		for (auto& [luid, id] : m_bodies) {
-			bi.RemoveBody(id);
-			bi.DestroyBody(id);
+			if (bi.IsAdded(id)) {
+				bi.RemoveBody(id);
+				bi.DestroyBody(id);
+			}
 		}
 		m_bodies.clear();
 		m_bodyToLuid.clear();

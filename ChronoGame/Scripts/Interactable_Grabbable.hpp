@@ -15,6 +15,7 @@ public:
         SCRIPT_COMPONENT_REF(body, RigidbodyRef);
         SCRIPT_FIELD(isHeavy, Bool);
         SCRIPT_FIELD(activatesPressurePlates, Bool);
+        SCRIPT_FIELD(lockWhenNotGrabbed, Bool);
         SCRIPT_GAMEOBJECT_REF(playerGrabber);
     }
     ~Interactable_Grabbable() override = default;
@@ -40,7 +41,26 @@ public:
         std::string eID = "GRAB E_ID: " + std::to_string(GetEntity());
         LOG_DEBUG(eID);
     }
-    void Update(double deltaTime) override {}
+    void Update(double deltaTime) override
+    {
+        (void)deltaTime;
+        if (!lockWhenNotGrabbed || !RB_HasRigidbody(GetEntity())) {
+            return;
+        }
+
+        if (playerGrabber.IsValid()) {
+            auto* grabber = GameObject(playerGrabber.GetEntity()).GetComponent<Misc_Grabber>();
+            if (grabber && grabber->IsGrabbing() && grabber->GetCurrentlyGrabbing() == GetEntity()) {
+                return;
+            }
+        }
+
+        Vec3 vel = RB_GetVelocity(GetEntity());
+        vel.x = 0.0f;
+        vel.z = 0.0f;
+        RB_SetVelocity(vel, GetEntity());
+        RB_SetAngularVelocity(Vec3::Zero(), GetEntity());
+    }
     void OnDestroy() override {}
 
     // === Optional Callbacks ===
@@ -78,9 +98,16 @@ public:
         return activatesPressurePlates;
     }
 
+    void ForceLetGo()
+    {
+        GameObject playerRef(playerGrabber.GetEntity());
+        playerRef.GetComponent<Misc_Grabber>()->LetGo();
+    }
+
 private:
     RigidbodyRef body;
     bool isHeavy = false;
     bool activatesPressurePlates = false;
+    bool lockWhenNotGrabbed = true;
     GameObjectRef playerGrabber;
 };

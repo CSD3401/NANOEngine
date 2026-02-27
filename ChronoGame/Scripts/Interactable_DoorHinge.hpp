@@ -19,6 +19,7 @@ class Interactable_DoorHinge : public IScript {
 public:
     Interactable_DoorHinge() {
         SCRIPT_GAMEOBJECT_REF(playerRef);
+        SCRIPT_GAMEOBJECT_REF(doorRef);
         SCRIPT_FIELD(isEventBased, Bool);
         SCRIPT_FIELD(eventName, String);
         SCRIPT_FIELD(interactionDistance, Float);
@@ -78,7 +79,7 @@ public:
         // Get player entity and positions
         Entity player = playerRef.GetEntity();
         Vec3 playerPos = GetPosition(GetTransformRef(player));
-        Vec3 hingePos = GetPosition(GetTransformRef(hingeEntity));
+        Vec3 hingePos = TF_GetPosition(hingeEntity);
 
         // Calculate distance
         Vec3 delta = playerPos - hingePos;
@@ -107,6 +108,8 @@ public:
 
 private:
     void OpenDoor() {
+        PlayAudio("event:/DOOR_OPEN");
+
         isRotating = true;
 
         // Target rotation: only Y changes
@@ -125,6 +128,8 @@ private:
             hingeEntity
         );
 
+        RB_SetIsTrigger(true, doorRef.GetEntity());
+
         if (logInteractions) {
             LOG_DEBUG("Door opening! Rotating from Y={} to Y={}", startingRotation.y, targetRotationY);
         }
@@ -140,6 +145,7 @@ private:
     bool logInteractions = true;
 
     // Runtime
+    GameObjectRef doorRef;
     Entity hingeEntity = 0;
     Vec3 startingRotation;
     bool isRotating = false;

@@ -43,12 +43,14 @@ public:
             Events::Send("ChronoActivated");
             LOG_INFO("Puzzle_Sinkhole_TestTrigger: ChronoActivated sent");
             LOG_INFO("You are now in the past !");
+            PlayAudio("event:/SWITCH_TO_PAST");
         }
 
         if (Input::WasKeyPressed('2')) {
             Events::Send("ChronoDeactivated");
             LOG_INFO("Puzzle_Sinkhole_TestTrigger: ChronoDeactivated sent");
             LOG_INFO("You are now in the present !");
+            PlayAudio("event:/SWITCH_TO_PRESENT");
         }
 
         return;

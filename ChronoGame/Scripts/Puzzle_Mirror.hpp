@@ -177,16 +177,20 @@ public:
 
         // Handle WASD input (commented out for now)
         
-        if (Input::WasKeyPressed('W') || Input::WasKeyPressed(VK_UP)) {
+        if (Input::WasKeyPressed('I')) {
+            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
             TryMoveUp();
         }
-        if (Input::WasKeyPressed('S') || Input::WasKeyPressed(VK_DOWN)) {
+        if (Input::WasKeyPressed('K')) {
+            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
             TryMoveDown();
         }
-        if (Input::WasKeyPressed('A') || Input::WasKeyPressed(VK_LEFT)) {
+        if (Input::WasKeyPressed('J')) {
+            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
             TryMoveLeft();
         }
-        if (Input::WasKeyPressed('D') || Input::WasKeyPressed(VK_RIGHT)) {
+        if (Input::WasKeyPressed('L')) {
+            PlayAudio("event:/COLOR_CLICK"); // REPLACE THIS - RF
             TryMoveRight();
         }
         
@@ -200,6 +204,7 @@ public:
                 // Send event
                 if (!eventName.empty()) {
                     Events::Send(eventName.c_str(), nullptr);
+                    PlayAudio("event:/DOOR_OPEN"); // REPLACE THIS - RF
                 }
 
                 SetActive(true, mazeServerDoor.GetEntity());

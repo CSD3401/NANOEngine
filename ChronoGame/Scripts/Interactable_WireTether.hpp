@@ -28,6 +28,8 @@ public:
         wireData = correctSide ? "1" : "0";
         wireData += std::to_string(wireIndex);
         Events::Send(message.c_str(), &wireData);
+        PlayAudio("event:/CLICK_WIRE_BUTTON");
+
     }
 
     // === Lifecycle Methods ===
