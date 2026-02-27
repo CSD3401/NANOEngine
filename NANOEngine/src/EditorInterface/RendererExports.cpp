@@ -1,5 +1,5 @@
-#include <glad/glad.h>
 #include "pch.h"
+#include <glad/glad.h>
 #include "RendererExports.hpp"
 #include "SceneManagement/Scene.hpp"
 
