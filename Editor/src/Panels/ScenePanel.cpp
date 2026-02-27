@@ -11,7 +11,6 @@
 #include "Engine.hpp"
 #include <imgui/widgets/imguizmo/ImGuizmo.h>
 #include <EditorInterface/ECSExports.hpp>
-#include <Graphics/Core/GraphicsManager.hpp>
 #include <ECS/Components/Transform.hpp>
 #include <ECS/Components/Hierarchy.hpp>
 #include <ECS/Components/UIRectTransform.hpp>
@@ -21,10 +20,11 @@
 #include "../UIGizmoHandler.hpp"
 #include <limits>
 #include <algorithm>
-#include "../EditorState.hpp"
 #include "../Serialization/Serializer.hpp"
 #include <Events/EventBus.hpp>
 #include "../EditorEvents.hpp"
+
+#include "../Util/HierarchyUtils.hpp"
 
 #define NOMINMAX
 #include <Windows.h>
@@ -120,6 +120,20 @@ namespace Editor {
 			POINT p;
 			GetCursorPos(&p);
 			return ImVec2((float)p.x, (float)p.y);
+		}
+
+		std::vector<uint32_t> BuildDeleteRoots(const std::vector<uint32_t>& selection) {
+			std::unordered_set<uint32_t> selected;
+			selected.reserve(selection.size() * 2);
+			for (auto e : selection) selected.insert(e);
+
+			std::vector<uint32_t> roots;
+			roots.reserve(selection.size());
+			for (auto e : selection) {
+				if (!Utility::IsDescendantOfSelected(e, selected))
+					roots.push_back(e);
+			}
+			return roots;
 		}
 	}
 
@@ -432,6 +446,18 @@ namespace Editor {
 			bool insideScene =
 				mousePos.x >= panelPos.x && mousePos.x < panelPos.x + panelSize.x &&
 				mousePos.y >= panelPos.y && mousePos.y < panelPos.y + panelSize.y;
+
+			if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
+				if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && !EditorScene::s_selection.Empty()) {
+					std::vector<uint32_t> toDelete = BuildDeleteRoots(EditorScene::s_selection.GetSelection());
+					if (!toDelete.empty()) {
+						NANOEngine::Events::EventBus::Get().Dispatch(
+							NANOEngine::Events::EventDomain::Editor,
+							Events::DeleteEntityEvent{ toDelete }
+						);
+					}
+				}
+			}
 
 			if (insideScene && !ImGui::IsAnyItemHovered()) {
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
