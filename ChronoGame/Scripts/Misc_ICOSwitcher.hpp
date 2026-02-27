@@ -1,5 +1,6 @@
 #pragma once
 #include "EngineAPI.hpp"
+#include <ScriptSDK/ScriptAPI.h>
 /*
 * Miscellaneous_ICOSwitcher:
 * - Listens for ChronoActivated/ChronoDeactivated events
@@ -30,6 +31,9 @@ public:
         
 		// RF - Start the game in the present state aka presentObj - active  , pastObj - inactive
         //Activate();
+
+        // Irwen - mouse visibility here for now
+        NE::Scripting::SetMouseVisible(false);
 
         if (!CheckObjectsValid()) return;
 

@@ -32,6 +32,12 @@ public:
 
     void Update(double deltaTime) override {
         // Called every frame while the script is enabled
+        if (inPanel)
+        {
+            TF_SetPosition(pos, GetEntity());
+            TF_SetScale(scale, GetEntity());
+            TF_SetRotation(rot, GetEntity());
+        }
     }
 
     void OnDestroy() override {
@@ -57,7 +63,8 @@ public:
     }
 
     void Interact() override {
-        Interactable_Grabbable::Interact();
+        if (!inPanel)
+            Interactable_Grabbable::Interact();
     }
 
     // === Collision Callbacks ===
@@ -69,16 +76,26 @@ public:
     void OnTriggerExit(Entity other) override { (void)other; }
     void OnTriggerStay(Entity other) override { (void)other; }
 
-    void Align(Vec3 pos, Vec3 scale, Vec3 rot)
+    void Align(Vec3 p, Vec3 s, Vec3 r)
     {
-        TransformRef t = this->GetTransformRef(GetEntity());
-        SetPosition(t, pos);
-        SetScale(t, scale);
-        SetRotation(t, rot);
+        
+        inPanel = true;
+        LOG_DEBUG("ALIGNING BATTERY");
+        TransformRef t = GetTransformRef(GetEntity());
+        std::string logMsg = "POS[X: " + std::to_string(p.x) + ", Y: " + std::to_string(p.y) + ", Z: " + std::to_string(p.z) + "]";
+        LOG_DEBUG(logMsg);
+        pos = p;
+        scale = s;
+        rot = r;
+
+        Interactable_Grabbable::ForceLetGo();
     }
 
 private:
     // Add your private member variables here
     // Example: float speed = 5.0f;
-
+    Vec3 pos;
+    Vec3 scale;
+    Vec3 rot;
+    bool inPanel = false;
 };

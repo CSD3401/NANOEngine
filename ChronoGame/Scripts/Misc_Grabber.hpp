@@ -123,6 +123,11 @@ public:
         return isGrabbing;
     }
 
+    Entity GetCurrentlyGrabbing() const
+    {
+        return currentlyGrabbing;
+    }
+
     void Grab(Entity object, bool heavy, bool pressurePlates)
     {
         currentlyGrabbing = object;
@@ -156,10 +161,10 @@ public:
 
 private:
     // no instance cause whats singleton lmao
-    float distance = 5.0f;
-    float grabStrength = 0.0f;
-    float damping = 0.0f;
-    float timerBuffer = 0.0f;
+    float distance;
+    float grabStrength;
+    float damping;
+    float timerBuffer;
 
     Vec3 targetPosition;
     Entity currentlyGrabbing;

@@ -86,6 +86,8 @@ public:
 
 private:
     void OpenGate() {
+        PlayAudio("event:/DOOR_SLIDE");
+
         isMoving = true;
 
         // Calculate target position: move along Z axis by moveDistance

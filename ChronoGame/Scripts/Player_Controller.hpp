@@ -62,14 +62,13 @@ public:
 
         // === Camera controls ===
         std::pair<double, double> const& mouseDelta = Input::GetMouseDelta();
-        lookRotation.x -= static_cast<float>(mouseDelta.first) * lookSensitivity;   // Yaw
-        lookRotation.y -= static_cast<float>(mouseDelta.second) * lookSensitivity;  // Pitch
+        lookRotation.x -= static_cast<float>(mouseDelta.first) * lookSensitivity;
+        lookRotation.y -= static_cast<float>(mouseDelta.second) * lookSensitivity;
         lookRotation.y = std::clamp(lookRotation.y, -89.0f, 89.0f);
         CC_Rotate(lookRotation.x);
         TF_SetRotation({ lookRotation.y, 0.0f, 0.0f }, playerCameraEntity);
 
         // === Movement controls ===
-        // Input Direction
         Vec3 inputDirection = Vec3::Zero();
         if (Input::IsKeyDown('W')) { inputDirection.z += 1.0f; }
         if (Input::IsKeyDown('S')) { inputDirection.z -= 1.0f; }
@@ -87,43 +86,51 @@ public:
 
         // === Jumping ===
         if (isGrounded)
-        {   
-			velocity.y = -2.0f; // Small downward force to keep grounded
+        {
+            velocity.y = -2.0f;
             if (Input::IsKeyDown(' '))
             {
                 velocity.y = jumpStrength;
                 isGrounded = false;
+                PlayAudio("event:/JUMP");
             }
         }
         else
         {
-			velocity.y -= gravity * static_cast<float>(deltaTime);
+            velocity.y -= gravity * static_cast<float>(deltaTime);
         }
 
-		// === Velocity Smoothing ===
+        // === Velocity Smoothing ===
         Vec3 targetVelocity
         {
             moveDirection.x * moveSpeed,
             velocity.y,
             moveDirection.z * moveSpeed
         };
-		velocity.x = manager->SnappyLerp(
-            velocity.x, 
-            targetVelocity.x, 
-            snappiness, 
-            static_cast<float>(deltaTime)
-        );
-        velocity.z = manager->SnappyLerp(
-            velocity.z,
-            targetVelocity.z,
-            snappiness,
-            static_cast<float>(deltaTime)
-        );
+        velocity.x = manager->SnappyLerp(velocity.x, targetVelocity.x, snappiness, static_cast<float>(deltaTime));
+        velocity.z = manager->SnappyLerp(velocity.z, targetVelocity.z, snappiness, static_cast<float>(deltaTime));
+
+        // === Walking Sound ===
+        bool isMoving = inputDirection.x != 0.0f || inputDirection.z != 0.0f;
+
+        if (isGrounded && isMoving) {
+            // Play walking sound (looping in FMOD)
+            if (!isWalkingSoundPlaying) {
+                PlayAudio("event:/WALK");
+                isWalkingSoundPlaying = true;
+            }
+        }
+        else {
+            // Stop walking sound when not moving or in air
+            if (isWalkingSoundPlaying) {
+                StopAudio("event:/WALK");
+                isWalkingSoundPlaying = false;
+            }
+        }
 
         // Assign
         CC_Move(velocity * static_cast<float>(deltaTime));
-    }
-    void OnDestroy() override {}
+    }    void OnDestroy() override {}
 
     // === Optional Callbacks ===
     void OnEnable() override {}
@@ -155,4 +162,7 @@ private:
     float jumpStrength;
     float snappiness;
 	float gravity;
+
+    // === Audio ===
+    bool isWalkingSoundPlaying = false;  // ADD THIS
 };

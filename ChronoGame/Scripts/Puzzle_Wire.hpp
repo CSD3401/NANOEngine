@@ -219,8 +219,9 @@ public:
             if (CheckWirePair()) // if all 4 are correct
             {
                 LOG_DEBUG("PUZZLE SOLVED!");
-                std::string message = "PuzzleSolved1";
+                std::string message = wirePuzzleIndex == 0 ? "PuzzleSolved1" : "PuzzleSolved2";
                 Events::Send(eventName.c_str());
+                PlayAudio("event:/SOLVE_WIRE_PUZZLE");
             }
 
         }
@@ -230,6 +231,8 @@ public:
     {
         if (wireColours[currentSelectedLeftIndex] == correctColours[currentSelectedRightIndex])
         {
+            PlayAudio("event:/CONNECT_WIRE");
+
             // if true turn on the wire connecting them
             SetActive(true, connectedWires[currentSelectedRightIndex]);
             // then reset

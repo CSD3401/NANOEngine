@@ -218,6 +218,8 @@ public:
 
     // Accepts either slotNumber 1..9 (recommended) or 0..8.
     void ReceiveInput(int input) {
+        PlayAudio("event:/COLOR_CLICK");
+
         if (m_state != State::WaitingInput) return;
         if (m_sequence.empty()) return;
 
@@ -265,6 +267,7 @@ private:
         //Events::Send(evt, payload); // this crashes - RF
         Events::Send(evt, &puzzleKeyId);
         Events::Send("RaziPuzzle");
+        PlayAudio("event:/DOOR_OPEN"); // REPLACE THIS - RF
     }
 
     void BeginNewRound(bool reseed) {
@@ -368,6 +371,7 @@ private:
         Coroutines::AddWait(handle, 0.08f);
         Coroutines::AddAction(handle, [this, slotIndex]() {
             if (m_state == State::WaitingInput) SetSlotLightState(slotIndex, false);
+            PlayAudio("event:/BUTTON_CLICK");
             });
         Coroutines::Start(handle);
     }

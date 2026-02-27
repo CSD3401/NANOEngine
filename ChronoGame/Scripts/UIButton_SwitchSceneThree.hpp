@@ -16,7 +16,7 @@ public:
     }
     void Start() override {
        //scenePath = "23817f87-176c-4c6d-84a9-1999ac689ce9";
-        scenePath = "Library/Artifacts/23/23817f87-176c-4c6d-84a9-1999ac689ce9";
+        scenePath = "e17cc794-74d9-40ee-9c9e-efaa829ab09a";
     }
 
     void Update(double /*dt*/) override {
