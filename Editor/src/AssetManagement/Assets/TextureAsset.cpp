@@ -25,9 +25,9 @@ namespace Editor::Assets {
 			}
 			else if (filename.find("_r.") != std::string::npos || filename.find("_roughness.") != std::string::npos ||
 				filename.find("_m.") != std::string::npos || filename.find("_metallic.") != std::string::npos ||
-				filename.find("_ao.") != std::string::npos ||
-				filename.find("_o.") != std::string::npos || 
-				filename.find("_h.") != std::string::npos) 
+				filename.find("_ao.") != std::string::npos || filename.find("_ambientocclusion.") != std::string::npos ||
+				filename.find("_o.") != std::string::npos || filename.find("_opacity.") != std::string::npos ||
+				filename.find("_h.") != std::string::npos || filename.find("_height.") != std::string::npos) 
 			{
 				importSettings.sRGB = false;
 			}
